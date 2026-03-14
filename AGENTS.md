@@ -5,7 +5,7 @@ If anything about this repository is surprising, brittle, or easy to get wrong, 
 ## Project Structure & Module Organization
 Core code lives in `scripts/`, with one CLI per pipeline stage: response collection, answer-token extraction, balanced ID sampling, activation extraction, classifier training, and intervention helpers. Put new research utilities in `scripts/` unless they justify a reusable package.
 
-`data/` holds local datasets, sampled JSONL outputs, and review artifacts. Keep large generated files out of commits unless they are small, reproducible examples such as `data/examples/`. `docs/` contains research notes and deep-research writeups; the root `README.md` is the canonical pipeline overview.
+`data/` holds local datasets, sampled JSONL outputs, and review artifacts. Commit intermediate pipeline outputs (JSONL, JSON) to git — the original H-Neurons repo does this for all `data/examples/` files (up to ~800KB each) and raw TriviaQA parquets. Keep model weights and ephemeral logs out (covered by `.gitignore`). `docs/` contains research notes and deep-research writeups; the root `README.md` is the canonical pipeline overview.
 
 ## Build, Test, and Development Commands
 Use `uv` for Python environment management.
