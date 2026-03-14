@@ -6,11 +6,9 @@ import argparse
 import time
 from typing import List, Set, Dict
 
-import torch
 from tqdm import tqdm
 from datasets import load_dataset
-from vllm import LLM, SamplingParams
-from openai import OpenAI  # 用于 LLM Judge
+from openai import OpenAI
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Consistency Filtering with Rule or LLM Judge.")
@@ -20,8 +18,8 @@ def parse_args():
     
     parser.add_argument("--sample_num", type=int, default=10, help="Samples per question")
     parser.add_argument("--max_samples", type=int, default=None, help="Maximum number of questions to process")
-    parser.add_argument("--gpu_util", type=float, default=0.7, help="vLLM GPU memory utilization")
-    parser.add_argument("--tp_size", type=int, default=None, help="Tensor parallel size")
+    parser.add_argument("--sampling_base_url", type=str, default="http://127.0.0.1:8080/v1", help="Base URL for sampling LLM")
+    parser.add_argument("--sampling_api_key", type=str, default="not-needed", help="API key for sampling LLM")
 
     parser.add_argument("--judge_type", type=str, choices=["rule", "llm"], default="rule", help="How to judge correctness")
     parser.add_argument("--api_key", type=str, default=None, help="API key for LLM Judge")
@@ -63,18 +61,10 @@ class ConsistencySampler:
     def __init__(self, args):
         self.args = args
         
-        # 1. Init Sampling LLM (vLLM)
-        self.tp_size = args.tp_size or torch.cuda.device_count()
-
-        self.sampling_llm = LLM(
-            model=args.model_path,
-            tensor_parallel_size=self.tp_size,
-            gpu_memory_utilization=args.gpu_util,
-            trust_remote_code=True
-        )
-
-        self.sampling_params = SamplingParams(
-            temperature=1.0, top_p=0.9, top_k=50, max_tokens=50
+        # 1. Init Sampling LLM (OpenAI-compatible endpoint)
+        self.sampling_client = OpenAI(
+            api_key=args.sampling_api_key,
+            base_url=args.sampling_base_url,
         )
 
         # 2. Init Judge Client (if needed)
@@ -155,8 +145,15 @@ class ConsistencySampler:
 
                 for _ in range(self.args.sample_num):
                     try:
-                        outputs = self.sampling_llm.chat(messages, self.sampling_params, use_tqdm=False)
-                        ans = outputs[0].outputs[0].text.strip()
+                        completion = self.sampling_client.chat.completions.create(
+                            model="local",
+                            messages=messages,
+                            temperature=1.0,
+                            top_p=0.9,
+                            top_k=50,
+                            max_tokens=50,
+                        )
+                        ans = completion.choices[0].message.content.strip()
                         responses.append(ans)
 
                         # 1. Uncertainty check (Rule-based pre-filter)
