@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-If anything about this repository is surprising, brittle, or easy to get wrong, add a short, specific note to this file when you discover it. Capture recurring quirks, unexpected workflows, hidden dependencies, stale references, or repeatable errors so future agents do not waste time rediscovering them.
+If anything about this repository is surprising, brittle, or easy to get wrong, add a short, specific note to this file when you discover it. Capture recurring quirks, unexpected workflows, hidden dependencies, stale references, or repeating errors in agent workflows so future sessions do not waste time rediscovering them.
 
 ## Project Structure & Module Organization
 Core code lives in `scripts/`, with one CLI per pipeline stage: response collection, answer-token extraction, balanced ID sampling, activation extraction, classifier training, and intervention helpers. Put new research utilities in `scripts/` unless they justify a reusable package.
@@ -18,12 +18,10 @@ Use `uv` for Python environment management.
 - `uv run ty check` performs a lightweight type pass if you introduce nontrivial new logic.
 
 ## Coding Style & Naming Conventions
-Follow existing Python script style: 4-space indentation, module-level helper functions, and explicit `argparse` flags for CLIs. Prefer `snake_case` for functions, variables, file names, and JSON keys. Keep scripts composable: inputs and outputs should be passed by path flags, not hard-coded.
+Follow existing Python conventions and modern best practices.
 
 ## Testing Guidelines
-There is no formal `tests/` suite yet. Treat validation like a lab notebook: run `--help`, then exercise changes on a small sample slice such as `--max_samples 5`, and record any important assumptions in the PR. If you add tests, place them under `tests/` and name files `test_<feature>.py`.
+There is no formal `tests/` suite yet. Use judgment and follow best practices.
 
 ## Commit & Pull Request Guidelines
-Recent history uses Conventional Commit-style subjects such as `feat(scripts): add transformers backend` and `docs(setup): add compatibility notes`. Follow that pattern with clear scopes: `feat`, `fix`, `docs`, `build`, or `refactor`.
-
-PRs should explain the pipeline stage affected, the exact commands run for verification, any dataset or model prerequisites, and sample output paths when behavior changes. Include screenshots only when documentation or rendered artifacts change.
+Recent history uses Conventional Commit-style subjects.
