@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# uv
+.python-version
+
+# Ephemeral logs
+data/*_log.txt
+
+# Large model/data artifacts (keep small examples)
+*.safetensors
+*.bin
+*.gguf
