@@ -6,9 +6,11 @@ import argparse
 import time
 from typing import List, Set, Dict
 
+import torch
 from tqdm import tqdm
 from datasets import load_dataset
 from openai import OpenAI
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Consistency Filtering with Rule or LLM Judge.")
@@ -18,8 +20,10 @@ def parse_args():
     
     parser.add_argument("--sample_num", type=int, default=10, help="Samples per question")
     parser.add_argument("--max_samples", type=int, default=None, help="Maximum number of questions to process")
-    parser.add_argument("--sampling_base_url", type=str, default="http://127.0.0.1:8080/v1", help="Base URL for sampling LLM")
-    parser.add_argument("--sampling_api_key", type=str, default="not-needed", help="API key for sampling LLM")
+    parser.add_argument("--backend", type=str, choices=["transformers", "openai"], default="transformers",
+                        help="Generation backend: 'transformers' for local bf16 model, 'openai' for API endpoint")
+    parser.add_argument("--sampling_base_url", type=str, default="http://127.0.0.1:8080/v1", help="Base URL for sampling LLM (openai backend)")
+    parser.add_argument("--sampling_api_key", type=str, default="not-needed", help="API key for sampling LLM (openai backend)")
 
     parser.add_argument("--judge_type", type=str, choices=["rule", "llm"], default="rule", help="How to judge correctness")
     parser.add_argument("--api_key", type=str, default=None, help="API key for LLM Judge")
@@ -60,12 +64,20 @@ def load_existing_qids(path: str) -> Set[str]:
 class ConsistencySampler:
     def __init__(self, args):
         self.args = args
-        
-        # 1. Init Sampling LLM (OpenAI-compatible endpoint)
-        self.sampling_client = OpenAI(
-            api_key=args.sampling_api_key,
-            base_url=args.sampling_base_url,
-        )
+        self.backend = args.backend
+
+        # 1. Init Sampling LLM
+        if self.backend == "transformers":
+            self.tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                args.model_path, torch_dtype=torch.bfloat16, device_map="auto"
+            )
+            self.model.eval()
+        else:
+            self.sampling_client = OpenAI(
+                api_key=args.sampling_api_key,
+                base_url=args.sampling_base_url,
+            )
 
         # 2. Init Judge Client (if needed)
         self.judge_client = None
@@ -145,15 +157,32 @@ class ConsistencySampler:
 
                 for _ in range(self.args.sample_num):
                     try:
-                        completion = self.sampling_client.chat.completions.create(
-                            model="local",
-                            messages=messages,
-                            temperature=1.0,
-                            top_p=0.9,
-                            top_k=50,
-                            max_tokens=50,
-                        )
-                        ans = completion.choices[0].message.content.strip()
+                        if self.backend == "transformers":
+                            input_ids = self.tokenizer.apply_chat_template(
+                                messages, return_tensors="pt", add_generation_prompt=True
+                            ).to(self.model.device)
+                            with torch.no_grad():
+                                output_ids = self.model.generate(
+                                    input_ids,
+                                    max_new_tokens=50,
+                                    temperature=1.0,
+                                    top_p=0.9,
+                                    top_k=50,
+                                    do_sample=True,
+                                )
+                            ans = self.tokenizer.decode(
+                                output_ids[0][input_ids.shape[1]:], skip_special_tokens=True
+                            ).strip()
+                        else:
+                            completion = self.sampling_client.chat.completions.create(
+                                model="local",
+                                messages=messages,
+                                temperature=1.0,
+                                top_p=0.9,
+                                top_k=50,
+                                max_tokens=50,
+                            )
+                            ans = completion.choices[0].message.content.strip()
                         responses.append(ans)
 
                         # 1. Uncertainty check (Rule-based pre-filter)
