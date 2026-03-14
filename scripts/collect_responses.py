@@ -70,7 +70,7 @@ class ConsistencySampler:
         if self.backend == "transformers":
             self.tokenizer = AutoTokenizer.from_pretrained(args.model_path)
             self.model = AutoModelForCausalLM.from_pretrained(
-                args.model_path, torch_dtype=torch.bfloat16, device_map="auto"
+                args.model_path, dtype=torch.bfloat16, device_map="auto"
             )
             self.model.eval()
         else:
