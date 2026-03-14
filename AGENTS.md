@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+If anything about this repository is surprising, brittle, or easy to get wrong, add a short, specific note to this file when you discover it. Capture recurring quirks, unexpected workflows, hidden dependencies, stale references, or repeatable errors so future agents do not waste time rediscovering them.
+
 ## Project Structure & Module Organization
 Core code lives in `scripts/`, with one CLI per pipeline stage: response collection, answer-token extraction, balanced ID sampling, activation extraction, classifier training, and intervention helpers. Put new research utilities in `scripts/` unless they justify a reusable package.
 
