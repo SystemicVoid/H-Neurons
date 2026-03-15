@@ -9,6 +9,11 @@ __pycache__/
 
 # Ephemeral logs
 data/*_log.txt
+logs/
+
+# GH200 orchestration utilities (local ops)
+scripts/gh200_sequential_pipeline.sh
+scripts/watch_gh200_pipeline_and_sync.sh
 
 # Large model/data artifacts (keep small examples)
 *.safetensors
