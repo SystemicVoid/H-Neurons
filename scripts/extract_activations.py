@@ -118,6 +118,9 @@ def main():
         qid = list(sample_dict.keys())[0]
         if qid not in target_ids:
             continue
+        # Skip if all locations already extracted
+        if all(os.path.exists(os.path.join(args.output_root, loc, f"act_{qid}.npy")) for loc in args.locations):
+            continue
         data = sample_dict[qid]
         cett_manager.clear()
 
@@ -129,6 +132,10 @@ def main():
         cett_full = cett_manager.get_cett_tensor(use_abs=args.use_abs, use_mag=args.use_mag)
         regions = get_region_indices(input_ids, tokenizer, data["question"], data["response"], data["answer_tokens"])
         for loc in args.locations:
+            save_path = os.path.join(args.output_root, loc, f"act_{qid}.npy")
+            if os.path.exists(save_path):
+                continue  # Resume support: skip already-extracted QIDs
+
             indices = None
             if loc in ["input", "output", "answer_tokens"]:
                 indices = regions[loc]
@@ -139,7 +146,9 @@ def main():
                 seg1 = cett_full[:, :ans_s, :]
                 seg2 = cett_full[:, ans_e:, :]
                 selected_cett = torch.cat([seg1, seg2], dim=1)
-            
+            elif loc == "all_except_answer_tokens":
+                continue  # Can't compute inverse without answer region
+
             if loc != "all_except_answer_tokens" and indices:
                 selected_cett = cett_full[:, indices[0]:indices[1], :]
             elif loc != "all_except_answer_tokens":
@@ -149,7 +158,6 @@ def main():
             if args.method == "mean": final_act = selected_cett.mean(dim=1)
             else: final_act, _ = selected_cett.max(dim=1)
 
-            save_path = os.path.join(args.output_root, loc, f"act_{qid}.npy")
             np.save(save_path, final_act.cpu().float().numpy())
 
 if __name__ == "__main__":
