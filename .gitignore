@@ -31,5 +31,11 @@ scripts/monitor_lambda_capacity.py
 # Costs log for grant reporting
 costs/
 
+# Personal scratch notes
+initial-setup-opus-notes.md
+
+# Local agent skills (symlinked from forge store)
+.agents/
+
 # Claude Code local config
 .claude/
