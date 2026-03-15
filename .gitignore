@@ -14,6 +14,9 @@ data/*_log.txt
 *.safetensors
 *.bin
 *.gguf
+data/activations/all_except_answer_tokens/
+data/activations/answer_tokens/
+models/
 
 # Environment variables
 .env
@@ -22,6 +25,8 @@ data/*_log.txt
 data/batch3500_pipeline_handoff.md
 data/batch3500_review.md
 scripts/lambda-AGENTS.md
+scripts/lambda_bootstrap_and_start_step1.py
+scripts/monitor_lambda_capacity.py
 
 # Costs log for grant reporting
 costs/
