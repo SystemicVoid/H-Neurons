@@ -7,6 +7,8 @@ Core code lives in `scripts/`, with one CLI per pipeline stage: response collect
 
 `data/` holds local datasets, sampled JSONL outputs, and review artifacts. Commit intermediate pipeline outputs (JSONL, JSON) to git — the original H-Neurons repo does this for all `data/examples/` files (up to ~800KB each) and raw TriviaQA parquets. Keep model weights and ephemeral logs out (covered by `.gitignore`). `docs/` contains research notes and deep-research writeups; the root `README.md` is the canonical pipeline overview.
 
+`scripts/collect_responses.py` imports heavyweight runtime dependencies (`torch`, `transformers`, `openai`) at module import time, so lightweight analysis utilities should not import it just to reuse `normalize_answer`; copy the function verbatim instead.
+
 ## Build, Test, and Development Commands
 Use `uv` for Python environment management.
 
