@@ -294,7 +294,7 @@ The pipeline is dominated by Step 1 (response collection), which requires the mo
 - **Stability across C values**: We used C=1.0 without a sweep. The exact neuron set is sensitive to the regularization parameter — a different C could yield 25 or 50 neurons with similar accuracy. The paper doesn't report a sensitivity analysis.
 
 ### Observations worth discussing
-1. **Layer 20 dominance**: Neuron (20, 4288) has weight 12.17, 1.65× the runner-up. This is unusually dominant for a sparse classifier — it suggests a single neuron contributes disproportionately to hallucination detection. Is this a real "hallucination hub" or an artifact of L1's tendency to concentrate weight?
+1. ~~**Layer 20 dominance**: Neuron (20, 4288) has weight 12.17, 1.65× the runner-up. This is unusually dominant for a sparse classifier — it suggests a single neuron contributes disproportionately to hallucination detection. Is this a real "hallucination hub" or an artifact of L1's tendency to concentrate weight?~~ **RESOLVED — L1 artifact.** See Section 10 below.
 2. **Early-layer concentration**: 47% of H-Neurons are in layers 0–10. The paper doesn't break down layer distribution for Gemma 3 specifically. Early-layer hallucination features are surprising — they suggest the model "commits" to hallucinating before deep processing, not as a late-stage failure.
 3. **Asymmetry with suppressive neurons**: The classifier also found 38 negative-weight neurons (hallucination-suppressing). The paper defines H-Neurons as positive-weight only. Are the suppressive neurons equally stable and transferable? This is unexplored territory.
 4. **The 118 apostrophe-biased failures**: Losing entries containing O'Neill, O'Brien, possessives, etc. systematically removes a content category (Irish names, possessive constructions). If these happen to be disproportionately hallucinated or faithful, the training data has a subtle demographic bias.
@@ -309,9 +309,118 @@ The pipeline is dominated by Step 1 (response collection), which requires the mo
 
 ### Priority 2 — Engineering cleanup
 3. **Fix apostrophe bug:** Use `ast.literal_eval()` to recover the 118 lost entries and eliminate the content bias.
-4. **C parameter grid search:** Sweep C to find the sparsity/accuracy Pareto frontier and test neuron-set stability.
+4. ~~**C parameter grid search:**~~ **DONE.** See Section 10 — the C-sweep was conducted as part of the neuron 4288 investigation and revealed that C=1.0 is suboptimal (C=3.0 reaches 80.5% accuracy).
 
 ### Priority 3 — Extend beyond the paper
 5. **Intervention experiments:** Replicate Section 3 (behaviour impact) by scaling H-Neuron activations and measuring compliance rate changes on FalseQA, FaithEval, Sycophancy, and Jailbreak benchmarks.
 6. **Origin analysis:** Apply the trained classifier to the base model (`google/gemma-3-4b-pt`) to test backward transferability (Section 4).
 7. **Suppressive neuron investigation:** Characterize the 38 negative-weight neurons — are they stable across C values? Do they transfer OOD? The paper ignores them entirely.
+
+---
+
+## 10. Deep Dive: Is Neuron (20, 4288) a Hallucination Hub?
+
+**Script:** `scripts/investigate_neuron_4288.py`
+**Plots:** `data/investigation_neuron_4288/`
+**Verdict: No — the dominance is an L1 regularization artifact (0/6 analyses support real signal).**
+
+The paper identifies H-Neurons by their positive weight in an L1-penalized logistic regression. Neuron (20, 4288) received weight 12.169 — 1.65× the runner-up. L1 regularization is known to arbitrarily concentrate weight among correlated features: when two neurons carry similar information, L1 tends to pick one and zero-out the other, rather than splitting the weight evenly (as L2 would). We ran six independent analyses to test whether 4288's dominance reflects genuine unique informativeness or this L1 concentration effect.
+
+### 10.1 Analysis 1 — Single-Neuron Classification
+
+![Single-Neuron AUC](investigation_neuron_4288/01_single_neuron_auc.png)
+
+**What it shows:** Each bar is the test-set AUC when using *only* that one neuron's CETT activation as a univariate hallucination classifier. Blue bars are the top-10 H-Neurons (by L1 weight), red is neuron 4288, gray bars are random zero-weight neurons as controls.
+
+**Why we ran it:** If a neuron is genuinely the most important hallucination indicator, it should also be the best standalone predictor — regardless of what L1 does. This analysis is completely independent of the regularization procedure.
+
+**Result:** Neuron 4288 (AUC=0.590) is *not* the best single predictor. That distinction goes to **L13:N833** (AUC=0.703), which ranks only 3rd by classifier weight (3.45). The runner-up L14:N8547 (AUC=0.666) also outperforms 4288. Even L10:N4996 (weight 1.70, rank 9) achieves AUC=0.645 — better than 4288 despite having 7× less classifier weight. All H-Neurons outperform the random controls (mean AUC=0.526), confirming the ensemble signal is real even though individual neuron rankings don't match L1 weights.
+
+**Implication:** L1 weight magnitude is not a reliable proxy for individual neuron informativeness. The paper's methodology of ranking H-Neurons by weight conflates two things: how much unique signal a neuron carries, and how L1 happened to distribute weight among correlated features.
+
+### 10.2 Analysis 2 — Activation Distribution Separation
+
+![Activation Distributions](investigation_neuron_4288/02_distributions.png)
+
+**What it shows:** Overlapping histograms of raw CETT activation values for true (green, no hallucination) vs false (red, hallucination) test examples. Three panels compare neuron 4288, the runner-up (L14:N8547), and a random zero-weight neuron. Cohen's d quantifies effect size; Mann-Whitney p tests whether the two distributions differ significantly.
+
+**Why we ran it:** A genuine hallucination hub should show clean separation between true and false activations in the raw data, before any classifier processing.
+
+**Result:** Neuron 4288 shows a small-to-medium effect (Cohen's d=0.326, p=1.3e-5) — statistically significant but modest. The runner-up L14:N8547 has *better* separation (d=0.477, p=8.6e-16). The random neuron shows no meaningful separation (d=0.096, p=0.098). Both 4288 and 8547 share a right-skewed distribution where hallucinating examples have a heavier tail of high activations, but the overlap between the two classes is substantial for both.
+
+**Implication:** Neuron 4288 does carry hallucination-relevant signal (it's clearly not random), but the runner-up L14:N8547 actually separates the classes better. The 1.65× weight advantage doesn't reflect 1.65× better discrimination — it reflects L1's weight concentration.
+
+### 10.3 Analysis 3 — C-Sweep Stability
+
+![C-Sweep](investigation_neuron_4288/03_c_sweep.png)
+
+**What it shows:** Left panel: the weight of the top positive neurons as the regularization parameter C varies from 0.001 (strongest L1 penalty, fewest neurons) to 10.0 (weakest penalty, most neurons). Red line is neuron 4288. Right panel: test accuracy and AUC across the same C range.
+
+**Why we ran it:** This is the definitive L1-artifact diagnostic. If neuron 4288 is genuinely the most important hallucination neuron, it should be among the *first* neurons selected as L1 loosens (low C → high C), and it should remain dominant across the range. If it's an artifact, it will appear late and be replaced as more features enter the model.
+
+**Result:** This is the most striking finding of the investigation.
+
+| C | Non-zero features | Positive | 4288 weight | 4288 rank | Test accuracy |
+|---|-------------------|----------|-------------|-----------|---------------|
+| 0.001–0.01 | 0 | 0 | 0 | — | 50.1% |
+| 0.03 | 1 | 1 | 0 | — | 51.9% |
+| 0.1 | 9 | 8 | 0 | — | 64.2% |
+| 0.3 | 15 | 9 | 0 | — | 69.5% |
+| **1.0** | **76** | **38** | **12.17** | **1** | **76.5%** |
+| 3.0 | 419 | 219 | 10.76 | 5 | **80.5%** |
+| 10.0 | 989 | 519 | 11.74 | 11 | 80.0% |
+
+Neuron 4288 is **completely absent** from the model at C≤0.3, where the classifier already achieves 69.5% accuracy using 9 different positive neurons. It only enters at C=1.0 — jumping immediately to rank 1 — then drops to rank 5 (C=3.0) and rank 11 (C=10.0) as the model gains access to more features. The left panel shows a "regime change" pattern: different neurons spike to extreme weights at different C values (L25:N3877 at C=0.03, L9:N5580 at C=0.1), and 4288's spike at C=1.0 is just another instance of this L1 concentration effect.
+
+**Implication:** The paper's choice of C=1.0 is the *only* regularization strength where neuron 4288 dominates. At C=3.0, the model achieves 80.5% accuracy (+4pp over C=1.0) with 219 positive neurons and 4288 at rank 5. The "~35 H-Neurons at 0.10‰" headline result is specific to one regularization setting, not a fundamental property of the model. The paper does not report a C sensitivity analysis.
+
+### 10.4 Analysis 4 — Per-Example Contribution
+
+![Contributions](investigation_neuron_4288/04_contributions.png)
+
+**What it shows:** For each test example, the scatter plots neuron 4288's contribution to the classifier score (y-axis: weight × activation) against the total classifier score (x-axis: all 76 features combined). Points are colored by true label (green = truthful, red = hallucination) and shaped by correctness (circles = correct, crosses = misclassified).
+
+**Why we ran it:** Even if 4288's weight is inflated, it might still be the single largest contributor for most predictions — meaning L1 at least concentrated signal onto a neuron that "works" for individual examples.
+
+**Result:** Neuron 4288 is the largest positive contributor for only **7.4%** of examples — despite having 1.65× the weight of #2. The median absolute contribution fraction is just 2.6% of the total score. The scatter plot shows that 4288's contribution is only weakly correlated with the total score — many correctly-classified examples have near-zero contribution from 4288, with their scores driven by the other 75 non-zero features.
+
+**Implication:** The high weight is compensated by relatively low activation magnitudes. Neuron 4288 activates strongly for a small subset of examples but is quiet for most — which is why L1 gave it a large weight (to amplify rare activations) rather than because it's broadly the most informative feature.
+
+### 10.5 Analysis 5 — Ablation
+
+![Ablation](investigation_neuron_4288/05_ablation.png)
+
+**What it shows:** Accuracy drop when each of the top-10 H-Neurons is individually zeroed out in the test data. Red bar is neuron 4288. A positive drop means the model got worse without that neuron.
+
+**Why we ran it:** Direct measurement of each neuron's marginal importance to the trained classifier.
+
+**Result:** Ablating neuron 4288 drops accuracy by 1.03pp (76.5% → 75.5%) — the largest single-neuron drop, but below the 2pp threshold for "clearly important." Interestingly, ablating L24:N7995 (rank 6 by weight) *improves* accuracy by 0.64pp, suggesting it slightly hurts the model on the test set.
+
+A revealing complementary test: keeping *only* neuron 4288 (plus all 38 negative neurons, zeroing out the other 37 positive neurons) yields AUC=0.828 (close to the full model's 0.843) but accuracy=50.1% (chance). This means 4288 alone can *rank-order* examples by hallucination likelihood almost as well as the full model, but cannot set a useful decision boundary — the 37 other positive neurons are needed for calibration.
+
+### 10.6 Analysis 6 — Correlation Structure
+
+![Correlations](investigation_neuron_4288/06_correlations.png)
+
+**What it shows:** Pairwise Pearson correlation heatmap between the top-10 H-Neurons (by weight) and 10 zero-weight neurons from layers 18–22 (near neuron 4288's Layer 20). Red = positive correlation, blue = negative.
+
+**Why we ran it:** L1 concentrates weight among correlated features. If neuron 4288 is highly correlated with other top neurons, L1 may have arbitrarily chosen it as the "representative" of a correlated group.
+
+**Result:** Neuron 4288 has notable positive correlation with L26:N1359 (r=+0.492) and moderate correlation with L14:N8547 (r=+0.293) and L9:N5580 (r=+0.290). The zero-weight neurons from nearby layers show no meaningful correlation (max |r|=0.170), confirming L1 didn't suppress a "twin" of 4288 — the correlations are with neurons in distant layers that carry related but not identical signal.
+
+**Implication:** The r=0.492 with L26:N1359 is the strongest inter-neuron correlation in the top-10. These two neurons likely share an overlapping hallucination signal, and L1 concentrated most of the shared weight onto 4288 (weight 12.17) while giving 1359 much less (weight 2.46). Under L2 regularization, both would receive moderate weights.
+
+### 10.7 Summary and Implications for the Paper's Methodology
+
+| Analysis | Threshold | Neuron 4288 | Verdict |
+|----------|-----------|-------------|---------|
+| Single-neuron AUC | >0.60 = real | 0.590 | Artifact |
+| Cohen's d | >0.5 = real | 0.326 | Artifact |
+| C-sweep (selected in N/9) | ≥5 = real | 3/9 | Artifact |
+| Largest contributor % | >30% = real | 7.4% | Artifact |
+| Ablation accuracy drop | >2pp = real | 1.03pp | Artifact |
+| Max correlation with top-10 | <0.3 = real | 0.492 | Artifact |
+
+**All six analyses point to L1 artifact.** Neuron 4288 does carry real hallucination signal (AUC=0.590, well above the 0.526 random baseline), but it is not uniquely or disproportionately important. Its extreme weight is a consequence of L1's winner-take-all behavior among correlated features at the specific regularization strength C=1.0.
+
+This raises a broader methodological concern about the H-Neurons paper: **L1 weight magnitude is used throughout as a proxy for neuron importance, but our analysis shows this conflates signal strength with regularization artifacts.** The most informative single neuron (L13:N833, AUC=0.703) has only 28% of 4288's weight. A more robust neuron-ranking method — such as single-neuron AUC, stability across C values, or Shapley values — would produce a substantially different "top H-Neuron" list.
