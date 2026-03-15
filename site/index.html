@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>H-Neurons: Finding Hallucination Neurons in Gemma 3 4B</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0a0e27;
+    --bg-secondary: #111633;
+    --bg-card: #161b3d;
+    --bg-highlight: #1c2250;
+    --text-primary: #e8eaf6;
+    --text-secondary: #9da3c4;
+    --text-muted: #6b72a0;
+    --accent-coral: #ff6b6b;
+    --accent-coral-dim: rgba(255, 107, 107, 0.15);
+    --accent-teal: #4ecdc4;
+    --accent-teal-dim: rgba(78, 205, 196, 0.15);
+    --accent-purple: #7f77dd;
+    --accent-purple-dim: rgba(127, 119, 221, 0.15);
+    --accent-amber: #f0a500;
+    --accent-amber-dim: rgba(240, 165, 0, 0.15);
+    --border: rgba(157, 163, 196, 0.12);
+    --border-accent: rgba(157, 163, 196, 0.25);
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    background: var(--bg-primary);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* --- Navigation --- */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(10, 14, 39, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  nav .logo {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  nav .logo span { color: var(--accent-teal); }
+  nav .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+  }
+  nav .nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  nav .nav-links a:hover { color: var(--text-primary); }
+
+  /* --- Sections --- */
+  section {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6rem 2rem 4rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  section.short {
+    min-height: auto;
+    padding: 4rem 2rem;
+  }
+
+  .fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .subtitle {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    color: var(--text-secondary);
+    max-width: 640px;
+    line-height: 1.6;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+
+  .tag-coral { background: var(--accent-coral-dim); color: var(--accent-coral); }
+  .tag-teal { background: var(--accent-teal-dim); color: var(--accent-teal); }
+  .tag-purple { background: var(--accent-purple-dim); color: var(--accent-purple); }
+  .tag-amber { background: var(--accent-amber-dim); color: var(--accent-amber); }
+
+  /* --- Metric cards --- */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin: 2rem 0;
+  }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.3s;
+  }
+  .metric-card:hover { border-color: var(--border-accent); }
+  .metric-card .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .metric-card .value {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .metric-card .detail {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .val-teal { color: var(--accent-teal); }
+  .val-coral { color: var(--accent-coral); }
+  .val-purple { color: var(--accent-purple); }
+  .val-amber { color: var(--accent-amber); }
+
+  /* --- Pipeline flow --- */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 2.5rem 0;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+  }
+  .pipeline-step {
+    flex: 1;
+    min-width: 160px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    position: relative;
+    text-align: center;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .pipeline-step:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-accent);
+  }
+  .pipeline-step .step-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .pipeline-step .step-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .pipeline-step .step-stat {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .pipeline-step .step-detail {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .pipeline-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  /* --- Chart containers --- */
+  .chart-container {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .chart-container canvas {
+    max-height: 350px;
+  }
+
+  /* --- Investigation panels --- */
+  .investigation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
+    gap: 24px;
+    margin: 2rem 0;
+  }
+
+  .investigation-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .investigation-panel:hover { border-color: var(--border-accent); }
+  .investigation-panel img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-bottom: 1px solid var(--border);
+  }
+  .investigation-panel .panel-body {
+    padding: 1.25rem;
+  }
+  .investigation-panel .panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .verdict-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--accent-coral-dim);
+    color: var(--accent-coral);
+  }
+  .verdict-badge.real {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+  }
+
+  .panel-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* --- Verdict scoreboard --- */
+  .scoreboard {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 2rem 0;
+    justify-content: center;
+  }
+  .score-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+    min-width: 120px;
+    transition: border-color 0.4s;
+  }
+  .score-item.artifact { border-color: var(--accent-coral); }
+  .score-item .score-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .score-item .score-value {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  /* --- Next steps cards --- */
+  .next-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin: 2rem 0;
+  }
+  .step-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .step-card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+  }
+  .step-card .step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  /* --- Funnel viz --- */
+  .funnel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 2rem auto;
+    max-width: 600px;
+  }
+  .funnel-bar {
+    height: 44px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+  }
+  .funnel-bar .funnel-label { color: var(--text-primary); z-index: 1; }
+  .funnel-bar .funnel-num {
+    font-weight: 700;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    z-index: 1;
+  }
+
+  /* --- Highlight box --- */
+  .insight-box {
+    background: var(--bg-highlight);
+    border-left: 3px solid var(--accent-amber);
+    border-radius: 0 8px 8px 0;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .insight-box strong { color: var(--text-primary); }
+
+  /* --- Comparison --- */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 1.5rem 0;
+  }
+  .compare-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .compare-card.highlight {
+    border-color: var(--accent-teal);
+    background: rgba(78, 205, 196, 0.04);
+  }
+
+  /* --- Scroll progress --- */
+  .progress-bar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-teal), var(--accent-purple));
+    z-index: 101;
+    width: 0%;
+    transition: width 0.1s;
+  }
+
+  /* --- Footer --- */
+  footer {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent-teal); text-decoration: none; }
+
+  /* --- Responsive --- */
+  @media (max-width: 768px) {
+    section { padding: 5rem 1.25rem 3rem; }
+    .pipeline { flex-direction: column; }
+    .pipeline-arrow { transform: rotate(90deg); justify-content: center; padding: 8px 0; }
+    .comparison { grid-template-columns: 1fr; }
+    .investigation-grid { grid-template-columns: 1fr; }
+    nav .nav-links { display: none; }
+  }
+
+  /* --- Researcher reflections --- */
+  .reflection {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 1s ease-out 0.3s, transform 1s ease-out 0.3s;
+  }
+  .reflection.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reflection .ref-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .reflection .ref-label::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 1px;
+    background: var(--text-muted);
+  }
+  .reflection .ref-text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+  .reflection .ref-text strong {
+    color: var(--text-primary);
+    font-style: normal;
+  }
+  .reflection .ref-text .highlight {
+    color: var(--accent-teal);
+    font-style: normal;
+  }
+
+  /* --- Counter animation --- */
+  .counter { display: inline-block; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="logo">H<span>-</span>Neurons</div>
+  <ul class="nav-links">
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#distribution">Distribution</a></li>
+    <li><a href="#surprise">Investigation</a></li>
+    <li><a href="#takeaways">Takeaways</a></li>
+  </ul>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- 1. Hero -->
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-teal">Mechanistic interpretability</span>
+    <h1>Finding Hallucination<br>Circuits in <span style="color: var(--accent-teal);">Gemma 3 4B</span></h1>
+    <p class="subtitle">
+      A replication and extension of <em>H-Neurons</em> (Gao et al., 2024).
+      Can 0.01% of MLP neurons predict when an LLM hallucinates?
+    </p>
+    <div class="metrics-grid" style="margin-top: 2.5rem;">
+      <div class="metric-card">
+        <div class="label">Model</div>
+        <div class="value" style="font-size: 1.3rem;">Gemma 3 4B</div>
+        <div class="detail">34 layers, 10,240 neurons each</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Total neurons scanned</div>
+        <div class="value val-purple"><span class="counter" data-target="348160" data-duration="2000">0</span></div>
+        <div class="detail">34 x 10,240 MLP positions</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">H-Neurons found</div>
+        <div class="value val-coral"><span class="counter" data-target="38" data-duration="1500">0</span></div>
+        <div class="detail">0.011% of all neurons</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Test accuracy</div>
+        <div class="value val-teal">76.5%</div>
+        <div class="detail">Disjoint test set (0% overlap)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Pipeline -->
+<section id="pipeline">
+  <div class="fade-in">
+    <span class="tag tag-purple">The pipeline</span>
+    <h2>Five stages from questions to neurons</h2>
+    <p class="subtitle">Replicating the H-Neurons methodology on Gemma 3 4B with TriviaQA, running entirely on consumer hardware (RTX 5060 Ti, 16GB VRAM).</p>
+
+    <div class="pipeline" style="margin-top: 2rem;">
+      <div class="pipeline-step">
+        <div class="step-num">Stage 1</div>
+        <div class="step-title">Response collection</div>
+        <div class="step-stat val-teal">3,500</div>
+        <div class="step-detail">TriviaQA questions, 10 responses each</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-num">Stage 2</div>
+        <div class="step-title">Consistency filter</div>
+        <div class="step-stat val-teal">3,115</div>
+        <div class="step-detail">89% agreement (10/10 match)</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-num">Stage 3</div>
+        <div class="step-title">Answer extraction</div>
+        <div class="step-stat val-teal">2,997</div>
+        <div class="step-detail">GPT-4o token extraction</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-num">Stage 4</div>
+        <div class="step-title">Activation extraction</div>
+        <div class="step-stat val-purple">348K</div>
+        <div class="step-detail">CETT features per sample</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-num">Stage 5</div>
+        <div class="step-title">L1 classifier</div>
+        <div class="step-stat val-coral">38</div>
+        <div class="step-detail">H-Neurons identified</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top: 2.5rem;">Data funnel</h3>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">How 3,500 questions narrow to 38 hallucination neurons</p>
+    <div class="funnel">
+      <div class="funnel-bar" style="width: 100%; background: rgba(78, 205, 196, 0.25);">
+        <span class="funnel-label">TriviaQA questions</span>
+        <span class="funnel-num val-teal">3,500</span>
+      </div>
+      <div class="funnel-bar" style="width: 89%; background: rgba(78, 205, 196, 0.22);">
+        <span class="funnel-label">Consistent (10/10)</span>
+        <span class="funnel-num val-teal">3,115</span>
+      </div>
+      <div class="funnel-bar" style="width: 85.6%; background: rgba(78, 205, 196, 0.19);">
+        <span class="funnel-label">Tokens extracted</span>
+        <span class="funnel-num val-teal">2,997</span>
+      </div>
+      <div class="funnel-bar" style="width: 57.1%; background: rgba(127, 119, 221, 0.22);">
+        <span class="funnel-label">Train set (balanced)</span>
+        <span class="funnel-num val-purple">2,000</span>
+      </div>
+      <div class="funnel-bar" style="width: 22.3%; background: rgba(127, 119, 221, 0.18);">
+        <span class="funnel-label">Disjoint test set</span>
+        <span class="funnel-num val-purple">782</span>
+      </div>
+      <div class="funnel-bar" style="width: 1.1%; min-width: 180px; background: rgba(255, 107, 107, 0.25);">
+        <span class="funnel-label">H-Neurons</span>
+        <span class="funnel-num val-coral">38</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Reflection: Pipeline -->
+<div class="reflection">
+  <div class="ref-label">Process note</div>
+  <p class="ref-text">
+    The funnel shape tells a story about <strong>methodological choices masquerading as data</strong>.
+    The 89% consistency filter is aggressive &mdash; it discards every question where the model hesitates even once across 10 samples.
+    This selects for questions the model either knows cold or consistently gets wrong, filtering out the messy middle where
+    hallucination is most interesting. The 118 apostrophe failures (3.8%) are not random either &mdash; they systematically
+    remove Irish names, possessives, and contractions. <strong>Every pipeline stage shapes what the classifier can learn.</strong>
+  </p>
+</div>
+
+<!-- 3. Main result -->
+<section id="results">
+  <div class="fade-in">
+    <span class="tag tag-teal">Main result</span>
+    <h2>The signal is real</h2>
+    <p class="subtitle">An L1 logistic regression on 348,160 CETT features identifies 38 neurons with positive weight. On a fully disjoint test set (0% overlap with training), the classifier achieves 76.5% accuracy.</p>
+
+    <div class="metrics-grid" style="margin-top: 2rem;">
+      <div class="metric-card">
+        <div class="label">Accuracy</div>
+        <div class="value val-teal">76.5%</div>
+        <div class="detail">Disjoint test (782 samples)</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">AUC</div>
+        <div class="value val-teal">0.843</div>
+        <div class="detail">Strong ranking ability</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Precision</div>
+        <div class="value val-purple">76.7%</div>
+        <div class="detail">Positive predictive value</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Recall</div>
+        <div class="value val-purple">76.1%</div>
+        <div class="detail">Coverage of hallucinations</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="classifierChart"></canvas>
+    </div>
+
+    <div class="insight-box">
+      <strong>Why disjoint matters:</strong> Our initial overlapping test set showed 77.7% accuracy, but 66.3% of test IDs also appeared in training.
+      The disjoint set (0% overlap) shows 76.5% &mdash; confirming the signal is genuine, not memorization.
+    </div>
+
+    <div class="comparison">
+      <div class="compare-card">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Overlapping test</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--text-secondary);">77.7%</div>
+        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">66.3% data leakage</div>
+      </div>
+      <div class="compare-card highlight">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Disjoint test</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">76.5%</div>
+        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">0% overlap &mdash; clean</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Reflection: Results -->
+<div class="reflection">
+  <div class="ref-label">On the data leakage</div>
+  <p class="ref-text">
+    Finding <strong>66.3% train/test overlap</strong> was the first surprise. The paper samples train and test independently,
+    which is standard &mdash; but with only 1,391 true-label IDs and both splits requesting 1,000, overlap is mathematically inevitable.
+    The reassuring part: the accuracy drop from 77.7% to 76.5% is only <span class="highlight">1.2 percentage points</span>,
+    meaning the leakage inflated results modestly, not catastrophically. The signal survived a clean test.
+    This is worth flagging as a <strong>general replication concern</strong> &mdash;
+    papers that don't report overlap statistics may be hiding this kind of quiet inflation.
+  </p>
+</div>
+
+<!-- 4. Layer distribution -->
+<section id="distribution">
+  <div class="fade-in">
+    <span class="tag tag-purple">Layer distribution</span>
+    <h2>Early layers dominate</h2>
+    <p class="subtitle">47% of H-Neurons concentrate in layers 0&ndash;10. The remaining 53% split evenly between middle and late layers. The model appears to "commit" to hallucinating early in its forward pass.</p>
+
+    <div class="chart-container">
+      <canvas id="layerChart"></canvas>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">Early (L0&ndash;10)</div>
+        <div class="value val-coral">47%</div>
+        <div class="detail">18 of 38 H-Neurons</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Middle (L11&ndash;20)</div>
+        <div class="value val-purple">26%</div>
+        <div class="detail">10 of 38 H-Neurons</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Late (L21&ndash;33)</div>
+        <div class="value val-teal">26%</div>
+        <div class="detail">10 of 38 H-Neurons</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>What this means:</strong> Hallucination detection is not a last-layer phenomenon.
+      The neurons that distinguish true from false activations are distributed across the model,
+      with a strong bias toward early layers &mdash; suggesting the "decision to hallucinate" happens before most of the computation.
+    </div>
+  </div>
+</section>
+
+<!-- Reflection: Layer distribution -->
+<div class="reflection">
+  <div class="ref-label">What surprised us</div>
+  <p class="ref-text">
+    Layer 5 alone hosts <strong>4 of 38 H-Neurons</strong> &mdash; more than any other layer.
+    In a 34-layer model, the "decision to hallucinate" appearing this early is counterintuitive.
+    One interpretation: early MLP layers encode <strong>token familiarity</strong> &mdash; how well the model
+    "recognizes" the entity before deep reasoning begins. A question about <em>O'Neill</em> vs <em>Shakespeare</em>
+    might already register different confidence patterns in layer 5, before attention has had a chance to compose
+    multi-hop reasoning. This aligns with recent residual stream probing work showing factual recall
+    signals emerging in the first third of transformer depth.
+  </p>
+</div>
+
+<!-- 5. The surprise: Neuron 4288 -->
+<section id="surprise">
+  <div class="fade-in">
+    <span class="tag tag-coral">The surprise</span>
+    <h2>One neuron to rule them all?</h2>
+    <p class="subtitle">Neuron (Layer 20, Index 4288) received an L1 weight of <strong style="color: var(--accent-coral);">12.17</strong> &mdash; 1.65x the runner-up. Is this a genuine "hallucination hub" or an L1 regularization artifact?</p>
+
+    <div class="comparison" style="margin-top: 2rem;">
+      <div class="compare-card" style="border-color: var(--accent-coral);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (20, 4288)</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--accent-coral);">12.17</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight (rank #1)</div>
+      </div>
+      <div class="compare-card">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (14, 8547)</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--text-secondary);">7.39</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight (rank #2)</div>
+      </div>
+    </div>
+
+    <div class="chart-container" style="margin-top: 1.5rem;">
+      <canvas id="topNeuronsChart"></canvas>
+    </div>
+
+    <div class="insight-box">
+      <strong>The question:</strong> L1 regularization has a known "winner-take-all" effect &mdash; when two features carry similar signals,
+      L1 arbitrarily assigns all weight to one and zeros the other. A 1.65x gap is unusual enough to warrant investigation.
+      We ran <strong>six independent analyses</strong> to determine the truth.
+    </div>
+  </div>
+</section>
+
+<!-- 6. The investigation -->
+<section id="investigation" class="short" style="max-width: 1200px;">
+  <div class="fade-in">
+    <span class="tag tag-coral">Forensic investigation</span>
+    <h2>Six tests, one verdict</h2>
+    <p class="subtitle" style="margin-bottom: 2rem;">Each analysis probes neuron 4288's importance from a different angle. Real signal requires at least 4 of 6 supporting evidence.</p>
+
+    <div class="investigation-grid">
+      <!-- Panel 1: Single-neuron AUC -->
+      <div class="investigation-panel">
+        <img src="01_single_neuron_auc.png" alt="Single-neuron AUC comparison" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            1. Single-neuron AUC
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            Can neuron 4288 <em>alone</em> classify hallucinations? Its standalone AUC is <strong>0.590</strong> &mdash; outperformed by
+            L13:N833 (0.703) and L14:N8547 (0.666). Despite the highest L1 weight, it's not the most informative individual neuron.
+          </p>
+        </div>
+      </div>
+
+      <!-- Panel 2: Distributions -->
+      <div class="investigation-panel">
+        <img src="02_distributions.png" alt="Activation distributions" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            2. Distribution separation
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            Cohen's d = <strong>0.326</strong> (below 0.5 threshold). The runner-up achieves d = 0.477 with better class separation.
+            Neuron 4288 has signal, but it's not exceptional.
+          </p>
+        </div>
+      </div>
+
+      <!-- Panel 3: C-sweep -->
+      <div class="investigation-panel">
+        <img src="03_c_sweep.png" alt="C-sweep stability analysis" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            3. C-sweep stability
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            <strong>The most decisive test.</strong> Neuron 4288 is completely absent at C &le; 0.3.
+            It only enters at C = 1.0, drops to rank 5 at C = 3.0, and rank 11 at C = 10.0.
+            Its dominance is C-specific, not fundamental.
+          </p>
+        </div>
+      </div>
+
+      <!-- Panel 4: Contributions -->
+      <div class="investigation-panel">
+        <img src="04_contributions.png" alt="Per-example contribution analysis" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            4. Per-example contribution
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            Despite 1.65x the weight of #2, neuron 4288 is the largest positive contributor for only <strong>7.4%</strong> of examples (threshold: 30%).
+            Median absolute contribution: just 2.6% of total score.
+          </p>
+        </div>
+      </div>
+
+      <!-- Panel 5: Ablation -->
+      <div class="investigation-panel">
+        <img src="05_ablation.png" alt="Leave-one-out ablation" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            5. Leave-one-out ablation
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            Zeroing out neuron 4288 drops accuracy by <strong>1.03pp</strong> (below 2pp threshold).
+            Keeping only 4288 yields AUC = 0.828 but accuracy = 50.1% &mdash; good ranking, no decision power alone.
+          </p>
+        </div>
+      </div>
+
+      <!-- Panel 6: Correlations -->
+      <div class="investigation-panel">
+        <img src="06_correlations.png" alt="Correlation structure heatmap" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            6. Correlation structure
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            Neuron 4288 correlates at r = <strong>0.492</strong> with L26:N1359 (a zero-weight neuron).
+            L1 likely picked 4288 as the "representative" of a correlated feature group.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Reflection: Investigation -->
+<div class="reflection">
+  <div class="ref-label">Methodological reflection</div>
+  <p class="ref-text">
+    The investigation of neuron 4288 wasn't planned &mdash; it emerged from a simple question:
+    <strong>"why is one neuron 1.65x the runner-up?"</strong> The six-test framework was designed to be
+    unfalsifiable from any single angle. We set thresholds <em>before</em> running the analyses
+    (AUC&gt;0.60, Cohen's d&gt;0.5, ablation&gt;2pp) to avoid post-hoc rationalization.
+    The unanimous 0/6 verdict was the strongest possible outcome &mdash; and it points to a
+    <strong>systematic issue with L1-based neuron ranking</strong> that likely affects other work using this methodology.
+    The C-sweep (Analysis 3) was the most revealing: the fact that C=3.0 yields
+    <span class="highlight">+4pp accuracy with 6x more neurons</span> suggests the paper's headline
+    "~35 H-Neurons" is a regularization artifact, not a biological count of hallucination circuits.
+  </p>
+</div>
+
+<!-- Verdict scoreboard -->
+<section id="verdict" class="short">
+  <div class="fade-in" style="text-align: center;">
+    <h2>Verdict: <span style="color: var(--accent-coral);">0/6</span> support real signal</h2>
+    <p class="subtitle" style="margin: 0 auto 2rem;">All six independent analyses point the same direction. Neuron 4288's dominance is an L1 weight concentration effect.</p>
+
+    <div class="scoreboard">
+      <div class="score-item artifact">
+        <div class="score-label">AUC</div>
+        <div class="score-value val-coral">0.590</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Cohen's d</div>
+        <div class="score-value val-coral">0.326</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">C-sweep</div>
+        <div class="score-value val-coral">3/9</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Top contrib</div>
+        <div class="score-value val-coral">7.4%</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Ablation</div>
+        <div class="score-value val-coral">1.0pp</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Max |r|</div>
+        <div class="score-value val-coral">0.492</div>
+      </div>
+    </div>
+
+    <div class="insight-box" style="text-align: left; max-width: 700px; margin: 2rem auto;">
+      <strong>Key insight:</strong> L1 weight magnitude does not equal neuron importance.
+      The paper's methodology of ranking H-Neurons by L1 weight conflates signal strength with regularization artifacts.
+      At C = 3.0, the model achieves <strong>80.5% accuracy</strong> (+4pp) using 219 positive-weight neurons &mdash;
+      the signal is <em>distributed</em>, not concentrated.
+    </div>
+  </div>
+</section>
+
+<!-- 7. Takeaways -->
+<section id="takeaways">
+  <div class="fade-in">
+    <span class="tag tag-amber">Takeaways</span>
+    <h2>What we learned</h2>
+
+    <div class="next-steps" style="margin-top: 1.5rem;">
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
+        <h3>The signal is real</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          76.5% accuracy on a disjoint test set confirms that MLP neurons carry detectable hallucination signals.
+          This closely replicates the paper's 76.9% on Gemma 3 4B, using fully independent code.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
+        <h3>Weight != importance</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The dominant neuron (12.17 weight, 1.65x #2) is an L1 artifact, not a hallucination hub.
+          Six independent analyses unanimously confirm this.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
+        <h3>Regularization matters</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          C = 3.0 achieves 80.5% (+4pp over C = 1.0) with 219 neurons.
+          The paper's single-C results miss the full picture of how H-Neuron selection changes with regularization.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">4</div>
+        <h3>Early-layer concentration</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          47% of H-Neurons are in layers 0&ndash;10. The model may "decide" to hallucinate early,
+          before most attention and MLP computation happens.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Reflection: Takeaways -->
+<div class="reflection">
+  <div class="ref-label">The bigger picture</div>
+  <p class="ref-text">
+    Everything above is <strong>correlation, not causation</strong>. We found neurons that <em>track</em>
+    hallucination &mdash; we haven't shown they <em>cause</em> it. That's exactly what the intervention
+    experiments (our next step) test: suppress these neurons during generation and measure whether
+    hallucination rates actually drop. The paper reports this works, but on different models.
+    Until we replicate that on Gemma 3 4B, our 38 neurons are predictive features, not proven mechanisms.
+    <strong>Concrete improvement:</strong> report results across a C range and use stability-based neuron ranking
+    rather than single-C weight magnitude.
+  </p>
+</div>
+
+<!-- 8. Next steps -->
+<section id="nextsteps" class="short">
+  <div class="fade-in">
+    <span class="tag tag-teal">Next steps</span>
+    <h2>Where do we go from here?</h2>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">OOD evaluation</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Test on NQ-Open, BioASQ, and NonExist to check if H-Neurons generalize beyond TriviaQA.
+          This separates "correlated neurons" from "neurons that transfer."
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
+        <h3 style="color: var(--accent-purple);">Intervention experiments</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Suppress H-Neuron activations during generation (paper Section 3).
+          Does the model produce fewer hallucinations? This establishes causality.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Suppressive neurons</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          38 neurons have negative L1 weights (anti-hallucination).
+          Are they the flip side of the same circuit? Do they activate for correct facts?
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Cost & reproducibility -->
+<section id="cost" class="short">
+  <div class="fade-in" style="text-align: center;">
+    <span class="tag tag-teal">Reproducibility</span>
+    <h2>Consumer-GPU friendly</h2>
+    <p class="subtitle" style="margin: 0 auto 2rem;">The entire pipeline runs on a single RTX 5060 Ti (16GB VRAM) for under $4.</p>
+
+    <div class="metrics-grid" style="max-width: 600px; margin: 0 auto;">
+      <div class="metric-card">
+        <div class="label">Total cost</div>
+        <div class="value val-teal">~$3.50</div>
+        <div class="detail">GPT-4o extraction only</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Wall time</div>
+        <div class="value val-purple">~4.5h</div>
+        <div class="detail">Response collection dominates</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">GPU</div>
+        <div class="value" style="font-size: 1.1rem;">RTX 5060 Ti</div>
+        <div class="detail">16GB VRAM, consumer card</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Reflection: Reproducibility -->
+<div class="reflection">
+  <div class="ref-label">On reproducibility</div>
+  <p class="ref-text">
+    <span class="highlight">$3.50 and 4.5 hours on a consumer GPU</span> to replicate a mech-interp result
+    within 0.4pp of the paper. If this required an A100 cluster, far fewer people could verify it.
+    <strong>Every bug we hit is documented</strong> &mdash; the apostrophe parser, the train/test overlap,
+    the token-matching failures &mdash; so the next replication on a different model starts from where we finished.
+  </p>
+</div>
+
+<footer>
+  H-Neurons Replication &mdash; Gemma 3 4B &mdash; March 2026<br>
+  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2024</a>
+</footer>
+
+<script>
+// --- Scroll progress bar ---
+window.addEventListener('scroll', () => {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = (scrollTop / docHeight) * 100;
+  document.getElementById('progressBar').style.width = progress + '%';
+});
+
+// --- Intersection Observer for fade-in ---
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+document.querySelectorAll('.reflection').forEach(el => observer.observe(el));
+
+// --- Counter animation ---
+function animateCounter(el) {
+  const target = parseInt(el.dataset.target);
+  const duration = parseInt(el.dataset.duration) || 1500;
+  const start = performance.now();
+
+  function update(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(target * eased).toLocaleString();
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+const counterObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && !entry.target.dataset.animated) {
+      entry.target.dataset.animated = 'true';
+      animateCounter(entry.target);
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.counter').forEach(el => counterObserver.observe(el));
+
+// --- Scoreboard animation ---
+const scoreObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && !entry.target.dataset.animated) {
+      entry.target.dataset.animated = 'true';
+      const items = entry.target.querySelectorAll('.score-item');
+      items.forEach((item, i) => {
+        setTimeout(() => {
+          item.classList.add('artifact');
+        }, i * 200);
+      });
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('.scoreboard').forEach(el => scoreObserver.observe(el));
+
+// --- Chart.js config ---
+const chartDefaults = {
+  color: '#9da3c4',
+  borderColor: 'rgba(157, 163, 196, 0.12)',
+  font: { family: "'Inter', sans-serif", size: 12 }
+};
+
+Chart.defaults.color = chartDefaults.color;
+Chart.defaults.font.family = chartDefaults.font.family;
+
+// --- Classifier performance chart ---
+new Chart(document.getElementById('classifierChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Accuracy', 'AUC', 'Precision', 'Recall', 'F1'],
+    datasets: [{
+      label: 'Disjoint test set',
+      data: [0.765, 0.843, 0.767, 0.761, 0.764],
+      backgroundColor: [
+        'rgba(78, 205, 196, 0.8)',
+        'rgba(78, 205, 196, 0.65)',
+        'rgba(127, 119, 221, 0.7)',
+        'rgba(127, 119, 221, 0.55)',
+        'rgba(127, 119, 221, 0.45)'
+      ],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => (ctx.parsed.y * 100).toFixed(1) + '%'
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 13, weight: '500' } },
+        border: { color: 'rgba(157, 163, 196, 0.12)' }
+      },
+      y: {
+        min: 0, max: 1,
+        grid: { color: 'rgba(157, 163, 196, 0.08)' },
+        ticks: {
+          callback: (v) => Math.round(v * 100) + '%',
+          font: { size: 12 }
+        },
+        border: { display: false }
+      }
+    }
+  }
+});
+
+// --- Layer distribution chart ---
+// Verified from models/gemma3_4b_classifier.pkl — actual per-layer H-Neuron counts
+const layerData = [
+  { layer: 0, count: 2 }, { layer: 2, count: 1 },
+  { layer: 4, count: 3 }, { layer: 5, count: 4 },
+  { layer: 6, count: 2 }, { layer: 7, count: 3 },
+  { layer: 9, count: 1 }, { layer: 10, count: 2 },
+  { layer: 12, count: 1 }, { layer: 13, count: 2 },
+  { layer: 14, count: 2 }, { layer: 15, count: 2 },
+  { layer: 16, count: 2 }, { layer: 20, count: 1 },
+  { layer: 23, count: 1 }, { layer: 24, count: 1 },
+  { layer: 25, count: 1 }, { layer: 26, count: 1 },
+  { layer: 27, count: 1 }, { layer: 28, count: 1 },
+  { layer: 30, count: 1 }, { layer: 31, count: 2 },
+  { layer: 33, count: 1 }
+];
+
+const layerLabels = Array.from({length: 34}, (_, i) => 'L' + i);
+const layerCounts = new Array(34).fill(0);
+layerData.forEach(d => { layerCounts[d.layer] = d.count; });
+
+const layerColors = layerCounts.map((_, i) => {
+  if (i <= 10) return 'rgba(255, 107, 107, 0.7)';
+  if (i <= 20) return 'rgba(127, 119, 221, 0.7)';
+  return 'rgba(78, 205, 196, 0.7)';
+});
+
+new Chart(document.getElementById('layerChart'), {
+  type: 'bar',
+  data: {
+    labels: layerLabels,
+    datasets: [{
+      label: 'H-Neurons',
+      data: layerCounts,
+      backgroundColor: layerColors,
+      borderRadius: 4,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: (items) => 'Layer ' + items[0].label.slice(1),
+          label: (ctx) => ctx.parsed.y + ' H-Neuron' + (ctx.parsed.y !== 1 ? 's' : '')
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 10 }, maxRotation: 0 },
+        border: { color: 'rgba(157, 163, 196, 0.12)' }
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(157, 163, 196, 0.08)' },
+        ticks: { stepSize: 1, font: { size: 12 } },
+        border: { display: false }
+      }
+    }
+  }
+});
+
+// --- Top neurons weight chart ---
+// Verified from models/gemma3_4b_classifier.pkl — actual top-10 by L1 weight
+const topNeurons = [
+  { label: 'L20:N4288', weight: 12.169 },
+  { label: 'L14:N8547', weight: 7.386 },
+  { label: 'L13:N833', weight: 3.451 },
+  { label: 'L5:N5227', weight: 3.337 },
+  { label: 'L33:N8011', weight: 3.071 },
+  { label: 'L24:N7995', weight: 2.603 },
+  { label: 'L26:N1359', weight: 2.456 },
+  { label: 'L9:N5580', weight: 1.824 },
+  { label: 'L10:N4996', weight: 1.705 },
+  { label: 'L0:N1819', weight: 1.693 }
+];
+
+new Chart(document.getElementById('topNeuronsChart'), {
+  type: 'bar',
+  data: {
+    labels: topNeurons.map(n => n.label),
+    datasets: [{
+      label: 'L1 weight',
+      data: topNeurons.map(n => n.weight),
+      backgroundColor: topNeurons.map((_, i) => i === 0 ? 'rgba(255, 107, 107, 0.85)' : 'rgba(127, 119, 221, 0.55)'),
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => 'Weight: ' + ctx.parsed.x.toFixed(3)
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(157, 163, 196, 0.08)' },
+        ticks: { font: { size: 12 } },
+        border: { display: false }
+      },
+      y: {
+        grid: { display: false },
+        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+        border: { color: 'rgba(157, 163, 196, 0.12)' }
+      }
+    }
+  }
+});
+</script>
+
+</body>
+</html>
