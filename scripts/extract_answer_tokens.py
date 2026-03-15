@@ -4,7 +4,6 @@ import argparse
 import time
 from typing import List, Optional, Set
 
-import torch
 from tqdm import tqdm
 from openai import OpenAI
 from transformers import AutoTokenizer
@@ -14,9 +13,16 @@ def parse_args():
     parser.add_argument("--input_path", type=str, required=True, help="Path to samples files")
     parser.add_argument("--output_path", type=str, default="data/answer_tokens.jsonl", help="Path to save processed results")
     parser.add_argument("--tokenizer_path", type=str, default="data/activations", help="Path to the target model tokenizer")
+    parser.add_argument(
+        "--strategy",
+        type=str,
+        choices=["llm", "synthetic-output"],
+        default="llm",
+        help="Use GPT extraction or build zero-cost synthetic records for output-token training.",
+    )
     
     # LLM Extractor Config
-    parser.add_argument("--api_key", type=str, required=True, help="OpenAI API Key")
+    parser.add_argument("--api_key", type=str, default=None, help="OpenAI API Key (required for --strategy llm)")
     parser.add_argument("--base_url", type=str, default="https://api.openai.com/v1", help="API Base URL")
     parser.add_argument("--llm_model", type=str, default="gpt-4o", help="LLM for extraction")
     
@@ -49,8 +55,14 @@ EXAMPLE_MESSAGES = [
 class AnswerTokenExtractor:
     def __init__(self, args):
         self.args = args
-        self.tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_path, trust_remote_code=True)
-        self.client = OpenAI(api_key=args.api_key, base_url=args.base_url)
+        self.tokenizer = None
+        self.client = None
+
+        if args.strategy == "llm":
+            if not args.api_key:
+                raise ValueError("--api_key is required when --strategy llm.")
+            self.tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_path, trust_remote_code=True)
+            self.client = OpenAI(api_key=args.api_key, base_url=args.base_url)
 
     def get_tokenized_list(self, text: str) -> List[str]:
         token_ids = self.tokenizer.encode(text, add_special_tokens=False)
@@ -86,12 +98,15 @@ class AnswerTokenExtractor:
 
     def load_processed_ids(self) -> Set[str]:
         """Resume from existing output file."""
-        if not os.path.exists(self.args.output_path): return set()
+        if not os.path.exists(self.args.output_path):
+            return set()
         ids = set()
         with open(self.args.output_path, "r", encoding="utf-8") as f:
             for line in f:
-                try: ids.update(json.loads(line).keys())
-                except: continue
+                try:
+                    ids.update(json.loads(line).keys())
+                except json.JSONDecodeError:
+                    continue
         return ids
 
     def run(self):
@@ -105,7 +120,8 @@ class AnswerTokenExtractor:
                 qid = list(data.keys())[0]
                 content = data[qid]
 
-                if qid in processed_ids: continue
+                if qid in processed_ids:
+                    continue
 
                 # Ensure all 10 responses have the same judge outcome (true/false)
                 judges = content["judges"]
@@ -115,14 +131,15 @@ class AnswerTokenExtractor:
                 # Take the most frequent response as representative
                 responses = content["responses"]
                 rep_response = max(set(responses), key=responses.count)
-                
-                # Tokenization
-                tokenized_list = self.get_tokenized_list(rep_response)
 
-                # LLM Extraction
-                answer_tokens = self.extract_via_llm(content["question"], rep_response, tokenized_list)
+                if self.args.strategy == "synthetic-output":
+                    tokenized_list = []
+                    answer_tokens = []
+                else:
+                    tokenized_list = self.get_tokenized_list(rep_response)
+                    answer_tokens = self.extract_via_llm(content["question"], rep_response, tokenized_list)
 
-                if answer_tokens:
+                if self.args.strategy == "synthetic-output" or answer_tokens:
                     result = {
                         qid: {
                             "question": content["question"],
