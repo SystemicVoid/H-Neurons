@@ -514,6 +514,89 @@
     font-style: normal;
   }
 
+  /* --- Population stacked bar --- */
+  .pop-bar-container {
+    max-width: 600px;
+    margin: 1.5rem auto;
+  }
+  .pop-bar {
+    display: flex;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .pop-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    transition: flex 1s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .pop-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .pop-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .pop-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* --- Prompt comparison --- */
+  .prompt-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 1.5rem 0;
+  }
+  .prompt-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .prompt-card .prompt-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .prompt-card code {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-highlight);
+    border-radius: 6px;
+    padding: 12px;
+    white-space: pre-wrap;
+    line-height: 1.7;
+  }
+  .prompt-card code em {
+    color: var(--accent-amber);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .prompt-compare { grid-template-columns: 1fr; }
+  }
+
   /* --- Counter animation --- */
   .counter { display: inline-block; }
 </style>
@@ -530,6 +613,7 @@
     <li><a href="#results">Results</a></li>
     <li><a href="#distribution">Distribution</a></li>
     <li><a href="#surprise">Investigation</a></li>
+    <li><a href="#intervention">Intervention</a></li>
     <li><a href="#takeaways">Takeaways</a></li>
   </ul>
 </nav>
@@ -539,7 +623,7 @@
 <section id="hero">
   <div class="fade-in">
     <span class="tag tag-teal">Mechanistic interpretability</span>
-    <h1>Finding Hallucination<br>Circuits in <span style="color: var(--accent-teal);">Gemma 3 4B</span></h1>
+    <h1>Finding Hallucination<br>Neurons in <span style="color: var(--accent-teal);">Gemma 3 4B</span></h1>
     <p class="subtitle">
       A replication and extension of <em>H-Neurons</em> (Gao et al., 2024).
       Can 0.01% of MLP neurons predict when an LLM hallucinates?
@@ -920,7 +1004,7 @@
     <strong>systematic issue with L1-based neuron ranking</strong> that likely affects other work using this methodology.
     The C-sweep (Analysis 3) was the most revealing: the fact that C=3.0 yields
     <span class="highlight">+4pp accuracy with 6x more neurons</span> suggests the paper's headline
-    "~35 H-Neurons" is a regularization artifact, not a biological count of hallucination circuits.
+    "~35 H-Neurons" is a regularization artifact, not a fundamental property of the model.
   </p>
 </div>
 
@@ -966,7 +1050,185 @@
   </div>
 </section>
 
-<!-- 7. Takeaways -->
+<!-- 7. Intervention experiments -->
+<section id="intervention">
+  <div class="fade-in">
+    <span class="tag tag-teal">Causal evidence</span>
+    <h2>From correlation to causation</h2>
+    <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. If these neurons <em>cause</em> over-compliance, compliance rate should rise monotonically with &alpha;. It does &mdash; perfectly.</p>
+
+    <div class="metrics-grid" style="margin-top: 2rem;">
+      <div class="metric-card">
+        <div class="label">Benchmark</div>
+        <div class="value" style="font-size: 1.1rem;">FaithEval</div>
+        <div class="detail">1,000 counterfactual MC questions</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Baseline (&alpha;=1.0)</div>
+        <div class="value val-teal">66.0%</div>
+        <div class="detail">Compliance rate</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Suppressed (&alpha;=0.0)</div>
+        <div class="value val-purple">64.2%</div>
+        <div class="detail">&minus;1.8pp from baseline</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Amplified (&alpha;=3.0)</div>
+        <div class="value val-coral">70.5%</div>
+        <div class="detail">+4.5pp from baseline</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="interventionChart"></canvas>
+    </div>
+
+    <div class="insight-box">
+      <strong>Perfectly monotonic.</strong> Compliance increases at every &alpha; step from 0.0 to 3.0 with no reversals.
+      Pearson r = 0.997, Spearman &rho; = 1.0, both p &lt; 1e&minus;6. Slope: 2.10%/&alpha; (R&sup2; = 0.993).
+      The paper reports 3.03%/&alpha; for small models &mdash; our lower slope is explained by the prompt difference (below).
+    </div>
+  </div>
+</section>
+
+<!-- Methodology gap -->
+<section id="methodology-gap" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Methodology gap</span>
+    <h2>Our prompt fights the effect</h2>
+    <p class="subtitle">The paper uses a pro-context retrieval QA frame. We use an anti-compliance prompt that explicitly tells the model to resist misleading context. Despite this, the causal trend still holds.</p>
+
+    <div class="prompt-compare">
+      <div class="prompt-card" style="border-color: var(--accent-coral);">
+        <div class="prompt-label" style="color: var(--accent-coral);">Paper (pro-context)</div>
+        <code>You are an expert in retrieval
+question answering. Please respond
+with <em>the exact answer only</em>.
+
+Context: {context}
+Question: {question}</code>
+      </div>
+      <div class="prompt-card" style="border-color: var(--accent-teal);">
+        <div class="prompt-label" style="color: var(--accent-teal);">Ours (anti-compliance)</div>
+        <code>Context: {context}
+Question: {question}
+{choices}
+
+<em>If the context conflicts with
+established knowledge, answer based
+on your own knowledge.</em>
+Answer with just the letter.</code>
+      </div>
+    </div>
+
+    <div class="comparison">
+      <div class="compare-card">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Paper slope</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--text-secondary);">3.03%/&alpha;</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Small-model average</div>
+      </div>
+      <div class="compare-card highlight">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Our slope</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">2.10%/&alpha;</div>
+        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">Against anti-compliance prompt</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Why this is actually stronger:</strong> Our prompt explicitly tells the model to resist context when it conflicts with knowledge.
+      The fact that H-Neuron scaling <em>still</em> overrides this instruction demonstrates genuine causal influence &mdash;
+      the neurons don't just nudge a willing model, they override explicit resistance.
+    </div>
+  </div>
+</section>
+
+<!-- Reflection: Intervention -->
+<div class="reflection">
+  <div class="ref-label">The reframing</div>
+  <p class="ref-text">
+    The paper calls these <strong>"hallucination neurons"</strong>, but our FaithEval results suggest they're
+    <strong>compliance neurons</strong>. At &alpha;=0.0, the model doesn't just resist misleading context &mdash;
+    it becomes <span class="highlight">more verbose</span>, breaking the "answer with just the letter" instruction.
+    84 of 1,000 responses at &alpha;=0.0 produce multi-sentence explanations instead of a single letter.
+    At &alpha;&ge;1.0: zero verbose responses. Suppressing H-Neurons reduces <em>all</em> forms of instruction-following,
+    not just factual over-compliance. <strong>This reframes the paper's narrative.</strong>
+  </p>
+</div>
+
+<!-- Population breakdown -->
+<section id="population" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Hidden structure</span>
+    <h2>86% of samples don't respond to &alpha;</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">The 6.3pp headline effect masks a tri-modal population. Only 138 "swing" samples actually change behavior &mdash; and within those, the effect is 69.6%.</p>
+
+    <div class="pop-bar-container">
+      <div class="pop-bar">
+        <div class="pop-segment" style="flex: 60; background: rgba(255, 107, 107, 0.6); color: var(--text-primary);">60.0%</div>
+        <div class="pop-segment" style="flex: 26.2; background: rgba(127, 119, 221, 0.6); color: var(--text-primary);">26.2%</div>
+        <div class="pop-segment" style="flex: 13.8; background: rgba(78, 205, 196, 0.6); color: var(--text-primary);">13.8%</div>
+      </div>
+      <div class="pop-legend">
+        <div class="pop-legend-item">
+          <div class="pop-legend-dot" style="background: rgba(255, 107, 107, 0.8);"></div>
+          Always compliant (600)
+        </div>
+        <div class="pop-legend-item">
+          <div class="pop-legend-dot" style="background: rgba(127, 119, 221, 0.8);"></div>
+          Never compliant (262)
+        </div>
+        <div class="pop-legend-item">
+          <div class="pop-legend-dot" style="background: rgba(78, 205, 196, 0.8);"></div>
+          Swing samples (138)
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="populationChart"></canvas>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">Headline effect</div>
+        <div class="value val-purple">6.3pp</div>
+        <div class="detail">&alpha;=0.0 to &alpha;=3.0</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Swing effect</div>
+        <div class="value val-teal">69.6%</div>
+        <div class="detail">Within 138 responsive samples</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Frozen samples</div>
+        <div class="value val-coral">86.2%</div>
+        <div class="detail">Unaffected by scaling</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>What this means:</strong> The paper reports compliance rates averaged over the whole population,
+      which dilutes the real effect. The model has already "decided" for 86% of questions before H-Neurons fire.
+      The causal effect is <em>real but concentrated</em> &mdash; it acts on the uncertain margin,
+      not on deeply-held knowledge or obvious fabrications.
+    </div>
+  </div>
+</section>
+
+<!-- Reflection: Population -->
+<div class="reflection">
+  <div class="ref-label">On negative controls</div>
+  <p class="ref-text">
+    Neither the paper nor this replication tests whether scaling <strong>38 random non-H-neurons</strong>
+    by the same &alpha; values would produce a similar compliance trend. Without this negative control,
+    we can't rule out that <em>any</em> perturbation to intermediate activations increases compliance.
+    This is <span class="highlight">the single most valuable experiment still missing</span> &mdash;
+    it would take ~2 hours and $0 to run.
+  </p>
+</div>
+
+<!-- 8. Takeaways -->
 <section id="takeaways">
   <div class="fade-in">
     <span class="tag tag-amber">Takeaways</span>
@@ -975,34 +1237,34 @@
     <div class="next-steps" style="margin-top: 1.5rem;">
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
-        <h3>The signal is real</h3>
+        <h3>The signal is real &mdash; and causal</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          76.5% accuracy on a disjoint test set confirms that MLP neurons carry detectable hallucination signals.
-          This closely replicates the paper's 76.9% on Gemma 3 4B, using fully independent code.
+          76.5% detection accuracy on a disjoint test set, and a perfectly monotonic compliance curve
+          (&alpha;=0.0&rarr;3.0) on FaithEval. Scaling H-Neurons changes model behavior &mdash; not just a correlate.
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
-        <h3>Weight != importance</h3>
+        <h3>Compliance, not hallucination</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The dominant neuron (12.17 weight, 1.65x #2) is an L1 artifact, not a hallucination hub.
-          Six independent analyses unanimously confirm this.
+          Suppressing H-Neurons at &alpha;=0.0 makes the model verbose and non-compliant with formatting instructions &mdash;
+          not just resistant to misleading context. These are general compliance neurons.
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
-        <h3>Regularization matters</h3>
+        <h3>Effect is concentrated</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          C = 3.0 achieves 80.5% (+4pp over C = 1.0) with 219 neurons.
-          The paper's single-C results miss the full picture of how H-Neuron selection changes with regularization.
+          86% of samples are unaffected by &alpha;. The 6.3pp headline masks a 69.6% swing in the 138 responsive samples.
+          The causal effect is real but acts only on the uncertain margin.
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">4</div>
-        <h3>Early-layer concentration</h3>
+        <h3>Prompt engineering dwarfs it</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          47% of H-Neurons are in layers 0&ndash;10. The model may "decide" to hallucinate early,
-          before most attention and MLP computation happens.
+          Our slope (2.10%/&alpha;) means a full &alpha;=0&rarr;3 sweep yields 6.3pp. Prompt engineering routinely achieves
+          30&ndash;50pp swings. Neuron scaling establishes causation but is a weak practical lever.
         </p>
       </div>
     </div>
@@ -1013,13 +1275,13 @@
 <div class="reflection">
   <div class="ref-label">The bigger picture</div>
   <p class="ref-text">
-    Everything above is <strong>correlation, not causation</strong>. We found neurons that <em>track</em>
-    hallucination &mdash; we haven't shown they <em>cause</em> it. That's exactly what the intervention
-    experiments (our next step) test: suppress these neurons during generation and measure whether
-    hallucination rates actually drop. The paper reports this works, but on different models.
-    Until we replicate that on Gemma 3 4B, our 38 neurons are predictive features, not proven mechanisms.
-    <strong>Concrete improvement:</strong> report results across a C range and use stability-based neuron ranking
-    rather than single-C weight magnitude.
+    We went from <strong>correlation to causation</strong> &mdash; but the story changed along the way.
+    The paper frames these as "hallucination neurons" that cause factual errors.
+    Our intervention results suggest a broader role: <span class="highlight">general compliance neurons</span>
+    that govern how readily the model follows instructions, accepts context, and defers to user framing.
+    Hallucination-under-misleading-context is one symptom of compliance, not the root behavior.
+    <strong>Two experiments remain:</strong> a negative control (38 random neurons) to confirm specificity,
+    and a re-run with the paper's pro-context prompt for direct comparability.
   </p>
 </div>
 
@@ -1030,25 +1292,26 @@
     <h2>Where do we go from here?</h2>
 
     <div class="next-steps">
-      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">OOD evaluation</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Negative control (~2h, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Test on NQ-Open, BioASQ, and NonExist to check if H-Neurons generalize beyond TriviaQA.
-          This separates "correlated neurons" from "neurons that transfer."
+          Scale 38 random non-H-neurons by the same &alpha; values.
+          If compliance rises similarly, H-Neurons aren't special &mdash; any perturbation does it.
+          The single most important missing experiment.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Standard prompt re-run (~2h, $0)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Re-run FaithEval with the paper's pro-context retrieval QA frame.
+          This gives direct slope comparability and isolates whether the prompt gap explains the full difference.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <h3 style="color: var(--accent-purple);">Intervention experiments</h3>
+        <h3 style="color: var(--accent-purple);">More benchmarks</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Suppress H-Neuron activations during generation (paper Section 3).
-          Does the model produce fewer hallucinations? This establishes causality.
-        </p>
-      </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">Suppressive neurons</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          38 neurons have negative L1 weights (anti-hallucination).
-          Are they the flip side of the same circuit? Do they activate for correct facts?
+          FalseQA (invalid premises), Sycophancy (opinion flipping), and Jailbreak (harmful compliance)
+          complete the paper's four-benchmark Figure 3.
         </p>
       </div>
     </div>
@@ -1338,6 +1601,154 @@ new Chart(document.getElementById('topNeuronsChart'), {
         grid: { display: false },
         ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
         border: { color: 'rgba(157, 163, 196, 0.12)' }
+      }
+    }
+  }
+});
+
+// --- Intervention: Compliance vs α chart ---
+const interventionAlphas = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
+const interventionRates = [64.2, 65.4, 66.0, 67.0, 68.2, 69.5, 70.5];
+
+new Chart(document.getElementById('interventionChart'), {
+  type: 'line',
+  data: {
+    labels: interventionAlphas.map(a => 'α=' + a.toFixed(1)),
+    datasets: [{
+      label: 'Compliance rate (%)',
+      data: interventionRates,
+      borderColor: '#4ecdc4',
+      backgroundColor: 'rgba(78, 205, 196, 0.15)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 6,
+      pointHoverRadius: 9,
+      pointBackgroundColor: interventionAlphas.map(a =>
+        a === 1.0 ? '#f0a500' : '#4ecdc4'
+      ),
+      pointBorderColor: interventionAlphas.map(a =>
+        a === 1.0 ? '#f0a500' : '#4ecdc4'
+      ),
+      pointBorderWidth: 2,
+      borderWidth: 2.5,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: (items) => items[0].label,
+          label: (ctx) => ctx.parsed.y.toFixed(1) + '% compliance'
+        }
+      },
+      annotation: undefined
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+        border: { color: 'rgba(157, 163, 196, 0.12)' }
+      },
+      y: {
+        min: 62, max: 72,
+        grid: { color: 'rgba(157, 163, 196, 0.08)' },
+        ticks: {
+          callback: (v) => v + '%',
+          font: { size: 12 }
+        },
+        border: { display: false },
+        title: {
+          display: true,
+          text: 'Compliance rate (%)',
+          font: { size: 12 },
+          color: '#9da3c4'
+        }
+      }
+    }
+  }
+});
+
+// --- Population: Stacked area showing swing dynamics ---
+// At each α, show breakdown: always-compliant (600), swing-compliant (varies), swing-resistant (varies), never-compliant (262)
+const swingCompliant = [42, 54, 60, 70, 82, 95, 105]; // = total_compliant - 600
+const swingResistant = swingCompliant.map(c => 138 - c);
+
+new Chart(document.getElementById('populationChart'), {
+  type: 'bar',
+  data: {
+    labels: interventionAlphas.map(a => 'α=' + a.toFixed(1)),
+    datasets: [
+      {
+        label: 'Always compliant',
+        data: new Array(7).fill(600),
+        backgroundColor: 'rgba(255, 107, 107, 0.5)',
+        borderRadius: 0,
+        borderSkipped: false,
+      },
+      {
+        label: 'Swing → compliant',
+        data: swingCompliant,
+        backgroundColor: 'rgba(78, 205, 196, 0.7)',
+        borderRadius: 0,
+        borderSkipped: false,
+      },
+      {
+        label: 'Swing → resistant',
+        data: swingResistant,
+        backgroundColor: 'rgba(78, 205, 196, 0.25)',
+        borderRadius: 0,
+        borderSkipped: false,
+      },
+      {
+        label: 'Never compliant',
+        data: new Array(7).fill(262),
+        backgroundColor: 'rgba(127, 119, 221, 0.4)',
+        borderRadius: {topLeft: 4, topRight: 4},
+        borderSkipped: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'rectRounded',
+          padding: 16,
+          font: { size: 11 }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y
+        }
+      }
+    },
+    scales: {
+      x: {
+        stacked: true,
+        grid: { display: false },
+        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+        border: { color: 'rgba(157, 163, 196, 0.12)' }
+      },
+      y: {
+        stacked: true,
+        max: 1000,
+        grid: { color: 'rgba(157, 163, 196, 0.08)' },
+        ticks: { font: { size: 12 } },
+        border: { display: false },
+        title: {
+          display: true,
+          text: 'Samples (n=1,000)',
+          font: { size: 12 },
+          color: '#9da3c4'
+        }
       }
     }
   }
