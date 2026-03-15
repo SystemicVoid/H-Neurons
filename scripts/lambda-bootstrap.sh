@@ -2,7 +2,7 @@
 # =============================================================================
 # Lambda Cloud Bootstrap — H-Neurons Pipeline for Mistral-7B-v0.3-Instruct
 # =============================================================================
-# Target: 1×A100-40GB SXM, Lambda Stack 24.04 (Python 3.12, CUDA pre-installed)
+# Target: 1×A100-40GB SXM by default, with GH200/ARM64 notes baked in
 #
 # Usage:
 #   1. Launch instance in Lambda console
@@ -61,6 +61,48 @@ mkdir -p data/TriviaQA/rc.nocontext data/activations scripts models
 uv init --no-readme --python 3.12 2>/dev/null || true
 uv add torch transformers datasets accelerate scikit-learn joblib openai tqdm numpy
 
+# Create a launcher script that can prefer a GH200 fallback env when needed.
+cat > scripts/lambda-run-python.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+GPU_VENV="${GPU_VENV:-$PROJECT_DIR/.venv-gpu}"
+GPU_PYTHONPATH_DEFAULT="$GPU_VENV/lib/python3.10/site-packages"
+
+if [[ -x "$GPU_VENV/bin/python" ]]; then
+  export PYTHONPATH="${GPU_PYTHONPATH:-$GPU_PYTHONPATH_DEFAULT}"
+  exec "$GPU_VENV/bin/python" "$@"
+fi
+
+exec uv run python3 "$@"
+EOF
+chmod +x scripts/lambda-run-python.sh
+
+echo "Checking whether the project uv environment can see CUDA..."
+if ! uv run python3 - <<'PY'
+import torch
+raise SystemExit(0 if torch.cuda.is_available() else 1)
+PY
+then
+  echo "uv project env is not CUDA-capable. Checking system Python..."
+  if /usr/bin/python3 - <<'PY'
+import torch
+raise SystemExit(0 if torch.cuda.is_available() else 1)
+PY
+  then
+    echo "System Python has CUDA torch; building .venv-gpu fallback..."
+    ~/.local/bin/uv venv --python /usr/bin/python3 --system-site-packages .venv-gpu --allow-existing
+    source .venv-gpu/bin/activate
+    python -m ensurepip --upgrade
+    python -m pip install transformers datasets openai accelerate joblib scikit-learn
+    python -m pip install --upgrade pillow "jinja2>=3.1"
+    deactivate || true
+  else
+    echo "WARNING: Neither uv env nor system Python sees CUDA. Investigate torch installation before long jobs."
+  fi
+fi
+
 # ---------------------------------------------------------------------------
 # 4. Download Mistral-7B-v0.3-Instruct (~13.5GB)
 # ---------------------------------------------------------------------------
@@ -106,7 +148,7 @@ echo ""
 echo "=== Pipeline Commands Reference ==="
 echo ""
 echo "# Step 1: Collect responses (10 samples/question, rule judge, ~3-5 hrs)"
-echo "uv run python3 scripts/collect_responses.py "
+echo "bash scripts/lambda-run-python.sh scripts/collect_responses.py "
 echo "    --model_path ~/models/Mistral-7B-Instruct-v0.3 "
 echo "    --data_path data/TriviaQA/rc.nocontext/triviaqa_train.parquet "
 echo "    --output_path data/mistral7b_TriviaQA_consistency_samples.jsonl "
@@ -115,20 +157,20 @@ echo "    --backend transformers --judge_type rule"
 echo ""
 echo "# Step 2: Extract answer tokens (skip if training on all output tokens)"
 echo "# Uses LLM judge — can point at local model or external API"
-echo "uv run python3 scripts/extract_answer_tokens.py "
+echo "bash scripts/lambda-run-python.sh scripts/extract_answer_tokens.py "
 echo "    --input_path data/mistral7b_TriviaQA_consistency_samples.jsonl "
 echo "    --output_path data/mistral7b_TriviaQA_answer_tokens.jsonl "
 echo "    --tokenizer_path ~/models/Mistral-7B-Instruct-v0.3 "
 echo "    --api_key \$OPENAI_API_KEY --base_url https://api.openai.com/v1"
 echo ""
 echo "# Step 3: Sample balanced IDs"
-echo "uv run python3 scripts/sample_balanced_ids.py "
+echo "bash scripts/lambda-run-python.sh scripts/sample_balanced_ids.py "
 echo "    --input_path data/mistral7b_TriviaQA_answer_tokens.jsonl "
 echo "    --output_path data/mistral7b_train_qids.json "
 echo "    --num_samples 1000"
 echo ""
 echo "# Step 4: Extract CETT activations (~4-6 hrs, GPU-intensive)"
-echo "uv run python3 scripts/extract_activations.py "
+echo "bash scripts/lambda-run-python.sh scripts/extract_activations.py "
 echo "    --model_path ~/models/Mistral-7B-Instruct-v0.3 "
 echo "    --input_path data/mistral7b_TriviaQA_answer_tokens.jsonl "
 echo "    --train_ids_path data/mistral7b_train_qids.json "
@@ -136,7 +178,7 @@ echo "    --output_root data/activations "
 echo "    --locations answer_tokens all_except_answer_tokens"
 echo ""
 echo "# Step 5: Train classifier"
-echo "uv run python3 scripts/classifier.py "
+echo "bash scripts/lambda-run-python.sh scripts/classifier.py "
 echo "    --model_path ~/models/Mistral-7B-Instruct-v0.3 "
 echo "    --train_ids data/mistral7b_train_qids.json "
 echo "    --train_ans_acts data/activations/answer_tokens "
