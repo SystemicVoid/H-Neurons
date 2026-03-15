@@ -158,9 +158,13 @@ class ConsistencySampler:
                 for _ in range(self.args.sample_num):
                     try:
                         if self.backend == "transformers":
-                            input_ids = self.tokenizer.apply_chat_template(
+                            inputs = self.tokenizer.apply_chat_template(
                                 messages, return_tensors="pt", add_generation_prompt=True
-                            ).to(self.model.device)
+                            )
+                            if hasattr(inputs, "input_ids"):
+                                input_ids = inputs["input_ids"].to(self.model.device)
+                            else:
+                                input_ids = inputs.to(self.model.device)
                             with torch.no_grad():
                                 output_ids = self.model.generate(
                                     input_ids,
