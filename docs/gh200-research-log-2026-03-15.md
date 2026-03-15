@@ -94,6 +94,38 @@ This is useful for another agent because the state is now visible in a small set
    Resolution:
    Fix the watcher launch to target the created session/window explicitly before relying on it for unattended sync.
 
+5. `device_map="auto"` on GH200 appears to have spilled Mistral-24B partially onto CPU/Grace memory.
+   Impact:
+   The run progressed, but far more slowly than expected for a model that should fit in 96 GB HBM3e.
+   Evidence:
+   Around 2026-03-15 17:15 UTC, the job had only about `17.5 GiB` GPU memory allocated, `nvidia-smi` showed no active compute process, and the Python worker was consuming heavy CPU while still making progress.
+   Resolution:
+   Add explicit `--device_map cuda:0` support and restart Mistral Step 1 cleanly from the existing JSONL.
+
+6. The first repaired version of `gh200_sequential_pipeline.sh` still misidentified healthy Step 1 runs as failed.
+   Impact:
+   After switching Step 1 from `uv run python3` to the CUDA-capable `.venv-gpu` launcher, the tmux pane reported `python` as the active command. The orchestrator only treated `uv` as "running", so it tried to restart a healthy GPU job.
+   Evidence:
+   Once the manual restart succeeded, `nvidia-smi` showed about `63 GiB` in use with a live Python compute process while the controller would have classified the pane as stopped.
+   Resolution:
+   Patch the orchestrator to treat `uv`, `python`, and `python3` as active Step 1 runners, then re-sync it before re-arming the remote controller.
+
+7. `transformers` 5.3.0 now emits a Mistral tokenizer regex warning on Step 1 startup.
+   Impact:
+   The run still proceeds, but tokenization may differ from the intended upstream fix, which is risky for any token-level analysis or answer-token matching later.
+   Evidence:
+   The live GH200 restart warned that the tokenizer was loaded with an incorrect regex pattern and recommended `fix_mistral_regex=True`.
+   Resolution:
+   Treat this as a methodological risk to test before relying on token-level comparisons across reruns. It did not justify interrupting the recovered GPU run mid-flight.
+
+8. The live Llama-70B Step 1 run was intentionally aborted for budget and methodology reasons.
+   Impact:
+   Continuing would have consumed roughly several more days of rental time at a throughput that is not scientifically acceptable under the project's "full precision and fully GPU-resident" requirement.
+   Evidence:
+   After startup, the run was only around `22/3500` questions in roughly `49m 38s`, implying about `26.6` questions/hour, about `131.6` hours for Step 1 alone, and about `$263` for that stage at `$2/hour`. It also occupied about `86 GiB / 96 GiB` rather than representing a cleanly comfortable full-GPU fit for this workload.
+   Resolution:
+   Stop the remote Llama job, preserve the completed Mistral outputs, and formalize the policy that this project only runs models that fit fully on the rented GPU in full precision.
+
 ### Confirmed brittle spots in the codebase
 
 1. `extract_activations.py` finds answer-token spans by exact decoded token string match.
@@ -154,6 +186,16 @@ This is useful for another agent because the state is now visible in a small set
 
 5. If we later add a held-out evaluation split, the variance from sample selection may be large enough that comparing models on one fixed `3500`-question prefix is misleading.
 
+6. Llama-3.3-70B bf16 cannot be made pure-GPU on this single GH200 without changing the deployment strategy.
+
+7. `transformers` warnings during generation now highlight missing `attention_mask` / implicit `pad_token_id` handling in Step 1.
+   Why it matters:
+   The current run is advancing correctly, but this is another signal that generation inputs are relying on defaults rather than an explicitly controlled inference path.
+
+8. A model can be "making progress" and still be the wrong experiment.
+   Why it matters:
+   For activation work, a slow hybrid or marginal fit is not just inefficient, it changes the methodological premise. Renting hardware by the hour magnifies that mistake.
+
 ## Methodological Improvements
 
 ### Improvements already implemented
@@ -163,6 +205,14 @@ This is useful for another agent because the state is now visible in a small set
 2. Scripted synthetic-output generation in `extract_answer_tokens.py` instead of relying on notebook-style inline code.
 
 3. Sequential tmux orchestration with explicit status files.
+
+4. A tmux-runner health check that accepts both `uv` and `python`-style launchers.
+
+5. Compact-artifact sync and git policy now distinguish between research evidence and heavy runtime byproducts.
+   Concrete policy:
+   - keep compact JSON/JSONL/CSV artifacts visible in git
+   - keep activation dumps, scratch investigations, and local sync state ignored
+   - treat the GH200 copy as canonical whenever a local sync is partial
 
 ### Improvements still worth doing
 
@@ -189,6 +239,16 @@ This is useful for another agent because the state is now visible in a small set
 5. Consider a randomized or stratified TriviaQA subset rather than the first `3500`.
    Why:
    This makes comparisons more defensible if we later compare architectures or reruns.
+
+6. Evaluate whether `fix_mistral_regex=True` should be forced anywhere we load the Mistral tokenizer.
+   Why:
+   If the warning reflects real tokenization drift, it can directly contaminate Step 2 answer-token spans and Step 4 activation-region selection.
+
+7. Encode an explicit preflight fit check before launching long remote runs.
+   Why:
+   The decision criterion should not be "does it eventually produce lines," but "can the model stay entirely on the rented GPU in full precision with enough headroom for the actual pipeline stage."
+   Suggested rule of thumb:
+   On a single GH200 96GB, treat the proven-safe class as roughly 24B for this workflow. Anything materially larger should be rejected by default until it is positively proven GPU-resident under the real script, not just at model-load time.
 
 ## Questions For My Mentor
 
@@ -231,6 +291,9 @@ If you need a compact story tomorrow, this structure should work:
 
 5. Decision point:
    Choose whether the next step is higher-fidelity labels/tokens or faster broader sweeps across models/settings.
+
+6. Operational conclusion:
+   A single GH200 96GB is a good fit for the 24B class in bf16 for this pipeline, but not for 70B under the project's full-precision, activation-faithful constraints. If we want larger models, the right move is different hardware, not wishful orchestration.
 
 ## Current Files Relevant To This Log
 
