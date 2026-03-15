@@ -9,6 +9,8 @@ def parse_args():
     parser.add_argument("--output_path", type=str, default="data/train_qids.json", help="Path to save balanced IDs (json)")
     parser.add_argument("--num_samples", type=int, default=1000, help="Number of samples per class (default: 1000)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--exclude_path", type=str, default=None,
+                        help="Path to a previously-sampled qids.json whose IDs should be excluded (for disjoint splits)")
     return parser.parse_args()
 
 def main():
@@ -18,12 +20,22 @@ def main():
     true_ids = []
     false_ids = []
 
+    # Load exclusion set if provided (for disjoint train/test splits)
+    exclude_ids = set()
+    if args.exclude_path:
+        with open(args.exclude_path, "r") as f:
+            excl = json.load(f)
+            exclude_ids = set(excl["t"] + excl["f"])
+        print(f"Excluding {len(exclude_ids)} IDs from {args.exclude_path}")
+
     # Categorize IDs based on labels
     with open(args.input_path, "r", encoding="utf-8") as f:
         for line in tqdm(f, desc="Reading IDs"):
             try:
                 data = json.loads(line)
                 qid = list(data.keys())[0]
+                if qid in exclude_ids:
+                    continue
                 label = data[qid].get("judge")
 
                 if label == "true":
@@ -32,7 +44,7 @@ def main():
                     false_ids.append(qid)
             except Exception as e:
                 print(f"Skipping line due to error: {e}")
- 
+
     print(f"Total available - True: {len(true_ids)}, False: {len(false_ids)}")
 
     # Determine final sample count based on availability
