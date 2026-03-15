@@ -4,7 +4,7 @@ import re
 import string
 import argparse
 import time
-from typing import List, Set, Dict
+from typing import List, Set
 
 import torch
 from tqdm import tqdm
@@ -17,6 +17,12 @@ def parse_args():
     parser.add_argument("--model_path", type=str, required=True, help="Path to the model for sampling")
     parser.add_argument("--data_path", type=str, required=True, help="Path to the TriviaQA parquet file")
     parser.add_argument("--output_path", type=str, default="data/consistency_samples.jsonl", help="Output path")
+    parser.add_argument(
+        "--device_map",
+        type=str,
+        default="auto",
+        help="Hugging Face device_map value, e.g. 'auto' or 'cuda:0'.",
+    )
     
     parser.add_argument("--sample_num", type=int, default=10, help="Samples per question")
     parser.add_argument("--max_samples", type=int, default=None, help="Maximum number of questions to process")
@@ -38,23 +44,31 @@ def parse_args():
 
 def normalize_answer(s: str) -> str:
     """Standardize answer strings for Rule Judge."""
-    def remove_articles(text): return re.sub(r'\b(a|an|the)\b', ' ', text)
-    def white_space_fix(text): return ' '.join(text.split())
+    def remove_articles(text):
+        return re.sub(r'\b(a|an|the)\b', ' ', text)
+
+    def white_space_fix(text):
+        return ' '.join(text.split())
+
     def handle_punc(text):
         exclude = set(string.punctuation + "‘’´`")
         return ''.join(ch if ch not in exclude else ' ' for ch in text)
-    if not s: return ""
+
+    if not s:
+        return ""
     return white_space_fix(remove_articles(handle_punc(str(s).lower().replace('_', ' ')))).strip()
 
 def load_existing_qids(path: str) -> Set[str]:
-    if not os.path.exists(path): return set()
+    if not os.path.exists(path):
+        return set()
     qids = set()
     with open(path, 'r', encoding='utf-8') as f:
         for line in f:
             try:
                 data = json.loads(line)
                 qids.update(data.keys())
-            except: continue
+            except json.JSONDecodeError:
+                continue
     return qids
 
 # ==========================================
@@ -70,7 +84,9 @@ class ConsistencySampler:
         if self.backend == "transformers":
             self.tokenizer = AutoTokenizer.from_pretrained(args.model_path)
             self.model = AutoModelForCausalLM.from_pretrained(
-                args.model_path, dtype=torch.bfloat16, device_map="auto"
+                args.model_path,
+                torch_dtype=torch.bfloat16,
+                device_map=args.device_map,
             )
             self.model.eval()
         else:
@@ -113,8 +129,10 @@ class ConsistencySampler:
                     temperature=0.0
                 )
                 res = completion.choices[0].message.content.strip().lower()
-                if 't' in res: return "true"
-                if 'f' in res: return "false"
+                if 't' in res:
+                    return "true"
+                if 'f' in res:
+                    return "false"
             except Exception as e:
                 print(f"Judge API failed (attempt {attempt+1}): {e}")
                 time.sleep(1)
@@ -132,19 +150,26 @@ class ConsistencySampler:
         with open(self.args.output_path, 'a', encoding='utf-8') as f:
             for item in tqdm(dataset, desc=f"Sampling ({self.args.judge_type} judge)"):
                 qid = str(item.get('question_id', ''))
-                if qid in processed_qids: continue
+                if qid in processed_qids:
+                    continue
 
                 question = item.get('question', '')
-                if not question or 'answer' not in item: continue
+                if not question or 'answer' not in item:
+                    continue
 
                 # Get ground truth
                 raw_aliases = []
                 for col in ['aliases', 'normalized_aliases']:
                     val = item['answer'].get(col)
-                    if val: raw_aliases.extend(val) if isinstance(val, list) else raw_aliases.append(str(val))
+                    if val:
+                        if isinstance(val, list):
+                            raw_aliases.extend(val)
+                        else:
+                            raw_aliases.append(str(val))
                 
                 norm_gts = [normalize_answer(a) for a in set(raw_aliases) if a]
-                if not norm_gts: continue
+                if not norm_gts:
+                    continue
 
                 suffix = "Respond with the answer only, without any explanation."
                 # Sampling
@@ -208,12 +233,15 @@ class ConsistencySampler:
                         print(f"Sampling error at {qid}: {e}")
                         break
 
-                if len(responses) < self.args.sample_num: continue
+                if len(responses) < self.args.sample_num:
+                    continue
 
                 # Stats update
                 true_count = judges.count("true")
-                if true_count == self.args.sample_num: all_correct_count += 1
-                elif true_count == 0: all_incorrect_count += 1
+                if true_count == self.args.sample_num:
+                    all_correct_count += 1
+                elif true_count == 0:
+                    all_incorrect_count += 1
 
                 # Save record
                 result = {

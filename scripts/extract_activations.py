@@ -21,6 +21,12 @@ def parse_args():
     parser.add_argument("--input_path", type=str, required=True, help="Path to answer_tokens.jsonl")
     parser.add_argument("--train_ids_path", type=str, required=True, help="Path to train_qids.json")
     parser.add_argument("--output_root", type=str, required=True, help="Root directory for saving .npy files")
+    parser.add_argument(
+        "--device_map",
+        type=str,
+        default="auto",
+        help="Hugging Face device_map value, e.g. 'auto' or 'cuda:0'.",
+    )
     
     # Extraction Parameters
     parser.add_argument("--locations", nargs="+", default=["answer_tokens"], 
@@ -110,7 +116,11 @@ def get_region_indices(full_ids: torch.Tensor, tokenizer, question: str, respons
 def main():
     args = parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-    model = AutoModelForCausalLM.from_pretrained(args.model_path, torch_dtype=torch.bfloat16, device_map="auto")
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model_path,
+        torch_dtype=torch.bfloat16,
+        device_map=args.device_map,
+    )
     cett_manager = CETTManager(model)
 
     with open(args.train_ids_path, "r") as f:
