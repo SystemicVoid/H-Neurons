@@ -7,6 +7,14 @@ from tqdm import tqdm
 from typing import List, Dict, Optional, Tuple
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+
+def unwrap_chat_template_output(chat_template_output):
+    """Handle transformers returning either a tensor or a BatchEncoding."""
+    if hasattr(chat_template_output, "input_ids"):
+        return chat_template_output["input_ids"]
+    return chat_template_output
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Extract CETT activations for multiple token positions.")
     parser.add_argument("--model_path", type=str, required=True)
@@ -60,8 +68,10 @@ class CETTManager:
         acts = torch.stack(self.activations).transpose(0, 1).to(self.model.device) # [tokens, layers, neurons]
         norms = torch.stack(self.output_norms).transpose(0, 1).to(self.model.device) # [tokens, layers, 1]
 
-        if use_abs: acts = torch.abs(acts)
-        if use_mag: acts = acts * self.weight_norms.unsqueeze(0)
+        if use_abs:
+            acts = torch.abs(acts)
+        if use_mag:
+            acts = acts * self.weight_norms.unsqueeze(0)
         
         return (acts / (norms + 1e-8)).transpose(0, 1) # [layers, tokens, neurons]
 
@@ -69,10 +79,11 @@ def get_region_indices(full_ids: torch.Tensor, tokenizer, question: str, respons
     """Identify token indices for different sequence regions."""
     full_tokens = [tokenizer.decode([tid]) for tid in full_ids[0]]
     answer_tokens = [token.replace("▁", " ").replace("Ġ", " ") for token in answer_tokens]  # Normalize to tokenizer format
-    token_str_list = "".join(full_tokens)
     
     # 1. Identify Input Region (User Prompt)
-    user_ids = tokenizer.apply_chat_template([{"role": "user", "content": question}], return_tensors="pt")
+    user_ids = unwrap_chat_template_output(
+        tokenizer.apply_chat_template([{"role": "user", "content": question}], return_tensors="pt")
+    )
     input_len = user_ids.shape[1] - 1 # Exclude potential separator/header
     
     # 2. Identify Output Region (Assistant Response)
@@ -126,8 +137,11 @@ def main():
 
         # Forward Pass
         msgs = [{"role": "user", "content": data["question"]}, {"role": "assistant", "content": data["response"]}]
-        input_ids = tokenizer.apply_chat_template(msgs, return_tensors="pt", add_generation_prompt=False).to(model.device)
-        with torch.no_grad(): model(input_ids)
+        input_ids = unwrap_chat_template_output(
+            tokenizer.apply_chat_template(msgs, return_tensors="pt", add_generation_prompt=False)
+        ).to(model.device)
+        with torch.no_grad():
+            model(input_ids)
         
         cett_full = cett_manager.get_cett_tensor(use_abs=args.use_abs, use_mag=args.use_mag)
         regions = get_region_indices(input_ids, tokenizer, data["question"], data["response"], data["answer_tokens"])
@@ -155,8 +169,10 @@ def main():
                 continue
 
             # Aggregate
-            if args.method == "mean": final_act = selected_cett.mean(dim=1)
-            else: final_act, _ = selected_cett.max(dim=1)
+            if args.method == "mean":
+                final_act = selected_cett.mean(dim=1)
+            else:
+                final_act, _ = selected_cett.max(dim=1)
 
             np.save(save_path, final_act.cpu().float().numpy())
 
