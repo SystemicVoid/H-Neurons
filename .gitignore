@@ -32,6 +32,7 @@ data/batch3500_review.md
 scripts/lambda-AGENTS.md
 scripts/lambda_bootstrap_and_start_step1.py
 scripts/monitor_lambda_capacity.py
+scripts/cron_gh200_wakeup.sh
 
 # Costs log for grant reporting
 costs/

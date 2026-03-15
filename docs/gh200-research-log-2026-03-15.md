@@ -100,6 +100,8 @@ This is useful for another agent because the state is now visible in a small set
    Why it matters:
    If tokenization splits differ even slightly, answer-token activations are silently skipped. This is especially relevant for BPE/SentencePiece models where whitespace markers and subword boundaries vary.
 
+   -> The disjoint test set (gemma 3 4b - 0% overlap with training data) yields **76.5% accuracy**, which is actually closer to the paper's 76.9% than the inflated 77.7% from the overlapping split. The ~1.2 percentage point drop from overlapping→disjoint confirms mild leakage, but the signal is clearly real — it holds on fully held-out data.
+
 2. `extract_answer_tokens.py` silently filters out non-unanimous, `uncertain`, or `error` examples.
    Why it matters:
    The dataset size after Step 2 is not just "smaller than Step 1"; it is smaller in a label- and model-dependent way. That can change class balance and therefore the effective training set.

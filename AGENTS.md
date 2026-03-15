@@ -15,6 +15,8 @@ Core code lives in `scripts/`, with one CLI per pipeline stage: response collect
 
 For zero-cost runs without an OpenAI key, use `scripts/extract_answer_tokens.py --strategy synthetic-output` and pair it with `scripts/extract_activations.py --locations output`; this preserves resume behavior without the manual JSONL hack from the README.
 
+The GH200 remote run now has a local cron-based wakeup path via `scripts/cron_gh200_wakeup.sh`; it watches the remote `logs/gh200_pipeline.{status,done,failed}` files, pings the `agents` tmux session on state changes, and can launch a one-shot `codex exec` takeover tmux session when the pipeline finishes or fails.
+
 Shared agent skills should live in `~/.config/forge/agents/.agents/skills-store/` and be symlinked into repo-local `.agents/skills/` entries instead of copied into the repo. This keeps multi-repo skill updates centralized.
 
 ## Build, Test, and Development Commands
