@@ -14,3 +14,11 @@ data/*_log.txt
 *.safetensors
 *.bin
 *.gguf
+
+# Environment variables
+.env
+
+# Local agent guidance artifacts
+data/batch3500_pipeline_handoff.md
+data/batch3500_review.md
+scripts/lambda-AGENTS.md
