@@ -15,7 +15,21 @@ Core code lives in `scripts/`, with one CLI per pipeline stage: response collect
 
 For zero-cost runs without an OpenAI key, use `scripts/extract_answer_tokens.py --strategy synthetic-output` and pair it with `scripts/extract_activations.py --locations output`; this preserves resume behavior without the manual JSONL hack from the README.
 
+For repo hygiene, keep compact experiment artifacts such as benchmark CSVs, consistency-sample JSONL files, answer-token JSONL files, balanced ID JSONs, and compact intervention outputs visible in git. Keep heavy activation dumps, scratch investigation folders, and local sync state ignored. If a local GH200 sync is partial, treat the remote copy as canonical until file counts and presence of the classifier match.
+
+The fetched remote `mistral24b_classifier.pkl` currently emits scikit-learn's `InconsistentVersionWarning` when loaded locally (`0.23.2` pickle vs newer local sklearn). It still loads, but treat cross-machine probe pickles as version-sensitive artifacts and prefer recording metrics JSON alongside them.
+
 The GH200 remote run now has a local cron-based wakeup path via `scripts/cron_gh200_wakeup.sh`; it watches the remote `logs/gh200_pipeline.{status,done,failed}` files, pings the `agents` tmux session on state changes, and can launch a one-shot `codex exec` takeover tmux session when the pipeline finishes or fails.
+
+On a single GH200 96GB GPU, `Mistral-Small-24B-Instruct-2501` should be launched with an explicit GPU placement like `--device_map cuda:0`; `device_map=auto` can spill part of the model to CPU/Grace memory and run far slower. By contrast, `Llama-3.3-70B-Instruct` in bf16 does not fit fully on that GPU, so a pure-GPU run is not possible without changing the model format (for example quantization) or hardware setup.
+
+The GH200 tmux orchestrator must not assume a running Step 1 pane shows `uv` as `pane_current_command`. After switching to the CUDA-capable `.venv-gpu` path, healthy runs show `python`, so `scripts/gh200_sequential_pipeline.sh` should treat `uv`, `python`, and `python3` as active runners or it will restart a good job by mistake.
+
+On `transformers` 5.3.0, loading `Mistral-Small-24B-Instruct-2501` emits a tokenizer warning about an incorrect regex pattern and recommends `fix_mistral_regex=True`. That warning did not block execution, but it is a real reproducibility risk to track before comparing token-level outputs or answer-token matches across reruns.
+
+For this project, the operational policy is now stricter than "it runs somehow": on rented hardware, only run models whose full-precision weights and activation workflow fit entirely on the GPU being rented. A single GH200 96GB proved viable for the 24B class, but `Llama-3.3-70B-Instruct` violated that rule and was intentionally stopped. Treat roughly the 24B class as the safe upper bound on this box unless a larger bf16 model is explicitly demonstrated to stay GPU-resident throughout the relevant stages.
+
+Pricing check on 2026-03-15: Runpod is cheaper for smaller 80GB-class iteration (for example A100 80GB / H100 80GB), but Lambda's GH200 96GB was listed at `$1.99/hr`, which is cheaper than Runpod's nearest 94GB-class single-GPU option (`H100 NVL` at `$2.59/hr`). For this repo's 24B activation-faithful runs, that means "Runpod is cheaper" is only true for smaller jobs; for the validated ~96GB single-GPU path, Lambda can actually be the lower-cost option.
 
 Shared agent skills should live in `~/.config/forge/agents/.agents/skills-store/` and be symlinked into repo-local `.agents/skills/` entries instead of copied into the repo. This keeps multi-repo skill updates centralized.
 
