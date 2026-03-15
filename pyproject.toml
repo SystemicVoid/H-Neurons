@@ -1,8 +1,9 @@
 [project]
 name = "02-h-neurons"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
+    "datasets>=4.5.0",
     "matplotlib>=3.10.8",
     "scipy>=1.17.1",
 ]

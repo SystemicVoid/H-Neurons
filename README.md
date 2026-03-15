@@ -90,6 +90,8 @@ python scripts/sample_balanced_ids.py \
     --num_samples 1000
 ```
 
+To create a disjoint held-out split, run the same command again with `--exclude_path data/train_qids.json` and save to a separate `test_qids.json`.
+
 ### 4. Quantify Neuron Contribution
 
 Compute and save the neuron contributions (CETT). This script handles the forward pass and supports extracting activations from multiple locations (Input, Output, Answer Tokens, All Tokens except Answer Tokens).
@@ -114,9 +116,12 @@ python scripts/classifier.py \
     --train_ids data/train_qids.json \
     --train_ans_acts data/activations/answer_tokens \
     --train_other_acts data/activations/all_except_answer_tokens \
+    --test_ids data/test_qids.json \
+    --test_acts data/test_activations/answer_tokens \
     --train_mode 3-vs-1 \
     --penalty l1 \
-    --C 1.0 \
+    --c_values 0.05 0.1 0.2 0.5 1.0 \
+    --metrics_out data/classifier_metrics.json \
     --save_model models/classifier.pkl
 ```
 
@@ -133,6 +138,10 @@ python scripts/classifier.py \
     *   Selecting an appropriate \(C\) is a trade-off. On one hand, setting \(C\) too low enforces aggressive sparsity, which risks excluding too many neurons. On the other hand, setting \(C\) too high introduces noise by including neurons essential for general language modeling, thereby causing damage to the model's fundamental capabilities during intervention.
     We perform a grid search to select \(C\) to maximize the sum of (1) classification accuracy on a held-out set and (2) model performance on TriviaQA when suppressing the identified H-Neurons.
     But if you only need a hallucination detector, just use L2 regularization and set \(C\) as default.
+
+*   **`--c_values` / `--metrics_out`**:
+    *   Use `--c_values` to sweep several regularization strengths in one run.
+    *   When `--test_ids` and `--test_acts` are provided, the best checkpoint is selected using held-out metrics and the full sweep summary can be written to `--metrics_out`.
 
 
 *   **Model Management**:
