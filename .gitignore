@@ -22,3 +22,9 @@ data/*_log.txt
 data/batch3500_pipeline_handoff.md
 data/batch3500_review.md
 scripts/lambda-AGENTS.md
+
+# Costs log for grant reporting
+costs/
+
+# Claude Code local config
+.claude/
