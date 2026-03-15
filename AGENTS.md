@@ -9,6 +9,10 @@ Core code lives in `scripts/`, with one CLI per pipeline stage: response collect
 
 `scripts/collect_responses.py` imports heavyweight runtime dependencies (`torch`, `transformers`, `openai`) at module import time, so lightweight analysis utilities should not import it just to reuse `normalize_answer`; copy the function verbatim instead.
 
+`scripts/lambda-bootstrap.sh` and `scripts/lambda-AGENTS.md` are currently tuned for A100-40GB + Mistral-7B defaults; when running on GH200/H100 (ARM64) or switching to larger models (24B/27B), update model IDs, output filenames, and any architecture assumptions before launching long jobs.
+
+Shared agent skills should live in `~/.config/forge/agents/.agents/skills-store/` and be symlinked into repo-local `.agents/skills/` entries instead of copied into the repo. This keeps multi-repo skill updates centralized.
+
 ## Build, Test, and Development Commands
 Use `uv` for Python environment management.
 
