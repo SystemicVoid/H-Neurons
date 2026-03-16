@@ -670,7 +670,6 @@
   <div class="fade-in">
     <span class="tag tag-amber">Meeting agenda &mdash; March 16</span>
     <h2>First advisor meeting</h2>
-    <p class="subtitle" style="margin-bottom: 1rem;">Project started March 14. This is the initial review.</p>
     <div class="next-steps">
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
@@ -1432,6 +1431,79 @@ Answer:</code>
     content selection, answer rendering, or generic surface-form degradation.
   </p>
 </div>
+
+<!-- Advisor questions -->
+<section id="advisor-questions" class="short">
+  <div class="fade-in">
+    <span class="tag tag-coral">Questions for advisor</span>
+    <h2>Two strategy decisions to make before the next wave of runs</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">
+      These belong <em>before</em> the execution plan. They decide which neuron set counts as the main object of study,
+      and which second model would add the most external validity per unit of compute.
+    </p>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">1. Which neuron set should define the main story?</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Should we keep focusing on the <strong>38 neurons at C=1.0</strong> because that is closest to the paper's
+          sparse-intervention methodology, or pivot to the <strong>219 positive neurons at C=3.0</strong> because that
+          detector appears to capture more of the real Gemma signal?
+        </p>
+        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;">
+          Current evidence: C=1.0 gives the paper-faithful sparse story and reproduced the paper's Gemma-3-4B TriviaQA
+          accuracy almost exactly (paper 76.9%, ours 76.5% disjoint). But our C-sweep found C=3.0 reaches
+          <strong>80.5%</strong> accuracy with <strong>219</strong> positive neurons, and neuron 4288 drops from rank 1 to
+          rank 5, which suggests the 38-neuron set is partly a regularization artifact rather than the full circuit.
+        </p>
+      </div>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">2. Which second model adds the most value?</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          If we replicate beyond Gemma-3-4B, should the next target be <strong>Mistral-Small-24B</strong> or
+          <strong>Llama-3.3-70B</strong>?
+        </p>
+        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;">
+          Mentor framing: Mistral is the cleaner engineering choice; Llama is the stronger external-validity choice.
+          Mistral sits on the paper's best-behaving family and is feasible on our validated ~96GB single-GPU path.
+          Llama-3.3-70B posts the strongest large-model paper numbers, but our current hardware notes say a pure-GPU bf16
+          run does <em>not</em> fit on a single GH200, so reproducing it would require a more expensive deployment strategy.
+        </p>
+      </div>
+    </div>
+
+    <div class="metrics-grid" style="margin-top: 1.5rem;">
+      <div class="metric-card">
+        <div class="label">Paper-faithful sparse set</div>
+        <div class="value val-amber">38</div>
+        <div class="detail">Gemma-3-4B, C=1.0, 76.5% local disjoint accuracy</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Higher-signal set</div>
+        <div class="value val-coral">219</div>
+        <div class="detail">Gemma-3-4B, C=3.0, 80.5% local accuracy</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Paper Mistral-24B</div>
+        <div class="value val-teal">81.0%</div>
+        <div class="detail">TriviaQA detection, 0.01‰ H-Neurons, base-rank 0.971</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Paper Llama-70B</div>
+        <div class="value val-purple">82.7%</div>
+        <div class="detail">TriviaQA detection, 0.01‰ H-Neurons, NonExist 96.7%</div>
+      </div>
+    </div>
+
+    <div class="insight-box" style="margin-top: 1.25rem;">
+      <strong>Recommendation to discuss, not hide:</strong> if the goal is the strongest <em>paper-faithful</em> story,
+      continue with the 38-neuron set and choose Mistral-Small-24B as the next family. If the goal is the strongest
+      <em>mechanistic</em> story, elevate the C-sweep result, treat 219 neurons as the better detector, and explicitly ask
+      whether the paper's sparsity headline is partly an artifact of one regularization setting.
+    </div>
+  </div>
+</section>
 
 <!-- 8. Next steps -->
 <section id="nextsteps" class="short">
