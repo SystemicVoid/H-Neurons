@@ -1133,7 +1133,7 @@ Question: {question}
     </div>
 
     <h3 style="margin-top: 2rem;">Format degradation at high &alpha;</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Responses that drop the MC letter prefix ("D) Energy molecules" &rarr; "Energy molecules") scale sharply with &alpha; under the standard prompt.</p>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Responses the parser could not extract an MC letter from scale sharply with &alpha; under the standard prompt.</p>
 
     <div class="chart-container">
       <canvas id="parseFailureChart"></canvas>
@@ -1141,19 +1141,19 @@ Question: {question}
 
     <div class="comparison" style="margin-top: 1.5rem;">
       <div class="compare-card">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">No-letter responses at &alpha;=0.0</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">30</div>
-        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">3.0% of samples</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Parse failures at &alpha;=0.0</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">9</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">0.9% of samples</div>
       </div>
       <div class="compare-card" style="border-color: var(--accent-coral);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">No-letter responses at &alpha;=3.0</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-coral);">199</div>
-        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">19.9% &mdash; a 6.6x increase</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Parse failures at &alpha;=3.0</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-coral);">150</div>
+        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">15.0% &mdash; a 16.7x increase</div>
       </div>
     </div>
 
     <h3 style="margin-top: 2.5rem;">Adjusted for format: both curves agree</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Among responses that <em>kept</em> the letter format, compliance under the standard prompt rises from 71.1% to 77.9% &mdash; aligning with the anti-compliance trend.</p>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Among responses that <em>kept</em> the letter format, compliance under the standard prompt rises from 69.7% to 74.8% &mdash; aligning with the anti-compliance trend.</p>
 
     <div class="chart-container">
       <canvas id="adjustedComplianceChart"></canvas>
@@ -1793,7 +1793,7 @@ new Chart(document.getElementById('interventionChart'), {
 });
 
 // --- Parse failure chart (standard prompt) ---
-const noLetterCounts = [30, 31, 38, 55, 95, 144, 199];
+const parseFailureCounts = [9, 11, 17, 32, 65, 105, 150];
 
 new Chart(document.getElementById('parseFailureChart'), {
   type: 'bar',
@@ -1801,8 +1801,8 @@ new Chart(document.getElementById('parseFailureChart'), {
     labels: interventionAlphas.map(a => 'α=' + a.toFixed(1)),
     datasets: [{
       label: 'Responses without letter prefix',
-      data: noLetterCounts,
-      backgroundColor: noLetterCounts.map(c => c > 50 ? 'rgba(255, 107, 107, 0.7)' : 'rgba(240, 165, 0, 0.5)'),
+      data: parseFailureCounts,
+      backgroundColor: parseFailureCounts.map(c => c > 50 ? 'rgba(255, 107, 107, 0.7)' : 'rgba(240, 165, 0, 0.5)'),
       borderRadius: 6,
       borderSkipped: false,
     }]
@@ -1831,7 +1831,7 @@ new Chart(document.getElementById('parseFailureChart'), {
         border: { display: false },
         title: {
           display: true,
-          text: 'No-letter responses',
+          text: 'Parse failures (chosen=None)',
           font: { size: 12 },
           color: '#9da3c4'
         }
@@ -1841,7 +1841,7 @@ new Chart(document.getElementById('parseFailureChart'), {
 });
 
 // --- Adjusted compliance chart (three lines) ---
-const standardAdjustedRates = [71.1, 70.6, 71.4, 73.8, 75.5, 77.2, 77.9];
+const standardAdjustedRates = [69.7, 69.2, 70.0, 72.1, 73.4, 74.7, 74.8];
 
 new Chart(document.getElementById('adjustedComplianceChart'), {
   type: 'line',

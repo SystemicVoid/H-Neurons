@@ -83,9 +83,9 @@ Train and test were sampled independently (matching the paper's example data pat
 
 | Location | Files | Size |
 |----------|-------|------|
-| `answer_tokens` | 2,665 | 3.71 GB |
-| `all_except_answer_tokens` | 1,993 | 2.78 GB |
-| **Total** | **4,658** | **6.49 GB** |
+| `answer_tokens` | 2,901 | 3.8 GB |
+| `all_except_answer_tokens` | 1,993 | 2.6 GB |
+| **Total** | **4,894** | **6.4 GB** |
 
 Each `.npy` file has shape `(34, 10240)` = 1,360 KB (float32). 7 train IDs and 7 test IDs failed activation extraction due to answer-token string matching failures (the decoded tokens didn't exactly match the stored token list).
 
@@ -119,8 +119,8 @@ The 38 identified H-Neurons are distributed across 23 of 34 layers, with a conce
 | Layer range | H-Neuron count | % of total |
 |-------------|---------------|------------|
 | 0–10 (early) | 18 | 47.4% |
-| 11–20 (middle) | 11 | 28.9% |
-| 21–33 (late) | 9 | 23.7% |
+| 11–20 (middle) | 10 | 26.3% |
+| 21–33 (late) | 10 | 26.3% |
 
 ### Top 10 H-Neurons by Classifier Weight
 
@@ -242,8 +242,8 @@ extracted = ast.literal_eval(reply)  # instead of json.loads(reply.replace("'", 
 | `data/gemma3_4b_train_qids.json` | ~40 KB | 1,000t + 1,000f balanced train IDs |
 | `data/gemma3_4b_test_qids.json` | ~40 KB | 1,000t + 1,000f test IDs (overlapping, legacy) |
 | `data/gemma3_4b_test_qids_disjoint.json` | ~16 KB | 391t + 391f test IDs (0% overlap with train) |
-| `data/activations/answer_tokens/` | 3.71 GB | 2,665 activation files |
-| `data/activations/all_except_answer_tokens/` | 2.78 GB | 1,993 activation files |
+| `data/activations/answer_tokens/` | 3.8 GB | 2,901 activation files |
+| `data/activations/all_except_answer_tokens/` | 2.6 GB | 1,993 activation files |
 | `models/gemma3_4b_classifier.pkl` | ~2.7 MB | Trained L1 logistic regression |
 
 ---
@@ -513,7 +513,7 @@ This is an **anti-compliance prompt** — it explicitly tells the model to resis
 | Never compliant (all 7 α) | 262 | 26.2% |
 | "Swing" samples (varies) | 138 | 13.8% |
 
-The 6.3pp compliance swing is driven entirely by the 138 swing samples. At α=0.0, 42 of them are already compliant; the other 96 are recruited as α increases. This tri-modal population structure — frozen-compliant, frozen-resistant, and α-sensitive — is not discussed in the paper but has implications for how we interpret the intervention's effect size.
+The 6.3pp compliance swing is driven entirely by the 138 swing samples. At α=0.0, 42 of them are already compliant; 63 more are recruited as α increases to 3.0, while the remaining 33 swing samples never become compliant. This tri-modal population structure — frozen-compliant, frozen-resistant, and α-sensitive — is not discussed in the paper but has implications for how we interpret the intervention's effect size.
 
 ### 11.5 Critique of the Paper's Intervention Methodology
 
@@ -523,7 +523,7 @@ The paper doesn't disclose the exact FaithEval prompt used. If they use the stan
 
 #### 2. Population heterogeneity masks effect size
 
-The paper reports a single compliance rate per α, which hides the fact that ~86% of samples are unaffected by the intervention. The 60% always-compliant population inflates the baseline, making the α effect look smaller in percentage terms. The 26% never-compliant population anchors the ceiling. The actual effect — 96 samples flipping from resistant to compliant across α∈[0,3] — is a 69.6% swing within the sensitive subpopulation, far more dramatic than the headline 6.3pp suggests.
+The paper reports a single compliance rate per α, which hides the fact that ~86% of samples are unaffected by the intervention. The 60% always-compliant population inflates the baseline, making the α effect look smaller in percentage terms. The 26% never-compliant population anchors the ceiling. The actual effect — 63 samples flipping from resistant to compliant across α∈[0,3] — is a 45.7% swing within the sensitive subpopulation, more dramatic than the headline 6.3pp suggests.
 
 A more informative analysis would:
 - Report the swing-sample compliance curve separately
@@ -610,7 +610,7 @@ Excluding unparseable responses, compliance increases monotonically under both p
 | 2.5 | 74.7% (669/895) | 105 | 69.5% |
 | 3.0 | 74.8% (636/850) | 150 | 70.5% |
 
-The adjusted standard prompt slope (~1.70%/α) is slightly below the anti-compliance slope (2.10%/α), but the direction is the same. The standard prompt starts higher (69.7% vs 64.2% at α=0.0) — as expected for a pro-context framing — and both converge near 70–75% at high α.
+The adjusted standard prompt slope (~2.12%/α) is essentially identical to the anti-compliance slope (2.09%/α), but the direction is the same. The standard prompt starts higher (69.7% vs 64.2% at α=0.0) — as expected for a pro-context framing — and both converge near 70–75% at high α.
 
 However, this adjustment has a methodological cost: excluding 15% of data at α=3.0 is substantial, and the excluded samples are not random (they're systematically the ones where high-α disrupted formatting). The adjusted rates are best interpreted as a lower bound on "content compliance conditional on format compliance" rather than a true population compliance rate.
 
