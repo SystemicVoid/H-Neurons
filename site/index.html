@@ -627,7 +627,7 @@
     <span class="tag tag-teal">Mechanistic interpretability</span>
     <h1>Finding Hallucination<br>Neurons in <span style="color: var(--accent-teal);">Gemma 3 4B</span></h1>
     <p class="subtitle">
-      A replication and extension of <em>H-Neurons</em> (Gao et al., 2024).
+      A replication and extension of <em>H-Neurons</em> (Gao et al., 2025).
       Can 0.01% of MLP neurons predict when an LLM hallucinates?
     </p>
     <div class="metrics-grid" style="margin-top: 2.5rem;">
@@ -658,9 +658,9 @@
 
     <div class="insight-box" style="margin-top: 1.5rem;">
       <strong>Bottom line:</strong> The detection signal replicated — 76.5% accuracy on a clean test set,
-      within 0.4pp of the paper. The causal intervention partially replicated but revealed an unexpected
-      format-compliance dissociation: amplifying H-Neurons increases content-following while degrading
-      format-following. Three testable hypotheses remain open.
+      within 0.4pp of the paper. On FaithEval, scaling the 38 H-Neurons increases content-following
+      under both prompts. The seeming standard-prompt drop is mostly an evaluator confound: more
+      high-α responses become exact-answer strings that our MC-letter parser cannot score.
     </div>
   </div>
 </section>
@@ -690,9 +690,9 @@
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
-        <h3>Intervention puzzle (10 min)</h3>
+        <h3>Intervention confound (10 min)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The format-compliance dissociation. What we expected vs what we found.
+          Raw score vs content score under FaithEval. Why the standard prompt first looked contradictory.
           <strong>Priority: medium</strong> &mdash; interesting but unresolved.
         </p>
       </div>
@@ -1111,7 +1111,7 @@
   <div class="fade-in">
     <span class="tag tag-teal">Causal evidence</span>
     <h2>Scaling H-Neuron activations changes model behavior</h2>
-    <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. Under our anti-compliance prompt, compliance rises monotonically. Under the standard prompt, it appears to <em>decrease</em>. The story depends on what you measure.</p>
+    <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. The anti-compliance curve rises cleanly. The standard curve only looks like it falls because more responses become exact-answer strings that our MC-letter evaluator cannot decode.</p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
       <div class="metric-card">
@@ -1125,9 +1125,9 @@
         <div class="detail">&alpha;=1.0 compliance · no CI yet</div>
       </div>
       <div class="metric-card">
-        <div class="label">Standard baseline</div>
+        <div class="label">Standard raw baseline</div>
         <div class="value val-amber">68.8%</div>
-        <div class="detail">&alpha;=1.0 compliance · no CI yet</div>
+        <div class="detail">&alpha;=1.0 raw · 70.0% among parseable responses</div>
       </div>
       <div class="metric-card">
         <div class="label">Anti at &alpha;=3.0</div>
@@ -1135,9 +1135,9 @@
         <div class="detail">+4.5pp &uarr; · no CI yet</div>
       </div>
       <div class="metric-card">
-        <div class="label">Standard at &alpha;=3.0</div>
+        <div class="label">Standard raw at &alpha;=3.0</div>
         <div class="value val-amber">63.6%</div>
-        <div class="detail">&minus;5.2pp &darr; (raw) · no CI yet</div>
+        <div class="detail">74.8% among parseable responses · 150 unparseable</div>
       </div>
     </div>
 
@@ -1146,10 +1146,10 @@
     </div>
 
     <div class="insight-box">
-      <strong>Opposite trends?</strong> The anti-compliance prompt shows a clean monotonic increase (Pearson r = 0.997).
-      But the standard prompt shows raw compliance <em>decreasing</em> at high &alpha;.
-      One curve goes up, the other goes down &mdash; for the same neurons, same benchmark, same &alpha; values.
-      The resolution lies in what happens to response <em>format</em> at high &alpha; (next section).
+      <strong>Not actually opposite effects.</strong> The anti-compliance prompt shows a clean monotonic increase
+      (Pearson r = 0.997). The standard raw curve turns down only because the evaluator expects an option letter,
+      while the prompt asks for the exact answer only. At high &alpha;, more responses keep the answer content but
+      stop surfacing a recoverable letter.
     </div>
   </div>
 </section>
@@ -1157,9 +1157,9 @@
 <!-- The Format-Compliance Puzzle -->
 <section id="format-puzzle" class="short">
   <div class="fade-in">
-    <span class="tag tag-amber">The puzzle</span>
-    <h2>The same intervention helps content but hurts format</h2>
-    <p class="subtitle">The apparent contradiction dissolves when you separate <em>what</em> the model says from <em>how</em> it formats the answer. H-Neuron amplification increases content compliance but degrades format compliance.</p>
+    <span class="tag tag-amber">Evaluation confound</span>
+    <h2>Content-following rises while MC-letter parsability falls</h2>
+    <p class="subtitle">The apparent contradiction dissolves once you separate answer content from evaluator-visible format. Under the standard prompt, many high-α responses switch from option-letter outputs to exact-answer strings, so raw compliance falls even as content-following rises.</p>
 
     <div class="prompt-compare">
       <div class="prompt-card" style="border-color: var(--accent-teal);">
@@ -1174,19 +1174,21 @@ on your own knowledge.</em>
 Answer with just the letter.</code>
       </div>
       <div class="prompt-card" style="border-color: var(--accent-amber);">
-        <div class="prompt-label" style="color: var(--accent-amber);">Standard prompt (paper-style)</div>
+        <div class="prompt-label" style="color: var(--accent-amber);">Standard FaithEval prompt</div>
         <code>You are an expert in retrieval
 question answering. Please respond
-with <em>the exact answer only</em>.
+with <em>the exact answer only</em>. Do not
+be verbose or provide extra information.
 
 Context: {context}
 Question: {question}
-{choices}</code>
+{choices}
+Answer:</code>
       </div>
     </div>
 
-    <h3 style="margin-top: 2rem;">Format degradation at high &alpha;</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Responses the parser could not extract an MC letter from scale sharply with &alpha; under the standard prompt.</p>
+    <h3 style="margin-top: 2rem;">MC-letter parsability drops at high &alpha;</h3>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Under the standard prompt, more responses stop surfacing the answer as an initial option letter, so our evaluator records <code>chosen=None</code>. Many of these are short exact-answer strings like <em>"Energy molecules"</em>, not blank outputs.</p>
 
     <div class="chart-container">
       <canvas id="parseFailureChart"></canvas>
@@ -1194,29 +1196,30 @@ Question: {question}
 
     <div class="comparison" style="margin-top: 1.5rem;">
       <div class="compare-card">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Parse failures at &alpha;=0.0</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Unparseable at &alpha;=0.0</div>
         <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">9</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">0.9% of samples</div>
       </div>
       <div class="compare-card" style="border-color: var(--accent-coral);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Parse failures at &alpha;=3.0</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Unparseable at &alpha;=3.0</div>
         <div style="font-size: 2rem; font-weight: 700; color: var(--accent-coral);">150</div>
         <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">15.0% &mdash; a 16.7x increase</div>
       </div>
     </div>
 
-    <h3 style="margin-top: 2.5rem;">Adjusted for format: both curves agree</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Among responses that <em>kept</em> the letter format, compliance under the standard prompt rises from 69.7% to 74.8% &mdash; aligning with the anti-compliance trend.</p>
+    <h3 style="margin-top: 2.5rem;">Conditioned on parseable responses, both curves go up</h3>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Among responses that still exposed a recoverable option letter, compliance under the standard prompt rises from 69.7% to 74.8% &mdash; matching the anti-compliance direction. This is a conditional rate on parseable outputs, not the full-population compliance rate.</p>
 
     <div class="chart-container">
       <canvas id="adjustedComplianceChart"></canvas>
     </div>
 
     <div class="insight-box">
-      <strong>The apparent contradiction dissolves</strong> &mdash; but a deeper puzzle remains.
-      Content compliance goes up under both prompts. Format compliance goes down. The same neurons that make the model
-      <em>more</em> likely to follow context also make it <em>less</em> likely to prefix answers with "D)".
-      This is hard to reconcile with a simple "compliance neuron" story. Something more specific is happening.
+      <strong>The raw contradiction dissolves</strong> &mdash; but the interpretation becomes narrower.
+      Content-following rises under both prompts. What falls under the standard prompt is parser-visible MC-letter
+      formatting, not clearly prompt obedience: the prompt asks for the exact answer only, while our evaluator is
+      extracting a choice letter. The open question is why higher &alpha; preserves answer content while shifting
+      the surface form.
     </div>
   </div>
 </section>
@@ -1225,8 +1228,8 @@ Question: {question}
 <section id="hypotheses" class="short">
   <div class="fade-in">
     <span class="tag tag-purple">Open questions</span>
-    <h2>Three hypotheses we cannot yet distinguish</h2>
-    <p class="subtitle" style="margin-bottom: 2rem;">The data rules out simple stories. Here are three competing hypotheses, each with a concrete experiment that could falsify it.</p>
+    <h2>Three mechanisms we cannot yet distinguish</h2>
+    <p class="subtitle" style="margin-bottom: 2rem;">The data rules out a simple "general obedience" story. Here are three competing explanations for why &alpha; boosts content-following while making standard-prompt outputs harder for the MC-letter evaluator to parse.</p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
@@ -1235,43 +1238,42 @@ Question: {question}
         <p style="font-size: 14px; color: var(--text-secondary);">
           These neurons modulate how much the model treats provided context as ground truth.
           High &alpha; makes it more credulous (accept counterfactual claims) while reducing attention to
-          formatting constraints. The format degradation is a side effect of over-weighting context.
+          evaluator-friendly answer framing. The surface-form shift is a side effect of over-weighting context.
         </p>
         <p style="font-size: 12px; color: var(--accent-teal); margin-top: 8px;">
-          <strong>Test it:</strong> Run without any context passage. If these neurons still affect format compliance, credulity isn't the mechanism.
+          <strong>Test it:</strong> Run without any context passage. If high &alpha; still shifts outputs away from recoverable letters, credulity is not the mechanism.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
         <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">B</div>
-        <h3>Competing-instruction neurons</h3>
+        <h3>Answer-text bypass</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          These neurons amplify content-following at the expense of format-following.
-          The model has limited "instruction budget" &mdash; scaling these neurons shifts weight
-          toward semantic compliance (answer the counterfactual question) and away from syntactic compliance
-          (prefix with a letter).
+          These neurons may amplify answer selection more than answer rendering. The model picks the
+          context-supported option more often, but emits the option text rather than the MC label, which
+          hurts letter-based evaluation without necessarily hurting prompt compliance.
         </p>
         <p style="font-size: 12px; color: var(--accent-amber); margin-top: 8px;">
-          <strong>Test it:</strong> Create a prompt where format and content instructions are aligned (not competing). If format still degrades, the trade-off theory is wrong.
+          <strong>Test it:</strong> Re-score the 150 unparseable &alpha;=3.0 responses by matching answer text to option text. If most map cleanly to the counterfactual option, this bypass story gains support.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">C</div>
-        <h3>Generic degradation</h3>
+        <h3>Generic surface-form degradation</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           Extreme activation scaling (&alpha;=2&ndash;3) simply degrades output precision.
-          Format compliance is more fragile than content compliance because a single missing character breaks it.
-          Content is robust to noise; format isn't.
+          Exact-answer strings and short free-form responses survive better than precise symbolic formatting,
+          so letter-based evaluation breaks before semantic answer content does.
         </p>
         <p style="font-size: 12px; color: var(--accent-coral); margin-top: 8px;">
-          <strong>Test it:</strong> Scale 38 random non-H-neurons by the same &alpha; values. If format degrades similarly, it's not specific to these neurons.
+          <strong>Test it:</strong> Scale 38 random non-H-neurons by the same &alpha; values. If parsability degrades similarly, the effect is not specific to these neurons.
         </p>
       </div>
     </div>
 
     <div class="insight-box">
-      <strong>We don't know yet.</strong> And that's the interesting part. The data is consistent with all three hypotheses.
-      Each requires a different ~1 hour experiment to falsify. The negative control (Hypothesis C) is the most urgent
-      because it could invalidate the entire line of reasoning.
+      <strong>We don't know yet.</strong> The data is consistent with all three mechanisms.
+      The negative control is still the most urgent, but the cheapest missing analysis is even simpler:
+      re-score the unparseable standard-prompt answers by text rather than by letter.
     </div>
   </div>
 </section>
@@ -1281,7 +1283,7 @@ Question: {question}
   <div class="fade-in">
     <span class="tag tag-purple">Hidden structure</span>
     <h2>80&ndash;86% of samples are unaffected by scaling</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">Both prompts show a tri-modal population, but the standard prompt produces 47% more swing samples (203 vs 138) &mdash; more questions sit on the decision boundary when the prompt encourages compliance.</p>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">Both prompts show a tri-modal population, but the standard retrieval-QA frame produces 47% more swing samples (203 vs 138) &mdash; more questions sit on the decision boundary when the prompt leans toward trusting context.</p>
 
     <h3>Anti-compliance prompt</h3>
     <div class="pop-bar-container">
@@ -1352,8 +1354,9 @@ Question: {question}
     </div>
 
     <div class="insight-box">
-      <strong>Prompt shapes the decision boundary.</strong> The standard prompt puts more questions into the
-      swing zone (203 vs 138), consistent with the idea that a pro-context frame lowers the compliance threshold.
+      <strong>Prompt framing shapes the decision boundary.</strong> The standard retrieval-QA frame puts more questions
+      into the swing zone (203 vs 138), consistent with the idea that a pro-context setup lowers the threshold for
+      following misleading context.
       The "frozen" majority still dominates both populations &mdash; the causal effect is real but concentrated on
       questions where the model is genuinely uncertain.
     </div>
@@ -1381,19 +1384,19 @@ Question: {question}
     <div class="next-steps" style="margin-top: 1.5rem;">
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
-        <h3>The signal is real &mdash; and causal</h3>
+        <h3>The signal is real &mdash; and causal on FaithEval</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          76.5% detection accuracy on a disjoint test set. Under both prompt variants, content-level compliance
-          increases with &alpha; (when adjusted for format failures). These neurons causally change behavior.
+          76.5% detection accuracy on a disjoint test set. On FaithEval, content-level compliance rises with
+          &alpha; under both prompts; the standard raw decline is explained largely by an MC-letter parsing confound.
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
-        <h3>Broader than hallucination &mdash; but how?</h3>
+        <h3>Broader than hallucination &mdash; but not a simple obedience dial</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The data is consistent with a compliance role, but the format-compliance dissociation complicates
-          the picture. Amplifying these neurons increases content-following while degrading format-following &mdash;
-          which "compliance" story explains both?
+          The data is consistent with a context-following role, but the standard prompt shows a split between
+          answer content and surface form. That is broader than hallucination detection, but still not a clean
+          "do what you're told" mechanism.
         </p>
       </div>
       <div class="step-card">
@@ -1422,10 +1425,11 @@ Question: {question}
   <p class="ref-text">
     We went from <strong>correlation to causation, and from causation to confusion</strong> &mdash; which is progress.
     The paper frames these as "hallucination neurons." Our first prompt variant suggested "compliance neurons."
-    The second variant showed that even <span class="highlight">"compliance" is too simple</span>: these neurons
-    increase content-following while degrading format-following. Three hypotheses remain in play, each testable
-    with a single experiment. The honest answer is that <strong>we don't yet know what these neurons do</strong>,
-    but we know more precisely what we don't know.
+    The standard-prompt rerun forced a tighter claim: these neurons increase content-following under misleading
+    context, but they also shift outputs away from the MC-letter surface form our evaluator expects.
+    That means even <span class="highlight">"compliance" is too simple</span>. The honest answer is that
+    <strong>we don't yet know what these neurons do</strong>, but the uncertainty is now better localized:
+    content selection, answer rendering, or generic surface-form degradation.
   </p>
 </div>
 
@@ -1433,50 +1437,39 @@ Question: {question}
 <section id="nextsteps" class="short">
   <div class="fade-in">
     <span class="tag tag-teal">Next steps</span>
-    <h2>Three experiments that would resolve the open questions</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">Each targets a specific hypothesis. All are ~1&ndash;2 hour runs with no additional cost.</p>
+    <h2>Three highest-signal follow-ups</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">The first resolves today's measurement confound. The other two test whether the effect is specific and what mechanism is most plausible.</p>
 
     <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Re-score parse failures (~20min, $0)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Map the 150 unparseable standard-prompt responses at &alpha;=3.0 back to answer-option text.
+          This directly tests whether the raw drop is mostly an evaluator artifact or a true loss of
+          content-following.
+        </p>
+      </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
         <h3 style="color: var(--accent-coral);">Negative control (~1h, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           Scale 38 random non-H-neurons by the same &alpha; values.
-          <strong>Tests Hypothesis C</strong> (generic degradation). If compliance rises and format degrades
-          similarly for random neurons, the effect isn't specific to H-Neurons.
+          <strong>Tests Hypothesis C</strong> (generic degradation). If content and parsability shift similarly
+          for random neurons, the effect is not specific to H-Neurons.
           The single most important missing experiment.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">No-context format test (~30min, $0)</h3>
+        <h3 style="color: var(--accent-teal);">Prompt disentangling (~1&ndash;2h, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Run the standard prompt without a context passage, varying &alpha;.
-          <strong>Tests Hypothesis A</strong> (context-credulity). If format still degrades without any context
-          to be credulous about, the mechanism isn't about context weighting.
-        </p>
-      </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <h3 style="color: var(--accent-purple);">Aligned-instruction test (~2h, $0)</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Create a prompt where format and content instructions point the same direction.
-          <strong>Tests Hypothesis B</strong> (competing instructions). If format still degrades when there's
-          no competition, the trade-off theory is wrong.
-        </p>
-      </div>
-    </div>
-
-      <div class="step-card" style="border-left: 3px solid var(--accent-coral); background: rgba(255, 107, 107, 0.05);">
-        <h3 style="color: var(--accent-coral);">Negative controls (~2h total, $0) &mdash; PRIORITY</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Scale 38 <em>random</em> neurons (same layer distribution, then uniform random, then negative-weight neurons)
-          by the same &alpha; values. Without this, we cannot rule out that <em>any</em> MLP perturbation at this scale
-          increases compliance. Four proposed controls with priority ordering in the
-          <a href="https://github.com/" style="color: var(--accent-coral);">pipeline report</a>.
+          Run two small ablations: a no-context version of the standard prompt, and an aligned-instruction prompt
+          where answer selection and output format point the same way. Together they separate context-credulity
+          from answer-rendering effects.
         </p>
       </div>
     </div>
 
     <p style="font-size: 13px; color: var(--text-muted); margin-top: 1rem;">
-      <s>Standard prompt re-run</s> &mdash; Done. Results revealed the format-compliance puzzle above.
+      <s>Standard prompt re-run</s> &mdash; Done. The next cleanup is evaluator-side: re-score the exact-answer outputs by text, not just by option letter.
     </p>
   </div>
 </section>
@@ -1494,7 +1487,7 @@ Question: {question}
 
 <footer>
   H-Neurons Replication &mdash; Gemma 3 4B &mdash; March 2026<br>
-  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2024</a>
+  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a>
 </footer>
 
 <script>

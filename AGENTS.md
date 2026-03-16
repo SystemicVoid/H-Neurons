@@ -7,6 +7,8 @@ Core code lives in `scripts/`, with one CLI per pipeline stage: response collect
 
 `data/` holds local datasets, sampled JSONL outputs, and review artifacts. Commit intermediate pipeline outputs (JSONL, JSON) to git — the original H-Neurons repo does this for all `data/examples/` files (up to ~800KB each) and raw TriviaQA parquets. Keep model weights and ephemeral logs out (covered by `.gitignore`). `docs/` contains research notes and deep-research writeups; the root `README.md` is the canonical pipeline overview.
 
+`site/index.html` is a hand-maintained presentation deck: narrative copy, citation years, chart arrays, and intervention summary numbers are hardcoded rather than loaded from `data/`. When results change, update both the prose and the embedded JS arrays together or the site drifts quickly.
+
 `scripts/collect_responses.py` imports heavyweight runtime dependencies (`torch`, `transformers`, `openai`) at module import time, so lightweight analysis utilities should not import it just to reuse `normalize_answer`; copy the function verbatim instead.
 
 `scripts/lambda-bootstrap.sh` and `scripts/lambda-AGENTS.md` are currently tuned for A100-40GB + Mistral-7B defaults; when running on GH200/H100 (ARM64) or switching to larger models (24B/27B), update model IDs, output filenames, and any architecture assumptions before launching long jobs.
