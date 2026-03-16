@@ -31,6 +31,8 @@ For paper-faithful H-Neuron replication, note that the local `scripts/classifier
 
 For FaithEval intervention runs, `scripts/run_intervention.py` defaults to `--prompt_style anti_compliance`, but its own prompt builder notes that `--prompt_style standard` matches the official Salesforce framing and presumed paper usage. Use `standard` when the goal is paper-faithful replication rather than stress-testing resistance to misleading context.
 
+`scripts/extract_answer_tokens.py` is brittle to malformed JSON from the judge model on short quoted answers. In a 100-sample Mistral canary, one row (`tc_115`, Walter Cronkite's "And that's the way it is") failed repeatedly for that reason even though the other 99 extracted spans all matched `extract_activations.py`'s current tokenizer/span logic.
+
 For this project, the operational policy is now stricter than "it runs somehow": on rented hardware, only run models whose full-precision weights and activation workflow fit entirely on the GPU being rented. A single GH200 96GB proved viable for the 24B class, but `Llama-3.3-70B-Instruct` violated that rule and was intentionally stopped. Treat roughly the 24B class as the safe upper bound on this box unless a larger bf16 model is explicitly demonstrated to stay GPU-resident throughout the relevant stages.
 
 Pricing check on 2026-03-15: Runpod is cheaper for smaller 80GB-class iteration (for example A100 80GB / H100 80GB), but Lambda's GH200 96GB was listed at `$1.99/hr`, which is cheaper than Runpod's nearest 94GB-class single-GPU option (`H100 NVL` at `$2.59/hr`). For this repo's 24B activation-faithful runs, that means "Runpod is cheaper" is only true for smaller jobs; for the validated ~96GB single-GPU path, Lambda can actually be the lower-cost option.

@@ -21,7 +21,7 @@ What is solid:
 
 What is not yet solid:
 
-- the current completed Mistral path is the **zero-cost `output`-location variant**, not the paper's preferred exact answer-token path
+- the current **completed end-to-end probe/activation path** is still the zero-cost `output`-location variant, even though a paper-path Step 2 answer-token artifact now exists locally
 - there is **no held-out Mistral evaluation split yet**
 - there are **no Mistral intervention results yet**
 - there is **no origin/base-model transfer analysis yet**
@@ -30,7 +30,9 @@ What is not yet solid:
 | Metric | Current Mistral status |
 |--------|------------------------|
 | TriviaQA Step 1 samples | **3500** |
-| Step 2 extracted entries | **2602** |
+| Step 2 extracted entries (`output` fallback) | **2602** |
+| Step 2 extracted entries (paper-path LLM) | **2539** |
+| Step 2 exact-span-usable entries (paper-path LLM) | **2532** |
 | Balanced train IDs | **1182** total (**591 true + 591 false**) |
 | Step 4 activation files | **1182** |
 | H-Neuron count | **12** |
@@ -39,7 +41,7 @@ What is not yet solid:
 | Classifier training AUROC | **0.9041** |
 | Held-out Mistral test accuracy | **Not run yet** |
 
-The headline result is the sparsity: **12 H-Neurons = 0.0092‰**, which is almost exactly on top of the paper's reported Mistral-scale `~0.01‰` regime. That is encouraging, but it is not enough by itself to claim paper replication, because it is currently a training-set result on the `output` fallback path.
+The headline result is the sparsity: **12 H-Neurons = 0.0092‰**, which is almost exactly on top of the paper's reported Mistral-scale `~0.01‰` regime. That is encouraging, but it is not enough by itself to claim paper replication, because the only **completed end-to-end** classifier result is still a training-set result on the `output` fallback path.
 
 ---
 
@@ -62,7 +64,39 @@ This is the expensive part of the pipeline, and it is safely preserved locally n
 - **Status:** complete for the current run
 - **Methodological caveat:** this file came from the zero-cost operational path, not the final paper-faithful answer-token workflow we want to use for the main Mistral result tomorrow.
 
+We have now also run a **100-sample local canary** for the true answer-token path:
+
+- **Input:** `data/mistral24b_canary_100_consistency_samples.jsonl`
+- **Output:** `data/mistral24b_canary_100_answer_tokens.jsonl`
+- **Result:** `99/100` rows extracted successfully with GPT-4o at low cost and without using the local GPU
+- **Span-match validation:** `99/99` extracted rows were re-found successfully by the current tokenizer/span-matching logic used by `scripts/extract_activations.py`
+- **Regex-fix check:** the canary match rate was identical with and without `fix_mistral_regex=True`
+- **Known failure:** one sample (`tc_115`) repeatedly failed because the extractor received malformed JSON from the judge model on a short quoted answer
+
+This is an important de-risking result: the fragile part was never "can the GPU compute activations?" but "will exact answer-token extraction survive contact with Mistral tokenization and the repo's exact span-matching code?" On this canary, the answer is **yes**.
+
 The current file is still valuable because it supports the completed output-based Step 4 and classifier run. But if tomorrow's goal is "closer to the paper," we should reuse the saved Step 1 file and rerun Step 2 with the true answer-token extraction path rather than rerunning Step 1.
+
+That full true-token rerun has now also been completed locally without touching the GPU:
+
+- **Paper-path output:** `data/mistral24b_answer_tokens_llm.jsonl`
+- **Eligible unanimous rows from Step 1:** `2602`
+- **Successful extracted rows:** `2539`
+- **Rows skipped due repeated malformed JSON from the judge model:** `63`
+- **Exact-span matches recoverable by current `extract_activations.py` logic:** `2532 / 2539`
+- **Rows with non-contiguous or otherwise unmatchable extracted token lists:** `7`
+
+The important practical truth is that the full Step 2 paper-path artifact now exists, but it is not perfectly clean. It is good enough to continue from later, yet there is a small repair debt:
+
+- `63` rows are missing entirely because the judge model repeatedly returned malformed JSON
+- `7` rows were extracted but are not usable by the current exact-span matcher because the selected tokens are not a single continuous segment in the response
+
+So the immediately usable paper-style pool is currently:
+
+- `1972` true rows
+- `560` false rows
+
+That means a span-usable balanced training split is currently capped at **`560 + 560`** unless we repair some of the missing/unmatchable rows.
 
 ### Stage 3: Balanced ID Sampling
 
@@ -72,6 +106,8 @@ The current file is still valuable because it supports the completed output-base
 - **Counts:** `591 true`, `591 false`
 
 This is not a problem in itself, but it reveals the class bottleneck: the current Mistral pool has many more unanimous true examples than unanimous false ones, so the false pool limits the balanced sample.
+
+For the newer paper-path answer-token artifact, the bottleneck is now slightly tighter: with the current uncleaned `data/mistral24b_answer_tokens_llm.jsonl`, the immediately usable balanced cap is **`560 false + 560 true`**.
 
 ### Stage 4: CETT Activation Extraction
 
@@ -197,6 +233,30 @@ So tomorrow's held-out `C` sweep should be treated as the **best available detec
 
 But the script's own prompt builder notes that `--prompt_style standard` matches the official Salesforce framing and presumed paper usage. So once we reach interventions, `standard` should be the default for paper-faithful replication claims.
 
+### 5.8 The answer-token canary shifted the main risk from methodology to throughput
+
+The 100-sample true-token canary cost about a tenth of a dollar on GPT-4o by local token estimate and avoided the GPU entirely. More importantly, it showed that the current Mistral tokenizer and exact span-matching logic can already handle real extracted answer spans on representative saved samples.
+
+So the remaining concern is no longer "will the paper-style path break immediately?" but rather:
+
+- API cost/time for a full Step 2 rerun
+- whether we want to tolerate a small number of malformed-JSON extraction failures or harden the extractor first
+- the later GPU time for full activation extraction once the current tmux workload finishes
+
+That API/time concern has now been resolved operationally: the full rerun finished in about `37 minutes` locally and stayed under the low-single-digit budget. The remaining concern is simply artifact cleanliness, not feasibility.
+
+### 5.9 The full Step 2 paper-path artifact is resumable, but not lossless
+
+Because `scripts/extract_answer_tokens.py` appends JSONL records and skips already-processed IDs, the paper-path file is safely resumable. That part worked exactly as intended.
+
+However, resumable does not mean lossless:
+
+- repeated malformed JSON responses from the judge model leave holes in the file
+- the extractor only validates token membership, not whether the returned tokens form one continuous span
+- `extract_activations.py` later requires a continuous span and silently cannot use those few broken rows
+
+In other words, the Step 2 rerun succeeded as a durable artifact-generation job, but not yet as a perfectly paper-clean labeling job.
+
 ---
 
 ## 6. Tomorrow's Decision Tree
@@ -208,8 +268,8 @@ There are really only two sensible directions tomorrow.
 This is the right path if the goal is "get as close as practical to the paper's Mistral story."
 
 1. Reuse the saved Step 1 Mistral JSONL.
-2. Run a **small answer-token canary first** on roughly `50-100` saved samples and verify that the extracted answer tokens can actually be re-found by the current tokenizer/span-matching logic.
-3. Only if that canary looks clean, rerun Step 2 using the proper answer-token extraction path.
+2. Reuse the completed paper-path answer-token artifact `data/mistral24b_answer_tokens_llm.jsonl`.
+3. Decide whether to accept the current `2532` span-usable rows or repair the `63 + 7` problematic cases first.
 4. Build a held-out evaluation split from TriviaQA validation/test with `sample_num=1`.
 5. Extract answer-token and non-answer-token activations for that train/eval setup.
 6. Sweep `C` on the held-out split with the updated `scripts/classifier.py`.
@@ -243,9 +303,9 @@ Running interventions before the Mistral identification story is methodologicall
 ### Priority 1 — Make Mistral paper-closer
 
 1. Reuse `data/mistral24b_TriviaQA_consistency_samples.jsonl`.
-2. Run a **small canary** on about `50-100` examples using true answer-token extraction before committing to a full rerun.
-3. Validate that the canary answer-token spans can be matched by the current tokenizer logic; if not, fix the span-matching issue before any full Step 2/4 rerun.
-4. Run Step 2 with the proper answer-token extraction path.
+2. Treat the 100-sample canary as **passed** for tokenizer/span-matching risk.
+3. Reuse the completed `data/mistral24b_answer_tokens_llm.jsonl` paper-path artifact rather than rerunning Step 2 from scratch.
+4. Decide whether to accept the current span-usable cap of `560 + 560` or spend local/API time repairing some of the `63 + 7` problematic rows.
 5. Create a disjoint held-out Mistral eval set from TriviaQA validation or test.
 6. Extract train/eval activations in the paper-style setup.
 7. Use the updated `scripts/classifier.py` to sweep `C` and save metrics JSON.
@@ -273,11 +333,12 @@ Do not start with Section 6.3 tomorrow unless a matching base Mistral checkpoint
 
 If the local GPU is busy for hours, the first canary can still be split into mostly non-GPU work:
 
-1. Run the small Step 2 answer-token extraction canary, since `scripts/extract_answer_tokens.py` only needs tokenizer access plus the judge API and does not load the 24B model.
-2. Run a tokenizer-only span-match validation on those canary outputs, since the fragile part is the exact token-string matching in `extract_activations.py`, not the forward pass itself.
-3. Defer only the actual activation extraction / model forward pass until the GPU window is free.
+1. This has now been done successfully for the 100-sample canary.
+2. The full Step 2 rerun has now also been completed locally, since `scripts/extract_answer_tokens.py` only needs tokenizer access plus the judge API and does not load the 24B model.
+3. The next non-GPU move, if desired, is artifact cleanup: repair the `63` missing rows and `7` non-contiguous rows.
+4. Defer only the actual activation extraction / model forward pass until the GPU window is free.
 
-That means tomorrow's first productive move does **not** have to wait for the current tmux GPU job to finish.
+That means the next productive Mistral move still does **not** have to wait for the current tmux GPU job to finish.
 
 ---
 
@@ -296,4 +357,62 @@ That means tomorrow's Mistral work should begin from the **local preserved artif
 
 ## 9. One-Sentence Hand-Off
 
-**We successfully rescued and preserved the Mistral-24B pipeline outputs, including the expensive activation substrate; tomorrow's real work is to convert this robust baseline into a paper-closer Mistral result by rerunning the answer-token / held-out evaluation path and then using that cleaner probe for intervention experiments.**
+**We successfully rescued and preserved the Mistral-24B pipeline outputs, completed a local paper-path answer-token rerun, and paused at the clean handoff point right before held-out eval collection and paper-style activation extraction.**
+
+---
+
+## 10. Hold Status and Easy Resume
+
+As of the hold point:
+
+- the full paper-path Step 2 rerun is finished
+- there is **no live Mistral tmux job left running**
+- the project is paused **before** held-out eval collection and before any new answer-token activation extraction
+- the main remaining choice is whether to accept the current paper-path artifact as-is or repair its small set of broken rows first
+
+### Resume path A — fastest acceptable continuation
+
+Use the finished paper-path file as-is and accept the current `560 + 560` balanced cap.
+
+1. Sample balanced IDs from `data/mistral24b_answer_tokens_llm.jsonl`, capping at `560` per class.
+2. Build the held-out eval split from TriviaQA validation/test with `sample_num=1`.
+3. When a suitable GPU box is free again, run paper-style activation extraction.
+4. Sweep `C` on the held-out setup.
+
+### Resume path B — cleaner artifact first
+
+Before any new GPU work:
+
+1. Repair or re-extract the `63` missing Step 2 rows that failed with malformed JSON.
+2. Repair the `7` extracted-but-unmatchable rows by enforcing a continuous answer-token span.
+3. Recompute the usable true/false pool size.
+4. Only then proceed to balanced sampling and held-out eval.
+
+### Copy-pasteable resume commands
+
+Fastest next local command if we accept the current artifact:
+
+```bash
+uv run python scripts/sample_balanced_ids.py \
+    --input_path data/mistral24b_answer_tokens_llm.jsonl \
+    --output_path data/mistral24b_train_qids_llm.json \
+    --num_samples 560
+```
+
+Held-out eval collection command skeleton for the next Lambda/GH200 window:
+
+```bash
+uv run python scripts/collect_responses.py \
+    --model_path mistralai/Mistral-Small-24B-Instruct-2501 \
+    --data_path data/TriviaQA/rc.nocontext/validation-00000-of-00001.parquet \
+    --output_path data/mistral24b_TriviaQA_validation_samples.jsonl \
+    --sample_num 1 \
+    --device_map cuda:0 \
+    ...
+```
+
+### Do not redo
+
+- do **not** rerun the expensive original Mistral Step 1 training collection
+- do **not** rerun the full paper-path Step 2 job from scratch unless we intentionally want a cleaner labeling pass
+- do **not** overwrite the old synthetic fallback artifact; keep both files because they answer different questions
