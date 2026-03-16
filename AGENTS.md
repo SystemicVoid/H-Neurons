@@ -9,6 +9,8 @@ Core pipeline code lives in `scripts/` (flat — sibling imports like `from inte
 
 `site/index.html` is a hand-maintained presentation deck: narrative copy, chart arrays, and intervention numbers are hardcoded. When results change, update both the prose and the embedded JS arrays together or the site drifts.
 
+`data/gemma3_4b/intervention/faitheval_standard/results.json` only stores raw compliance totals. If you need parse-failure counts, parseable-subset rates, or format-sensitive site exports, derive them from the committed `alpha_*.jsonl` rows instead of assuming `results.json` is sufficient.
+
 ## Key Workflow Notes
 
 - `scripts/collect_responses.py` imports `torch`/`transformers`/`openai` at module level — don't import it from lightweight scripts just for `normalize_answer`; copy the function instead.

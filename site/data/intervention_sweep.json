@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-03-16",
+  "generated_by": "scripts/export_site_data.py",
+  "benchmark": "faitheval",
+  "model": "google/gemma-3-4b-it",
+  "classifier": "models/gemma3_4b_classifier.pkl",
+  "n_h_neurons": 38,
+  "ci_status": "no_ci_yet",
+  "alphas": [
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0
+  ],
+  "provenance": {
+    "source_files": [
+      "data/gemma3_4b/intervention/faitheval/results.json",
+      "data/gemma3_4b/intervention/faitheval/alpha_0.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval/alpha_0.5.jsonl",
+      "data/gemma3_4b/intervention/faitheval/alpha_1.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval/alpha_1.5.jsonl",
+      "data/gemma3_4b/intervention/faitheval/alpha_2.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval/alpha_2.5.jsonl",
+      "data/gemma3_4b/intervention/faitheval/alpha_3.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval_standard/results.json",
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_0.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_0.5.jsonl",
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_1.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_1.5.jsonl",
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_2.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_2.5.jsonl",
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json"
+    ],
+    "notes": [
+      "Standard-prompt parse failures and parseable-subset rates are derived from committed per-alpha JSONL rows because results.json only stores raw compliance totals.",
+      "Strict answer-text remap is committed only for standard prompt alpha=3.0, so corrected full-population scoring is partial rather than a full sweep.",
+      "Standard-prompt population split is intentionally omitted until text-based rescoring exists across all alpha values."
+    ]
+  },
+  "series": {
+    "anti_compliance": {
+      "label": "Anti-compliance prompt",
+      "prompt_style": "anti_compliance",
+      "ci_status": "no_ci_yet",
+      "points": [
+        {
+          "alpha": 0.0,
+          "n_total": 1000,
+          "n_compliant": 642,
+          "compliance_rate": 0.642,
+          "compliance_pct": 64.2
+        },
+        {
+          "alpha": 0.5,
+          "n_total": 1000,
+          "n_compliant": 654,
+          "compliance_rate": 0.654,
+          "compliance_pct": 65.4
+        },
+        {
+          "alpha": 1.0,
+          "n_total": 1000,
+          "n_compliant": 660,
+          "compliance_rate": 0.66,
+          "compliance_pct": 66.0
+        },
+        {
+          "alpha": 1.5,
+          "n_total": 1000,
+          "n_compliant": 670,
+          "compliance_rate": 0.67,
+          "compliance_pct": 67.0
+        },
+        {
+          "alpha": 2.0,
+          "n_total": 1000,
+          "n_compliant": 682,
+          "compliance_rate": 0.682,
+          "compliance_pct": 68.2
+        },
+        {
+          "alpha": 2.5,
+          "n_total": 1000,
+          "n_compliant": 695,
+          "compliance_rate": 0.695,
+          "compliance_pct": 69.5
+        },
+        {
+          "alpha": 3.0,
+          "n_total": 1000,
+          "n_compliant": 705,
+          "compliance_rate": 0.705,
+          "compliance_pct": 70.5
+        }
+      ]
+    },
+    "standard_raw": {
+      "label": "Standard prompt (raw MC-letter score)",
+      "prompt_style": "standard",
+      "ci_status": "no_ci_yet",
+      "points": [
+        {
+          "alpha": 0.0,
+          "n_total": 1000,
+          "n_compliant": 691,
+          "compliance_rate": 0.691,
+          "compliance_pct": 69.1
+        },
+        {
+          "alpha": 0.5,
+          "n_total": 1000,
+          "n_compliant": 684,
+          "compliance_rate": 0.684,
+          "compliance_pct": 68.4
+        },
+        {
+          "alpha": 1.0,
+          "n_total": 1000,
+          "n_compliant": 688,
+          "compliance_rate": 0.688,
+          "compliance_pct": 68.8
+        },
+        {
+          "alpha": 1.5,
+          "n_total": 1000,
+          "n_compliant": 698,
+          "compliance_rate": 0.698,
+          "compliance_pct": 69.8
+        },
+        {
+          "alpha": 2.0,
+          "n_total": 1000,
+          "n_compliant": 686,
+          "compliance_rate": 0.686,
+          "compliance_pct": 68.6
+        },
+        {
+          "alpha": 2.5,
+          "n_total": 1000,
+          "n_compliant": 669,
+          "compliance_rate": 0.669,
+          "compliance_pct": 66.9
+        },
+        {
+          "alpha": 3.0,
+          "n_total": 1000,
+          "n_compliant": 636,
+          "compliance_rate": 0.636,
+          "compliance_pct": 63.6
+        }
+      ]
+    },
+    "standard_parseable_subset": {
+      "label": "Standard prompt (parseable subset only)",
+      "prompt_style": "standard",
+      "ci_status": "no_ci_yet",
+      "status": "conditional_metric",
+      "notes": [
+        "Computed on rows where the evaluator recovered an initial option letter.",
+        "This is not the same as a full-population correction."
+      ],
+      "points": [
+        {
+          "alpha": 0.0,
+          "n_total": 1000,
+          "parseable_n": 991,
+          "n_compliant": 691,
+          "compliance_rate": 0.6972754793138244,
+          "compliance_pct": 69.7
+        },
+        {
+          "alpha": 0.5,
+          "n_total": 1000,
+          "parseable_n": 989,
+          "n_compliant": 684,
+          "compliance_rate": 0.6916076845298281,
+          "compliance_pct": 69.2
+        },
+        {
+          "alpha": 1.0,
+          "n_total": 1000,
+          "parseable_n": 983,
+          "n_compliant": 688,
+          "compliance_rate": 0.6998982706002035,
+          "compliance_pct": 70.0
+        },
+        {
+          "alpha": 1.5,
+          "n_total": 1000,
+          "parseable_n": 968,
+          "n_compliant": 698,
+          "compliance_rate": 0.7210743801652892,
+          "compliance_pct": 72.1
+        },
+        {
+          "alpha": 2.0,
+          "n_total": 1000,
+          "parseable_n": 935,
+          "n_compliant": 686,
+          "compliance_rate": 0.7336898395721925,
+          "compliance_pct": 73.4
+        },
+        {
+          "alpha": 2.5,
+          "n_total": 1000,
+          "parseable_n": 895,
+          "n_compliant": 669,
+          "compliance_rate": 0.7474860335195531,
+          "compliance_pct": 74.7
+        },
+        {
+          "alpha": 3.0,
+          "n_total": 1000,
+          "parseable_n": 850,
+          "n_compliant": 636,
+          "compliance_rate": 0.7482352941176471,
+          "compliance_pct": 74.8
+        }
+      ]
+    },
+    "standard_text_remap": {
+      "label": "Standard prompt (strict answer-text remap)",
+      "prompt_style": "standard",
+      "ci_status": "no_ci_yet",
+      "status": "single_alpha_only",
+      "notes": [
+        "Committed strict answer-text remap exists only for alpha=3.0.",
+        "Use this as the current best full-population correction for alpha=3.0 only."
+      ],
+      "by_alpha": {
+        "3.0": {
+          "alpha": 3.0,
+          "n_total": 1000,
+          "raw_compliance_count": 636,
+          "raw_compliance_rate": 0.636,
+          "raw_compliance_pct": 63.6,
+          "parse_failures": 150,
+          "strict_recovered_count": 140,
+          "strict_recovered_rate_within_failures": 0.9333333333333333,
+          "strict_recovered_compliant_count": 85,
+          "strict_rescored_compliance_count": 721,
+          "strict_rescored_compliance_rate": 0.721,
+          "strict_rescored_compliance_pct": 72.1,
+          "review_category_counts": {
+            "strict_remap": 140,
+            "off_option_counterfactual": 3,
+            "off_option_resistant": 2,
+            "closest_option_paraphrase": 4,
+            "ambiguous_partial": 1
+          },
+          "unresolved_review_category_counts": {
+            "off_option_counterfactual": 3,
+            "off_option_resistant": 2,
+            "closest_option_paraphrase": 4,
+            "ambiguous_partial": 1
+          }
+        }
+      }
+    }
+  },
+  "parse_failures": {
+    "label": "Responses without recoverable option letter",
+    "prompt_style": "standard",
+    "ci_status": "no_ci_yet",
+    "points": [
+      {
+        "alpha": 0.0,
+        "n_total": 1000,
+        "count": 9,
+        "rate": 0.009,
+        "pct": 0.9
+      },
+      {
+        "alpha": 0.5,
+        "n_total": 1000,
+        "count": 11,
+        "rate": 0.011,
+        "pct": 1.1
+      },
+      {
+        "alpha": 1.0,
+        "n_total": 1000,
+        "count": 17,
+        "rate": 0.017,
+        "pct": 1.7
+      },
+      {
+        "alpha": 1.5,
+        "n_total": 1000,
+        "count": 32,
+        "rate": 0.032,
+        "pct": 3.2
+      },
+      {
+        "alpha": 2.0,
+        "n_total": 1000,
+        "count": 65,
+        "rate": 0.065,
+        "pct": 6.5
+      },
+      {
+        "alpha": 2.5,
+        "n_total": 1000,
+        "count": 105,
+        "rate": 0.105,
+        "pct": 10.5
+      },
+      {
+        "alpha": 3.0,
+        "n_total": 1000,
+        "count": 150,
+        "rate": 0.15,
+        "pct": 15.0
+      }
+    ]
+  },
+  "population": {
+    "anti_compliance": {
+      "label": "Anti-compliance prompt",
+      "ci_status": "no_ci_yet",
+      "notes": [
+        "Derived from per-sample compliance trajectories across the committed anti-compliance alpha sweep."
+      ],
+      "n_total": 1000,
+      "always_compliant": {
+        "count": 600,
+        "pct": 60.0
+      },
+      "never_compliant": {
+        "count": 262,
+        "pct": 26.2
+      },
+      "swing": {
+        "count": 138,
+        "pct": 13.8
+      },
+      "swing_breakdown": [
+        {
+          "alpha": 0.0,
+          "swing_compliant": 42,
+          "swing_resistant": 96
+        },
+        {
+          "alpha": 0.5,
+          "swing_compliant": 54,
+          "swing_resistant": 84
+        },
+        {
+          "alpha": 1.0,
+          "swing_compliant": 60,
+          "swing_resistant": 78
+        },
+        {
+          "alpha": 1.5,
+          "swing_compliant": 70,
+          "swing_resistant": 68
+        },
+        {
+          "alpha": 2.0,
+          "swing_compliant": 82,
+          "swing_resistant": 56
+        },
+        {
+          "alpha": 2.5,
+          "swing_compliant": 95,
+          "swing_resistant": 43
+        },
+        {
+          "alpha": 3.0,
+          "swing_compliant": 105,
+          "swing_resistant": 33
+        }
+      ]
+    },
+    "standard": {
+      "status": "withdrawn_pending_all_alpha_text_scoring",
+      "notes": [
+        "Historical raw-parser population counts are intentionally not exported as current evidence."
+      ]
+    }
+  }
+}

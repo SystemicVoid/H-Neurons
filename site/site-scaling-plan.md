@@ -2,7 +2,7 @@
 
 > Implementation guidelines for evolving `site/` from a single-page monolith into a maintainable, data-driven multi-page research presentation.
 >
-> **Status**: In progress — Session 2 completed on 2026-03-16.
+> **Status**: In progress — Session 3 completed on 2026-03-16.
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
@@ -303,11 +303,8 @@ Each entry links to its results page when work begins.
 
 ### Phase 2: Data extraction (estimated: half day)
 
-- [ ] Write a small script (`scripts/export_site_data.py`) that reads existing artifacts and writes JSON files:
-  - `site/data/gemma_classifier.json` — from `models/gemma3_4b_classifier.pkl` or existing analysis
-  - `site/data/layer_distribution.json` — from classifier analysis
-  - `site/data/top_neurons.json` — from classifier analysis
-  - `site/data/intervention_sweep.json` — from `data/gemma3_4b/intervention/` outputs
+- [x] Write `scripts/export_site_data.py` to export `site/data/intervention_sweep.json` from committed intervention artifacts with provenance notes
+- [ ] Extend the exporter to classifier-derived site JSON files once a direct canonical source exists
 - [ ] Wire `charts.js` to `fetch()` these files instead of hardcoded arrays
 - [ ] Wire metric cards to read from fetched data
 - [ ] Verify all charts and cards render identically to current
@@ -346,6 +343,7 @@ Each entry links to its results page when work begins.
 | 2026-03-16 | Weekly page = `index.html` | Advisor always opens the same URL, sees latest content |
 | 2026-03-16 | JSON data files in `site/data/` | Scripts export, pages fetch — single source of truth |
 | 2026-03-16 | Delay Gemma classifier JSON export until direct canonical source exists | Avoid backfilling site data from prose or presentation literals |
+| 2026-03-16 | Derive standard parse-failure and parseable-subset series from per-alpha JSONL rows | `faitheval_standard/results.json` stores raw compliance totals but omits parse-failure counts and conditional parseable-subset rates |
 
 ---
 
@@ -355,6 +353,7 @@ Each entry links to its results page when work begins.
 |---|---|---|---|---|
 | 2026-03-16 | Session 1 | `refactor(site): extract shared styles and runtime helpers` | Extracted shared CSS and non-chart runtime from `site/index.html`, rewired the page to load `site/assets/shared.css` and `site/assets/shared.js`, and created `site/data/` for future JSON exports. | Move the remaining inline chart bootstrapping into `site/assets/charts.js` without changing the current hardcoded data yet. |
 | 2026-03-16 | Session 2 | `refactor(site): move chart bootstrapping into charts module` | Extracted the remaining Chart.js setup from `site/index.html` into `site/assets/charts.js`, rewired the page to load the new asset, and kept all chart data hardcoded so rendered behavior stays equivalent. | Add a small export script for `site/data/intervention_sweep.json` from committed intervention artifacts, with provenance fields and no classifier backfill from prose. |
+| 2026-03-16 | Session 3 | `feat(site): export intervention sweep data` | Added `scripts/export_site_data.py` and generated `site/data/intervention_sweep.json` from committed FaithEval artifacts, including derived parse-failure and parseable-subset series, anti-compliance population structure, and explicit notes that strict answer-text remapping is only available for standard prompt α=3.0. | Wire the four intervention charts in `site/assets/charts.js` to fetch `site/data/intervention_sweep.json`, remove the hardcoded intervention arrays, and keep any still-manual intervention prose explicitly marked as partial where it depends on the α=3.0-only remap. |
 
 ---
 
