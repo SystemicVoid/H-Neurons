@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG_FILE="/home/hugo/.ob1/tmp/02-h-neurons/falseqa_watch.log"
 CHECK_INTERVAL=60
 EXPECTED_LINES=687
 ALPHAS=(0.0 0.5 1.0 1.5 2.0 2.5 3.0)
-INPUT_DIR="data/intervention/falseqa"
+MODEL_DIR="data/gemma3_4b"
+INPUT_DIR="$MODEL_DIR/intervention/falseqa"
 
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -48,7 +49,7 @@ while true; do
 
     uv run python scripts/evaluate_intervention.py \
       --benchmark falseqa \
-      --input_dir data/intervention/falseqa \
+      --input_dir "$MODEL_DIR/intervention/falseqa" \
       --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 2>&1 | tee -a "$LOG_FILE"
 
     log "Phase 2 completed successfully."
@@ -63,13 +64,13 @@ while true; do
       --benchmark faitheval \
       --prompt_style standard \
       --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 \
-      --output_dir data/intervention/faitheval_standard 2>&1 | tee -a "$LOG_FILE"
+      --output_dir "$MODEL_DIR/intervention/faitheval_standard" 2>&1 | tee -a "$LOG_FILE"
 
     log "Phase 3 (FaithEval standard) completed successfully. Starting Phase 4 plotting."
 
     uv run python scripts/plot_intervention.py \
-      --input_dir data/intervention \
-      --output data/intervention/figure3_compliance.png 2>&1 | tee -a "$LOG_FILE"
+      --input_dir "$MODEL_DIR/intervention" \
+      --output "$MODEL_DIR/intervention/figure3_compliance.png" 2>&1 | tee -a "$LOG_FILE"
 
     log "Phase 4 completed successfully. Watcher exiting."
     exit 0
