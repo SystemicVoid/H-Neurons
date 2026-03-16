@@ -1,0 +1,45 @@
+{
+  "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "train_mode": "1-vs-1",
+  "penalty": "l1",
+  "solver": "liblinear",
+  "selection_metric": "auroc",
+  "selection_split": "train",
+  "total_ffn_neurons": 1310720,
+  "best": {
+    "C": 1.0,
+    "score": 0.9040743699199212,
+    "selected_h_neurons": 12,
+    "selected_ratio_per_mille": 0.0091552734375,
+    "train_metrics": {
+      "accuracy": 0.8155668358714044,
+      "precision": 0.8221070811744386,
+      "recall": 0.805414551607445,
+      "f1": 0.8136752136752137,
+      "auroc": 0.9040743699199212,
+      "n_examples": 1182,
+      "n_positive": 591,
+      "n_negative": 591
+    },
+    "test_metrics": null
+  },
+  "candidates": [
+    {
+      "C": 1.0,
+      "score": 0.9040743699199212,
+      "selected_h_neurons": 12,
+      "selected_ratio_per_mille": 0.0091552734375,
+      "train_metrics": {
+        "accuracy": 0.8155668358714044,
+        "precision": 0.8221070811744386,
+        "recall": 0.805414551607445,
+        "f1": 0.8136752136752137,
+        "auroc": 0.9040743699199212,
+        "n_examples": 1182,
+        "n_positive": 591,
+        "n_negative": 591
+      },
+      "test_metrics": null
+    }
+  ]
+}
