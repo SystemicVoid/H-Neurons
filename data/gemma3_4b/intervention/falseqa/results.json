@@ -1,0 +1,40 @@
+{
+  "benchmark": "falseqa",
+  "results": {
+    "0.0": {
+      "compliance_rate": 0.6958,
+      "n_compliant": 478,
+      "n_total": 687
+    },
+    "0.5": {
+      "compliance_rate": 0.7132,
+      "n_compliant": 490,
+      "n_total": 687
+    },
+    "1.0": {
+      "compliance_rate": 0.7191,
+      "n_compliant": 494,
+      "n_total": 687
+    },
+    "1.5": {
+      "compliance_rate": 0.7118,
+      "n_compliant": 489,
+      "n_total": 687
+    },
+    "2.0": {
+      "compliance_rate": 0.7496,
+      "n_compliant": 515,
+      "n_total": 687
+    },
+    "2.5": {
+      "compliance_rate": 0.7394,
+      "n_compliant": 508,
+      "n_total": 687
+    },
+    "3.0": {
+      "compliance_rate": 0.7438,
+      "n_compliant": 511,
+      "n_total": 687
+    }
+  }
+}

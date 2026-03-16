@@ -1,0 +1,48 @@
+{
+  "config": "seed_0_unconstrained",
+  "n_neurons": 38,
+  "results": {
+    "0.0": {
+      "compliance_rate": 0.656,
+      "n_compliant": 656,
+      "n_total": 1000,
+      "parse_failures": 0
+    },
+    "0.5": {
+      "compliance_rate": 0.66,
+      "n_compliant": 660,
+      "n_total": 1000,
+      "parse_failures": 0
+    },
+    "1.0": {
+      "compliance_rate": 0.66,
+      "n_compliant": 660,
+      "n_total": 1000,
+      "parse_failures": 0
+    },
+    "1.5": {
+      "compliance_rate": 0.661,
+      "n_compliant": 661,
+      "n_total": 1000,
+      "parse_failures": 0
+    },
+    "2.0": {
+      "compliance_rate": 0.663,
+      "n_compliant": 663,
+      "n_total": 1000,
+      "parse_failures": 0
+    },
+    "2.5": {
+      "compliance_rate": 0.663,
+      "n_compliant": 663,
+      "n_total": 1000,
+      "parse_failures": 0
+    },
+    "3.0": {
+      "compliance_rate": 0.661,
+      "n_compliant": 661,
+      "n_total": 1000,
+      "parse_failures": 0
+    }
+  }
+}

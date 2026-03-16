@@ -1,0 +1,56 @@
+{
+  "h_neuron_baseline": {
+    "compliance_rates": [
+      0.642,
+      0.66,
+      0.705
+    ],
+    "slope_per_alpha": 2.12,
+    "spearman_rho": 1.0,
+    "parse_failures": [
+      0,
+      0,
+      0
+    ]
+  },
+  "unconstrained_random": {
+    "mean_compliance_rates": [
+      0.656,
+      0.66,
+      0.661
+    ],
+    "std_compliance_rates": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "per_seed": {
+      "seed_0_unconstrained": {
+        "compliance_rates": [
+          0.656,
+          0.66,
+          0.661
+        ],
+        "slope_per_alpha": 0.15,
+        "spearman_rho": 1.0,
+        "parse_failures": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "mean_slope_per_alpha": 0.15,
+    "mean_spearman_rho": 1.0,
+    "any_seed_monotonic": true,
+    "mean_parse_failures": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "statistical_tests": {
+    "compliance_at_alpha_3_h_vs_random_ttest_p": NaN,
+    "slope_h_vs_random_ttest_p": NaN
+  }
+}
