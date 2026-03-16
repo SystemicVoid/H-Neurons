@@ -1,0 +1,24 @@
+{
+  "total_rows": 1000,
+  "raw_compliance_count": 636,
+  "raw_compliance_rate": 0.636,
+  "parse_failures": 150,
+  "strict_recovered_count": 140,
+  "strict_recovered_rate_within_failures": 0.9333333333333333,
+  "strict_recovered_compliant_count": 85,
+  "strict_rescored_compliance_count": 721,
+  "strict_rescored_compliance_rate": 0.721,
+  "review_category_counts": {
+    "strict_remap": 140,
+    "off_option_counterfactual": 3,
+    "off_option_resistant": 2,
+    "closest_option_paraphrase": 4,
+    "ambiguous_partial": 1
+  },
+  "unresolved_review_category_counts": {
+    "off_option_counterfactual": 3,
+    "off_option_resistant": 2,
+    "closest_option_paraphrase": 4,
+    "ambiguous_partial": 1
+  }
+}

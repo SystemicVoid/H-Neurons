@@ -11,6 +11,8 @@ Core code lives in `scripts/`, with one CLI per pipeline stage: response collect
 
 The current `FaithEval` standard-prompt outputs in `data/intervention/faitheval_standard/` are partly mis-scored by the multiple-choice letter extractor: a strict answer-text remap recovered 140 of the 150 `chosen=None` cases at `alpha=3.0` and raised measured compliance from `63.6%` to `72.1%`. Treat raw standard-prompt drops as evaluator artifacts until text-based rescoring is wired into the benchmark.
 
+The `140/150` strict remap count at `data/intervention/faitheval_standard/alpha_3.0.jsonl` depends on one extra numeric-prefix recovery beyond exact normalized text matching: `MCAS_2004_9_10-v1` answers `83`, while the stored option text normalizes to `83 331`. Exact matching alone only recovers `139/150`.
+
 `scripts/collect_responses.py` imports heavyweight runtime dependencies (`torch`, `transformers`, `openai`) at module import time, so lightweight analysis utilities should not import it just to reuse `normalize_answer`; copy the function verbatim instead.
 
 Pretrained SAEs are now available for `google/gemma-3-4b-it` via SAELens/Gemma Scope, so Gemma-only feature-level follow-up work no longer requires switching to Gemma 2 first. The repo does not currently vendor SAE tooling, so treat that as an install/integration task rather than a model-availability blocker.
