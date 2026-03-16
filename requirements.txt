@@ -2,6 +2,7 @@ vllm
 transformers
 datasets
 openai
+python-dotenv
 accelerate
 joblib
 scikit-learn

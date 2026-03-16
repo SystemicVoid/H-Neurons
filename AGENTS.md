@@ -9,13 +9,19 @@ Core code lives in `scripts/`, with one CLI per pipeline stage: response collect
 
 `site/index.html` is a hand-maintained presentation deck: narrative copy, citation years, chart arrays, and intervention summary numbers are hardcoded rather than loaded from `data/`. When results change, update both the prose and the embedded JS arrays together or the site drifts quickly.
 
+The current `FaithEval` standard-prompt outputs in `data/intervention/faitheval_standard/` are partly mis-scored by the multiple-choice letter extractor: a strict answer-text remap recovered 140 of the 150 `chosen=None` cases at `alpha=3.0` and raised measured compliance from `63.6%` to `72.1%`. Treat raw standard-prompt drops as evaluator artifacts until text-based rescoring is wired into the benchmark.
+
 `scripts/collect_responses.py` imports heavyweight runtime dependencies (`torch`, `transformers`, `openai`) at module import time, so lightweight analysis utilities should not import it just to reuse `normalize_answer`; copy the function verbatim instead.
+
+Pretrained SAEs are now available for `google/gemma-3-4b-it` via SAELens/Gemma Scope, so Gemma-only feature-level follow-up work no longer requires switching to Gemma 2 first. The repo does not currently vendor SAE tooling, so treat that as an install/integration task rather than a model-availability blocker.
 
 `scripts/lambda-bootstrap.sh` and `scripts/lambda-AGENTS.md` are currently tuned for A100-40GB + Mistral-7B defaults; when running on GH200/H100 (ARM64) or switching to larger models (24B/27B), update model IDs, output filenames, and any architecture assumptions before launching long jobs.
 
 `scripts/extract_activations.py` needs the same `apply_chat_template()` tensor-vs-`BatchEncoding` guard as `collect_responses.py`; without it, newer `transformers` can fail only when the long Step 4 job starts.
 
 For zero-cost runs without an OpenAI key, use `scripts/extract_answer_tokens.py --strategy synthetic-output` and pair it with `scripts/extract_activations.py --locations output`; this preserves resume behavior without the manual JSONL hack from the README.
+
+`scripts/evaluate_intervention.py` loads the OpenAI key via `python-dotenv` (`load_dotenv()` at import time), so placing `OPENAI_API_KEY=...` in the repo-root `.env` is sufficient — no need to prefix the command or export the variable manually.
 
 For repo hygiene, keep compact experiment artifacts such as benchmark CSVs, consistency-sample JSONL files, answer-token JSONL files, balanced ID JSONs, and compact intervention outputs visible in git. Keep heavy activation dumps, scratch investigation folders, and local sync state ignored. If a local GH200 sync is partial, treat the remote copy as canonical until file counts and presence of the classifier match.
 
