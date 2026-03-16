@@ -12,18 +12,15 @@ data/*_log.txt
 logs/
 
 # GH200 orchestration utilities (local ops)
-scripts/gh200_sequential_pipeline.sh
-scripts/watch_gh200_pipeline_and_sync.sh
+scripts/infra/gh200_sequential_pipeline.sh
+scripts/infra/watch_gh200_pipeline_and_sync.sh
 
 # Large model/data artifacts (keep small examples)
 *.safetensors
 *.bin
 *.gguf
-data/activations/all_except_answer_tokens/
-data/activations/answer_tokens/
-data/*_activations/
-data/mistral24b_activations/
-data/investigation_*/
+data/*/activations/
+data/*/investigation_*/
 models/
 
 # Environment variables
@@ -32,10 +29,10 @@ models/
 # Local agent guidance artifacts
 data/batch3500_pipeline_handoff.md
 data/batch3500_review.md
-scripts/lambda-AGENTS.md
-scripts/lambda_bootstrap_and_start_step1.py
-scripts/monitor_lambda_capacity.py
-scripts/cron_gh200_wakeup.sh
+scripts/infra/lambda-AGENTS.md
+scripts/infra/lambda_bootstrap_and_start_step1.py
+scripts/infra/monitor_lambda_capacity.py
+scripts/infra/cron_gh200_wakeup.sh
 
 # Local orchestration/scratch state
 .herenow/
