@@ -27,6 +27,10 @@ The GH200 tmux orchestrator must not assume a running Step 1 pane shows `uv` as 
 
 On `transformers` 5.3.0, loading `Mistral-Small-24B-Instruct-2501` emits a tokenizer warning about an incorrect regex pattern and recommends `fix_mistral_regex=True`. That warning did not block execution, but it is a real reproducibility risk to track before comparing token-level outputs or answer-token matches across reruns.
 
+For paper-faithful H-Neuron replication, note that the local `scripts/classifier.py` can sweep `C` using held-out probe metrics (`accuracy`/`f1`/`auroc` etc.), but it does **not** implement the paper's full selection rule that also scores TriviaQA behavior after suppressing the selected neurons. Treat the current sweep as a good detector-selection baseline, not the final paper-equivalent intervention-selection criterion.
+
+For FaithEval intervention runs, `scripts/run_intervention.py` defaults to `--prompt_style anti_compliance`, but its own prompt builder notes that `--prompt_style standard` matches the official Salesforce framing and presumed paper usage. Use `standard` when the goal is paper-faithful replication rather than stress-testing resistance to misleading context.
+
 For this project, the operational policy is now stricter than "it runs somehow": on rented hardware, only run models whose full-precision weights and activation workflow fit entirely on the GPU being rented. A single GH200 96GB proved viable for the 24B class, but `Llama-3.3-70B-Instruct` violated that rule and was intentionally stopped. Treat roughly the 24B class as the safe upper bound on this box unless a larger bf16 model is explicitly demonstrated to stay GPU-resident throughout the relevant stages.
 
 Pricing check on 2026-03-15: Runpod is cheaper for smaller 80GB-class iteration (for example A100 80GB / H100 80GB), but Lambda's GH200 96GB was listed at `$1.99/hr`, which is cheaper than Runpod's nearest 94GB-class single-GPU option (`H100 NVL` at `$2.59/hr`). For this repo's 24B activation-faithful runs, that means "Runpod is cheaper" is only true for smaller jobs; for the validated ~96GB single-GPU path, Lambda can actually be the lower-cost option.
@@ -48,6 +52,24 @@ Follow existing Python conventions and modern best practices.
 
 ## Testing Guidelines
 There is no formal `tests/` suite yet. Use judgment and follow best practices.
+
+## Long-Running Jobs & System Suspend
+On Pop!_OS / COSMIC DE, system auto-suspend will kill tmux jobs mid-run. Always hold a `systemd-inhibit` lock for jobs longer than ~20 minutes.
+
+**At launch** — wrap the command:
+```bash
+systemd-inhibit --what=sleep:idle --who="<job-name>" --why="<description>" \
+    uv run python scripts/run_intervention.py ...
+```
+
+**For already-running jobs** — spin up a watcher in a dedicated tmux window named `inhibit`:
+```bash
+systemd-inhibit --what=sleep:idle --who="<job-name>" --why="<description>" \
+    bash -c 'while tmux list-windows | grep -q "<job-window-name>"; do sleep 30; done'
+```
+This auto-releases the lock when the job window closes — no manual cleanup needed. Check active locks with `systemd-inhibit --list`.
+
+**Post-suspend recovery** — if a job survived suspend but is running slowly (CPU fallback, low GPU utilization/wattage), Ctrl+C may not land because the terminal is in raw mode. Use `kill -9` directly on the python PID: `pgrep -a python | grep <script>` to find it, then `kill -9 <pid>`. The script's resume logic will pick up from the last written line on restart.
 
 ## Commit & Pull Request Guidelines
 Recent history uses Conventional Commit-style subjects.
