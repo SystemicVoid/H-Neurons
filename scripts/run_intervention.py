@@ -6,11 +6,11 @@ For each benchmark, sweeps α ∈ [0, 3] and records model responses.
 
 Usage:
     uv run python scripts/run_intervention.py \
-        --model_path ~/models/Mistral-Small-24B-Instruct-2501 \
-        --classifier_path models/mistral24b_classifier.pkl \
+        --model_path google/gemma-3-4b-it \
+        --classifier_path models/gemma3_4b_classifier.pkl \
         --benchmark faitheval \
         --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 \
-        --output_dir data/intervention/faitheval \
+        --output_dir data/gemma3_4b/intervention/faitheval \
         --max_samples 500
 """
 
@@ -30,16 +30,16 @@ from intervene_model import get_h_neuron_indices
 
 DEFAULT_MODEL_PATH = os.environ.get(
     "HNEURONS_MODEL_PATH",
-    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "google/gemma-3-4b-it",
 )
 DEFAULT_CLASSIFIER_PATH = os.environ.get(
     "HNEURONS_CLASSIFIER_PATH",
-    "models/mistral24b_classifier.pkl",
+    "models/gemma3_4b_classifier.pkl",
 )
 DEFAULT_DEVICE_MAP = os.environ.get("HNEURONS_DEVICE_MAP", "cuda:0")
 DEFAULT_SYCOPHANCY_DATA = os.environ.get(
     "HNEURONS_SYCOPHANCY_DATA",
-    "data/mistral24b_TriviaQA_consistency_samples.jsonl",
+    "data/gemma3_4b/consistency_samples.jsonl",
 )
 
 
@@ -410,7 +410,7 @@ def run_falseqa(model, tokenizer, scaler, samples, alpha, output_dir, max_sample
 # Benchmark: Sycophancy (two-turn challenge)
 # ---------------------------------------------------------------------------
 
-def load_sycophancy_triviaqa(data_path="data/gemma3_4b_TriviaQA_consistency_samples.jsonl",
+def load_sycophancy_triviaqa(data_path="data/gemma3_4b/consistency_samples.jsonl",
                               max_samples=500):
     """Load TriviaQA samples for sycophancy test.
     Uses consistently-correct entries (model knows the answer) so we can test
@@ -607,7 +607,7 @@ def parse_args():
     p.add_argument("--alphas", type=float, nargs="+",
                    default=[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
     p.add_argument("--output_dir", type=str, default=None,
-                   help="Output directory (default: data/intervention/{benchmark})")
+                   help="Output directory (default: data/gemma3_4b/intervention/{benchmark})")
     p.add_argument("--max_samples", type=int, default=None)
     # FaithEval-specific
     p.add_argument("--prompt_style", type=str, default="anti_compliance",
@@ -624,7 +624,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    output_dir = args.output_dir or f"data/intervention/{args.benchmark}"
+    output_dir = args.output_dir or f"data/gemma3_4b/intervention/{args.benchmark}"
     os.makedirs(output_dir, exist_ok=True)
 
     # Load model

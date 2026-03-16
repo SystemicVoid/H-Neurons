@@ -3,8 +3,8 @@ Plot compliance rate vs α for intervention experiments (Figure 3 equivalent).
 
 Usage:
     uv run python scripts/plot_intervention.py \
-        --input_dir data/intervention \
-        --output data/intervention/figure3_compliance.png
+        --input_dir data/gemma3_4b/intervention \
+        --output data/gemma3_4b/intervention/figure3_compliance.png
 """
 
 import os
@@ -93,8 +93,8 @@ def plot_compliance(all_results, output_path):
 
 def parse_args():
     p = argparse.ArgumentParser(description="Plot intervention results")
-    p.add_argument("--input_dir", type=str, default="data/intervention")
-    p.add_argument("--output", type=str, default="data/intervention/figure3_compliance.png")
+    p.add_argument("--input_dir", type=str, default="data/gemma3_4b/intervention")
+    p.add_argument("--output", type=str, default="data/gemma3_4b/intervention/figure3_compliance.png")
     return p.parse_args()
 
 

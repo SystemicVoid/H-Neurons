@@ -14,7 +14,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input-path",
         type=Path,
-        default=Path("data/gemma3_4b_TriviaQA_consistency_samples.jsonl"),
+        default=Path("data/gemma3_4b/consistency_samples.jsonl"),
         help="Input JSONL batch file.",
     )
     parser.add_argument(

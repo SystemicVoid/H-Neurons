@@ -238,14 +238,14 @@ def main() -> None:
     parser.add_argument(
         "--input",
         type=Path,
-        default=Path("data/intervention/faitheval_standard/alpha_3.0.jsonl"),
+        default=Path("data/gemma3_4b/intervention/faitheval_standard/alpha_3.0.jsonl"),
         help="FaithEval standard-prompt JSONL to analyze.",
     )
     parser.add_argument(
         "--output-jsonl",
         type=Path,
         default=Path(
-            "data/intervention/faitheval_standard/alpha_3.0_parse_failure_remap.jsonl"
+            "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap.jsonl"
         ),
         help="Where to write the per-case remap records.",
     )
@@ -253,7 +253,7 @@ def main() -> None:
         "--output-summary",
         type=Path,
         default=Path(
-            "data/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json"
+            "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json"
         ),
         help="Where to write the compact JSON summary.",
     )
