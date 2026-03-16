@@ -430,8 +430,8 @@ This raises a broader methodological concern about the H-Neurons paper: **L1 wei
 ## 11. Intervention Experiments: FaithEval (Section 3 Replication)
 
 **Scripts:** `scripts/run_intervention.py`, `scripts/evaluate_intervention.py`, `scripts/plot_intervention.py`
-**Data:** `data/intervention/faitheval/alpha_{0.0..3.0}.jsonl`, `data/intervention/faitheval/results.json`
-**Status:** FaithEval complete (1000 samples × 7 α values). FalseQA, Sycophancy, and Jailbreak pending.
+**Data:** `data/intervention/faitheval/alpha_{0.0..3.0}.jsonl`, `data/intervention/faitheval_standard/alpha_{0.0..3.0}.jsonl`
+**Status:** FaithEval complete — both prompt variants (1000 samples × 7 α values each). FalseQA in progress. Sycophancy and Jailbreak pending.
 
 ### 11.1 Mechanism: Hook-Based Activation Scaling
 
@@ -441,7 +441,7 @@ Rather than modifying `down_proj.weight.data` in-place (as the existing `interve
 
 **Correctness verified:** (1) α=1.0 hook output is identical to no-hook output (bit-exact); (2) α=0.0 and α=3.0 produce visibly different outputs on the same prompts.
 
-### 11.2 FaithEval Results
+### 11.2 FaithEval Results (Anti-Compliance Prompt)
 
 | α | Compliance Rate | n_compliant / 1000 |
 |---|----------------|--------------------|
@@ -488,13 +488,13 @@ answer based on your own knowledge. Answer with just the letter.
 
 This is an **anti-compliance prompt** — it explicitly tells the model to resist misleading context. Yet the model still follows the counterfactual context 64–71% of the time. This is arguably a *stronger* demonstration of H-Neuron causal influence: even when explicitly instructed to resist, amplifying H-Neurons still pushes the model toward over-compliance.
 
-**Impact on comparability:** Our absolute compliance rates may be lower than the paper's (because we fight the effect), but the monotonic trend and its direction are identical. The causal conclusion — H-Neurons drive over-compliance — holds under both prompt framings. A proper replication should re-run with the FaithEval-standard pro-context prompt and compare slopes.
+**Impact on comparability:** Our absolute compliance rates may be lower than the paper's (because we fight the effect), but the monotonic trend and its direction are identical. The causal conclusion — H-Neurons drive over-compliance — holds under both prompt framings. **Update:** We re-ran FaithEval with the standard pro-context prompt — see Section 11.7 for a detailed comparison that reveals a format-compliance confound.
 
 #### Other methodological differences
 
 | Parameter | Paper | Our Implementation | Impact |
 |-----------|-------|--------------------|--------|
-| FaithEval prompt | Pro-context (retrieval QA frame) | Anti-compliance ("use your own knowledge") | Lower baseline, attenuated slope |
+| FaithEval prompt | Pro-context (retrieval QA frame) | Both: anti-compliance + standard (see 11.7) | See Section 11.7 |
 | FaithEval decoding | Greedy, max 256 tokens | Greedy, max 256 tokens | Match |
 | FaithEval evaluation | Rule-based parser | Rule-based MC letter extraction | Match |
 | Sycophancy max_tokens | 512 (open-ended) | 128 (turn 1), 256 (turn 2) | Potential truncation; needs fix before running |
@@ -503,7 +503,7 @@ This is an **anti-compliance prompt** — it explicitly tells the model to resis
 
 ### 11.4 Qualitative Observations
 
-**H-Neuron suppression (α=0.0) makes the model more verbose.** At α=0.0, 84 of 1000 responses exceed 20 characters (the model adds explanations like "**Explanation:** The passage explicitly states..."). At α≥1.0, 100% of responses are single letters. This suggests that H-Neurons don't just drive factual over-compliance — they also drive instruction-following compliance. Suppressing them makes the model less obedient to "Answer with just the letter," producing longer, more reasoning-heavy responses.
+**H-Neuron suppression (α=0.0) makes the model more verbose.** At α=0.0, 84 of 1000 responses exceed 20 characters (the model adds explanations like "**Explanation:** The passage explicitly states..."). At α≥1.0, 100% of responses are single letters. One reading is that H-Neurons drive instruction-following compliance in addition to content compliance. But as the standard-prompt results (Section 11.7) later revealed, the relationship between H-neurons and instruction-following is more complicated — at high α under the standard prompt, format compliance *decreases*. The verbosity at α=0.0 under the anti-compliance prompt may instead reflect the model entering a more "cautious reasoning" mode when H-neurons are suppressed, rather than simply being less obedient.
 
 **Most samples are not affected by α.** The 1000 samples break into three populations:
 
@@ -517,9 +517,9 @@ The 6.3pp compliance swing is driven entirely by the 138 swing samples. At α=0.
 
 ### 11.5 Critique of the Paper's Intervention Methodology
 
-#### 1. The prompt confound
+#### 1. The prompt confound — now partially resolved
 
-The paper doesn't disclose the exact FaithEval prompt used. If they use the standard retrieval QA framing ("answer from the context"), then a substantial fraction of the compliance rate reflects normal context-following behavior, not over-compliance in any pathological sense. The 55–75% range they report for FaithEval could partly be *correct behavior for a retrieval QA system* — you want models to follow provided context. The intervention's causal claim would be stronger if they showed the effect persists with an anti-compliance prompt (as our results accidentally demonstrate).
+The paper doesn't disclose the exact FaithEval prompt used. If they use the standard retrieval QA framing ("answer from the context"), then a substantial fraction of the compliance rate reflects normal context-following behavior, not over-compliance in any pathological sense. **Our dual-prompt experiment (Section 11.7) shows the causal effect holds under both pro-context and anti-context prompts**, which substantially strengthens the paper's claim. However, the standard prompt introduces a format-compliance confound (150 parse failures at α=3.0) that could inflate or deflate raw compliance rates depending on the parser used. Any FaithEval-based intervention study using MC formatting should report parse failure rates.
 
 #### 2. Population heterogeneity masks effect size
 
@@ -542,13 +542,13 @@ Neither the paper nor our replication includes a negative control: scaling rando
 
 Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data points on a smooth curve and 1000 samples per point, almost any real effect would appear monotonic. The interesting question is whether the relationship is *linear* (as the CETT theory predicts) or exhibits nonlinear saturation. Our data appears quite linear (R²=0.993), which is consistent with the CETT framework's prediction that α has a linear relationship with functional importance.
 
-### 11.6 Discussion Points for Tomorrow
+### 11.6 Discussion Points
 
-1. **Should we re-run FaithEval with the standard FaithEval prompt?** This would take ~2 hours on the GPU. Pro: direct comparability with the paper. Con: we already have evidence the effect holds under adversarial conditions (anti-compliance prompt), which is arguably more interesting.
+1. ~~**Should we re-run FaithEval with the standard FaithEval prompt?**~~ **DONE.** See Section 11.7. The standard prompt run revealed a format-compliance confound that substantially changes interpretation.
 
 2. **Negative control experiment:** Scale 38 random non-H-neurons by the same α values on FaithEval. If this shows no monotonic trend, it's strong evidence for H-Neuron specificity. Estimated time: ~2 hours.
 
-3. **Swing sample characterization:** What makes the 138 α-sensitive samples special? Are they borderline-difficulty questions where the model is genuinely uncertain between context and knowledge? A follow-up analysis could correlate swing membership with question difficulty, context length, or domain.
+3. **Swing sample characterization:** What makes the α-sensitive samples special? The standard prompt run increased the swing population from 138 to 203 samples — a larger pool for characterization. Are they borderline-difficulty questions where the model is genuinely uncertain between context and knowledge?
 
 4. **FalseQA is the natural next benchmark** — single-turn, data ready, complements FaithEval by testing a different compliance dimension (accepting invalid premises vs. following misleading context). Requires GPT-4o judging (~$4).
 
@@ -556,4 +556,125 @@ Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data p
 
 6. **Jailbreak should be deferred** until we either (a) locate Shen et al.'s actual template-question pairing code, or (b) decide to skip it entirely. The hardcoded simplified templates in our implementation are methodologically unsound.
 
-7. **The over-compliance-as-instruction-following finding** (α=0.0 produces verbose responses) is novel and not discussed in the paper. It suggests H-Neurons are not hallucination-specific but rather general compliance/obedience neurons. This reframes the paper's narrative: these neurons don't specifically cause hallucination — they cause the model to do what it's told, and hallucination is one consequence of excessive obedience (answering when you should refuse, following context when you should question it, agreeing when you should push back).
+7. **The format-compliance dissociation** (α=0.0 produces verbose responses under anti-compliance prompt; α=3.0 drops letter prefixes under standard prompt) is novel and not discussed in the paper. The standard-prompt run (Section 11.7) deepens this puzzle: H-neuron amplification increases content compliance while degrading format compliance, which is hard to reconcile with a simple "general obedience" account. See Section 11.7.6 for competing hypotheses about what these neurons actually modulate.
+
+### 11.7 FaithEval Standard Prompt: The Format-Compliance Confound
+
+**Data:** `data/intervention/faitheval_standard/alpha_{0.0..3.0}.jsonl`, `data/intervention/faitheval_standard/results.json`
+
+We re-ran FaithEval with the official retrieval QA prompt (pro-context framing) to enable direct comparison with the paper. The raw results appear to contradict the anti-compliance run — compliance *decreases* with α. But the contradiction dissolves under analysis: the decline is a **parsing artifact** caused by H-neuron amplification degrading format compliance while preserving content compliance.
+
+#### 11.7.1 Raw Results
+
+| α | Standard (raw) | Anti-compliance | Δ (Std − Anti) |
+|---|----------------|-----------------|-----------------|
+| 0.0 | 69.1% (691) | 64.2% (642) | +4.9pp |
+| 0.5 | 68.4% (684) | 65.4% (654) | +3.0pp |
+| 1.0 | 68.8% (688) | 66.0% (660) | +2.8pp |
+| 1.5 | 69.8% (698) | 67.0% (670) | +2.8pp |
+| 2.0 | 68.6% (686) | 68.2% (682) | +0.4pp |
+| 2.5 | 66.9% (669) | 69.5% (695) | −2.6pp |
+| 3.0 | 63.6% (636) | 70.5% (705) | −6.9pp |
+
+The standard prompt shows Spearman ρ=−0.643 (p=0.119) — a negative but non-significant trend. The anti-compliance prompt shows ρ=+1.0 (p<1e-6). On the surface, the two prompts produce opposite effects.
+
+#### 11.7.2 The Parsing Artifact
+
+The apparent decline is driven by a monotonically increasing parse failure rate:
+
+| α | Parse failures | Example (α=1.0 → α=3.0) |
+|---|---------------|--------------------------|
+| 0.0 | 9 | — |
+| 0.5 | 11 | — |
+| 1.0 | 17 | `"D) energy molecules"` → |
+| 1.5 | 32 | |
+| 2.0 | 65 | |
+| 2.5 | 105 | |
+| 3.0 | **150** | → `"Energy molecules"` |
+
+At high α, the model produces the **same answer content** but drops the MC letter prefix. Where α=1.0 produces `"D) energy molecules"`, α=3.0 produces `"Energy molecules"` — the text is identical, but our parser can't extract a letter. These parse failures are scored as non-compliant, creating the illusion of declining compliance.
+
+Of the 150 parse failures at α=3.0: 75 were compliant at α=1.0 (the model was following the context, just lost the letter format). The anti-compliance prompt avoids this entirely (0 parse failures at all α) because its instruction "Answer with just the letter" is simpler and more robust to format degradation.
+
+#### 11.7.3 Adjusted Results
+
+Excluding unparseable responses, compliance increases monotonically under both prompts:
+
+| α | Standard (adjusted) | Excluded | Anti-compliance |
+|---|---------------------|----------|-----------------|
+| 0.0 | 69.7% (691/991) | 9 | 64.2% |
+| 0.5 | 69.2% (684/989) | 11 | 65.4% |
+| 1.0 | 70.0% (688/983) | 17 | 66.0% |
+| 1.5 | 72.1% (698/968) | 32 | 67.0% |
+| 2.0 | 73.4% (686/935) | 65 | 68.2% |
+| 2.5 | 74.7% (669/895) | 105 | 69.5% |
+| 3.0 | 74.8% (636/850) | 150 | 70.5% |
+
+The adjusted standard prompt slope (~1.70%/α) is slightly below the anti-compliance slope (2.10%/α), but the direction is the same. The standard prompt starts higher (69.7% vs 64.2% at α=0.0) — as expected for a pro-context framing — and both converge near 70–75% at high α.
+
+However, this adjustment has a methodological cost: excluding 15% of data at α=3.0 is substantial, and the excluded samples are not random (they're systematically the ones where high-α disrupted formatting). The adjusted rates are best interpreted as a lower bound on "content compliance conditional on format compliance" rather than a true population compliance rate.
+
+#### 11.7.4 Population Structure
+
+| Category | Standard prompt | Anti-compliance |
+|----------|----------------|-----------------|
+| Always compliant | 563 (56.3%) | 600 (60.0%) |
+| Never compliant | 234 (23.4%) | 262 (26.2%) |
+| Swing samples | 203 (20.3%) | 138 (13.8%) |
+
+The standard prompt produces **47% more swing samples** (203 vs 138). This is likely because the anti-compliance prompt's harder instruction ("use your own knowledge") pushes more samples into the frozen-resistant category, while the standard prompt's softer framing leaves more samples in the genuinely uncertain zone where α can influence behavior.
+
+Within the standard prompt's 203 swing samples, the direction is predominantly toward resistance at high α: 123 swing from compliant→resistant (α 0→3), while only 68 swing from resistant→compliant. This is the format-loss effect in action — the model maintains its answer but loses the letter prefix, flipping the parser's verdict.
+
+#### 11.7.5 Cross-Prompt Agreement at Baseline (α=1.0)
+
+| | Standard: compliant | Standard: non-compliant |
+|---|---|---|
+| Anti: compliant | 641 | 19 |
+| Anti: non-compliant | 47 | 293 |
+
+93.4% of samples (641+293) agree across prompts at baseline. The 47 "standard-only" compliant samples are cases where the pro-context framing tips borderline samples over the edge. The 19 "anti-only" compliant samples are harder to explain — they may reflect stochastic sensitivity to prompt wording rather than a systematic effect.
+
+#### 11.7.6 Interpretation: What Do H-Neurons Actually Modulate?
+
+We observe two simultaneous effects of H-neuron amplification:
+
+1. **Content compliance increases** — the model becomes more likely to follow the counterfactual context, regardless of prompt framing. This is the paper's claimed effect and it holds under both prompts.
+
+2. **Format compliance decreases** — the model becomes less likely to produce structured outputs (letter-prefixed MC answers). At high α, it generates answer content directly instead of following the "respond with the exact answer only" format instruction.
+
+These two effects are in tension, and the tension is puzzling. If H-neurons were simple "obedience neurons," amplifying them should increase both content compliance *and* format compliance — the model should do more of what it's told, across the board. That's not what we see. The model becomes more suggestible to the *factual content* in the context while simultaneously becoming *less precise* about following formatting instructions. Why?
+
+We do not have a confident answer. Here are three competing hypotheses, along with what would falsify each:
+
+**Hypothesis A — Context-credulity, not general compliance.** H-neurons specifically modulate how much the model treats input context as authoritative ground truth, rather than modulating obedience to instructions in general. Under this view, content compliance rises because the counterfactual context is weighted more heavily in the model's "belief." Format degradation is a side effect: at extreme α, the model is so focused on "answering from the context" that it shortcuts past the formatting wrapper and blurts out the answer content directly. The anti-compliance prompt's "just the letter" instruction survives because it's simpler — less computational overhead to follow, so it persists even under distortion.
+
+- *Falsifiable by:* Testing format compliance on a task with **no context passage** — e.g., asking the model to answer factual questions in a specific format at varying α. If format degrades without any context to over-index on, Hypothesis A is weakened. If format stays intact, it's supported.
+
+**Hypothesis B — Competing instruction channels.** The standard prompt contains two instructions in tension: (1) "answer from the context" (encoded by the retrieval QA framing) and (2) "respond with the exact answer only" (an explicit formatting constraint). At high α, instruction (1) is amplified at the expense of (2) — the model can only satisfy one and H-neurons tip the balance toward content-following. The anti-compliance prompt doesn't have this tension — "answer with just the letter" is a single instruction that happens to align with both content selection and format.
+
+- *Falsifiable by:* Designing a prompt where the content instruction and the format instruction are **perfectly aligned** (e.g., "Pick the letter that matches the context"). If format compliance still degrades at high α even when there's no tension between instructions, Hypothesis B is wrong.
+
+**Hypothesis C — Generic model degradation at extreme α.** Scaling 38 neurons by 3× is a substantial perturbation to the residual stream. Maybe at high α the model simply gets worse at *all* precise behaviors — structured formatting, exact token reproduction, instruction-following fidelity — while coarser semantic behaviors (which answer to pick) are more robust because they depend on broader distributed representations rather than precise computation. Under this view, format loss isn't about compliance at all; it's about the model's computational precision degrading under perturbation, with formatting being more fragile than content selection.
+
+- *Falsifiable by:* The **negative control experiment** — scaling 38 random (non-H) neurons by α=3.0. If random neuron scaling produces *similar* format degradation but *no* content compliance increase, Hypothesis C explains the format loss and H-neuron specificity still explains the content effect. If random scaling produces neither, both effects are H-neuron-specific and Hypothesis C is wrong. If random scaling produces both, the entire intervention paradigm is questionable.
+- *Additional test:* Measure other precision-dependent behaviors at high α — e.g., does the model's ability to count, do arithmetic, or follow multi-step instructions also degrade? If yes, Hypothesis C gains support.
+
+**What we can say with confidence:**
+- The paper's core causal claim — amplifying H-neurons increases content compliance with misleading context — holds under both prompt framings.
+- The format degradation is real, not a one-off parsing bug: it scales monotonically with α (9 → 150 failures) and the affected responses are systematically the ones where the model drops letter prefixes while preserving answer content.
+- The "general compliance neuron" framing (our Section 11.4 observation, and the narrative the paper implicitly promotes) is **too simple**. Whatever these neurons modulate, it is not a uniform dial on "do what you're told." The dissociation between content compliance and format compliance demands a more nuanced account.
+
+**Implication for the paper:** If the paper uses the standard FaithEval prompt (as we presume), their reported compliance rates at high α may also be affected by this format-loss artifact. The magnitude depends on their parser's robustness. Raw compliance curves from MC-format benchmarks should be accompanied by parse failure rates to rule out this confound.
+
+#### 11.7.7 Remaining Uncertainty and Next Experiments
+
+The adjusted compliance curve (excluding parse failures) and the raw anti-compliance curve agree on direction but not on shape. The anti-compliance curve is nearly perfectly linear (R²=0.993). The standard adjusted curve appears to saturate above α=2.5 (74.7% → 74.8%). Whether this saturation is real (a ceiling effect) or an artifact of the shrinking denominator at high α is unclear. Manually re-coding the 150 parse failures at α=3.0 (checking whether the answer text matches the counterfactual option) would resolve this without requiring additional GPU time.
+
+**Priority experiments for resolving the hypotheses:**
+
+1. **Negative control (tests Hypothesis C):** Scale 38 random non-H-neurons by α ∈ {0.0, 1.0, 3.0} on FaithEval standard prompt. Measure both content compliance and parse failure rate. ~1 hour GPU time. This is the single most informative experiment we can run — it discriminates between H-neuron-specific effects and generic perturbation artifacts.
+
+2. **No-context format test (tests Hypothesis A):** Ask the model factual MC questions *without* a misleading context passage, at varying α. If format compliance degrades without context, the format loss is not about context-credulity. ~30 min GPU time.
+
+3. **Aligned-instruction test (tests Hypothesis B):** Run FaithEval with a prompt where content and format instructions don't compete: "Pick the letter of the answer supported by the context." If format still degrades, instruction competition isn't the explanation. ~2 hours GPU time.
