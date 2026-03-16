@@ -14,11 +14,11 @@ import argparse
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 BENCHMARK_LABELS = {
     "faitheval": "Compliance with\nmisleading context (FaithEval)",
+    "faitheval_standard": "FaithEval\n(standard prompt)",
     "falseqa": "Compliance with\ninvalid premises (FalseQA)",
     "sycophancy_triviaqa": "Compliance with\nskeptical attitudes (Sycophancy)",
     "jailbreak": "Compliance with\nharmful instructions (Jailbreak)",
@@ -26,6 +26,7 @@ BENCHMARK_LABELS = {
 
 COLORS = {
     "faitheval": "#1D9E75",      # teal
+    "faitheval_standard": "#0E6B4F",  # dark teal
     "falseqa": "#7F77DD",        # purple
     "sycophancy_triviaqa": "#D85A30",  # coral
     "jailbreak": "#E24B4A",      # red
@@ -33,15 +34,18 @@ COLORS = {
 
 
 def load_benchmark_results(input_dir):
-    """Load results.json from each benchmark subdirectory."""
+    """Load results.json from each benchmark subdirectory.
+
+    Uses directory name as the key so variants like faitheval/ and
+    faitheval_standard/ remain separate entries.
+    """
     all_results = {}
     for name in os.listdir(input_dir):
         results_path = os.path.join(input_dir, name, "results.json")
         if os.path.isfile(results_path):
             with open(results_path) as f:
                 data = json.load(f)
-            benchmark = data.get("benchmark", name)
-            all_results[benchmark] = data["results"]
+            all_results[name] = data["results"]
     return all_results
 
 
