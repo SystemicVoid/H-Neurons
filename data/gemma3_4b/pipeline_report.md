@@ -1,6 +1,6 @@
 # Gemma 3 4B — H-Neuron Identification Pipeline Report
 
-**Date:** 2026-03-15
+**Date:** 2026-03-16
 **Model:** `google/gemma-3-4b-it` (instruction-tuned)
 **Hardware:** RTX 5060 Ti (16 GB VRAM), AMD 9900X, 64 GB RAM
 **Paper reference:** Gao et al., "H-Neurons: On the Existence, Impact, and Origin of Hallucination-Associated Neurons in LLMs" (arXiv:2512.01797v2)
@@ -30,7 +30,7 @@ The classifier identifies 38 H-Neurons out of 348,160 total neuron positions (34
 ### Stage 1: Response Collection (pre-existing)
 
 - **Script:** `scripts/collect_responses.py`
-- **Output:** `data/gemma3_4b_TriviaQA_consistency_samples.jsonl`
+- **Output:** `data/gemma3_4b/consistency_samples.jsonl`
 - **Parameters:** 10 responses per question, `temperature=1.0`, `top_k=50`, `top_p=0.9`, rule-based judge
 
 | Category | Count |
@@ -47,7 +47,7 @@ The batch review (see `data/batch3500_review.md`) identified 96 all-correct entr
 ### Stage 2: Answer Token Extraction
 
 - **Script:** `scripts/extract_answer_tokens.py`
-- **Output:** `data/gemma3_4b_answer_tokens.jsonl`
+- **Output:** `data/gemma3_4b/answer_tokens.jsonl`
 - **LLM:** GPT-4o (`temperature=0.0`)
 - **Cost:** ~$3.50
 - **Wall time:** ~33 minutes (including one restart after tmux session loss)
@@ -65,7 +65,7 @@ The 118 failures are almost entirely caused by a single bug: the script converts
 ### Stage 3: Balanced ID Sampling
 
 - **Script:** `scripts/sample_balanced_ids.py`
-- **Outputs:** `data/gemma3_4b_train_qids.json`, `data/gemma3_4b_test_qids.json`
+- **Outputs:** `data/gemma3_4b/train_qids.json`, `data/gemma3_4b/test_qids.json`
 
 | Split | True | False | Total | Seed |
 |-------|------|-------|-------|------|
@@ -78,7 +78,7 @@ Train and test were sampled independently (matching the paper's example data pat
 ### Stage 4: CETT Activation Extraction
 
 - **Script:** `scripts/extract_activations.py`
-- **Output:** `data/activations/{answer_tokens,all_except_answer_tokens}/act_{qid}.npy`
+- **Output:** `data/gemma3_4b/activations/{answer_tokens,all_except_answer_tokens}/act_{qid}.npy`
 - **Wall time:** ~65 seconds (train) + ~21 seconds (test)
 
 | Location | Files | Size |
@@ -237,14 +237,15 @@ extracted = ast.literal_eval(reply)  # instead of json.loads(reply.replace("'", 
 
 | File | Size | Description |
 |------|------|-------------|
-| `data/gemma3_4b_TriviaQA_consistency_samples.jsonl` | 3.3 MB | 3,500 questions × 10 responses |
-| `data/gemma3_4b_answer_tokens.jsonl` | ~2.5 MB | 2,997 extracted answer token entries |
-| `data/gemma3_4b_train_qids.json` | ~40 KB | 1,000t + 1,000f balanced train IDs |
-| `data/gemma3_4b_test_qids.json` | ~40 KB | 1,000t + 1,000f test IDs (overlapping, legacy) |
-| `data/gemma3_4b_test_qids_disjoint.json` | ~16 KB | 391t + 391f test IDs (0% overlap with train) |
-| `data/activations/answer_tokens/` | 3.8 GB | 2,901 activation files |
-| `data/activations/all_except_answer_tokens/` | 2.6 GB | 1,993 activation files |
-| `models/gemma3_4b_classifier.pkl` | ~2.7 MB | Trained L1 logistic regression |
+| `data/gemma3_4b/consistency_samples.jsonl` | 3.3 MB | 3,500 questions × 10 responses |
+| `data/gemma3_4b/answer_tokens.jsonl` | 844 KB | 2,997 extracted answer token entries |
+| `data/gemma3_4b/train_qids.json` | 40 KB | 1,000t + 1,000f balanced train IDs |
+| `data/gemma3_4b/test_qids.json` | 40 KB | 1,000t + 1,000f test IDs (overlapping, legacy) |
+| `data/gemma3_4b/test_qids_disjoint.json` | 16 KB | 391t + 391f test IDs (0% overlap with train) |
+| `data/gemma3_4b/activations/answer_tokens/` | 3.8 GB | 2,901 activation files (1,993 train + 908 test) |
+| `data/gemma3_4b/activations/all_except_answer_tokens/` | 2.6 GB | 1,993 activation files (train only) |
+| `models/gemma3_4b_classifier.pkl` | 2.7 MB | Trained L1 logistic regression (C=1.0) |
+| `models/gemma3_4b_classifier_disjoint.pkl` | 2.7 MB | Trained L1 logistic regression evaluated on disjoint test |
 
 ---
 
@@ -259,7 +260,7 @@ extracted = ast.literal_eval(reply)  # instead of json.loads(reply.replace("'", 
   ↓ balanced sampling (1000 per class)
 2,000  train IDs / 2,000 test IDs
   ↓ CETT activation extraction (token matching)
-1,993  train activations (99.6%) / 1,993 test activations
+1,993  train activations (99.6%) / 1,993 test activations (answer_tokens only; all_except_answer_tokens is train-only)
   ↓ classifier training (3-vs-1, L1, C=1.0)
    38  H-Neurons identified (0.011% of 348,160)
 ```
@@ -290,8 +291,8 @@ The pipeline is dominated by Step 1 (response collection), which requires the mo
 
 ### What the replication does NOT confirm (yet)
 - **Generalization**: The paper's strongest claim is that H-Neurons trained on TriviaQA transfer to NQ-Open (70.7%), BioASQ (71.0%), and NonExist (71.9%). We have not tested this. However, the disjoint test (76.5% with 0% overlap) confirms the in-domain signal is real, not a leakage artifact.
-- **Causal role**: Identifying neurons that *correlate* with hallucination is not the same as showing they *cause* it. The intervention experiments (Section 3 of the paper) are what establish causality — scaling H-Neurons changes hallucination rates on FalseQA, sycophancy, and jailbreak benchmarks. We haven't replicated this.
-- **Stability across C values**: We used C=1.0 without a sweep. The exact neuron set is sensitive to the regularization parameter — a different C could yield 25 or 50 neurons with similar accuracy. The paper doesn't report a sensitivity analysis.
+- **Causal role**: ~~We haven't replicated the intervention experiments.~~ **PARTIALLY DONE.** FaithEval (both prompt variants) and FalseQA intervention sweeps are complete, with negative controls confirming H-neuron specificity. See Section 11 and [intervention_findings.md](intervention_findings.md). Sycophancy and Jailbreak remain pending.
+- **Stability across C values**: ~~We used C=1.0 without a sweep.~~ **DONE.** The C-sweep (Section 10.3) showed C=1.0 is suboptimal — C=3.0 reaches 80.5% accuracy with 219 positive neurons. The exact neuron set is sensitive to C; the paper doesn't report a sensitivity analysis.
 
 ### Observations worth discussing
 1. ~~**Layer 20 dominance**: Neuron (20, 4288) has weight 12.17, 1.65× the runner-up. This is unusually dominant for a sparse classifier — it suggests a single neuron contributes disproportionately to hallucination detection. Is this a real "hallucination hub" or an artifact of L1's tendency to concentrate weight?~~ **RESOLVED — L1 artifact.** See Section 10 below.
@@ -312,7 +313,7 @@ The pipeline is dominated by Step 1 (response collection), which requires the mo
 4. ~~**C parameter grid search:**~~ **DONE.** See Section 10 — the C-sweep was conducted as part of the neuron 4288 investigation and revealed that C=1.0 is suboptimal (C=3.0 reaches 80.5% accuracy).
 
 ### Priority 3 — Extend beyond the paper
-5. **Intervention experiments:** Replicate Section 3 (behaviour impact) by scaling H-Neuron activations and measuring compliance rate changes on FalseQA, FaithEval, Sycophancy, and Jailbreak benchmarks.
+5. ~~**Intervention experiments:**~~ **PARTIALLY DONE.** FaithEval (both prompts, 1000 samples × 7 α) and FalseQA (687 samples × 7 α) complete. Negative controls (5 unconstrained seeds + 3 layer-matched seeds) confirm H-neuron specificity. See Section 11 and [intervention_findings.md](intervention_findings.md). Sycophancy and Jailbreak remain pending.
 6. **Origin analysis:** Apply the trained classifier to the base model (`google/gemma-3-4b-pt`) to test backward transferability (Section 4).
 7. **Suppressive neuron investigation:** Characterize the 38 negative-weight neurons — are they stable across C values? Do they transfer OOD? The paper ignores them entirely.
 
@@ -321,7 +322,7 @@ The pipeline is dominated by Step 1 (response collection), which requires the mo
 ## 10. Deep Dive: Is Neuron (20, 4288) a Hallucination Hub?
 
 **Script:** `scripts/investigate_neuron_4288.py`
-**Plots:** `data/investigation_neuron_4288/`
+**Plots:** `data/gemma3_4b/investigation_neuron_4288/`
 **Verdict: No — the dominance is an L1 regularization artifact (0/6 analyses support real signal).**
 
 The paper identifies H-Neurons by their positive weight in an L1-penalized logistic regression. Neuron (20, 4288) received weight 12.169 — 1.65× the runner-up. L1 regularization is known to arbitrarily concentrate weight among correlated features: when two neurons carry similar information, L1 tends to pick one and zero-out the other, rather than splitting the weight evenly (as L2 would). We ran six independent analyses to test whether 4288's dominance reflects genuine unique informativeness or this L1 concentration effect.
@@ -432,8 +433,8 @@ This raises a broader methodological concern about the H-Neurons paper: **L1 wei
 > **Consolidated findings report:** [intervention_findings.md](intervention_findings.md) — synthesises FaithEval, FalseQA, and negative control results with raw data tables, exact prompts, and separated interpretation.
 
 **Scripts:** `scripts/run_intervention.py`, `scripts/evaluate_intervention.py`, `scripts/plot_intervention.py`
-**Data:** `data/intervention/faitheval/alpha_{0.0..3.0}.jsonl`, `data/intervention/faitheval_standard/alpha_{0.0..3.0}.jsonl`
-**Status:** FaithEval complete — both prompt variants (1000 samples × 7 α values each). FalseQA in progress. Sycophancy and Jailbreak pending.
+**Data:** `data/gemma3_4b/intervention/faitheval/alpha_{0.0..3.0}.jsonl`, `data/gemma3_4b/intervention/faitheval_standard/alpha_{0.0..3.0}.jsonl`, `data/gemma3_4b/intervention/falseqa/alpha_{0.0..3.0}.jsonl`, `data/gemma3_4b/intervention/negative_control/`
+**Status:** FaithEval complete (both prompt variants, 1000 samples × 7 α each). FalseQA complete (687 samples × 7 α). Negative controls complete (5 unconstrained + 3 layer-matched seeds on FaithEval anti-compliance). Sycophancy and Jailbreak pending.
 
 ### 11.1 Mechanism: Hook-Based Activation Scaling
 
@@ -536,9 +537,9 @@ A more informative analysis would:
 
 Our slope (2.10% per unit α) is below the paper's reported average for small models (3.03%). Even with the paper's presumably higher slope, the absolute effect is modest: ~10pp over the full α range. Compared to prompt engineering (which routinely swings compliance by 30–50pp), H-Neuron scaling is a weak lever. The causal direction is established, but the practical impact is limited — you wouldn't use neuron scaling as a safety intervention when prompt design is more powerful and cheaper.
 
-#### 4. Lack of negative controls
+#### 4. ~~Lack of negative controls~~ — RESOLVED
 
-Neither the paper nor our replication includes a negative control: scaling random (non-H) neurons by the same α values. Without this, we can't distinguish "H-Neurons specifically cause over-compliance" from "scaling any neurons disrupts the model and increases compliance." A proper control would scale 38 randomly-selected neurons and show no monotonic trend.
+~~Neither the paper nor our replication includes a negative control.~~ **DONE.** Five unconstrained random-neuron seeds (38 neurons each, drawn from zero-weight classifier positions) and three layer-matched seeds were run on FaithEval anti-compliance. Results: mean slope 0.06 pp/α across 5 unconstrained seeds (range: −0.10 to +0.17), versus 2.10 pp/α for H-neurons — a **~35× difference** in raw slope. The negative control is flat; the H-neuron effect is specific, not a generic perturbation artifact. Data: `data/gemma3_4b/intervention/negative_control/`. See [intervention_findings.md](intervention_findings.md) §1.4.
 
 #### 5. Monotonicity is necessary but not sufficient
 
@@ -548,11 +549,11 @@ Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data p
 
 1. ~~**Should we re-run FaithEval with the standard FaithEval prompt?**~~ **DONE.** See Section 11.7. The standard prompt run first looked contradictory, but the later text remap showed the contradiction was mostly evaluator-side.
 
-2. **Negative control experiment:** Scale 38 random non-H-neurons by the same α values on FaithEval. If this shows no monotonic trend, it's strong evidence for H-Neuron specificity. Estimated time: ~2 hours.
+2. ~~**Negative control experiment:**~~ **DONE.** Five unconstrained + three layer-matched seeds run on FaithEval anti-compliance. Mean NC slope 0.06 pp/α vs H-neuron 2.10 pp/α (~35× difference). Confirms H-neuron specificity. Data: `data/gemma3_4b/intervention/negative_control/`.
 
 3. **Swing sample characterization:** What makes the α-sensitive samples special? The anti-compliance prompt yields 138 swing samples. The standard-prompt raw-parser count of 203 is now known to be contaminated by α=3.0 answer-text outputs being scored as resistant, so it should not be used until text-based scoring is extended across all α.
 
-4. **FalseQA is the natural next benchmark** — single-turn, data ready, complements FaithEval by testing a different compliance dimension (accepting invalid premises vs. following misleading context). Requires GPT-4o judging (~$4).
+4. ~~**FalseQA is the natural next benchmark**~~ **DONE.** 687 samples × 7 α values, GPT-4o judged. Shows +4.8pp swing (69.6% → 74.4%) but non-monotonic (Spearman ρ=0.786, p=0.036). Data: `data/gemma3_4b/intervention/falseqa/`. See [intervention_findings.md](intervention_findings.md) §1.3.
 
 5. **Sycophancy needs a max_tokens fix** before running — paper uses 512 tokens for open-ended generation, our implementation uses 128 for turn 1.
 
@@ -562,7 +563,7 @@ Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data p
 
 ### 11.7 FaithEval Standard Prompt: The Evaluator-Format Confound
 
-**Data:** `data/intervention/faitheval_standard/alpha_{0.0..3.0}.jsonl`, `data/intervention/faitheval_standard/results.json`
+**Data:** `data/gemma3_4b/intervention/faitheval_standard/alpha_{0.0..3.0}.jsonl`, `data/gemma3_4b/intervention/faitheval_standard/results.json`
 
 We re-ran FaithEval with the official retrieval QA prompt (pro-context framing) to enable direct comparison with the paper. The raw results initially appeared to contradict the anti-compliance run — compliance *decreases* with α. That interpretation is now falsified. The standard prompt asks for the **exact answer text**, while our local evaluator only trusts **MC-letter extraction**. At high α, the model often emits the answer text directly, so raw `chosen=None` counts are mostly evaluator artifacts rather than evidence that content-following fell.
 
@@ -615,8 +616,8 @@ This is the decisive result for the original question. The raw `63.6%` dip was m
 Artifacts for this remap now live in:
 
 - `scripts/remap_faitheval_standard_parse_failures.py`
-- `data/intervention/faitheval_standard/alpha_3.0_parse_failure_remap.jsonl`
-- `data/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json`
+- `data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap.jsonl`
+- `data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json`
 
 #### 11.7.4 Parseable-Subset Conditional Rates (Useful Diagnostic, Not Final Estimate)
 
@@ -678,8 +679,8 @@ The remaining open question is narrower: why does high α make answer-text-only 
 
 **Hypothesis C — Generic precision loss at extreme α.** Scaling 38 neurons by 3× is a substantial perturbation. Maybe the model becomes less consistent about exact surface-form choices while coarse semantic selection remains intact. Under this view, the answer-text shift is not about compliance at all; it is a byproduct of reduced output-shape precision.
 
-- *Falsifiable by:* The **negative control experiment** — scaling 38 random (non-H) neurons by α=3.0. If random neuron scaling produces *similar* format degradation but *no* content compliance increase, Hypothesis C explains the format loss and H-neuron specificity still explains the content effect. If random scaling produces neither, both effects are H-neuron-specific and Hypothesis C is wrong. If random scaling produces both, the entire intervention paradigm is questionable.
-- *Additional test:* Measure other precision-dependent behaviors at high α — e.g., does the model's ability to count, do arithmetic, or follow multi-step instructions also degrade? If yes, Hypothesis C gains support.
+- ~~*Falsifiable by:* The negative control experiment.~~ **FALSIFIED.** The negative control (5 unconstrained seeds, 38 random neurons each, α∈{0.0…3.0}) shows **neither** format degradation **nor** content compliance increase (mean slope 0.06 pp/α, zero parse failures at all α). Since random scaling produces neither effect, **both the format shift and the content compliance increase are H-neuron-specific**, not generic perturbation artifacts. Data: `data/gemma3_4b/intervention/negative_control/`.
+- *Additional test (still open):* Measure other precision-dependent behaviors at high α — e.g., does the model's ability to count, do arithmetic, or follow multi-step instructions also degrade? If yes, a weaker version of Hypothesis C (specific to H-neuron perturbation magnitude) could still apply.
 
 **What we can say with confidence:**
 - The paper's core causal claim — amplifying H-neurons increases content compliance with misleading context — holds under both prompt framings.
@@ -697,7 +698,7 @@ Resolved since the earlier draft: the α=3.0 manual/text remap is now done, and 
 
 1. **Integrate text-based FaithEval scoring across all α.** The α=3.0 remap fixed the most important contradiction, but the current standard-prompt curve still mixes raw letter extraction at α<3.0 with text remapping only at α=3.0. The next cleanup step is to extend content-based scoring across the full sweep and then recompute the curve and population structure.
 
-2. **Negative control (tests Hypothesis C):** Scale 38 random non-H-neurons by α ∈ {0.0, 1.0, 3.0} on FaithEval standard prompt. Measure both content compliance and answer-text vs answer-letter surface forms. This is still the single most informative causal control.
+2. ~~**Negative control (tests Hypothesis C):**~~ **DONE on anti-compliance prompt.** Five unconstrained seeds show flat compliance (mean slope 0.06 pp/α) and zero parse failures, falsifying Hypothesis C. Extending the NC to the **standard prompt** specifically would additionally test whether the format shift is H-neuron-specific under that framing, but is lower priority now that the anti-compliance NC is clean.
 
 3. **Aligned-instruction test (tests Hypothesis B):** Run FaithEval with a prompt where the evaluator and the prompt ask for the same thing, e.g. "Pick the letter of the answer supported by the context." This isolates whether the current effect is mostly about evaluator mismatch or about a deeper surface-form instability.
 
