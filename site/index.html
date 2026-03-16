@@ -1110,7 +1110,7 @@
   <div class="fade-in">
     <span class="tag tag-teal">Causal evidence</span>
     <h2>Scaling H-Neuron activations changes model behavior</h2>
-    <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. The anti-compliance curve rises cleanly. The standard curve only looks like it falls because more responses become exact-answer strings that our MC-letter evaluator cannot decode.</p>
+    <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. The anti-compliance curve rises cleanly. The standard raw curve only looks like it falls because more responses become exact-answer strings that our MC-letter evaluator cannot decode; at &alpha;=3.0, strict text remapping lifts the standard estimate from 63.6% raw to 72.1%.</p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
       <div class="metric-card">
@@ -1134,9 +1134,9 @@
         <div class="detail">+4.5pp &uarr; · no CI yet</div>
       </div>
       <div class="metric-card">
-        <div class="label">Standard raw at &alpha;=3.0</div>
-        <div class="value val-amber">63.6%</div>
-        <div class="detail">74.8% among parseable responses · 150 unparseable</div>
+        <div class="label">Standard corrected at &alpha;=3.0</div>
+        <div class="value val-amber">72.1%</div>
+        <div class="detail">63.6% raw MC-letter score · 140/150 remapped by answer text</div>
       </div>
     </div>
 
@@ -1148,17 +1148,18 @@
       <strong>Not actually opposite effects.</strong> The anti-compliance prompt shows a clean monotonic increase
       (Pearson r = 0.997). The standard raw curve turns down only because the evaluator expects an option letter,
       while the prompt asks for the exact answer only. At high &alpha;, more responses keep the answer content but
-      stop surfacing a recoverable letter.
+      stop surfacing a recoverable letter. Once those exact-answer strings are remapped at &alpha;=3.0, the standard
+      estimate rises to 72.1% instead of staying at the raw 63.6%.
     </div>
   </div>
 </section>
 
-<!-- The Format-Compliance Puzzle -->
+<!-- Evaluator-format mismatch -->
 <section id="format-puzzle" class="short">
   <div class="fade-in">
     <span class="tag tag-amber">Evaluation confound</span>
-    <h2>Content-following rises while MC-letter parsability falls</h2>
-    <p class="subtitle">The apparent contradiction dissolves once you separate answer content from evaluator-visible format. Under the standard prompt, many high-α responses switch from option-letter outputs to exact-answer strings, so raw compliance falls even as content-following rises.</p>
+    <h2>Content-following rises while MC-letter recoverability falls</h2>
+    <p class="subtitle">The apparent contradiction dissolves once you separate answer content from evaluator-visible format. Under the standard prompt, many high-α responses switch from option-letter outputs to exact-answer strings. That hurts the raw MC-letter score, but after strict α=3.0 remapping the corrected standard estimate is 72.1%.</p>
 
     <div class="prompt-compare">
       <div class="prompt-card" style="border-color: var(--accent-teal);">
@@ -1186,7 +1187,7 @@ Answer:</code>
       </div>
     </div>
 
-    <h3 style="margin-top: 2rem;">MC-letter parsability drops at high &alpha;</h3>
+    <h3 style="margin-top: 2rem;">MC-letter recoverability drops at high &alpha;</h3>
     <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Under the standard prompt, more responses stop surfacing the answer as an initial option letter, so our evaluator records <code>chosen=None</code>. Many of these are short exact-answer strings like <em>"Energy molecules"</em>, not blank outputs.</p>
 
     <div class="chart-container">
@@ -1207,7 +1208,7 @@ Answer:</code>
     </div>
 
     <h3 style="margin-top: 2.5rem;">Conditioned on parseable responses, both curves go up</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Among responses that still exposed a recoverable option letter, compliance under the standard prompt rises from 69.7% to 74.8% &mdash; matching the anti-compliance direction. This is a conditional rate on parseable outputs, not the full-population compliance rate.</p>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Among responses that still exposed a recoverable option letter, compliance under the standard prompt rises from 69.7% to 74.8% &mdash; matching the anti-compliance direction. But that is only a conditional rate on the parseable subset. The current best full-population estimate at &alpha;=3.0 is 72.1% after text remapping, not 74.8%.</p>
 
     <div class="chart-container">
       <canvas id="adjustedComplianceChart"></canvas>
@@ -1215,10 +1216,10 @@ Answer:</code>
 
     <div class="insight-box">
       <strong>The raw contradiction dissolves</strong> &mdash; but the interpretation becomes narrower.
-      Content-following rises under both prompts. What falls under the standard prompt is parser-visible MC-letter
-      formatting, not clearly prompt obedience: the prompt asks for the exact answer only, while our evaluator is
+      Content-following rises under both prompts. What falls under the standard prompt is evaluator-visible MC-letter
+      recoverability, not clearly prompt obedience: the prompt asks for the exact answer only, while our evaluator is
       extracting a choice letter. The open question is why higher &alpha; preserves answer content while shifting
-      the surface form.
+      the surface form toward answer-text-only outputs.
     </div>
   </div>
 </section>
@@ -1228,7 +1229,7 @@ Answer:</code>
   <div class="fade-in">
     <span class="tag tag-purple">Open questions</span>
     <h2>Three mechanisms we cannot yet distinguish</h2>
-    <p class="subtitle" style="margin-bottom: 2rem;">The data rules out a simple "general obedience" story. Here are three competing explanations for why &alpha; boosts content-following while making standard-prompt outputs harder for the MC-letter evaluator to parse.</p>
+    <p class="subtitle" style="margin-bottom: 2rem;">The data rules out a simple "general obedience" story. Here are three competing explanations for why &alpha; boosts content-following while making standard-prompt outputs more likely to bypass the MC-letter evaluator.</p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
@@ -1252,7 +1253,7 @@ Answer:</code>
           hurts letter-based evaluation without necessarily hurting prompt compliance.
         </p>
         <p style="font-size: 12px; color: var(--accent-amber); margin-top: 8px;">
-          <strong>Test it:</strong> Re-score the 150 unparseable &alpha;=3.0 responses by matching answer text to option text. If most map cleanly to the counterfactual option, this bypass story gains support.
+          <strong>Status:</strong> The &alpha;=3.0 remap is now done: 140/150 <code>chosen=None</code> responses map cleanly by answer text, and 85 of those are compliant. The next test is extending that text-based scoring across all &alpha;.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
@@ -1271,8 +1272,8 @@ Answer:</code>
 
     <div class="insight-box">
       <strong>We don't know yet.</strong> The data is consistent with all three mechanisms.
-      The negative control is still the most urgent, but the cheapest missing analysis is even simpler:
-      re-score the unparseable standard-prompt answers by text rather than by letter.
+      The negative control is still the most urgent, but the cheapest remaining cleanup is now broader:
+      extend answer-text scoring across the full standard-prompt α sweep, not just the α=3.0 endpoint.
     </div>
   </div>
 </section>
@@ -1281,8 +1282,8 @@ Answer:</code>
 <section id="population" class="short">
   <div class="fade-in">
     <span class="tag tag-purple">Hidden structure</span>
-    <h2>80&ndash;86% of samples are unaffected by scaling</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">Both prompts show a tri-modal population, but the standard retrieval-QA frame produces 47% more swing samples (203 vs 138) &mdash; more questions sit on the decision boundary when the prompt leans toward trusting context.</p>
+    <h2>Most samples are unaffected by scaling</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">The anti-compliance prompt shows a clear tri-modal population. Earlier versions of this deck also quoted a standard-prompt split of 563 always compliant / 234 never compliant / 203 swing, but that raw-parser breakdown is now withdrawn pending text-based scoring across all &alpha;.</p>
 
     <h3>Anti-compliance prompt</h3>
     <div class="pop-bar-container">
@@ -1308,26 +1309,11 @@ Answer:</code>
     </div>
 
     <h3 style="margin-top: 1.5rem;">Standard prompt</h3>
-    <div class="pop-bar-container">
-      <div class="pop-bar">
-        <div class="pop-segment" style="flex: 56.3; background: rgba(240, 165, 0, 0.5); color: var(--text-primary);">56.3%</div>
-        <div class="pop-segment" style="flex: 23.4; background: rgba(127, 119, 221, 0.6); color: var(--text-primary);">23.4%</div>
-        <div class="pop-segment" style="flex: 20.3; background: rgba(78, 205, 196, 0.6); color: var(--text-primary);">20.3%</div>
-      </div>
-      <div class="pop-legend">
-        <div class="pop-legend-item">
-          <div class="pop-legend-dot" style="background: rgba(240, 165, 0, 0.7);"></div>
-          Always compliant (563)
-        </div>
-        <div class="pop-legend-item">
-          <div class="pop-legend-dot" style="background: rgba(127, 119, 221, 0.8);"></div>
-          Never compliant (234)
-        </div>
-        <div class="pop-legend-item">
-          <div class="pop-legend-dot" style="background: rgba(78, 205, 196, 0.8);"></div>
-          Swing samples (203)
-        </div>
-      </div>
+    <div class="insight-box" style="margin-bottom: 1.5rem;">
+      <strong>Standard-prompt population split: not stable yet.</strong> The earlier raw-parser counts
+      (<code>563</code> always compliant, <code>234</code> never compliant, <code>203</code> swing) treated many
+      answer-text-only α=3.0 outputs as resistant. Those numbers are preserved in the written report as a historical
+      note, but they should not be used as current evidence until text-based scoring is extended across the full sweep.
     </div>
 
     <div class="chart-container">
@@ -1346,18 +1332,16 @@ Answer:</code>
         <div class="detail">13.8% of population</div>
       </div>
       <div class="metric-card">
-        <div class="label">Standard swing samples</div>
-        <div class="value val-amber">203</div>
-        <div class="detail">20.3% &mdash; 47% more</div>
+        <div class="label">Standard split</div>
+        <div class="value val-amber" style="font-size: 1.4rem;">Pending</div>
+        <div class="detail">Raw 203-swing count withdrawn pending all-α text scoring</div>
       </div>
     </div>
 
     <div class="insight-box">
-      <strong>Prompt framing shapes the decision boundary.</strong> The standard retrieval-QA frame puts more questions
-      into the swing zone (203 vs 138), consistent with the idea that a pro-context setup lowers the threshold for
-      following misleading context.
-      The "frozen" majority still dominates both populations &mdash; the causal effect is real but concentrated on
-      questions where the model is genuinely uncertain.
+      <strong>The stable finding is concentration, not the exact standard split.</strong> Under the anti-compliance
+      prompt, only 138 of 1,000 samples move with &alpha;. The standard prompt likely also has a tri-modal structure,
+      but its exact breakdown now depends on extending text-based scoring beyond the α=3.0 endpoint.
     </div>
   </div>
 </section>
@@ -1386,7 +1370,8 @@ Answer:</code>
         <h3>The signal is real &mdash; and causal on FaithEval</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           76.5% detection accuracy on a disjoint test set. On FaithEval, content-level compliance rises with
-          &alpha; under both prompts; the standard raw decline is explained largely by an MC-letter parsing confound.
+          &alpha; under both prompts; the standard raw decline is explained largely by an MC-letter evaluator confound,
+          and the corrected α=3.0 estimate is 72.1% rather than 63.6%.
         </p>
       </div>
       <div class="step-card">
@@ -1510,15 +1495,15 @@ Answer:</code>
   <div class="fade-in">
     <span class="tag tag-teal">Next steps</span>
     <h2>Three highest-signal follow-ups</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">The first resolves today's measurement confound. The other two test whether the effect is specific and what mechanism is most plausible.</p>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">The first extends today's evaluator cleanup across the full α sweep. The other two test whether the effect is specific and what mechanism is most plausible.</p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Re-score parse failures (~20min, $0)</h3>
+        <h3 style="color: var(--accent-amber);">Extend text-based scoring (~30&ndash;60min, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Map the 150 unparseable standard-prompt responses at &alpha;=3.0 back to answer-option text.
-          This directly tests whether the raw drop is mostly an evaluator artifact or a true loss of
-          content-following.
+          The α=3.0 remap is done: 140/150 <code>chosen=None</code> responses map back to answer-option text,
+          lifting the standard estimate to 72.1%. The next cleanup is to apply the same answer-text scoring
+          across all α and recompute the full standard-prompt curve and population split.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
@@ -1541,7 +1526,8 @@ Answer:</code>
     </div>
 
     <p style="font-size: 13px; color: var(--text-muted); margin-top: 1rem;">
-      <s>Standard prompt re-run</s> &mdash; Done. The next cleanup is evaluator-side: re-score the exact-answer outputs by text, not just by option letter.
+      <s>Standard prompt re-run</s> &mdash; Done. <s>α=3.0 parse-failure remap</s> &mdash; Done.
+      The next cleanup is evaluator-side across the full sweep: score answer text at every α, not just by option letter.
     </p>
   </div>
 </section>
@@ -1972,7 +1958,7 @@ new Chart(document.getElementById('adjustedComplianceChart'), {
         borderDash: [8, 4],
       },
       {
-        label: 'Standard (adjusted for format)',
+        label: 'Standard (parseable subset only)',
         data: standardAdjustedRates,
         borderColor: '#f0a500',
         backgroundColor: 'rgba(240, 165, 0, 0.10)',
@@ -2029,8 +2015,8 @@ new Chart(document.getElementById('adjustedComplianceChart'), {
   }
 });
 
-// --- Population: Stacked area showing swing dynamics ---
-// At each α, show breakdown: always-compliant (600), swing-compliant (varies), swing-resistant (varies), never-compliant (262)
+// --- Population: anti-compliance swing dynamics ---
+// Stable counts are currently available for the anti-compliance prompt only.
 const swingCompliant = [42, 54, 60, 70, 82, 95, 105]; // = total_compliant - 600
 const swingResistant = swingCompliant.map(c => 138 - c);
 
