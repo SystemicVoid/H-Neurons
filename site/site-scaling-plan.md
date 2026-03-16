@@ -2,7 +2,7 @@
 
 > Implementation guidelines for evolving `site/` from a single-page monolith into a maintainable, data-driven multi-page research presentation.
 >
-> **Status**: In progress — Session 1 completed on 2026-03-16.
+> **Status**: In progress — Session 2 completed on 2026-03-16.
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
@@ -297,8 +297,8 @@ Each entry links to its results page when work begins.
 
 - [x] Extract `shared.css` from inline `<style>` block
 - [x] Extract `shared.js` (IntersectionObserver, counter animation, scoreboard animation)
-- [ ] Extract chart configs into `charts.js`
-- [ ] All three files loaded by `index.html` — verify nothing breaks
+- [x] Extract chart configs into `charts.js`
+- [x] All three files loaded by `index.html` — verify nothing breaks
 - [x] Create `site/data/` directory
 
 ### Phase 2: Data extraction (estimated: half day)
@@ -354,6 +354,7 @@ Each entry links to its results page when work begins.
 | Date | Session | Commit subject | Summary | Next recommended slice |
 |---|---|---|---|---|
 | 2026-03-16 | Session 1 | `refactor(site): extract shared styles and runtime helpers` | Extracted shared CSS and non-chart runtime from `site/index.html`, rewired the page to load `site/assets/shared.css` and `site/assets/shared.js`, and created `site/data/` for future JSON exports. | Move the remaining inline chart bootstrapping into `site/assets/charts.js` without changing the current hardcoded data yet. |
+| 2026-03-16 | Session 2 | `refactor(site): move chart bootstrapping into charts module` | Extracted the remaining Chart.js setup from `site/index.html` into `site/assets/charts.js`, rewired the page to load the new asset, and kept all chart data hardcoded so rendered behavior stays equivalent. | Add a small export script for `site/data/intervention_sweep.json` from committed intervention artifacts, with provenance fields and no classifier backfill from prose. |
 
 ---
 
