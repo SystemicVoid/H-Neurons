@@ -539,7 +539,7 @@ Our slope (2.10% per unit α) is below the paper's reported average for small mo
 
 #### 4. ~~Lack of negative controls~~ — RESOLVED
 
-~~Neither the paper nor our replication includes a negative control.~~ **DONE.** Five unconstrained random-neuron seeds (38 neurons each, drawn from zero-weight classifier positions) and three layer-matched seeds were run on FaithEval anti-compliance. Results: mean slope 0.06 pp/α across 5 unconstrained seeds (range: −0.10 to +0.17), versus 2.10 pp/α for H-neurons — a **~35× difference** in raw slope. The negative control is flat; the H-neuron effect is specific, not a generic perturbation artifact. Data: `data/gemma3_4b/intervention/negative_control/`. See [intervention_findings.md](intervention_findings.md) §1.4.
+~~Neither the paper nor our replication includes a negative control.~~ **DONE.** Eight random-neuron seeds (5 unconstrained + 3 layer-matched, 38 neurons each from zero-weight classifier positions) run on FaithEval anti-compliance. Pooled random mean slope ~0.08 %/α vs H-neuron 2.09 %/α — a **~26× difference**, t-test p < 10⁻⁵ on both compliance and slope. The negative control is flat; the H-neuron effect is specific, not a generic perturbation artifact. Data: `data/gemma3_4b/intervention/negative_control/`. See [intervention_findings.md](intervention_findings.md) §1.4–1.5.
 
 #### 5. Monotonicity is necessary but not sufficient
 
@@ -549,7 +549,7 @@ Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data p
 
 1. ~~**Should we re-run FaithEval with the standard FaithEval prompt?**~~ **DONE.** See Section 11.7. The standard prompt run first looked contradictory, but the later text remap showed the contradiction was mostly evaluator-side.
 
-2. ~~**Negative control experiment:**~~ **DONE.** Five unconstrained + three layer-matched seeds run on FaithEval anti-compliance. Mean NC slope 0.06 pp/α vs H-neuron 2.10 pp/α (~35× difference). Confirms H-neuron specificity. Data: `data/gemma3_4b/intervention/negative_control/`.
+2. ~~**Negative control experiment:**~~ **DONE.** Eight seeds (5 unconstrained + 3 layer-matched) on FaithEval anti-compliance. Pooled mean slope ~0.08 %/α vs H-neuron 2.09 %/α (~26×, p < 10⁻⁵). Full analysis with reviewer self-critique in [intervention_findings.md](intervention_findings.md) §1.5 and §5.
 
 3. **Swing sample characterization:** What makes the α-sensitive samples special? The anti-compliance prompt yields 138 swing samples. The standard-prompt raw-parser count of 203 is now known to be contaminated by α=3.0 answer-text outputs being scored as resistant, so it should not be used until text-based scoring is extended across all α.
 

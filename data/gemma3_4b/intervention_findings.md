@@ -90,7 +90,13 @@ Respond with exactly one word: ACCEPTED or REFUSED
 
 ### 1.4 Negative Control — FaithEval Anti-Compliance (n=1,000 per seed)
 
-38 random neurons drawn uniformly from the 348,084 zero-weight classifier positions (excluding all 76 non-zero-weight neurons). Five independent seeds.
+**Data:** `data/gemma3_4b/intervention/negative_control/`
+**Script:** `scripts/run_negative_control.py`
+**Design:** `docs/negative-control-experiment-prompt.md`
+
+Two random-neuron selection strategies, each drawing 38 neurons from the 348,084 zero-weight classifier positions (excluding all 76 non-zero-weight neurons). Data integrity verified: all 56 JSONL files have exactly 1,000 lines, all recounted compliance matches stored results.json, and no random neuron overlaps with any non-zero classifier position.
+
+**Strategy A — Unconstrained random** (5 seeds, neurons sampled uniformly):
 
 | α | Seed 0 | Seed 1 | Seed 2 | Seed 3 | Seed 4 | Mean |
 |---|--------|--------|--------|--------|--------|------|
@@ -102,7 +108,45 @@ Respond with exactly one word: ACCEPTED or REFUSED
 | 2.5 | 66.3% | 66.1% | 65.9% | 65.8% | 66.2% | 66.1% |
 | 3.0 | 66.1% | 66.1% | 65.8% | 65.8% | 66.5% | 66.1% |
 
-Full α→3.0 swing per seed: +0.5, −0.1, −0.2, −0.3, +0.4 pp. Mean: +0.06 pp.
+Per-seed slopes (%/α): +0.17, −0.00, −0.07, −0.11, +0.11. Mean slope: **+0.02 %/α**. Mean Spearman ρ: −0.03.
+
+**Strategy B — Layer-matched random** (3 seeds, neurons sampled to match H-neuron layer distribution):
+
+| α | Seed 0 | Seed 1 | Seed 2 | Mean |
+|---|--------|--------|--------|------|
+| 0.0 | 65.6% | 65.9% | 65.7% | 65.7% |
+| 0.5 | 65.6% | 65.7% | 65.9% | 65.7% |
+| 1.0 | 66.0% | 66.0% | 66.0% | 66.0% |
+| 1.5 | 65.9% | 66.1% | 66.3% | 66.1% |
+| 2.0 | 66.0% | 65.9% | 66.1% | 66.0% |
+| 2.5 | 66.3% | 66.3% | 66.0% | 66.2% |
+| 3.0 | 66.1% | 66.3% | 66.3% | 66.2% |
+
+Per-seed slopes (%/α): +0.21, +0.16, +0.15. Mean slope: **+0.17 %/α**. Mean Spearman ρ: +0.81.
+
+**Parse failures:** Zero across all 8 seeds × 7 α values (56,000 total generations).
+
+**Statistical tests** (pooling all 8 random seeds against H-neurons):
+- Compliance at α=3.0: t-test **p = 4 × 10⁻⁶**
+- Slope: t-test **p = 3 × 10⁻⁶**
+
+### 1.5 Negative Control Analysis
+
+**Verdict: Scenario 1 — H-neuron specificity confirmed.** The interpretation guide (`docs/negative-control-experiment-prompt.md` §Interpretation Guide) lists five possible outcomes. The data matches Scenario 1 unambiguously.
+
+The H-neuron slope (2.09 %/α, 6.3 pp total swing, ρ=1.0) is separated from the pooled random-neuron mean slope (~0.08 %/α, <0.5 pp total swing) by a factor of ~26× and p < 10⁻⁵ on both compliance and slope comparisons. No random seed approaches the H-neuron monotonic trend. The 6.3 pp compliance swing is not a generic perturbation artifact — it requires scaling *these specific* neurons.
+
+**Ablation side of the finding.** At α=0.0 the hook multiplies activations by zero, effectively ablating the selected neurons. H-neuron ablation drops compliance to 64.2% (from the ~66.0% unperturbed baseline), while ablating random neurons leaves compliance at ~66.0%. This is a two-sided specificity result: these neurons matter in both directions. Removing them reduces compliance; amplifying them increases it.
+
+**Unconstrained vs layer-matched.** The layer-matched seeds show a slightly higher mean slope (+0.17 vs +0.02 %/α) and consistently positive ρ (0.76–0.89 vs range −0.77 to +0.83 for unconstrained). However: (a) the total compliance range is 0.5 pp — within binomial noise for n=1,000, (b) three seeds is too few for a reliable mean, and (c) the unconstrained seed 0 alone has slope +0.17 with ρ=0.83, showing that individual random draws can match the layer-matched mean. The apparent difference does not survive scrutiny at these sample sizes.
+
+**Parse failures.** Zero everywhere. Under the anti-compliance prompt, neither H-neuron scaling nor random-neuron scaling disrupts the model's ability to produce a valid MC letter. The format degradation seen in standard-prompt H-neuron runs (§1.2) is a prompt-style × scaling interaction, not a generic perturbation effect.
+
+**Scenarios ruled out:**
+- Scenario 2 (any neurons work equally): Definitively falsified. Random neurons produce near-zero effect.
+- Scenario 3 (partial specificity, ~2-3 pp generic component): Not supported. Random baseline shows <0.5 pp drift, not 2-3 pp.
+- Scenario 4 (random neurons cause format degradation): Not observed. Zero parse failures everywhere.
+- Scenario 5 (layer position matters independently): Not supported at current sample sizes. See above.
 
 ---
 
@@ -112,7 +156,7 @@ Full α→3.0 swing per seed: +0.5, −0.1, −0.2, −0.3, +0.4 pp. Mean: +0.06
 
 The anti-compliance FaithEval curve is perfectly monotonic (Spearman ρ=1.0) with a slope of **2.1 pp per unit α** and a total swing of **+6.3 pp** from α=0 to α=3.
 
-This is the cleanest signal in the experiment: zero parse failures, deterministic evaluation, large sample, and perfectly monotonic response. The negative control (mean slope 0.06 pp/α, five seeds) rules out generic perturbation as the explanation — the effect is **14× stronger** for H-neurons than for random neurons of the same count.
+This is the cleanest signal in the experiment: zero parse failures, deterministic evaluation, large sample, and perfectly monotonic response. The negative control (8 random seeds: 5 unconstrained + 3 layer-matched, pooled mean slope ~0.08 %/α, t-test p < 10⁻⁵) rules out generic perturbation as the explanation — the H-neuron slope is **~26× larger** than the random-neuron mean. See §1.5 for full analysis.
 
 ### Finding 2: H-neuron scaling increases false-premise acceptance on FalseQA
 
@@ -172,6 +216,29 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 | FaithEval (anti-compliance) | +6.3 pp | Yes (ρ=1.0) | Regex letter match | None identified |
 | FaithEval (standard) | +3.0 pp rescored | Unknown | Regex + text remap | Parse failures scale with α; remap only at α=3.0 |
 | FalseQA | +4.8 pp | No | GPT-4o judge | Judge variance on borderline cases |
-| Negative control | +0.06 pp mean | No | Regex letter match | None (expected null) |
+| NC unconstrained (5 seeds) | +0.02 %/α mean | No | Regex letter match | None (expected null) |
+| NC layer-matched (3 seeds) | +0.17 %/α mean | No | Regex letter match | None (expected null) |
 
 The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact). The effect generalises across at least two distinct compliance-test benchmarks. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal.
+
+---
+
+## 5. Reviewer Self-Critique
+
+This section documents the critique applied to the negative control analysis (§1.5) before finalising it. Kept here for transparency.
+
+**What was revised:**
+
+1. **Removed invented caveats.** An earlier draft flagged "higher α values might eventually produce generic effects" and "greedy decoding limits generalizability" as limitations. These are speculative — the experiment tested the same α range and decoding settings as the H-neuron baseline because that's the comparison. Noting methodological scope is appropriate in a methods section; presenting speculation as limitations of the findings is not. Removed.
+
+2. **Downgraded the layer-matched signal.** An earlier draft suggested Scenario 5 (layer position matters) was "weakly supported" based on the layer-matched mean slope being higher (+0.17 vs +0.02 %/α). On reflection: three seeds is underpowered, the total compliance range (0.5 pp) is within binomial noise, and unconstrained seed 0 alone matches the layer-matched mean. The revised text reports the numbers but concludes the difference does not survive scrutiny.
+
+3. **Fixed the effect-size multiplier.** The previous text said "14×" (based on total-swing arithmetic that mixed units). Corrected to ~26× (H-neuron slope 2.09 / pooled random mean ~0.08), with the t-test p-values as the primary discriminator rather than the ratio.
+
+4. **Added the ablation finding.** The α=0.0 observation — ablating H-neurons drops compliance by ~1.8 pp while ablating random neurons has no effect — was understated. This is itself a specificity finding (the neurons matter in both directions) and was promoted to a named observation.
+
+**What was kept as-is:**
+
+- The Scenario 1 verdict. The data separation is overwhelming (p < 10⁻⁵, 6.3 pp vs <0.5 pp swings, 8 independent seeds all flat). No hedging is warranted.
+- The parse failure analysis. All zeros everywhere — there is nothing to discuss.
+- The "no negative control on FalseQA" gap (§3). This is a real missing piece, not an invented one.
