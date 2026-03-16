@@ -29,7 +29,7 @@ Why this number, not more and not less:
 - full six-model paper replication
 - any single-GPU 70B run
 
-The 70B exclusion matters. The repo already contains evidence that a single-GPU Llama-70B route is both slow and methodologically wrong for this project, like trying to move a couch through a door it technically fits through only if you scrape both walls. It might move, but it is not a clean experiment.
+The 70B exclusion matters. The repo already contains evidence that a single-GPU Llama-70B route is both slow and methodologically wrong for this project. It might move, but it is not a clean experiment.
 
 ## Budget
 
