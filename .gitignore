@@ -22,6 +22,7 @@ scripts/watch_gh200_pipeline_and_sync.sh
 data/activations/all_except_answer_tokens/
 data/activations/answer_tokens/
 data/*_activations/
+data/mistral24b_activations/
 data/investigation_*/
 models/
 
@@ -44,6 +45,9 @@ costs/
 
 # Personal scratch notes
 initial-setup-opus-notes.md
+
+# Bluedot mentee guidance (symlink to external folder)
+docs/good-practices
 
 # Local agent skills (symlinked from forge store)
 .agents/
