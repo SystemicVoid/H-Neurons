@@ -713,7 +713,7 @@
   <div class="fade-in">
     <span class="tag tag-purple">The pipeline</span>
     <h2>We filtered 3,500 questions down to 38 neurons</h2>
-    <p class="subtitle">Replicating the H-Neurons methodology on Gemma 3 4B with TriviaQA, running entirely on consumer hardware (RTX 5060 Ti, 16GB VRAM).</p>
+    <p class="subtitle">Replicating the H-Neurons methodology on Gemma 3 4B with TriviaQA.</p>
 
     <div class="pipeline" style="margin-top: 2rem;">
       <div class="pipeline-step">
@@ -1434,7 +1434,7 @@ Question: {question}
   <div class="fade-in">
     <span class="tag tag-teal">Next steps</span>
     <h2>Three experiments that would resolve the open questions</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">Each targets a specific hypothesis. All run on the same consumer GPU with no additional cost.</p>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">Each targets a specific hypothesis. All are ~1&ndash;2 hour runs with no additional cost.</p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
@@ -1481,41 +1481,14 @@ Question: {question}
   </div>
 </section>
 
-<!-- Cost & reproducibility -->
-<section id="cost" class="short">
-  <div class="fade-in" style="text-align: center;">
-    <span class="tag tag-teal">Reproducibility</span>
-    <h2>The full pipeline ran on a $400 GPU for under $4</h2>
-    <p class="subtitle" style="margin: 0 auto 2rem;">The entire pipeline runs on a single RTX 5060 Ti (16GB VRAM) for under $4.</p>
-
-    <div class="metrics-grid" style="max-width: 600px; margin: 0 auto;">
-      <div class="metric-card">
-        <div class="label">Total cost</div>
-        <div class="value val-teal">~$3.50</div>
-        <div class="detail">GPT-4o extraction only</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Wall time</div>
-        <div class="value val-purple">~4.5h</div>
-        <div class="detail">Response collection dominates</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">GPU</div>
-        <div class="value" style="font-size: 1.1rem;">RTX 5060 Ti</div>
-        <div class="detail">16GB VRAM, consumer card</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Reflection: Reproducibility -->
+<!-- Reproducibility note -->
 <div class="reflection">
-  <div class="ref-label">On reproducibility</div>
+  <div class="ref-label">Reproducibility note</div>
   <p class="ref-text">
-    <span class="highlight">$3.50 and 4.5 hours on a consumer GPU</span> to replicate a mech-interp result
-    within 0.4pp of the paper. If this required an A100 cluster, far fewer people could verify it.
-    <strong>Every bug we hit is documented</strong> &mdash; the apostrophe parser, the train/test overlap,
-    the token-matching failures &mdash; so the next replication on a different model starts from where we finished.
+    Total pipeline cost: ~$3.50 (GPT-4o answer-token extraction) and ~4.5 hours wall time.
+    Runs on a single 16GB GPU. Every bug we hit is documented &mdash; the apostrophe parser,
+    the train/test overlap, the token-matching failures &mdash; so the next replication on a
+    different model starts from where we finished.
   </p>
 </div>
 
