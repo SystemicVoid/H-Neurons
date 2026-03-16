@@ -1,0 +1,44 @@
+{
+  "benchmark": "faitheval",
+  "model": "google/gemma-3-4b-it",
+  "classifier": "models/gemma3_4b_classifier.pkl",
+  "n_h_neurons": 38,
+  "prompt_style": "standard",
+  "results": {
+    "0.0": {
+      "compliance_rate": 0.691,
+      "n_compliant": 691,
+      "n_total": 1000
+    },
+    "0.5": {
+      "compliance_rate": 0.684,
+      "n_compliant": 684,
+      "n_total": 1000
+    },
+    "1.0": {
+      "compliance_rate": 0.688,
+      "n_compliant": 688,
+      "n_total": 1000
+    },
+    "1.5": {
+      "compliance_rate": 0.698,
+      "n_compliant": 698,
+      "n_total": 1000
+    },
+    "2.0": {
+      "compliance_rate": 0.686,
+      "n_compliant": 686,
+      "n_total": 1000
+    },
+    "2.5": {
+      "compliance_rate": 0.669,
+      "n_compliant": 669,
+      "n_total": 1000
+    },
+    "3.0": {
+      "compliance_rate": 0.636,
+      "n_compliant": 636,
+      "n_total": 1000
+    }
+  }
+}
