@@ -47,13 +47,13 @@ Sample responses from TriviaQA to construct train/test set. You can choose betwe
 *   **For Training**: We perform multiple samplings (default 10) per question. We only retain questions that are **consistently correct** or **consistently hallucinated** across all samples.
 *   **For Evaluation**: We perform only **1 sampling** per question to evaluate the classifier's performance in a standard, real-world inference scenario.
 
-We provide sampled TriviaQA training and evaluation data for Gemma-3-27B-it, Llama-3.3-70B-Instruct, and Mistral-Small-3.1-24B-Instruct-2503 in `data/examples`.
+We provide sampled TriviaQA training and evaluation data for Gemma-3-27B-it, Llama-3.3-70B-Instruct, and Mistral-Small-3.1-24B-Instruct-2503 in `data/original_paper_examples`.
 
 ```bash
 python scripts/collect_responses.py \
     --model_path /path/to/your/model \
     --data_path data/TriviaQA/rc.nocontext/triviaqa_train.parquet \
-    --output_path data/train_samples.jsonl \
+    --output_path data/gemma3_4b/consistency_samples.jsonl \
     --sample_num 10 \
     --max_samples 10000 \
     --judge_type llm \
@@ -71,8 +71,8 @@ Use an LLM (e.g., GPT-4o) to pinpoint the exact "answer tokens" within the token
 
 ```bash
 python scripts/extract_answer_tokens.py \
-    --input_path data/consistency_samples.jsonl \
-    --output_path data/answer_tokens.jsonl \
+    --input_path data/gemma3_4b/consistency_samples.jsonl \
+    --output_path data/gemma3_4b/answer_tokens.jsonl \
     --tokenizer_path /path/to/your/model \
     --api_key "YOUR_OPENAI_API_KEY" \
     --base_url "YOUR_BASE_URL" \
@@ -85,12 +85,12 @@ Generate a balanced set of Question IDs (equal numbers of Faithful and Hallucina
 
 ```bash
 python scripts/sample_balanced_ids.py \
-    --input_path data/answer_tokens.jsonl \
-    --output_path data/train_qids.json \
+    --input_path data/gemma3_4b/answer_tokens.jsonl \
+    --output_path data/gemma3_4b/train_qids.json \
     --num_samples 1000
 ```
 
-To create a disjoint held-out split, run the same command again with `--exclude_path data/train_qids.json` and save to a separate `test_qids.json`.
+To create a disjoint held-out split, run the same command again with `--exclude_path data/gemma3_4b/train_qids.json` and save to a separate `test_qids.json`.
 
 ### 4. Quantify Neuron Contribution
 
@@ -99,9 +99,9 @@ Compute and save the neuron contributions (CETT). This script handles the forwar
 ```bash
 python scripts/extract_activations.py \
     --model_path /path/to/your/model \
-    --input_path data/answer_tokens.jsonl \
-    --train_ids_path data/train_qids.json \
-    --output_root data/activations \
+    --input_path data/gemma3_4b/answer_tokens.jsonl \
+    --train_ids_path data/gemma3_4b/train_qids.json \
+    --output_root data/gemma3_4b/activations \
     --locations answer_tokens all_except_answer_tokens input output \
     --method mean \
     --use_mag --use_abs
@@ -113,15 +113,15 @@ Train the linear classifier to identify H-Neurons.
 ```bash
 python scripts/classifier.py \
     --model_path /path/to/your/model \
-    --train_ids data/train_qids.json \
-    --train_ans_acts data/activations/answer_tokens \
-    --train_other_acts data/activations/all_except_answer_tokens \
-    --test_ids data/test_qids.json \
-    --test_acts data/test_activations/answer_tokens \
+    --train_ids data/gemma3_4b/train_qids.json \
+    --train_ans_acts data/gemma3_4b/activations/answer_tokens \
+    --train_other_acts data/gemma3_4b/activations/all_except_answer_tokens \
+    --test_ids data/gemma3_4b/test_qids.json \
+    --test_acts data/gemma3_4b/activations/answer_tokens \
     --train_mode 3-vs-1 \
     --penalty l1 \
     --c_values 0.05 0.1 0.2 0.5 1.0 \
-    --metrics_out data/classifier_metrics.json \
+    --metrics_out data/gemma3_4b/classifier_metrics.json \
     --save_model models/classifier.pkl
 ```
 
