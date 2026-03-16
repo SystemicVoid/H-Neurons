@@ -652,6 +652,59 @@
         <div class="detail">Disjoint test set (0% overlap)</div>
       </div>
     </div>
+    <p style="font-size: 12px; color: var(--accent-coral); margin-top: 0.5rem;">
+      Note: confidence intervals not yet computed for these metrics. Bootstrap CIs are a priority follow-up.
+    </p>
+
+    <div class="insight-box" style="margin-top: 1.5rem;">
+      <strong>Bottom line:</strong> The detection signal replicated — 76.5% accuracy on a clean test set,
+      within 0.4pp of the paper. The causal intervention partially replicated but revealed an unexpected
+      format-compliance dissociation: amplifying H-Neurons increases content-following while degrading
+      format-following. Three testable hypotheses remain open.
+    </div>
+  </div>
+</section>
+
+<!-- Meeting agenda -->
+<section class="short" id="agenda" style="min-height: auto; padding: 2rem 2rem;">
+  <div class="fade-in">
+    <span class="tag tag-amber">Meeting agenda &mdash; March 16</span>
+    <h2>First advisor meeting</h2>
+    <p class="subtitle" style="margin-bottom: 1rem;">Project started March 14. This is the initial review.</p>
+    <div class="next-steps">
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
+        <h3>Context &amp; pipeline (10 min)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          What the paper claims, what we replicated, how the pipeline works.
+          <strong>Priority: high</strong> &mdash; sets the frame for everything else.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
+        <h3>Key results &amp; neuron investigation (15 min)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Detection accuracy, layer distribution, the neuron 4288 artifact finding.
+          <strong>Priority: high</strong> &mdash; our main novel contribution so far.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
+        <h3>Intervention puzzle (10 min)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The format-compliance dissociation. What we expected vs what we found.
+          <strong>Priority: medium</strong> &mdash; interesting but unresolved.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">4</div>
+        <h3>Next experiments &amp; feedback (10 min)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Negative controls, three hypotheses, what to prioritize next.
+          <strong>We want advisor input on experiment ordering.</strong>
+        </p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -659,7 +712,7 @@
 <section id="pipeline">
   <div class="fade-in">
     <span class="tag tag-purple">The pipeline</span>
-    <h2>Five stages from questions to neurons</h2>
+    <h2>We filtered 3,500 questions down to 38 neurons</h2>
     <p class="subtitle">Replicating the H-Neurons methodology on Gemma 3 4B with TriviaQA, running entirely on consumer hardware (RTX 5060 Ti, 16GB VRAM).</p>
 
     <div class="pipeline" style="margin-top: 2rem;">
@@ -746,29 +799,29 @@
 <section id="results">
   <div class="fade-in">
     <span class="tag tag-teal">Main result</span>
-    <h2>The signal is real</h2>
+    <h2>76.5% accuracy on a clean test set confirms a real signal</h2>
     <p class="subtitle">An L1 logistic regression on 348,160 CETT features identifies 38 neurons with positive weight. On a fully disjoint test set (0% overlap with training), the classifier achieves 76.5% accuracy.</p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
       <div class="metric-card">
         <div class="label">Accuracy</div>
         <div class="value val-teal">76.5%</div>
-        <div class="detail">Disjoint test (782 samples)</div>
+        <div class="detail">Disjoint test (782 samples) · no CI yet</div>
       </div>
       <div class="metric-card">
         <div class="label">AUC</div>
         <div class="value val-teal">0.843</div>
-        <div class="detail">Strong ranking ability</div>
+        <div class="detail">Strong ranking ability · no CI yet</div>
       </div>
       <div class="metric-card">
         <div class="label">Precision</div>
         <div class="value val-purple">76.7%</div>
-        <div class="detail">Positive predictive value</div>
+        <div class="detail">Positive predictive value · no CI yet</div>
       </div>
       <div class="metric-card">
         <div class="label">Recall</div>
         <div class="value val-purple">76.1%</div>
-        <div class="detail">Coverage of hallucinations</div>
+        <div class="detail">Coverage of hallucinations · no CI yet</div>
       </div>
     </div>
 
@@ -813,7 +866,7 @@
 <section id="distribution">
   <div class="fade-in">
     <span class="tag tag-purple">Layer distribution</span>
-    <h2>Early layers dominate</h2>
+    <h2>47% of H-Neurons sit in layers 0&ndash;10</h2>
     <p class="subtitle">47% of H-Neurons concentrate in layers 0&ndash;10. The remaining 53% split evenly between middle and late layers. The classifier signal is concentrated early &mdash; one possible interpretation is that these layers encode something like "familiarity" before deep reasoning begins.</p>
 
     <div class="chart-container">
@@ -865,7 +918,7 @@
 <section id="surprise">
   <div class="fade-in">
     <span class="tag tag-coral">The surprise</span>
-    <h2>One neuron to rule them all?</h2>
+    <h2>One neuron got 1.65x the weight &mdash; we investigated why</h2>
     <p class="subtitle">Neuron (Layer 20, Index 4288) received an L1 weight of <strong style="color: var(--accent-coral);">12.17</strong> &mdash; 1.65x the runner-up. Is this a genuine "hallucination hub" or an L1 regularization artifact?</p>
 
     <div class="comparison" style="margin-top: 2rem;">
@@ -897,7 +950,7 @@
 <section id="investigation" class="short" style="max-width: 1200px;">
   <div class="fade-in">
     <span class="tag tag-coral">Forensic investigation</span>
-    <h2>Six tests, one verdict</h2>
+    <h2>Six tests all point to a regularization artifact</h2>
     <p class="subtitle" style="margin-bottom: 2rem;">Each analysis probes neuron 4288's importance from a different angle. Real signal requires at least 4 of 6 supporting evidence.</p>
 
     <div class="investigation-grid">
@@ -1057,34 +1110,34 @@
 <section id="intervention">
   <div class="fade-in">
     <span class="tag tag-teal">Causal evidence</span>
-    <h2>From correlation to causation</h2>
+    <h2>Scaling H-Neuron activations changes model behavior</h2>
     <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. Under our anti-compliance prompt, compliance rises monotonically. Under the standard prompt, it appears to <em>decrease</em>. The story depends on what you measure.</p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
       <div class="metric-card">
         <div class="label">Benchmark</div>
         <div class="value" style="font-size: 1.1rem;">FaithEval</div>
-        <div class="detail">1,000 counterfactual MC questions</div>
+        <div class="detail">1,000 counterfactual MC questions · no CI yet</div>
       </div>
       <div class="metric-card">
         <div class="label">Anti-compliance baseline</div>
         <div class="value val-teal">66.0%</div>
-        <div class="detail">&alpha;=1.0 compliance</div>
+        <div class="detail">&alpha;=1.0 compliance · no CI yet</div>
       </div>
       <div class="metric-card">
         <div class="label">Standard baseline</div>
         <div class="value val-amber">68.8%</div>
-        <div class="detail">&alpha;=1.0 compliance</div>
+        <div class="detail">&alpha;=1.0 compliance · no CI yet</div>
       </div>
       <div class="metric-card">
         <div class="label">Anti at &alpha;=3.0</div>
         <div class="value val-teal">70.5%</div>
-        <div class="detail">+4.5pp &uarr;</div>
+        <div class="detail">+4.5pp &uarr; · no CI yet</div>
       </div>
       <div class="metric-card">
         <div class="label">Standard at &alpha;=3.0</div>
         <div class="value val-amber">63.6%</div>
-        <div class="detail">&minus;5.2pp &darr; (raw)</div>
+        <div class="detail">&minus;5.2pp &darr; (raw) · no CI yet</div>
       </div>
     </div>
 
@@ -1105,7 +1158,7 @@
 <section id="format-puzzle" class="short">
   <div class="fade-in">
     <span class="tag tag-amber">The puzzle</span>
-    <h2>Same neurons, opposite curves?</h2>
+    <h2>The same intervention helps content but hurts format</h2>
     <p class="subtitle">The apparent contradiction dissolves when you separate <em>what</em> the model says from <em>how</em> it formats the answer. H-Neuron amplification increases content compliance but degrades format compliance.</p>
 
     <div class="prompt-compare">
@@ -1172,7 +1225,7 @@ Question: {question}
 <section id="hypotheses" class="short">
   <div class="fade-in">
     <span class="tag tag-purple">Open questions</span>
-    <h2>What do these neurons actually do?</h2>
+    <h2>Three hypotheses we cannot yet distinguish</h2>
     <p class="subtitle" style="margin-bottom: 2rem;">The data rules out simple stories. Here are three competing hypotheses, each with a concrete experiment that could falsify it.</p>
 
     <div class="next-steps">
@@ -1227,7 +1280,7 @@ Question: {question}
 <section id="population" class="short">
   <div class="fade-in">
     <span class="tag tag-purple">Hidden structure</span>
-    <h2>Most samples don't respond to &alpha;</h2>
+    <h2>80&ndash;86% of samples are unaffected by scaling</h2>
     <p class="subtitle" style="margin-bottom: 1.5rem;">Both prompts show a tri-modal population, but the standard prompt produces 47% more swing samples (203 vs 138) &mdash; more questions sit on the decision boundary when the prompt encourages compliance.</p>
 
     <h3>Anti-compliance prompt</h3>
@@ -1323,7 +1376,7 @@ Question: {question}
 <section id="takeaways">
   <div class="fade-in">
     <span class="tag tag-amber">Takeaways</span>
-    <h2>What we learned</h2>
+    <h2>Four things we now know (and don't know)</h2>
 
     <div class="next-steps" style="margin-top: 1.5rem;">
       <div class="step-card">
@@ -1380,7 +1433,7 @@ Question: {question}
 <section id="nextsteps" class="short">
   <div class="fade-in">
     <span class="tag tag-teal">Next steps</span>
-    <h2>Three experiments to disambiguate</h2>
+    <h2>Three experiments that would resolve the open questions</h2>
     <p class="subtitle" style="margin-bottom: 1.5rem;">Each targets a specific hypothesis. All run on the same consumer GPU with no additional cost.</p>
 
     <div class="next-steps">
@@ -1411,6 +1464,17 @@ Question: {question}
       </div>
     </div>
 
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral); background: rgba(255, 107, 107, 0.05);">
+        <h3 style="color: var(--accent-coral);">Negative controls (~2h total, $0) &mdash; PRIORITY</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Scale 38 <em>random</em> neurons (same layer distribution, then uniform random, then negative-weight neurons)
+          by the same &alpha; values. Without this, we cannot rule out that <em>any</em> MLP perturbation at this scale
+          increases compliance. Four proposed controls with priority ordering in the
+          <a href="https://github.com/" style="color: var(--accent-coral);">pipeline report</a>.
+        </p>
+      </div>
+    </div>
+
     <p style="font-size: 13px; color: var(--text-muted); margin-top: 1rem;">
       <s>Standard prompt re-run</s> &mdash; Done. Results revealed the format-compliance puzzle above.
     </p>
@@ -1421,7 +1485,7 @@ Question: {question}
 <section id="cost" class="short">
   <div class="fade-in" style="text-align: center;">
     <span class="tag tag-teal">Reproducibility</span>
-    <h2>Consumer-GPU friendly</h2>
+    <h2>The full pipeline ran on a $400 GPU for under $4</h2>
     <p class="subtitle" style="margin: 0 auto 2rem;">The entire pipeline runs on a single RTX 5060 Ti (16GB VRAM) for under $4.</p>
 
     <div class="metrics-grid" style="max-width: 600px; margin: 0 auto;">

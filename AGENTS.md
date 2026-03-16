@@ -52,6 +52,9 @@ Use `uv` for Python environment management.
 ## Coding Style & Naming Conventions
 Follow existing Python conventions and modern best practices.
 
+## Quantitative Reporting Standards
+Every quantitative claim in presentation materials (site, slides, reports) must include uncertainty estimates. Use bootstrap 95% confidence intervals where sample sizes allow (n > 30). For classifier metrics, report ± from stratified bootstrap over test samples. For intervention compliance rates, report ± from binomial proportion CIs. If uncertainty cannot yet be computed, flag the number explicitly as "no CI" so reviewers know it is a gap, not an oversight.
+
 ## Testing Guidelines
 There is no formal `tests/` suite yet. Use judgment and follow best practices.
 

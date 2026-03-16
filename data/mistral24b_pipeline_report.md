@@ -416,3 +416,41 @@ uv run python scripts/collect_responses.py \
 - do **not** rerun the expensive original Mistral Step 1 training collection
 - do **not** rerun the full paper-path Step 2 job from scratch unless we intentionally want a cleaner labeling pass
 - do **not** overwrite the old synthetic fallback artifact; keep both files because they answer different questions
+
+---
+
+## Negative Control Experiments (Proposed)
+
+The current intervention results lack a negative control: we scale 38 H-Neurons
+but never test whether scaling 38 *arbitrary* neurons produces a similar effect.
+Without this, we cannot rule out that any MLP perturbation at this scale increases compliance.
+
+### Proposed experiments (all runnable on RTX 5060 Ti, ~$0 each)
+
+**Control A: Random-neuron scaling (~1h)**
+- Select 38 neurons uniformly at random from the same layer distribution as the H-Neurons
+- Run the same α sweep (0.0–3.0) on FaithEval with both prompt styles
+- Compare compliance curves. If the trend is similar, the effect is not H-Neuron-specific
+- Run 3–5 random seeds for the neuron selection to get error bars on the control
+
+**Control B: Same-layer random neurons (~1h)**
+- For each H-Neuron (layer L, index N), pick a random neuron from the same layer L
+- This controls for the layer distribution being the active ingredient vs the specific neuron indices
+- Particularly interesting given the layer-5 concentration finding
+
+**Control C: Negative-weight neurons (~30min)**
+- The L1 classifier assigns negative weights to some neurons (predicting "true" answers)
+- Scale these by the same α values — if they show the *opposite* compliance trend,
+  that's strong evidence for specificity
+
+**Control D: Magnitude-matched non-H-neurons (~1h)**
+- Select 38 neurons whose mean activation magnitude matches the H-Neurons
+  but which received zero L1 weight
+- This controls for the possibility that high-activation neurons are simply
+  easier to perturb regardless of their role
+
+### Priority order
+1. Control A (most decisive — tests the core specificity claim)
+2. Control C (cheapest, most informative per minute)
+3. Control B (disambiguates layer vs index)
+4. Control D (rules out activation-magnitude confound)
