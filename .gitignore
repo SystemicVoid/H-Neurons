@@ -54,3 +54,8 @@ docs/good-practices
 
 # Claude Code local config
 .claude/
+docs/bluedot-rapid-grant-2026.md
+scratchpad.md
+
+# AI-generated research brainstorms (local refs only; see intervention_findings.md for final analysis)
+docs/extensions-ideas/
