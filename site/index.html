@@ -614,6 +614,8 @@
     <li><a href="#distribution">Distribution</a></li>
     <li><a href="#surprise">Investigation</a></li>
     <li><a href="#intervention">Intervention</a></li>
+    <li><a href="#format-puzzle">Puzzle</a></li>
+    <li><a href="#hypotheses">Hypotheses</a></li>
     <li><a href="#takeaways">Takeaways</a></li>
   </ul>
 </nav>
@@ -812,7 +814,7 @@
   <div class="fade-in">
     <span class="tag tag-purple">Layer distribution</span>
     <h2>Early layers dominate</h2>
-    <p class="subtitle">47% of H-Neurons concentrate in layers 0&ndash;10. The remaining 53% split evenly between middle and late layers. The model appears to "commit" to hallucinating early in its forward pass.</p>
+    <p class="subtitle">47% of H-Neurons concentrate in layers 0&ndash;10. The remaining 53% split evenly between middle and late layers. The classifier signal is concentrated early &mdash; one possible interpretation is that these layers encode something like "familiarity" before deep reasoning begins.</p>
 
     <div class="chart-container">
       <canvas id="layerChart"></canvas>
@@ -839,7 +841,8 @@
     <div class="insight-box">
       <strong>What this means:</strong> Hallucination detection is not a last-layer phenomenon.
       The neurons that distinguish true from false activations are distributed across the model,
-      with a strong bias toward early layers &mdash; suggesting the "decision to hallucinate" happens before most of the computation.
+      with a strong bias toward early layers &mdash; consistent with early commitment to an answer,
+      though other interpretations are possible.
     </div>
   </div>
 </section>
@@ -1055,7 +1058,7 @@
   <div class="fade-in">
     <span class="tag tag-teal">Causal evidence</span>
     <h2>From correlation to causation</h2>
-    <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. If these neurons <em>cause</em> over-compliance, compliance rate should rise monotonically with &alpha;. It does &mdash; perfectly.</p>
+    <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. Under our anti-compliance prompt, compliance rises monotonically. Under the standard prompt, it appears to <em>decrease</em>. The story depends on what you measure.</p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
       <div class="metric-card">
@@ -1064,19 +1067,24 @@
         <div class="detail">1,000 counterfactual MC questions</div>
       </div>
       <div class="metric-card">
-        <div class="label">Baseline (&alpha;=1.0)</div>
+        <div class="label">Anti-compliance baseline</div>
         <div class="value val-teal">66.0%</div>
-        <div class="detail">Compliance rate</div>
+        <div class="detail">&alpha;=1.0 compliance</div>
       </div>
       <div class="metric-card">
-        <div class="label">Suppressed (&alpha;=0.0)</div>
-        <div class="value val-purple">64.2%</div>
-        <div class="detail">&minus;1.8pp from baseline</div>
+        <div class="label">Standard baseline</div>
+        <div class="value val-amber">68.8%</div>
+        <div class="detail">&alpha;=1.0 compliance</div>
       </div>
       <div class="metric-card">
-        <div class="label">Amplified (&alpha;=3.0)</div>
-        <div class="value val-coral">70.5%</div>
-        <div class="detail">+4.5pp from baseline</div>
+        <div class="label">Anti at &alpha;=3.0</div>
+        <div class="value val-teal">70.5%</div>
+        <div class="detail">+4.5pp &uarr;</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Standard at &alpha;=3.0</div>
+        <div class="value val-amber">63.6%</div>
+        <div class="detail">&minus;5.2pp &darr; (raw)</div>
       </div>
     </div>
 
@@ -1085,32 +1093,24 @@
     </div>
 
     <div class="insight-box">
-      <strong>Perfectly monotonic.</strong> Compliance increases at every &alpha; step from 0.0 to 3.0 with no reversals.
-      Pearson r = 0.997, Spearman &rho; = 1.0, both p &lt; 1e&minus;6. Slope: 2.10%/&alpha; (R&sup2; = 0.993).
-      The paper reports 3.03%/&alpha; for small models &mdash; our lower slope is explained by the prompt difference (below).
+      <strong>Opposite trends?</strong> The anti-compliance prompt shows a clean monotonic increase (Pearson r = 0.997).
+      But the standard prompt shows raw compliance <em>decreasing</em> at high &alpha;.
+      One curve goes up, the other goes down &mdash; for the same neurons, same benchmark, same &alpha; values.
+      The resolution lies in what happens to response <em>format</em> at high &alpha; (next section).
     </div>
   </div>
 </section>
 
-<!-- Methodology gap -->
-<section id="methodology-gap" class="short">
+<!-- The Format-Compliance Puzzle -->
+<section id="format-puzzle" class="short">
   <div class="fade-in">
-    <span class="tag tag-amber">Methodology gap</span>
-    <h2>Our prompt fights the effect</h2>
-    <p class="subtitle">The paper uses a pro-context retrieval QA frame. We use an anti-compliance prompt that explicitly tells the model to resist misleading context. Despite this, the causal trend still holds.</p>
+    <span class="tag tag-amber">The puzzle</span>
+    <h2>Same neurons, opposite curves?</h2>
+    <p class="subtitle">The apparent contradiction dissolves when you separate <em>what</em> the model says from <em>how</em> it formats the answer. H-Neuron amplification increases content compliance but degrades format compliance.</p>
 
     <div class="prompt-compare">
-      <div class="prompt-card" style="border-color: var(--accent-coral);">
-        <div class="prompt-label" style="color: var(--accent-coral);">Paper (pro-context)</div>
-        <code>You are an expert in retrieval
-question answering. Please respond
-with <em>the exact answer only</em>.
-
-Context: {context}
-Question: {question}</code>
-      </div>
       <div class="prompt-card" style="border-color: var(--accent-teal);">
-        <div class="prompt-label" style="color: var(--accent-teal);">Ours (anti-compliance)</div>
+        <div class="prompt-label" style="color: var(--accent-teal);">Anti-compliance prompt</div>
         <code>Context: {context}
 Question: {question}
 {choices}
@@ -1120,49 +1120,117 @@ established knowledge, answer based
 on your own knowledge.</em>
 Answer with just the letter.</code>
       </div>
+      <div class="prompt-card" style="border-color: var(--accent-amber);">
+        <div class="prompt-label" style="color: var(--accent-amber);">Standard prompt (paper-style)</div>
+        <code>You are an expert in retrieval
+question answering. Please respond
+with <em>the exact answer only</em>.
+
+Context: {context}
+Question: {question}
+{choices}</code>
+      </div>
     </div>
 
-    <div class="comparison">
+    <h3 style="margin-top: 2rem;">Format degradation at high &alpha;</h3>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Responses that drop the MC letter prefix ("D) Energy molecules" &rarr; "Energy molecules") scale sharply with &alpha; under the standard prompt.</p>
+
+    <div class="chart-container">
+      <canvas id="parseFailureChart"></canvas>
+    </div>
+
+    <div class="comparison" style="margin-top: 1.5rem;">
       <div class="compare-card">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Paper slope</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--text-secondary);">3.03%/&alpha;</div>
-        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Small-model average</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">No-letter responses at &alpha;=0.0</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">30</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">3.0% of samples</div>
       </div>
-      <div class="compare-card highlight">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Our slope</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">2.10%/&alpha;</div>
-        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">Against anti-compliance prompt</div>
+      <div class="compare-card" style="border-color: var(--accent-coral);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">No-letter responses at &alpha;=3.0</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-coral);">199</div>
+        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">19.9% &mdash; a 6.6x increase</div>
       </div>
+    </div>
+
+    <h3 style="margin-top: 2.5rem;">Adjusted for format: both curves agree</h3>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Among responses that <em>kept</em> the letter format, compliance under the standard prompt rises from 71.1% to 77.9% &mdash; aligning with the anti-compliance trend.</p>
+
+    <div class="chart-container">
+      <canvas id="adjustedComplianceChart"></canvas>
     </div>
 
     <div class="insight-box">
-      <strong>Why this is actually stronger:</strong> Our prompt explicitly tells the model to resist context when it conflicts with knowledge.
-      The fact that H-Neuron scaling <em>still</em> overrides this instruction demonstrates genuine causal influence &mdash;
-      the neurons don't just nudge a willing model, they override explicit resistance.
+      <strong>The apparent contradiction dissolves</strong> &mdash; but a deeper puzzle remains.
+      Content compliance goes up under both prompts. Format compliance goes down. The same neurons that make the model
+      <em>more</em> likely to follow context also make it <em>less</em> likely to prefix answers with "D)".
+      This is hard to reconcile with a simple "compliance neuron" story. Something more specific is happening.
     </div>
   </div>
 </section>
 
-<!-- Reflection: Intervention -->
-<div class="reflection">
-  <div class="ref-label">The reframing</div>
-  <p class="ref-text">
-    The paper calls these <strong>"hallucination neurons"</strong>, but our FaithEval results suggest they're
-    <strong>compliance neurons</strong>. At &alpha;=0.0, the model doesn't just resist misleading context &mdash;
-    it becomes <span class="highlight">more verbose</span>, breaking the "answer with just the letter" instruction.
-    84 of 1,000 responses at &alpha;=0.0 produce multi-sentence explanations instead of a single letter.
-    At &alpha;&ge;1.0: zero verbose responses. Suppressing H-Neurons reduces <em>all</em> forms of instruction-following,
-    not just factual over-compliance. <strong>This reframes the paper's narrative.</strong>
-  </p>
-</div>
+<!-- Three Hypotheses -->
+<section id="hypotheses" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Open questions</span>
+    <h2>What do these neurons actually do?</h2>
+    <p class="subtitle" style="margin-bottom: 2rem;">The data rules out simple stories. Here are three competing hypotheses, each with a concrete experiment that could falsify it.</p>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">A</div>
+        <h3>Context-credulity neurons</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          These neurons modulate how much the model treats provided context as ground truth.
+          High &alpha; makes it more credulous (accept counterfactual claims) while reducing attention to
+          formatting constraints. The format degradation is a side effect of over-weighting context.
+        </p>
+        <p style="font-size: 12px; color: var(--accent-teal); margin-top: 8px;">
+          <strong>Test it:</strong> Run without any context passage. If these neurons still affect format compliance, credulity isn't the mechanism.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">B</div>
+        <h3>Competing-instruction neurons</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          These neurons amplify content-following at the expense of format-following.
+          The model has limited "instruction budget" &mdash; scaling these neurons shifts weight
+          toward semantic compliance (answer the counterfactual question) and away from syntactic compliance
+          (prefix with a letter).
+        </p>
+        <p style="font-size: 12px; color: var(--accent-amber); margin-top: 8px;">
+          <strong>Test it:</strong> Create a prompt where format and content instructions are aligned (not competing). If format still degrades, the trade-off theory is wrong.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">C</div>
+        <h3>Generic degradation</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Extreme activation scaling (&alpha;=2&ndash;3) simply degrades output precision.
+          Format compliance is more fragile than content compliance because a single missing character breaks it.
+          Content is robust to noise; format isn't.
+        </p>
+        <p style="font-size: 12px; color: var(--accent-coral); margin-top: 8px;">
+          <strong>Test it:</strong> Scale 38 random non-H-neurons by the same &alpha; values. If format degrades similarly, it's not specific to these neurons.
+        </p>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>We don't know yet.</strong> And that's the interesting part. The data is consistent with all three hypotheses.
+      Each requires a different ~1 hour experiment to falsify. The negative control (Hypothesis C) is the most urgent
+      because it could invalidate the entire line of reasoning.
+    </div>
+  </div>
+</section>
 
 <!-- Population breakdown -->
 <section id="population" class="short">
   <div class="fade-in">
     <span class="tag tag-purple">Hidden structure</span>
-    <h2>86% of samples don't respond to &alpha;</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">The 6.3pp headline effect masks a tri-modal population. Only 138 "swing" samples actually change behavior &mdash; and within those, the effect is 69.6%.</p>
+    <h2>Most samples don't respond to &alpha;</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">Both prompts show a tri-modal population, but the standard prompt produces 47% more swing samples (203 vs 138) &mdash; more questions sit on the decision boundary when the prompt encourages compliance.</p>
 
+    <h3>Anti-compliance prompt</h3>
     <div class="pop-bar-container">
       <div class="pop-bar">
         <div class="pop-segment" style="flex: 60; background: rgba(255, 107, 107, 0.6); color: var(--text-primary);">60.0%</div>
@@ -1185,33 +1253,56 @@ Answer with just the letter.</code>
       </div>
     </div>
 
+    <h3 style="margin-top: 1.5rem;">Standard prompt</h3>
+    <div class="pop-bar-container">
+      <div class="pop-bar">
+        <div class="pop-segment" style="flex: 56.3; background: rgba(240, 165, 0, 0.5); color: var(--text-primary);">56.3%</div>
+        <div class="pop-segment" style="flex: 23.4; background: rgba(127, 119, 221, 0.6); color: var(--text-primary);">23.4%</div>
+        <div class="pop-segment" style="flex: 20.3; background: rgba(78, 205, 196, 0.6); color: var(--text-primary);">20.3%</div>
+      </div>
+      <div class="pop-legend">
+        <div class="pop-legend-item">
+          <div class="pop-legend-dot" style="background: rgba(240, 165, 0, 0.7);"></div>
+          Always compliant (563)
+        </div>
+        <div class="pop-legend-item">
+          <div class="pop-legend-dot" style="background: rgba(127, 119, 221, 0.8);"></div>
+          Never compliant (234)
+        </div>
+        <div class="pop-legend-item">
+          <div class="pop-legend-dot" style="background: rgba(78, 205, 196, 0.8);"></div>
+          Swing samples (203)
+        </div>
+      </div>
+    </div>
+
     <div class="chart-container">
       <canvas id="populationChart"></canvas>
     </div>
 
     <div class="metrics-grid">
       <div class="metric-card">
-        <div class="label">Headline effect</div>
-        <div class="value val-purple">6.3pp</div>
+        <div class="label">Anti headline effect</div>
+        <div class="value val-teal">6.3pp</div>
         <div class="detail">&alpha;=0.0 to &alpha;=3.0</div>
       </div>
       <div class="metric-card">
-        <div class="label">Swing effect</div>
-        <div class="value val-teal">69.6%</div>
-        <div class="detail">Within 138 responsive samples</div>
+        <div class="label">Anti swing samples</div>
+        <div class="value val-teal">138</div>
+        <div class="detail">13.8% of population</div>
       </div>
       <div class="metric-card">
-        <div class="label">Frozen samples</div>
-        <div class="value val-coral">86.2%</div>
-        <div class="detail">Unaffected by scaling</div>
+        <div class="label">Standard swing samples</div>
+        <div class="value val-amber">203</div>
+        <div class="detail">20.3% &mdash; 47% more</div>
       </div>
     </div>
 
     <div class="insight-box">
-      <strong>What this means:</strong> The paper reports compliance rates averaged over the whole population,
-      which dilutes the real effect. The model has already "decided" for 86% of questions before H-Neurons fire.
-      The causal effect is <em>real but concentrated</em> &mdash; it acts on the uncertain margin,
-      not on deeply-held knowledge or obvious fabrications.
+      <strong>Prompt shapes the decision boundary.</strong> The standard prompt puts more questions into the
+      swing zone (203 vs 138), consistent with the idea that a pro-context frame lowers the compliance threshold.
+      The "frozen" majority still dominates both populations &mdash; the causal effect is real but concentrated on
+      questions where the model is genuinely uncertain.
     </div>
   </div>
 </section>
@@ -1239,24 +1330,25 @@ Answer with just the letter.</code>
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
         <h3>The signal is real &mdash; and causal</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          76.5% detection accuracy on a disjoint test set, and a perfectly monotonic compliance curve
-          (&alpha;=0.0&rarr;3.0) on FaithEval. Scaling H-Neurons changes model behavior &mdash; not just a correlate.
+          76.5% detection accuracy on a disjoint test set. Under both prompt variants, content-level compliance
+          increases with &alpha; (when adjusted for format failures). These neurons causally change behavior.
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
-        <h3>Compliance, not hallucination</h3>
+        <h3>Broader than hallucination &mdash; but how?</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Suppressing H-Neurons at &alpha;=0.0 makes the model verbose and non-compliant with formatting instructions &mdash;
-          not just resistant to misleading context. These are general compliance neurons.
+          The data is consistent with a compliance role, but the format-compliance dissociation complicates
+          the picture. Amplifying these neurons increases content-following while degrading format-following &mdash;
+          which "compliance" story explains both?
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
         <h3>Effect is concentrated</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          86% of samples are unaffected by &alpha;. The 6.3pp headline masks a 69.6% swing in the 138 responsive samples.
-          The causal effect is real but acts only on the uncertain margin.
+          80&ndash;86% of samples are unaffected by &alpha;. The headline effect is diluted across a frozen majority.
+          The causal influence acts on the uncertain margin, not on deeply-held beliefs or obvious fabrications.
         </p>
       </div>
       <div class="step-card">
@@ -1275,13 +1367,12 @@ Answer with just the letter.</code>
 <div class="reflection">
   <div class="ref-label">The bigger picture</div>
   <p class="ref-text">
-    We went from <strong>correlation to causation</strong> &mdash; but the story changed along the way.
-    The paper frames these as "hallucination neurons" that cause factual errors.
-    Our intervention results suggest a broader role: <span class="highlight">general compliance neurons</span>
-    that govern how readily the model follows instructions, accepts context, and defers to user framing.
-    Hallucination-under-misleading-context is one symptom of compliance, not the root behavior.
-    <strong>Two experiments remain:</strong> a negative control (38 random neurons) to confirm specificity,
-    and a re-run with the paper's pro-context prompt for direct comparability.
+    We went from <strong>correlation to causation, and from causation to confusion</strong> &mdash; which is progress.
+    The paper frames these as "hallucination neurons." Our first prompt variant suggested "compliance neurons."
+    The second variant showed that even <span class="highlight">"compliance" is too simple</span>: these neurons
+    increase content-following while degrading format-following. Three hypotheses remain in play, each testable
+    with a single experiment. The honest answer is that <strong>we don't yet know what these neurons do</strong>,
+    but we know more precisely what we don't know.
   </p>
 </div>
 
@@ -1289,32 +1380,40 @@ Answer with just the letter.</code>
 <section id="nextsteps" class="short">
   <div class="fade-in">
     <span class="tag tag-teal">Next steps</span>
-    <h2>Where do we go from here?</h2>
+    <h2>Three experiments to disambiguate</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">Each targets a specific hypothesis. All run on the same consumer GPU with no additional cost.</p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">Negative control (~2h, $0)</h3>
+        <h3 style="color: var(--accent-coral);">Negative control (~1h, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           Scale 38 random non-H-neurons by the same &alpha; values.
-          If compliance rises similarly, H-Neurons aren't special &mdash; any perturbation does it.
+          <strong>Tests Hypothesis C</strong> (generic degradation). If compliance rises and format degrades
+          similarly for random neurons, the effect isn't specific to H-Neurons.
           The single most important missing experiment.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Standard prompt re-run (~2h, $0)</h3>
+        <h3 style="color: var(--accent-teal);">No-context format test (~30min, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Re-run FaithEval with the paper's pro-context retrieval QA frame.
-          This gives direct slope comparability and isolates whether the prompt gap explains the full difference.
+          Run the standard prompt without a context passage, varying &alpha;.
+          <strong>Tests Hypothesis A</strong> (context-credulity). If format still degrades without any context
+          to be credulous about, the mechanism isn't about context weighting.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <h3 style="color: var(--accent-purple);">More benchmarks</h3>
+        <h3 style="color: var(--accent-purple);">Aligned-instruction test (~2h, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          FalseQA (invalid premises), Sycophancy (opinion flipping), and Jailbreak (harmful compliance)
-          complete the paper's four-benchmark Figure 3.
+          Create a prompt where format and content instructions point the same direction.
+          <strong>Tests Hypothesis B</strong> (competing instructions). If format still degrades when there's
+          no competition, the trade-off theory is wrong.
         </p>
       </div>
     </div>
+
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 1rem;">
+      <s>Standard prompt re-run</s> &mdash; Done. Results revealed the format-compliance puzzle above.
+    </p>
   </div>
 </section>
 
@@ -1606,31 +1705,106 @@ new Chart(document.getElementById('topNeuronsChart'), {
   }
 });
 
-// --- Intervention: Compliance vs α chart ---
+// --- Intervention: Compliance vs α chart (two lines) ---
 const interventionAlphas = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
-const interventionRates = [64.2, 65.4, 66.0, 67.0, 68.2, 69.5, 70.5];
+const antiComplianceRates = [64.2, 65.4, 66.0, 67.0, 68.2, 69.5, 70.5];
+const standardRawRates = [69.1, 68.4, 68.8, 69.8, 68.6, 66.9, 63.6];
 
 new Chart(document.getElementById('interventionChart'), {
   type: 'line',
   data: {
     labels: interventionAlphas.map(a => 'α=' + a.toFixed(1)),
+    datasets: [
+      {
+        label: 'Anti-compliance prompt',
+        data: antiComplianceRates,
+        borderColor: '#4ecdc4',
+        backgroundColor: 'rgba(78, 205, 196, 0.10)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: '#4ecdc4',
+        pointBorderColor: '#4ecdc4',
+        pointBorderWidth: 2,
+        borderWidth: 2.5,
+      },
+      {
+        label: 'Standard prompt (raw)',
+        data: standardRawRates,
+        borderColor: '#f0a500',
+        backgroundColor: 'rgba(240, 165, 0, 0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: '#f0a500',
+        pointBorderColor: '#f0a500',
+        pointBorderWidth: 2,
+        borderWidth: 2.5,
+        borderDash: [8, 4],
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'line',
+          padding: 16,
+          font: { size: 12 }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          title: (items) => items[0].label,
+          label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+        border: { color: 'rgba(157, 163, 196, 0.12)' }
+      },
+      y: {
+        min: 60, max: 74,
+        grid: { color: 'rgba(157, 163, 196, 0.08)' },
+        ticks: {
+          callback: (v) => v + '%',
+          font: { size: 12 }
+        },
+        border: { display: false },
+        title: {
+          display: true,
+          text: 'Compliance rate (%)',
+          font: { size: 12 },
+          color: '#9da3c4'
+        }
+      }
+    }
+  }
+});
+
+// --- Parse failure chart (standard prompt) ---
+const noLetterCounts = [30, 31, 38, 55, 95, 144, 199];
+
+new Chart(document.getElementById('parseFailureChart'), {
+  type: 'bar',
+  data: {
+    labels: interventionAlphas.map(a => 'α=' + a.toFixed(1)),
     datasets: [{
-      label: 'Compliance rate (%)',
-      data: interventionRates,
-      borderColor: '#4ecdc4',
-      backgroundColor: 'rgba(78, 205, 196, 0.15)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 6,
-      pointHoverRadius: 9,
-      pointBackgroundColor: interventionAlphas.map(a =>
-        a === 1.0 ? '#f0a500' : '#4ecdc4'
-      ),
-      pointBorderColor: interventionAlphas.map(a =>
-        a === 1.0 ? '#f0a500' : '#4ecdc4'
-      ),
-      pointBorderWidth: 2,
-      borderWidth: 2.5,
+      label: 'Responses without letter prefix',
+      data: noLetterCounts,
+      backgroundColor: noLetterCounts.map(c => c > 50 ? 'rgba(255, 107, 107, 0.7)' : 'rgba(240, 165, 0, 0.5)'),
+      borderRadius: 6,
+      borderSkipped: false,
     }]
   },
   options: {
@@ -1640,11 +1814,9 @@ new Chart(document.getElementById('interventionChart'), {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          title: (items) => items[0].label,
-          label: (ctx) => ctx.parsed.y.toFixed(1) + '% compliance'
+          label: (ctx) => ctx.parsed.y + ' responses (' + (ctx.parsed.y / 10).toFixed(1) + '%)'
         }
-      },
-      annotation: undefined
+      }
     },
     scales: {
       x: {
@@ -1653,7 +1825,91 @@ new Chart(document.getElementById('interventionChart'), {
         border: { color: 'rgba(157, 163, 196, 0.12)' }
       },
       y: {
-        min: 62, max: 72,
+        beginAtZero: true,
+        grid: { color: 'rgba(157, 163, 196, 0.08)' },
+        ticks: { font: { size: 12 } },
+        border: { display: false },
+        title: {
+          display: true,
+          text: 'No-letter responses',
+          font: { size: 12 },
+          color: '#9da3c4'
+        }
+      }
+    }
+  }
+});
+
+// --- Adjusted compliance chart (three lines) ---
+const standardAdjustedRates = [71.1, 70.6, 71.4, 73.8, 75.5, 77.2, 77.9];
+
+new Chart(document.getElementById('adjustedComplianceChart'), {
+  type: 'line',
+  data: {
+    labels: interventionAlphas.map(a => 'α=' + a.toFixed(1)),
+    datasets: [
+      {
+        label: 'Anti-compliance prompt',
+        data: antiComplianceRates,
+        borderColor: '#4ecdc4',
+        backgroundColor: 'transparent',
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#4ecdc4',
+        borderWidth: 2.5,
+      },
+      {
+        label: 'Standard (raw)',
+        data: standardRawRates,
+        borderColor: '#f0a500',
+        backgroundColor: 'transparent',
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#f0a500',
+        borderWidth: 2,
+        borderDash: [8, 4],
+      },
+      {
+        label: 'Standard (adjusted for format)',
+        data: standardAdjustedRates,
+        borderColor: '#f0a500',
+        backgroundColor: 'rgba(240, 165, 0, 0.10)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 5,
+        pointBackgroundColor: '#f0a500',
+        borderWidth: 2.5,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'line',
+          padding: 16,
+          font: { size: 11 }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+        border: { color: 'rgba(157, 163, 196, 0.12)' }
+      },
+      y: {
+        min: 60, max: 80,
         grid: { color: 'rgba(157, 163, 196, 0.08)' },
         ticks: {
           callback: (v) => v + '%',
