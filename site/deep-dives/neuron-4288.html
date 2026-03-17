@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuron 4288 Deep Dive | H-Neurons</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="../index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="../index.html">This Week</a>
+        <a href="../results/gemma-3-4b.html">Gemma 3 4B Results</a>
+        <a href="../methods.html">Methods</a>
+        <a class="active" href="neuron-4288.html">Neuron 4288</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-coral">Deep dive</span>
+    <h1>Neuron 4288:<br>from dramatic weight to artifact verdict</h1>
+    <p class="subtitle">
+      The strongest L1-weighted neuron in the sparse detector looked like a possible hub.
+      This page is the forensic appendix: six independent tests, one scoreboard, and the reasoning for why the project should not anchor its mechanism story on this neuron alone.
+    </p>
+
+    <div class="comparison" style="margin-top: 2rem;">
+      <div class="compare-card" style="border-color: var(--accent-coral);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (20, 4288)</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--accent-coral);">12.17</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight, rank #1 at C=1.0</div>
+      </div>
+      <div class="compare-card">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Rank at C=3.0</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--text-primary);">#5</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">The first sign the dominance is regularization-specific</div>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">Standalone AUC</div>
+        <div class="value val-coral">0.590</div>
+        <div class="detail">Below the threshold we set for a unique hub story</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Largest contribution share</div>
+        <div class="value val-coral">7.4%</div>
+        <div class="detail">Far below the 30% "dominant feature" threshold</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Ablation loss</div>
+        <div class="value val-coral">1.0pp</div>
+        <div class="detail">Too small for a single-neuron bottleneck claim</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Overall verdict</div>
+        <div class="value val-coral">0/6</div>
+        <div class="detail">No test supports a unique neuron-hub interpretation</div>
+      </div>
+    </div>
+
+    <div class="section-links">
+      <a class="section-link" href="#tests">Six tests</a>
+      <a class="section-link" href="#verdict">Scoreboard</a>
+      <a class="section-link" href="#rationale">Artifact rationale</a>
+    </div>
+  </div>
+</section>
+
+<section id="tests" class="short" style="max-width: 1200px;">
+  <div class="fade-in">
+    <span class="tag tag-coral">Forensic investigation</span>
+    <h2>Six tests, each asking a different version of the same question</h2>
+    <p class="subtitle" style="margin-bottom: 2rem;">
+      A real hub neuron should survive multiple kinds of scrutiny. We required broad support instead of letting one flattering plot do all the work.
+    </p>
+
+    <div class="investigation-grid">
+      <div class="investigation-panel">
+        <img src="../01_single_neuron_auc.png" alt="Single-neuron AUC comparison" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            1. Single-neuron AUC
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            If 4288 were genuinely carrying the detector, it should classify well on its own. Instead its standalone AUC is <strong>0.590</strong>, worse than L13:N833 and L14:N8547.
+          </p>
+        </div>
+      </div>
+
+      <div class="investigation-panel">
+        <img src="../02_distributions.png" alt="Activation distributions" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            2. Distribution separation
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            Cohen's d is <strong>0.326</strong>, below the 0.5 cutoff we set ahead of time. The activations separate somewhat, but not enough to justify a "special neuron" story.
+          </p>
+        </div>
+      </div>
+
+      <div class="investigation-panel">
+        <img src="../03_c_sweep.png" alt="C-sweep stability analysis" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            3. C-sweep stability
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            This is the sharpest test. Neuron 4288 is absent at C ≤ 0.3, appears at C = 1.0, then falls to rank 5 at C = 3.0 and rank 11 at C = 10.0. Real mechanism should not be that C-fragile.
+          </p>
+        </div>
+      </div>
+
+      <div class="investigation-panel">
+        <img src="../04_contributions.png" alt="Per-example contribution analysis" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            4. Per-example contribution
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            Despite the oversized L1 weight, 4288 is the largest positive contributor on only <strong>7.4%</strong> of examples. That is more "frequent committee member" than "single point of control."
+          </p>
+        </div>
+      </div>
+
+      <div class="investigation-panel">
+        <img src="../05_ablation.png" alt="Leave-one-out ablation" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            5. Leave-one-out ablation
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            Zeroing the neuron reduces accuracy by <strong>1.03pp</strong>, below the 2pp threshold. It matters, but not enough to look like a true bottleneck.
+          </p>
+        </div>
+      </div>
+
+      <div class="investigation-panel">
+        <img src="../06_correlations.png" alt="Correlation structure heatmap" loading="lazy">
+        <div class="panel-body">
+          <div class="panel-title">
+            6. Correlation structure
+            <span class="verdict-badge">Artifact</span>
+          </div>
+          <p class="panel-desc">
+            The strongest observed correlation is <strong>r = 0.492</strong> with L26:N1359, a zero-weight neuron. That is the exact pattern you expect when L1 picks one representative from a correlated feature group.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Why six tests instead of one:</strong> a neuron can look important by one measure and ordinary by another.
+      This grid is designed like a cross-examination, where each test checks a different loophole in the original "hub neuron" hypothesis.
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">Methodological reflection</div>
+  <p class="ref-text">
+    The surprising part is not that one neuron looked big, but that a sparse linear model made that bigness look causal.
+    L1 regularization is useful because it forces a short list, but it also behaves like a budget committee:
+    when several features tell a similar story, it often funds one spokesperson and cuts the rest.
+  </p>
+</div>
+
+<section id="verdict" class="short">
+  <div class="fade-in" style="text-align: center;">
+    <span class="tag tag-coral">Verdict</span>
+    <h2><span style="color: var(--accent-coral);">0/6</span> tests support a unique hub-neuron story</h2>
+    <p class="subtitle" style="margin: 0 auto 2rem;">
+      Across ranking quality, class separation, regularization stability, per-example importance, ablation, and feature correlation, neuron 4288 behaves like an artifact of sparse credit assignment rather than a singular control knob.
+    </p>
+
+    <div class="scoreboard">
+      <div class="score-item artifact">
+        <div class="score-label">AUC</div>
+        <div class="score-value val-coral">0.590</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Cohen's d</div>
+        <div class="score-value val-coral">0.326</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">C-sweep</div>
+        <div class="score-value val-coral">3/9</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Top contrib</div>
+        <div class="score-value val-coral">7.4%</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Ablation</div>
+        <div class="score-value val-coral">1.0pp</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Max |r|</div>
+        <div class="score-value val-coral">0.492</div>
+      </div>
+    </div>
+
+    <p style="margin-top: 0.5rem;">
+      <a class="button-link" href="../results/gemma-3-4b.html#surprise">Back to the results summary</a>
+    </p>
+  </div>
+</section>
+
+<section id="rationale" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Artifact rationale</span>
+    <h2>The stronger mechanistic object is the distributed detector, not the loudest single neuron</h2>
+    <p class="subtitle">
+      The lesson here is not "ignore neuron 4288." It is "do not confuse sparse model bookkeeping with causal centrality."
+    </p>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">What survived scrutiny</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The overall detector remains useful. The clean 76.5% result and the intervention effect do not depend on pretending 4288 is a unique control node.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">What got withdrawn</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The idea that the sparse 38-neuron detector collapses onto one superstar neuron does not survive contact with ablation, C-sweeps, or correlation structure.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Why C=3.0 matters</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          At C=3.0 the model reaches higher accuracy with 219 positive-weight neurons, and 4288 stops looking singular. That is a better fit for a distributed mechanism story.
+        </p>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Practical interpretation:</strong> think of neuron 4288 as the boldface term in a sparse summary, not as the whole argument.
+      If the project wants the cleanest paper-faithful replication headline, the 38-neuron set still works as a baseline.
+      If the project wants the best mechanistic description, the wider positive-weight detector is the better object.
+    </div>
+  </div>
+</section>
+
+<footer>
+  H-Neurons Deep Dive &mdash; Neuron 4288 &mdash; March 2026<br>
+  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a>
+</footer>
+
+<script src="../assets/shared.js"></script>
+
+</body>
+</html>
