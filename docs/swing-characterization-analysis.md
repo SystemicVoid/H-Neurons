@@ -93,18 +93,27 @@ About a third of R→C samples flip at the lowest non-zero scaling (α=0.5), sug
 
 ## 5. LLM Enrichment Results
 
-*This section will be populated after the GPT-4o-mini enrichment completes.*
+200 samples were enriched with GPT-4o-mini classifications (138 swing, 31 always-compliant, 31 never-compliant).
 
-The enrichment pipeline classifies each sample along three dimensions:
-1. **Knowledge classification:** Does the question test well-known facts, common knowledge, specialized knowledge, or obscure trivia?
-2. **Independent answer verification:** Does GPT-4o-mini agree with the model's α=0.0 answer?
-3. **Context persuasiveness:** How convincing is the misleading context on a 1–5 scale?
+### Knowledge Classification by Population
 
-Expected analyses:
-- Knowledge distribution by population (swing vs. always-compliant vs. never-compliant)
-- Knowledge distribution by swing subtype (R→C vs. C→R)
-- Persuasiveness ratings by population
-- Verification agreement rates
+| Population | COMMON_KNOWLEDGE | SPECIALIZED | AMBIGUOUS |
+|---|---|---|---|
+| Swing (n=138) | 118 (85.5%) | 18 (13.0%) | 2 (1.4%) |
+| Always-compliant (n=31) | 26 (83.9%) | 2 (6.5%) | 3 (9.7%) |
+| Never-compliant (n=31) | 31 (100%) | 0 | 0 |
+
+**Interpretation:** The overwhelming majority of questions across all populations are classified as common knowledge. The never-compliant population is 100% common knowledge, meaning these are questions the model should know the answer to — and indeed it always resists the misleading context. Swing samples have a slightly higher rate of specialized questions (13.0%), but the dominant finding is that even "common knowledge" items can be swung by H-neuron scaling. This reinforces the knowledge-override interpretation: the model *knows* these answers but can be overridden.
+
+### Context Persuasiveness by Population
+
+| Population | Mean Persuasiveness (1–5) | n |
+|---|---|---|
+| Swing | 3.37 | 138 |
+| Always-compliant | 3.61 | 31 |
+| Never-compliant | 3.61 | 31 |
+
+**Interpretation:** Context persuasiveness does not differ meaningfully across populations. Swing samples have *slightly lower* persuasiveness than the fixed populations, not higher. This rules out the hypothesis that swing behavior is caused by unusually persuasive contexts. The mechanism is internal to the model, not a feature of the input quality.
 
 ## 6. Safety Implications
 
