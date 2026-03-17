@@ -516,33 +516,33 @@
   <div class="fade-in">
     <span class="tag tag-teal">Causal evidence</span>
     <h2>Scaling H-Neuron activations changes model behavior</h2>
-    <p class="subtitle">Scale H-Neuron activations by &alpha; during inference. The anti-compliance curve rises cleanly. The standard raw curve only looks like it falls because more responses become exact-answer strings that our MC-letter evaluator cannot decode; at &alpha;=3.0, strict text remapping lifts the standard estimate from 63.6% raw to 72.1%.</p>
+    <p class="subtitle" data-source="manual">Scale H-Neuron activations by &alpha; during inference. The anti-compliance curve rises cleanly. The standard raw curve only looks like it falls because more responses become exact-answer strings that our MC-letter evaluator cannot decode; at &alpha;=3.0, strict text remapping lifts the standard estimate from 63.6% raw to 72.1%.</p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
       <div class="metric-card">
         <div class="label">Benchmark</div>
         <div class="value" style="font-size: 1.1rem;">FaithEval</div>
-        <div class="detail">1,000 counterfactual MC questions · no CI yet</div>
+        <div class="detail" data-intervention-bind="benchmark-detail">Loading intervention summary...</div>
       </div>
       <div class="metric-card">
         <div class="label">Anti-compliance baseline</div>
-        <div class="value val-teal">66.0%</div>
-        <div class="detail">&alpha;=1.0 compliance · no CI yet</div>
+        <div class="value val-teal" data-intervention-bind="anti-baseline-value">--</div>
+        <div class="detail" data-intervention-bind="anti-baseline-detail">Loading...</div>
       </div>
       <div class="metric-card">
         <div class="label">Standard raw baseline</div>
-        <div class="value val-amber">68.8%</div>
-        <div class="detail">&alpha;=1.0 raw · 70.0% among parseable responses</div>
+        <div class="value val-amber" data-intervention-bind="standard-raw-baseline-value">--</div>
+        <div class="detail" data-intervention-bind="standard-raw-baseline-detail">Loading...</div>
       </div>
       <div class="metric-card">
         <div class="label">Anti at &alpha;=3.0</div>
-        <div class="value val-teal">70.5%</div>
-        <div class="detail">+4.5pp &uarr; · no CI yet</div>
+        <div class="value val-teal" data-intervention-bind="anti-alpha-three-value">--</div>
+        <div class="detail" data-intervention-bind="anti-alpha-three-detail">Loading...</div>
       </div>
       <div class="metric-card">
         <div class="label">Standard corrected at &alpha;=3.0</div>
-        <div class="value val-amber">72.1%</div>
-        <div class="detail">63.6% raw MC-letter score · 140/150 remapped by answer text</div>
+        <div class="value val-amber" data-intervention-bind="standard-remap-alpha-three-value">--</div>
+        <div class="detail" data-intervention-bind="standard-remap-alpha-three-detail">Loading...</div>
       </div>
     </div>
 
@@ -550,7 +550,7 @@
       <canvas id="interventionChart"></canvas>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-source="manual">
       <strong>Not actually opposite effects.</strong> The anti-compliance prompt shows a clean monotonic increase
       (Pearson r = 0.997). The standard raw curve turns down only because the evaluator expects an option letter,
       while the prompt asks for the exact answer only. At high &alpha;, more responses keep the answer content but
@@ -565,7 +565,7 @@
   <div class="fade-in">
     <span class="tag tag-amber">Evaluation confound</span>
     <h2>Content-following rises while MC-letter recoverability falls</h2>
-    <p class="subtitle">The apparent contradiction dissolves once you separate answer content from evaluator-visible format. Under the standard prompt, many high-α responses switch from option-letter outputs to exact-answer strings. That hurts the raw MC-letter score, but after strict α=3.0 remapping the corrected standard estimate is 72.1%.</p>
+    <p class="subtitle" data-source="manual">The apparent contradiction dissolves once you separate answer content from evaluator-visible format. Under the standard prompt, many high-α responses switch from option-letter outputs to exact-answer strings. That hurts the raw MC-letter score, but after strict α=3.0 remapping the corrected standard estimate is 72.1%.</p>
 
     <div class="prompt-compare">
       <div class="prompt-card" style="border-color: var(--accent-teal);">
@@ -603,18 +603,18 @@ Answer:</code>
     <div class="comparison" style="margin-top: 1.5rem;">
       <div class="compare-card">
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Unparseable at &alpha;=0.0</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">9</div>
-        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">0.9% of samples</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);" data-intervention-bind="parse-alpha-zero-count">--</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;" data-intervention-bind="parse-alpha-zero-detail">Loading...</div>
       </div>
       <div class="compare-card" style="border-color: var(--accent-coral);">
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Unparseable at &alpha;=3.0</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-coral);">150</div>
-        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">15.0% &mdash; a 16.7x increase</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-coral);" data-intervention-bind="parse-alpha-three-count">--</div>
+        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;" data-intervention-bind="parse-alpha-three-detail">Loading...</div>
       </div>
     </div>
 
     <h3 style="margin-top: 2.5rem;">Conditioned on parseable responses, both curves go up</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Among responses that still exposed a recoverable option letter, compliance under the standard prompt rises from 69.7% to 74.8% &mdash; matching the anti-compliance direction. But that is only a conditional rate on the parseable subset. The current best full-population estimate at &alpha;=3.0 is 72.1% after text remapping, not 74.8%.</p>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;" data-source="manual">Among responses that still exposed a recoverable option letter, compliance under the standard prompt rises from 69.7% to 74.8% &mdash; matching the anti-compliance direction. But that is only a conditional rate on the parseable subset. The current best full-population estimate at &alpha;=3.0 is 72.1% after text remapping, not 74.8%.</p>
 
     <div class="chart-container">
       <canvas id="adjustedComplianceChart"></canvas>
@@ -658,7 +658,7 @@ Answer:</code>
           context-supported option more often, but emits the option text rather than the MC label, which
           hurts letter-based evaluation without necessarily hurting prompt compliance.
         </p>
-        <p style="font-size: 12px; color: var(--accent-amber); margin-top: 8px;">
+        <p style="font-size: 12px; color: var(--accent-amber); margin-top: 8px;" data-source="manual">
           <strong>Status:</strong> The &alpha;=3.0 remap is now done: 140/150 <code>chosen=None</code> responses map cleanly by answer text, and 85 of those are compliant. The next test is extending that text-based scoring across all &alpha;.
         </p>
       </div>
@@ -774,7 +774,7 @@ Answer:</code>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
         <h3>The signal is real &mdash; and causal on FaithEval</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
           76.5% detection accuracy on a disjoint test set. On FaithEval, content-level compliance rises with
           &alpha; under both prompts; the standard raw decline is explained largely by an MC-letter evaluator confound,
           and the corrected α=3.0 estimate is 72.1% rather than 63.6%.
@@ -906,7 +906,7 @@ Answer:</code>
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
         <h3 style="color: var(--accent-amber);">Extend text-based scoring (~30&ndash;60min, $0)</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
           The α=3.0 remap is done: 140/150 <code>chosen=None</code> responses map back to answer-option text,
           lifting the standard estimate to 72.1%. The next cleanup is to apply the same answer-text scoring
           across all α and recompute the full standard-prompt curve and population split.

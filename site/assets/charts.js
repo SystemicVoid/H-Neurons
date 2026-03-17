@@ -190,6 +190,88 @@ function compliancePercentages(points) {
   return points.map((point) => point.compliance_pct);
 }
 
+function interventionPointByAlpha(points, alpha) {
+  const point = points.find((candidate) => candidate.alpha === alpha);
+
+  if (!point) {
+    throw new Error(`Missing intervention point for alpha=${alpha.toFixed(1)}`);
+  }
+
+  return point;
+}
+
+function formatPercent(value) {
+  return value.toFixed(1) + '%';
+}
+
+function formatCount(value) {
+  return value.toLocaleString();
+}
+
+function formatCiStatus(ciStatus) {
+  return ciStatus === 'no_ci_yet' ? 'no CI yet' : ciStatus.replaceAll('_', ' ');
+}
+
+function formatSignedPp(value) {
+  const sign = value >= 0 ? '+' : '';
+  return sign + value.toFixed(1) + 'pp';
+}
+
+function setInterventionText(binding, value) {
+  document.querySelectorAll(`[data-intervention-bind="${binding}"]`).forEach((node) => {
+    node.textContent = value;
+  });
+}
+
+function hydrateInterventionSummary(interventionData) {
+  const antiComplianceSeries = interventionData.series.anti_compliance;
+  const standardRawSeries = interventionData.series.standard_raw;
+  const standardParseableSubsetSeries = interventionData.series.standard_parseable_subset;
+  const standardTextRemapAlphaThree = interventionData.series.standard_text_remap.by_alpha['3.0'];
+  const parseFailures = interventionData.parse_failures.points;
+  const antiBaseline = interventionPointByAlpha(antiComplianceSeries.points, 1.0);
+  const antiAlphaThree = interventionPointByAlpha(antiComplianceSeries.points, 3.0);
+  const standardRawBaseline = interventionPointByAlpha(standardRawSeries.points, 1.0);
+  const standardParseableBaseline = interventionPointByAlpha(standardParseableSubsetSeries.points, 1.0);
+  const parseAlphaZero = interventionPointByAlpha(parseFailures, 0.0);
+  const parseAlphaThree = interventionPointByAlpha(parseFailures, 3.0);
+
+  setInterventionText(
+    'benchmark-detail',
+    `${formatCount(antiBaseline.n_total)} counterfactual MC questions · ${formatCiStatus(interventionData.ci_status)}`
+  );
+  setInterventionText('anti-baseline-value', formatPercent(antiBaseline.compliance_pct));
+  setInterventionText(
+    'anti-baseline-detail',
+    `α=1.0 compliance · ${formatCiStatus(antiComplianceSeries.ci_status)}`
+  );
+  setInterventionText('standard-raw-baseline-value', formatPercent(standardRawBaseline.compliance_pct));
+  setInterventionText(
+    'standard-raw-baseline-detail',
+    `α=1.0 raw · ${formatPercent(standardParseableBaseline.compliance_pct)} among parseable responses`
+  );
+  setInterventionText('anti-alpha-three-value', formatPercent(antiAlphaThree.compliance_pct));
+  setInterventionText(
+    'anti-alpha-three-detail',
+    `${formatSignedPp(antiAlphaThree.compliance_pct - antiBaseline.compliance_pct)} ↑ · ${formatCiStatus(antiComplianceSeries.ci_status)}`
+  );
+  setInterventionText(
+    'standard-remap-alpha-three-value',
+    formatPercent(standardTextRemapAlphaThree.strict_rescored_compliance_pct)
+  );
+  setInterventionText(
+    'standard-remap-alpha-three-detail',
+    `${formatPercent(standardTextRemapAlphaThree.raw_compliance_pct)} raw MC-letter score · ${standardTextRemapAlphaThree.strict_recovered_count}/${standardTextRemapAlphaThree.parse_failures} remapped by answer text`
+  );
+  setInterventionText('parse-alpha-zero-count', formatCount(parseAlphaZero.count));
+  setInterventionText('parse-alpha-zero-detail', `${formatPercent(parseAlphaZero.pct)} of samples`);
+  setInterventionText('parse-alpha-three-count', formatCount(parseAlphaThree.count));
+  setInterventionText(
+    'parse-alpha-three-detail',
+    `${formatPercent(parseAlphaThree.pct)} · a ${(parseAlphaThree.count / parseAlphaZero.count).toFixed(1)}x increase`
+  );
+}
+
 function loadInterventionData() {
   if (!interventionDataPromise) {
     interventionDataPromise = fetch(interventionDataUrl)
@@ -209,8 +291,15 @@ async function initInterventionCharts() {
   const parseFailureChartCanvas = document.getElementById('parseFailureChart');
   const adjustedComplianceChartCanvas = document.getElementById('adjustedComplianceChart');
   const populationChartCanvas = document.getElementById('populationChart');
+  const hasInterventionSummaryBindings = document.querySelector('[data-intervention-bind]');
 
-  if (!interventionChartCanvas && !parseFailureChartCanvas && !adjustedComplianceChartCanvas && !populationChartCanvas) {
+  if (
+    !interventionChartCanvas &&
+    !parseFailureChartCanvas &&
+    !adjustedComplianceChartCanvas &&
+    !populationChartCanvas &&
+    !hasInterventionSummaryBindings
+  ) {
     return;
   }
 
@@ -222,6 +311,8 @@ async function initInterventionCharts() {
   const parseFailures = interventionData.parse_failures.points;
   const antiCompliancePopulation = interventionData.population.anti_compliance;
   const swingBreakdown = antiCompliancePopulation.swing_breakdown;
+
+  hydrateInterventionSummary(interventionData);
 
   if (interventionChartCanvas) {
     new Chart(interventionChartCanvas, {
