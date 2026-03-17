@@ -2,7 +2,7 @@
 
 > Implementation guidelines for evolving `site/` from a single-page monolith into a maintainable, data-driven multi-page research presentation.
 >
-> **Status**: In progress — Session 10 completed on 2026-03-17.
+> **Status**: In progress — Session 11 completed on 2026-03-17.
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
@@ -321,7 +321,7 @@ Each entry links to its results page when work begins.
 ### Phase 4: Story and extensions (estimated: half day)
 
 - [x] Create `story.html` with 5-question structure
-- [ ] Create `extensions.html` with roadmap table
+- [x] Create `extensions.html` with roadmap table
 - [ ] Create `archive/` directory and archival workflow
 
 ### Phase 5: Polish (estimated: half day)
@@ -345,6 +345,8 @@ Each entry links to its results page when work begins.
 | 2026-03-16 | Delay Gemma classifier JSON export until direct canonical source exists | Avoid backfilling site data from prose or presentation literals |
 | 2026-03-16 | Derive standard parse-failure and parseable-subset series from per-alpha JSONL rows | `faitheval_standard/results.json` stores raw compliance totals but omits parse-failure counts and conditional parseable-subset rates |
 | 2026-03-17 | Build `extensions.html` before `archive/` once `story.html` exists | The site now has a stable standing narrative but not enough archived weeks to justify archive-first navigation; the extensions roadmap is the higher-signal next destination |
+| 2026-03-17 | Keep `extensions.html` scoped to four concrete workstreams for now | The near-term roadmap is clearer if it tracks only SAE decomposition, suppressive neurons, swing-sample characterization, and the refusal-overlap pilot rather than turning into a full backlog mirror of `docs/extensions-ideas/` |
+| 2026-03-17 | Defer `archive/` until there is a real post-split weekly page to move | The site now has a stable six-page document set, but there is still nothing new enough to archive; polish and status-signaling are higher-value next than scaffolding an empty archive |
 
 ---
 
@@ -362,6 +364,7 @@ Each entry links to its results page when work begins.
 | 2026-03-17 | Session 8 | `feat(site): add methods reference page` | Added `site/methods.html` as the standing home for the pipeline, data funnel, prompt framing, evaluator-format contract, and reproducibility notes; expanded the shared nav so the weekly and results pages can reach the restored background context directly. | Finish Phase 3 by moving the full neuron-4288 appendix into its own deep-dive page and making the results page link to that longer artifact rationale instead of carrying it inline. |
 | 2026-03-17 | Session 9 | `feat(site): add neuron 4288 deep-dive page` | Added `site/deep-dives/neuron-4288.html` with the full six-panel investigation, updated shared navigation to include the nested appendix, and turned `site/results/gemma-3-4b.html` into a true summary page that points to the deep dive for the full artifact rationale. | Move into Phase 4 by creating `story.html` as the standing paper narrative and deciding whether `extensions.html` or `archive/` is the more useful next nav destination. |
 | 2026-03-17 | Session 10 | `feat(site): add standing core-story page` | Added `site/story.html` as the durable five-question paper narrative, expanded the shared nav to connect the weekly, story, results, methods, and deep-dive pages, and kept the root page in its shorter meeting-memo role. | Continue Phase 4 by creating `extensions.html` as the next live destination, then defer `archive/` until a second weekly page exists to archive. |
+| 2026-03-17 | Session 11 | `feat(site): add extensions roadmap page` | Added `site/extensions.html` as a standing roadmap page, expanded the shared nav across the weekly, story, results, methods, extensions, and deep-dive pages, and deliberately narrowed the roadmap to four concrete workstreams: SAE feature decomposition, suppressive-neuron investigation, swing-sample characterization, and a refusal-overlap safety pilot. | Leave `archive/` deferred until a real post-split weekly page exists, and move the next site slice to Phase 5 polish on status badges plus chart annotations. |
 
 ---
 
@@ -373,7 +376,8 @@ Each entry links to its results page when work begins.
 - The first site data contract now exists at `site/data/intervention_sweep.json`, and the intervention charts plus intervention summary widgets render from it over HTTP on the nested results page.
 - `site/results/gemma-3-4b.html` now holds the stable Gemma findings, `site/methods.html` holds the background/materials context, and `site/deep-dives/neuron-4288.html` holds the full six-panel top-neuron appendix.
 - `site/story.html` now holds the standing five-question paper narrative separate from the weekly memo and the raw appendix.
-- `site/index.html` has been reduced to a weekly landing page with delta/agenda/decision sections, and the shared nav now connects five live pages.
+- `site/extensions.html` now holds the standing follow-on roadmap, intentionally scoped to SAE decomposition, suppressive neurons, swing-sample characterization, and the refusal-overlap pilot.
+- `site/index.html` has been reduced to a weekly landing page with delta/agenda/decision sections, and the shared nav now connects six live pages.
 - The exporter is intentionally scoped to intervention data only; classifier-derived site JSON remains deferred until a direct canonical source exists.
 
 ### Open issues / constraints
@@ -381,23 +385,24 @@ Each entry links to its results page when work begins.
 - Remaining intervention prose still carries embedded numeric claims, but those blocks are explicitly tagged `data-source="manual"` rather than silently drifting.
 - The standard-prompt strict answer-text correction is only canonical for `alpha=3.0`; do not imply a full corrected sweep yet.
 - Standard-prompt population breakdown remains withdrawn until text-based rescoring exists across all alpha values.
-- The shared nav is still a transitional five-page version; `extensions.html` and `archive/` do not exist yet.
+- `archive/` still does not exist, and there is not yet a second post-split weekly page to justify creating it.
+- `extensions.html` is intentionally narrower than the full idea bank in `docs/extensions-ideas/`; keep the live page focused on the four branches with the sharpest near-term falsifiers.
 - Classifier, layer-distribution, and top-neuron cards/charts remain hardcoded even though the intervention path now reads from site data.
 - Confidence intervals are still missing, so all exported intervention metrics remain explicitly `no_ci_yet`.
 
 ### Recommended next slice
 
-1. Create `site/extensions.html` as the standing roadmap page for SAE decomposition, anti-H-neuron work, swing-sample profiling, second-model replication, and related follow-on experiments.
-2. Expand the shared nav to include `extensions.html` as the sixth live destination, while leaving `archive/` deferred until there is at least one post-split weekly page to archive.
-3. Keep `index.html` as the meeting memo, `story.html` as the standing narrative, `results/gemma-3-4b.html` as the stable evidence ledger, `methods.html` as the background reference, and `deep-dives/neuron-4288.html` as the appendix model for future investigations.
-4. Leave classifier, layer-distribution, and top-neuron charts hardcoded until canonical exports exist; the Phase 4 page architecture should not block on classifier JSON.
-5. Re-verify over HTTP after each new page move, especially the nested deep-dive asset paths and the `intervention_sweep.json` fetch from the results page.
+1. Start Phase 5 polish by adding explicit status badges (`NEW`, `STABLE`, `PROVISIONAL`) to the metric cards and summary callouts that still present live or uncertain claims.
+2. Add value labels plus `n=` / CI-status annotations to the stable results charts so the charts carry their own reporting contract instead of relying on nearby prose.
+3. Keep `archive/` deferred until there is an actual post-split weekly page to archive; do not add empty navigation for a page class that still has no content.
+4. Leave classifier, layer-distribution, and top-neuron charts hardcoded until canonical exports exist; the polish pass should improve signaling without inventing pseudo-canonical JSON.
+5. Re-verify over HTTP after the polish pass, especially the results-page JSON fetch and the nested deep-dive assets.
 
 ### Acceptance checks for tomorrow
 
-- `extensions.html` exists and gives active follow-on work a standing home separate from both the weekly memo and the core story.
-- Shared navigation works across the root page, `story.html`, the results page, `methods.html`, the extensions page, and deep-dive pages under HTTP.
-- The current five-page split remains intact: short weekly page, standing story page, stable results page, methods reference page, and image-backed deep dive.
+- Status badges make it obvious which claims are stable, provisional, or newly updated without forcing the reader to infer that from prose.
+- The results charts carry visible value labels plus `n=` / CI-status annotations under HTTP without breaking the existing JSON hydration path.
+- The current six-page split remains intact: short weekly page, standing story page, stable results page, methods reference page, focused extensions roadmap, and image-backed deep dive.
 
 ---
 
