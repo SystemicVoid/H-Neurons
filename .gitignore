@@ -2,7 +2,19 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+*.egg
+dist/
+build/
 .venv/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
 
 # uv
 .python-version
@@ -58,8 +70,8 @@ docs/good-practices
 
 # Claude Code local config
 .claude/
-docs/bluedot-rapid-grant-2026.md
 scratchpad.md
 
 # AI-generated research brainstorms (local refs only; see intervention_findings.md for final analysis)
 docs/extensions-ideas/
+docs/write-up-bits.md
