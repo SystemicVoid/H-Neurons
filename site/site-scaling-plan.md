@@ -2,7 +2,7 @@
 
 > Implementation guidelines for evolving `site/` from a single-page monolith into a maintainable, data-driven multi-page research presentation.
 >
-> **Status**: In progress — Session 11 completed on 2026-03-17.
+> **Status**: In progress — Session 12 completed on 2026-03-17.
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
@@ -326,9 +326,9 @@ Each entry links to its results page when work begins.
 
 ### Phase 5: Polish (estimated: half day)
 
-- [ ] Add status badges (`NEW`, `STABLE`, `PROVISIONAL`) to metric cards
-- [ ] Add value labels to bar charts
-- [ ] Add `n=` and CI status to chart subtitles
+- [x] Add status badges (`NEW`, `STABLE`, `PROVISIONAL`) to metric cards
+- [x] Add value labels to bar charts
+- [x] Add `n=` and CI status to chart subtitles
 - [ ] Review color count per chart (max 5)
 - [ ] Test all pages with `here-now` deployment
 
@@ -347,6 +347,7 @@ Each entry links to its results page when work begins.
 | 2026-03-17 | Build `extensions.html` before `archive/` once `story.html` exists | The site now has a stable standing narrative but not enough archived weeks to justify archive-first navigation; the extensions roadmap is the higher-signal next destination |
 | 2026-03-17 | Keep `extensions.html` scoped to four concrete workstreams for now | The near-term roadmap is clearer if it tracks only SAE decomposition, suppressive neurons, swing-sample characterization, and the refusal-overlap pilot rather than turning into a full backlog mirror of `docs/extensions-ideas/` |
 | 2026-03-17 | Defer `archive/` until there is a real post-split weekly page to move | The site now has a stable six-page document set, but there is still nothing new enough to archive; polish and status-signaling are higher-value next than scaffolding an empty archive |
+| 2026-03-17 | Keep Phase 5 polish inside the current split pages instead of creating `archive/` scaffolding | Status signaling and chart-side reporting context improve the six live pages immediately, while an empty archive would add navigation weight without adding evidence |
 
 ---
 
@@ -365,6 +366,7 @@ Each entry links to its results page when work begins.
 | 2026-03-17 | Session 9 | `feat(site): add neuron 4288 deep-dive page` | Added `site/deep-dives/neuron-4288.html` with the full six-panel investigation, updated shared navigation to include the nested appendix, and turned `site/results/gemma-3-4b.html` into a true summary page that points to the deep dive for the full artifact rationale. | Move into Phase 4 by creating `story.html` as the standing paper narrative and deciding whether `extensions.html` or `archive/` is the more useful next nav destination. |
 | 2026-03-17 | Session 10 | `feat(site): add standing core-story page` | Added `site/story.html` as the durable five-question paper narrative, expanded the shared nav to connect the weekly, story, results, methods, and deep-dive pages, and kept the root page in its shorter meeting-memo role. | Continue Phase 4 by creating `extensions.html` as the next live destination, then defer `archive/` until a second weekly page exists to archive. |
 | 2026-03-17 | Session 11 | `feat(site): add extensions roadmap page` | Added `site/extensions.html` as a standing roadmap page, expanded the shared nav across the weekly, story, results, methods, extensions, and deep-dive pages, and deliberately narrowed the roadmap to four concrete workstreams: SAE feature decomposition, suppressive-neuron investigation, swing-sample characterization, and a refusal-overlap safety pilot. | Leave `archive/` deferred until a real post-split weekly page exists, and move the next site slice to Phase 5 polish on status badges plus chart annotations. |
+| 2026-03-17 | Session 12 | `feat(site): add research status badges`; `feat(site): label results charts with values and context` | Added explicit `NEW`/`STABLE`/`PROVISIONAL`/`ARTIFACT` badges to metric cards and summary callouts across the six live pages, annotated `site/results/gemma-3-4b.html` with chart-level value labels plus `n=` / CI-status chips, and re-verified over local HTTP that the weekly, story, results, methods, extensions, and deep-dive pages still load with the JSON-backed intervention charts and nested appendix images. | Finish the remaining Phase 5 cleanup by reviewing chart color counts and deciding whether a lightweight `here-now` deployment check is worth doing before the next content-heavy site pass. |
 
 ---
 
@@ -378,6 +380,7 @@ Each entry links to its results page when work begins.
 - `site/story.html` now holds the standing five-question paper narrative separate from the weekly memo and the raw appendix.
 - `site/extensions.html` now holds the standing follow-on roadmap, intentionally scoped to SAE decomposition, suppressive neurons, swing-sample characterization, and the refusal-overlap pilot.
 - `site/index.html` has been reduced to a weekly landing page with delta/agenda/decision sections, and the shared nav now connects six live pages.
+- The split pages now carry explicit research-status badges, and the results ledger charts expose direct value labels plus `n=` / CI-status context over local HTTP instead of relying only on prose.
 - The exporter is intentionally scoped to intervention data only; classifier-derived site JSON remains deferred until a direct canonical source exists.
 
 ### Open issues / constraints
@@ -388,20 +391,20 @@ Each entry links to its results page when work begins.
 - `archive/` still does not exist, and there is not yet a second post-split weekly page to justify creating it.
 - `extensions.html` is intentionally narrower than the full idea bank in `docs/extensions-ideas/`; keep the live page focused on the four branches with the sharpest near-term falsifiers.
 - Classifier, layer-distribution, and top-neuron cards/charts remain hardcoded even though the intervention path now reads from site data.
+- The HTTP verification pass covered all six live pages, the `site/data/intervention_sweep.json` fetch path, and the nested deep-dive PNG assets; use the same local-server path for future site checks because `file://` still breaks `fetch()`.
 - Confidence intervals are still missing, so all exported intervention metrics remain explicitly `no_ci_yet`.
 
 ### Recommended next slice
 
-1. Start Phase 5 polish by adding explicit status badges (`NEW`, `STABLE`, `PROVISIONAL`) to the metric cards and summary callouts that still present live or uncertain claims.
-2. Add value labels plus `n=` / CI-status annotations to the stable results charts so the charts carry their own reporting contract instead of relying on nearby prose.
-3. Keep `archive/` deferred until there is an actual post-split weekly page to archive; do not add empty navigation for a page class that still has no content.
-4. Leave classifier, layer-distribution, and top-neuron charts hardcoded until canonical exports exist; the polish pass should improve signaling without inventing pseudo-canonical JSON.
-5. Re-verify over HTTP after the polish pass, especially the results-page JSON fetch and the nested deep-dive assets.
+1. Finish the remaining Phase 5 polish by reviewing each results-page chart for color-count discipline now that the value labels and context chips are in place.
+2. Keep `archive/` deferred until there is an actual post-split weekly page to archive; do not add empty navigation for a page class that still has no content.
+3. Leave classifier, layer-distribution, and top-neuron charts hardcoded until canonical exports exist; future cleanup should improve provenance without inventing pseudo-canonical JSON.
+4. Decide whether to run a lightweight `here-now` deployment check now or keep verification local until another content split lands.
 
 ### Acceptance checks for tomorrow
 
-- Status badges make it obvious which claims are stable, provisional, or newly updated without forcing the reader to infer that from prose.
-- The results charts carry visible value labels plus `n=` / CI-status annotations under HTTP without breaking the existing JSON hydration path.
+- Status badges remain obvious without overwhelming the pages or blurring the split-page roles.
+- Results-page charts keep their visible value labels plus `n=` / CI-status annotations under HTTP without breaking the existing JSON hydration path.
 - The current six-page split remains intact: short weekly page, standing story page, stable results page, methods reference page, focused extensions roadmap, and image-backed deep dive.
 
 ---
