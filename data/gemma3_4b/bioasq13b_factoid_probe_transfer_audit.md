@@ -43,6 +43,13 @@
   `data/gemma3_4b/bioasq13b_factoid_classifier.log`,
   `data/gemma3_4b/bioasq13b_factoid_classifier_recovery.log`.
 
+### Mirror provenance note
+
+- The mirrored activation directory at `/home/hugo/Documents/Learning/Bluedot Project Technical AI safety/h-neurons-extension/data/gemma3_4b/bioasq13b_factoid_activations/answer_tokens/` is present as a local data mirror but is intentionally not git-tracked.
+- As of 2026-03-17, that mirror matches the source directory at `/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/bioasq13b_factoid_activations/answer_tokens/` under `diff -qr`, with **1179** `.npy` files in each location.
+- In the Bluedot mirror repo, the directory is excluded via `.git/info/exclude`. That is deliberate: the activation binaries are heavy local byproducts, while the committed provenance lives in the reports and JSON metrics above.
+- Analyses in this memo that depend on the mirrored activation directory are explicitly labeled local-only: rescoring against `models/gemma3_4b_classifier_disjoint.pkl`, the mtime-based overlap reconstruction, and inspection of the remaining 2 activation misses.
+
 ## Is the BioASQ result trustworthy?
 
 - **OOD setup: mostly paper-faithful on the important axes.** The paper’s OOD setup is “single response” on BioASQ after training the detector on TriviaQA (`original-paper-markdown-converted.md`). This run matches that shape: one sampled BioASQ response per question in `data/gemma3_4b/bioasq13b_factoid_samples.jsonl`, official BioASQ factoid questions from `data/benchmarks/bioasq13b_factoid.parquet`, and a reused TriviaQA-trained detector in `models/gemma3_4b_classifier_disjoint.pkl`.
