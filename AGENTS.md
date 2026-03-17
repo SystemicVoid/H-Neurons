@@ -58,7 +58,11 @@ systemd-inhibit --what=sleep:idle --who="<job-name>" --why="<description>" \
 **Post-suspend recovery:** if a job is running slowly after wake, `kill -9` the python PID (`pgrep -a python | grep <script>`). The script's resume logic picks up from the last written line.
 
 ## Coding Style & Naming Conventions
-Follow existing Python conventions and modern best practices.
+Follow PEP 8 naming conventions, enforced by ruff's `pep8-naming` (N) rules:
+- **Functions and variables**: `snake_case` (e.g., `load_data`, `train_ids`)
+- **Classes**: `PascalCase` (e.g., `HNeuronScaler`, `TokenExtractor`)
+- **Constants**: `UPPER_SNAKE_CASE` (e.g., `TARGET_IDX`, `ALPHAS`)
+- **ML convention exception**: uppercase `X`, `X_train`, `X_test`, `C`, `C_values` are allowed for scikit-learn feature matrices and regularization parameters (configured in `[tool.ruff.lint.pep8-naming]` ignore-names).
 
 ## Testing Guidelines
 No formal `tests/` suite yet. Use judgment and follow best practices.
