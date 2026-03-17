@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-16
 **Model:** `google/gemma-3-4b-it`
-**Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC=0.843 on disjoint test)
+**Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC 0.843, 95% CI [0.815, 0.870] on the disjoint evaluated test set, n=780)
 **Reference:** Gao et al., "H-Neurons" (arXiv:2512.01797v2), Section 3 replication
 
 **Related reports:** [pipeline_report.md](pipeline_report.md), [bioasq13b_factoid_probe_transfer_audit.md](bioasq13b_factoid_probe_transfer_audit.md)
@@ -15,15 +15,17 @@
 
 Prompt instructs the model to override misleading context with its own knowledge. Evaluation: deterministic letter extraction (regex). Zero parse failures at all α.
 
-| α | Compliant | Total | Rate |
-|---|-----------|-------|------|
-| 0.0 | 642 | 1,000 | 64.2% |
-| 0.5 | 654 | 1,000 | 65.4% |
-| 1.0 | 660 | 1,000 | 66.0% |
-| 1.5 | 670 | 1,000 | 67.0% |
-| 2.0 | 682 | 1,000 | 68.2% |
-| 2.5 | 695 | 1,000 | 69.5% |
-| 3.0 | 705 | 1,000 | 70.5% |
+| α | Compliant | Total | Rate | 95% CI |
+|---|-----------|-------|------|--------|
+| 0.0 | 642 | 1,000 | 64.2% | [61.2, 67.1] |
+| 0.5 | 654 | 1,000 | 65.4% | [62.4, 68.3] |
+| 1.0 | 660 | 1,000 | 66.0% | [63.0, 68.9] |
+| 1.5 | 670 | 1,000 | 67.0% | [64.0, 69.8] |
+| 2.0 | 682 | 1,000 | 68.2% | [65.2, 71.0] |
+| 2.5 | 695 | 1,000 | 69.5% | [66.6, 72.3] |
+| 3.0 | 705 | 1,000 | 70.5% | [67.6, 73.2] |
+
+Endpoint effect from α=0.0 to α=3.0 is **+6.3 percentage points** with a paired-bootstrap 95% CI of **[4.2, 8.5] pp**. The fitted slope is **2.09 pp / α** with a paired-bootstrap 95% CI of **[1.38, 2.83] pp / α**.
 
 Prompt template:
 ```
@@ -39,17 +41,19 @@ If the context conflicts with established knowledge, answer based on your own kn
 
 Official Salesforce retrieval QA framing. Evaluation: same regex letter extraction. Parse failures scale with α.
 
-| α | Compliant (raw) | Parse failures (`chosen=None`) | Rate (raw) |
-|---|-----------------|-------------------------------|------------|
-| 0.0 | 691 | 9 | 69.1% |
-| 0.5 | 684 | 11 | 68.4% |
-| 1.0 | 688 | 17 | 68.8% |
-| 1.5 | 698 | 32 | 69.8% |
-| 2.0 | 686 | 65 | 68.6% |
-| 2.5 | 669 | 105 | 66.9% |
-| 3.0 | 636 | 150 | 63.6% |
+| α | Compliant (raw) | Parse failures (`chosen=None`) | Rate (raw) | Raw 95% CI | Parse-failure 95% CI |
+|---|-----------------|-------------------------------|------------|------------|----------------------|
+| 0.0 | 691 | 9 | 69.1% | [66.2, 71.9] | [0.5, 1.7] |
+| 0.5 | 684 | 11 | 68.4% | [65.5, 71.2] | [0.6, 2.0] |
+| 1.0 | 688 | 17 | 68.8% | [65.9, 71.6] | [1.1, 2.7] |
+| 1.5 | 698 | 32 | 69.8% | [66.9, 72.6] | [2.3, 4.5] |
+| 2.0 | 686 | 65 | 68.6% | [65.7, 71.4] | [5.1, 8.2] |
+| 2.5 | 669 | 105 | 66.9% | [63.9, 69.7] | [8.7, 12.6] |
+| 3.0 | 636 | 150 | 63.6% | [60.6, 66.5] | [12.9, 17.3] |
 
-At α=3.0, a text-based remap recovered 140 of 150 parse failures (93.3%). Of those, 85 were compliant with the counterfactual, yielding a **rescored rate of 72.1%** (721/1,000). Remap was not yet applied to α<3.0.
+The raw evaluator-facing endpoint effect from α=0.0 to α=3.0 is **-5.5 pp** with a paired-bootstrap 95% CI of **[-8.1, -2.8] pp**. That is a CI on the parser output, not on the underlying behavior.
+
+At α=3.0, a strict text-based remap recovered **140 of 150** parse failures, or **93.3%** with Wilson 95% CI **[88.2, 96.3]**. Of those, 85 were compliant with the counterfactual, yielding a **rescored rate of 72.1%** (721/1,000; 95% CI **[69.2, 74.8]**). Remap was not yet applied to α<3.0, so only the α=3.0 corrected point is publication-ready as a full-population correction.
 
 Prompt template:
 ```
@@ -65,15 +69,17 @@ Answer:
 
 Tests acceptance of questions with false premises. Evaluation: GPT-4o binary judge (ACCEPTED / REFUSED).
 
-| α | Compliant | Total | Rate |
-|---|-----------|-------|------|
-| 0.0 | 478 | 687 | 69.6% |
-| 0.5 | 490 | 687 | 71.3% |
-| 1.0 | 494 | 687 | 71.9% |
-| 1.5 | 489 | 687 | 71.2% |
-| 2.0 | 515 | 687 | 75.0% |
-| 2.5 | 508 | 687 | 73.9% |
-| 3.0 | 511 | 687 | 74.4% |
+| α | Compliant | Total | Rate | 95% CI |
+|---|-----------|-------|------|--------|
+| 0.0 | 478 | 687 | 69.6% | [66.0, 72.9] |
+| 0.5 | 490 | 687 | 71.3% | [67.8, 74.6] |
+| 1.0 | 494 | 687 | 71.9% | [68.4, 75.1] |
+| 1.5 | 489 | 687 | 71.2% | [67.7, 74.4] |
+| 2.0 | 515 | 687 | 75.0% | [71.6, 78.1] |
+| 2.5 | 508 | 687 | 73.9% | [70.5, 77.1] |
+| 3.0 | 511 | 687 | 74.4% | [71.0, 77.5] |
+
+Endpoint effect from α=0.0 to α=3.0 is **+4.8 pp** with a paired-bootstrap 95% CI of **[1.3, 8.3] pp**. The fitted slope is **1.62 pp / α** with a paired-bootstrap 95% CI of **[0.52, 2.74] pp / α**.
 
 Judge prompt:
 ```
@@ -128,15 +134,17 @@ Per-seed slopes (%/α): +0.21, +0.16, +0.15. Mean slope: **+0.17 %/α**. Mean Sp
 
 **Parse failures:** Zero across all 8 seeds × 7 α values (56,000 total generations).
 
-**Statistical tests** (pooling all 8 random seeds against H-neurons):
-- Compliance at α=3.0: t-test **p = 4 × 10⁻⁶**
-- Slope: t-test **p = 3 × 10⁻⁶**
+**Empirical interval comparison** (pooling all 8 random seeds as an empirical null, not as a small-n t-test):
+- H-neuron compliance at α=3.0: **70.5%**
+- Random-set mean compliance at α=3.0: **66.1%**, empirical 95% interval **[65.8, 66.46]%**
+- H-neuron slope: **2.09 pp / α**
+- Random-set mean slope: **0.02 pp / α**, empirical 95% interval **[-0.106, 0.164] pp / α**
 
 ### 1.5 Negative Control Analysis
 
 **Verdict: Scenario 1 — H-neuron specificity confirmed.** The interpretation guide (`docs/negative-control-experiment-prompt.md` §Interpretation Guide) lists five possible outcomes. The data matches Scenario 1 unambiguously.
 
-The H-neuron slope (2.09 %/α, 6.3 pp total swing, ρ=1.0) is separated from the pooled random-neuron mean slope (~0.08 %/α, <0.5 pp total swing) by a factor of ~26× and p < 10⁻⁵ on both compliance and slope comparisons. No random seed approaches the H-neuron monotonic trend. The 6.3 pp compliance swing is not a generic perturbation artifact — it requires scaling *these specific* neurons.
+The H-neuron slope (2.09 pp / α, 95% CI [1.38, 2.83], 6.3 pp total swing, 95% CI [4.2, 8.5], ρ=1.0) sits far outside the empirical random-set slope interval of [-0.106, 0.164] pp / α. At α=3.0, the H-neuron rate of 70.5% also sits well above the random-set empirical interval of [65.8, 66.46]%. No random seed approaches the H-neuron trajectory. The 6.3 pp compliance swing is therefore not a generic perturbation artifact — it requires scaling *these specific* neurons.
 
 **Ablation side of the finding.** At α=0.0 the hook multiplies activations by zero, effectively ablating the selected neurons. H-neuron ablation drops compliance to 64.2% (from the ~66.0% unperturbed baseline), while ablating random neurons leaves compliance at ~66.0%. This is a two-sided specificity result: these neurons matter in both directions. Removing them reduces compliance; amplifying them increases it.
 
@@ -156,19 +164,24 @@ The H-neuron slope (2.09 %/α, 6.3 pp total swing, ρ=1.0) is separated from the
 
 ### Finding 1: H-neuron scaling causally increases over-compliance on FaithEval
 
-The anti-compliance FaithEval curve is perfectly monotonic (Spearman ρ=1.0) with a slope of **2.1 pp per unit α** and a total swing of **+6.3 pp** from α=0 to α=3.
+<!-- from: anti_compliance_delta_0_to_3 -->
+<!-- from: anti_compliance_slope -->
+<!-- from: negative_control_random_slope_interval -->
+The anti-compliance FaithEval curve is perfectly monotonic (Spearman ρ=1.0) with a slope of **2.09 pp per unit α** (paired-bootstrap 95% CI **[1.38, 2.83]**) and a total swing of **+6.3 pp** from α=0 to α=3 (paired-bootstrap 95% CI **[4.2, 8.5]**).
 
-This is the cleanest signal in the experiment: zero parse failures, deterministic evaluation, large sample, and perfectly monotonic response. The negative control (8 random seeds: 5 unconstrained + 3 layer-matched, pooled mean slope ~0.08 %/α, t-test p < 10⁻⁵) rules out generic perturbation as the explanation — the H-neuron slope is **~26× larger** than the random-neuron mean. See §1.5 for full analysis.
+This is the cleanest signal in the experiment: zero parse failures, deterministic evaluation, large sample, and perfectly monotonic response. The negative control rules out generic perturbation as the explanation: the H-neuron slope lies well outside the empirical random-set interval of **[-0.106, 0.164] pp / α**, and the α=3.0 H-neuron rate of **70.5%** lies well above the random-set interval of **[65.8, 66.46]%**. See §1.5 for full analysis.
 
 ### Finding 2: H-neuron scaling increases false-premise acceptance on FalseQA
 
-FalseQA shows a **+4.8 pp** swing (69.6% → 74.4%) with a visible step-up between the low-α cluster (69.6–71.9%) and high-α cluster (73.9–75.0%). The trend is not monotonic — α=1.5 dips below α=1.0, and α=2.5 dips below α=2.0.
+<!-- from: falseqa_delta_0_to_3 -->
+FalseQA shows a **+4.8 pp** swing (69.6% → 74.4%) with a paired-bootstrap 95% CI of **[1.3, 8.3] pp**, plus a visible step-up between the low-α cluster (69.6-71.9%) and high-α cluster (73.9-75.0%). The trend is not monotonic — α=1.5 dips below α=1.0, and α=2.5 dips below α=2.0.
 
-The non-monotonicity likely reflects GPT-4o judge variance on borderline responses. Binomial 95% CIs at n=687 are ±3.4 pp, meaning adjacent α comparisons are not individually significant, but the low-vs-high cluster separation exceeds the CI width.
+This makes the benchmark informative but weaker than FaithEval anti-compliance. The endpoint CI clears zero, but the per-point Wilson intervals overlap substantially, so the result is best described as **suggestive evidence of the same mechanism**, not as a standalone clean dose-response proof. The likely source of roughness is GPT-4o judge variance on borderline responses.
 
 ### Finding 3: Standard-prompt FaithEval raw scores are confounded by parse failures
 
-The apparent compliance drop at high α on the standard prompt (69.1% → 63.6%) is **not evidence of decreased compliance**. Parse failures scale from 9 at α=0.0 to 150 at α=3.0. Text-based remapping at α=3.0 recovers 140/150 failures and raises the rate to 72.1% — **above baseline**.
+<!-- from: standard_text_remap_alpha_3_rescored_rate -->
+The apparent compliance drop at high α on the standard prompt (69.1% → 63.6%) is **not evidence of decreased compliance**. Parse failures scale from **0.9% [0.5, 1.7]** at α=0.0 to **15.0% [12.9, 17.3]** at α=3.0. Text-based remapping at α=3.0 recovers **140/150** failures (**93.3% [88.2, 96.3]**) and raises the population estimate to **72.1% [69.2, 74.8]** — above baseline.
 
 The anti-compliance prompt produces zero parse failures at all α. The difference is that the standard prompt asks for "the exact answer only" without specifying letter format, so at high α the model increasingly outputs answer text instead of a letter. The letter-extraction regex treats these as failures, creating a systematic negative bias that grows with α.
 
@@ -186,20 +199,20 @@ The fact that 38 neurons (0.011% of the network) shift behavior on both tasks in
 
 ### Statistical precision
 
-| Benchmark | n | 95% CI width (binomial) at ~70% | α=0 vs α=3 Δ | Δ exceeds CI? |
-|-----------|---|----------------------------------|---------------|---------------|
-| FaithEval anti-compliance | 1,000 | ±2.8 pp | +6.3 pp | Yes |
-| FalseQA | 687 | ±3.4 pp | +4.8 pp | Marginal |
-| Negative control (per seed) | 1,000 | ±2.9 pp | ~0 pp | No effect |
+| Benchmark | n | Pointwise CI scale | Endpoint / slope CI | Interpretation |
+|-----------|---|--------------------|---------------------|----------------|
+| FaithEval anti-compliance | 1,000 | Wilson per-point CI about +/-3 pp | Δ = +6.3 pp [4.2, 8.5]; slope = 2.09 [1.38, 2.83] pp / α | Cleanly above noise |
+| FalseQA | 687 | Wilson per-point CI about +/-3.4 pp | Δ = +4.8 pp [1.3, 8.3]; slope = 1.62 [0.52, 2.74] pp / α | Suggestive, weaker than FaithEval |
+| Negative control (random sets) | 1,000 per seed | Wilson per-seed CI about +/-3 pp | Random slope interval [-0.106, 0.164] pp / α | Null stays flat |
 
-The FaithEval anti-compliance result clears the significance bar. The FalseQA result is at the margin — the endpoint difference exceeds the single-comparison CI, but the non-monotonic intermediate points weaken confidence in the dose-response interpretation. A bootstrap test on trend slope would be more appropriate than endpoint comparison.
+The intervention story is now quantified instead of implied. FaithEval anti-compliance is cleanly above sampling noise. FalseQA points in the same direction, but the claim should remain modest because the per-point overlap and judge variance make it a weaker benchmark.
 
 ### Missing controls and measurements
 
 - **No negative control on FalseQA.** The random-neuron control was only run on FaithEval. Running it on FalseQA would independently confirm H-neuron specificity for that benchmark.
 - **No text-based remap at α<3.0 for FaithEval standard.** The current standard-prompt curve mixes raw letter extraction at α<3.0 with remapped scores only at α=3.0. The full curve shape is unknown.
-- **No confidence intervals computed.** The numbers above use the normal approximation to the binomial. Bootstrap CIs over the actual samples would be more rigorous.
-- **GPT-4o judge calibration unknown.** The FalseQA evaluator's inter-rater agreement and sensitivity to response style at different α values have not been measured.
+- **Judge-model error is not in the FalseQA CI.** The Wilson and paired-bootstrap intervals quantify sampling uncertainty over the 687 judged items, not systematic error in GPT-4o's labels.
+- **Negative-control random-set intervals are empirical, not asymptotic.** With 8 random seeds, the right summary is an empirical interval over sampled random sets, not a claim about the entire zero-weight neuron universe.
 
 ### Classifier selection caveat
 
@@ -213,13 +226,14 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 
 ## 4. Summary
 
-| Benchmark | α=0 → α=3 | Monotonic? | Evaluator | Confounds |
-|-----------|-----------|------------|-----------|-----------|
-| FaithEval (anti-compliance) | +6.3 pp | Yes (ρ=1.0) | Regex letter match | None identified |
-| FaithEval (standard) | +3.0 pp rescored | Unknown | Regex + text remap | Parse failures scale with α; remap only at α=3.0 |
-| FalseQA | +4.8 pp | No | GPT-4o judge | Judge variance on borderline cases |
-| NC unconstrained (5 seeds) | +0.02 %/α mean | No | Regex letter match | None (expected null) |
-| NC layer-matched (3 seeds) | +0.17 %/α mean | No | Regex letter match | None (expected null) |
+| Benchmark | α=0 → α=3 | 95% CI | Monotonic? | Evaluator | Confounds |
+|-----------|-----------|--------|------------|-----------|-----------|
+| FaithEval (anti-compliance) | +6.3 pp | [4.2, 8.5] pp | Yes (ρ=1.0) | Regex letter match | None identified |
+| FaithEval (standard, raw) | -5.5 pp | [-8.1, -2.8] pp | No | Regex letter match | Parse failures scale with α |
+| FaithEval (standard, α=3 remap) | 72.1% level estimate | [69.2, 74.8]% | n/a | Strict answer-text remap | Only α=3.0 corrected so far |
+| FalseQA | +4.8 pp | [1.3, 8.3] pp | No | GPT-4o judge | Judge variance on borderline cases |
+| NC unconstrained (5 seeds) | +0.02 pp / α mean | [-0.106, 0.164] pp / α | No | Regex letter match | Empirical random-set interval |
+| NC layer-matched (3 seeds) | +0.17 pp / α mean | [0.151, 0.208] pp / α | No | Regex letter match | Small seed count; descriptive only |
 
 The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact). The effect generalises across at least two distinct compliance-test benchmarks. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal.
 
@@ -235,12 +249,12 @@ This section documents the critique applied to the negative control analysis (§
 
 2. **Downgraded the layer-matched signal.** An earlier draft suggested Scenario 5 (layer position matters) was "weakly supported" based on the layer-matched mean slope being higher (+0.17 vs +0.02 %/α). On reflection: three seeds is underpowered, the total compliance range (0.5 pp) is within binomial noise, and unconstrained seed 0 alone matches the layer-matched mean. The revised text reports the numbers but concludes the difference does not survive scrutiny.
 
-3. **Fixed the effect-size multiplier.** The previous text said "14×" (based on total-swing arithmetic that mixed units). Corrected to ~26× (H-neuron slope 2.09 / pooled random mean ~0.08), with the t-test p-values as the primary discriminator rather than the ratio.
+3. **Fixed the effect-size framing.** The previous text said "14×" (based on total-swing arithmetic that mixed units), then shifted to "~26×" using the pooled random mean slope. The cleaner final framing is the empirical interval comparison: H-neuron slope `2.09 pp / α` with 95% CI `[1.38, 2.83]` versus random-set interval `[-0.106, 0.164] pp / α`.
 
 4. **Added the ablation finding.** The α=0.0 observation — ablating H-neurons drops compliance by ~1.8 pp while ablating random neurons has no effect — was understated. This is itself a specificity finding (the neurons matter in both directions) and was promoted to a named observation.
 
 **What was kept as-is:**
 
-- The Scenario 1 verdict. The data separation is overwhelming (p < 10⁻⁵, 6.3 pp vs <0.5 pp swings, 8 independent seeds all flat). No hedging is warranted.
+- The Scenario 1 verdict. The data separation is overwhelming: the H-neuron endpoint and slope both sit well outside the empirical random-set intervals, and all 8 random seeds stay near-flat. No hedging is warranted.
 - The parse failure analysis. All zeros everywhere — there is nothing to discuss.
 - The "no negative control on FalseQA" gap (§3). This is a real missing piece, not an invented one.

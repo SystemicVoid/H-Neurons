@@ -21,6 +21,7 @@
         <a href="methods.html">Methods</a>
         <a href="extensions.html">Extensions</a>
         <a href="deep-dives/neuron-4288.html">Neuron 4288</a>
+        <a href="deep-dives/swing-characterization.html">Swing</a>
       </div>
     </div>
   </div>
@@ -116,6 +117,7 @@
     <div class="next-steps" style="margin-top: 1.5rem;">
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <h3 style="color: var(--accent-teal);">Clean detector result</h3>
+        <!-- from: classifier_disjoint_accuracy -->
         <p style="font-size: 14px; color: var(--text-secondary);">
           The <span data-classifier-bind="accuracy-value">76.5%</span> disjoint-test accuracy
           (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>) is the core replication anchor because it survives the overlap correction instead of collapsing once memorization pressure is removed.
@@ -146,11 +148,13 @@
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Corrected standard point</div>
+        <!-- from: standard_text_remap_alpha_3_rescored_rate -->
         <div class="value val-amber" data-intervention-summary-bind="remap-value">72.1%</div>
         <div class="detail">Strict answer-text remap at &alpha;=3.0 (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>)</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Swing population</div>
+        <!-- from: anti_compliance_swing_share -->
         <div class="value val-purple" data-intervention-summary-bind="swing-share-value">13.8%</div>
         <div class="detail"><span data-intervention-summary-bind="swing-share-value">13.8%</span> swing share <span data-intervention-summary-bind="swing-share-ci-bracket">[11.8, 16.1]</span></div>
       </div>
@@ -232,11 +236,13 @@
           If Mistral or Llama does not reproduce a usable held-out detector, the paper story becomes Gemma-specific rather than a broader replication of the Gao et al. phenomenon.
         </p>
       </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">4</div>
-        <h3>Swing samples reduce to formatting artifacts</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">4</div>
+        <h3>Swing samples reduce to formatting artifacts &mdash; tested, survived</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          If the sensitive subset is mostly surface-form drift rather than belief-following behavior, then the mechanism is narrower and less safety-relevant than the current framing suggests.
+          The <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">swing characterization</a> shows that 68% of swing samples (94/138) exhibit genuine R&rarr;C knowledge override, not formatting drift.
+          Surface features (question length, word overlap, response length) do not predict swing status (all p &gt; 0.78).
+          This falsification condition was tested and the claim survived: the swing population reflects real belief-following behavior.
         </p>
       </div>
     </div>

@@ -768,6 +768,10 @@ h3 {
   background: var(--accent-coral-dim);
   color: var(--accent-coral);
 }
+.status-complete {
+  background: var(--accent-teal-dim);
+  color: var(--accent-teal);
+}
 
 /* --- Scroll progress --- */
 .progress-bar {

@@ -1,0 +1,624 @@
+{
+  "population_counts": {
+    "always_compliant": 600,
+    "never_compliant": 262,
+    "swing": 138,
+    "total": 1000
+  },
+  "structural_proxies": {
+    "question_length": {
+      "stats": {
+        "always_compliant": {
+          "mean": 135.23666666666668,
+          "median": 121.5,
+          "std": 80.71561593369374,
+          "n": 600
+        },
+        "never_compliant": {
+          "mean": 122.45419847328245,
+          "median": 97.0,
+          "std": 79.46065689272399,
+          "n": 262
+        },
+        "swing": {
+          "mean": 135.2826086956522,
+          "median": 98.0,
+          "std": 116.34954763029558,
+          "n": 138
+        }
+      },
+      "test": {
+        "kruskal_H": 7.959365605424669,
+        "kruskal_p": 0.01869156731196797,
+        "posthoc": {
+          "always_compliant_vs_never_compliant": {
+            "U": 87484.5,
+            "p": 0.008235466243531206,
+            "p_bonferroni": 0.024706398730593618,
+            "n1": 600,
+            "n2": 262
+          },
+          "always_compliant_vs_swing": {
+            "U": 45053.5,
+            "p": 0.10571590395358794,
+            "p_bonferroni": 0.31714771186076385,
+            "n1": 600,
+            "n2": 138
+          },
+          "never_compliant_vs_swing": {
+            "U": 17852.5,
+            "p": 0.8378043881661377,
+            "p_bonferroni": 1.0,
+            "n1": 262,
+            "n2": 138
+          }
+        }
+      }
+    },
+    "context_length": {
+      "stats": {
+        "always_compliant": {
+          "mean": 2251.39,
+          "median": 2290.5,
+          "std": 526.3544793197831,
+          "n": 600
+        },
+        "never_compliant": {
+          "mean": 2098.961832061069,
+          "median": 2129.5,
+          "std": 547.5860475388677,
+          "n": 262
+        },
+        "swing": {
+          "mean": 2110.7391304347825,
+          "median": 2148.0,
+          "std": 535.3761958450383,
+          "n": 138
+        }
+      },
+      "test": {
+        "kruskal_H": 18.085296183394416,
+        "kruskal_p": 0.00011825726537252254,
+        "posthoc": {
+          "always_compliant_vs_never_compliant": {
+            "U": 91531.5,
+            "p": 0.0001201387828796132,
+            "p_bonferroni": 0.0003604163486388396,
+            "n1": 600,
+            "n2": 262
+          },
+          "always_compliant_vs_swing": {
+            "U": 47455.0,
+            "p": 0.007335487117040405,
+            "p_bonferroni": 0.022006461351121213,
+            "n1": 600,
+            "n2": 138
+          },
+          "never_compliant_vs_swing": {
+            "U": 17802.0,
+            "p": 0.802092126717202,
+            "p_bonferroni": 1.0,
+            "n1": 262,
+            "n2": 138
+          }
+        }
+      }
+    },
+    "num_options": {
+      "stats": {
+        "always_compliant": {
+          "mean": 4.0,
+          "unique_values": [
+            3,
+            4,
+            5
+          ],
+          "n": 600
+        },
+        "never_compliant": {
+          "mean": 3.99618320610687,
+          "unique_values": [
+            3,
+            4,
+            5
+          ],
+          "n": 262
+        },
+        "swing": {
+          "mean": 4.0,
+          "unique_values": [
+            4
+          ],
+          "n": 138
+        }
+      }
+    },
+    "anti_compliance_response_length": {
+      "stats": {
+        "always_compliant": {
+          "min": 1,
+          "max": 1124,
+          "mean": 38.70666666666666,
+          "n": 600
+        },
+        "never_compliant": {
+          "min": 1,
+          "max": 1127,
+          "mean": 85.2557251908397,
+          "n": 262
+        },
+        "swing": {
+          "min": 1,
+          "max": 755,
+          "mean": 27.41304347826087,
+          "n": 138
+        }
+      },
+      "note": "Anti-compliance responses are single-letter; this is a null result."
+    },
+    "standard_response_length": {
+      "stats": {
+        "always_compliant": {
+          "mean": 28.12,
+          "median": 25.5,
+          "std": 19.412683139294955,
+          "n": 600
+        },
+        "never_compliant": {
+          "mean": 27.65267175572519,
+          "median": 24.0,
+          "std": 18.781933938762588,
+          "n": 262
+        },
+        "swing": {
+          "mean": 27.97826086956522,
+          "median": 25.5,
+          "std": 18.058466797111592,
+          "n": 138
+        }
+      },
+      "test": {
+        "kruskal_H": 0.14089926439323225,
+        "kruskal_p": 0.9319746798610835,
+        "posthoc": {
+          "always_compliant_vs_never_compliant": {
+            "U": 79797.0,
+            "p": 0.7218141540834373,
+            "p_bonferroni": 1.0,
+            "n1": 600,
+            "n2": 262
+          },
+          "always_compliant_vs_swing": {
+            "U": 41203.0,
+            "p": 0.9306145658386021,
+            "p_bonferroni": 1.0,
+            "n1": 600,
+            "n2": 138
+          },
+          "never_compliant_vs_swing": {
+            "U": 17792.5,
+            "p": 0.7953507267298252,
+            "p_bonferroni": 1.0,
+            "n1": 262,
+            "n2": 138
+          }
+        }
+      }
+    }
+  },
+  "source_datasets": {
+    "counts": {
+      "always_compliant": {
+        "ACTAAP": 11,
+        "AIMS": 5,
+        "AKDE&ED": 10,
+        "CSZ": 1,
+        "FCAT": 1,
+        "LEAP": 10,
+        "MCAS": 52,
+        "MDSA": 13,
+        "MEA": 7,
+        "MEAP": 4,
+        "MSA": 1,
+        "Mercury": 313,
+        "Mercury_SC": 122,
+        "NAEP": 3,
+        "NCEOGA": 11,
+        "NYSEDREGENTS": 11,
+        "OHAT": 3,
+        "TAKS": 3,
+        "TIMSS": 12,
+        "VASoL": 6,
+        "WASL": 1
+      },
+      "never_compliant": {
+        "ACTAAP": 6,
+        "AIMS": 3,
+        "AKDE&ED": 4,
+        "CSZ": 4,
+        "FCAT": 0,
+        "LEAP": 1,
+        "MCAS": 19,
+        "MDSA": 7,
+        "MEA": 3,
+        "MEAP": 2,
+        "MSA": 2,
+        "Mercury": 118,
+        "Mercury_SC": 42,
+        "NAEP": 2,
+        "NCEOGA": 3,
+        "NYSEDREGENTS": 25,
+        "OHAT": 3,
+        "TAKS": 1,
+        "TIMSS": 9,
+        "VASoL": 7,
+        "WASL": 1
+      },
+      "swing": {
+        "ACTAAP": 4,
+        "AIMS": 0,
+        "AKDE&ED": 2,
+        "CSZ": 1,
+        "FCAT": 0,
+        "LEAP": 4,
+        "MCAS": 10,
+        "MDSA": 3,
+        "MEA": 3,
+        "MEAP": 0,
+        "MSA": 5,
+        "Mercury": 65,
+        "Mercury_SC": 29,
+        "NAEP": 0,
+        "NCEOGA": 0,
+        "NYSEDREGENTS": 2,
+        "OHAT": 1,
+        "TAKS": 2,
+        "TIMSS": 6,
+        "VASoL": 1,
+        "WASL": 0
+      }
+    },
+    "test": {
+      "chi2": 80.46170036857018,
+      "p": 3.0268969959402116e-05,
+      "dof": 36,
+      "cramers_v": 0.2008778382549729
+    },
+    "filtered_sources": [
+      "ACTAAP",
+      "AIMS",
+      "AKDE&ED",
+      "CSZ",
+      "LEAP",
+      "MCAS",
+      "MDSA",
+      "MEA",
+      "MEAP",
+      "MSA",
+      "Mercury",
+      "Mercury_SC",
+      "NAEP",
+      "NCEOGA",
+      "NYSEDREGENTS",
+      "OHAT",
+      "TAKS",
+      "TIMSS",
+      "VASoL"
+    ]
+  },
+  "topics": {
+    "counts": {
+      "always_compliant": {
+        "biology": 159,
+        "chemistry": 132,
+        "earth_science": 85,
+        "other": 88,
+        "physics": 92,
+        "scientific_method": 44
+      },
+      "never_compliant": {
+        "biology": 65,
+        "chemistry": 49,
+        "earth_science": 25,
+        "other": 48,
+        "physics": 62,
+        "scientific_method": 13
+      },
+      "swing": {
+        "biology": 38,
+        "chemistry": 31,
+        "earth_science": 19,
+        "other": 17,
+        "physics": 28,
+        "scientific_method": 5
+      }
+    },
+    "test": {
+      "chi2": 17.709743335380235,
+      "p": 0.06006174630727906,
+      "dof": 10,
+      "cramers_v": 0.09410032767047156
+    },
+    "swing_subtype_counts": {
+      "C\u2192R": {
+        "biology": 6,
+        "chemistry": 7,
+        "earth_science": 4,
+        "other": 6,
+        "physics": 7,
+        "scientific_method": 2
+      },
+      "R\u2192C": {
+        "biology": 30,
+        "chemistry": 21,
+        "earth_science": 13,
+        "other": 11,
+        "physics": 16,
+        "scientific_method": 3
+      },
+      "non-monotonic": {
+        "biology": 2,
+        "chemistry": 3,
+        "earth_science": 2,
+        "other": 0,
+        "physics": 5,
+        "scientific_method": 0
+      }
+    }
+  },
+  "transitions": {
+    "subtype_counts": {
+      "R\u2192C": {
+        "count": 94,
+        "proportion": 0.6812,
+        "ci_95": [
+          0.5994,
+          0.7531
+        ]
+      },
+      "C\u2192R": {
+        "count": 32,
+        "proportion": 0.2319,
+        "ci_95": [
+          0.1693,
+          0.309
+        ]
+      },
+      "non-monotonic": {
+        "count": 12,
+        "proportion": 0.087,
+        "ci_95": [
+          0.0504,
+          0.1458
+        ]
+      }
+    },
+    "transition_alpha": {
+      "R\u2192C": {
+        "mean": 1.404,
+        "median": 1.25,
+        "values": [
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
+      },
+      "C\u2192R": {
+        "mean": 1.188,
+        "median": 1.0,
+        "values": [
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.5,
+          2.5,
+          2.5,
+          3.0
+        ]
+      },
+      "non-monotonic": {
+        "mean": 0.792,
+        "median": 0.5,
+        "values": [
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          2.0
+        ]
+      }
+    },
+    "rc_vs_cr_transition": {
+      "U": 1731.0,
+      "p": 0.1895367782492977,
+      "r": -0.15093085106382986,
+      "n1": 94,
+      "n2": 32
+    },
+    "rc_resistance_strength": {
+      "description": "Alpha at which R\u2192C samples first become compliant (higher = stronger original knowledge)",
+      "mean": 1.404,
+      "median": 1.25,
+      "distribution": {
+        "1.5": 13,
+        "0.5": 32,
+        "1.0": 15,
+        "2.5": 15,
+        "3.0": 6,
+        "2.0": 13
+      }
+    }
+  },
+  "word_overlap": {
+    "stats": {
+      "always_compliant": {
+        "mean": 0.6171,
+        "median": 0.6,
+        "std": 0.1832,
+        "n": 600
+      },
+      "never_compliant": {
+        "mean": 0.6221,
+        "median": 0.625,
+        "std": 0.2092,
+        "n": 262
+      },
+      "swing": {
+        "mean": 0.6068,
+        "median": 0.6,
+        "std": 0.2027,
+        "n": 138
+      }
+    },
+    "test": {
+      "kruskal_H": 0.4884373468899965,
+      "kruskal_p": 0.7833163250538349,
+      "posthoc": {
+        "always_compliant_vs_never_compliant": {
+          "U": 77178.5,
+          "p": 0.6722413258116484,
+          "p_bonferroni": 1.0,
+          "n1": 600,
+          "n2": 262
+        },
+        "always_compliant_vs_swing": {
+          "U": 42443.5,
+          "p": 0.6438361717383195,
+          "p_bonferroni": 1.0,
+          "n1": 600,
+          "n2": 138
+        },
+        "never_compliant_vs_swing": {
+          "U": 18807.0,
+          "p": 0.5068786179869165,
+          "p_bonferroni": 1.0,
+          "n1": 262,
+          "n2": 138
+        }
+      }
+    }
+  }
+}

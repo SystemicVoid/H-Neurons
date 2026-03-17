@@ -902,6 +902,208 @@ async function initInterventionCharts() {
   }
 }
 
+// --- Swing characterization charts ---
+const swingDataUrl = new URL('../data/swing_characterization.json', import.meta.url);
+let swingDataPromise = null;
+
+function loadSwingData() {
+  if (!swingDataPromise) {
+    swingDataPromise = fetch(swingDataUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load swing characterization data: ${response.status}`);
+        }
+        return response.json();
+      });
+  }
+
+  return swingDataPromise;
+}
+
+async function initSwingCharts() {
+  const transitionAlphaCanvas = document.getElementById('transitionAlphaChart');
+  const knowledgeCanvas = document.getElementById('knowledgeChart');
+
+  if (!transitionAlphaCanvas && !knowledgeCanvas) {
+    return;
+  }
+
+  const swingData = await loadSwingData();
+
+  if (transitionAlphaCanvas) {
+    const alphas = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
+    const alphaLabels = alphas.map((a) => '\u03b1=' + a.toFixed(1));
+
+    // Build histogram counts from the summary
+    const rcValues = swingData.transition_alpha['\u2192C']
+      ? null
+      : null;
+
+    // We need to reconstruct from the resistance strength distribution
+    const resistance = swingData.rc_resistance_strength?.distribution ?? {};
+
+    // Count transitions per alpha bucket for each subtype
+    // Use the raw counts from transition_alpha values if available in the source
+    const rcCounts = alphas.map(() => 0);
+    const crCounts = alphas.map(() => 0);
+    const nmCounts = alphas.map(() => 0);
+
+    // Parse from the source summary's transition_alpha values
+    // Since we don't have raw values in the export, use resistance_strength distribution for R→C
+    if (resistance && Object.keys(resistance).length > 0) {
+      Object.entries(resistance).forEach(([alpha, count]) => {
+        const idx = alphas.indexOf(parseFloat(alpha));
+        if (idx >= 0) rcCounts[idx] = count;
+      });
+    } else {
+      // Fallback: use subtype counts and mean to approximate
+      const rc = swingData.subtypes['R\u2192C'] || swingData.subtypes['R→C'];
+      if (rc) rcCounts[2] = rc.count; // put all at median
+    }
+
+    new Chart(transitionAlphaCanvas, {
+      type: 'bar',
+      data: {
+        labels: alphaLabels,
+        datasets: [
+          {
+            label: 'R\u2192C (knowledge override)',
+            data: rcCounts,
+            backgroundColor: 'rgba(155, 89, 182, 0.7)',
+            borderRadius: 4,
+            borderSkipped: false,
+          },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'rectRounded',
+              padding: 16,
+              font: { size: 12 }
+            }
+          },
+          valueLabels: {
+            formatter: (value) => value > 0 ? `${value}` : '',
+            skipZero: true,
+            offset: 12,
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y + ' samples'
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+            border: { color: 'rgba(157, 163, 196, 0.12)' }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            ticks: { stepSize: 5, font: { size: 12 } },
+            border: { display: false },
+            title: {
+              display: true,
+              text: 'R\u2192C samples transitioning at each \u03b1',
+              font: { size: 12 },
+              color: '#9da3c4'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (knowledgeCanvas) {
+    const llm = swingData.llm_enrichment;
+    if (llm && llm.knowledge_by_population) {
+      const populations = Object.keys(llm.knowledge_by_population);
+      const categories = new Set();
+      populations.forEach((pop) => {
+        Object.keys(llm.knowledge_by_population[pop]).forEach((cat) => categories.add(cat));
+      });
+      const categoryList = [...categories];
+      const colors = {
+        'well_known': 'rgba(78, 205, 196, 0.7)',
+        'common_knowledge': 'rgba(78, 205, 196, 0.5)',
+        'specialized': 'rgba(240, 165, 0, 0.6)',
+        'obscure': 'rgba(255, 107, 107, 0.6)',
+        'ambiguous': 'rgba(157, 163, 196, 0.4)',
+      };
+      const defaultColor = 'rgba(127, 119, 221, 0.5)';
+
+      const datasets = categoryList.map((cat) => ({
+        label: cat.replace(/_/g, ' '),
+        data: populations.map((pop) => llm.knowledge_by_population[pop][cat] || 0),
+        backgroundColor: colors[cat] || defaultColor,
+        borderRadius: 4,
+        borderSkipped: false,
+      }));
+
+      new Chart(knowledgeCanvas, {
+        type: 'bar',
+        data: {
+          labels: populations.map((p) => p.replace(/_/g, ' ')),
+          datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                pointStyle: 'rectRounded',
+                padding: 16,
+                font: { size: 11 }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y + ' samples'
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { font: { size: 12 } },
+              border: { color: 'rgba(157, 163, 196, 0.12)' }
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              grid: { color: 'rgba(157, 163, 196, 0.08)' },
+              ticks: { font: { size: 12 } },
+              border: { display: false },
+              title: {
+                display: true,
+                text: 'Samples by knowledge classification',
+                font: { size: 12 },
+                color: '#9da3c4'
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+}
+
+initSwingCharts().catch((error) => {
+  console.error('Failed to initialize swing characterization charts from site data.', error);
+});
+
 initClassifierChart().catch((error) => {
   console.error('Failed to initialize classifier chart from site data.', error);
 });

@@ -1,0 +1,7715 @@
+{
+  "model_path": "google/gemma-3-4b-it",
+  "loaded_model_path": "models/gemma3_4b_classifier_disjoint.pkl",
+  "selection_split": "pretrained_load",
+  "total_ffn_neurons": 348160,
+  "selected_h_neurons": 38,
+  "selected_ratio_per_mille": 0.1091452205882353,
+  "evaluation": {
+    "n_examples": 1090,
+    "n_positive": 544,
+    "n_negative": 546,
+    "confusion_matrix": {
+      "tp": 482,
+      "tn": 279,
+      "fp": 267,
+      "fn": 62
+    },
+    "metrics": {
+      "accuracy": {
+        "estimate": 0.6981651376146789,
+        "ci": {
+          "lower": 0.673394495412844,
+          "upper": 0.7229357798165138,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "precision": {
+        "estimate": 0.6435246995994659,
+        "ci": {
+          "lower": 0.623056486178553,
+          "upper": 0.6648577138875646,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "recall": {
+        "estimate": 0.8860294117647058,
+        "ci": {
+          "lower": 0.8584558823529411,
+          "upper": 0.9117647058823529,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "f1": {
+        "estimate": 0.745552977571539,
+        "ci": {
+          "lower": 0.7260061919504643,
+          "upper": 0.7644787644787645,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "auroc": {
+        "estimate": 0.8218830801551389,
+        "ci": {
+          "lower": 0.7968848476890755,
+          "upper": 0.8456656701141995,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      }
+    },
+    "bootstrap": {
+      "n_resamples": 10000,
+      "seed": 42,
+      "confidence": 0.95,
+      "resampling": "stratified_by_label",
+      "interval": "percentile"
+    },
+    "examples": [
+      {
+        "qid": "5fd0d880a43ad31278000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6785749548664568,
+        "correct": true
+      },
+      {
+        "qid": "6060701c94d57fd87900003c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9169759483707065,
+        "correct": true
+      },
+      {
+        "qid": "64468b0757b1c7a315000070",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7425066688045123,
+        "correct": true
+      },
+      {
+        "qid": "5313058de3eabad02100000e",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.3579587372944482,
+        "correct": false
+      },
+      {
+        "qid": "5d31b847b3a6380763000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6235794049754577,
+        "correct": true
+      },
+      {
+        "qid": "5e35dc26158f994d3a000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7652359183843533,
+        "correct": true
+      },
+      {
+        "qid": "5890e163621ea6ff7e000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7253380329987272,
+        "correct": true
+      },
+      {
+        "qid": "5a70d42899e2c3af26000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7165424251538879,
+        "correct": true
+      },
+      {
+        "qid": "5c890e6d75a4a5d21900000f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7811945792917493,
+        "correct": true
+      },
+      {
+        "qid": "6217d9493a8413c653000022",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7061025968949736,
+        "correct": true
+      },
+      {
+        "qid": "56bc751eac7ad10019000013",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8574787651821055,
+        "correct": true
+      },
+      {
+        "qid": "5887fe7d3b87a8a738000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6790059458268324,
+        "correct": true
+      },
+      {
+        "qid": "587e07023ec846c24f000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8608932030525708,
+        "correct": true
+      },
+      {
+        "qid": "56d1e23c67f0cb3d66000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7927517100192344,
+        "correct": true
+      },
+      {
+        "qid": "5a76160a83b0d9ea66000020",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5596922170885432,
+        "correct": true
+      },
+      {
+        "qid": "621142713a8413c65300000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5024856274935546,
+        "correct": true
+      },
+      {
+        "qid": "5e76436cc6a8763d23000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6741680890084264,
+        "correct": true
+      },
+      {
+        "qid": "5e776443835f4e4777000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9015768620350825,
+        "correct": true
+      },
+      {
+        "qid": "5e5409776d0a277941000051",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6299407242939177,
+        "correct": true
+      },
+      {
+        "qid": "58bde18b02b8c60953000014",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.477424699343407,
+        "correct": false
+      },
+      {
+        "qid": "5c65b7657c78d6947100000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8424017588883522,
+        "correct": true
+      },
+      {
+        "qid": "5a7639419e632bc066000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8158092422361519,
+        "correct": true
+      },
+      {
+        "qid": "660d7324fdcbea915f000040",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6228625059253879,
+        "correct": true
+      },
+      {
+        "qid": "5e44cf61f5547e6e27000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.724086813511464,
+        "correct": true
+      },
+      {
+        "qid": "53262cdcd6d3ac6a34000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7384400597944356,
+        "correct": true
+      },
+      {
+        "qid": "5c6b7fb27c78d6947100002d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6365669953751644,
+        "correct": true
+      },
+      {
+        "qid": "5be48987133db5eb7800001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7167898736995668,
+        "correct": true
+      },
+      {
+        "qid": "603bc3181cb411341a00015c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7238567016718284,
+        "correct": true
+      },
+      {
+        "qid": "6440420857b1c7a315000050",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6347850286271643,
+        "correct": true
+      },
+      {
+        "qid": "65cfd02e1930410b1300001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7758803413132795,
+        "correct": true
+      },
+      {
+        "qid": "60329dc11cb411341a000147",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6968007607293758,
+        "correct": true
+      },
+      {
+        "qid": "603404f41cb411341a00014f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7391948085454253,
+        "correct": true
+      },
+      {
+        "qid": "54edf81f94afd61504000014",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6999105622655422,
+        "correct": true
+      },
+      {
+        "qid": "5e5d24811af46fc130000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5906030905316554,
+        "correct": true
+      },
+      {
+        "qid": "569e731cca240fa209000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.645219804808237,
+        "correct": true
+      },
+      {
+        "qid": "5891c90949702f2e01000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7634395306509649,
+        "correct": true
+      },
+      {
+        "qid": "5c51fe8907ef653866000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6559714582581508,
+        "correct": true
+      },
+      {
+        "qid": "5e51dc516d0a27794100003e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6624464265966357,
+        "correct": true
+      },
+      {
+        "qid": "5e2a046caa19d74431000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6220186296550874,
+        "correct": true
+      },
+      {
+        "qid": "5e4940f46d0a277941000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7543624159703929,
+        "correct": true
+      },
+      {
+        "qid": "58df47f08acda3452900002f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6114565696478637,
+        "correct": true
+      },
+      {
+        "qid": "56cdf5315795f9a73e000046",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5716428323054886,
+        "correct": true
+      },
+      {
+        "qid": "626aeba1e764a53204000040",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5835064022595496,
+        "correct": true
+      },
+      {
+        "qid": "5fdb1023a43ad31278000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.851599974742473,
+        "correct": true
+      },
+      {
+        "qid": "56ae6e650a360a5e4500000e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7108079470802868,
+        "correct": true
+      },
+      {
+        "qid": "602598301cb411341a0000b0",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6518780151323614,
+        "correct": true
+      },
+      {
+        "qid": "58caf0be02b8c6095300002f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6992675398158178,
+        "correct": true
+      },
+      {
+        "qid": "56f564f909dd18d46b000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8377559128225999,
+        "correct": true
+      },
+      {
+        "qid": "626aef83e764a53204000044",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5702409052906361,
+        "correct": true
+      },
+      {
+        "qid": "55149f156a8cde6b72000013",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5798245826902354,
+        "correct": true
+      },
+      {
+        "qid": "54f2228e64850a5854000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6234456846404437,
+        "correct": true
+      },
+      {
+        "qid": "56e857ae42442bac75000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7276923226729421,
+        "correct": true
+      },
+      {
+        "qid": "51651e24298dcd4e51000054",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7038564184711139,
+        "correct": true
+      },
+      {
+        "qid": "56c1f01cef6e394741000044",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.37870013212126913,
+        "correct": false
+      },
+      {
+        "qid": "5c632542e842deac6700000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7071288678016938,
+        "correct": true
+      },
+      {
+        "qid": "5e52add36d0a277941000047",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8455286943406208,
+        "correct": true
+      },
+      {
+        "qid": "61f7d683882a024a10000036",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6954781481052271,
+        "correct": true
+      },
+      {
+        "qid": "61f95f9f882a024a1000004e",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.20304293499541112,
+        "correct": false
+      },
+      {
+        "qid": "515ddda6298dcd4e5100001f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5575638247260647,
+        "correct": true
+      },
+      {
+        "qid": "5a885add61bb38fb24000017",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.70707619708516,
+        "correct": true
+      },
+      {
+        "qid": "5a6d1733b750ff4455000030",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8423847553202868,
+        "correct": true
+      },
+      {
+        "qid": "63eeefc5f36125a426000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7731046268416294,
+        "correct": true
+      },
+      {
+        "qid": "5ca61f17ecadf2e73f000050",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6684934414543414,
+        "correct": true
+      },
+      {
+        "qid": "5e764440c6a8763d23000013",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6582127042698398,
+        "correct": true
+      },
+      {
+        "qid": "54db5e24bcba1b1817000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7814327384593093,
+        "correct": true
+      },
+      {
+        "qid": "6026d6891cb411341a0000cc",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.38952145021110446,
+        "correct": false
+      },
+      {
+        "qid": "6057c2f894d57fd879000033",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5835460026466459,
+        "correct": true
+      },
+      {
+        "qid": "5a6e2b1bb750ff445500003e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9390896624574974,
+        "correct": true
+      },
+      {
+        "qid": "5c74111f7c78d694710000a1",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7575859847948726,
+        "correct": true
+      },
+      {
+        "qid": "5a6e3155b750ff445500003f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8893169247721892,
+        "correct": true
+      },
+      {
+        "qid": "514c3fd7d24251bc05000062",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.40861937091723527,
+        "correct": false
+      },
+      {
+        "qid": "5505db6a8e1671127b000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6916127146728437,
+        "correct": true
+      },
+      {
+        "qid": "5d35e421b3a638076300000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6994903394111778,
+        "correct": true
+      },
+      {
+        "qid": "6027f8ae1cb411341a0000ed",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7298838656251929,
+        "correct": true
+      },
+      {
+        "qid": "530a5117970c65fa6b000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8356169266159432,
+        "correct": true
+      },
+      {
+        "qid": "6450ec0c57b1c7a31500008f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6304836566125224,
+        "correct": true
+      },
+      {
+        "qid": "5fd779b4a43ad31278000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6898970830966202,
+        "correct": true
+      },
+      {
+        "qid": "61f7c60c882a024a10000025",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7354109588845701,
+        "correct": true
+      },
+      {
+        "qid": "6200411cc9dfcb9c09000014",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7453597773317808,
+        "correct": true
+      },
+      {
+        "qid": "64178ffb690f196b51000029",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5734780140775426,
+        "correct": true
+      },
+      {
+        "qid": "5540fbce234c5a7c75000001",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4343654013262815,
+        "correct": false
+      },
+      {
+        "qid": "6023501a1cb411341a000096",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7376846292561579,
+        "correct": true
+      },
+      {
+        "qid": "5a679e8cb750ff4455000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5803568688838152,
+        "correct": true
+      },
+      {
+        "qid": "532f1452d6d3ac6a34000030",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6161143809108183,
+        "correct": true
+      },
+      {
+        "qid": "54d662113706e8952800000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7138012139577684,
+        "correct": true
+      },
+      {
+        "qid": "626aed2fe764a53204000043",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.532357050071407,
+        "correct": true
+      },
+      {
+        "qid": "6057bf0694d57fd879000031",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7005664049621952,
+        "correct": true
+      },
+      {
+        "qid": "5c5b268986df2b9174000019",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.894128401062631,
+        "correct": true
+      },
+      {
+        "qid": "5c34ad63da8336e21a000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7021418273519265,
+        "correct": true
+      },
+      {
+        "qid": "554356d0ed966d112c000005",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.22145906574052007,
+        "correct": false
+      },
+      {
+        "qid": "5c9789a9ecadf2e73f000024",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5641964656503123,
+        "correct": true
+      },
+      {
+        "qid": "56cae3eb5795f9a73e000021",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5410338089363811,
+        "correct": true
+      },
+      {
+        "qid": "6206b399c9dfcb9c09000039",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.782661580900703,
+        "correct": true
+      },
+      {
+        "qid": "571366ba1174fb1755000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6940458620045858,
+        "correct": true
+      },
+      {
+        "qid": "5ac0a82d19833b0d7b000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.611803656361331,
+        "correct": true
+      },
+      {
+        "qid": "553656c4bc4f83e828000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.675017570354907,
+        "correct": true
+      },
+      {
+        "qid": "601dbe101cb411341a00004c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8452358465663731,
+        "correct": true
+      },
+      {
+        "qid": "640ddbe9201352f04a000027",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5399797044163233,
+        "correct": true
+      },
+      {
+        "qid": "60258edd1cb411341a0000a9",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6045321975408364,
+        "correct": true
+      },
+      {
+        "qid": "5c6ab4c17c78d6947100001d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.625141035322779,
+        "correct": true
+      },
+      {
+        "qid": "5c897167d558e5f232000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7039037109861701,
+        "correct": true
+      },
+      {
+        "qid": "5e50123e6d0a277941000036",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6305218347986487,
+        "correct": true
+      },
+      {
+        "qid": "5895f7e978275d0c4a000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6759780239448222,
+        "correct": true
+      },
+      {
+        "qid": "5fe31317a43ad31278000044",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.47831017375337637,
+        "correct": false
+      },
+      {
+        "qid": "5a7347a02dc08e987e00001b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5381766457973983,
+        "correct": true
+      },
+      {
+        "qid": "5d387f24a1e1595105000013",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.741981843899841,
+        "correct": true
+      },
+      {
+        "qid": "626aab13e764a5320400003b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7229569395215074,
+        "correct": true
+      },
+      {
+        "qid": "5fe31301a43ad31278000039",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8655175689032031,
+        "correct": true
+      },
+      {
+        "qid": "5c65901c7c78d69471000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6827692680872902,
+        "correct": true
+      },
+      {
+        "qid": "5a9ac7ba1d1251d03b000013",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6760562463540507,
+        "correct": true
+      },
+      {
+        "qid": "61f563f7882a024a10000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7950236535858778,
+        "correct": true
+      },
+      {
+        "qid": "5a804f71faa1ab7d2e00001d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7473171811455611,
+        "correct": true
+      },
+      {
+        "qid": "5a7428090384be9551000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7131363185043683,
+        "correct": true
+      },
+      {
+        "qid": "5721f4b30fd6f91b68000011",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8149149434059173,
+        "correct": true
+      },
+      {
+        "qid": "606ad07394d57fd879000050",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4755168905606473,
+        "correct": false
+      },
+      {
+        "qid": "621e63a43a8413c653000051",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8410401744275571,
+        "correct": true
+      },
+      {
+        "qid": "66300d3e187cba990d00001b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6618166028905728,
+        "correct": true
+      },
+      {
+        "qid": "5a9d99ac4e03427e73000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.608384008793698,
+        "correct": true
+      },
+      {
+        "qid": "56c85ed65795f9a73e000012",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.33180995207059466,
+        "correct": false
+      },
+      {
+        "qid": "66301e04187cba990d000027",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7020977143923582,
+        "correct": true
+      },
+      {
+        "qid": "530f900ee3eabad021000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7590319970819492,
+        "correct": true
+      },
+      {
+        "qid": "61f81857882a024a10000040",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6877814799500737,
+        "correct": true
+      },
+      {
+        "qid": "5e2a080caa19d7443100000a",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.49932309541482495,
+        "correct": false
+      },
+      {
+        "qid": "58a9c532396a458e50000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5048597056838104,
+        "correct": true
+      },
+      {
+        "qid": "622628b03a8413c65300007d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6109623645390344,
+        "correct": true
+      },
+      {
+        "qid": "602c1b141cb411341a00011c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8829038187565157,
+        "correct": true
+      },
+      {
+        "qid": "5c61f767e842deac67000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7587847429711594,
+        "correct": true
+      },
+      {
+        "qid": "5c588d0986df2b9174000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7093106649218448,
+        "correct": true
+      },
+      {
+        "qid": "5e29f666aa19d74431000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6723589212545018,
+        "correct": true
+      },
+      {
+        "qid": "55450521bf90a13052000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6267682379914796,
+        "correct": true
+      },
+      {
+        "qid": "56ffd805cf1c32585100000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6420905213580025,
+        "correct": true
+      },
+      {
+        "qid": "5a9da8df4e03427e73000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6099132831770588,
+        "correct": true
+      },
+      {
+        "qid": "54d7ae1fe19bba8909000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7744260977294846,
+        "correct": true
+      },
+      {
+        "qid": "601ec2d61cb411341a000062",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8011969461075205,
+        "correct": true
+      },
+      {
+        "qid": "58a877cf38c171fb5b000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6265638674246143,
+        "correct": true
+      },
+      {
+        "qid": "662cfd21187cba990d000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8187835435075281,
+        "correct": true
+      },
+      {
+        "qid": "54f608f85f206a0c06000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6525119369807424,
+        "correct": true
+      },
+      {
+        "qid": "65f7798dc4010b4d78000038",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5651260968890303,
+        "correct": true
+      },
+      {
+        "qid": "58cd7fed02b8c6095300003f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.705578932972196,
+        "correct": true
+      },
+      {
+        "qid": "5c73acec7c78d69471000086",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5710103719934346,
+        "correct": true
+      },
+      {
+        "qid": "517a8b768ed59a060a00003f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8158796497464278,
+        "correct": true
+      },
+      {
+        "qid": "56c1f020ef6e394741000047",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.3467998762959814,
+        "correct": false
+      },
+      {
+        "qid": "56bc77a3ac7ad10019000015",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.40125279492206134,
+        "correct": false
+      },
+      {
+        "qid": "52fb78572059c6d71c000067",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6897996262312216,
+        "correct": true
+      },
+      {
+        "qid": "58f89eb270f9fc6f0f00001a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7546799960587797,
+        "correct": true
+      },
+      {
+        "qid": "605281cf94d57fd879000015",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8450464164872581,
+        "correct": true
+      },
+      {
+        "qid": "5519113b622b19434500000f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8004042331510003,
+        "correct": true
+      },
+      {
+        "qid": "601ebbeb1cb411341a00005b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5701356683686629,
+        "correct": true
+      },
+      {
+        "qid": "53036faab24d855b11000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6720672888494595,
+        "correct": true
+      },
+      {
+        "qid": "56d1da3b67f0cb3d66000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5698797893096847,
+        "correct": true
+      },
+      {
+        "qid": "65f039fdc4010b4d78000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5640532026291964,
+        "correct": true
+      },
+      {
+        "qid": "5a8715a961bb38fb24000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5647746797356543,
+        "correct": true
+      },
+      {
+        "qid": "5889eb503b87a8a73800000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8651233968862039,
+        "correct": true
+      },
+      {
+        "qid": "5c6d65637c78d69471000038",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8843613368806496,
+        "correct": true
+      },
+      {
+        "qid": "5ad83cd6133db5eb78000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5828062734273812,
+        "correct": true
+      },
+      {
+        "qid": "5a7877c0faa1ab7d2e00000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7376708347913586,
+        "correct": true
+      },
+      {
+        "qid": "53442ca9aeec6fbd0700000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.690213481118301,
+        "correct": true
+      },
+      {
+        "qid": "56c1f021ef6e394741000048",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5943820672834043,
+        "correct": true
+      },
+      {
+        "qid": "61f5ee57882a024a10000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8158275412468031,
+        "correct": true
+      },
+      {
+        "qid": "5a6f98e6b750ff445500005d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6524860920232122,
+        "correct": true
+      },
+      {
+        "qid": "5a735b383b9d13c708000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8272542299382465,
+        "correct": true
+      },
+      {
+        "qid": "6415c53e690f196b51000012",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.46501212903037226,
+        "correct": false
+      },
+      {
+        "qid": "5d38663da1e1595105000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5060009780157079,
+        "correct": true
+      },
+      {
+        "qid": "64468e0d57b1c7a315000071",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5990135488948506,
+        "correct": true
+      },
+      {
+        "qid": "5150b807d24251bc05000072",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6882942886736299,
+        "correct": true
+      },
+      {
+        "qid": "6217d8973a8413c653000020",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6315820312346816,
+        "correct": true
+      },
+      {
+        "qid": "65f77397c4010b4d78000025",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6213894240661136,
+        "correct": true
+      },
+      {
+        "qid": "593fe7f970f9fc6f0f000022",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8303131102511431,
+        "correct": true
+      },
+      {
+        "qid": "5c5f0fb41a4c55d80b000013",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7127902914881044,
+        "correct": true
+      },
+      {
+        "qid": "552fac4fbc4f83e828000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8121677414781269,
+        "correct": true
+      },
+      {
+        "qid": "58da1aa08acda34529000012",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.485599037089633,
+        "correct": false
+      },
+      {
+        "qid": "587f795d92a5b8ad44000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6738785130876109,
+        "correct": true
+      },
+      {
+        "qid": "606074ab94d57fd87900003e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8512858901076421,
+        "correct": true
+      },
+      {
+        "qid": "5a7346662dc08e987e00001a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7661183249224819,
+        "correct": true
+      },
+      {
+        "qid": "5a871b8d61bb38fb2400000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7612841805150681,
+        "correct": true
+      },
+      {
+        "qid": "5c8d15cf0101eac870000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7426244845864096,
+        "correct": true
+      },
+      {
+        "qid": "605cc21d94d57fd879000036",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5775685379253018,
+        "correct": true
+      },
+      {
+        "qid": "60281eb11cb411341a0000f5",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.674312052587786,
+        "correct": true
+      },
+      {
+        "qid": "5ca0bf00ecadf2e73f000045",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7121173089452104,
+        "correct": true
+      },
+      {
+        "qid": "6049080c1cb411341a000164",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7329285440011198,
+        "correct": true
+      },
+      {
+        "qid": "5d38767ca1e159510500000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7270245032760679,
+        "correct": true
+      },
+      {
+        "qid": "5139b31dbee46bd34c000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7258231196545332,
+        "correct": true
+      },
+      {
+        "qid": "5c2cf051133db5eb78000030",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7158792029380439,
+        "correct": true
+      },
+      {
+        "qid": "6451060c57b1c7a315000096",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6266965901223341,
+        "correct": true
+      },
+      {
+        "qid": "56c048acef6e39474100001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7360913628684227,
+        "correct": true
+      },
+      {
+        "qid": "5aa6c800d6d6b54f79000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6741455569832926,
+        "correct": true
+      },
+      {
+        "qid": "5c580aff07647bbc4b00001a",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4707632302761052,
+        "correct": false
+      },
+      {
+        "qid": "5719f5b27de986d80d00000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6588723126794085,
+        "correct": true
+      },
+      {
+        "qid": "62211ebc3a8413c653000071",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6943568668936201,
+        "correct": true
+      },
+      {
+        "qid": "58d906b28acda3452900000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5222863059679389,
+        "correct": true
+      },
+      {
+        "qid": "5e4bf9436d0a27794100002d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8379336937523932,
+        "correct": true
+      },
+      {
+        "qid": "5e2e1986fbd6abf43b000025",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.844937712579865,
+        "correct": true
+      },
+      {
+        "qid": "602357ff1cb411341a00009a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5903704342054893,
+        "correct": true
+      },
+      {
+        "qid": "5a6d08d5b750ff445500002c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7713558362512015,
+        "correct": true
+      },
+      {
+        "qid": "601c4b231cb411341a000020",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4043788392582611,
+        "correct": false
+      },
+      {
+        "qid": "571f33bd0fd6f91b68000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5628604689269104,
+        "correct": true
+      },
+      {
+        "qid": "5c58474786df2b9174000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6101580244219375,
+        "correct": true
+      },
+      {
+        "qid": "54edf72c94afd61504000013",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6932100872675552,
+        "correct": true
+      },
+      {
+        "qid": "5e2dbc55fbd6abf43b000016",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5815883694510738,
+        "correct": true
+      },
+      {
+        "qid": "5c83fd8e617e120c34000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8166482044865182,
+        "correct": true
+      },
+      {
+        "qid": "56c8f4615795f9a73e00001a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8796512880067324,
+        "correct": true
+      },
+      {
+        "qid": "5a895f51fcd1d6a10c000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6646007697463412,
+        "correct": true
+      },
+      {
+        "qid": "5e52a4ec6d0a277941000044",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8944708434584506,
+        "correct": true
+      },
+      {
+        "qid": "5ca9f846ecadf2e73f000053",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7456245243556072,
+        "correct": true
+      },
+      {
+        "qid": "5e763bd4c6a8763d2300000f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6899133936950811,
+        "correct": true
+      },
+      {
+        "qid": "6217d8f03a8413c653000021",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6474996014163508,
+        "correct": true
+      },
+      {
+        "qid": "571e2beabb137a4b0c000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6239578208891835,
+        "correct": true
+      },
+      {
+        "qid": "5e2deb35fbd6abf43b00001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8612768112598479,
+        "correct": true
+      },
+      {
+        "qid": "5a67c497b750ff4455000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5545298727793726,
+        "correct": true
+      },
+      {
+        "qid": "52e8e93498d023950500001e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8103008943889212,
+        "correct": true
+      },
+      {
+        "qid": "5aae6499fcf456587200000c",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4057907744599141,
+        "correct": false
+      },
+      {
+        "qid": "551fd9c06b348bb82c000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5682910950765551,
+        "correct": true
+      },
+      {
+        "qid": "63f0494cf36125a426000028",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.306534739876836,
+        "correct": false
+      },
+      {
+        "qid": "533c38b3c45e133714000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5238615967017572,
+        "correct": true
+      },
+      {
+        "qid": "5a7d6287faa1ab7d2e00001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8117996674575452,
+        "correct": true
+      },
+      {
+        "qid": "58af1cb3717cd3f655000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7808293062764952,
+        "correct": true
+      },
+      {
+        "qid": "5544de7a5beec11c10000005",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4248038388687779,
+        "correct": false
+      },
+      {
+        "qid": "5a9e202bde7cb99d40000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8322977396476309,
+        "correct": true
+      },
+      {
+        "qid": "5880b073c872c95565000003",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4338978864498982,
+        "correct": false
+      },
+      {
+        "qid": "5881f9b65bf093691f000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6763937694188548,
+        "correct": true
+      },
+      {
+        "qid": "603251f81cb411341a00013a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.737473329610384,
+        "correct": true
+      },
+      {
+        "qid": "606bfeb494d57fd879000074",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7248329404340663,
+        "correct": true
+      },
+      {
+        "qid": "587f760792a5b8ad44000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8685074068987548,
+        "correct": true
+      },
+      {
+        "qid": "5e4e3cee6d0a277941000030",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6834611362174248,
+        "correct": true
+      },
+      {
+        "qid": "5a6fa61ab750ff4455000060",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7783876681016366,
+        "correct": true
+      },
+      {
+        "qid": "5324ce779b2d7acc7e00001e",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.3864701950249602,
+        "correct": false
+      },
+      {
+        "qid": "56c1f003ef6e394741000039",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5231082991741214,
+        "correct": true
+      },
+      {
+        "qid": "5c2f669e133db5eb78000031",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7850288357710474,
+        "correct": true
+      },
+      {
+        "qid": "56a39d60496b62f23f000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8741575879036428,
+        "correct": true
+      },
+      {
+        "qid": "606b390f94d57fd879000062",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.535216837766689,
+        "correct": true
+      },
+      {
+        "qid": "5c72f5247c78d6947100007e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7638115855412244,
+        "correct": true
+      },
+      {
+        "qid": "54d8fd334b1fd0d33c000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7384534682291655,
+        "correct": true
+      },
+      {
+        "qid": "587e3e302420191125000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8279495120834673,
+        "correct": true
+      },
+      {
+        "qid": "5543829fed966d112c000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8732920416157905,
+        "correct": true
+      },
+      {
+        "qid": "5e460f823f54159529000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7009627672716685,
+        "correct": true
+      },
+      {
+        "qid": "54ff5197e9bde69634000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6970702659261542,
+        "correct": true
+      },
+      {
+        "qid": "5d35d901b3a638076300000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6622889988742116,
+        "correct": true
+      },
+      {
+        "qid": "55376663bc4f83e82800000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7295265309745352,
+        "correct": true
+      },
+      {
+        "qid": "5fe3130ca43ad3127800003e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7089518821859222,
+        "correct": true
+      },
+      {
+        "qid": "532366f09b2d7acc7e000015",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6284970758780217,
+        "correct": true
+      },
+      {
+        "qid": "6440393157b1c7a31500004a",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4887831537289583,
+        "correct": false
+      },
+      {
+        "qid": "571e40a8bb137a4b0c000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7504204151533452,
+        "correct": true
+      },
+      {
+        "qid": "64178fea690f196b51000028",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5210244764072732,
+        "correct": true
+      },
+      {
+        "qid": "5e5bab131af46fc130000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5731165038840582,
+        "correct": true
+      },
+      {
+        "qid": "6616547dfdcbea915f00004f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6672796741003575,
+        "correct": true
+      },
+      {
+        "qid": "64403ab057b1c7a31500004d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7202048861771221,
+        "correct": true
+      },
+      {
+        "qid": "56c58ceeb04e159d0e000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6910531068103865,
+        "correct": true
+      },
+      {
+        "qid": "65cfcd541930410b13000019",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7105600475846184,
+        "correct": true
+      },
+      {
+        "qid": "601bcb5d1cb411341a000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6009757580144846,
+        "correct": true
+      },
+      {
+        "qid": "56e0447a51531f7e3300000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.83190576314207,
+        "correct": true
+      },
+      {
+        "qid": "61f52f22882a024a10000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8817797600337561,
+        "correct": true
+      },
+      {
+        "qid": "553ca8d8f32186855800000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7302866659447733,
+        "correct": true
+      },
+      {
+        "qid": "660999e7fdcbea915f00001c",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4892967620039642,
+        "correct": false
+      },
+      {
+        "qid": "60578bc994d57fd87900002b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5992860993462203,
+        "correct": true
+      },
+      {
+        "qid": "5335f053d6d3ac6a34000055",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6793512716927603,
+        "correct": true
+      },
+      {
+        "qid": "58edf567eda5a57672000011",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6777046487443681,
+        "correct": true
+      },
+      {
+        "qid": "534e364e288f4dae47000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7127717260243254,
+        "correct": true
+      },
+      {
+        "qid": "5e7745ea835f4e4777000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.781454998330377,
+        "correct": true
+      },
+      {
+        "qid": "65cfa8f81930410b13000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7144178918392883,
+        "correct": true
+      },
+      {
+        "qid": "65f7728fc4010b4d78000021",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6674384896172624,
+        "correct": true
+      },
+      {
+        "qid": "662fbec6187cba990d00000f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6219414659050734,
+        "correct": true
+      },
+      {
+        "qid": "56e2acfe51531f7e33000014",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4480407094130078,
+        "correct": false
+      },
+      {
+        "qid": "587e1a01fc7e8dd84f000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.854685336040627,
+        "correct": true
+      },
+      {
+        "qid": "5311bcc2e3eabad021000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6365699501609834,
+        "correct": true
+      },
+      {
+        "qid": "5e5e502a1af46fc13000000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.907063937116594,
+        "correct": true
+      },
+      {
+        "qid": "5717d64f29809bbe7a000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7500000675062616,
+        "correct": true
+      },
+      {
+        "qid": "58cd7af402b8c6095300003e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7489627536830866,
+        "correct": true
+      },
+      {
+        "qid": "621ecac13a8413c65300005f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7134029504060337,
+        "correct": true
+      },
+      {
+        "qid": "6086f0ef4e6a4cf630000011",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6522710602920936,
+        "correct": true
+      },
+      {
+        "qid": "5a3e8683966455904c000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8427073986461339,
+        "correct": true
+      },
+      {
+        "qid": "5a86f074faa1ab7d2e00003a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6442058345035843,
+        "correct": true
+      },
+      {
+        "qid": "6026ef9d1cb411341a0000d5",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5622114348110546,
+        "correct": true
+      },
+      {
+        "qid": "66099907fdcbea915f000015",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5379194387611441,
+        "correct": true
+      },
+      {
+        "qid": "550342a8f8aee20f27000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8419685307927183,
+        "correct": true
+      },
+      {
+        "qid": "661d96c9eac11fad33000028",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5065778882812988,
+        "correct": true
+      },
+      {
+        "qid": "6032a8b91cb411341a000149",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8754739541311637,
+        "correct": true
+      },
+      {
+        "qid": "5e2e136bfbd6abf43b000023",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.874495256138905,
+        "correct": true
+      },
+      {
+        "qid": "516545a8298dcd4e51000056",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7947078334534714,
+        "correct": true
+      },
+      {
+        "qid": "53130a77e3eabad02100000f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5794706935453182,
+        "correct": true
+      },
+      {
+        "qid": "65f7736fc4010b4d78000024",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7986117490311521,
+        "correct": true
+      },
+      {
+        "qid": "5c9a6693ecadf2e73f000031",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.36088275038535433,
+        "correct": false
+      },
+      {
+        "qid": "601eafcd1cb411341a000056",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.529830197474148,
+        "correct": true
+      },
+      {
+        "qid": "5e7f6971835f4e4777000020",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4924643224047613,
+        "correct": false
+      },
+      {
+        "qid": "52c7311903868f1b0600001d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7389595123932053,
+        "correct": true
+      },
+      {
+        "qid": "5e44b04c48dab47f26000016",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8056613595243345,
+        "correct": true
+      },
+      {
+        "qid": "536787467d100faa09000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6146063348412998,
+        "correct": true
+      },
+      {
+        "qid": "58e74bff3e8b6dc87c000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6349674281736818,
+        "correct": true
+      },
+      {
+        "qid": "5c72b7277c78d69471000073",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6564513660416601,
+        "correct": true
+      },
+      {
+        "qid": "621145c63a8413c65300000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5919489428377986,
+        "correct": true
+      },
+      {
+        "qid": "5d36a9507bc3fee31f000005",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.45332616635442347,
+        "correct": false
+      },
+      {
+        "qid": "593ff22b70f9fc6f0f000023",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6755337109917396,
+        "correct": true
+      },
+      {
+        "qid": "622118a43a8413c65300006a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7155650310545505,
+        "correct": true
+      },
+      {
+        "qid": "5c65468ce842deac6700001e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8244384365978499,
+        "correct": true
+      },
+      {
+        "qid": "5e763602c6a8763d2300000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9094996432008827,
+        "correct": true
+      },
+      {
+        "qid": "5886519c3b87a8a738000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6998624619660169,
+        "correct": true
+      },
+      {
+        "qid": "56c1f03bef6e394741000053",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7223976278665182,
+        "correct": true
+      },
+      {
+        "qid": "5eb422150d431b5f73000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.758458508685931,
+        "correct": true
+      },
+      {
+        "qid": "5c56b96e07647bbc4b000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8212844258744908,
+        "correct": true
+      },
+      {
+        "qid": "56c1f00def6e39474100003f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8220301025523341,
+        "correct": true
+      },
+      {
+        "qid": "5a774fdcfaa1ab7d2e000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7673291452790609,
+        "correct": true
+      },
+      {
+        "qid": "589635dd78275d0c4a000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7542183584493942,
+        "correct": true
+      },
+      {
+        "qid": "5e2894109499698331000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7882344048745032,
+        "correct": true
+      },
+      {
+        "qid": "5abbfd97fcf456587200001d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6863201150795243,
+        "correct": true
+      },
+      {
+        "qid": "601ef0571cb411341a000067",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7811176406851692,
+        "correct": true
+      },
+      {
+        "qid": "5a8056a2faa1ab7d2e00001f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7642468144875885,
+        "correct": true
+      },
+      {
+        "qid": "63fa16d8201352f04a000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7371054510011428,
+        "correct": true
+      },
+      {
+        "qid": "5c72f6b17c78d6947100007f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8556697499721754,
+        "correct": true
+      },
+      {
+        "qid": "5e4604d83f54159529000003",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.41399324333652854,
+        "correct": false
+      },
+      {
+        "qid": "56c865d25795f9a73e000016",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9140675212239537,
+        "correct": true
+      },
+      {
+        "qid": "5e3ab4f8b5b409ea5300001b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5666396720764519,
+        "correct": true
+      },
+      {
+        "qid": "625ebf76e764a53204000033",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7342695013519723,
+        "correct": true
+      },
+      {
+        "qid": "5c5f3a1f1a4c55d80b000028",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5577176619682759,
+        "correct": true
+      },
+      {
+        "qid": "601d79e01cb411341a000047",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7710376640727238,
+        "correct": true
+      },
+      {
+        "qid": "62507520e764a5320400000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7380341726332703,
+        "correct": true
+      },
+      {
+        "qid": "6028183e1cb411341a0000f1",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5774558114132277,
+        "correct": true
+      },
+      {
+        "qid": "511a3573df1ebcce7d000018",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.40272826889199964,
+        "correct": false
+      },
+      {
+        "qid": "58cf5c5a8acda34529000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8470445418535637,
+        "correct": true
+      },
+      {
+        "qid": "56b1f4300a360a5e4500001b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7475319779013504,
+        "correct": true
+      },
+      {
+        "qid": "54e1bdacae9738404b000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6385120473513217,
+        "correct": true
+      },
+      {
+        "qid": "589a246078275d0c4a00002a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7270010554550008,
+        "correct": true
+      },
+      {
+        "qid": "5a896c26fcd1d6a10c000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8066413449949242,
+        "correct": true
+      },
+      {
+        "qid": "63eeeaaaf36125a426000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7236307269596451,
+        "correct": true
+      },
+      {
+        "qid": "644008a657b1c7a31500003f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7793799683435088,
+        "correct": true
+      },
+      {
+        "qid": "5e48bf5ed14c9f295d000019",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8182588065252866,
+        "correct": true
+      },
+      {
+        "qid": "5e2b00bc76af173751000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6807811780069146,
+        "correct": true
+      },
+      {
+        "qid": "62005c68c9dfcb9c09000017",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7738672485070283,
+        "correct": true
+      },
+      {
+        "qid": "6052729c94d57fd879000011",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7236255445256562,
+        "correct": true
+      },
+      {
+        "qid": "66151045fdcbea915f000048",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6458411592607237,
+        "correct": true
+      },
+      {
+        "qid": "626ae803e764a5320400003c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.703306302530888,
+        "correct": true
+      },
+      {
+        "qid": "63f9cd0b33942b094c000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6563713559040455,
+        "correct": true
+      },
+      {
+        "qid": "58dfe6b56fddd3e83e000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7866800999852015,
+        "correct": true
+      },
+      {
+        "qid": "603534671cb411341a000153",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.24376961606264802,
+        "correct": false
+      },
+      {
+        "qid": "6251a2ffe764a5320400001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.624276978172109,
+        "correct": true
+      },
+      {
+        "qid": "514a0a57d24251bc05000051",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.31668513646051744,
+        "correct": false
+      },
+      {
+        "qid": "58f3c4b970f9fc6f0f00000a",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.35810193658136746,
+        "correct": false
+      },
+      {
+        "qid": "52eea4dcc8da89891000000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5651203674411559,
+        "correct": true
+      },
+      {
+        "qid": "58e79e703e8b6dc87c00000a",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.43109154928735327,
+        "correct": false
+      },
+      {
+        "qid": "58a2df9c60087bc10a000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7647411562511864,
+        "correct": true
+      },
+      {
+        "qid": "5e6e8f92c6a8763d23000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5865924655720547,
+        "correct": true
+      },
+      {
+        "qid": "5891f9e549702f2e01000002",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4515119268630002,
+        "correct": false
+      },
+      {
+        "qid": "5c89623bf9c2ba6b28000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6527116005017736,
+        "correct": true
+      },
+      {
+        "qid": "551c23bc6b348bb82c00000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5793425055839388,
+        "correct": true
+      },
+      {
+        "qid": "5c71d7ca7c78d6947100006b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6039965861255753,
+        "correct": true
+      },
+      {
+        "qid": "5148691bd24251bc0500002d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7993998420345599,
+        "correct": true
+      },
+      {
+        "qid": "56c1f040ef6e394741000055",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6133209464557083,
+        "correct": true
+      },
+      {
+        "qid": "5540b9800083d1bf0e000002",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.40053671286187964,
+        "correct": false
+      },
+      {
+        "qid": "5a777ab9faa1ab7d2e00000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.559891895679422,
+        "correct": true
+      },
+      {
+        "qid": "5c5f0d071a4c55d80b000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5002621358415866,
+        "correct": true
+      },
+      {
+        "qid": "5c9e6e99ecadf2e73f000036",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7176390843071455,
+        "correct": true
+      },
+      {
+        "qid": "531a3a58b166e2b806000037",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5605699592186105,
+        "correct": true
+      },
+      {
+        "qid": "5c58b99586df2b9174000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6442255395858689,
+        "correct": true
+      },
+      {
+        "qid": "5d35f1267bc3fee31f000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6292905763337173,
+        "correct": true
+      },
+      {
+        "qid": "5ad35d01133db5eb78000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7723378229948087,
+        "correct": true
+      },
+      {
+        "qid": "5abc9ecffcf4565872000021",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7672379114932247,
+        "correct": true
+      },
+      {
+        "qid": "56ed27012ac5ed145900000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7251704043895002,
+        "correct": true
+      },
+      {
+        "qid": "66300ee7187cba990d00001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6562773889792896,
+        "correct": true
+      },
+      {
+        "qid": "588f2de394c1512c50000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9053524225663787,
+        "correct": true
+      },
+      {
+        "qid": "55192892622b194345000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8234296790158747,
+        "correct": true
+      },
+      {
+        "qid": "606bff2194d57fd879000075",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7262642358572166,
+        "correct": true
+      },
+      {
+        "qid": "5fe3130da43ad3127800003f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7623334568337358,
+        "correct": true
+      },
+      {
+        "qid": "58c99fcc02b8c60953000029",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7672304978165011,
+        "correct": true
+      },
+      {
+        "qid": "5e764647c6a8763d23000016",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.561364014070913,
+        "correct": true
+      },
+      {
+        "qid": "601ebde11cb411341a00005d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9118429820671551,
+        "correct": true
+      },
+      {
+        "qid": "622627103a8413c65300007c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8884452856881333,
+        "correct": true
+      },
+      {
+        "qid": "5c9e6407ecadf2e73f000034",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7770194777825699,
+        "correct": true
+      },
+      {
+        "qid": "644ef46557b1c7a315000083",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6107555329051993,
+        "correct": true
+      },
+      {
+        "qid": "58f0b1d670f9fc6f0f000007",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.21819879683623772,
+        "correct": false
+      },
+      {
+        "qid": "644ef78f57b1c7a315000084",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.3012627990028505,
+        "correct": false
+      },
+      {
+        "qid": "5c897082d558e5f232000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8403091439819211,
+        "correct": true
+      },
+      {
+        "qid": "6206cfd5c9dfcb9c09000040",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8398900061952024,
+        "correct": true
+      },
+      {
+        "qid": "61f58de2882a024a1000000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7558855118379606,
+        "correct": true
+      },
+      {
+        "qid": "5ac716810340b9f058000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8739447758691109,
+        "correct": true
+      },
+      {
+        "qid": "550e828c71445a662f000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6033346412581636,
+        "correct": true
+      },
+      {
+        "qid": "5e48efd9f8b2df0d49000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6239849365103293,
+        "correct": true
+      },
+      {
+        "qid": "569e7721ceceede94d000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6440129815385105,
+        "correct": true
+      },
+      {
+        "qid": "61f7d5a0882a024a10000035",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7636759834967204,
+        "correct": true
+      },
+      {
+        "qid": "5fdb43aea43ad3127800002b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6275477277187482,
+        "correct": true
+      },
+      {
+        "qid": "5318929fb166e2b80600001b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5969393744299348,
+        "correct": true
+      },
+      {
+        "qid": "58a6db8660087bc10a00002c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7989084608128293,
+        "correct": true
+      },
+      {
+        "qid": "54ede76294afd61504000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5163006187922827,
+        "correct": true
+      },
+      {
+        "qid": "5c8fee200101eac87000000f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5098368287030507,
+        "correct": true
+      },
+      {
+        "qid": "550ea8f1b305b40c5c000005",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4999672896052562,
+        "correct": false
+      },
+      {
+        "qid": "56b7210b76d8bf8d13000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6979597143529856,
+        "correct": true
+      },
+      {
+        "qid": "56f7fe3709dd18d46b000015",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8376270188089484,
+        "correct": true
+      },
+      {
+        "qid": "6026ef311cb411341a0000d4",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5755261959702456,
+        "correct": true
+      },
+      {
+        "qid": "6441057657b1c7a315000052",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5494150259937388,
+        "correct": true
+      },
+      {
+        "qid": "5e822615835f4e4777000034",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7333417182051581,
+        "correct": true
+      },
+      {
+        "qid": "5c84346b75a4a5d219000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6901959726269915,
+        "correct": true
+      },
+      {
+        "qid": "5e5286036d0a277941000040",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.652340060386605,
+        "correct": true
+      },
+      {
+        "qid": "5880a8ec0a76a87357000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9411036789653839,
+        "correct": true
+      },
+      {
+        "qid": "571e4293bb137a4b0c00000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7480283379435994,
+        "correct": true
+      },
+      {
+        "qid": "54e0c3e71388e8454a000013",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7172527751677338,
+        "correct": true
+      },
+      {
+        "qid": "58a57f9460087bc10a00001f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.533487274768398,
+        "correct": true
+      },
+      {
+        "qid": "56cdf5195795f9a73e000045",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8625309076597854,
+        "correct": true
+      },
+      {
+        "qid": "58f6295a70f9fc6f0f000019",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6405173066047396,
+        "correct": true
+      },
+      {
+        "qid": "56f961b3cf1c325851000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6559760068612788,
+        "correct": true
+      },
+      {
+        "qid": "58bbc0fc22d300530900001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7356862513127189,
+        "correct": true
+      },
+      {
+        "qid": "5509f433c2af5d5b70000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8221978112555954,
+        "correct": true
+      },
+      {
+        "qid": "65f37bb1c4010b4d7800000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7604602529444304,
+        "correct": true
+      },
+      {
+        "qid": "6414638c201352f04a000047",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.567617217071674,
+        "correct": true
+      },
+      {
+        "qid": "512d0e635274a5fb07000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5580971199770158,
+        "correct": true
+      },
+      {
+        "qid": "5717d86029809bbe7a000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7948135592666269,
+        "correct": true
+      },
+      {
+        "qid": "52f350042059c6d71c000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7195042145799525,
+        "correct": true
+      },
+      {
+        "qid": "5fe09c99a43ad31278000033",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.569087359273335,
+        "correct": true
+      },
+      {
+        "qid": "589480b47d9090f353000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5792774757709384,
+        "correct": true
+      },
+      {
+        "qid": "5e805e62835f4e4777000023",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5666518594839378,
+        "correct": true
+      },
+      {
+        "qid": "5e4adb486d0a277941000015",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5124105347253528,
+        "correct": true
+      },
+      {
+        "qid": "54d669003706e8952800000e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7690963814329681,
+        "correct": true
+      },
+      {
+        "qid": "6057057c94d57fd879000023",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6048861142315265,
+        "correct": true
+      },
+      {
+        "qid": "5e36cf8eb5b409ea53000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7556910308422568,
+        "correct": true
+      },
+      {
+        "qid": "58a2ced760087bc10a000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6941157203579974,
+        "correct": true
+      },
+      {
+        "qid": "5c5f094c1a4c55d80b00000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5522290223870298,
+        "correct": true
+      },
+      {
+        "qid": "5c5f10791a4c55d80b000014",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.45880745502993137,
+        "correct": false
+      },
+      {
+        "qid": "5aa50086d6d6b54f7900000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6170126341031456,
+        "correct": true
+      },
+      {
+        "qid": "61f56284882a024a10000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8491207307537253,
+        "correct": true
+      },
+      {
+        "qid": "56f7c15a09dd18d46b000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.865714985169895,
+        "correct": true
+      },
+      {
+        "qid": "532206819b2d7acc7e00000f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6276625208015448,
+        "correct": true
+      },
+      {
+        "qid": "6028fad21cb411341a000101",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5920498787356816,
+        "correct": true
+      },
+      {
+        "qid": "5c34ac49da8336e21a000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5921484521614315,
+        "correct": true
+      },
+      {
+        "qid": "56cae60f5795f9a73e00002b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5181650043454861,
+        "correct": true
+      },
+      {
+        "qid": "530cefaaad0bf1360c00000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8047817590795997,
+        "correct": true
+      },
+      {
+        "qid": "5a6e354fb750ff4455000042",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8528260458861778,
+        "correct": true
+      },
+      {
+        "qid": "5c6be8f07c78d69471000032",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7279684287295466,
+        "correct": true
+      },
+      {
+        "qid": "56bc7d71ac7ad10019000018",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6851054628269789,
+        "correct": true
+      },
+      {
+        "qid": "5e6e82eac6a8763d23000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.709517757459979,
+        "correct": true
+      },
+      {
+        "qid": "52f89fc62059c6d71c000050",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7657300060251389,
+        "correct": true
+      },
+      {
+        "qid": "54cb9c94f693c3b16b000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7316452383057142,
+        "correct": true
+      },
+      {
+        "qid": "531d1998267d7dd053000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5517895705101034,
+        "correct": true
+      },
+      {
+        "qid": "5caa06d0ecadf2e73f000056",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4613676976844995,
+        "correct": false
+      },
+      {
+        "qid": "5357a6d0f1005d6b58000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8642626048943169,
+        "correct": true
+      },
+      {
+        "qid": "65f774a4c4010b4d78000029",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.47390011686668815,
+        "correct": false
+      },
+      {
+        "qid": "56ffdc1ccf1c32585100000b",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.32207982778463007,
+        "correct": false
+      },
+      {
+        "qid": "56cb9b065795f9a73e000032",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7751967582265986,
+        "correct": true
+      },
+      {
+        "qid": "5c9791d2ecadf2e73f000026",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8340252318943769,
+        "correct": true
+      },
+      {
+        "qid": "5a6e1280b750ff4455000037",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5935764004836209,
+        "correct": true
+      },
+      {
+        "qid": "550618f58e1671127b000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7954564750121854,
+        "correct": true
+      },
+      {
+        "qid": "5c93e5acecadf2e73f00001a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5788672964779963,
+        "correct": true
+      },
+      {
+        "qid": "62190ca03a8413c653000035",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.722113150318059,
+        "correct": true
+      },
+      {
+        "qid": "5fe08b50a43ad31278000031",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6682807365797792,
+        "correct": true
+      },
+      {
+        "qid": "6422ee03690f196b51000046",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6469358863329875,
+        "correct": true
+      },
+      {
+        "qid": "5883a727e56acf5176000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5598058705095111,
+        "correct": true
+      },
+      {
+        "qid": "5a9acd921d1251d03b000016",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.563723950824617,
+        "correct": true
+      },
+      {
+        "qid": "58a644e560087bc10a000027",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8237309865461621,
+        "correct": true
+      },
+      {
+        "qid": "572096c90fd6f91b6800000e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7762243313284239,
+        "correct": true
+      },
+      {
+        "qid": "532f0bd6d6d3ac6a3400002d",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4855914157967766,
+        "correct": false
+      },
+      {
+        "qid": "56fcf1b8cf1c325851000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6751459615508718,
+        "correct": true
+      },
+      {
+        "qid": "6026d8641cb411341a0000cd",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7917494097361104,
+        "correct": true
+      },
+      {
+        "qid": "51387022bee46bd34c000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.590671851864739,
+        "correct": true
+      },
+      {
+        "qid": "5a6f960fb750ff445500005c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6860698806847041,
+        "correct": true
+      },
+      {
+        "qid": "56d85e7751531f7e33000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7915389305222693,
+        "correct": true
+      },
+      {
+        "qid": "533c390bc45e13371400000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5987008056699199,
+        "correct": true
+      },
+      {
+        "qid": "56ffd08bcf1c325851000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6885720586219148,
+        "correct": true
+      },
+      {
+        "qid": "55411d9f379ddf3f47000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8742221462334853,
+        "correct": true
+      },
+      {
+        "qid": "5c896f60d558e5f232000003",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7582309421544928,
+        "correct": true
+      },
+      {
+        "qid": "52bf19c503868f1b06000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8118862434974404,
+        "correct": true
+      },
+      {
+        "qid": "5a75f6e083b0d9ea66000009",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4919075717909044,
+        "correct": false
+      },
+      {
+        "qid": "5d374c727bc3fee31f00000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.639326680913968,
+        "correct": true
+      },
+      {
+        "qid": "6222257e3a8413c653000077",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6738576581011976,
+        "correct": true
+      },
+      {
+        "qid": "58b6bd2622d300530900000c",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.22376772611407794,
+        "correct": false
+      },
+      {
+        "qid": "5709ee36cf1c32585100001e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7977034098710324,
+        "correct": true
+      },
+      {
+        "qid": "54cf45e7f693c3b16b00000a",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.396458227659399,
+        "correct": false
+      },
+      {
+        "qid": "58a1c0f178275d0c4a000056",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.3165541711550407,
+        "correct": false
+      },
+      {
+        "qid": "662cfc88187cba990d000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7156429500314454,
+        "correct": true
+      },
+      {
+        "qid": "5e355e20fbd6abf43b000065",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9063535149978987,
+        "correct": true
+      },
+      {
+        "qid": "56d860ad51531f7e33000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8046936976715401,
+        "correct": true
+      },
+      {
+        "qid": "52f899952059c6d71c00004b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8600903154823794,
+        "correct": true
+      },
+      {
+        "qid": "5c910ae0ecadf2e73f000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5166452673458038,
+        "correct": true
+      },
+      {
+        "qid": "53265dd4d6d3ac6a34000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6013862510131042,
+        "correct": true
+      },
+      {
+        "qid": "5e2902688b3851296d000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7402892962999121,
+        "correct": true
+      },
+      {
+        "qid": "6081b64d4e6a4cf63000000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7218823278490696,
+        "correct": true
+      },
+      {
+        "qid": "5e49c2356d0a277941000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8685356786605523,
+        "correct": true
+      },
+      {
+        "qid": "531464a6e3eabad021000014",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7473061384049479,
+        "correct": true
+      },
+      {
+        "qid": "57279ef20fd6f91b68000018",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8257553663648092,
+        "correct": true
+      },
+      {
+        "qid": "56c341acfedd0b786b000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7383126865706595,
+        "correct": true
+      },
+      {
+        "qid": "5e7f5d0d835f4e4777000016",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6029260497994013,
+        "correct": true
+      },
+      {
+        "qid": "61f7d745882a024a10000038",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6957021929610081,
+        "correct": true
+      },
+      {
+        "qid": "588f8e9794c1512c50000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8168124308016682,
+        "correct": true
+      },
+      {
+        "qid": "62265b4a3a8413c653000083",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5071989994103696,
+        "correct": true
+      },
+      {
+        "qid": "5a9d8d691d1251d03b000020",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.49946643219983666,
+        "correct": false
+      },
+      {
+        "qid": "5319a7d2b166e2b806000029",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8498051190537305,
+        "correct": true
+      },
+      {
+        "qid": "5be47fcb133db5eb7800001a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8175049676277465,
+        "correct": true
+      },
+      {
+        "qid": "5e6e487151b80c9423000001",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6050358464689579,
+        "correct": true
+      },
+      {
+        "qid": "5a87f44061bb38fb2400000f",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4134701916754184,
+        "correct": false
+      },
+      {
+        "qid": "6237a5513a8413c6530000b0",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6155686572611717,
+        "correct": true
+      },
+      {
+        "qid": "5c5312097e3cb0e231000011",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.32778579099623656,
+        "correct": false
+      },
+      {
+        "qid": "5c630666e842deac6700000c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7328740069522275,
+        "correct": true
+      },
+      {
+        "qid": "5a9ac6821d1251d03b000012",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5287358659784704,
+        "correct": true
+      },
+      {
+        "qid": "622deabc3a8413c6530000a6",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7266984307091839,
+        "correct": true
+      },
+      {
+        "qid": "535d35779a4572de6f000005",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6245902106429431,
+        "correct": true
+      },
+      {
+        "qid": "5a76179d83b0d9ea66000021",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8131458085476844,
+        "correct": true
+      },
+      {
+        "qid": "6053bd5194d57fd879000018",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5466031651450992,
+        "correct": true
+      },
+      {
+        "qid": "5509bd6a1180f13250000002",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.49944445447299196,
+        "correct": false
+      },
+      {
+        "qid": "608069984e6a4cf630000006",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7575432551394722,
+        "correct": true
+      },
+      {
+        "qid": "531d744c267d7dd053000009",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8486577555169246,
+        "correct": true
+      },
+      {
+        "qid": "5519a7d5622b194345000015",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6413066115975533,
+        "correct": true
+      },
+      {
+        "qid": "5319ac99b166e2b806000034",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.3197759627332087,
+        "correct": false
+      },
+      {
+        "qid": "56c5c7915795f9a73e000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7105585285778147,
+        "correct": true
+      },
+      {
+        "qid": "6020af2e1cb411341a000084",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6696323431336298,
+        "correct": true
+      },
+      {
+        "qid": "54da32bc0f63c58e6e000001",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.43756449994247637,
+        "correct": false
+      },
+      {
+        "qid": "5c920df7ecadf2e73f00000f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5538022501790335,
+        "correct": true
+      },
+      {
+        "qid": "66099a03fdcbea915f00001d",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.417583848796539,
+        "correct": false
+      },
+      {
+        "qid": "62260afb3a8413c65300007b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7153281475221542,
+        "correct": true
+      },
+      {
+        "qid": "56c1f02aef6e39474100004b",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.3156708590469625,
+        "correct": false
+      },
+      {
+        "qid": "5c6aef167c78d69471000023",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8906291796387584,
+        "correct": true
+      },
+      {
+        "qid": "5e4ada686d0a277941000014",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6167908028263727,
+        "correct": true
+      },
+      {
+        "qid": "5fe30efea43ad31278000038",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.842441323711972,
+        "correct": true
+      },
+      {
+        "qid": "588f9950ed9bbee70d000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7549453772151158,
+        "correct": true
+      },
+      {
+        "qid": "5e49ac346d0a27794100000e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8782126979255322,
+        "correct": true
+      },
+      {
+        "qid": "5d387c20a1e1595105000010",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7526999661502957,
+        "correct": true
+      },
+      {
+        "qid": "64403be357b1c7a31500004e",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6436329891540602,
+        "correct": true
+      },
+      {
+        "qid": "5e7f64d6835f4e477700001f",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6435087584001868,
+        "correct": true
+      },
+      {
+        "qid": "62005e02c9dfcb9c09000018",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7473438511954658,
+        "correct": true
+      },
+      {
+        "qid": "5e52a3416d0a277941000043",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6592549422945917,
+        "correct": true
+      },
+      {
+        "qid": "56c1f00cef6e39474100003e",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.45338782694345325,
+        "correct": false
+      },
+      {
+        "qid": "53617eeb7d100faa0900000a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8052578590458161,
+        "correct": true
+      },
+      {
+        "qid": "56cf36263975bb303a000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7388093502617917,
+        "correct": true
+      },
+      {
+        "qid": "621e59ce3a8413c65300004c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7101043099382836,
+        "correct": true
+      },
+      {
+        "qid": "5fe1fc84a43ad31278000036",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6398541666126485,
+        "correct": true
+      },
+      {
+        "qid": "5cb0e4a6ecadf2e73f00005b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.714820535851345,
+        "correct": true
+      },
+      {
+        "qid": "5c6bec987c78d69471000033",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.4814802023393627,
+        "correct": false
+      },
+      {
+        "qid": "56a8ee75a17756b72f000007",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6013353966389906,
+        "correct": true
+      },
+      {
+        "qid": "56caea805795f9a73e00002c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.9202285589815238,
+        "correct": true
+      },
+      {
+        "qid": "6031287e1cb411341a00012d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8686815873098755,
+        "correct": true
+      },
+      {
+        "qid": "606bfe5b94d57fd879000073",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5465657590217283,
+        "correct": true
+      },
+      {
+        "qid": "56c83f365795f9a73e000011",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7686067575047983,
+        "correct": true
+      },
+      {
+        "qid": "58de18e48acda3452900002a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7878582284595931,
+        "correct": true
+      },
+      {
+        "qid": "5c59872b86df2b9174000017",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8520847115839928,
+        "correct": true
+      },
+      {
+        "qid": "56c1f009ef6e39474100003c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8255039940034474,
+        "correct": true
+      },
+      {
+        "qid": "60355c0f1cb411341a000156",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6844728463910156,
+        "correct": true
+      },
+      {
+        "qid": "606b5ba794d57fd879000067",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5765559142490151,
+        "correct": true
+      },
+      {
+        "qid": "61f7cc0c882a024a1000002a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.5667560497631454,
+        "correct": true
+      },
+      {
+        "qid": "5343caffaeec6fbd07000002",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6414139954614928,
+        "correct": true
+      },
+      {
+        "qid": "60527e8c94d57fd879000012",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.3621968034075362,
+        "correct": false
+      },
+      {
+        "qid": "55032e65e9bde69634000034",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8084246885312848,
+        "correct": true
+      },
+      {
+        "qid": "56e47e0051531f7e3300001c",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.6177158261727542,
+        "correct": true
+      },
+      {
+        "qid": "63f57d9b33942b094c000004",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7723968113968991,
+        "correct": true
+      },
+      {
+        "qid": "517170c48ed59a060a00000d",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.7762427976290353,
+        "correct": true
+      },
+      {
+        "qid": "5a885daa61bb38fb24000018",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8498974919233578,
+        "correct": true
+      },
+      {
+        "qid": "54e0ace81388e8454a000010",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.42318870936421454,
+        "correct": false
+      },
+      {
+        "qid": "5c629937e842deac67000008",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8534840530948088,
+        "correct": true
+      },
+      {
+        "qid": "515df199298dcd4e5100002a",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8127720573645384,
+        "correct": true
+      },
+      {
+        "qid": "5a67ab79b750ff445500000b",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8596314137470548,
+        "correct": true
+      },
+      {
+        "qid": "5545e65bd355485447000001",
+        "label": 1,
+        "prediction": 0,
+        "probability": 0.2988114434334628,
+        "correct": false
+      },
+      {
+        "qid": "58853922e56acf5176000016",
+        "label": 1,
+        "prediction": 1,
+        "probability": 0.8029533560340361,
+        "correct": true
+      },
+      {
+        "qid": "55200c606b348bb82c000013",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.27962640167363617,
+        "correct": true
+      },
+      {
+        "qid": "55058af6f73303d458000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.21420062278873553,
+        "correct": true
+      },
+      {
+        "qid": "5a74eaa50384be955100000b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3025060313470226,
+        "correct": true
+      },
+      {
+        "qid": "5a9d29571d1251d03b000018",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.537694347994348,
+        "correct": false
+      },
+      {
+        "qid": "5a67b2f7b750ff445500000f",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2811758023393401,
+        "correct": true
+      },
+      {
+        "qid": "5147c8a6d24251bc05000027",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6612538682765917,
+        "correct": false
+      },
+      {
+        "qid": "5319ac36b166e2b806000031",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4887249148010483,
+        "correct": true
+      },
+      {
+        "qid": "512d2fff5274a5fb07000006",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.32543336630144326,
+        "correct": true
+      },
+      {
+        "qid": "603219c21cb411341a000133",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6412178559191661,
+        "correct": false
+      },
+      {
+        "qid": "5324a8ac9b2d7acc7e000018",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1480156460730374,
+        "correct": true
+      },
+      {
+        "qid": "5147c088d24251bc05000026",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3634504469015658,
+        "correct": true
+      },
+      {
+        "qid": "56d1f790f22319765a000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6069805187313684,
+        "correct": false
+      },
+      {
+        "qid": "58efa1b870f9fc6f0f000003",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6474310582829631,
+        "correct": false
+      },
+      {
+        "qid": "5a6e42f1b750ff4455000046",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4858311529327976,
+        "correct": true
+      },
+      {
+        "qid": "65cfa22b1930410b1300000c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5498072464131264,
+        "correct": false
+      },
+      {
+        "qid": "52f11b922059c6d71c000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.466979140461717,
+        "correct": true
+      },
+      {
+        "qid": "58bfd8e902b8c60953000018",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.35497066652263043,
+        "correct": true
+      },
+      {
+        "qid": "606b2b1994d57fd87900005c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.37685317574312377,
+        "correct": true
+      },
+      {
+        "qid": "58ee0dd5eda5a57672000013",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3549534486023986,
+        "correct": true
+      },
+      {
+        "qid": "6221209b3a8413c653000074",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5307578737634873,
+        "correct": false
+      },
+      {
+        "qid": "5acf74460340b9f058000013",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7586520173256333,
+        "correct": false
+      },
+      {
+        "qid": "56d06e043975bb303a000011",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5804262946730326,
+        "correct": false
+      },
+      {
+        "qid": "536e46f27d100faa09000012",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.48198017839066415,
+        "correct": true
+      },
+      {
+        "qid": "661d5c97eac11fad33000021",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.578065285190236,
+        "correct": false
+      },
+      {
+        "qid": "5e3c6c9eb5b409ea53000022",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.09887305452576493,
+        "correct": true
+      },
+      {
+        "qid": "65f86b3ac4010b4d78000058",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6993341589470491,
+        "correct": false
+      },
+      {
+        "qid": "56c3184050c68dd416000003",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7345055184152819,
+        "correct": false
+      },
+      {
+        "qid": "58f4b1a170f9fc6f0f000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.09057659577576577,
+        "correct": true
+      },
+      {
+        "qid": "5e5b8b4e752ebcdc7a000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7108161515476714,
+        "correct": false
+      },
+      {
+        "qid": "56c868a95795f9a73e000017",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.571574810548468,
+        "correct": false
+      },
+      {
+        "qid": "54e262daae9738404b000018",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5441503408667229,
+        "correct": false
+      },
+      {
+        "qid": "6032899c1cb411341a000144",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5538268236907941,
+        "correct": false
+      },
+      {
+        "qid": "56c1f01aef6e394741000043",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24850046311704177,
+        "correct": true
+      },
+      {
+        "qid": "5e42d1a748dab47f26000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.49629838220496403,
+        "correct": true
+      },
+      {
+        "qid": "5e480da0d14c9f295d000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5795048102177227,
+        "correct": false
+      },
+      {
+        "qid": "5c53191a7e3cb0e231000016",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5237187459506694,
+        "correct": false
+      },
+      {
+        "qid": "52c7275103868f1b0600001c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5013475614715833,
+        "correct": false
+      },
+      {
+        "qid": "601c317a1cb411341a000014",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.39617632176450274,
+        "correct": true
+      },
+      {
+        "qid": "56ed14d92ac5ed145900000a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4835616799873696,
+        "correct": true
+      },
+      {
+        "qid": "601d2d001cb411341a00002c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.38889710278561834,
+        "correct": true
+      },
+      {
+        "qid": "5a690487b750ff445500001f",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2325428432404058,
+        "correct": true
+      },
+      {
+        "qid": "5abbe429fcf456587200001c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24756526287423952,
+        "correct": true
+      },
+      {
+        "qid": "52ee9f55c8da898910000009",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5289609786312393,
+        "correct": false
+      },
+      {
+        "qid": "6450ede757b1c7a315000090",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.48323060348737895,
+        "correct": true
+      },
+      {
+        "qid": "622b9d593a8413c653000095",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.25927018282162134,
+        "correct": true
+      },
+      {
+        "qid": "589185cc621ea6ff7e00000b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.37195560849554926,
+        "correct": true
+      },
+      {
+        "qid": "552faababc4f83e828000005",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5883025834885183,
+        "correct": false
+      },
+      {
+        "qid": "5ace12be0340b9f058000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.16703989487742743,
+        "correct": true
+      },
+      {
+        "qid": "5156be17d24251bc05000086",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.48226621897464766,
+        "correct": true
+      },
+      {
+        "qid": "61f60157882a024a1000001e",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5406446625438798,
+        "correct": false
+      },
+      {
+        "qid": "5c897555d558e5f232000009",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4574163264676202,
+        "correct": true
+      },
+      {
+        "qid": "5c890ad575a4a5d21900000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3226088782951244,
+        "correct": true
+      },
+      {
+        "qid": "62532ce6e764a53204000021",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.14068098135989232,
+        "correct": true
+      },
+      {
+        "qid": "6206bf3cc9dfcb9c0900003d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4973262099641498,
+        "correct": true
+      },
+      {
+        "qid": "58b56fe422d3005309000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.48453400129640894,
+        "correct": true
+      },
+      {
+        "qid": "5c5f264b1a4c55d80b00001e",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.54606587602138,
+        "correct": false
+      },
+      {
+        "qid": "56c1d856ef6e394741000032",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5042420314911217,
+        "correct": false
+      },
+      {
+        "qid": "5e499c636d0a27794100000a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5804332474925802,
+        "correct": false
+      },
+      {
+        "qid": "530cf4e0c8a0b4a00c000006",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4200989953281923,
+        "correct": true
+      },
+      {
+        "qid": "535d3c069a4572de6f000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6312657525281924,
+        "correct": false
+      },
+      {
+        "qid": "5e808ef4835f4e477700002a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3391220084102755,
+        "correct": true
+      },
+      {
+        "qid": "516e7fda298dcd4e51000081",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3755570257800428,
+        "correct": true
+      },
+      {
+        "qid": "6048ff3e1cb411341a000160",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2841537099662102,
+        "correct": true
+      },
+      {
+        "qid": "56f553e309dd18d46b000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5309058671272642,
+        "correct": false
+      },
+      {
+        "qid": "644640de57b1c7a31500006b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5218926144743039,
+        "correct": false
+      },
+      {
+        "qid": "6049173d1cb411341a00016b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5762043602941688,
+        "correct": false
+      },
+      {
+        "qid": "54d8ea2c4b1fd0d33c000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.20582779781578375,
+        "correct": true
+      },
+      {
+        "qid": "61f5914e882a024a1000000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1841731624983096,
+        "correct": true
+      },
+      {
+        "qid": "52fa6ac72059c6d71c000055",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.22710566177466368,
+        "correct": true
+      },
+      {
+        "qid": "58bc347422d300530900001e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4978774274094297,
+        "correct": true
+      },
+      {
+        "qid": "55000cc4e9bde69634000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3943043564368606,
+        "correct": true
+      },
+      {
+        "qid": "5a88370c61bb38fb24000014",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6453898388431164,
+        "correct": false
+      },
+      {
+        "qid": "5c9ff25eecadf2e73f000043",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7422864162694901,
+        "correct": false
+      },
+      {
+        "qid": "601eb3b61cb411341a000057",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.20005747507457733,
+        "correct": true
+      },
+      {
+        "qid": "58bc8e7a02b8c60953000007",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5176278499799296,
+        "correct": false
+      },
+      {
+        "qid": "5547a01cf35db75526000005",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5276917812590436,
+        "correct": false
+      },
+      {
+        "qid": "5891b125621ea6ff7e00000e",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5241943297321743,
+        "correct": false
+      },
+      {
+        "qid": "58a9c152396a458e50000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2943878699118122,
+        "correct": true
+      },
+      {
+        "qid": "5149f494d24251bc0500004c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.25756167389801615,
+        "correct": true
+      },
+      {
+        "qid": "5cebf83ea49efeb44c00000a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2812496432594455,
+        "correct": true
+      },
+      {
+        "qid": "52f21b722059c6d71c00000b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.40965410169192484,
+        "correct": true
+      },
+      {
+        "qid": "5e2dafccfbd6abf43b000013",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3692351505224698,
+        "correct": true
+      },
+      {
+        "qid": "5cd96f33a49efeb44c000004",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5231488016195659,
+        "correct": false
+      },
+      {
+        "qid": "5e319617fbd6abf43b000049",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3416634710344958,
+        "correct": true
+      },
+      {
+        "qid": "530cefaaad0bf1360c000012",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.371449845644251,
+        "correct": true
+      },
+      {
+        "qid": "5c89623bf9c2ba6b28000005",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.46134437134521167,
+        "correct": true
+      },
+      {
+        "qid": "61f7c883882a024a10000026",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6494123494123892,
+        "correct": false
+      },
+      {
+        "qid": "56b397a98525abca1e000003",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6005335505272641,
+        "correct": false
+      },
+      {
+        "qid": "5ac09a7b19833b0d7b000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6953762117332241,
+        "correct": false
+      },
+      {
+        "qid": "6415c599690f196b51000013",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3665385825506109,
+        "correct": true
+      },
+      {
+        "qid": "56c1f045ef6e394741000058",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5066044893226211,
+        "correct": false
+      },
+      {
+        "qid": "622dfb133a8413c6530000a8",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.558017691402323,
+        "correct": false
+      },
+      {
+        "qid": "5a68f448b750ff4455000018",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5698083744947942,
+        "correct": false
+      },
+      {
+        "qid": "61f7ce26882a024a1000002d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.564287464036617,
+        "correct": false
+      },
+      {
+        "qid": "53147b52e3eabad021000015",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5785132246051893,
+        "correct": false
+      },
+      {
+        "qid": "5e6157cb1af46fc13000000e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24817770819835733,
+        "correct": true
+      },
+      {
+        "qid": "65cfd4b21930410b13000020",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4864862644175629,
+        "correct": true
+      },
+      {
+        "qid": "5be494a0133db5eb7800001f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6083465886596026,
+        "correct": false
+      },
+      {
+        "qid": "56d04a533975bb303a000010",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5492102062378413,
+        "correct": false
+      },
+      {
+        "qid": "5e31cbd4fbd6abf43b00004f",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.06764646827820106,
+        "correct": true
+      },
+      {
+        "qid": "51542e6fd24251bc05000082",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7629919800529876,
+        "correct": false
+      },
+      {
+        "qid": "603bc2801cb411341a00015a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.19318989064623984,
+        "correct": true
+      },
+      {
+        "qid": "601d74391cb411341a000041",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3909602336501016,
+        "correct": true
+      },
+      {
+        "qid": "60490c421cb411341a000166",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5851034327234075,
+        "correct": false
+      },
+      {
+        "qid": "514a0f4ad24251bc05000053",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7829241927382619,
+        "correct": false
+      },
+      {
+        "qid": "5171438a8ed59a060a000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2774014518524957,
+        "correct": true
+      },
+      {
+        "qid": "606aea9b94d57fd879000058",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4764740700899322,
+        "correct": true
+      },
+      {
+        "qid": "56c073fcef6e394741000020",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.37468584314596964,
+        "correct": true
+      },
+      {
+        "qid": "6032ba631cb411341a00014b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5005902955383381,
+        "correct": false
+      },
+      {
+        "qid": "530cf4c54a5037880c000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.23248393652403807,
+        "correct": true
+      },
+      {
+        "qid": "58bfd0db02b8c60953000017",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4277554363097037,
+        "correct": true
+      },
+      {
+        "qid": "51487dead24251bc05000030",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4515664723072925,
+        "correct": true
+      },
+      {
+        "qid": "571e172bbb137a4b0c000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5237618185367297,
+        "correct": false
+      },
+      {
+        "qid": "56cdf3e55795f9a73e00003c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24737356312666903,
+        "correct": true
+      },
+      {
+        "qid": "5c5f30c91a4c55d80b000025",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.641920222649346,
+        "correct": false
+      },
+      {
+        "qid": "6451007857b1c7a315000093",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6550108839468776,
+        "correct": false
+      },
+      {
+        "qid": "6056fef294d57fd87900001f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5758675449127201,
+        "correct": false
+      },
+      {
+        "qid": "662cfbf5187cba990d000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3562789268467823,
+        "correct": true
+      },
+      {
+        "qid": "5e3eba5548dab47f26000009",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.39156831701794814,
+        "correct": true
+      },
+      {
+        "qid": "5aa3fb7ad6d6b54f79000009",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3725200539586277,
+        "correct": true
+      },
+      {
+        "qid": "58cbb98c02b8c60953000034",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6099758107481339,
+        "correct": false
+      },
+      {
+        "qid": "5e30b870fbd6abf43b000038",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24425499284652039,
+        "correct": true
+      },
+      {
+        "qid": "5a74b1730384be9551000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4875488032735893,
+        "correct": true
+      },
+      {
+        "qid": "5343bdd6aeec6fbd07000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6549741685073628,
+        "correct": false
+      },
+      {
+        "qid": "63eeeb70f36125a426000005",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.47033643757467114,
+        "correct": true
+      },
+      {
+        "qid": "571e12097de986d80d000017",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3189876038369085,
+        "correct": true
+      },
+      {
+        "qid": "5178d6be8ed59a060a000038",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.592708250716686,
+        "correct": false
+      },
+      {
+        "qid": "5fdb2e23a43ad3127800000a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.588709359038563,
+        "correct": false
+      },
+      {
+        "qid": "5c011448133db5eb78000027",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5091532637461884,
+        "correct": false
+      },
+      {
+        "qid": "5ab90a79fcf456587200001b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.814802909236719,
+        "correct": false
+      },
+      {
+        "qid": "5547ec32f35db7552600000a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6366005237267919,
+        "correct": false
+      },
+      {
+        "qid": "5fdb41b6a43ad3127800001d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5467765321921193,
+        "correct": false
+      },
+      {
+        "qid": "5c5249077e3cb0e23100000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5203920891040028,
+        "correct": false
+      },
+      {
+        "qid": "58f4b85f70f9fc6f0f000015",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6098159251384309,
+        "correct": false
+      },
+      {
+        "qid": "5c5f1f371a4c55d80b00001a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5249490202406261,
+        "correct": false
+      },
+      {
+        "qid": "58cd90c202b8c60953000040",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5832947556646543,
+        "correct": false
+      },
+      {
+        "qid": "641635fa690f196b5100001c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.40382716074453134,
+        "correct": true
+      },
+      {
+        "qid": "623e04e4f0baec9a1b000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6264384497465687,
+        "correct": false
+      },
+      {
+        "qid": "56c5feb75795f9a73e000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5235208505590873,
+        "correct": false
+      },
+      {
+        "qid": "5abcf010fcf4565872000023",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.07605036554692944,
+        "correct": true
+      },
+      {
+        "qid": "5aa55b45d6d6b54f7900000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3062797272708459,
+        "correct": true
+      },
+      {
+        "qid": "54d907c84b1fd0d33c000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2013166178034559,
+        "correct": true
+      },
+      {
+        "qid": "601f105e1cb411341a000071",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4226731689390143,
+        "correct": true
+      },
+      {
+        "qid": "515df063298dcd4e51000029",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6334766393868217,
+        "correct": false
+      },
+      {
+        "qid": "5503133ae9bde6963400001d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.786433617882708,
+        "correct": false
+      },
+      {
+        "qid": "53188480b166e2b806000018",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.30112479232699146,
+        "correct": true
+      },
+      {
+        "qid": "63eeec79f36125a426000006",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4193160416233753,
+        "correct": true
+      },
+      {
+        "qid": "56c86aa95795f9a73e000018",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4583099621502387,
+        "correct": true
+      },
+      {
+        "qid": "662a4b08b9f8b89d7e00000b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.34711386136429245,
+        "correct": true
+      },
+      {
+        "qid": "58cefcfb8acda34529000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5010259134891997,
+        "correct": false
+      },
+      {
+        "qid": "5c6e0f537c78d6947100004a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.8163294418211969,
+        "correct": false
+      },
+      {
+        "qid": "660982eefdcbea915f000012",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5490692599839254,
+        "correct": false
+      },
+      {
+        "qid": "58ce363b02b8c60953000046",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5066651268697844,
+        "correct": false
+      },
+      {
+        "qid": "588f9f83ed9bbee70d000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3635519732663239,
+        "correct": true
+      },
+      {
+        "qid": "6415b3b4690f196b51000009",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.8220273069267776,
+        "correct": false
+      },
+      {
+        "qid": "5a8b1264fcd1d6a10c00001d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.14360166101024746,
+        "correct": true
+      },
+      {
+        "qid": "5abd2ce0fcf456587200002a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.18807707149534128,
+        "correct": true
+      },
+      {
+        "qid": "530cf4fe960c95ad0c00000b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4845906617224105,
+        "correct": true
+      },
+      {
+        "qid": "5be48c39133db5eb7800001d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3465278197511728,
+        "correct": true
+      },
+      {
+        "qid": "550af222c2af5d5b7000000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6534890384746971,
+        "correct": false
+      },
+      {
+        "qid": "606b75c194d57fd87900006c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6093305217585562,
+        "correct": false
+      },
+      {
+        "qid": "5e6d1c6f1af46fc130000021",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.38092430064539096,
+        "correct": true
+      },
+      {
+        "qid": "56f146db2ac5ed145900000f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5196396814428235,
+        "correct": false
+      },
+      {
+        "qid": "622d17b83a8413c6530000a2",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6716829765107715,
+        "correct": false
+      },
+      {
+        "qid": "61f7c904882a024a10000027",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7084398657996483,
+        "correct": false
+      },
+      {
+        "qid": "6237a8a33a8413c6530000b3",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6609479284327916,
+        "correct": false
+      },
+      {
+        "qid": "5e776cfe835f4e4777000010",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6512520766222807,
+        "correct": false
+      },
+      {
+        "qid": "5880be1dc872c95565000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.37769831882753974,
+        "correct": true
+      },
+      {
+        "qid": "52b2e409f828ad283c00000e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.324789775488659,
+        "correct": true
+      },
+      {
+        "qid": "6432fdd857b1c7a315000020",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5287718859226629,
+        "correct": false
+      },
+      {
+        "qid": "58e3d9ab3e8b6dc87c000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3255561642670989,
+        "correct": true
+      },
+      {
+        "qid": "513ce494bee46bd34c000009",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5565229161234869,
+        "correct": false
+      },
+      {
+        "qid": "622b9e743a8413c653000097",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.14754476776633563,
+        "correct": true
+      },
+      {
+        "qid": "52bf1b0a03868f1b06000009",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.21483268202082761,
+        "correct": true
+      },
+      {
+        "qid": "601eab7d1cb411341a000053",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.47615982219303243,
+        "correct": true
+      },
+      {
+        "qid": "5e2f4a8bfbd6abf43b00002a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5512938559005978,
+        "correct": false
+      },
+      {
+        "qid": "606b396994d57fd879000063",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5960037801967244,
+        "correct": false
+      },
+      {
+        "qid": "5aa824a8fcf4565872000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.44139200195406164,
+        "correct": true
+      },
+      {
+        "qid": "5540ca8a0083d1bf0e000003",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.47277167569946127,
+        "correct": true
+      },
+      {
+        "qid": "5ab1483bfcf4565872000014",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.21522170669654198,
+        "correct": true
+      },
+      {
+        "qid": "5708a845cf1c32585100000f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5005953865819449,
+        "correct": false
+      },
+      {
+        "qid": "5c9efde8ecadf2e73f000039",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7190280835752266,
+        "correct": false
+      },
+      {
+        "qid": "517194ef8ed59a060a000011",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.14225991072666755,
+        "correct": true
+      },
+      {
+        "qid": "626aa929e764a53204000039",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5037543246451465,
+        "correct": false
+      },
+      {
+        "qid": "5e5bafa01af46fc130000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5360915554195842,
+        "correct": false
+      },
+      {
+        "qid": "6206b5a8c9dfcb9c0900003a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5725081919741589,
+        "correct": false
+      },
+      {
+        "qid": "52f509512059c6d71c000020",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5089682205923026,
+        "correct": false
+      },
+      {
+        "qid": "60805c344e6a4cf630000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.29248321059663546,
+        "correct": true
+      },
+      {
+        "qid": "58a32efe60087bc10a000013",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.14817308052866082,
+        "correct": true
+      },
+      {
+        "qid": "571f5e740fd6f91b6800000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5030724918727509,
+        "correct": false
+      },
+      {
+        "qid": "5ace1a590340b9f05800000b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3395445554486567,
+        "correct": true
+      },
+      {
+        "qid": "5ad6e431133db5eb7800000e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2332299021260479,
+        "correct": true
+      },
+      {
+        "qid": "56af9f130a360a5e45000015",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6907722678225289,
+        "correct": false
+      },
+      {
+        "qid": "5c6e16eb7c78d6947100004e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3497880441721584,
+        "correct": true
+      },
+      {
+        "qid": "53148a07dae131f847000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6951209651955083,
+        "correct": false
+      },
+      {
+        "qid": "5c929094ecadf2e73f000019",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.680473759752562,
+        "correct": false
+      },
+      {
+        "qid": "52f223e02059c6d71c00000e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4393634635372298,
+        "correct": true
+      },
+      {
+        "qid": "602598201cb411341a0000af",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.607266516780806,
+        "correct": false
+      },
+      {
+        "qid": "601dbe2b1cb411341a00004d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5326453726441475,
+        "correct": false
+      },
+      {
+        "qid": "5156be04d24251bc05000085",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5442406248180488,
+        "correct": false
+      },
+      {
+        "qid": "550739cf3b8a5dc045000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.695493352062356,
+        "correct": false
+      },
+      {
+        "qid": "52b2e498f828ad283c000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.40257013063574526,
+        "correct": true
+      },
+      {
+        "qid": "55054f8af73303d458000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.27338089975060065,
+        "correct": true
+      },
+      {
+        "qid": "601efe051cb411341a00006a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2643650649290522,
+        "correct": true
+      },
+      {
+        "qid": "644009c557b1c7a315000041",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.22154005700197768,
+        "correct": true
+      },
+      {
+        "qid": "54d6562c3706e8952800000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.8400366171151414,
+        "correct": false
+      },
+      {
+        "qid": "5a897a06fcd1d6a10c00000b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.46750904492057876,
+        "correct": true
+      },
+      {
+        "qid": "6415c252690f196b51000011",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5130878402944002,
+        "correct": false
+      },
+      {
+        "qid": "5ac08fe7d0c506ce46000003",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5663815247133972,
+        "correct": false
+      },
+      {
+        "qid": "550c3d45a103b78016000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.16809248197209203,
+        "correct": true
+      },
+      {
+        "qid": "56f780cb09dd18d46b000011",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.19845896991004552,
+        "correct": true
+      },
+      {
+        "qid": "5a74e9ad0384be955100000a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.18156594418960825,
+        "correct": true
+      },
+      {
+        "qid": "5e2b1ed9fbd6abf43b000005",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5688292022654308,
+        "correct": false
+      },
+      {
+        "qid": "5319a6e9b166e2b806000023",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3761583537845047,
+        "correct": true
+      },
+      {
+        "qid": "6032b6661cb411341a00014a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.307619872326044,
+        "correct": true
+      },
+      {
+        "qid": "65cec1fb1930410b13000005",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.554287696266805,
+        "correct": false
+      },
+      {
+        "qid": "5c73ace87c78d69471000084",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5137511604681063,
+        "correct": false
+      },
+      {
+        "qid": "601f10b71cb411341a000072",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.41274003684247057,
+        "correct": true
+      },
+      {
+        "qid": "602356b81cb411341a000099",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4648116866625164,
+        "correct": true
+      },
+      {
+        "qid": "5e46e74e3f5415952900000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5839496979806705,
+        "correct": false
+      },
+      {
+        "qid": "5353aedb288f4dae47000006",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.0995343233488592,
+        "correct": true
+      },
+      {
+        "qid": "65cfa37c1930410b1300000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.25736179970403233,
+        "correct": true
+      },
+      {
+        "qid": "6026d8bf1cb411341a0000ce",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4889243162840591,
+        "correct": true
+      },
+      {
+        "qid": "5c74285c7c78d694710000a3",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5251788394416578,
+        "correct": false
+      },
+      {
+        "qid": "58f4b9d470f9fc6f0f000016",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3531850677123945,
+        "correct": true
+      },
+      {
+        "qid": "5abd5a62fcf4565872000031",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3147732009831376,
+        "correct": true
+      },
+      {
+        "qid": "5a87d73861bb38fb2400000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7368995701343197,
+        "correct": false
+      },
+      {
+        "qid": "571cdd227de986d80d00000f",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.07171486016296227,
+        "correct": true
+      },
+      {
+        "qid": "601ee4c61cb411341a000066",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.37134484135190765,
+        "correct": true
+      },
+      {
+        "qid": "5324bdba9b2d7acc7e00001a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6844482847112505,
+        "correct": false
+      },
+      {
+        "qid": "5fe3131ba43ad31278000047",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3723648124641994,
+        "correct": true
+      },
+      {
+        "qid": "58a2e5f760087bc10a000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1469132718024707,
+        "correct": true
+      },
+      {
+        "qid": "56c1d857ef6e394741000033",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5188609975142432,
+        "correct": false
+      },
+      {
+        "qid": "5c5f29a81a4c55d80b00001f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7120383471137964,
+        "correct": false
+      },
+      {
+        "qid": "6020b2b21cb411341a000086",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5695701329881762,
+        "correct": false
+      },
+      {
+        "qid": "602354e41cb411341a000098",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4480647478809628,
+        "correct": true
+      },
+      {
+        "qid": "5c920fc3ecadf2e73f000011",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.23193399040754933,
+        "correct": true
+      },
+      {
+        "qid": "5ebac76b0d431b5f7300000d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5608763810103137,
+        "correct": false
+      },
+      {
+        "qid": "54e0d1491388e8454a000014",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.34475912484345916,
+        "correct": true
+      },
+      {
+        "qid": "621b4a223a8413c65300003a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2955189485223477,
+        "correct": true
+      },
+      {
+        "qid": "66165f2afdcbea915f000051",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6079854853048737,
+        "correct": false
+      },
+      {
+        "qid": "6429ad3857b1c7a315000003",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.75481589531357,
+        "correct": false
+      },
+      {
+        "qid": "5157539ed24251bc0500008a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2720750926998883,
+        "correct": true
+      },
+      {
+        "qid": "621ebb733a8413c65300005c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6540941658696172,
+        "correct": false
+      },
+      {
+        "qid": "56c8274f5795f9a73e00000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.31525195636936554,
+        "correct": true
+      },
+      {
+        "qid": "62507602e764a5320400000d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5038794003289571,
+        "correct": false
+      },
+      {
+        "qid": "5ace19420340b9f05800000a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.23582084500550748,
+        "correct": true
+      },
+      {
+        "qid": "51542e44d24251bc05000081",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4393944457796253,
+        "correct": true
+      },
+      {
+        "qid": "6226335d3a8413c653000082",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4814705397964336,
+        "correct": true
+      },
+      {
+        "qid": "5e776a75835f4e477700000d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5323381295613127,
+        "correct": false
+      },
+      {
+        "qid": "51724fca8ed59a060a000013",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5003148413830616,
+        "correct": false
+      },
+      {
+        "qid": "5c840782617e120c34000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5880147320295024,
+        "correct": false
+      },
+      {
+        "qid": "56b76d916e3f8eaf4c000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3406603474656404,
+        "correct": true
+      },
+      {
+        "qid": "5c5219f67e3cb0e231000006",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4733584059547973,
+        "correct": true
+      },
+      {
+        "qid": "5a871a6861bb38fb24000009",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3707849432951252,
+        "correct": true
+      },
+      {
+        "qid": "5523e7837b523f2123000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.794997784417499,
+        "correct": false
+      },
+      {
+        "qid": "5c7b1a5fd774d0424000000c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.38526735481253543,
+        "correct": true
+      },
+      {
+        "qid": "5880e417713cbdfd3d000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5019183605512639,
+        "correct": false
+      },
+      {
+        "qid": "5505a587f73303d458000005",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.18495525469041926,
+        "correct": true
+      },
+      {
+        "qid": "534ebb59288f4dae47000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1998000444714748,
+        "correct": true
+      },
+      {
+        "qid": "532f55fed6d3ac6a34000036",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.42482089376004356,
+        "correct": true
+      },
+      {
+        "qid": "65f85ec7c4010b4d78000052",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.44942191635797313,
+        "correct": true
+      },
+      {
+        "qid": "6238a0033a8413c6530000b8",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5198903960564902,
+        "correct": false
+      },
+      {
+        "qid": "605271d994d57fd87900000f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7137761930294065,
+        "correct": false
+      },
+      {
+        "qid": "58d8e6818acda3452900000a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4797392743637852,
+        "correct": true
+      },
+      {
+        "qid": "60314c361cb411341a00012e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4192972993197113,
+        "correct": true
+      },
+      {
+        "qid": "661d48a2eac11fad33000018",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5201908427902288,
+        "correct": false
+      },
+      {
+        "qid": "550c3754a103b78016000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24300776562571821,
+        "correct": true
+      },
+      {
+        "qid": "54f60ae05f206a0c06000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4496347626655122,
+        "correct": true
+      },
+      {
+        "qid": "58da111c8acda34529000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.33795559489520627,
+        "correct": true
+      },
+      {
+        "qid": "5c7d5ae9d774d04240000010",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6059149881278338,
+        "correct": false
+      },
+      {
+        "qid": "51405cd123fec90375000005",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.576061506313232,
+        "correct": false
+      },
+      {
+        "qid": "56c3320a50c68dd416000008",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7012002797358942,
+        "correct": false
+      },
+      {
+        "qid": "64179113690f196b5100002e",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6724019820398107,
+        "correct": false
+      },
+      {
+        "qid": "5fe31307a43ad3127800003d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.43637426952518765,
+        "correct": true
+      },
+      {
+        "qid": "5a8941c5bc7bade53a000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6675524505941994,
+        "correct": false
+      },
+      {
+        "qid": "6020b5681cb411341a000088",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6400901954030808,
+        "correct": false
+      },
+      {
+        "qid": "640c842f201352f04a000025",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5367149076617891,
+        "correct": false
+      },
+      {
+        "qid": "515dd3d5298dcd4e5100001c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5720297841609706,
+        "correct": false
+      },
+      {
+        "qid": "5c6473b2e842deac6700001b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7128616022663355,
+        "correct": false
+      },
+      {
+        "qid": "64172bb2690f196b5100001e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2380134770574234,
+        "correct": true
+      },
+      {
+        "qid": "6277e52256bf9aee6f000009",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5731184311488471,
+        "correct": false
+      },
+      {
+        "qid": "5343fc1aaeec6fbd07000003",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3524312847972973,
+        "correct": true
+      },
+      {
+        "qid": "58f3c62970f9fc6f0f00000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5102814770040215,
+        "correct": false
+      },
+      {
+        "qid": "5ac3699f0340b9f058000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5424071456946625,
+        "correct": false
+      },
+      {
+        "qid": "624c838ee764a53204000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.34147407662297014,
+        "correct": true
+      },
+      {
+        "qid": "531a34d5b166e2b806000036",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5827988434046151,
+        "correct": false
+      },
+      {
+        "qid": "5118dd1305c10fae75000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.15477489443267653,
+        "correct": true
+      },
+      {
+        "qid": "6020a9f11cb411341a000080",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3796082801149856,
+        "correct": true
+      },
+      {
+        "qid": "52bf208003868f1b06000019",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5603033142572964,
+        "correct": false
+      },
+      {
+        "qid": "5c55d9b707647bbc4b000009",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5452767442997402,
+        "correct": false
+      },
+      {
+        "qid": "5e499e266d0a27794100000c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.22776899352874272,
+        "correct": true
+      },
+      {
+        "qid": "623dfd2ef0baec9a1b000004",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6254430872470891,
+        "correct": false
+      },
+      {
+        "qid": "5e48a916d14c9f295d00000f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6443269392325821,
+        "correct": false
+      },
+      {
+        "qid": "58f3ca5c70f9fc6f0f00000d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7748181177302257,
+        "correct": false
+      },
+      {
+        "qid": "65cf6ae91930410b13000007",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5851349647556835,
+        "correct": false
+      },
+      {
+        "qid": "5c960f21ecadf2e73f000020",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3964405799505137,
+        "correct": true
+      },
+      {
+        "qid": "55475dc2f35db75526000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24559402180515244,
+        "correct": true
+      },
+      {
+        "qid": "53189656b166e2b80600001c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.29705205731249507,
+        "correct": true
+      },
+      {
+        "qid": "5e2f0afcfbd6abf43b000028",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5800756676454321,
+        "correct": false
+      },
+      {
+        "qid": "5c74266a7c78d694710000a2",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6569765628763775,
+        "correct": false
+      },
+      {
+        "qid": "65f70b9cc4010b4d7800001c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7368893548346237,
+        "correct": false
+      },
+      {
+        "qid": "5c783d32d774d04240000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.17515322112301795,
+        "correct": true
+      },
+      {
+        "qid": "5a70ce82b750ff4455000065",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.574869395100375,
+        "correct": false
+      },
+      {
+        "qid": "58bac71222d3005309000013",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7463239597001972,
+        "correct": false
+      },
+      {
+        "qid": "5a8718c861bb38fb24000008",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5329417583171849,
+        "correct": false
+      },
+      {
+        "qid": "6429fad757b1c7a31500000e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4851882125608546,
+        "correct": true
+      },
+      {
+        "qid": "606ad16594d57fd879000051",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5614233822428334,
+        "correct": false
+      },
+      {
+        "qid": "5e4bed1c6d0a27794100002b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.41207340368291734,
+        "correct": true
+      },
+      {
+        "qid": "58a3428d60087bc10a00001b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.32378828142318894,
+        "correct": true
+      },
+      {
+        "qid": "58bc363622d300530900001f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6060161997667722,
+        "correct": false
+      },
+      {
+        "qid": "5a70e4b399e2c3af26000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4043502545805732,
+        "correct": true
+      },
+      {
+        "qid": "5a8980d2fcd1d6a10c00000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.34296448019126086,
+        "correct": true
+      },
+      {
+        "qid": "65f494d7c4010b4d78000013",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.521730295130223,
+        "correct": false
+      },
+      {
+        "qid": "58a5b1fe60087bc10a000024",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.599082875154434,
+        "correct": false
+      },
+      {
+        "qid": "5a95765bfcd1d6a10c000028",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.26863982462438685,
+        "correct": true
+      },
+      {
+        "qid": "52bf1cad03868f1b0600000a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4776733041019496,
+        "correct": true
+      },
+      {
+        "qid": "5c588efb86df2b9174000004",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6308031392632909,
+        "correct": false
+      },
+      {
+        "qid": "51542dabd24251bc0500007d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.8245361040984103,
+        "correct": false
+      },
+      {
+        "qid": "5e52cb6d6d0a277941000050",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3753259099555636,
+        "correct": true
+      },
+      {
+        "qid": "535d2cf09a4572de6f000004",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7272688447652879,
+        "correct": false
+      },
+      {
+        "qid": "64371a4257b1c7a315000029",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.15107367998055612,
+        "correct": true
+      },
+      {
+        "qid": "58bcabc702b8c6095300000e",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5826895815180563,
+        "correct": false
+      },
+      {
+        "qid": "6252f496e764a53204000020",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6119520018333215,
+        "correct": false
+      },
+      {
+        "qid": "5c646fd3e842deac6700001a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5417700161442848,
+        "correct": false
+      },
+      {
+        "qid": "5c89773ed558e5f23200000a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3920156221175857,
+        "correct": true
+      },
+      {
+        "qid": "5e920be42d3121100d00000c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5695490266616334,
+        "correct": false
+      },
+      {
+        "qid": "660bb7f9fdcbea915f000029",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.37662367544544867,
+        "correct": true
+      },
+      {
+        "qid": "56c5fd325795f9a73e000005",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.45130282010464395,
+        "correct": true
+      },
+      {
+        "qid": "5339edd6d6d3ac6a34000061",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7180670007165244,
+        "correct": false
+      },
+      {
+        "qid": "5e5b8170b761aafe09000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.42899048148454766,
+        "correct": true
+      },
+      {
+        "qid": "6023518f1cb411341a000097",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6517130563326848,
+        "correct": false
+      },
+      {
+        "qid": "62058198c9dfcb9c09000030",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.23067345906896267,
+        "correct": true
+      },
+      {
+        "qid": "5e30e80bfbd6abf43b00003b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5248769581414259,
+        "correct": false
+      },
+      {
+        "qid": "58efa36d70f9fc6f0f000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4611904162362964,
+        "correct": true
+      },
+      {
+        "qid": "531af8cbb166e2b80600003a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6294611757500387,
+        "correct": false
+      },
+      {
+        "qid": "54d649843706e89528000009",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.32575914275225737,
+        "correct": true
+      },
+      {
+        "qid": "5ab147edfcf4565872000013",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4805579308632952,
+        "correct": true
+      },
+      {
+        "qid": "52fe52702059c6d71c000078",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5286016154445625,
+        "correct": false
+      },
+      {
+        "qid": "5d35ef017bc3fee31f000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.49990073279095354,
+        "correct": true
+      },
+      {
+        "qid": "58dd0dde8acda34529000027",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.250496472412193,
+        "correct": true
+      },
+      {
+        "qid": "533ba85ffd9a95ea0d000008",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6309740476758412,
+        "correct": false
+      },
+      {
+        "qid": "51588bb2d24251bc05000091",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3705688678360263,
+        "correct": true
+      },
+      {
+        "qid": "52bf1f1303868f1b06000014",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6034994866967471,
+        "correct": false
+      },
+      {
+        "qid": "605256a894d57fd87900000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5693771794208357,
+        "correct": false
+      },
+      {
+        "qid": "56c04412ef6e39474100001b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6274480690957294,
+        "correct": false
+      },
+      {
+        "qid": "644e81fa57b1c7a315000079",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4203130327488828,
+        "correct": true
+      },
+      {
+        "qid": "606c34c994d57fd879000077",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.20334153984776773,
+        "correct": true
+      },
+      {
+        "qid": "5c6545bae842deac6700001d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6400860408557788,
+        "correct": false
+      },
+      {
+        "qid": "5c920f13ecadf2e73f000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3654679802991903,
+        "correct": true
+      },
+      {
+        "qid": "56a24dfffe92d6fd19000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6195890480773615,
+        "correct": false
+      },
+      {
+        "qid": "58d900428acda3452900000c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3765258029392763,
+        "correct": true
+      },
+      {
+        "qid": "6202f600c9dfcb9c0900002b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4807410129177488,
+        "correct": true
+      },
+      {
+        "qid": "533be71dfd9a95ea0d000009",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6694334335174126,
+        "correct": false
+      },
+      {
+        "qid": "5aacd487fcf4565872000007",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5430393467063018,
+        "correct": false
+      },
+      {
+        "qid": "52f896d62059c6d71c000046",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7020268464041226,
+        "correct": false
+      },
+      {
+        "qid": "54db62a3034aea571d000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5534091046401033,
+        "correct": false
+      },
+      {
+        "qid": "6431708a57b1c7a315000017",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2629454758787928,
+        "correct": true
+      },
+      {
+        "qid": "56ed0ffe2ac5ed1459000008",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5137626860828326,
+        "correct": false
+      },
+      {
+        "qid": "57136a7e1174fb1755000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.632782151787013,
+        "correct": false
+      },
+      {
+        "qid": "53318685d6d3ac6a3400003d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5366876080674948,
+        "correct": false
+      },
+      {
+        "qid": "5a8712af61bb38fb24000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4906171235470337,
+        "correct": true
+      },
+      {
+        "qid": "661c424588784bab31000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4408684895924025,
+        "correct": true
+      },
+      {
+        "qid": "5c8fe1f10101eac87000000a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5290947243760032,
+        "correct": false
+      },
+      {
+        "qid": "5e6399dd1af46fc13000000f",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.43223476847236986,
+        "correct": true
+      },
+      {
+        "qid": "6237a8343a8413c6530000b2",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6692185827843633,
+        "correct": false
+      },
+      {
+        "qid": "6026f0251cb411341a0000d6",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6334958962460048,
+        "correct": false
+      },
+      {
+        "qid": "5e31cceafbd6abf43b000052",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7721355205405307,
+        "correct": false
+      },
+      {
+        "qid": "5e48edb1f8b2df0d49000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5084885394612857,
+        "correct": false
+      },
+      {
+        "qid": "550718e9fd1abe1741000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2098699899931722,
+        "correct": true
+      },
+      {
+        "qid": "5c7aae9dd774d0424000000a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5756546204949109,
+        "correct": false
+      },
+      {
+        "qid": "58a342e760087bc10a00001c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5739307573607169,
+        "correct": false
+      },
+      {
+        "qid": "5339ecf4d6d3ac6a3400005f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.699768676427911,
+        "correct": false
+      },
+      {
+        "qid": "5518e7da622b194345000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4317709055206313,
+        "correct": true
+      },
+      {
+        "qid": "5880aef4c872c95565000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6833270277863577,
+        "correct": false
+      },
+      {
+        "qid": "5c8fe7cb0101eac87000000c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6890961801451568,
+        "correct": false
+      },
+      {
+        "qid": "58a2c77a60087bc10a000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5117794442666038,
+        "correct": false
+      },
+      {
+        "qid": "5fe3131fa43ad3127800004a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1900725367262889,
+        "correct": true
+      },
+      {
+        "qid": "6068640894d57fd87900004b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5741946810568948,
+        "correct": false
+      },
+      {
+        "qid": "606b648394d57fd879000069",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.818913985288882,
+        "correct": false
+      },
+      {
+        "qid": "601ff4a61cb411341a000076",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.35985012445118775,
+        "correct": true
+      },
+      {
+        "qid": "52bf1d9e03868f1b06000010",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5252323671228943,
+        "correct": false
+      },
+      {
+        "qid": "63eeed0af36125a426000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4880042473703215,
+        "correct": true
+      },
+      {
+        "qid": "58a8045860087bc10a000035",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6052995498985494,
+        "correct": false
+      },
+      {
+        "qid": "661d4c2eeac11fad3300001a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.373189535980272,
+        "correct": true
+      },
+      {
+        "qid": "60853db94e6a4cf630000010",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5992277579563932,
+        "correct": false
+      },
+      {
+        "qid": "55241f9e2c8b63434a000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4081544089524138,
+        "correct": true
+      },
+      {
+        "qid": "65f856a1c4010b4d7800004e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.464357735162293,
+        "correct": true
+      },
+      {
+        "qid": "533ba218fd9a95ea0d000007",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7444569044391073,
+        "correct": false
+      },
+      {
+        "qid": "5880c42fc872c95565000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.39536042238994085,
+        "correct": true
+      },
+      {
+        "qid": "5c71d6d27c78d6947100006a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4575973207485268,
+        "correct": true
+      },
+      {
+        "qid": "52bf1f2d03868f1b06000015",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.37780547032698303,
+        "correct": true
+      },
+      {
+        "qid": "56b76f496e3f8eaf4c000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5690908565906856,
+        "correct": false
+      },
+      {
+        "qid": "58dbb8968acda3452900001b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4712063891363357,
+        "correct": true
+      },
+      {
+        "qid": "5c9fb428ecadf2e73f000041",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7770407685450957,
+        "correct": false
+      },
+      {
+        "qid": "52f21e8f2059c6d71c00000c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6435788109393299,
+        "correct": false
+      },
+      {
+        "qid": "58aa0c6f396a458e50000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.12662198289471185,
+        "correct": true
+      },
+      {
+        "qid": "56b7083376d8bf8d13000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5983921236190186,
+        "correct": false
+      },
+      {
+        "qid": "5c674c287c78d6947100001a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4309330496969573,
+        "correct": true
+      },
+      {
+        "qid": "660c0071fdcbea915f00002b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24269626172755326,
+        "correct": true
+      },
+      {
+        "qid": "65cebc0c1930410b13000003",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4672162877034899,
+        "correct": true
+      },
+      {
+        "qid": "5aac543bfcf4565872000004",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5995136325645537,
+        "correct": false
+      },
+      {
+        "qid": "5e639a0a1af46fc130000010",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5306530059069138,
+        "correct": false
+      },
+      {
+        "qid": "5e6de3f21af46fc130000022",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5852401137390815,
+        "correct": false
+      },
+      {
+        "qid": "5506ce078e1671127b00000b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7593712002242061,
+        "correct": false
+      },
+      {
+        "qid": "5e319789fbd6abf43b00004a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.48798206929398036,
+        "correct": true
+      },
+      {
+        "qid": "53357193d6d3ac6a34000047",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4794853809196453,
+        "correct": true
+      },
+      {
+        "qid": "6206c22ac9dfcb9c0900003e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.34651086848918244,
+        "correct": true
+      },
+      {
+        "qid": "622b99f73a8413c653000093",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.16373234152881247,
+        "correct": true
+      },
+      {
+        "qid": "53161545b166e2b806000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.32768539705407834,
+        "correct": true
+      },
+      {
+        "qid": "531e2695267d7dd05300000f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6792999974762134,
+        "correct": false
+      },
+      {
+        "qid": "6277de0d56bf9aee6f000006",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.26371682893080894,
+        "correct": true
+      },
+      {
+        "qid": "5e47681b35b8f0833c000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7269809383994971,
+        "correct": false
+      },
+      {
+        "qid": "5509c52f1180f13250000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4958384006424082,
+        "correct": true
+      },
+      {
+        "qid": "643f9eeb57b1c7a31500003c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6481356626007073,
+        "correct": false
+      },
+      {
+        "qid": "5ad4d758133db5eb78000007",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.17628822207293443,
+        "correct": true
+      },
+      {
+        "qid": "601d74681cb411341a000042",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.42857091991184904,
+        "correct": true
+      },
+      {
+        "qid": "52fe58f82059c6d71c00007a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.46570727472396406,
+        "correct": true
+      },
+      {
+        "qid": "5a79d0b8faa1ab7d2e00000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3811021118889153,
+        "correct": true
+      },
+      {
+        "qid": "5a87145861bb38fb24000004",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4934936139770487,
+        "correct": true
+      },
+      {
+        "qid": "5e3c686fb5b409ea53000020",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6540937485372782,
+        "correct": false
+      },
+      {
+        "qid": "5c7839edd774d04240000003",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7011057023060919,
+        "correct": false
+      },
+      {
+        "qid": "606ab57394d57fd87900004f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.630605901249814,
+        "correct": false
+      },
+      {
+        "qid": "56f6c11109dd18d46b00000e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.40562219222756035,
+        "correct": true
+      },
+      {
+        "qid": "6250787be764a5320400000e",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.506924035836603,
+        "correct": false
+      },
+      {
+        "qid": "604911661cb411341a000169",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7107574598828388,
+        "correct": false
+      },
+      {
+        "qid": "5fe31305a43ad3127800003b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.34772218133451727,
+        "correct": true
+      },
+      {
+        "qid": "622a5a7c3a8413c653000090",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.47653529910414927,
+        "correct": true
+      },
+      {
+        "qid": "515db3d8298dcd4e51000015",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5025860900154341,
+        "correct": false
+      },
+      {
+        "qid": "58a32edd60087bc10a000012",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5821880232457729,
+        "correct": false
+      },
+      {
+        "qid": "5ac725250340b9f058000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6769563646450627,
+        "correct": false
+      },
+      {
+        "qid": "602593101cb411341a0000ab",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.43347603231395243,
+        "correct": true
+      },
+      {
+        "qid": "58e23ec66fddd3e83e000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4111175605494889,
+        "correct": true
+      },
+      {
+        "qid": "606b800994d57fd879000071",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4745386109854873,
+        "correct": true
+      },
+      {
+        "qid": "56d138fe3975bb303a000015",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6137578649644903,
+        "correct": false
+      },
+      {
+        "qid": "54ede28094afd61504000003",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.30655361832005773,
+        "correct": true
+      },
+      {
+        "qid": "51631154298dcd4e5100004e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3683155712669345,
+        "correct": true
+      },
+      {
+        "qid": "51404dd723fec90375000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.35732470749148865,
+        "correct": true
+      },
+      {
+        "qid": "5323640b9b2d7acc7e000014",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5692923016129896,
+        "correct": false
+      },
+      {
+        "qid": "61f5fb64882a024a1000001a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5659572825604627,
+        "correct": false
+      },
+      {
+        "qid": "56e6ec49edfc094c1f000005",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4859605953669681,
+        "correct": true
+      },
+      {
+        "qid": "5348307daeec6fbd07000011",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5453500557522382,
+        "correct": false
+      },
+      {
+        "qid": "571f5c150fd6f91b68000009",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4318709463200173,
+        "correct": true
+      },
+      {
+        "qid": "5abd13e1fcf4565872000029",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6164936406261562,
+        "correct": false
+      },
+      {
+        "qid": "5a7d4721faa1ab7d2e000012",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6454930947840628,
+        "correct": false
+      },
+      {
+        "qid": "601c17c21cb411341a00000e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3547490060363996,
+        "correct": true
+      },
+      {
+        "qid": "5a7237672dc08e987e000008",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6761772282232549,
+        "correct": false
+      },
+      {
+        "qid": "602828b11cb411341a0000fc",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.34936989724098655,
+        "correct": true
+      },
+      {
+        "qid": "53035d7c2059c6d71c000085",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5600755899147143,
+        "correct": false
+      },
+      {
+        "qid": "52b2e1d8f828ad283c00000c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4670781805925404,
+        "correct": true
+      },
+      {
+        "qid": "58b6cd3222d300530900000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.21146375843917023,
+        "correct": true
+      },
+      {
+        "qid": "5fe31312a43ad31278000042",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5092139573249266,
+        "correct": false
+      },
+      {
+        "qid": "5ac0a36f19833b0d7b000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6014656779846981,
+        "correct": false
+      },
+      {
+        "qid": "5e61425e1af46fc13000000d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.595104493565674,
+        "correct": false
+      },
+      {
+        "qid": "56c58f1b5795f9a73e000001",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6353166874902055,
+        "correct": false
+      },
+      {
+        "qid": "57138eb21174fb175500000a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6861420500716475,
+        "correct": false
+      },
+      {
+        "qid": "6428da74690f196b51000052",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1088791015217527,
+        "correct": true
+      },
+      {
+        "qid": "606b7d6c94d57fd87900006f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5886421260307932,
+        "correct": false
+      },
+      {
+        "qid": "56c4d14ab04e159d0e000003",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3828331069712328,
+        "correct": true
+      },
+      {
+        "qid": "534eb34b288f4dae47000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5988123568947347,
+        "correct": false
+      },
+      {
+        "qid": "58cdb41302b8c60953000042",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2103937409043261,
+        "correct": true
+      },
+      {
+        "qid": "589a247078275d0c4a000035",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5500666699396137,
+        "correct": false
+      },
+      {
+        "qid": "63f03fc8f36125a426000021",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7571043483271038,
+        "correct": false
+      },
+      {
+        "qid": "517818508ed59a060a000035",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.33038472346143943,
+        "correct": true
+      },
+      {
+        "qid": "5c51fb7a07ef653866000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5142553686961642,
+        "correct": false
+      },
+      {
+        "qid": "627a875a56bf9aee6f000023",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4569301116633813,
+        "correct": true
+      },
+      {
+        "qid": "5c990241ecadf2e73f00002d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6224715532450397,
+        "correct": false
+      },
+      {
+        "qid": "5e2902e48b3851296d000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5280066055546864,
+        "correct": false
+      },
+      {
+        "qid": "5aafc37afcf4565872000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4797551769692693,
+        "correct": true
+      },
+      {
+        "qid": "55180ef46487737b43000006",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3961884505469663,
+        "correct": true
+      },
+      {
+        "qid": "5e669e401af46fc13000001a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.16463097117121325,
+        "correct": true
+      },
+      {
+        "qid": "621b78e63a8413c65300003f",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6542329083350628,
+        "correct": false
+      },
+      {
+        "qid": "5a6900ebb750ff445500001d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.39727642900542964,
+        "correct": true
+      },
+      {
+        "qid": "5d3826427bc3fee31f00000f",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4776219568304256,
+        "correct": true
+      },
+      {
+        "qid": "660c0486fdcbea915f00002d",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5348780806348151,
+        "correct": false
+      },
+      {
+        "qid": "6417900b690f196b5100002a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.35792246206042105,
+        "correct": true
+      },
+      {
+        "qid": "5880b812c872c95565000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5390115877892258,
+        "correct": false
+      },
+      {
+        "qid": "5fdb41c5a43ad3127800001e",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6750858895863007,
+        "correct": false
+      },
+      {
+        "qid": "56d3346cf22319765a000008",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.607005651142083,
+        "correct": false
+      },
+      {
+        "qid": "5a68f005b750ff4455000016",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1092516400352881,
+        "correct": true
+      },
+      {
+        "qid": "5fdb42e7a43ad31278000026",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7265049495213929,
+        "correct": false
+      },
+      {
+        "qid": "65f38059c4010b4d7800000e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.44073558507287514,
+        "correct": true
+      },
+      {
+        "qid": "5a9700adfcd1d6a10c00002c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4031375140199053,
+        "correct": true
+      },
+      {
+        "qid": "53189b05b166e2b80600001e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.48947741998434396,
+        "correct": true
+      },
+      {
+        "qid": "58f4b2f070f9fc6f0f000012",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5854825030448257,
+        "correct": false
+      },
+      {
+        "qid": "6415c9e9690f196b51000018",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4194527420134191,
+        "correct": true
+      },
+      {
+        "qid": "5335c7f2d6d3ac6a34000051",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.39293053779079457,
+        "correct": true
+      },
+      {
+        "qid": "55421398ccca0ce74b000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.44498015762281384,
+        "correct": true
+      },
+      {
+        "qid": "601ff4021cb411341a000075",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.24891083776269654,
+        "correct": true
+      },
+      {
+        "qid": "52bf19f703868f1b06000002",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6495816115764534,
+        "correct": false
+      },
+      {
+        "qid": "623e02e0f0baec9a1b000005",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7449263265274904,
+        "correct": false
+      },
+      {
+        "qid": "51635202298dcd4e5100004f",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.39660940349057283,
+        "correct": true
+      },
+      {
+        "qid": "5e669e0e1af46fc130000019",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.30579096751039825,
+        "correct": true
+      },
+      {
+        "qid": "55390901bc4f83e828000014",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.44430050674507093,
+        "correct": true
+      },
+      {
+        "qid": "5c7d5fcfd774d04240000011",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7252159948419001,
+        "correct": false
+      },
+      {
+        "qid": "660877c8fdcbea915f000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.22554920715656576,
+        "correct": true
+      },
+      {
+        "qid": "5e31cb85fbd6abf43b00004e",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2785426671690574,
+        "correct": true
+      },
+      {
+        "qid": "65d36e761930410b13000044",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6561630603853513,
+        "correct": false
+      },
+      {
+        "qid": "5321bc309b2d7acc7e00000d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4381486456489054,
+        "correct": true
+      },
+      {
+        "qid": "6412331b201352f04a000038",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5273195708238584,
+        "correct": false
+      },
+      {
+        "qid": "5d35e7ddb3a638076300000e",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6029251381580625,
+        "correct": false
+      },
+      {
+        "qid": "58a95c711978bbde22000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.11673447387210002,
+        "correct": true
+      },
+      {
+        "qid": "58c6635f02b8c60953000023",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.25528811340897767,
+        "correct": true
+      },
+      {
+        "qid": "53398855d6d3ac6a3400005b",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5317339081372426,
+        "correct": false
+      },
+      {
+        "qid": "5fe0b4cda43ad31278000034",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4139224542456849,
+        "correct": true
+      },
+      {
+        "qid": "54e8c7220fc566b149000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4299373312433589,
+        "correct": true
+      },
+      {
+        "qid": "66088ffafdcbea915f00000f",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.38506434839503606,
+        "correct": true
+      },
+      {
+        "qid": "640c85e9201352f04a000026",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7758020349264673,
+        "correct": false
+      },
+      {
+        "qid": "6277e4ee56bf9aee6f000008",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2631768921777983,
+        "correct": true
+      },
+      {
+        "qid": "54e0d7471388e8454a000015",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.46115163429209205,
+        "correct": true
+      },
+      {
+        "qid": "5a7d51dafaa1ab7d2e000017",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6340420462753451,
+        "correct": false
+      },
+      {
+        "qid": "53124bdae3eabad02100000b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3373960674708321,
+        "correct": true
+      },
+      {
+        "qid": "623345bf3a8413c6530000ab",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6937114644579468,
+        "correct": false
+      },
+      {
+        "qid": "5ace37d50340b9f058000011",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5744134825887398,
+        "correct": false
+      },
+      {
+        "qid": "606ae4fd94d57fd879000056",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.39348592505115393,
+        "correct": true
+      },
+      {
+        "qid": "62265c953a8413c653000084",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1418277575726219,
+        "correct": true
+      },
+      {
+        "qid": "621d02f33a8413c653000047",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6851694335649301,
+        "correct": false
+      },
+      {
+        "qid": "64136fbf201352f04a00003d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1869373986122824,
+        "correct": true
+      },
+      {
+        "qid": "553653a5bc4f83e828000007",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7204968907340701,
+        "correct": false
+      },
+      {
+        "qid": "5e5e508b1af46fc13000000c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7183458373120665,
+        "correct": false
+      },
+      {
+        "qid": "5c5310c37e3cb0e231000010",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2398608506713509,
+        "correct": true
+      },
+      {
+        "qid": "530cf54dab4de4de0c00000c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.584302547634474,
+        "correct": false
+      },
+      {
+        "qid": "5e4fd44a6d0a277941000033",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4473892686603356,
+        "correct": true
+      },
+      {
+        "qid": "5c701f4f7c78d69471000060",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4005966180777791,
+        "correct": true
+      },
+      {
+        "qid": "5abcf0b0fcf4565872000024",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4833162853780091,
+        "correct": true
+      },
+      {
+        "qid": "51585b28d24251bc0500008d",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3802721640719474,
+        "correct": true
+      },
+      {
+        "qid": "601eaac81cb411341a000051",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.06471044359132867,
+        "correct": true
+      },
+      {
+        "qid": "53551206a0726bee57000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2549613651977819,
+        "correct": true
+      },
+      {
+        "qid": "532ff917d6d3ac6a34000038",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6391017609828064,
+        "correct": false
+      },
+      {
+        "qid": "58bca08702b8c6095300000a",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6487383984483275,
+        "correct": false
+      },
+      {
+        "qid": "5ad243e30340b9f058000016",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.7098819009063772,
+        "correct": false
+      },
+      {
+        "qid": "5a9e2386de7cb99d40000004",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5995973259906937,
+        "correct": false
+      },
+      {
+        "qid": "6432f5f257b1c7a31500001c",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6326203882973817,
+        "correct": false
+      },
+      {
+        "qid": "65ef8502dffffb9b6b000003",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5938367253150744,
+        "correct": false
+      },
+      {
+        "qid": "514a51c2d24251bc0500005c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.3068300632898975,
+        "correct": true
+      },
+      {
+        "qid": "6411b678201352f04a000036",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.6990856738137573,
+        "correct": false
+      },
+      {
+        "qid": "661d6252eac11fad33000025",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5449619927974537,
+        "correct": false
+      },
+      {
+        "qid": "534abe8aaeec6fbd07000013",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5532204836034194,
+        "correct": false
+      },
+      {
+        "qid": "6431f7de57b1c7a31500001b",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4779871135647598,
+        "correct": true
+      },
+      {
+        "qid": "64403a5857b1c7a31500004c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.40870103213863285,
+        "correct": true
+      },
+      {
+        "qid": "58bca2f302b8c6095300000c",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.17378263792994517,
+        "correct": true
+      },
+      {
+        "qid": "58861d413b87a8a738000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.4600946700865843,
+        "correct": true
+      },
+      {
+        "qid": "58a8903b38c171fb5b000006",
+        "label": 0,
+        "prediction": 1,
+        "probability": 0.5282364084466246,
+        "correct": false
+      },
+      {
+        "qid": "55421ee7ccca0ce74b000002",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.1938598381643417,
+        "correct": true
+      },
+      {
+        "qid": "5a68f965b750ff445500001a",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.2942249199253505,
+        "correct": true
+      },
+      {
+        "qid": "54f9c40ddd3fc62544000001",
+        "label": 0,
+        "prediction": 0,
+        "probability": 0.33393708436287467,
+        "correct": true
+      }
+    ],
+    "point_metrics": {
+      "accuracy": 0.6981651376146789,
+      "precision": 0.6435246995994659,
+      "recall": 0.8860294117647058,
+      "f1": 0.745552977571539,
+      "auroc": 0.8218830801551389,
+      "n_examples": 1090,
+      "n_positive": 544,
+      "n_negative": 546
+    }
+  }
+}

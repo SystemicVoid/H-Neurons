@@ -21,6 +21,7 @@
         <a href="methods.html">Methods</a>
         <a href="extensions.html">Extensions</a>
         <a href="deep-dives/neuron-4288.html">Neuron 4288</a>
+        <a href="deep-dives/swing-characterization.html">Swing</a>
       </div>
     </div>
   </div>
@@ -30,6 +31,7 @@
 <section id="hero">
   <div class="fade-in">
     <h1>H-Neurons:<br>Replication, Artifacts,<br>and Open Questions</h1>
+    <!-- from: classifier_disjoint_accuracy -->
     <p class="subtitle" data-source="manual">
       Gao et al. (2025) claim that fewer than 0.1% of a language model's MLP neurons, dubbed "H-Neurons,"
       reliably predict hallucination and causally drive over-compliance when amplified.
@@ -41,6 +43,8 @@
       But replication also surfaced problems the paper doesn't discuss.
     </p>
 
+    <!-- from: anti_compliance_swing_share -->
+    <!-- from: standard_text_remap_alpha_3_rescored_rate -->
     <p class="subtitle" style="margin-top: 1rem;" data-source="manual">
       The top-ranked neuron's classifier weight is an L1 regularization artifact, not a uniquely important "hallucination hub."
       Only <span data-intervention-summary-bind="swing-share-value">13.8%</span> of evaluation samples actually respond to the intervention
@@ -61,7 +65,7 @@
       The replication holds. Four focused extensions are now live in the roadmap:
       <strong>SAE decomposition</strong> to find a monosemantic "compliance feature" inside the polysemantic H-Neurons, using Gemma Scope's 16k-width SAEs that fit alongside the model in 16GB VRAM;
       <strong>suppressive-neuron investigation</strong> of the negative-weight neurons the paper ignored, testing whether amplifying a natural truthfulness circuit can reduce hallucination;
-      <strong>swing sample profiling</strong> to determine whether H-Neurons override genuine knowledge (alarming) or just mask appropriate uncertainty (a narrower safety concern);
+      <strong><a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">swing sample profiling</a></strong> (complete: 68% of swing samples show knowledge override, not formatting drift &mdash; <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">deep dive</a>);
       and a <strong>safety/refusal overlap pilot</strong> to test whether the detector intersects refusal or policy-style behaviors rather than hallucination alone.
     </p>
 

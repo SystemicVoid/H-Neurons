@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "banned_phrases": [
+    "no CI yet",
+    "no_ci_yet",
+    "No confidence intervals computed"
+  ],
+  "claims": [
+    {
+      "id": "classifier_disjoint_accuracy",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/classifier_disjoint_summary.json",
+        "path": [
+          "evaluation",
+          "metrics",
+          "accuracy"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/deep-dives/neuron-4288.html",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/pipeline_report.md",
+          "mode": "comment"
+        },
+        {
+          "file": "docs/bluedot-rapid-grant-2026.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "classifier_overlap_accuracy",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/classifier_overlap_summary.json",
+        "path": [
+          "evaluation",
+          "metrics",
+          "accuracy"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "data/gemma3_4b/pipeline_report.md",
+          "mode": "comment"
+        },
+        {
+          "file": "docs/bluedot-rapid-grant-2026.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "bioasq_recovery_accuracy",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/bioasq13b_factoid_classifier_summary.json",
+        "path": [
+          "evaluation",
+          "metrics",
+          "accuracy"
+        ]
+      },
+      "surfaces": []
+    },
+    {
+      "id": "anti_compliance_delta_0_to_3",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/faitheval/results.json",
+        "path": [
+          "effects",
+          "compliance_curve",
+          "delta_0_to_max_pp"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/pipeline_report.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "anti_compliance_slope",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/faitheval/results.json",
+        "path": [
+          "effects",
+          "compliance_curve",
+          "slope_pp_per_alpha"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/pipeline_report.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "anti_compliance_swing_share",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/intervention_sweep.json",
+        "path": [
+          "population",
+          "anti_compliance",
+          "swing"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "standard_text_remap_alpha_3_rescored_rate",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/intervention_sweep.json",
+        "path": [
+          "series",
+          "standard_text_remap",
+          "by_alpha",
+          "3.0",
+          "strict_rescored_compliance_summary"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/pipeline_report.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "falseqa_delta_0_to_3",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/falseqa/results.json",
+        "path": [
+          "effects",
+          "compliance_curve",
+          "delta_0_to_max_pp"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/pipeline_report.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "negative_control_random_slope_interval",
+      "status": "required",
+      "kind": "interval_only",
+      "source": {
+        "file": "data/gemma3_4b/intervention/negative_control/comparison_summary.json",
+        "path": [
+          "comparison_to_h_neurons",
+          "slope_random_percentile_interval"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/pipeline_report.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "mistral_training_metrics",
+      "status": "not_applicable",
+      "reason": "training_only_descriptive_metrics"
+    },
+    {
+      "id": "bioasq_pre_recovery_aggregate",
+      "status": "blocked_data",
+      "reason": "no_committed_per_example_predictions_for_bootstrap"
+    },
+    {
+      "id": "jailbreak_benchmark",
+      "status": "blocked_data",
+      "reason": "no_committed_result_artifact"
+    },
+    {
+      "id": "sycophancy_benchmark",
+      "status": "blocked_data",
+      "reason": "no_committed_result_artifact"
+    }
+  ]
+}

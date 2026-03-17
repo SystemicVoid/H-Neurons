@@ -42,6 +42,7 @@ from run_intervention import (
     load_falseqa,
     load_model_and_tokenizer,
 )
+from uncertainty import build_rate_summary, percentile_interval
 
 # H-neuron layer distribution: {layer: count}
 H_NEURON_LAYER_DIST = {
@@ -237,6 +238,18 @@ def _run_faitheval_alphas(
             "n_compliant": comp_total,
             "n_total": n_total,
             "parse_failures": pf_total,
+            "compliance": build_rate_summary(
+                comp_total,
+                n_total,
+                count_key="n_compliant",
+                total_key="n_total",
+            ),
+            "parse_failure": build_rate_summary(
+                pf_total,
+                n_total,
+                count_key="count",
+                total_key="n_total",
+            ),
         }
         print(
             f"  α={alpha:.1f}: {comp_total / n_total:.1%} compliance "
@@ -343,6 +356,16 @@ def build_comparison_summary(
             "slope_per_alpha": round(h_slope, 2),
             "spearman_rho": round(h_rho, 4),
             "parse_failures": [0] * len(alphas),
+            "compliance_ci_by_alpha": [
+                h_baseline_raw["results"][str(float(a))].get("compliance", None)
+                or build_rate_summary(
+                    h_baseline_raw["results"][str(float(a))]["n_compliant"],
+                    h_baseline_raw["results"][str(float(a))]["n_total"],
+                    count_key="n_compliant",
+                    total_key="n_total",
+                )
+                for a in alphas
+            ],
         },
     }
 
@@ -371,6 +394,16 @@ def build_comparison_summary(
                 "slope_per_alpha": round(slope, 2),
                 "spearman_rho": round(rho, 4),
                 "parse_failures": pfs,
+                "compliance_ci_by_alpha": [
+                    res[str(float(a))].get("compliance", None)
+                    or build_rate_summary(
+                        res[str(float(a))]["n_compliant"],
+                        res[str(float(a))]["n_total"],
+                        count_key="n_compliant",
+                        total_key="n_total",
+                    )
+                    for a in alphas
+                ],
             }
 
         rates_matrix = np.array(all_rates)
@@ -397,33 +430,41 @@ def build_comparison_summary(
             "std_compliance_rates": [round(s, 4) for s in std_rates],
             "per_seed": per_seed,
             "mean_slope_per_alpha": round(np.mean(slopes), 2),
+            "slope_percentile_interval": percentile_interval(
+                np.array(slopes, dtype=float),
+                method="empirical_random_set_percentile",
+            ).to_dict(),
             "mean_spearman_rho": round(np.mean(rhos), 4),
             "any_seed_monotonic": monotonic_count > 0,
             "mean_parse_failures": [round(p, 1) for p in mean_pf],
+            "alpha_3_compliance_percentile_interval_pct": percentile_interval(
+                np.array(
+                    [per_seed[k]["compliance_rates"][-1] * 100.0 for k in per_seed]
+                ),
+                method="empirical_random_set_percentile",
+            ).to_dict(),
         }
 
-    # Statistical tests (unconstrained vs H-neurons)
     if "unconstrained_random" in summary:
         unc = cast(dict[str, Any], summary["unconstrained_random"])
         per_seed = cast(dict[str, dict[str, Any]], unc["per_seed"])
-        # t-test on compliance at alpha=3.0 (per-seed rates vs H-neuron rate)
-        seed_rates_3 = [per_seed[k]["compliance_rates"][-1] for k in per_seed]
-        h_rate_3 = h_rates[-1]
-        if len(seed_rates_3) > 1:
-            _, t_p = stats.ttest_1samp(seed_rates_3, h_rate_3)
-        else:
-            t_p = float("nan")
-
-        # Slope comparison
         seed_slopes = [per_seed[k]["slope_per_alpha"] for k in per_seed]
-        if len(seed_slopes) > 1:
-            _, s_p = stats.ttest_1samp(seed_slopes, h_slope)
-        else:
-            s_p = float("nan")
-
-        summary["statistical_tests"] = {
-            "compliance_at_alpha_3_h_vs_random_ttest_p": round(t_p, 6),
-            "slope_h_vs_random_ttest_p": round(s_p, 6),
+        seed_rates_3_pct = [
+            per_seed[k]["compliance_rates"][-1] * 100.0 for k in per_seed
+        ]
+        summary["comparison_to_h_neurons"] = {
+            "alpha_3_h_rate_pct": round(h_rates[-1] * 100.0, 1),
+            "alpha_3_random_mean_pct": round(float(np.mean(seed_rates_3_pct)), 1),
+            "alpha_3_random_percentile_interval_pct": percentile_interval(
+                np.array(seed_rates_3_pct, dtype=float),
+                method="empirical_random_set_percentile",
+            ).to_dict(),
+            "slope_h_pp_per_alpha": round(h_slope, 2),
+            "slope_random_mean_pp_per_alpha": round(float(np.mean(seed_slopes)), 2),
+            "slope_random_percentile_interval": percentile_interval(
+                np.array(seed_slopes, dtype=float),
+                method="empirical_random_set_percentile",
+            ).to_dict(),
         }
 
     return summary
@@ -675,12 +716,22 @@ def main():
                 f"any_monotonic={d['any_seed_monotonic']}"
             )
 
-    if "statistical_tests" in summary:
-        st = summary["statistical_tests"]
+    if "comparison_to_h_neurons" in summary:
+        st = summary["comparison_to_h_neurons"]
         print(
-            f"t-test (compliance@α=3): p={st['compliance_at_alpha_3_h_vs_random_ttest_p']}"
+            "α=3 compliance: "
+            f"H={st['alpha_3_h_rate_pct']}%, "
+            f"random mean={st['alpha_3_random_mean_pct']}%, "
+            f"random 95% interval=[{st['alpha_3_random_percentile_interval_pct']['lower']:.2f}, "
+            f"{st['alpha_3_random_percentile_interval_pct']['upper']:.2f}]"
         )
-        print(f"t-test (slope): p={st['slope_h_vs_random_ttest_p']}")
+        print(
+            "Slope: "
+            f"H={st['slope_h_pp_per_alpha']}pp/α, "
+            f"random mean={st['slope_random_mean_pp_per_alpha']}pp/α, "
+            f"random 95% interval=[{st['slope_random_percentile_interval']['lower']:.2f}, "
+            f"{st['slope_random_percentile_interval']['upper']:.2f}]"
+        )
 
     plot_path = os.path.join(output_base, "negative_control_comparison.png")
     plot_comparison(summary, alphas, plot_path, benchmark=benchmark)

@@ -222,11 +222,66 @@
     );
   }
 
+  function hydrateSwingCharacterization(summary) {
+    const subtypes = summary.subtypes;
+    const rc = subtypes['R\u2192C'] || subtypes['R→C'];
+    const cr = subtypes['C\u2192R'] || subtypes['C→R'];
+    const nm = subtypes['non-monotonic'];
+    const ta = summary.transition_alpha;
+    const rcAlpha = ta['R\u2192C'] || ta['R→C'];
+    const crAlpha = ta['C\u2192R'] || ta['C→R'];
+    const rcCrTest = summary.rc_vs_cr_test;
+
+    setBoundText('data-swing-bind', 'rc-count', rc.count.toLocaleString());
+    setBoundText('data-swing-bind', 'rc-pct', formatPercent(rc.pct));
+    setBoundText('data-swing-bind', 'rc-pct-display', formatPercent(rc.pct));
+    setBoundText('data-swing-bind', 'rc-ci', `[${(rc.ci_95[0] * 100).toFixed(1)}, ${(rc.ci_95[1] * 100).toFixed(1)}]`);
+    setBoundText('data-swing-bind', 'cr-count', cr.count.toLocaleString());
+    setBoundText('data-swing-bind', 'cr-pct', formatPercent(cr.pct));
+    setBoundText('data-swing-bind', 'cr-pct-display', formatPercent(cr.pct));
+    setBoundText('data-swing-bind', 'cr-ci', `[${(cr.ci_95[0] * 100).toFixed(1)}, ${(cr.ci_95[1] * 100).toFixed(1)}]`);
+    setBoundText('data-swing-bind', 'nm-count', nm.count.toLocaleString());
+    setBoundText('data-swing-bind', 'nm-pct', formatPercent(nm.pct));
+    setBoundText('data-swing-bind', 'rc-mean-alpha', rcAlpha.mean.toFixed(1));
+    setBoundText('data-swing-bind', 'rc-median-alpha', rcAlpha.median.toFixed(2));
+    setBoundText('data-swing-bind', 'cr-mean-alpha', crAlpha.mean.toFixed(1));
+    setBoundText('data-swing-bind', 'cr-median-alpha', crAlpha.median.toFixed(1));
+    setBoundText('data-swing-bind', 'rc-cr-p', `p=${rcCrTest.p.toFixed(2)}`);
+
+    const sp = summary.structural_proxies || {};
+    if (sp.context_length) {
+      setBoundText('data-swing-bind', 'context-length-p', `p=${sp.context_length.kruskal_p.toFixed(4)}`);
+    }
+    if (sp.word_overlap) {
+      setBoundText('data-swing-bind', 'overlap-p', `p=${sp.word_overlap.kruskal_p.toFixed(2)}`);
+    }
+    if (sp.standard_response_length) {
+      setBoundText('data-swing-bind', 'response-p', `p=${sp.standard_response_length.kruskal_p.toFixed(2)}`);
+    }
+    if (summary.source_datasets && summary.source_datasets.cramers_v != null) {
+      setBoundText('data-swing-bind', 'source-v', `V=${summary.source_datasets.cramers_v.toFixed(2)}`);
+    }
+
+    const llm = summary.llm_enrichment;
+    if (llm) {
+      if (llm.total_samples != null) {
+        setBoundText('data-swing-bind', 'llm-sample-count', llm.total_samples.toLocaleString());
+      }
+      if (llm.verification_agreement_rate != null) {
+        setBoundText('data-swing-bind', 'llm-agreement', formatPercent(llm.verification_agreement_rate * 100));
+      }
+      if (llm.mean_persuasiveness != null) {
+        setBoundText('data-swing-bind', 'llm-persuasiveness', llm.mean_persuasiveness.toFixed(1));
+      }
+    }
+  }
+
   async function hydrateSiteSummaryBindings() {
     const classifierNeeded = hasBinding('data-classifier-bind');
     const interventionNeeded = hasBinding('data-intervention-summary-bind');
+    const swingNeeded = hasBinding('data-swing-bind');
 
-    if (!classifierNeeded && !interventionNeeded) {
+    if (!classifierNeeded && !interventionNeeded && !swingNeeded) {
       return;
     }
 
@@ -255,6 +310,19 @@
             return response.json();
           })
           .then((summary) => hydrateInterventionSummary(summary)),
+      );
+    }
+
+    if (swingNeeded) {
+      requests.push(
+        fetch(new URL('../data/swing_characterization.json', sharedScriptUrl))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to load swing characterization data: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((summary) => hydrateSwingCharacterization(summary)),
       );
     }
 

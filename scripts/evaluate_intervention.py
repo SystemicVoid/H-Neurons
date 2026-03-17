@@ -11,22 +11,23 @@ Usage:
         --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0
 """
 
-import os
-import json
-from dotenv import load_dotenv
-
-load_dotenv()
-import time
 import argparse
+import json
+import os
+import time
 from pathlib import Path
 
-from tqdm import tqdm
+from dotenv import load_dotenv
 from openai import OpenAI
+from tqdm import tqdm
+
+load_dotenv()
 
 
 # ---------------------------------------------------------------------------
 # GPT-4o judge with retry logic (from collect_responses.py pattern)
 # ---------------------------------------------------------------------------
+
 
 def judge_falseqa(client, model, question, response, max_retries=5):
     """Judge whether model accepted false premise or correctly refused."""
@@ -55,7 +56,7 @@ def judge_falseqa(client, model, question, response, max_retries=5):
             return "UNKNOWN"
         except Exception as e:
             print(f"Judge API error (attempt {attempt + 1}): {e}")
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
     return "ERROR"
 
 
@@ -84,13 +85,14 @@ def judge_jailbreak(client, model, response, max_retries=5):
             return "UNKNOWN"
         except Exception as e:
             print(f"Judge API error (attempt {attempt + 1}): {e}")
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
     return "ERROR"
 
 
 # ---------------------------------------------------------------------------
 # Evaluate a single alpha file
 # ---------------------------------------------------------------------------
+
 
 def evaluate_alpha_file(path, benchmark, client, judge_model):
     """Read JSONL, judge each record, write back with compliance field."""
@@ -114,13 +116,15 @@ def evaluate_alpha_file(path, benchmark, client, judge_model):
             continue
 
         if benchmark == "falseqa":
-            verdict = judge_falseqa(client, judge_model, rec["question"], rec["response"])
+            verdict = judge_falseqa(
+                client, judge_model, rec["question"], rec["response"]
+            )
             rec["judge"] = verdict
-            rec["compliance"] = (verdict == "ACCEPTED")
+            rec["compliance"] = verdict == "ACCEPTED"
         elif benchmark == "jailbreak":
             verdict = judge_jailbreak(client, judge_model, rec["response"])
             rec["judge"] = verdict
-            rec["compliance"] = (verdict == "HARMFUL")
+            rec["compliance"] = verdict == "HARMFUL"
 
         updated.append(rec)
 
@@ -136,15 +140,24 @@ def evaluate_alpha_file(path, benchmark, client, judge_model):
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def parse_args():
-    p = argparse.ArgumentParser(description="Evaluate intervention responses with GPT-4o")
-    p.add_argument("--benchmark", type=str, required=True,
-                   choices=["falseqa", "jailbreak"])
+    p = argparse.ArgumentParser(
+        description="Evaluate intervention responses with GPT-4o"
+    )
+    p.add_argument(
+        "--benchmark", type=str, required=True, choices=["falseqa", "jailbreak"]
+    )
     p.add_argument("--input_dir", type=str, required=True)
-    p.add_argument("--alphas", type=float, nargs="+",
-                   default=[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
-    p.add_argument("--api_key", type=str, default=None,
-                   help="OpenAI API key (or set OPENAI_API_KEY env var)")
+    p.add_argument(
+        "--alphas", type=float, nargs="+", default=[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    )
+    p.add_argument(
+        "--api_key",
+        type=str,
+        default=None,
+        help="OpenAI API key (or set OPENAI_API_KEY env var)",
+    )
     p.add_argument("--judge_model", type=str, default="gpt-4o")
     return p.parse_args()
 
@@ -172,11 +185,13 @@ def main():
 
     # Save summary
     from run_intervention import aggregate_results
-    results = aggregate_results(args.input_dir, args.alphas)
+
+    aggregation = aggregate_results(args.input_dir, args.alphas)
     summary_path = os.path.join(args.input_dir, "results.json")
     summary = {
         "benchmark": args.benchmark,
-        "results": results,
+        "results": aggregation["results"],
+        "effects": aggregation["effects"],
     }
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)

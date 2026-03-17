@@ -20,10 +20,17 @@ import argparse
 
 import torch
 import joblib
+import numpy as np
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from intervene_model import get_h_neuron_indices
+from uncertainty import (
+    DEFAULT_BOOTSTRAP_RESAMPLES,
+    DEFAULT_BOOTSTRAP_SEED,
+    build_rate_summary,
+    paired_bootstrap_curve_effects,
+)
 
 
 DEFAULT_MODEL_PATH = os.environ.get(
@@ -337,6 +344,17 @@ def _count_compliance(path: str):
     return compliant, total
 
 
+def _load_records(path: str) -> list[dict]:
+    records = []
+    with open(path) as f:
+        for line in f:
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return records
+
+
 # ---------------------------------------------------------------------------
 # Benchmark: FalseQA (false premise questions)
 # ---------------------------------------------------------------------------
@@ -598,19 +616,101 @@ def run_jailbreak(
 def aggregate_results(output_dir, alphas):
     """Read all alpha files and compute compliance rates."""
     results = {}
+    rows_by_alpha = {}
+    parse_failure_supported = False
     for alpha in alphas:
         path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
         if not os.path.exists(path):
             continue
-        compliant, total = _count_compliance(path)
+        records = _load_records(path)
+        rows_by_alpha[alpha] = records
+        compliant = sum(1 for rec in records if rec.get("compliance"))
+        total = len(records)
         rate = compliant / total if total > 0 else 0
-        results[str(alpha)] = {
+        result = {
             "compliance_rate": round(rate, 4),
             "n_compliant": compliant,
             "n_total": total,
+            "compliance": build_rate_summary(
+                compliant,
+                total,
+                count_key="n_compliant",
+                total_key="n_total",
+            ),
         }
+        if any("chosen" in rec for rec in records):
+            parse_failure_supported = True
+            parse_failures = sum(rec.get("chosen") is None for rec in records)
+            result["parse_failures"] = parse_failures
+            result["parse_failure"] = build_rate_summary(
+                parse_failures,
+                total,
+                count_key="count",
+                total_key="n_total",
+            )
+        results[str(alpha)] = result
         print(f"  α={alpha:.1f}: {rate:.1%} compliance ({compliant}/{total})")
-    return results
+
+    effects = {}
+    if len(rows_by_alpha) >= 2:
+        ordered_alphas = [alpha for alpha in alphas if alpha in rows_by_alpha]
+        reference_ids = {rec["id"] for rec in rows_by_alpha[ordered_alphas[0]]}
+        matched = all(
+            {rec["id"] for rec in rows_by_alpha[alpha]} == reference_ids
+            for alpha in ordered_alphas[1:]
+        )
+        if matched and reference_ids:
+            trajectories = np.array(
+                [
+                    [
+                        bool(
+                            next(
+                                rec
+                                for rec in rows_by_alpha[alpha]
+                                if rec["id"] == sample_id
+                            )["compliance"]
+                        )
+                        for alpha in ordered_alphas
+                    ]
+                    for sample_id in sorted(reference_ids)
+                ],
+                dtype=bool,
+            )
+            effects["compliance_curve"] = paired_bootstrap_curve_effects(
+                trajectories,
+                np.array(ordered_alphas, dtype=float),
+                n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+                seed=DEFAULT_BOOTSTRAP_SEED,
+            )
+            if parse_failure_supported and all(
+                any("chosen" in rec for rec in rows_by_alpha[alpha])
+                for alpha in ordered_alphas
+            ):
+                parse_trajectories = np.array(
+                    [
+                        [
+                            next(
+                                rec
+                                for rec in rows_by_alpha[alpha]
+                                if rec["id"] == sample_id
+                            ).get("chosen")
+                            is None
+                            for alpha in ordered_alphas
+                        ]
+                        for sample_id in sorted(reference_ids)
+                    ],
+                    dtype=bool,
+                )
+                effects["parse_failure_curve"] = paired_bootstrap_curve_effects(
+                    parse_trajectories,
+                    np.array(ordered_alphas, dtype=float),
+                    n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+                    seed=DEFAULT_BOOTSTRAP_SEED,
+                )
+        else:
+            effects["status"] = "blocked_mismatched_sample_ids"
+
+    return {"results": results, "effects": effects}
 
 
 # ---------------------------------------------------------------------------
@@ -724,7 +824,7 @@ def main():
     print(f"\n{'=' * 60}")
     print("Results Summary")
     print(f"{'=' * 60}")
-    results = aggregate_results(output_dir, args.alphas)
+    aggregation = aggregate_results(output_dir, args.alphas)
 
     # Save summary
     summary = {
@@ -732,7 +832,8 @@ def main():
         "model": args.model_path,
         "classifier": args.classifier_path,
         "n_h_neurons": total_neurons,
-        "results": results,
+        "results": aggregation["results"],
+        "effects": aggregation["effects"],
     }
     if args.benchmark == "faitheval":
         summary["prompt_style"] = args.prompt_style

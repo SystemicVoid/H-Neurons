@@ -74,8 +74,10 @@ That report also documents:
 - 3,500 TriviaQA questions processed
 - 2,997 answer-token records after filtering
 - 38 identified H-neurons
-- 77.7% accuracy on the initial split
-- 76.5% accuracy on a disjoint split
+<!-- from: classifier_overlap_accuracy -->
+- 77.7% accuracy on the initial split (95% CI 75.9-79.5%)
+<!-- from: classifier_disjoint_accuracy -->
+- 76.5% accuracy on a disjoint split (95% CI 73.6-79.5%)
 
 This matters for the grant because it shows the project is already past the "does this work at all?" stage.
 
@@ -113,7 +115,8 @@ That is the core budgeting lesson: spending less on the wrong run is not frugali
 
 ### What have you already done on this project?
 
-I have already completed an end-to-end local replication of the H-Neurons pipeline on Gemma-3-4B: response collection, answer-token extraction, activation extraction, and sparse classifier training. That run processed 3,500 TriviaQA questions, identified 38 candidate H-neurons, and reached 76.5% accuracy on a disjoint test split, which is close to the paper's reported small-model performance. I have also automated the larger-model cloud pipeline, produced Mistral-24B response and answer-token artifacts, trained a 24B classifier artifact, and built intervention scripts plus preliminary benchmark outputs.
+<!-- from: classifier_disjoint_accuracy -->
+I have already completed an end-to-end local replication of the H-Neurons pipeline on Gemma-3-4B: response collection, answer-token extraction, activation extraction, and sparse classifier training. That run processed 3,500 TriviaQA questions, identified 38 candidate H-neurons, and reached 76.5% accuracy on a disjoint evaluated test split (95% CI 73.6-79.5%), which is close to the paper's reported small-model performance. I have also automated the larger-model cloud pipeline, produced Mistral-24B response and answer-token artifacts, trained a 24B classifier artifact, and built intervention scripts plus preliminary benchmark outputs.
 
 ### What specifically would this grant fund?
 

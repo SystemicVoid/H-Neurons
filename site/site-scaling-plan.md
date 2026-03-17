@@ -6,6 +6,15 @@
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
+## Highest-Priority Next Slice
+
+**CI provenance hardening is now the top DX priority.** The next site/report pass should continue eliminating handwritten quantitative claims in favor of:
+
+1. JSON-backed bindings for rendered metrics and chart annotations.
+2. Generated markdown tables for report surfaces where the source artifact already exists.
+3. `<!-- from: claim_id -->` provenance comments for the remaining literal prose claims, with claim ids registered in `docs/ci_manifest.json`.
+4. A passing `uv run python scripts/audit_ci_coverage.py` before any quantitative content ships.
+
 ---
 
 ## Core Principle: Data-Driven Static
@@ -18,9 +27,10 @@ This is the single most important constraint. It prevents drift when AI agents o
 
 1. Analysis scripts export results to `site/data/*.json` (or `data/` artifacts already in the repo).
 2. Pages `fetch()` those JSON files at load time. Cards, charts, and inline metrics all read from the same object.
-3. No metric value appears as a literal in HTML or JS chart arrays. If a number shows up in prose (e.g., "76.5% accuracy"), it must be injected from the data source or carry a `<!-- from: site/data/gemma_classifier.json -->` provenance comment.
+3. No metric value appears as a literal in HTML or JS chart arrays. If a number shows up in prose (e.g., "76.5% accuracy"), it must be injected from the data source or carry a `<!-- from: claim_id -->` provenance comment whose `claim_id` resolves in `docs/ci_manifest.json`.
 4. When updating experiment results, update the JSON source file. The site reflects the change automatically.
 5. For values that genuinely cannot be data-driven yet (narrative text, qualitative claims), mark them with `data-source="manual"` so future sessions know what still needs wiring.
+6. `scripts/audit_ci_coverage.py` is the hard gate: it validates CI-bearing artifacts, banned phrases, and provenance comments before commit.
 
 ### Local-source reconciliation checklist
 

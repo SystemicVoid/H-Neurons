@@ -21,6 +21,7 @@
         <a href="methods.html">Methods</a>
         <a class="active" href="extensions.html">Extensions</a>
         <a href="deep-dives/neuron-4288.html">Neuron 4288</a>
+        <a href="deep-dives/swing-characterization.html">Swing</a>
       </div>
     </div>
   </div>
@@ -53,10 +54,10 @@
         <div class="value val-purple" style="font-size: 1.3rem;">Layer-13 SAE</div>
         <div class="detail">Main mechanism sprint on the existing Gemma artifacts</div>
       </div>
-      <div class="metric-card" data-status="PROVISIONAL">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Zero-GPU branch</div>
-        <div class="value val-coral" style="font-size: 1.3rem;">Swing audit</div>
-        <div class="detail">Pure analysis on the 14% sensitive population</div>
+        <div class="value val-teal" style="font-size: 1.3rem;">Swing done</div>
+        <div class="detail">68% knowledge override &middot; <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">deep dive</a></div>
       </div>
     </div>
 
@@ -106,10 +107,10 @@
           </tr>
           <tr>
             <td><strong>Swing sample characterization</strong></td>
-            <td><span class="status-pill status-active">Pure analysis</span></td>
-            <td>The 6.3pp headline effect is really a 45.7% swing inside a 14% sensitive subpopulation. The key question is whether those samples mark weak knowledge or overridden strong knowledge.</td>
-            <td>Compare swing vs always-compliant vs never-compliant samples on confidence at α=1.0, topic domain, context convincingness, and response length. Cheap falsifier: zero GPU, about one day of analysis.</td>
-            <td>Existing per-sample intervention outputs; best interpreted after the text-rescoring cleanup is complete.</td>
+            <td><span class="status-pill status-complete">Complete</span></td>
+            <td>68% of swing samples (94/138) show R&rarr;C knowledge override; 23% show the beneficial C&rarr;R pattern. Surface features do not predict swing status.</td>
+            <td>Structural proxies, topic analysis, LLM-enriched knowledge classification, independent verification, and persuasiveness rating. <a href="deep-dives/swing-characterization.html">See the deep dive.</a></td>
+            <td>Complete. Results integrated into the site.</td>
           </tr>
           <tr>
             <td><strong>Safety/refusal overlap pilot</strong></td>
@@ -139,11 +140,12 @@
     </p>
 
     <div class="next-steps">
-      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">1</div>
-        <h3>Run the near-free filters first</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
+        <h3>Near-free filters (swing done, suppressive pending)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Check negative-weight stability and characterize the swing population before spending multiple days on a heavier mechanism sprint.
+          Swing characterization is <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">complete</a>: 68% knowledge override confirmed.
+          Negative-weight stability check remains pending.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
@@ -194,10 +196,12 @@
           Best route to turning the story from "suppress bad behavior" into "amplify a native truthfulness circuit," if the negative-weight set proves stable and causal.
         </p>
       </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Swing sample characterization</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Swing sample characterization (complete)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Best route to deciding whether H-neurons override appropriate uncertainty or genuine knowledge. That is the difference between a narrower deployment concern and a much stronger safety alarm.
+          Resolved: H-neurons mostly override genuine knowledge (68% R&rarr;C), not just appropriate uncertainty.
+          Surface features do not predict swing status; the mechanism is internal.
+          <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">See the deep dive.</a>
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">

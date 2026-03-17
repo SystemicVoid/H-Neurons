@@ -11,17 +11,20 @@
 
 ## 1. Results Summary
 
+<!-- from: classifier_overlap_accuracy -->
+<!-- from: classifier_disjoint_accuracy -->
 | Metric | Paper (Gemma-3-4B) | Overlapping test (66.3%) | Disjoint test (0%) |
 |--------|-------------------|--------------------------|---------------------|
-| TriviaQA test accuracy | 76.9% | 77.7% | **76.5%** |
+| TriviaQA test accuracy | 76.9% | 77.7% [75.9, 79.5] | **76.5% [73.6, 79.5]** |
 | H-Neuron count | ~35 (0.10‰) | 38 (0.11‰) | **38** (0.11‰) |
-| AUROC (test) | — | 0.863 | **0.843** |
-| Precision (test) | — | 0.780 | **0.767** |
-| Recall (test) | — | 0.769 | **0.761** |
-| F1 (test) | — | 0.775 | **0.764** |
-| Test set size | — | 2,000 (1000t+1000f) | **782** (391t+391f) |
+| AUROC (test) | — | 0.863 [0.847, 0.879] | **0.843 [0.815, 0.870]** |
+| Precision (test) | — | 0.780 [0.759, 0.801] | **0.767 [0.734, 0.801]** |
+| Recall (test) | — | 0.769 [0.743, 0.796] | **0.761 [0.717, 0.805]** |
+| F1 (test) | — | 0.775 [0.755, 0.793] | **0.764 [0.732, 0.794]** |
+| Test set size | — | 1,993 evaluated | **780 evaluated** (782 sampled, 2 missing activations) |
 
-The disjoint test set (0% overlap with training data) yields **76.5% accuracy**, which is actually closer to the paper's 76.9% than the inflated 77.7% from the overlapping split. The ~1.2 percentage point drop from overlapping→disjoint confirms mild leakage, but the signal is clearly real — it holds on fully held-out data.
+<!-- from: classifier_disjoint_accuracy -->
+The disjoint test set (0% overlap with training data) yields **76.5% accuracy [73.6, 79.5]**, which is actually closer to the paper's 76.9% than the inflated overlapping score of 77.7% [75.9, 79.5]. The ~1.1 percentage point drop from overlapping→disjoint confirms mild leakage, but the signal is clearly real — it holds on fully held-out data.
 
 The classifier identifies 38 H-Neurons out of 348,160 total neuron positions (34 layers × 10,240 intermediate neurons), achieving 99.978% weight sparsity. The same 38 neurons were selected regardless of test set composition (training is identical).
 
@@ -108,7 +111,7 @@ Training data composition (3-vs-1 mode):
 | False other tokens | 0 (negative) | 993 |
 
 Training set results: 89.2% accuracy, 0.958 AUROC
-Test set results: **77.7% accuracy**, 0.863 AUROC
+Test set results: **77.7% accuracy [75.9, 79.5]**, 0.863 AUROC [0.847, 0.879]
 
 ---
 
@@ -169,9 +172,9 @@ extracted = ast.literal_eval(reply)  # instead of json.loads(reply.replace("'", 
 
 **Issue:** Running `sample_balanced_ids.py` twice with different seeds produced independent samples with 66.3% overlap. With 1,391 true IDs and both splits requesting 1,000, heavy overlap was expected by the pigeonhole principle.
 
-**Impact:** The overlapping test accuracy (77.7%) was inflated by ~1.2pp relative to the disjoint test (76.5%). The leakage was mild but real.
+**Impact:** The overlapping test accuracy (77.7% [75.9, 79.5]) was inflated by ~1.1pp relative to the disjoint test (76.5% [73.6, 79.5]). The leakage was mild but real.
 
-**Fix applied:** Added `--exclude_path` flag to `sample_balanced_ids.py`. The disjoint test set excludes all train IDs, yielding 391t + 391f = 782 test entries with 0% overlap. The disjoint accuracy (76.5%) is actually closer to the paper's reported 76.9% than the inflated 77.7%.
+**Fix applied:** Added `--exclude_path` flag to `sample_balanced_ids.py`. The disjoint test set excludes all train IDs, yielding 391t + 391f = 782 sampled test entries with 0% overlap. The current CI-bearing evaluation covers 780 of them because 2 IDs are missing activation files; that evaluated subset reaches 76.5% [73.6, 79.5], which is actually closer to the paper's reported 76.9% than the inflated 77.7% [75.9, 79.5].
 
 **Why the paper gets away with it:** The paper's main evaluation uses out-of-distribution datasets (NQ-Open, BioASQ, NonExist) where there is zero overlap by construction. The in-domain TriviaQA number is secondary.
 
@@ -541,7 +544,8 @@ Our slope (2.10% per unit α) is below the paper's reported average for small mo
 
 #### 4. ~~Lack of negative controls~~ — RESOLVED
 
-~~Neither the paper nor our replication includes a negative control.~~ **DONE.** Eight random-neuron seeds (5 unconstrained + 3 layer-matched, 38 neurons each from zero-weight classifier positions) run on FaithEval anti-compliance. Pooled random mean slope ~0.08 %/α vs H-neuron 2.09 %/α — a **~26× difference**, t-test p < 10⁻⁵ on both compliance and slope. The negative control is flat; the H-neuron effect is specific, not a generic perturbation artifact. Data: `data/gemma3_4b/intervention/negative_control/`. See [intervention_findings.md](intervention_findings.md) §1.4–1.5.
+<!-- from: negative_control_random_slope_interval -->
+~~Neither the paper nor our replication includes a negative control.~~ **DONE.** Eight random-neuron seeds (5 unconstrained + 3 layer-matched, 38 neurons each from zero-weight classifier positions) run on FaithEval anti-compliance. The H-neuron slope is **2.09 pp / α** with paired-bootstrap 95% CI **[1.38, 2.83]**, while the pooled random-set empirical interval is **[-0.106, 0.164] pp / α**. At α=3.0, the H-neuron rate is **70.5%** versus a random-set empirical interval of **[65.8, 66.46]%**. The negative control is flat; the H-neuron effect is specific, not a generic perturbation artifact. Data: `data/gemma3_4b/intervention/negative_control/`. See [intervention_findings.md](intervention_findings.md) §1.4–1.5.
 
 #### 5. Monotonicity is necessary but not sufficient
 
@@ -551,11 +555,12 @@ Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data p
 
 1. ~~**Should we re-run FaithEval with the standard FaithEval prompt?**~~ **DONE.** See Section 11.7. The standard prompt run first looked contradictory, but the later text remap showed the contradiction was mostly evaluator-side.
 
-2. ~~**Negative control experiment:**~~ **DONE.** Eight seeds (5 unconstrained + 3 layer-matched) on FaithEval anti-compliance. Pooled mean slope ~0.08 %/α vs H-neuron 2.09 %/α (~26×, p < 10⁻⁵). Full analysis with reviewer self-critique in [intervention_findings.md](intervention_findings.md) §1.5 and §5.
+2. ~~**Negative control experiment:**~~ **DONE.** Eight seeds (5 unconstrained + 3 layer-matched) on FaithEval anti-compliance. H-neuron slope `2.09 pp / α` with CI `[1.38, 2.83]` sits outside the pooled random-set empirical interval `[-0.106, 0.164]`. Full analysis with reviewer self-critique in [intervention_findings.md](intervention_findings.md) §1.5 and §5.
 
 3. **Swing sample characterization:** What makes the α-sensitive samples special? The anti-compliance prompt yields 138 swing samples. The standard-prompt raw-parser count of 203 is now known to be contaminated by α=3.0 answer-text outputs being scored as resistant, so it should not be used until text-based scoring is extended across all α.
 
-4. ~~**FalseQA is the natural next benchmark**~~ **DONE.** 687 samples × 7 α values, GPT-4o judged. Shows +4.8pp swing (69.6% → 74.4%) but non-monotonic (Spearman ρ=0.786, p=0.036). Data: `data/gemma3_4b/intervention/falseqa/`. See [intervention_findings.md](intervention_findings.md) §1.3.
+<!-- from: falseqa_delta_0_to_3 -->
+4. ~~**FalseQA is the natural next benchmark**~~ **DONE.** 687 samples × 7 α values, GPT-4o judged. Shows +4.8pp swing with paired-bootstrap 95% CI `[1.3, 8.3] pp` (69.6% [66.0, 72.9] → 74.4% [71.0, 77.5]), but the intermediate points are non-monotonic. Data: `data/gemma3_4b/intervention/falseqa/`. See [intervention_findings.md](intervention_findings.md) §1.3.
 
 5. **Sycophancy needs a max_tokens fix** before running — paper uses 512 tokens for open-ended generation, our implementation uses 128 for turn 1.
 
@@ -567,35 +572,38 @@ Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data p
 
 **Data:** `data/gemma3_4b/intervention/faitheval_standard/alpha_{0.0..3.0}.jsonl`, `data/gemma3_4b/intervention/faitheval_standard/results.json`
 
+<!-- from: anti_compliance_delta_0_to_3 -->
+<!-- from: anti_compliance_slope -->
+<!-- from: standard_text_remap_alpha_3_rescored_rate -->
 We re-ran FaithEval with the official retrieval QA prompt (pro-context framing) to enable direct comparison with the paper. The raw results initially appeared to contradict the anti-compliance run — compliance *decreases* with α. That interpretation is now falsified. The standard prompt asks for the **exact answer text**, while our local evaluator only trusts **MC-letter extraction**. At high α, the model often emits the answer text directly, so raw `chosen=None` counts are mostly evaluator artifacts rather than evidence that content-following fell.
 
 #### 11.7.1 Raw Evaluator Results (Historical, Parser-Contaminated)
 
-| α | Standard (raw) | Anti-compliance | Δ (Std − Anti) |
-|---|----------------|-----------------|-----------------|
-| 0.0 | 69.1% (691) | 64.2% (642) | +4.9pp |
-| 0.5 | 68.4% (684) | 65.4% (654) | +3.0pp |
-| 1.0 | 68.8% (688) | 66.0% (660) | +2.8pp |
-| 1.5 | 69.8% (698) | 67.0% (670) | +2.8pp |
-| 2.0 | 68.6% (686) | 68.2% (682) | +0.4pp |
-| 2.5 | 66.9% (669) | 69.5% (695) | −2.6pp |
-| 3.0 | 63.6% (636) | 70.5% (705) | −6.9pp |
+| α | Standard (raw) | Standard 95% CI | Anti-compliance | Anti 95% CI | Δ (Std − Anti) |
+|---|----------------|-----------------|-----------------|-------------|----------------|
+| 0.0 | 69.1% (691) | [66.2, 71.9] | 64.2% (642) | [61.2, 67.1] | +4.9pp |
+| 0.5 | 68.4% (684) | [65.5, 71.2] | 65.4% (654) | [62.4, 68.3] | +3.0pp |
+| 1.0 | 68.8% (688) | [65.9, 71.6] | 66.0% (660) | [63.0, 68.9] | +2.8pp |
+| 1.5 | 69.8% (698) | [66.9, 72.6] | 67.0% (670) | [64.0, 69.8] | +2.8pp |
+| 2.0 | 68.6% (686) | [65.7, 71.4] | 68.2% (682) | [65.2, 71.0] | +0.4pp |
+| 2.5 | 66.9% (669) | [63.9, 69.7] | 69.5% (695) | [66.6, 72.3] | -2.6pp |
+| 3.0 | 63.6% (636) | [60.6, 66.5] | 70.5% (705) | [67.6, 73.2] | -6.9pp |
 
-The standard prompt shows Spearman ρ=−0.643 (p=0.119) — a negative but non-significant trend. The anti-compliance prompt shows ρ=+1.0 (p<1e-6). **Historical note:** this apparent sign flip is preserved here as a record of the raw evaluator output, but should no longer be interpreted as evidence that the standard prompt weakens the intervention. Section 11.7.3 resolves the contradiction.
+The standard prompt's raw parser-facing endpoint change is **-5.5 pp** with paired-bootstrap 95% CI **[-8.1, -2.8] pp**. That CI belongs to the evaluator output, not to the underlying content-following behavior. **Historical note:** this apparent sign flip is preserved here as a record of the raw evaluator output, but should no longer be interpreted as evidence that the standard prompt weakens the intervention. Section 11.7.3 resolves the contradiction.
 
 #### 11.7.2 Why the Raw Curve Misleads
 
 The apparent decline is driven by a monotonically increasing parse failure rate:
 
-| α | Parse failures | Example (α=1.0 → α=3.0) |
-|---|---------------|--------------------------|
-| 0.0 | 9 | — |
-| 0.5 | 11 | — |
-| 1.0 | 17 | `"D) energy molecules"` → |
-| 1.5 | 32 | |
-| 2.0 | 65 | |
-| 2.5 | 105 | |
-| 3.0 | **150** | → `"Energy molecules"` |
+| α | Parse failures | Parse-failure 95% CI | Example (α=1.0 → α=3.0) |
+|---|---------------|----------------------|--------------------------|
+| 0.0 | 9 | [0.5, 1.7] | — |
+| 0.5 | 11 | [0.6, 2.0] | — |
+| 1.0 | 17 | [1.1, 2.7] | `"D) energy molecules"` → |
+| 1.5 | 32 | [2.3, 4.5] | |
+| 2.0 | 65 | [5.1, 8.2] | |
+| 2.5 | 105 | [8.7, 12.6] | |
+| 3.0 | **150** | [12.9, 17.3] | → `"Energy molecules"` |
 
 At high α, the model often produces the **same answer content** but without an MC letter prefix. Where α=1.0 produces `"D) energy molecules"`, α=3.0 produces `"Energy molecules"` — the semantic answer is the same, but our parser can't extract a letter. Crucially, under the standard prompt the latter output is arguably **more faithful to the prompt**, not less: the instruction says "respond with the exact answer only," not "answer with the letter." These parse failures are only failures relative to the evaluator, not necessarily relative to the prompt.
 
@@ -605,13 +613,13 @@ Of the 150 parse failures at α=3.0: 75 were compliant at α=1.0 (the model was 
 
 We directly remapped the 150 `chosen=None` responses at α=3.0 back to FaithEval answer-option text using conservative normalization plus one numeric-prefix recovery (`83` vs stored option text `83 331`). This produces a population-level correction rather than a parseable-subset conditional rate.
 
-| Metric | Value | Interpretation |
-|---|---|---|
-| Raw compliant count | 636 / 1000 (63.6%) | Letter-extractor score only |
-| Strictly recovered parse failures | 140 / 150 | Exact normalized answer-text match + 1 numeric-prefix case |
-| Recovered compliant cases | 85 | True counterfactual-following answers that the evaluator hid |
-| Strict rescored compliance | **721 / 1000 (72.1%)** | Best current population estimate at α=3.0 |
-| Still unresolved | 10 / 150 | 4 closest-option paraphrases, 3 off-option counterfactual answers, 2 off-option resistant answers, 1 ambiguous partial |
+| Metric | Value | 95% CI | Interpretation |
+|---|---|---|---|
+| Raw compliant count | 636 / 1000 (63.6%) | [60.6, 66.5] | Letter-extractor score only |
+| Strictly recovered parse failures | 140 / 150 (93.3%) | [88.2, 96.3] | Exact normalized answer-text match + 1 numeric-prefix case |
+| Recovered compliant cases | 85 | — | True counterfactual-following answers that the evaluator hid |
+| Strict rescored compliance | **721 / 1000 (72.1%)** | [69.2, 74.8] | Best current population estimate at α=3.0 |
+| Still unresolved | 10 / 150 | — | 4 closest-option paraphrases, 3 off-option counterfactual answers, 2 off-option resistant answers, 1 ambiguous partial |
 
 This is the decisive result for the original question. The raw `63.6%` dip was mostly an evaluator artifact, not a true loss of content-following. The local evaluator behaved like a scantron reader that marks a hand-written correct answer as wrong because the bubble was left blank. Some genuine answer drift remains in the unresolved 10, but it is second-order next to the 85 recovered compliant cases.
 
@@ -625,15 +633,15 @@ Artifacts for this remap now live in:
 
 Excluding unparseable responses, compliance increases monotonically under both prompts:
 
-| α | Standard (adjusted) | Excluded | Anti-compliance |
-|---|---------------------|----------|-----------------|
-| 0.0 | 69.7% (691/991) | 9 | 64.2% |
-| 0.5 | 69.2% (684/989) | 11 | 65.4% |
-| 1.0 | 70.0% (688/983) | 17 | 66.0% |
-| 1.5 | 72.1% (698/968) | 32 | 67.0% |
-| 2.0 | 73.4% (686/935) | 65 | 68.2% |
-| 2.5 | 74.7% (669/895) | 105 | 69.5% |
-| 3.0 | 74.8% (636/850) | 150 | 70.5% |
+| α | Standard (adjusted) | Standard 95% CI | Excluded | Anti-compliance | Anti 95% CI |
+|---|---------------------|-----------------|----------|-----------------|-------------|
+| 0.0 | 69.7% (691/991) | [66.8, 72.5] | 9 | 64.2% | [61.2, 67.1] |
+| 0.5 | 69.2% (684/989) | [66.2, 72.0] | 11 | 65.4% | [62.4, 68.3] |
+| 1.0 | 70.0% (688/983) | [67.1, 72.8] | 17 | 66.0% | [63.0, 68.9] |
+| 1.5 | 72.1% (698/968) | [69.2, 74.8] | 32 | 67.0% | [64.0, 69.8] |
+| 2.0 | 73.4% (686/935) | [70.4, 76.1] | 65 | 68.2% | [65.2, 71.0] |
+| 2.5 | 74.7% (669/895) | [71.8, 77.5] | 105 | 69.5% | [66.6, 72.3] |
+| 3.0 | 74.8% (636/850) | [71.8, 77.6] | 150 | 70.5% | [67.6, 73.2] |
 
 The adjusted standard prompt slope (~2.12%/α) is essentially identical to the anti-compliance slope (2.09%/α), and the direction is the same. The standard prompt starts higher (69.7% vs 64.2% at α=0.0) — as expected for a pro-context framing — and both converge near 70–75% at high α.
 

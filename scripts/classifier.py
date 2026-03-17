@@ -13,6 +13,12 @@ from sklearn.metrics import (
 from tqdm import tqdm
 from transformers import AutoConfig
 
+from uncertainty import (
+    DEFAULT_BOOTSTRAP_RESAMPLES,
+    DEFAULT_BOOTSTRAP_SEED,
+    stratified_bootstrap_classifier_metrics,
+)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -84,7 +90,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_data(ids_path, ans_acts_dir, other_acts_dir=None, mode="1-vs-1"):
+def load_data(
+    ids_path, ans_acts_dir, other_acts_dir=None, mode="1-vs-1", return_qids=False
+):
     """
     Flexible data loader.
     1-vs-1: False answer tokens (label 1) vs true answer tokens (label 0).
@@ -94,19 +102,21 @@ def load_data(ids_path, ans_acts_dir, other_acts_dir=None, mode="1-vs-1"):
     with open(ids_path, "r", encoding="utf-8") as f:
         id_map = json.load(f)
 
-    X, y = [], []
+    X, y, qids = [], [], []
 
     for qid in tqdm(id_map["f"], desc="Loading False Ans (Label 1)"):
         path = os.path.join(ans_acts_dir, f"act_{qid}.npy")
         if os.path.exists(path):
             X.append(np.load(path).flatten())
             y.append(1)
+            qids.append(qid)
 
     for qid in tqdm(id_map["t"], desc="Loading True Ans (Label 0)"):
         path = os.path.join(ans_acts_dir, f"act_{qid}.npy")
         if os.path.exists(path):
             X.append(np.load(path).flatten())
             y.append(0)
+            qids.append(qid)
 
     if mode == "3-vs-1":
         if not other_acts_dir:
@@ -121,8 +131,12 @@ def load_data(ids_path, ans_acts_dir, other_acts_dir=None, mode="1-vs-1"):
                 if os.path.exists(path):
                     X.append(np.load(path).flatten())
                     y.append(0)
-
-    return np.array(X), np.array(y)
+                    qids.append(f"{qid}_other")
+    X_arr = np.array(X)
+    y_arr = np.array(y)
+    if return_qids:
+        return X_arr, y_arr, qids
+    return X_arr, y_arr
 
 
 def compute_metrics(model, X, y):
@@ -144,6 +158,44 @@ def compute_metrics(model, X, y):
         "n_examples": int(len(y)),
         "n_positive": int(np.sum(y == 1)),
         "n_negative": int(np.sum(y == 0)),
+    }
+
+
+def evaluate_model_with_uncertainty(model, X, y, qids):
+    preds = model.predict(X)
+    probs = model.predict_proba(X)[:, 1]
+    metrics = compute_metrics(model, X, y)
+    ci_summary = stratified_bootstrap_classifier_metrics(
+        y,
+        probs,
+        n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+        seed=DEFAULT_BOOTSTRAP_SEED,
+    )
+    confusion = {
+        "tp": int(np.sum((y == 1) & (preds == 1))),
+        "tn": int(np.sum((y == 0) & (preds == 0))),
+        "fp": int(np.sum((y == 0) & (preds == 1))),
+        "fn": int(np.sum((y == 1) & (preds == 0))),
+    }
+    examples = [
+        {
+            "qid": qid,
+            "label": int(label),
+            "prediction": int(pred),
+            "probability": float(prob),
+            "correct": bool(label == pred),
+        }
+        for qid, label, pred, prob in zip(qids, y, preds, probs, strict=True)
+    ]
+    return {
+        "n_examples": int(len(y)),
+        "n_positive": int(np.sum(y == 1)),
+        "n_negative": int(np.sum(y == 0)),
+        "confusion_matrix": confusion,
+        "metrics": ci_summary["metrics"],
+        "bootstrap": ci_summary["bootstrap"],
+        "examples": examples,
+        "point_metrics": metrics,
     }
 
 
@@ -217,10 +269,15 @@ def main():
     if args.load_model and args.c_values:
         raise ValueError("--c_values cannot be used with --load_model.")
 
-    X_test = y_test = None
+    X_test = y_test = test_qids = None
     if prefer_test:
         print(f"Loading held-out evaluation data from {args.test_ids}...")
-        X_test, y_test = load_data(args.test_ids, args.test_acts, mode="1-vs-1")
+        X_test, y_test, test_qids = load_data(
+            args.test_ids,
+            args.test_acts,
+            mode="1-vs-1",
+            return_qids=True,
+        )
 
     if args.load_model:
         print(f"Loading pre-trained model: {args.load_model}")
@@ -234,6 +291,25 @@ def main():
         if prefer_test:
             metrics = compute_metrics(model, X_test, y_test)
             print_metrics(metrics, "Test Set")
+            evaluation = evaluate_model_with_uncertainty(
+                model, X_test, y_test, test_qids
+            )
+        else:
+            evaluation = None
+        if args.metrics_out:
+            ensure_parent_dir(args.metrics_out)
+            payload = {
+                "model_path": args.model_path,
+                "loaded_model_path": args.load_model,
+                "selection_split": "pretrained_load",
+                "total_ffn_neurons": total_neurons,
+                "selected_h_neurons": selected,
+                "selected_ratio_per_mille": float(ratio_per_mille),
+                "evaluation": evaluation,
+            }
+            with open(args.metrics_out, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+            print(f"Saved metrics to {args.metrics_out}")
         return
 
     if not (args.train_ids and args.train_ans_acts):
@@ -327,6 +403,13 @@ def main():
                 for candidate in candidates
             ],
         }
+        if prefer_test:
+            payload["evaluation"] = evaluate_model_with_uncertainty(
+                best_candidate["model"],
+                X_test,
+                y_test,
+                test_qids,
+            )
         with open(args.metrics_out, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2)
         print(f"Saved metrics to {args.metrics_out}")

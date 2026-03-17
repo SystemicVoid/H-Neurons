@@ -22,6 +22,7 @@
         <a href="../methods.html">Methods</a>
         <a href="../extensions.html">Extensions</a>
         <a href="../deep-dives/neuron-4288.html">Neuron 4288</a>
+        <a href="../deep-dives/swing-characterization.html">Swing</a>
       </div>
     </div>
   </div>
@@ -79,6 +80,7 @@
 <section id="results">
   <div class="fade-in">
     <span class="tag tag-teal">Main result</span>
+    <!-- from: classifier_disjoint_accuracy -->
     <h2>76.5% accuracy on a clean test set confirms a real signal</h2>
     <p class="subtitle" data-source="manual">
       An L1 logistic regression on 348,160 CETT features identifies 38 neurons with positive weight.
@@ -354,6 +356,7 @@
   <div class="fade-in">
     <span class="tag tag-amber">Evaluation confound</span>
     <h2>Content-following rises while MC-letter recoverability falls</h2>
+    <!-- from: standard_text_remap_alpha_3_rescored_rate -->
     <p class="subtitle" data-source="manual">
       Once you separate answer content from evaluator-visible formatting, the contradiction shrinks.
       At &alpha;=3.0, strict text remapping lifts the standard estimate from
@@ -472,6 +475,17 @@ Answer:</code>
     <div class="insight-box" data-status="PROVISIONAL">
       <strong>Analogy:</strong> this looks less like turning a global thermostat and more like nudging a small undecided bloc in an election.
       Most examples do not budge. The visible average shift is carried by a relatively small swing population.
+    </div>
+
+    <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
+      <h3 style="color: var(--accent-coral);">Swing deep dive: 68% show knowledge override</h3>
+      <p style="font-size: 14px; color: var(--text-secondary);">
+        Profiling the 138 swing samples reveals that two-thirds follow R&rarr;C trajectories:
+        the model initially gave the correct answer but switched to following misleading context under H-neuron scaling.
+        Only 23% show the beneficial C&rarr;R pattern. Surface features (question length, word overlap, response length) do not predict swing status &mdash;
+        the mechanism appears driven by internal model states rather than input structure.
+      </p>
+      <p style="margin-top: 1rem;"><a class="button-link" href="../deep-dives/swing-characterization.html">Open the swing characterization deep dive</a></p>
     </div>
   </div>
 </section>

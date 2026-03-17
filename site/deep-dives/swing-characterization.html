@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swing Characterization | H-Neurons</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="../assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="../index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="../index.html">This Week</a>
+        <a href="../story.html">Core Story</a>
+        <a href="../results/gemma-3-4b.html">Results</a>
+        <a href="../methods.html">Methods</a>
+        <a href="../extensions.html">Extensions</a>
+        <a href="neuron-4288.html">Neuron 4288</a>
+        <a class="active" href="swing-characterization.html">Swing</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-coral">Deep dive</span>
+    <h1>Swing Characterization:<br>What the 14% Reveals</h1>
+    <p class="subtitle">
+      Of 1,000 FaithEval samples, only 138 respond to H-neuron scaling.
+      This page profiles that sensitive subpopulation: what types of transitions occur,
+      what structural features predict swing status, and whether knowledge override or
+      uncertainty resolution dominates.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2rem;">
+      <div class="metric-card" data-status="NEW">
+        <div class="label">R&rarr;C (knowledge override)</div>
+        <div class="value val-coral" data-swing-bind="rc-count">94</div>
+        <div class="detail"><span data-swing-bind="rc-pct">68.1%</span> of swing &middot; 95% CI <span data-swing-bind="rc-ci">[59.9, 75.3]</span></div>
+      </div>
+      <div class="metric-card" data-status="NEW">
+        <div class="label">C&rarr;R (uncertainty resolution)</div>
+        <div class="value val-teal" data-swing-bind="cr-count">32</div>
+        <div class="detail"><span data-swing-bind="cr-pct">23.2%</span> of swing &middot; 95% CI <span data-swing-bind="cr-ci">[16.9, 30.9]</span></div>
+      </div>
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">Mean transition &alpha;</div>
+        <div class="value val-amber" data-swing-bind="rc-mean-alpha">1.4</div>
+        <div class="detail">R&rarr;C mean &alpha; at first compliance</div>
+      </div>
+      <div class="metric-card" data-status="NEW">
+        <div class="label">LLM samples</div>
+        <div class="value val-purple" data-swing-bind="llm-sample-count">--</div>
+        <div class="detail">GPT-4o-mini enriched (knowledge + verification + persuasiveness)</div>
+      </div>
+    </div>
+
+    <div class="section-links">
+      <a class="section-link" href="#subtypes">Subtypes</a>
+      <a class="section-link" href="#trajectories">Trajectories</a>
+      <a class="section-link" href="#transitions">Transitions</a>
+      <a class="section-link" href="#structural">Structural</a>
+      <a class="section-link" href="#llm">LLM enrichment</a>
+      <a class="section-link" href="#safety">Safety reading</a>
+    </div>
+  </div>
+</section>
+
+<section id="subtypes" class="short">
+  <div class="fade-in">
+    <span class="tag tag-coral">Swing subtypes</span>
+    <h2>Two-thirds of swing samples show knowledge override</h2>
+    <p class="subtitle" style="margin-bottom: 2rem;">
+      Each swing sample follows one of three trajectory shapes across the &alpha; sweep.
+      The dominant pattern is R&rarr;C: the model initially gives the correct answer but switches to following
+      the misleading context as H-neuron scaling increases.
+    </p>
+
+    <div class="comparison">
+      <div class="compare-card" style="border-color: var(--accent-coral);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">R&rarr;C &middot; Knowledge override</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--accent-coral);" data-swing-bind="rc-count">94</div>
+        <div style="font-size: 15px; font-weight: 600; color: var(--accent-coral); margin-top: 4px;" data-swing-bind="rc-pct-display">68.1%</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          95% CI <span data-swing-bind="rc-ci">[59.9, 75.3]</span><br>
+          Model knew the right answer but was overridden by H-neuron scaling.
+          This is the safety-concerning subtype.
+        </div>
+      </div>
+      <div class="compare-card" style="border-color: var(--accent-teal);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">C&rarr;R &middot; Uncertainty resolution</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--accent-teal);" data-swing-bind="cr-count">32</div>
+        <div style="font-size: 15px; font-weight: 600; color: var(--accent-teal); margin-top: 4px;" data-swing-bind="cr-pct-display">23.2%</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          95% CI <span data-swing-bind="cr-ci">[16.9, 30.9]</span><br>
+          Model initially followed the misleading context but recovered correct knowledge with scaling.
+          The intervention helped here.
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card" style="max-width: 400px; margin: 1rem auto; text-align: center; opacity: 0.7;">
+      <div class="label">Non-monotonic</div>
+      <div class="value" style="font-size: 1.5rem;" data-swing-bind="nm-count">12</div>
+      <div class="detail"><span data-swing-bind="nm-pct">8.7%</span> &middot; near-threshold oscillation</div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Election analogy:</strong> think of the 1,000 samples as voters in an election.
+      600 always vote one way, 262 always vote the other.
+      The remaining 138 are the swing bloc, and among them, two-thirds switch from correct to misleading under pressure &mdash;
+      like undecided voters who know the facts but follow the loudest campaign ad.
+    </div>
+  </div>
+</section>
+
+<section id="trajectories" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Trajectory heatmap</span>
+    <h2>138 samples, 7 alpha values: the full compliance matrix</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">
+      Each row is one swing sample, each column is an &alpha; value (0.0 to 3.0).
+      Dark cells indicate compliance with misleading context. The dominant R&rarr;C pattern
+      shows up as rows that transition from light to dark as &alpha; increases.
+    </p>
+
+    <div class="chart-container" style="text-align: center;">
+      <img src="../assets/swing/trajectory_heatmap.png" alt="Swing trajectory heatmap showing 138 samples across 7 alpha values"
+           style="max-width: 100%; height: auto; border-radius: 8px;">
+    </div>
+
+    <div class="insight-box">
+      <strong>Reading the heatmap:</strong> if R&rarr;C were just noise, you would see random salt-and-pepper.
+      Instead, the transitions form bands: rows stay light (resistant) at low &alpha; then flip dark (compliant)
+      at a specific threshold. That banding pattern is consistent with a genuine decision boundary
+      being crossed, not random format drift.
+    </div>
+  </div>
+</section>
+
+<section id="transitions" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Transition dynamics</span>
+    <h2>Both subtypes transition early, but R&rarr;C samples show more spread</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">
+      The transition &alpha; is the scaling factor at which a sample first changes compliance state.
+      R&rarr;C and C&rarr;R samples do not differ significantly in when they transition (p=0.19).
+    </p>
+
+    <div class="chart-container">
+      <canvas id="transitionAlphaChart"></canvas>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">R&rarr;C mean &alpha;</div>
+        <div class="value val-coral" data-swing-bind="rc-mean-alpha">1.4</div>
+        <div class="detail">Median <span data-swing-bind="rc-median-alpha">1.25</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">C&rarr;R mean &alpha;</div>
+        <div class="value val-teal" data-swing-bind="cr-mean-alpha">1.2</div>
+        <div class="detail">Median <span data-swing-bind="cr-median-alpha">1.0</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">R&rarr;C vs C&rarr;R</div>
+        <div class="value" style="font-size: 1.4rem;" data-swing-bind="rc-cr-p">p=0.19</div>
+        <div class="detail">Mann-Whitney U, not significant</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>What this means:</strong> the two subtypes do not differ in sensitivity threshold.
+      Both tend to transition early (&alpha; &le; 1.5). The difference is directional, not temporal:
+      R&rarr;C samples lose knowledge while C&rarr;R samples gain it.
+    </div>
+  </div>
+</section>
+
+<section id="structural" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Structural proxies</span>
+    <h2>Swing samples are not structurally distinguishable</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">
+      We tested whether swing status correlates with surface-level features of the evaluation items.
+      Two features show weak effects; the rest are null. Swing behavior appears to be driven by
+      internal model states rather than input structure.
+    </p>
+
+    <div class="chart-container" style="text-align: center;">
+      <img src="../assets/swing/structural_proxies.png" alt="Structural proxy violin plots showing context length, word overlap, and response length by population"
+           style="max-width: 100%; height: auto; border-radius: 8px;">
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">Context length</div>
+        <div class="value val-coral" style="font-size: 1.3rem;" data-swing-bind="context-length-p">p=0.0001</div>
+        <div class="detail">Significant: always-compliant has longer contexts</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Source dataset</div>
+        <div class="value val-amber" style="font-size: 1.3rem;" data-swing-bind="source-v">V=0.20</div>
+        <div class="detail">Weak effect: some source imbalance</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Word overlap</div>
+        <div class="value val-teal" style="font-size: 1.3rem;" data-swing-bind="overlap-p">p=0.78</div>
+        <div class="detail">Null: context similarity does not predict swing</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Response length</div>
+        <div class="value val-teal" style="font-size: 1.3rem;" data-swing-bind="response-p">p=0.93</div>
+        <div class="detail">Null: output verbosity does not differ</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Why null results matter here:</strong> if swing samples were just longer questions or more persuasive contexts,
+      the story would be about input features, not internal model states.
+      The fact that surface features do not predict swing status means the mechanism is likely about how the model
+      weighs internal knowledge against contextual evidence &mdash; exactly the kind of thing H-neurons might modulate.
+    </div>
+  </div>
+</section>
+
+<section id="llm" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">LLM enrichment</span>
+    <h2>GPT-4o-mini provides independent knowledge and persuasiveness ratings</h2>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">
+      Three independent LLM calls per sample classify the question's domain knowledge,
+      verify the model's answer against the judge, and rate context persuasiveness.
+      These ratings cross-check whether R&rarr;C samples genuinely represent knowledge override.
+    </p>
+
+    <div class="chart-container">
+      <canvas id="knowledgeChart"></canvas>
+    </div>
+
+    <div class="metrics-grid" id="llmMetricsGrid">
+      <div class="metric-card">
+        <div class="label">LLM-enriched samples</div>
+        <div class="value val-purple" data-swing-bind="llm-sample-count">--</div>
+        <div class="detail">Stratified across all three populations</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Verification agreement</div>
+        <div class="value val-teal" data-swing-bind="llm-agreement">--</div>
+        <div class="detail">GPT-4o-mini agrees with model's &alpha;=0 answer</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Mean persuasiveness</div>
+        <div class="value val-amber" data-swing-bind="llm-persuasiveness">--</div>
+        <div class="detail">Context convincingness (1&ndash;5 scale)</div>
+      </div>
+    </div>
+
+    <div class="insight-box" data-status="PROVISIONAL">
+      <strong>Knowledge override hypothesis:</strong> if R&rarr;C samples score high on "model knows the answer"
+      and the context is not unusually persuasive, then H-neuron scaling is genuinely overriding knowledge.
+      If instead the knowledge ratings are low or the contexts are highly persuasive, the mechanism
+      is more about resolving genuine uncertainty than overriding settled beliefs.
+    </div>
+  </div>
+</section>
+
+<section id="safety" class="short">
+  <div class="fade-in">
+    <span class="tag tag-coral">Safety reading</span>
+    <h2>What the swing characterization means for H-neuron safety claims</h2>
+
+    <div class="next-steps" style="margin-top: 1.5rem;">
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">1</div>
+        <h3>Knowledge override is real but bounded</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          68% of swing samples (94/138) show genuine R&rarr;C transitions.
+          These are cases where the model had the right answer and lost it to H-neuron scaling.
+          That is a concrete safety concern, but it applies to 9.4% of the total population, not the whole benchmark.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">2</div>
+        <h3>Not all scaling is harmful</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          23% of swing samples (32/138) show C&rarr;R transitions where the model was initially wrong
+          and H-neuron scaling helped it recover. This is the counterpoint: the same mechanism
+          that overrides knowledge in some cases resolves uncertainty in others.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">3</div>
+        <h3>Single-model, single-benchmark caveat</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          All findings are from Gemma 3 4B on FaithEval only. The 68/23 split could differ
+          on other models, benchmarks, or domains. Cross-model replication is the natural next step
+          before making strong deployment claims.
+        </p>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Bottom line:</strong> H-neuron scaling is not a clean safety dial.
+      It is a mechanism that mostly overrides genuine knowledge (alarming) but sometimes resolves uncertainty (helpful),
+      and it only affects a minority of samples.
+      The safety concern is real but should be stated with the appropriate scope: 94 samples out of 1,000,
+      on one model, on one benchmark.
+    </div>
+  </div>
+</section>
+
+<footer>
+  H-Neurons Deep Dive &mdash; Swing Characterization &mdash; March 2026<br>
+  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a> &middot; Back to <a href="../results/gemma-3-4b.html#population">Population analysis</a> &middot; Follow-on roadmap: <a href="../extensions.html">Extensions</a>
+</footer>
+
+<script src="../assets/shared.js"></script>
+<script type="module" src="../assets/charts.js"></script>
+
+</body>
+</html>

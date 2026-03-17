@@ -19,6 +19,7 @@ Core pipeline code lives in `scripts/` (flat — sibling imports like `from inte
 - For zero-cost runs without an OpenAI key: `--strategy synthetic-output` on `extract_answer_tokens.py` paired with `--locations output` on `extract_activations.py`.
 - `extract_activations.py` needs the same `apply_chat_template()` tensor-vs-`BatchEncoding` guard as `collect_responses.py`.
 - For BioASQ OOD probing, use the official BioASQ Task B JSON (question `body` + `type` + `exact_answer`) rather than HF mirrors like `kroshan/BioASQ`, which flatten answer/context into CSV text and do not match the original task schema.
+- `data/gemma3_4b/test_qids_disjoint.json` contains 782 sampled IDs, but the current disjoint classifier evaluation covers 780 because two IDs are missing activation files. Use the CI-bearing summary JSON as the reporting source of truth.
 
 ## Known Issues
 - **FaithEval standard-prompt mis-scoring**: The MC letter extractor in `evaluate_intervention.py` fails on ~150 items at `alpha=3.0`; a strict answer-text remap recovers most. Treat raw standard-prompt compliance drops as evaluator artifacts until text-based rescoring is wired in.
@@ -40,6 +41,13 @@ Use `uv` for Python environment management.
 
 ## Quantitative Reporting Standards
 Every quantitative claim in presentation materials must include uncertainty estimates. Use bootstrap 95% CIs where sample sizes allow (n > 30). For classifier metrics, report ± from stratified bootstrap over test samples. For intervention compliance rates, report ± from binomial proportion CIs. If uncertainty cannot yet be computed, flag the number explicitly as "no CI".
+
+### Quantitative Claim Workflow
+- Treat `docs/ci_manifest.json` as the source-of-truth registry for paper-facing claims, their evidence artifacts, and their allowed statuses (`required`, `blocked_data`, `not_applicable`).
+- Prefer structured rendering over manual copy. Site pages should read metrics from `site/data/*.json`; markdown tables should be generated from structured artifacts where practical instead of retyped by hand.
+- If prose must still include a literal quantitative claim, add an adjacent provenance comment of the form `<!-- from: claim_id -->` using a claim id from `docs/ci_manifest.json`.
+- Before finishing any change that touches quantitative reporting surfaces, run `uv run python scripts/audit_ci_coverage.py`. The `prek` config also enforces this at commit time.
+- When promoting a new result into site/report/grant surfaces, update `docs/ci_manifest.json` first, then wire the surface to the artifact or add the provenance comment in the same change.
 
 ## Long-Running Jobs & System Suspend
 On Pop!_OS / COSMIC DE, system auto-suspend will kill tmux jobs mid-run. Always hold a `systemd-inhibit` lock for jobs longer than ~20 minutes.

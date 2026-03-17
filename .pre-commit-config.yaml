@@ -25,3 +25,9 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+      - id: ci-audit
+        name: CI coverage audit
+        entry: uv run python scripts/audit_ci_coverage.py
+        language: system
+        pass_filenames: false

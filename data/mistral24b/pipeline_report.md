@@ -37,8 +37,8 @@ What is not yet solid:
 | Step 4 activation files | **1182** |
 | H-Neuron count | **12** |
 | H-Neuron ratio | **0.0092‰** |
-| Classifier training accuracy | **81.56%** |
-| Classifier training AUROC | **0.9041** |
+| Classifier training accuracy | **81.56%** (`not_applicable`: training-only descriptive metric, no CI) |
+| Classifier training AUROC | **0.9041** (`not_applicable`: training-only descriptive metric, no CI) |
 | Held-out Mistral test accuracy | **Not run yet** |
 
 The headline result is the sparsity: **12 H-Neurons = 0.0092‰**, which is almost exactly on top of the paper's reported Mistral-scale `~0.01‰` regime. That is encouraging, but it is not enough by itself to claim paper replication, because the only **completed end-to-end** classifier result is still a training-set result on the `output` fallback path.
