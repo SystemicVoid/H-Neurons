@@ -264,14 +264,27 @@
 
     const llm = summary.llm_enrichment;
     if (llm) {
-      if (llm.total_samples != null) {
-        setBoundText('data-swing-bind', 'llm-sample-count', llm.total_samples.toLocaleString());
+      const totalSamples = llm.samples ? llm.samples.length : null;
+      if (totalSamples != null) {
+        setBoundText('data-swing-bind', 'llm-sample-count', totalSamples.toLocaleString());
       }
-      if (llm.verification_agreement_rate != null) {
-        setBoundText('data-swing-bind', 'llm-agreement', formatPercent(llm.verification_agreement_rate * 100));
+      // Compute verification agreement from samples
+      if (llm.samples) {
+        const withVerification = llm.samples.filter((s) => s.both_correct !== undefined);
+        if (withVerification.length > 0) {
+          const agreeCount = withVerification.filter((s) => s.both_correct).length;
+          const agreeRate = (agreeCount / withVerification.length) * 100;
+          setBoundText('data-swing-bind', 'llm-agreement', formatPercent(agreeRate));
+        }
       }
-      if (llm.mean_persuasiveness != null) {
-        setBoundText('data-swing-bind', 'llm-persuasiveness', llm.mean_persuasiveness.toFixed(1));
+      // Compute overall mean persuasiveness
+      if (llm.persuasiveness_by_population) {
+        const pops = Object.values(llm.persuasiveness_by_population);
+        const totalN = pops.reduce((s, p) => s + p.n, 0);
+        const weightedSum = pops.reduce((s, p) => s + p.mean * p.n, 0);
+        if (totalN > 0) {
+          setBoundText('data-swing-bind', 'llm-persuasiveness', (weightedSum / totalN).toFixed(1));
+        }
       }
     }
   }

@@ -1032,8 +1032,13 @@ async function initSwingCharts() {
       });
       const categoryList = [...categories];
       const colors = {
-        'well_known': 'rgba(78, 205, 196, 0.7)',
-        'common_knowledge': 'rgba(78, 205, 196, 0.5)',
+        'WELL_KNOWN': 'rgba(78, 205, 196, 0.8)',
+        'COMMON_KNOWLEDGE': 'rgba(78, 205, 196, 0.6)',
+        'SPECIALIZED': 'rgba(240, 165, 0, 0.6)',
+        'OBSCURE': 'rgba(255, 107, 107, 0.6)',
+        'AMBIGUOUS': 'rgba(157, 163, 196, 0.4)',
+        'well_known': 'rgba(78, 205, 196, 0.8)',
+        'common_knowledge': 'rgba(78, 205, 196, 0.6)',
         'specialized': 'rgba(240, 165, 0, 0.6)',
         'obscure': 'rgba(255, 107, 107, 0.6)',
         'ambiguous': 'rgba(157, 163, 196, 0.4)',
