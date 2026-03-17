@@ -2,7 +2,7 @@
 
 > Implementation guidelines for evolving `site/` from a single-page monolith into a maintainable, data-driven multi-page research presentation.
 >
-> **Status**: In progress — Session 5 completed on 2026-03-17.
+> **Status**: In progress — Session 7 completed on 2026-03-17.
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
@@ -306,17 +306,17 @@ Each entry links to its results page when work begins.
 - [x] Write `scripts/export_site_data.py` to export `site/data/intervention_sweep.json` from committed intervention artifacts with provenance notes
 - [ ] Extend the exporter to classifier-derived site JSON files once a direct canonical source exists
 - [x] Wire `charts.js` to `fetch()` these files instead of hardcoded arrays
-- [ ] Wire metric cards to read from fetched data
-- [ ] Verify all charts and cards render identically to current
+- [x] Wire intervention metric cards and comparison tiles to read from fetched data
+- [x] Verify intervention charts and bound summary widgets render identically over HTTP
 
 ### Phase 3: Page split (estimated: 1 day)
 
 - [ ] Create `methods.html` — move pipeline, funnel, prompts, reproducibility note
-- [ ] Create `results/gemma-3-4b.html` — move classifier results, layer distribution, intervention
+- [x] Create `results/gemma-3-4b.html` — move classifier results, layer distribution, intervention
 - [ ] Create `deep-dives/neuron-4288.html` — move 6-panel investigation
-- [ ] Slim `index.html` down to weekly-only content
-- [ ] Add shared nav to all pages
-- [ ] Add delta block template to `index.html`
+- [x] Slim `index.html` down to weekly-only content
+- [x] Add shared nav to all pages touched so far
+- [x] Add delta block template to `index.html`
 
 ### Phase 4: Story and extensions (estimated: half day)
 
@@ -356,6 +356,8 @@ Each entry links to its results page when work begins.
 | 2026-03-16 | Session 3 | `feat(site): export intervention sweep data` | Added `scripts/export_site_data.py` and generated `site/data/intervention_sweep.json` from committed FaithEval artifacts, including derived parse-failure and parseable-subset series, anti-compliance population structure, and explicit notes that strict answer-text remapping is only available for standard prompt α=3.0. | Wire the four intervention charts in `site/assets/charts.js` to fetch `site/data/intervention_sweep.json`, remove the hardcoded intervention arrays, and keep any still-manual intervention prose explicitly marked as partial where it depends on the α=3.0-only remap. |
 | 2026-03-17 | Session 4 | `refactor(site): load intervention charts from exported sweep data` | Rewired the four intervention charts in `site/assets/charts.js` to fetch `site/data/intervention_sweep.json`, resolved the JSON path relative to the module so future nested pages can reuse it safely, and verified over local HTTP that the page fetches the JSON and instantiates all intervention charts with the expected series. | Wire the intervention metric cards and static comparison numbers in `site/index.html` to the same JSON so the intervention section stops duplicating values in HTML as well as JS. |
 | 2026-03-17 | Session 5 | `refactor(site): hydrate intervention summary widgets from site data` | Bound the intervention metric cards and parse-failure comparison tiles in `site/index.html` to `site/data/intervention_sweep.json`, removed the old intervention literals from the bound HTML, and tagged the remaining intervention prose blocks as `data-source="manual"` where they still carry embedded numeric claims. | Start Phase 3 by creating `results/gemma-3-4b.html` and shared top navigation, moving the stable results sections out of the weekly landing page while leaving classifier-derived charts hardcoded until canonical exports exist. |
+| 2026-03-17 | Session 6 | `feat(site): add gemma results page shell` | Added `site/results/gemma-3-4b.html` as the first dedicated stable-results page, introduced shared weekly/results navigation styling, and made `site/assets/charts.js` safe to load on pages that only render a subset of charts. | Trim `site/index.html` into a weekly landing page and stop loading chart assets on the root page once direct links into the new results page exist. |
+| 2026-03-17 | Session 7 | `refactor(site): turn index into weekly landing page` | Rewrote `site/index.html` into a meeting-oriented briefing page with a delta block, agenda, decision points, and direct links into `site/results/gemma-3-4b.html`; removed Chart.js and `charts.js` from the root page so the stable visual evidence now lives only on the dedicated results URL. | Continue Phase 3 by relocating background material to `methods.html` and the full neuron-4288 investigation to `deep-dives/neuron-4288.html`, then expand shared navigation beyond the first two pages. |
 
 ---
 
@@ -364,30 +366,33 @@ Each entry links to its results page when work begins.
 ### Current state
 
 - Phase 1 is complete: shared CSS, shared runtime, and chart bootstrapping are all extracted from `site/index.html`.
-- The first site data contract now exists at `site/data/intervention_sweep.json`, and the intervention charts plus intervention summary widgets now render from it over HTTP.
+- The first site data contract now exists at `site/data/intervention_sweep.json`, and the intervention charts plus intervention summary widgets render from it over HTTP on the nested results page.
+- `site/results/gemma-3-4b.html` now holds the stable Gemma findings, while `site/index.html` has been reduced to a weekly landing page with delta/agenda/decision sections.
 - The exporter is intentionally scoped to intervention data only; classifier-derived site JSON remains deferred until a direct canonical source exists.
 
 ### Open issues / constraints
 
-- Remaining intervention prose still carries embedded numeric claims, but those blocks are now explicitly tagged `data-source="manual"` rather than silently drifting.
+- Remaining intervention prose still carries embedded numeric claims, but those blocks are explicitly tagged `data-source="manual"` rather than silently drifting.
 - Classifier, layer-distribution, and top-neuron cards/charts remain hardcoded until a direct canonical export exists for those sections.
 - The standard-prompt strict answer-text correction is only canonical for `alpha=3.0`; do not imply a full corrected sweep yet.
 - Standard-prompt population breakdown remains withdrawn until text-based rescoring exists across all alpha values.
+- The weekly page no longer contains the pipeline/methods walkthrough; that material still needs a real home in `methods.html`.
+- The results page carries a compact top-neuron verdict, but the full six-panel 4288 investigation still needs a standalone deep-dive page.
 - Confidence intervals are still missing, so all exported intervention metrics remain explicitly `no_ci_yet`.
 
 ### Recommended next slice
 
-1. Create `results/gemma-3-4b.html` and move the stable classifier, layer-distribution, top-neuron, and intervention sections there.
-2. Add shared top navigation linking `index.html` and `results/gemma-3-4b.html`, without changing the visual language yet.
-3. Slim `index.html` toward the weekly/advisor role once the stable results page exists, but do not delete detail until links are in place.
-4. Leave classifier, layer-distribution, and top-neuron charts hardcoded during the split; the page split should not wait on canonical exports for those sections.
-5. Re-verify over HTTP after the split, because `charts.js` now resolves data relative to the module and should work from nested pages.
+1. Create `site/methods.html` and move the pipeline, funnel, prompt framing, and reproducibility material there so the root page does not silently drop that context.
+2. Create `site/deep-dives/neuron-4288.html` and move the full six-panel investigation there, leaving a short verdict summary on `results/gemma-3-4b.html`.
+3. Expand the shared navigation beyond the first two pages so `index.html`, `results/gemma-3-4b.html`, and the new methods/deep-dive pages connect cleanly.
+4. Leave classifier, layer-distribution, and top-neuron charts hardcoded until canonical exports exist; the remaining split work should not block on classifier JSON.
+5. Re-verify over HTTP after each new page move, especially nested asset paths and the `intervention_sweep.json` fetch from the results page.
 
 ### Acceptance checks for tomorrow
 
-- `results/gemma-3-4b.html` exists and contains the stable results narrative with working charts.
-- `index.html` clearly reads as the weekly landing page rather than the full monolith, with links to the stable results page.
-- Shared navigation works from both the root page and the nested results page under HTTP.
+- `methods.html` exists and restores the missing pipeline/background context without bloating `index.html`.
+- `deep-dives/neuron-4288.html` exists and holds the full six-panel investigation with working image paths.
+- Shared navigation works across the root page, the results page, and any newly added methods/deep-dive pages under HTTP.
 
 ---
 
