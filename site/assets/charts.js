@@ -178,307 +178,354 @@ new Chart(document.getElementById('topNeuronsChart'), {
   }
 });
 
-// --- Intervention: Compliance vs alpha chart (two lines) ---
-const interventionAlphas = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
-const antiComplianceRates = [64.2, 65.4, 66.0, 67.0, 68.2, 69.5, 70.5];
-const standardRawRates = [69.1, 68.4, 68.8, 69.8, 68.6, 66.9, 63.6];
+// --- Intervention charts from canonical site data ---
+const interventionDataUrl = new URL('../data/intervention_sweep.json', import.meta.url);
+let interventionDataPromise = null;
 
-new Chart(document.getElementById('interventionChart'), {
-  type: 'line',
-  data: {
-    labels: interventionAlphas.map(a => '\u03b1=' + a.toFixed(1)),
-    datasets: [
-      {
-        label: 'Anti-compliance prompt',
-        data: antiComplianceRates,
-        borderColor: '#4ecdc4',
-        backgroundColor: 'rgba(78, 205, 196, 0.10)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 5,
-        pointHoverRadius: 8,
-        pointBackgroundColor: '#4ecdc4',
-        pointBorderColor: '#4ecdc4',
-        pointBorderWidth: 2,
-        borderWidth: 2.5,
-      },
-      {
-        label: 'Standard prompt (raw)',
-        data: standardRawRates,
-        borderColor: '#f0a500',
-        backgroundColor: 'rgba(240, 165, 0, 0.08)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 5,
-        pointHoverRadius: 8,
-        pointBackgroundColor: '#f0a500',
-        pointBorderColor: '#f0a500',
-        pointBorderWidth: 2,
-        borderWidth: 2.5,
-        borderDash: [8, 4],
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom',
-        labels: {
-          usePointStyle: true,
-          pointStyle: 'line',
-          padding: 16,
-          font: { size: 12 }
+function formatAlphaLabel(alpha) {
+  return '\u03b1=' + alpha.toFixed(1);
+}
+
+function compliancePercentages(points) {
+  return points.map((point) => point.compliance_pct);
+}
+
+function loadInterventionData() {
+  if (!interventionDataPromise) {
+    interventionDataPromise = fetch(interventionDataUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load intervention sweep data: ${response.status}`);
         }
+        return response.json();
+      });
+  }
+
+  return interventionDataPromise;
+}
+
+async function initInterventionCharts() {
+  const interventionChartCanvas = document.getElementById('interventionChart');
+  const parseFailureChartCanvas = document.getElementById('parseFailureChart');
+  const adjustedComplianceChartCanvas = document.getElementById('adjustedComplianceChart');
+  const populationChartCanvas = document.getElementById('populationChart');
+
+  if (!interventionChartCanvas && !parseFailureChartCanvas && !adjustedComplianceChartCanvas && !populationChartCanvas) {
+    return;
+  }
+
+  const interventionData = await loadInterventionData();
+  const interventionAlphaLabels = interventionData.alphas.map(formatAlphaLabel);
+  const antiComplianceSeries = interventionData.series.anti_compliance;
+  const standardRawSeries = interventionData.series.standard_raw;
+  const standardParseableSubsetSeries = interventionData.series.standard_parseable_subset;
+  const parseFailures = interventionData.parse_failures.points;
+  const antiCompliancePopulation = interventionData.population.anti_compliance;
+  const swingBreakdown = antiCompliancePopulation.swing_breakdown;
+
+  if (interventionChartCanvas) {
+    new Chart(interventionChartCanvas, {
+      type: 'line',
+      data: {
+        labels: interventionAlphaLabels,
+        datasets: [
+          {
+            label: antiComplianceSeries.label,
+            data: compliancePercentages(antiComplianceSeries.points),
+            borderColor: '#4ecdc4',
+            backgroundColor: 'rgba(78, 205, 196, 0.10)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: '#4ecdc4',
+            pointBorderColor: '#4ecdc4',
+            pointBorderWidth: 2,
+            borderWidth: 2.5,
+          },
+          {
+            label: 'Standard prompt (raw)',
+            data: compliancePercentages(standardRawSeries.points),
+            borderColor: '#f0a500',
+            backgroundColor: 'rgba(240, 165, 0, 0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: '#f0a500',
+            pointBorderColor: '#f0a500',
+            pointBorderWidth: 2,
+            borderWidth: 2.5,
+            borderDash: [8, 4],
+          }
+        ]
       },
-      tooltip: {
-        callbacks: {
-          title: (items) => items[0].label,
-          label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-        border: { color: 'rgba(157, 163, 196, 0.12)' }
-      },
-      y: {
-        min: 60, max: 74,
-        grid: { color: 'rgba(157, 163, 196, 0.08)' },
-        ticks: {
-          callback: (v) => v + '%',
-          font: { size: 12 }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'line',
+              padding: 16,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title: (items) => items[0].label,
+              label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
+            }
+          }
         },
-        border: { display: false },
-        title: {
-          display: true,
-          text: 'Compliance rate (%)',
-          font: { size: 12 },
-          color: '#9da3c4'
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+            border: { color: 'rgba(157, 163, 196, 0.12)' }
+          },
+          y: {
+            min: 60, max: 74,
+            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            ticks: {
+              callback: (value) => value + '%',
+              font: { size: 12 }
+            },
+            border: { display: false },
+            title: {
+              display: true,
+              text: 'Compliance rate (%)',
+              font: { size: 12 },
+              color: '#9da3c4'
+            }
+          }
         }
       }
-    }
+    });
   }
-});
 
-// --- Parse failure chart (standard prompt) ---
-const parseFailureCounts = [9, 11, 17, 32, 65, 105, 150];
+  if (parseFailureChartCanvas) {
+    const parseFailureTotals = parseFailures.map((point) => point.count);
 
-new Chart(document.getElementById('parseFailureChart'), {
-  type: 'bar',
-  data: {
-    labels: interventionAlphas.map(a => '\u03b1=' + a.toFixed(1)),
-    datasets: [{
-      label: 'Responses without letter prefix',
-      data: parseFailureCounts,
-      backgroundColor: parseFailureCounts.map(c => c > 50 ? 'rgba(255, 107, 107, 0.7)' : 'rgba(240, 165, 0, 0.5)'),
-      borderRadius: 6,
-      borderSkipped: false,
-    }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (ctx) => ctx.parsed.y + ' responses (' + (ctx.parsed.y / 10).toFixed(1) + '%)'
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-        border: { color: 'rgba(157, 163, 196, 0.12)' }
+    new Chart(parseFailureChartCanvas, {
+      type: 'bar',
+      data: {
+        labels: interventionAlphaLabels,
+        datasets: [{
+          label: 'Responses without letter prefix',
+          data: parseFailureTotals,
+          backgroundColor: parseFailureTotals.map((count) => count > 50 ? 'rgba(255, 107, 107, 0.7)' : 'rgba(240, 165, 0, 0.5)'),
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
       },
-      y: {
-        beginAtZero: true,
-        grid: { color: 'rgba(157, 163, 196, 0.08)' },
-        ticks: { font: { size: 12 } },
-        border: { display: false },
-        title: {
-          display: true,
-          text: 'Parse failures (chosen=None)',
-          font: { size: 12 },
-          color: '#9da3c4'
-        }
-      }
-    }
-  }
-});
-
-// --- Adjusted compliance chart (three lines) ---
-const standardAdjustedRates = [69.7, 69.2, 70.0, 72.1, 73.4, 74.7, 74.8];
-
-new Chart(document.getElementById('adjustedComplianceChart'), {
-  type: 'line',
-  data: {
-    labels: interventionAlphas.map(a => '\u03b1=' + a.toFixed(1)),
-    datasets: [
-      {
-        label: 'Anti-compliance prompt',
-        data: antiComplianceRates,
-        borderColor: '#4ecdc4',
-        backgroundColor: 'transparent',
-        tension: 0.3,
-        pointRadius: 4,
-        pointBackgroundColor: '#4ecdc4',
-        borderWidth: 2.5,
-      },
-      {
-        label: 'Standard (raw)',
-        data: standardRawRates,
-        borderColor: '#f0a500',
-        backgroundColor: 'transparent',
-        tension: 0.3,
-        pointRadius: 4,
-        pointBackgroundColor: '#f0a500',
-        borderWidth: 2,
-        borderDash: [8, 4],
-      },
-      {
-        label: 'Standard (parseable subset only)',
-        data: standardAdjustedRates,
-        borderColor: '#f0a500',
-        backgroundColor: 'rgba(240, 165, 0, 0.10)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 5,
-        pointBackgroundColor: '#f0a500',
-        borderWidth: 2.5,
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom',
-        labels: {
-          usePointStyle: true,
-          pointStyle: 'line',
-          padding: 16,
-          font: { size: 11 }
-        }
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-        border: { color: 'rgba(157, 163, 196, 0.12)' }
-      },
-      y: {
-        min: 60, max: 80,
-        grid: { color: 'rgba(157, 163, 196, 0.08)' },
-        ticks: {
-          callback: (v) => v + '%',
-          font: { size: 12 }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ctx.parsed.y + ' responses (' + (ctx.parsed.y / 10).toFixed(1) + '%)'
+            }
+          }
         },
-        border: { display: false },
-        title: {
-          display: true,
-          text: 'Compliance rate (%)',
-          font: { size: 12 },
-          color: '#9da3c4'
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+            border: { color: 'rgba(157, 163, 196, 0.12)' }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            ticks: { font: { size: 12 } },
+            border: { display: false },
+            title: {
+              display: true,
+              text: 'Parse failures (chosen=None)',
+              font: { size: 12 },
+              color: '#9da3c4'
+            }
+          }
         }
       }
-    }
+    });
   }
-});
 
-// --- Population: anti-compliance swing dynamics ---
-// Stable counts are currently available for the anti-compliance prompt only.
-const swingCompliant = [42, 54, 60, 70, 82, 95, 105]; // = total_compliant - 600
-const swingResistant = swingCompliant.map(c => 138 - c);
-
-new Chart(document.getElementById('populationChart'), {
-  type: 'bar',
-  data: {
-    labels: interventionAlphas.map(a => '\u03b1=' + a.toFixed(1)),
-    datasets: [
-      {
-        label: 'Always compliant',
-        data: new Array(7).fill(600),
-        backgroundColor: 'rgba(255, 107, 107, 0.5)',
-        borderRadius: 0,
-        borderSkipped: false,
+  if (adjustedComplianceChartCanvas) {
+    new Chart(adjustedComplianceChartCanvas, {
+      type: 'line',
+      data: {
+        labels: interventionAlphaLabels,
+        datasets: [
+          {
+            label: antiComplianceSeries.label,
+            data: compliancePercentages(antiComplianceSeries.points),
+            borderColor: '#4ecdc4',
+            backgroundColor: 'transparent',
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#4ecdc4',
+            borderWidth: 2.5,
+          },
+          {
+            label: 'Standard (raw)',
+            data: compliancePercentages(standardRawSeries.points),
+            borderColor: '#f0a500',
+            backgroundColor: 'transparent',
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#f0a500',
+            borderWidth: 2,
+            borderDash: [8, 4],
+          },
+          {
+            label: 'Standard (parseable subset only)',
+            data: compliancePercentages(standardParseableSubsetSeries.points),
+            borderColor: '#f0a500',
+            backgroundColor: 'rgba(240, 165, 0, 0.10)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5,
+            pointBackgroundColor: '#f0a500',
+            borderWidth: 2.5,
+          }
+        ]
       },
-      {
-        label: 'Swing \u2192 compliant',
-        data: swingCompliant,
-        backgroundColor: 'rgba(78, 205, 196, 0.7)',
-        borderRadius: 0,
-        borderSkipped: false,
-      },
-      {
-        label: 'Swing \u2192 resistant',
-        data: swingResistant,
-        backgroundColor: 'rgba(78, 205, 196, 0.25)',
-        borderRadius: 0,
-        borderSkipped: false,
-      },
-      {
-        label: 'Never compliant',
-        data: new Array(7).fill(262),
-        backgroundColor: 'rgba(127, 119, 221, 0.4)',
-        borderRadius: {topLeft: 4, topRight: 4},
-        borderSkipped: false,
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          usePointStyle: true,
-          pointStyle: 'rectRounded',
-          padding: 16,
-          font: { size: 11 }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'line',
+              padding: 16,
+              font: { size: 11 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+            border: { color: 'rgba(157, 163, 196, 0.12)' }
+          },
+          y: {
+            min: 60, max: 80,
+            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            ticks: {
+              callback: (value) => value + '%',
+              font: { size: 12 }
+            },
+            border: { display: false },
+            title: {
+              display: true,
+              text: 'Compliance rate (%)',
+              font: { size: 12 },
+              color: '#9da3c4'
+            }
+          }
         }
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y
-        }
       }
-    },
-    scales: {
-      x: {
-        stacked: true,
-        grid: { display: false },
-        ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-        border: { color: 'rgba(157, 163, 196, 0.12)' }
-      },
-      y: {
-        stacked: true,
-        max: 1000,
-        grid: { color: 'rgba(157, 163, 196, 0.08)' },
-        ticks: { font: { size: 12 } },
-        border: { display: false },
-        title: {
-          display: true,
-          text: 'Samples (n=1,000)',
-          font: { size: 12 },
-          color: '#9da3c4'
-        }
-      }
-    }
+    });
   }
+
+  if (populationChartCanvas) {
+    const swingCompliant = swingBreakdown.map((point) => point.swing_compliant);
+    const swingResistant = swingBreakdown.map((point) => point.swing_resistant);
+
+    new Chart(populationChartCanvas, {
+      type: 'bar',
+      data: {
+        labels: interventionAlphaLabels,
+        datasets: [
+          {
+            label: 'Always compliant',
+            data: new Array(swingBreakdown.length).fill(antiCompliancePopulation.always_compliant.count),
+            backgroundColor: 'rgba(255, 107, 107, 0.5)',
+            borderRadius: 0,
+            borderSkipped: false,
+          },
+          {
+            label: 'Swing \u2192 compliant',
+            data: swingCompliant,
+            backgroundColor: 'rgba(78, 205, 196, 0.7)',
+            borderRadius: 0,
+            borderSkipped: false,
+          },
+          {
+            label: 'Swing \u2192 resistant',
+            data: swingResistant,
+            backgroundColor: 'rgba(78, 205, 196, 0.25)',
+            borderRadius: 0,
+            borderSkipped: false,
+          },
+          {
+            label: 'Never compliant',
+            data: new Array(swingBreakdown.length).fill(antiCompliancePopulation.never_compliant.count),
+            backgroundColor: 'rgba(127, 119, 221, 0.4)',
+            borderRadius: { topLeft: 4, topRight: 4 },
+            borderSkipped: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'rectRounded',
+              padding: 16,
+              font: { size: 11 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
+            border: { color: 'rgba(157, 163, 196, 0.12)' }
+          },
+          y: {
+            stacked: true,
+            max: antiCompliancePopulation.n_total,
+            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            ticks: { font: { size: 12 } },
+            border: { display: false },
+            title: {
+              display: true,
+              text: `Samples (n=${antiCompliancePopulation.n_total.toLocaleString()})`,
+              font: { size: 12 },
+              color: '#9da3c4'
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+initInterventionCharts().catch((error) => {
+  console.error('Failed to initialize intervention charts from site data.', error);
 });
