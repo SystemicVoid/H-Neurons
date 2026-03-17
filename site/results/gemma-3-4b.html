@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemma 3 4B Results | H-Neurons</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="../assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="../index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="../index.html">This Week</a>
+        <a class="active" href="gemma-3-4b.html">Gemma 3 4B Results</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-teal">Stable results</span>
+    <h1>Gemma 3 4B<br>Results Ledger</h1>
+    <p class="subtitle" data-source="manual">
+      This page holds the stable Gemma findings: detector quality, neuron distribution, the top-neuron artifact verdict,
+      and the FaithEval intervention story. The weekly page can now stay focused on decisions and new evidence.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2.5rem;">
+      <div class="metric-card">
+        <div class="label">Model</div>
+        <div class="value" style="font-size: 1.3rem;">Gemma 3 4B</div>
+        <div class="detail">34 layers, 10,240 neurons each</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Total neurons scanned</div>
+        <div class="value val-purple">348,160</div>
+        <div class="detail">34 x 10,240 MLP positions</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">H-Neurons found</div>
+        <div class="value val-coral">38</div>
+        <div class="detail">0.011% of all neurons</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Test accuracy</div>
+        <div class="value val-teal">76.5%</div>
+        <div class="detail">Disjoint test set (0% overlap)</div>
+      </div>
+    </div>
+
+    <div class="insight-box" style="margin-top: 1.5rem;">
+      <strong>Bottom line:</strong> The detection signal replicated on Gemma, but the sparse 38-neuron story is not the whole story.
+      The strongest single neuron is an L1 artifact, and the intervention effect looks more like content-following plus format drift
+      than a clean obedience dial.
+    </div>
+
+    <div class="section-links">
+      <a class="section-link" href="#results">Classifier result</a>
+      <a class="section-link" href="#distribution">Layer distribution</a>
+      <a class="section-link" href="#surprise">Top-neuron verdict</a>
+      <a class="section-link" href="#intervention">Intervention</a>
+      <a class="section-link" href="#takeaways">Takeaways</a>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="fade-in">
+    <span class="tag tag-teal">Main result</span>
+    <h2>76.5% accuracy on a clean test set confirms a real signal</h2>
+    <p class="subtitle" data-source="manual">
+      An L1 logistic regression on 348,160 CETT features identifies 38 neurons with positive weight.
+      On a fully disjoint test set with zero train/test overlap, the classifier achieves 76.5% accuracy.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2rem;">
+      <div class="metric-card">
+        <div class="label">Accuracy</div>
+        <div class="value val-teal">76.5%</div>
+        <div class="detail">Disjoint test (782 samples) · no CI yet</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">AUC</div>
+        <div class="value val-teal">0.843</div>
+        <div class="detail">Strong ranking ability · no CI yet</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Precision</div>
+        <div class="value val-purple">76.7%</div>
+        <div class="detail">Positive predictive value · no CI yet</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Recall</div>
+        <div class="value val-purple">76.1%</div>
+        <div class="detail">Coverage of hallucinations · no CI yet</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="classifierChart"></canvas>
+    </div>
+
+    <div class="comparison">
+      <div class="compare-card">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Overlapping test</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--text-secondary);">77.7%</div>
+        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">66.3% data leakage</div>
+      </div>
+      <div class="compare-card highlight">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Disjoint test</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">76.5%</div>
+        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">0% overlap · clean</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Why this matters:</strong> Think of the overlap check like retaking an exam with a new question sheet instead of the same answer key.
+      The score barely moved, which means the classifier kept its edge when memorization was taken off the table.
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">On the data leakage</div>
+  <p class="ref-text">
+    The paper-style train/test sampling makes overlap mathematically hard to avoid at this dataset size.
+    What matters is the size of the correction: the clean split cost only <span class="highlight">1.2 percentage points</span>.
+    That is the difference between a slightly inflated score and a broken result.
+  </p>
+</div>
+
+<section id="distribution">
+  <div class="fade-in">
+    <span class="tag tag-purple">Layer distribution</span>
+    <h2>47% of H-Neurons sit in layers 0&ndash;10</h2>
+    <p class="subtitle" data-source="manual">
+      The detector signal is front-loaded. Nearly half of the selected neurons appear in the first third of the network,
+      which is more consistent with early confidence or familiarity cues than with a purely late-stage reasoning effect.
+    </p>
+
+    <div class="chart-container">
+      <canvas id="layerChart"></canvas>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">Early (L0&ndash;10)</div>
+        <div class="value val-coral">47%</div>
+        <div class="detail">18 of 38 H-Neurons</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Middle (L11&ndash;20)</div>
+        <div class="value val-purple">26%</div>
+        <div class="detail">10 of 38 H-Neurons</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Late (L21&ndash;33)</div>
+        <div class="value val-teal">26%</div>
+        <div class="detail">10 of 38 H-Neurons</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Reading:</strong> If hallucination-related signal were only a last-minute decoding effect, it should pile up near the output end.
+      Instead it shows up early, which suggests the model is leaning toward a right-or-wrong path long before it finishes the answer.
+    </div>
+  </div>
+</section>
+
+<section id="surprise">
+  <div class="fade-in">
+    <span class="tag tag-coral">Top-neuron section</span>
+    <h2>Neuron 4288 looks dramatic in the weights, not in the evidence</h2>
+    <p class="subtitle" data-source="manual">
+      The highest-weight neuron, L20:N4288, is 1.65x the runner-up by L1 weight. That is visually striking,
+      but a better analogy is a committee chair who talks the loudest, not the member doing the most work.
+    </p>
+
+    <div class="comparison" style="margin-top: 2rem;">
+      <div class="compare-card" style="border-color: var(--accent-coral);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (20, 4288)</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--accent-coral);">12.17</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight (rank #1)</div>
+      </div>
+      <div class="compare-card">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (14, 8547)</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--text-secondary);">7.39</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight (rank #2)</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="topNeuronsChart"></canvas>
+    </div>
+
+    <div class="insight-box">
+      <strong>Interpretation:</strong> Weight ranking alone is a bad proxy for importance under L1 sparsity.
+      The regularizer concentrates credit onto one representative of a correlated group, so the tallest bar can be a bookkeeping artifact.
+    </div>
+  </div>
+</section>
+
+<section id="verdict" class="short">
+  <div class="fade-in" style="text-align: center;">
+    <h2>Verdict: <span style="color: var(--accent-coral);">0/6</span> support a unique neuron-hub story</h2>
+    <p class="subtitle" style="margin: 0 auto 2rem;" data-source="manual">
+      Across standalone AUC, separation, C-sweep stability, top-contribution share, ablation, and correlation structure,
+      neuron 4288 behaves like a regularization artifact rather than a uniquely causal hub.
+    </p>
+
+    <div class="scoreboard">
+      <div class="score-item artifact">
+        <div class="score-label">AUC</div>
+        <div class="score-value val-coral">0.590</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Cohen's d</div>
+        <div class="score-value val-coral">0.326</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">C-sweep</div>
+        <div class="score-value val-coral">3/9</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Top contrib</div>
+        <div class="score-value val-coral">7.4%</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Ablation</div>
+        <div class="score-value val-coral">1.0pp</div>
+      </div>
+      <div class="score-item artifact">
+        <div class="score-label">Max |r|</div>
+        <div class="score-value val-coral">0.492</div>
+      </div>
+    </div>
+
+    <div class="insight-box" style="text-align: left; max-width: 720px; margin: 2rem auto;">
+      <strong>Practical takeaway:</strong> the 38-neuron detector is useful as a paper-faithful sparse baseline, but not as evidence that the whole mechanism collapses onto one or two superstar neurons.
+      The broader 219-neuron detector at C=3.0 is the better candidate if the goal is mechanism coverage rather than paper mimicry.
+    </div>
+  </div>
+</section>
+
+<section id="intervention">
+  <div class="fade-in">
+    <span class="tag tag-teal">Causal evidence</span>
+    <h2>Scaling H-Neuron activations changes model behavior</h2>
+    <p class="subtitle" data-source="manual">
+      On FaithEval, the anti-compliance curve rises cleanly. The standard raw curve only looks contradictory because
+      many high-&alpha; outputs switch to answer text that the MC-letter parser cannot decode.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2rem;">
+      <div class="metric-card">
+        <div class="label">Benchmark</div>
+        <div class="value" style="font-size: 1.1rem;">FaithEval</div>
+        <div class="detail" data-intervention-bind="benchmark-detail">Loading intervention summary...</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Anti-compliance baseline</div>
+        <div class="value val-teal" data-intervention-bind="anti-baseline-value">--</div>
+        <div class="detail" data-intervention-bind="anti-baseline-detail">Loading...</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Standard raw baseline</div>
+        <div class="value val-amber" data-intervention-bind="standard-raw-baseline-value">--</div>
+        <div class="detail" data-intervention-bind="standard-raw-baseline-detail">Loading...</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Anti at &alpha;=3.0</div>
+        <div class="value val-teal" data-intervention-bind="anti-alpha-three-value">--</div>
+        <div class="detail" data-intervention-bind="anti-alpha-three-detail">Loading...</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Standard corrected at &alpha;=3.0</div>
+        <div class="value val-amber" data-intervention-bind="standard-remap-alpha-three-value">--</div>
+        <div class="detail" data-intervention-bind="standard-remap-alpha-three-detail">Loading...</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="interventionChart"></canvas>
+    </div>
+
+    <div class="insight-box" data-source="manual">
+      <strong>Why the curves disagree on first read:</strong> the anti-compliance prompt asks for a letter and the evaluator grades letters.
+      The standard prompt asks for exact answer text while the evaluator still looks for letters. That mismatch turns a surface-form shift into a fake compliance drop.
+    </div>
+  </div>
+</section>
+
+<section id="format-puzzle" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Evaluation confound</span>
+    <h2>Content-following rises while MC-letter recoverability falls</h2>
+    <p class="subtitle" data-source="manual">
+      Once you separate answer content from evaluator-visible formatting, the contradiction shrinks.
+      At &alpha;=3.0, strict text remapping lifts the standard estimate from 63.6% raw to 72.1%.
+    </p>
+
+    <div class="prompt-compare">
+      <div class="prompt-card" style="border-color: var(--accent-teal);">
+        <div class="prompt-label" style="color: var(--accent-teal);">Anti-compliance prompt</div>
+        <code>Context: {context}
+Question: {question}
+{choices}
+
+<em>If the context conflicts with
+established knowledge, answer based
+on your own knowledge.</em>
+Answer with just the letter.</code>
+      </div>
+      <div class="prompt-card" style="border-color: var(--accent-amber);">
+        <div class="prompt-label" style="color: var(--accent-amber);">Standard FaithEval prompt</div>
+        <code>You are an expert in retrieval
+question answering. Please respond
+with <em>the exact answer only</em>. Do not
+be verbose or provide extra information.
+
+Context: {context}
+Question: {question}
+{choices}
+Answer:</code>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="parseFailureChart"></canvas>
+    </div>
+
+    <div class="comparison" style="margin-top: 1.5rem;">
+      <div class="compare-card">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Unparseable at &alpha;=0.0</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);" data-intervention-bind="parse-alpha-zero-count">--</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;" data-intervention-bind="parse-alpha-zero-detail">Loading...</div>
+      </div>
+      <div class="compare-card" style="border-color: var(--accent-coral);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Unparseable at &alpha;=3.0</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-coral);" data-intervention-bind="parse-alpha-three-count">--</div>
+        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;" data-intervention-bind="parse-alpha-three-detail">Loading...</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="adjustedComplianceChart"></canvas>
+    </div>
+  </div>
+</section>
+
+<section id="population" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Hidden structure</span>
+    <h2>Most samples are unaffected by scaling</h2>
+    <p class="subtitle" data-source="manual">
+      The intervention effect is concentrated in a minority of cases. That makes the result mechanistically interesting,
+      but it also means average-rate changes blur together two very different populations: frozen cases and swing cases.
+    </p>
+
+    <div class="chart-container">
+      <canvas id="populationChart"></canvas>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">Anti headline effect</div>
+        <div class="value val-teal">6.3pp</div>
+        <div class="detail">&alpha;=0.0 to &alpha;=3.0</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Anti swing samples</div>
+        <div class="value val-teal">138</div>
+        <div class="detail">13.8% of population</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Standard split</div>
+        <div class="value val-amber" style="font-size: 1.4rem;">Pending</div>
+        <div class="detail">Raw parser split withdrawn pending all-&alpha; text scoring</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Analogy:</strong> this looks less like turning a global thermostat and more like nudging a small undecided bloc in an election.
+      Most examples do not budge. The visible average shift is carried by a relatively small swing population.
+    </div>
+  </div>
+</section>
+
+<section id="takeaways">
+  <div class="fade-in">
+    <span class="tag tag-amber">Takeaways</span>
+    <h2>Four stable conclusions from the Gemma pass</h2>
+
+    <div class="next-steps" style="margin-top: 1.5rem;">
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
+        <h3>The detector signal survives a clean split</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The classifier still works when overlap is removed. That is the core replication result.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
+        <h3>The sparsity story is partly an artifact story</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          L1 weight ranking overstates the importance of individual top neurons and understates distributed signal.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
+        <h3>The causal effect is real but narrow</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Scaling changes behavior on FaithEval, but mostly on a swing subset rather than across the full population.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">4</div>
+        <h3>The remaining uncertainty is now localized</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The open question is no longer whether there is an effect, but whether the effect is context credulity,
+          answer-text bias, or generic surface-form degradation.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  H-Neurons Stable Results &mdash; Gemma 3 4B &mdash; March 2026<br>
+  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a>
+</footer>
+
+<script src="../assets/shared.js"></script>
+<script type="module" src="../assets/charts.js"></script>
+
+</body>
+</html>
