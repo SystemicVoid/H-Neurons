@@ -2,7 +2,6 @@ import argparse
 import json
 import math
 import re
-import string
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,25 +25,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# Copied verbatim from scripts/collect_responses.py to preserve judge normalization.
-def normalize_answer(s: str) -> str:
-    """Standardize answer strings for Rule Judge."""
-
-    def remove_articles(text):
-        return re.sub(r"\b(a|an|the)\b", " ", text)
-
-    def white_space_fix(text):
-        return " ".join(text.split())
-
-    def handle_punc(text):
-        exclude = set(string.punctuation + "‘’´`")
-        return "".join(ch if ch not in exclude else " " for ch in text)
-
-    if not s:
-        return ""
-    return white_space_fix(
-        remove_articles(handle_punc(str(s).lower().replace("_", " ")))
-    ).strip()
+from utils import normalize_answer  # noqa: E402
 
 
 @dataclass

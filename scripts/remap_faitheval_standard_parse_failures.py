@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
-import string
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -19,24 +17,7 @@ from typing import Any
 from datasets import load_dataset
 
 
-def normalize_answer(text: str | None) -> str:
-    """Mirror the repo's answer normalization for text-only remapping."""
-
-    def remove_articles(value: str) -> str:
-        return re.sub(r"\b(a|an|the)\b", " ", value)
-
-    def white_space_fix(value: str) -> str:
-        return " ".join(value.split())
-
-    def handle_punc(value: str) -> str:
-        exclude = set(string.punctuation + "''´`")
-        return "".join(ch if ch not in exclude else " " for ch in value)
-
-    if not text:
-        return ""
-
-    normalized = str(text).lower().replace("_", " ")
-    return white_space_fix(remove_articles(handle_punc(normalized))).strip()
+from utils import normalize_answer  # noqa: E402
 
 
 MANUAL_REVIEW: dict[str, dict[str, Any]] = {
@@ -116,7 +97,9 @@ MANUAL_REVIEW: dict[str, dict[str, Any]] = {
 }
 
 
-def strict_remap_label(response: str, choices: dict[str, str]) -> tuple[str | None, str | None]:
+def strict_remap_label(
+    response: str, choices: dict[str, str]
+) -> tuple[str | None, str | None]:
     """Return the conservatively remapped label and the method used."""
 
     normalized_response = normalize_answer(response)
@@ -147,7 +130,9 @@ def load_choice_lookup() -> dict[str, dict[str, Any]]:
     dataset = load_dataset("Salesforce/FaithEval-counterfactual-v1.0", split="test")
     lookup: dict[str, dict[str, Any]] = {}
     for row in dataset:
-        choices = dict(zip(row["choices"]["label"], row["choices"]["text"], strict=True))
+        choices = dict(
+            zip(row["choices"]["label"], row["choices"]["text"], strict=True)
+        )
         lookup[row["id"]] = {
             "question": row["question"],
             "context": row["context"],
@@ -165,7 +150,9 @@ def build_records(input_path: Path) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for row in parse_failures:
         sample = choice_lookup[row["id"]]
-        strict_label, strict_method = strict_remap_label(row["response"], sample["choices"])
+        strict_label, strict_method = strict_remap_label(
+            row["response"], sample["choices"]
+        )
         strict_text = sample["choices"].get(strict_label) if strict_label else None
         review = MANUAL_REVIEW.get(row["id"])
         if strict_label is not None:
@@ -192,7 +179,9 @@ def build_records(input_path: Path) -> list[dict[str, Any]]:
             "strict_mapped_text": strict_text,
             "strict_mapping_method": strict_method,
             "strict_is_compliant": (
-                strict_label == row["counterfactual_key"] if strict_label is not None else None
+                strict_label == row["counterfactual_key"]
+                if strict_label is not None
+                else None
             ),
             "review_category": review_category,
             "closest_option_label": closest_option_label,
@@ -204,8 +193,12 @@ def build_records(input_path: Path) -> list[dict[str, Any]]:
     return records
 
 
-def build_summary(records: list[dict[str, Any]], total_rows: int, raw_compliance: int) -> dict[str, Any]:
-    strict_records = [record for record in records if record["strict_mapped_label"] is not None]
+def build_summary(
+    records: list[dict[str, Any]], total_rows: int, raw_compliance: int
+) -> dict[str, Any]:
+    strict_records = [
+        record for record in records if record["strict_mapped_label"] is not None
+    ]
     strict_compliant = [
         record for record in strict_records if record["strict_is_compliant"] is True
     ]
@@ -264,7 +257,9 @@ def main() -> None:
         1 for row in all_rows if row["chosen"] == row["counterfactual_key"]
     )
     records = build_records(args.input)
-    summary = build_summary(records, total_rows=len(all_rows), raw_compliance=raw_compliance)
+    summary = build_summary(
+        records, total_rows=len(all_rows), raw_compliance=raw_compliance
+    )
 
     args.output_jsonl.parent.mkdir(parents=True, exist_ok=True)
     with args.output_jsonl.open("w") as handle:

@@ -1,7 +1,5 @@
 import argparse
 import json
-import re
-import string
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -64,23 +62,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def normalize_answer(text: str) -> str:
-    """Copy of collect_responses.normalize_answer to keep dataset prep lightweight."""
-
-    def remove_articles(value: str) -> str:
-        return re.sub(r"\b(a|an|the)\b", " ", value)
-
-    def white_space_fix(value: str) -> str:
-        return " ".join(value.split())
-
-    def handle_punc(value: str) -> str:
-        exclude = set(string.punctuation + "‘’´`")
-        return "".join(ch if ch not in exclude else " " for ch in value)
-
-    if not text:
-        return ""
-    lowered = str(text).lower().replace("_", " ")
-    return white_space_fix(remove_articles(handle_punc(lowered))).strip()
+from utils import normalize_answer  # noqa: E402
 
 
 def parse_question_datetime(question_id: str) -> datetime | None:

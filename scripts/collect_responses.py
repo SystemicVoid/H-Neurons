@@ -1,7 +1,5 @@
 import os
 import json
-import re
-import string
 import argparse
 import time
 from typing import List, Set
@@ -12,57 +10,91 @@ from datasets import load_dataset
 from openai import OpenAI
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="Consistency Filtering with Rule or LLM Judge.")
-    parser.add_argument("--model_path", type=str, required=True, help="Path to the model for sampling")
-    parser.add_argument("--data_path", type=str, required=True, help="Path to the TriviaQA parquet file")
-    parser.add_argument("--output_path", type=str, default="data/consistency_samples.jsonl", help="Output path")
+    parser = argparse.ArgumentParser(
+        description="Consistency Filtering with Rule or LLM Judge."
+    )
+    parser.add_argument(
+        "--model_path", type=str, required=True, help="Path to the model for sampling"
+    )
+    parser.add_argument(
+        "--data_path", type=str, required=True, help="Path to the TriviaQA parquet file"
+    )
+    parser.add_argument(
+        "--output_path",
+        type=str,
+        default="data/consistency_samples.jsonl",
+        help="Output path",
+    )
     parser.add_argument(
         "--device_map",
         type=str,
         default="auto",
         help="Hugging Face device_map value, e.g. 'auto' or 'cuda:0'.",
     )
-    
-    parser.add_argument("--sample_num", type=int, default=10, help="Samples per question")
-    parser.add_argument("--max_samples", type=int, default=None, help="Maximum number of questions to process")
-    parser.add_argument("--backend", type=str, choices=["transformers", "openai"], default="transformers",
-                        help="Generation backend: 'transformers' for local bf16 model, 'openai' for API endpoint")
-    parser.add_argument("--sampling_base_url", type=str, default="http://127.0.0.1:8080/v1", help="Base URL for sampling LLM (openai backend)")
-    parser.add_argument("--sampling_api_key", type=str, default="not-needed", help="API key for sampling LLM (openai backend)")
 
-    parser.add_argument("--judge_type", type=str, choices=["rule", "llm"], default="rule", help="How to judge correctness")
-    parser.add_argument("--api_key", type=str, default=None, help="API key for LLM Judge")
-    parser.add_argument("--base_url", type=str, default="https://api.openai.com/v1", help="API base URL")
-    parser.add_argument("--judge_model", type=str, default="gpt-4o", help="Model name for LLM Judge")
-    
+    parser.add_argument(
+        "--sample_num", type=int, default=10, help="Samples per question"
+    )
+    parser.add_argument(
+        "--max_samples",
+        type=int,
+        default=None,
+        help="Maximum number of questions to process",
+    )
+    parser.add_argument(
+        "--backend",
+        type=str,
+        choices=["transformers", "openai"],
+        default="transformers",
+        help="Generation backend: 'transformers' for local bf16 model, 'openai' for API endpoint",
+    )
+    parser.add_argument(
+        "--sampling_base_url",
+        type=str,
+        default="http://127.0.0.1:8080/v1",
+        help="Base URL for sampling LLM (openai backend)",
+    )
+    parser.add_argument(
+        "--sampling_api_key",
+        type=str,
+        default="not-needed",
+        help="API key for sampling LLM (openai backend)",
+    )
+
+    parser.add_argument(
+        "--judge_type",
+        type=str,
+        choices=["rule", "llm"],
+        default="rule",
+        help="How to judge correctness",
+    )
+    parser.add_argument(
+        "--api_key", type=str, default=None, help="API key for LLM Judge"
+    )
+    parser.add_argument(
+        "--base_url", type=str, default="https://api.openai.com/v1", help="API base URL"
+    )
+    parser.add_argument(
+        "--judge_model", type=str, default="gpt-4o", help="Model name for LLM Judge"
+    )
+
     return parser.parse_args()
+
 
 # ==========================================
 # Utilities
 # ==========================================
 
-def normalize_answer(s: str) -> str:
-    """Standardize answer strings for Rule Judge."""
-    def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
+from utils import normalize_answer  # noqa: E402
 
-    def white_space_fix(text):
-        return ' '.join(text.split())
-
-    def handle_punc(text):
-        exclude = set(string.punctuation + "‘’´`")
-        return ''.join(ch if ch not in exclude else ' ' for ch in text)
-
-    if not s:
-        return ""
-    return white_space_fix(remove_articles(handle_punc(str(s).lower().replace('_', ' ')))).strip()
 
 def load_existing_qids(path: str) -> Set[str]:
     if not os.path.exists(path):
         return set()
     qids = set()
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         for line in f:
             try:
                 data = json.loads(line)
@@ -71,9 +103,11 @@ def load_existing_qids(path: str) -> Set[str]:
                 continue
     return qids
 
+
 # ==========================================
 # Consistency Sampler with Multi-Judge Support
 # ==========================================
+
 
 class ConsistencySampler:
     def __init__(self, args):
@@ -120,21 +154,21 @@ class ConsistencySampler:
             f"Return 't' if the response is correct, and 'f' if the response is incorrect. "
             f"Don't add any additional information."
         )
-        
+
         for attempt in range(5):
             try:
                 completion = self.judge_client.chat.completions.create(
                     model=self.args.judge_model,
                     messages=[{"role": "user", "content": prompt}],
-                    temperature=0.0
+                    temperature=0.0,
                 )
                 res = completion.choices[0].message.content.strip().lower()
-                if 't' in res:
+                if "t" in res:
                     return "true"
-                if 'f' in res:
+                if "f" in res:
                     return "false"
             except Exception as e:
-                print(f"Judge API failed (attempt {attempt+1}): {e}")
+                print(f"Judge API failed (attempt {attempt + 1}): {e}")
                 time.sleep(1)
         return "error"
 
@@ -143,30 +177,30 @@ class ConsistencySampler:
         if self.args.max_samples:
             dataset = dataset.select(range(self.args.max_samples))
         processed_qids = load_existing_qids(self.args.output_path)
-        
+
         all_correct_count = 0
         all_incorrect_count = 0
 
-        with open(self.args.output_path, 'a', encoding='utf-8') as f:
+        with open(self.args.output_path, "a", encoding="utf-8") as f:
             for item in tqdm(dataset, desc=f"Sampling ({self.args.judge_type} judge)"):
-                qid = str(item.get('question_id', ''))
+                qid = str(item.get("question_id", ""))
                 if qid in processed_qids:
                     continue
 
-                question = item.get('question', '')
-                if not question or 'answer' not in item:
+                question = item.get("question", "")
+                if not question or "answer" not in item:
                     continue
 
                 # Get ground truth
                 raw_aliases = []
-                for col in ['aliases', 'normalized_aliases']:
-                    val = item['answer'].get(col)
+                for col in ["aliases", "normalized_aliases"]:
+                    val = item["answer"].get(col)
                     if val:
                         if isinstance(val, list):
                             raw_aliases.extend(val)
                         else:
                             raw_aliases.append(str(val))
-                
+
                 norm_gts = [normalize_answer(a) for a in set(raw_aliases) if a]
                 if not norm_gts:
                     continue
@@ -176,7 +210,7 @@ class ConsistencySampler:
                 messages = [{"role": "user", "content": f"{question.strip()} {suffix}"}]
                 responses = []
                 judges = []
-                
+
                 # Cache for LLM judge to avoid redundant API calls for the same response in 10 samples
                 judge_cache = {}
 
@@ -184,7 +218,9 @@ class ConsistencySampler:
                     try:
                         if self.backend == "transformers":
                             inputs = self.tokenizer.apply_chat_template(
-                                messages, return_tensors="pt", add_generation_prompt=True
+                                messages,
+                                return_tensors="pt",
+                                add_generation_prompt=True,
                             )
                             if hasattr(inputs, "input_ids"):
                                 input_ids = inputs["input_ids"].to(self.model.device)
@@ -200,7 +236,8 @@ class ConsistencySampler:
                                     do_sample=True,
                                 )
                             ans = self.tokenizer.decode(
-                                output_ids[0][input_ids.shape[1]:], skip_special_tokens=True
+                                output_ids[0][input_ids.shape[1] :],
+                                skip_special_tokens=True,
                             ).strip()
                         else:
                             completion = self.sampling_client.chat.completions.create(
@@ -215,7 +252,12 @@ class ConsistencySampler:
                         responses.append(ans)
 
                         # 1. Uncertainty check (Rule-based pre-filter)
-                        uncertain_terms = ["don't know", "cannot", "not provided", "no information"]
+                        uncertain_terms = [
+                            "don't know",
+                            "cannot",
+                            "not provided",
+                            "no information",
+                        ]
                         if any(term in ans.lower() for term in uncertain_terms):
                             judges.append("uncertain")
                             continue
@@ -226,7 +268,9 @@ class ConsistencySampler:
                         else:
                             # Use cache to save tokens if model repeats the same answer
                             if ans not in judge_cache:
-                                judge_cache[ans] = self.llm_judge(question, ans, raw_aliases)
+                                judge_cache[ans] = self.llm_judge(
+                                    question, ans, raw_aliases
+                                )
                             judges.append(judge_cache[ans])
 
                     except Exception as e:
@@ -249,13 +293,16 @@ class ConsistencySampler:
                         "question": f"{question.strip()} {suffix}",
                         "responses": responses,
                         "judges": judges,
-                        "ground_truth": list(set(raw_aliases))
+                        "ground_truth": list(set(raw_aliases)),
                     }
                 }
-                f.write(json.dumps(result, ensure_ascii=False) + '\n')
-                
+                f.write(json.dumps(result, ensure_ascii=False) + "\n")
+
                 if len(processed_qids) % 10 == 0:
-                    tqdm.write(f"Stats -> All-Correct: {all_correct_count}, All-Incorrect: {all_incorrect_count}")
+                    tqdm.write(
+                        f"Stats -> All-Correct: {all_correct_count}, All-Incorrect: {all_incorrect_count}"
+                    )
+
 
 if __name__ == "__main__":
     args = parse_args()
