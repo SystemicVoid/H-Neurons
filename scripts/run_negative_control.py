@@ -2,12 +2,18 @@
 Negative control experiment for H-Neuron specificity.
 
 Tests whether scaling arbitrary sets of 38 neurons produces comparable
-compliance effects to scaling the identified H-neurons. Runs FaithEval
-with anti-compliance prompt across multiple random neuron selections.
+compliance effects to scaling the identified H-neurons. Supports FaithEval
+(anti-compliance prompt, inline MC evaluation) and FalseQA (bare-question
+prompt, deferred GPT-4o judging via evaluate_intervention.py).
 
 Usage:
+    # FaithEval (default)
     uv run python scripts/run_negative_control.py --quick
     uv run python scripts/run_negative_control.py
+
+    # FalseQA
+    uv run python scripts/run_negative_control.py --benchmark falseqa --quick
+    uv run python scripts/run_negative_control.py --benchmark falseqa
 """
 
 import argparse
@@ -32,6 +38,7 @@ from run_intervention import (
     generate_response,
     load_existing_ids,
     load_faitheval,
+    load_falseqa,
     load_model_and_tokenizer,
 )
 
@@ -69,7 +76,15 @@ QUICK_ALPHAS = [0.0, 1.0, 3.0]
 
 MODEL_PATH = "google/gemma-3-4b-it"
 CLASSIFIER_PATH = "models/gemma3_4b_classifier.pkl"
-OUTPUT_BASE = "data/gemma3_4b/intervention/negative_control"
+OUTPUT_BASES = {
+    "faitheval": "data/gemma3_4b/intervention/negative_control",
+    "falseqa": "data/gemma3_4b/intervention/negative_control_falseqa",
+}
+H_NEURON_BASELINES = {
+    "faitheval": "data/gemma3_4b/intervention/faitheval/results.json",
+    "falseqa": "data/gemma3_4b/intervention/falseqa/results.json",
+}
+FALSEQA_DATA_PATH = "data/benchmarks/falseqa_test.csv"
 
 
 def get_zero_weight_indices(classifier_path: str) -> np.ndarray:
@@ -133,11 +148,11 @@ def run_single_config(
     alphas: list,
     output_dir: str,
     config_name: str,
+    benchmark: str = "faitheval",
 ):
-    """Run FaithEval for one neuron set across all alphas."""
+    """Run a benchmark for one neuron set across all alphas."""
     os.makedirs(output_dir, exist_ok=True)
 
-    # Save neuron indices
     indices_path = os.path.join(output_dir, "neuron_indices.json")
     with open(indices_path, "w") as f:
         json.dump({str(k): v for k, v in neuron_map.items()}, f, indent=2)
@@ -148,17 +163,42 @@ def run_single_config(
         f"\n[{config_name}] Installed {scaler.n_hooks} hooks on {scaler.n_neurons} neurons"
     )
 
+    if benchmark == "faitheval":
+        results = _run_faitheval_alphas(
+            model, tokenizer, samples, scaler, alphas, output_dir, config_name
+        )
+    elif benchmark == "falseqa":
+        results = _run_falseqa_alphas(
+            model, tokenizer, samples, scaler, alphas, output_dir, config_name
+        )
+    else:
+        raise ValueError(f"Unknown benchmark: {benchmark}")
+
+    summary = {
+        "config": config_name,
+        "benchmark": benchmark,
+        "n_neurons": sum(len(v) for v in neuron_map.values()),
+        "results": results,
+    }
+    with open(os.path.join(output_dir, "results.json"), "w") as f:
+        json.dump(summary, f, indent=2)
+
+    scaler.remove()
+    return results
+
+
+def _run_faitheval_alphas(
+    model, tokenizer, samples, scaler, alphas, output_dir, config_name
+):
+    """FaithEval anti-compliance: inline MC evaluation."""
+    from tqdm import tqdm
+
     results = {}
     for alpha in alphas:
         out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
         existing_ids = load_existing_ids(out_path)
-
         scaler.alpha = alpha
-        compliant = 0
         total = 0
-        parse_failures = 0
-
-        from tqdm import tqdm
 
         with open(out_path, "a") as f:
             for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
@@ -177,15 +217,7 @@ def run_single_config(
                 )
 
                 chosen = extract_mc_answer(response, sample["valid_letters"])
-                is_compliant = chosen == sample["counterfactual_key"]
-                is_parse_failure = chosen is None
-
-                if is_compliant:
-                    compliant += 1
-                if is_parse_failure:
-                    parse_failures += 1
                 total += 1
-
                 record = {
                     "id": sample["id"],
                     "alpha": alpha,
@@ -193,12 +225,11 @@ def run_single_config(
                     "counterfactual_key": sample["counterfactual_key"],
                     "chosen": chosen,
                     "response": response,
-                    "compliance": is_compliant,
-                    "parse_failure": is_parse_failure,
+                    "compliance": chosen == sample["counterfactual_key"],
+                    "parse_failure": chosen is None,
                 }
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-        # Recount from file for accuracy (includes resumed records)
         comp_total, n_total, pf_total = _count_compliance_and_pf(out_path)
         results[str(alpha)] = {
             "compliance_rate": round(comp_total / n_total, 4) if n_total else 0,
@@ -210,18 +241,62 @@ def run_single_config(
             f"  α={alpha:.1f}: {comp_total / n_total:.1%} compliance "
             f"({comp_total}/{n_total}), {pf_total} parse failures"
         )
-
-    # Save per-config results
-    summary = {
-        "config": config_name,
-        "n_neurons": sum(len(v) for v in neuron_map.values()),
-        "results": results,
-    }
-    with open(os.path.join(output_dir, "results.json"), "w") as f:
-        json.dump(summary, f, indent=2)
-
-    scaler.remove()
     return results
+
+
+def _run_falseqa_alphas(
+    model, tokenizer, samples, scaler, alphas, output_dir, config_name
+):
+    """FalseQA: bare-question prompt, no inline compliance (deferred to GPT-4o)."""
+    from tqdm import tqdm
+
+    results = {}
+    for alpha in alphas:
+        out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+        existing_ids = load_existing_ids(out_path)
+        scaler.alpha = alpha
+        total = 0
+
+        with open(out_path, "a") as f:
+            for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
+                if sample["id"] in existing_ids:
+                    total += 1
+                    continue
+
+                messages = [{"role": "user", "content": sample["question"]}]
+                response = generate_response(
+                    model,
+                    tokenizer,
+                    messages,
+                    do_sample=False,
+                    max_new_tokens=256,
+                )
+                total += 1
+                record = {
+                    "id": sample["id"],
+                    "alpha": alpha,
+                    "question": sample["question"],
+                    "response": response,
+                }
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+        n_total = _count_lines(out_path)
+        results[str(alpha)] = {"n_total": n_total}
+        print(f"  α={alpha:.1f}: {n_total} responses generated (judging deferred)")
+    return results
+
+
+def _count_lines(path: str) -> int:
+    """Count valid JSONL lines in a file."""
+    count = 0
+    with open(path) as f:
+        for line in f:
+            try:
+                json.loads(line)
+                count += 1
+            except json.JSONDecodeError:
+                continue
+    return count
 
 
 def _count_compliance_and_pf(path: str):
@@ -243,10 +318,12 @@ def _count_compliance_and_pf(path: str):
     return compliant, total, parse_failures
 
 
-def build_comparison_summary(all_results: dict, alphas: list) -> dict:
+def build_comparison_summary(
+    all_results: dict, alphas: list, benchmark: str = "faitheval"
+) -> dict:
     """Build the comparison summary JSON."""
-    # Load H-neuron baseline
-    with open("data/gemma3_4b/intervention/faitheval/results.json") as f:
+    baseline_path = H_NEURON_BASELINES[benchmark]
+    with open(baseline_path) as f:
         h_baseline_raw = json.load(f)
 
     h_rates = []
@@ -352,7 +429,15 @@ def build_comparison_summary(all_results: dict, alphas: list) -> dict:
     return summary
 
 
-def plot_comparison(summary: dict, alphas: list, output_path: str):
+BENCHMARK_TITLES = {
+    "faitheval": "H-Neuron Specificity: Negative Control (FaithEval Anti-Compliance)",
+    "falseqa": "H-Neuron Specificity: Negative Control (FalseQA)",
+}
+
+
+def plot_comparison(
+    summary: dict, alphas: list, output_path: str, benchmark: str = "faitheval"
+):
     """Generate the comparison plot."""
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -414,8 +499,7 @@ def plot_comparison(summary: dict, alphas: list, output_path: str):
     ax.set_xlabel("Scaling Factor (α)", fontsize=12)
     ax.set_ylabel("Compliance Rate (%)", fontsize=12)
     ax.set_title(
-        "H-Neuron Specificity: Negative Control (FaithEval Anti-Compliance)",
-        fontsize=13,
+        BENCHMARK_TITLES.get(benchmark, f"Negative Control ({benchmark})"), fontsize=13
     )
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
@@ -432,13 +516,21 @@ def parse_args():
         description="Negative control experiment for H-neuron specificity"
     )
     p.add_argument(
+        "--benchmark",
+        type=str,
+        default="faitheval",
+        choices=["faitheval", "falseqa"],
+        help="Benchmark to run negative control on",
+    )
+    p.add_argument(
         "--quick",
         action="store_true",
-        help="Quick falsification: seed 0 unconstrained, α ∈ {0.0, 1.0, 3.0}",
+        help="Quick falsification: 3 unconstrained seeds, α ∈ {0.0, 1.0, 3.0}",
     )
     p.add_argument("--model_path", type=str, default=MODEL_PATH)
     p.add_argument("--classifier_path", type=str, default=CLASSIFIER_PATH)
     p.add_argument("--device_map", type=str, default="cuda:0")
+    p.add_argument("--falseqa_path", type=str, default=FALSEQA_DATA_PATH)
     p.add_argument(
         "--analysis_only",
         action="store_true",
@@ -449,10 +541,16 @@ def parse_args():
 
 def main():
     args = parse_args()
+    benchmark = args.benchmark
     alphas = QUICK_ALPHAS if args.quick else ALL_ALPHAS
+    output_base = OUTPUT_BASES[benchmark]
 
     if args.quick:
-        configs = [("seed_0_unconstrained", "unconstrained", 0)]
+        configs = [
+            ("seed_0_unconstrained", "unconstrained", 0),
+            ("seed_1_unconstrained", "unconstrained", 1),
+            ("seed_2_unconstrained", "unconstrained", 2),
+        ]
     else:
         configs = [
             ("seed_0_unconstrained", "unconstrained", 0),
@@ -465,7 +563,7 @@ def main():
             ("seed_2_layer_matched", "layer_matched", 2),
         ]
 
-    os.makedirs(OUTPUT_BASE, exist_ok=True)
+    os.makedirs(output_base, exist_ok=True)
 
     # Load classifier zero-weight indices
     print("Loading classifier for neuron sampling...")
@@ -487,20 +585,20 @@ def main():
         )
 
     if not args.analysis_only:
-        # Load model once
         print(f"\nLoading model: {args.model_path}")
         model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
 
-        # Load FaithEval
-        print("Loading FaithEval...")
-        samples = load_faitheval()
+        print(f"Loading benchmark: {benchmark}")
+        if benchmark == "faitheval":
+            samples = load_faitheval()
+        elif benchmark == "falseqa":
+            samples = load_falseqa(args.falseqa_path)
         print(f"  {len(samples)} samples")
 
-        # Run each config
         all_results = {}
         for name, strategy, seed in configs:
             nmap = neuron_configs[name]
-            out_dir = os.path.join(OUTPUT_BASE, name)
+            out_dir = os.path.join(output_base, name)
             results = run_single_config(
                 model,
                 tokenizer,
@@ -509,17 +607,16 @@ def main():
                 alphas,
                 out_dir,
                 name,
+                benchmark=benchmark,
             )
             all_results[name] = results
 
-        # Free model
         del model, tokenizer
         torch.cuda.empty_cache()
     else:
-        # Load existing results
         all_results = {}
         for name, strategy, seed in configs:
-            results_path = os.path.join(OUTPUT_BASE, name, "results.json")
+            results_path = os.path.join(output_base, name, "results.json")
             if os.path.exists(results_path):
                 with open(results_path) as f:
                     data = json.load(f)
@@ -531,18 +628,40 @@ def main():
         print("No results to analyze.")
         return
 
-    # Build comparison summary
+    # FalseQA analysis requires GPT-4o judging first
+    if benchmark == "falseqa":
+        has_compliance = any(
+            "compliance_rate" in v.get(str(float(alphas[0])), {})
+            for v in all_results.values()
+        )
+        if not has_compliance:
+            print("\n" + "=" * 60)
+            print("Generation complete. Run GPT-4o judging before analysis:")
+            for name, _, _ in configs:
+                alpha_str = " ".join(f"{a:.1f}" for a in alphas)
+                print(
+                    f"  uv run python scripts/evaluate_intervention.py "
+                    f"--benchmark falseqa "
+                    f"--input_dir {output_base}/{name} "
+                    f"--alphas {alpha_str}"
+                )
+            print(
+                f"\nThen re-run with --analysis_only:\n"
+                f"  uv run python scripts/run_negative_control.py "
+                f"--benchmark falseqa {'--quick' if args.quick else ''} --analysis_only"
+            )
+            return
+
     print("\n" + "=" * 60)
     print("Building comparison summary...")
     print("=" * 60)
-    summary = build_comparison_summary(all_results, alphas)
+    summary = build_comparison_summary(all_results, alphas, benchmark=benchmark)
 
-    summary_path = os.path.join(OUTPUT_BASE, "comparison_summary.json")
+    summary_path = os.path.join(output_base, "comparison_summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
     print(f"Saved summary to {summary_path}")
 
-    # Print key findings
     print("\n--- KEY FINDINGS ---")
     h = summary["h_neuron_baseline"]
     print(f"H-neurons: slope={h['slope_per_alpha']}%/α, ρ={h['spearman_rho']}")
@@ -563,9 +682,8 @@ def main():
         )
         print(f"t-test (slope): p={st['slope_h_vs_random_ttest_p']}")
 
-    # Plot
-    plot_path = os.path.join(OUTPUT_BASE, "negative_control_comparison.png")
-    plot_comparison(summary, alphas, plot_path)
+    plot_path = os.path.join(output_base, "negative_control_comparison.png")
+    plot_comparison(summary, alphas, plot_path, benchmark=benchmark)
 
 
 if __name__ == "__main__":
