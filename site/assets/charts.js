@@ -120,16 +120,60 @@ function renderSeriesGrid(targetId, cards) {
 }
 
 // --- Classifier performance chart ---
+const classifierDataUrl = new URL('../data/classifier_summary.json', import.meta.url);
+let classifierDataPromise = null;
 const classifierChartCanvas = document.getElementById('classifierChart');
 
-if (classifierChartCanvas) {
+function formatPercentFromRate(value) {
+  return (value * 100).toFixed(1) + '%';
+}
+
+function formatPercentInterval(ci) {
+  return `[${(ci.lower * 100).toFixed(1)}, ${(ci.upper * 100).toFixed(1)}]%`;
+}
+
+function formatClassifierMetricValue(metricName, value) {
+  return metricName === 'auroc' ? value.toFixed(3) : formatPercentFromRate(value);
+}
+
+function formatClassifierMetricInterval(metricName, ci) {
+  if (metricName === 'auroc') {
+    return `[${ci.lower.toFixed(3)}, ${ci.upper.toFixed(3)}]`;
+  }
+
+  return formatPercentInterval(ci);
+}
+
+function loadClassifierData() {
+  if (!classifierDataPromise) {
+    classifierDataPromise = fetch(classifierDataUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load classifier summary: ${response.status}`);
+        }
+        return response.json();
+      });
+  }
+
+  return classifierDataPromise;
+}
+
+async function initClassifierChart() {
+  if (!classifierChartCanvas) {
+    return;
+  }
+
+  const classifierData = await loadClassifierData();
+  const metricOrder = ['accuracy', 'auroc', 'precision', 'recall', 'f1'];
+  const metricLabels = ['Accuracy', 'AUC', 'Precision', 'Recall', 'F1'];
+
   new Chart(classifierChartCanvas, {
     type: 'bar',
     data: {
-      labels: ['Accuracy', 'AUC', 'Precision', 'Recall', 'F1'],
+      labels: metricLabels,
       datasets: [{
         label: 'Disjoint test set',
-        data: [0.765, 0.843, 0.767, 0.761, 0.764],
+        data: metricOrder.map((metricName) => classifierData.metrics[metricName].estimate),
         backgroundColor: [
           'rgba(78, 205, 196, 0.8)',
           'rgba(78, 205, 196, 0.65)',
@@ -148,13 +192,17 @@ if (classifierChartCanvas) {
         legend: { display: false },
         valueLabels: {
           formatter: (value, context) => {
-            const metric = context.chart.data.labels[context.dataIndex];
-            return metric === 'AUC' ? value.toFixed(3) : `${(value * 100).toFixed(1)}%`;
+            const metricName = metricOrder[context.dataIndex];
+            return formatClassifierMetricValue(metricName, value);
           },
         },
         tooltip: {
           callbacks: {
-            label: (ctx) => (ctx.parsed.y * 100).toFixed(1) + '%'
+            label: (ctx) => {
+              const metricName = metricOrder[ctx.dataIndex];
+              const metric = classifierData.metrics[metricName];
+              return `${formatClassifierMetricValue(metricName, metric.estimate)} (95% CI ${formatClassifierMetricInterval(metricName, metric.ci)})`;
+            }
           }
         }
       },
@@ -347,7 +395,10 @@ function formatCount(value) {
 }
 
 function formatCiStatus(ciStatus) {
-  return ciStatus === 'no_ci_yet' ? 'no CI yet' : ciStatus.replaceAll('_', ' ');
+  if (ciStatus === 'available') {
+    return '95% CI available';
+  }
+  return ciStatus.replaceAll('_', ' ');
 }
 
 function formatSignedPp(value) {
@@ -367,42 +418,43 @@ function hydrateInterventionSummary(interventionData) {
   const standardParseableSubsetSeries = interventionData.series.standard_parseable_subset;
   const standardTextRemapAlphaThree = interventionData.series.standard_text_remap.by_alpha['3.0'];
   const parseFailures = interventionData.parse_failures.points;
-  const antiBaseline = interventionPointByAlpha(antiComplianceSeries.points, 1.0);
+  const antiBaseline = interventionPointByAlpha(antiComplianceSeries.points, 0.0);
   const antiAlphaThree = interventionPointByAlpha(antiComplianceSeries.points, 3.0);
-  const standardRawBaseline = interventionPointByAlpha(standardRawSeries.points, 1.0);
-  const standardParseableBaseline = interventionPointByAlpha(standardParseableSubsetSeries.points, 1.0);
+  const antiEffects = antiComplianceSeries.effects;
+  const standardRawBaseline = interventionPointByAlpha(standardRawSeries.points, 0.0);
+  const standardParseableBaseline = interventionPointByAlpha(standardParseableSubsetSeries.points, 0.0);
   const parseAlphaZero = interventionPointByAlpha(parseFailures, 0.0);
   const parseAlphaThree = interventionPointByAlpha(parseFailures, 3.0);
 
   setInterventionText(
     'benchmark-detail',
-    `${formatCount(antiBaseline.n_total)} counterfactual MC questions · ${formatCiStatus(interventionData.ci_status)}`
+    `${formatCount(antiBaseline.n_total)} counterfactual MC questions · per-point Wilson CIs + paired bootstrap sweep intervals`
   );
   setInterventionText('intervention-chart-n', `n=${formatCount(antiBaseline.n_total)} questions per α`);
-  setInterventionText('intervention-chart-ci', `CI status: ${formatCiStatus(antiComplianceSeries.ci_status)}`);
+  setInterventionText('intervention-chart-ci', `Effect: ${formatSignedPp(antiEffects.delta_0_to_max_pp.estimate)} (95% CI [${antiEffects.delta_0_to_max_pp.ci.lower.toFixed(1)}, ${antiEffects.delta_0_to_max_pp.ci.upper.toFixed(1)}]pp)`);
   setInterventionText('parse-failure-chart-n', `n=${formatCount(parseAlphaZero.n_total)} responses per α`);
-  setInterventionText('parse-failure-chart-ci', `CI status: ${formatCiStatus(interventionData.parse_failures.ci_status)}`);
+  setInterventionText('parse-failure-chart-ci', 'Per-point Wilson CIs; sweep effect uses paired bootstrap');
   setInterventionText(
     'adjusted-chart-n',
     `n=1,000 total; parseable subset ${formatCount(interventionPointByAlpha(standardParseableSubsetSeries.points, 0.0).parseable_n)}→${formatCount(interventionPointByAlpha(standardParseableSubsetSeries.points, 3.0).parseable_n)}`
   );
-  setInterventionText('adjusted-chart-ci', `CI status: ${formatCiStatus(standardParseableSubsetSeries.ci_status)}`);
+  setInterventionText('adjusted-chart-ci', 'Wilson CIs on raw and conditional rates; α=3 remap has a full-population Wilson CI');
   setInterventionText('population-chart-n', `n=1,000 questions`);
-  setInterventionText('population-chart-ci', `CI status: ${formatCiStatus(interventionData.population.anti_compliance.ci_status)}`);
+  setInterventionText('population-chart-ci', 'Wilson CIs on always / never / swing shares');
   setInterventionText('anti-baseline-value', formatPercent(antiBaseline.compliance_pct));
   setInterventionText(
     'anti-baseline-detail',
-    `α=1.0 compliance · ${formatCiStatus(antiComplianceSeries.ci_status)}`
+    `α=0.0 compliance · 95% CI ${formatPercentInterval(antiBaseline.ci)}`
   );
   setInterventionText('standard-raw-baseline-value', formatPercent(standardRawBaseline.compliance_pct));
   setInterventionText(
     'standard-raw-baseline-detail',
-    `α=1.0 raw · ${formatPercent(standardParseableBaseline.compliance_pct)} among parseable responses`
+    `α=0.0 raw · ${formatPercent(standardParseableBaseline.compliance_pct)} among parseable responses`
   );
   setInterventionText('anti-alpha-three-value', formatPercent(antiAlphaThree.compliance_pct));
   setInterventionText(
     'anti-alpha-three-detail',
-    `${formatSignedPp(antiAlphaThree.compliance_pct - antiBaseline.compliance_pct)} ↑ · ${formatCiStatus(antiComplianceSeries.ci_status)}`
+    `${formatSignedPp(antiEffects.delta_0_to_max_pp.estimate)} from α=0.0→3.0 · 95% CI [${antiEffects.delta_0_to_max_pp.ci.lower.toFixed(1)}, ${antiEffects.delta_0_to_max_pp.ci.upper.toFixed(1)}]pp`
   );
   setInterventionText(
     'standard-remap-alpha-three-value',
@@ -849,6 +901,10 @@ async function initInterventionCharts() {
     });
   }
 }
+
+initClassifierChart().catch((error) => {
+  console.error('Failed to initialize classifier chart from site data.', error);
+});
 
 initInterventionCharts().catch((error) => {
   console.error('Failed to initialize intervention charts from site data.', error);
