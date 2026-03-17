@@ -12,8 +12,7 @@ scrollback grep.
 
 ## AGENTS.md Staleness Detection
 
-CLAUDE.md already symlinks to AGENTS.md, so drift between files is solved. The
-real problem is that AGENTS.md goes stale when codebase behaviour changes --
+AGENTS.md goes stale when codebase behaviour changes --
 e.g. a new shared module is extracted, test infrastructure is added, or a
 workflow step is removed -- but nobody updates the guidelines.
 
