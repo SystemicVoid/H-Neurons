@@ -542,6 +542,77 @@ h3 {
   background: rgba(78, 205, 196, 0.04);
 }
 
+/* --- Roadmap table --- */
+.roadmap-table-shell {
+  margin: 2rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+}
+.roadmap-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+.roadmap-table th,
+.roadmap-table td {
+  padding: 1rem 1.1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+.roadmap-table tr:last-child td {
+  border-bottom: none;
+}
+.roadmap-table th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: rgba(157, 163, 196, 0.04);
+}
+.roadmap-table td {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.roadmap-table strong {
+  color: var(--text-primary);
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.status-ready {
+  background: var(--accent-teal-dim);
+  color: var(--accent-teal);
+}
+.status-active {
+  background: var(--accent-purple-dim);
+  color: var(--accent-purple);
+}
+.status-pilot {
+  background: var(--accent-amber-dim);
+  color: var(--accent-amber);
+}
+.status-decision {
+  background: rgba(157, 163, 196, 0.14);
+  color: var(--text-primary);
+}
+.status-blocked {
+  background: var(--accent-coral-dim);
+  color: var(--accent-coral);
+}
+
 /* --- Scroll progress --- */
 .progress-bar {
   position: fixed;
@@ -571,6 +642,7 @@ footer a { color: var(--accent-teal); text-decoration: none; }
   .pipeline-arrow { transform: rotate(90deg); justify-content: center; padding: 8px 0; }
   .comparison { grid-template-columns: 1fr; }
   .investigation-grid { grid-template-columns: 1fr; }
+  .roadmap-table { min-width: 720px; }
   nav .nav-links { display: none; }
   nav { padding: 0 1rem; }
   nav .nav-shell { gap: 0.75rem; }

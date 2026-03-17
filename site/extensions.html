@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extensions | H-Neurons</title>
+<link rel="stylesheet" href="assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="index.html">This Week</a>
+        <a href="story.html">Core Story</a>
+        <a href="results/gemma-3-4b.html">Results</a>
+        <a href="methods.html">Methods</a>
+        <a class="active" href="extensions.html">Extensions</a>
+        <a href="deep-dives/neuron-4288.html">Neuron 4288</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-amber">Extensions</span>
+    <h1>Roadmap for the next<br>mechanism questions,<br>not another weekly memo</h1>
+    <p class="subtitle" data-source="manual">
+      This page is the standing queue of follow-on experiments that sit beyond the Gemma baseline replication.
+      The weekly page asks what needs a decision this week. The story page asks what the paper currently claims.
+      This page asks which experiments are worth turning into the next real sprint, in what order, and what cheap falsifier each one should survive first.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2.5rem;">
+      <div class="metric-card">
+        <div class="label">Tracked workstreams</div>
+        <div class="value val-teal">4</div>
+        <div class="detail">Only the near-term branches worth carrying right now</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Fastest falsifier</div>
+        <div class="value val-amber">10 min</div>
+        <div class="detail">Negative-weight C-sweep stability on CPU</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Best next bet</div>
+        <div class="value val-purple" style="font-size: 1.3rem;">Layer-13 SAE</div>
+        <div class="detail">Main mechanism sprint on the existing Gemma artifacts</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Zero-GPU branch</div>
+        <div class="value val-coral" style="font-size: 1.3rem;">Swing audit</div>
+        <div class="detail">Pure analysis on the 14% sensitive population</div>
+      </div>
+    </div>
+
+    <div class="section-links">
+      <a class="section-link" href="#roadmap">Roadmap table</a>
+      <a class="section-link" href="#priority">Execution order</a>
+      <a class="section-link" href="#workstreams">Top workstreams</a>
+      <a class="section-link" href="#decision">Decision points</a>
+    </div>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="fade-in">
+    <span class="tag tag-teal">Roadmap table</span>
+    <h2>The page tracks only the four branches that have a concrete scientific hook right now</h2>
+    <p class="subtitle" data-source="manual">
+      This is deliberately narrower than the full idea bank in the research notes.
+      The current page keeps only the branches that already have a sharp hypothesis, an affordable falsifier, and a direct path back to the Gemma replication story.
+    </p>
+
+    <div class="roadmap-table-shell">
+      <table class="roadmap-table">
+        <thead>
+          <tr>
+            <th>Workstream</th>
+            <th>Status</th>
+            <th>Why it matters</th>
+            <th>Cheap falsifier</th>
+            <th>Main dependency</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>SAE feature decomposition</strong></td>
+            <td><span class="status-pill status-active">Primary bet</span></td>
+            <td>Test whether the 38 H-neurons are only a coarse shortlist and whether a compact set of SAE features is the real mechanism handle.</td>
+            <td>Load the layer-13 MLP-output SAE, project the existing hallucination/truthful activation pairs, train the same L1 logistic regression on 16k SAE features instead of 348k neuron CETT values, and compare AUROC. Cheap falsifier: 1-2 hours GPU.</td>
+            <td>Existing activation pairs plus Gemma Scope SAEs for `gemma-3-4b-it`; full pass is still only 2-3 days.</td>
+          </tr>
+          <tr>
+            <td><strong>Suppressive neuron investigation</strong></td>
+            <td><span class="status-pill status-ready">Quick falsifier</span></td>
+            <td>The ignored negative-weight set may be a natural truthfulness circuit, which is a cleaner safety narrative than merely suppressing bad behavior.</td>
+            <td>Check whether the 38 negative-weight neurons remain stable across C in {0.3, 1.0, 3.0, 10.0}. If a core subset survives, run the inverse intervention by amplifying them and measuring whether compliance decreases. Cheap falsifier: 10 min CPU + 3-4 hours GPU.</td>
+            <td>Classifier artifacts already exist; the only real dependency is finding a stable core worth intervening on.</td>
+          </tr>
+          <tr>
+            <td><strong>Swing sample characterization</strong></td>
+            <td><span class="status-pill status-active">Pure analysis</span></td>
+            <td>The 6.3pp headline effect is really a 45.7% swing inside a 14% sensitive subpopulation. The key question is whether those samples mark weak knowledge or overridden strong knowledge.</td>
+            <td>Compare swing vs always-compliant vs never-compliant samples on confidence at α=1.0, topic domain, context convincingness, and response length. Cheap falsifier: zero GPU, about one day of analysis.</td>
+            <td>Existing per-sample intervention outputs; best interpreted after the text-rescoring cleanup is complete.</td>
+          </tr>
+          <tr>
+            <td><strong>Safety/refusal overlap pilot</strong></td>
+            <td><span class="status-pill status-pilot">Safety pilot</span></td>
+            <td>Directly tests whether factual compliance and harmful-request refusal share circuitry, which is the alignment-tax question in its smallest runnable form.</td>
+            <td>Run 20 manually written harmful prompts at α=0.0 and α=1.0. If suppressing H-neurons makes the model more willing to comply, the overlap is real; if refusal is unchanged, the circuits look separable.</td>
+            <td>A small harmful-prompt set and a disciplined readout; no large new benchmark stack needed for the pilot.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="insight-box">
+      <strong>Why these four:</strong> they each have a different payoff surface.
+      SAE decomposition is the strongest main sprint, suppressive neurons are the fastest causal falsifier, swing-sample analysis is the cheapest interpretive clarification, and the refusal-overlap pilot is the most direct safety check.
+    </div>
+  </div>
+</section>
+
+<section id="priority" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Execution order</span>
+    <h2>The order should separate cheap filters from the main sprint</h2>
+    <p class="subtitle" data-source="manual">
+      These four branches are not equal in cost or role.
+      Two are quick ways to learn whether the story is narrower or cleaner than it currently looks, one is the main mechanism bet, and one is the first focused safety pilot.
+    </p>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">1</div>
+        <h3>Run the near-free filters first</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Check negative-weight stability and characterize the swing population before spending multiple days on a heavier mechanism sprint.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
+        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">2</div>
+        <h3>Use SAE decomposition as the main sprint</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          If the SAE probe matches or beats the neuron probe, the project upgrades from sparse-neuron bookkeeping to a feature-level mechanism story on the same model.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">3</div>
+        <h3>Use refusal overlap as the targeted safety check</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          This is the smallest experiment that can tell you whether the same circuitry may be doing double duty for factual compliance and safety refusal.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">Roadmap discipline</div>
+  <p class="ref-text">
+    Research roadmaps drift when every promising idea gets treated like the main branch.
+    This page is meant to force the opposite habit: keep one trunk, then make each extension justify why it deserves to become the next branch.
+  </p>
+</div>
+
+<section id="workstreams">
+  <div class="fade-in">
+    <span class="tag tag-coral">Top workstreams</span>
+    <h2>The four branches each answer a different failure mode in the current story</h2>
+    <p class="subtitle" data-source="manual">
+      The point is not to maximize novelty in the abstract.
+      The point is to ask four concrete questions: is the neuron level too coarse, is there an inverse truthfulness handle, what exactly moves in the swing subset, and does any of this touch refusal circuitry?
+    </p>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
+        <h3 style="color: var(--accent-purple);">SAE feature decomposition</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Strongest extension because either outcome is publishable. If SAE features work better, the neuron level is too coarse. If they do not, the H-neurons are unusually monosemantic and that is itself surprising.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Suppressive neuron investigation</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Best route to turning the story from "suppress bad behavior" into "amplify a native truthfulness circuit," if the negative-weight set proves stable and causal.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Swing sample characterization</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Best route to deciding whether H-neurons override appropriate uncertainty or genuine knowledge. That is the difference between a narrower deployment concern and a much stronger safety alarm.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Safety/refusal overlap pilot</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Best route to a direct alignment-tax claim. If refusal moves when H-neurons are suppressed, the project stops being only about hallucination and starts touching refusal geometry.
+        </p>
+      </div>
+    </div>
+
+    <div class="comparison" style="margin-top: 2rem;">
+      <div class="compare-card" style="text-align: left; border-color: var(--accent-purple);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Strongest paper extension</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-purple);">SAE feature decomposition</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          This is the cleanest bridge from the current replication to the dominant feature-based interpretability paradigm, while staying on the same model and within local hardware.
+        </div>
+      </div>
+      <div class="compare-card highlight" style="text-align: left;">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Fastest direct safety signal</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Refusal-overlap pilot</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          This is the quickest way to learn whether the same local circuitry may be shared between hallucination compliance and harmful-request refusal.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="decision" class="short">
+  <div class="fade-in">
+    <span class="tag tag-teal">Decision points</span>
+    <h2>The choice is not "which many ideas are interesting" but "which one earns the next sprint"</h2>
+    <p class="subtitle" data-source="manual">
+      Right now the page recommends one main sprint and three smaller falsifiers around it.
+      That keeps the roadmap disciplined: the big bet gets room to breathe, and the cheaper branches still sharpen what the big bet would mean.
+    </p>
+
+    <div class="comparison" style="margin-top: 2rem;">
+      <div class="compare-card" style="text-align: left; border-color: var(--accent-purple);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Main sprint</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-purple);">Layer-13 SAE first</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          Preferred because it is the strongest extension with the best "interesting either way" structure and still fits the current hardware and artifact base.
+        </div>
+      </div>
+      <div class="compare-card" style="text-align: left; border-color: var(--accent-amber);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Cheap sidecars</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);">Swing + anti-H first pass</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          Preferred around the main sprint because both are fast, leverage existing data, and determine whether the safety reading becomes narrower or stronger.
+        </div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Current recommendation:</strong> keep the extensions page focused on these four only for now.
+      SAE decomposition is the main sprint. The suppressive-neuron check, swing-sample audit, and refusal-overlap pilot are the short side experiments that make the eventual story harder to fool.
+    </div>
+  </div>
+</section>
+
+<footer>
+  H-Neurons Extensions Roadmap &mdash; Gemma 3 4B &mdash; March 2026<br>
+  Standing narrative: <a href="story.html">Core Story</a> &middot; Stable evidence: <a href="results/gemma-3-4b.html">Results</a>
+</footer>
+
+<script src="assets/shared.js"></script>
+
+</body>
+</html>
