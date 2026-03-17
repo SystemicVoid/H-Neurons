@@ -2,7 +2,7 @@
 
 > Implementation guidelines for evolving `site/` from a single-page monolith into a maintainable, data-driven multi-page research presentation.
 >
-> **Status**: In progress — Session 7 completed on 2026-03-17.
+> **Status**: In progress — Session 9 completed on 2026-03-17.
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
@@ -311,9 +311,9 @@ Each entry links to its results page when work begins.
 
 ### Phase 3: Page split (estimated: 1 day)
 
-- [ ] Create `methods.html` — move pipeline, funnel, prompts, reproducibility note
+- [x] Create `methods.html` — move pipeline, funnel, prompts, reproducibility note
 - [x] Create `results/gemma-3-4b.html` — move classifier results, layer distribution, intervention
-- [ ] Create `deep-dives/neuron-4288.html` — move 6-panel investigation
+- [x] Create `deep-dives/neuron-4288.html` — move 6-panel investigation
 - [x] Slim `index.html` down to weekly-only content
 - [x] Add shared nav to all pages touched so far
 - [x] Add delta block template to `index.html`
@@ -358,6 +358,8 @@ Each entry links to its results page when work begins.
 | 2026-03-17 | Session 5 | `refactor(site): hydrate intervention summary widgets from site data` | Bound the intervention metric cards and parse-failure comparison tiles in `site/index.html` to `site/data/intervention_sweep.json`, removed the old intervention literals from the bound HTML, and tagged the remaining intervention prose blocks as `data-source="manual"` where they still carry embedded numeric claims. | Start Phase 3 by creating `results/gemma-3-4b.html` and shared top navigation, moving the stable results sections out of the weekly landing page while leaving classifier-derived charts hardcoded until canonical exports exist. |
 | 2026-03-17 | Session 6 | `feat(site): add gemma results page shell` | Added `site/results/gemma-3-4b.html` as the first dedicated stable-results page, introduced shared weekly/results navigation styling, and made `site/assets/charts.js` safe to load on pages that only render a subset of charts. | Trim `site/index.html` into a weekly landing page and stop loading chart assets on the root page once direct links into the new results page exist. |
 | 2026-03-17 | Session 7 | `refactor(site): turn index into weekly landing page` | Rewrote `site/index.html` into a meeting-oriented briefing page with a delta block, agenda, decision points, and direct links into `site/results/gemma-3-4b.html`; removed Chart.js and `charts.js` from the root page so the stable visual evidence now lives only on the dedicated results URL. | Continue Phase 3 by relocating background material to `methods.html` and the full neuron-4288 investigation to `deep-dives/neuron-4288.html`, then expand shared navigation beyond the first two pages. |
+| 2026-03-17 | Session 8 | `feat(site): add methods reference page` | Added `site/methods.html` as the standing home for the pipeline, data funnel, prompt framing, evaluator-format contract, and reproducibility notes; expanded the shared nav so the weekly and results pages can reach the restored background context directly. | Finish Phase 3 by moving the full neuron-4288 appendix into its own deep-dive page and making the results page link to that longer artifact rationale instead of carrying it inline. |
+| 2026-03-17 | Session 9 | `feat(site): add neuron 4288 deep-dive page` | Added `site/deep-dives/neuron-4288.html` with the full six-panel investigation, updated shared navigation to include the nested appendix, and turned `site/results/gemma-3-4b.html` into a true summary page that points to the deep dive for the full artifact rationale. | Move into Phase 4 by creating `story.html` as the standing paper narrative and deciding whether `extensions.html` or `archive/` is the more useful next nav destination. |
 
 ---
 
@@ -367,32 +369,32 @@ Each entry links to its results page when work begins.
 
 - Phase 1 is complete: shared CSS, shared runtime, and chart bootstrapping are all extracted from `site/index.html`.
 - The first site data contract now exists at `site/data/intervention_sweep.json`, and the intervention charts plus intervention summary widgets render from it over HTTP on the nested results page.
-- `site/results/gemma-3-4b.html` now holds the stable Gemma findings, while `site/index.html` has been reduced to a weekly landing page with delta/agenda/decision sections.
+- `site/results/gemma-3-4b.html` now holds the stable Gemma findings, `site/methods.html` holds the background/materials context, and `site/deep-dives/neuron-4288.html` holds the full six-panel top-neuron appendix.
+- `site/index.html` has been reduced to a weekly landing page with delta/agenda/decision sections, and the shared nav now connects all four live pages.
 - The exporter is intentionally scoped to intervention data only; classifier-derived site JSON remains deferred until a direct canonical source exists.
 
 ### Open issues / constraints
 
 - Remaining intervention prose still carries embedded numeric claims, but those blocks are explicitly tagged `data-source="manual"` rather than silently drifting.
-- Classifier, layer-distribution, and top-neuron cards/charts remain hardcoded until a direct canonical export exists for those sections.
 - The standard-prompt strict answer-text correction is only canonical for `alpha=3.0`; do not imply a full corrected sweep yet.
 - Standard-prompt population breakdown remains withdrawn until text-based rescoring exists across all alpha values.
-- The weekly page no longer contains the pipeline/methods walkthrough; that material still needs a real home in `methods.html`.
-- The results page carries a compact top-neuron verdict, but the full six-panel 4288 investigation still needs a standalone deep-dive page.
+- The shared nav is still a transitional four-page version; `story.html`, `extensions.html`, and `archive/` do not exist yet.
+- Classifier, layer-distribution, and top-neuron cards/charts remain hardcoded even though the intervention path now reads from site data.
 - Confidence intervals are still missing, so all exported intervention metrics remain explicitly `no_ci_yet`.
 
 ### Recommended next slice
 
-1. Create `site/methods.html` and move the pipeline, funnel, prompt framing, and reproducibility material there so the root page does not silently drop that context.
-2. Create `site/deep-dives/neuron-4288.html` and move the full six-panel investigation there, leaving a short verdict summary on `results/gemma-3-4b.html`.
-3. Expand the shared navigation beyond the first two pages so `index.html`, `results/gemma-3-4b.html`, and the new methods/deep-dive pages connect cleanly.
-4. Leave classifier, layer-distribution, and top-neuron charts hardcoded until canonical exports exist; the remaining split work should not block on classifier JSON.
-5. Re-verify over HTTP after each new page move, especially nested asset paths and the `intervention_sweep.json` fetch from the results page.
+1. Create `site/story.html` with the five-question standing narrative: current claim, strongest evidence, biggest threat, falsification criteria, and next paper-level decision.
+2. Expand the shared nav to include `story.html`, and decide whether `extensions.html` or `archive/` should be the fifth live destination next.
+3. Keep `index.html` as the meeting memo, `results/gemma-3-4b.html` as the stable evidence ledger, `methods.html` as the background reference, and `deep-dives/neuron-4288.html` as the appendix model for future investigations.
+4. Leave classifier, layer-distribution, and top-neuron charts hardcoded until canonical exports exist; the Phase 4 page architecture should not block on classifier JSON.
+5. Re-verify over HTTP after each new page move, especially the nested deep-dive asset paths and the `intervention_sweep.json` fetch from the results page.
 
 ### Acceptance checks for tomorrow
 
-- `methods.html` exists and restores the missing pipeline/background context without bloating `index.html`.
-- `deep-dives/neuron-4288.html` exists and holds the full six-panel investigation with working image paths.
-- Shared navigation works across the root page, the results page, and any newly added methods/deep-dive pages under HTTP.
+- `story.html` exists and gives the advisor a standing narrative page separate from both weekly deltas and raw appendices.
+- Shared navigation works across the root page, the results page, `methods.html`, any story page, and deep-dive pages under HTTP.
+- The current four-page split remains intact: short weekly page, stable results page, methods reference page, and image-backed deep dive.
 
 ---
 
