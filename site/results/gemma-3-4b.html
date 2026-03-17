@@ -50,13 +50,13 @@
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">H-Neurons found</div>
-        <div class="value val-coral">38</div>
-        <div class="detail">0.011% of all neurons</div>
+        <div class="value val-coral" data-classifier-bind="selected-count">38</div>
+        <div class="detail"><span data-classifier-bind="selected-ratio">0.011%</span> of all neurons</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Test accuracy</div>
-        <div class="value val-teal">76.5%</div>
-        <div class="detail">Disjoint test set (0% overlap)</div>
+        <div class="value val-teal" data-classifier-bind="accuracy-value">76.5%</div>
+        <div class="detail">Disjoint eval (n=<span data-classifier-bind="n-examples">780</span>) · <span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span></div>
       </div>
     </div>
 
@@ -82,61 +82,61 @@
     <h2>76.5% accuracy on a clean test set confirms a real signal</h2>
     <p class="subtitle" data-source="manual">
       An L1 logistic regression on 348,160 CETT features identifies 38 neurons with positive weight.
-      On a fully disjoint test set with zero train/test overlap, the classifier achieves 76.5% accuracy.
+      On the fully disjoint evaluated subset, the classifier reaches <span data-classifier-bind="accuracy-value">76.5%</span> accuracy with a <span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Accuracy</div>
-        <div class="value val-teal">76.5%</div>
-        <div class="detail">Disjoint test (782 samples) · no CI yet</div>
+        <div class="value val-teal" data-classifier-bind="accuracy-value">76.5%</div>
+        <div class="detail">Disjoint eval (<span data-classifier-bind="n-examples">780</span> samples) · <span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">AUC</div>
-        <div class="value val-teal">0.843</div>
-        <div class="detail">Strong ranking ability · no CI yet</div>
+        <div class="value val-teal" data-classifier-bind="auc-value">0.843</div>
+        <div class="detail"><span data-classifier-bind="auc-ci-text">95% CI 0.815-0.870</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Precision</div>
-        <div class="value val-purple">76.7%</div>
-        <div class="detail">Positive predictive value · no CI yet</div>
+        <div class="value val-purple" data-classifier-bind="precision-value">76.7%</div>
+        <div class="detail"><span data-classifier-bind="precision-ci-text">95% CI 73.4-80.1%</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Recall</div>
-        <div class="value val-purple">76.1%</div>
-        <div class="detail">Coverage of hallucinations · no CI yet</div>
+        <div class="value val-purple" data-classifier-bind="recall-value">76.1%</div>
+        <div class="detail"><span data-classifier-bind="recall-ci-text">95% CI 71.7-80.5%</span></div>
       </div>
     </div>
 
     <div class="chart-meta">
       <div class="chart-kicker">Bars print the exact held-out metric values directly on the plot.</div>
       <div class="chart-chip-row">
-        <span class="chart-chip"><strong>n=782</strong> disjoint test samples</span>
-        <span class="chart-chip"><strong>CI status:</strong> no CI yet</span>
-        <span class="chart-chip"><strong>F1:</strong> 76.4%</span>
+        <span class="chart-chip"><strong>n=<span data-classifier-bind="n-examples">780</span></strong> disjoint test samples</span>
+        <span class="chart-chip"><strong>Bootstrap:</strong> 10,000 stratified resamples</span>
+        <span class="chart-chip"><strong>F1:</strong> <span data-classifier-bind="f1-chip">76.4% [73.2, 79.4]</span></span>
       </div>
     </div>
     <div class="chart-container">
       <canvas id="classifierChart"></canvas>
     </div>
     <div class="chart-value-strip">
-      <span class="chart-chip"><strong>Accuracy</strong> 76.5%</span>
-      <span class="chart-chip"><strong>AUC</strong> 0.843</span>
-      <span class="chart-chip"><strong>Precision</strong> 76.7%</span>
-      <span class="chart-chip"><strong>Recall</strong> 76.1%</span>
-      <span class="chart-chip"><strong>F1</strong> 76.4%</span>
+      <span class="chart-chip"><strong>Accuracy</strong> <span data-classifier-bind="accuracy-value">76.5%</span> <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></span>
+      <span class="chart-chip"><strong>AUC</strong> <span data-classifier-bind="auc-value">0.843</span></span>
+      <span class="chart-chip"><strong>Precision</strong> <span data-classifier-bind="precision-value">76.7%</span></span>
+      <span class="chart-chip"><strong>Recall</strong> <span data-classifier-bind="recall-value">76.1%</span></span>
+      <span class="chart-chip"><strong>F1</strong> <span data-classifier-bind="f1-chip">76.4% [73.2, 79.4]</span></span>
     </div>
 
     <div class="comparison">
       <div class="compare-card">
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Overlapping test</div>
         <div style="font-size: 2rem; font-weight: 700; color: var(--text-secondary);">77.7%</div>
-        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">66.3% data leakage</div>
+        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">n=1,993 · 95% CI 75.9-79.5%</div>
       </div>
       <div class="compare-card highlight">
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Disjoint test</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">76.5%</div>
-        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">0% overlap · clean</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);" data-classifier-bind="accuracy-value">76.5%</div>
+        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">n=<span data-classifier-bind="n-examples">780</span> · <span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span></div>
       </div>
     </div>
 
@@ -151,7 +151,7 @@
   <div class="ref-label">On the data leakage</div>
   <p class="ref-text">
     The paper-style train/test sampling makes overlap mathematically hard to avoid at this dataset size.
-    What matters is the size of the correction: the clean split cost only <span class="highlight">1.2 percentage points</span>.
+    What matters is the size of the correction: the clean split cost only <span class="highlight">1.1 percentage points</span>.
     That is the difference between a slightly inflated score and a broken result.
   </p>
 </div>
@@ -356,7 +356,10 @@
     <h2>Content-following rises while MC-letter recoverability falls</h2>
     <p class="subtitle" data-source="manual">
       Once you separate answer content from evaluator-visible formatting, the contradiction shrinks.
-      At &alpha;=3.0, strict text remapping lifts the standard estimate from 63.6% raw to 72.1%.
+      At &alpha;=3.0, strict text remapping lifts the standard estimate from
+      <span data-intervention-summary-bind="raw-alpha-three-value">63.6%</span> raw to
+      <span data-intervention-summary-bind="remap-value">72.1%</span>
+      (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>).
     </p>
 
     <div class="prompt-compare">
@@ -440,7 +443,7 @@ Answer:</code>
       <div class="chart-chip-row">
         <span class="chart-chip" data-intervention-bind="population-chart-n">Loading n...</span>
         <span class="chart-chip" data-intervention-bind="population-chart-ci">Loading CI status...</span>
-        <span class="chart-chip"><strong>Swing pool:</strong> 138 samples</span>
+        <span class="chart-chip"><strong>Swing pool:</strong> <span data-intervention-summary-bind="swing-count">138</span> samples</span>
       </div>
     </div>
     <div class="chart-container">
@@ -451,13 +454,13 @@ Answer:</code>
     <div class="metrics-grid">
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Anti headline effect</div>
-        <div class="value val-teal">6.3pp</div>
-        <div class="detail">&alpha;=0.0 to &alpha;=3.0</div>
+        <div class="value val-teal" data-intervention-summary-bind="anti-delta-value">6.3pp</div>
+        <div class="detail">&alpha;=0.0 to &alpha;=3.0 · <span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Anti swing samples</div>
-        <div class="value val-teal">138</div>
-        <div class="detail">13.8% of population</div>
+        <div class="value val-teal" data-intervention-summary-bind="swing-count">138</div>
+        <div class="detail"><span data-intervention-summary-bind="swing-share-value">13.8%</span> of population · <span data-intervention-summary-bind="swing-share-ci-text">95% CI 11.8-16.1%</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Standard split</div>

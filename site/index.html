@@ -30,53 +30,61 @@
 <section id="hero">
   <div class="fade-in">
     <h1>H-Neurons:<br>Replication, Artifacts,<br>and Open Questions</h1>
-    <p class="subtitle">
+    <p class="subtitle" data-source="manual">
       Gao et al. (2025) claim that fewer than 0.1% of a language model's MLP neurons, dubbed "H-Neurons,"
       reliably predict hallucination and causally drive over-compliance when amplified.
       We replicated their pipeline on Gemma&nbsp;3 4B-IT and confirmed the core signal:
-      38 neurons out of 348,160 predict hallucination at 76.5% accuracy on fully held-out data,
+      38 neurons out of 348,160 predict hallucination at
+      <span data-classifier-bind="accuracy-value">76.5%</span> accuracy on fully held-out data
+      (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>),
       and scaling them monotonically increases compliance with misleading context.
       But replication also surfaced problems the paper doesn't discuss.
     </p>
 
-    <p class="subtitle" style="margin-top: 1rem;">
+    <p class="subtitle" style="margin-top: 1rem;" data-source="manual">
       The top-ranked neuron's classifier weight is an L1 regularization artifact, not a uniquely important "hallucination hub."
-      Only 14% of evaluation samples actually respond to the intervention;
-      the 6.3pp headline effect is really a 45.7% swing concentrated in a small sensitive subpopulation.
+      Only <span data-intervention-summary-bind="swing-share-value">13.8%</span> of evaluation samples actually respond to the intervention
+      (<span data-intervention-summary-bind="swing-share-ci-text">95% CI 11.8-16.1%</span>);
+      the <span data-intervention-summary-bind="anti-delta-value">6.3pp</span> headline effect is really a
+      <span data-intervention-summary-bind="swing-effect-share">45.7%</span> swing concentrated in a small sensitive subpopulation.
       The paper's standard-prompt evaluation also likely underreports compliance at high &alpha;
       because the model emits exact answer text instead of option letters, which MC-letter parsers misread as non-compliance.
-      Strict text remapping at &alpha;=3.0 lifts the raw 63.6% to 72.1%, restoring the expected monotonic trend.
+      Strict text remapping at &alpha;=3.0 lifts the raw
+      <span data-intervention-summary-bind="raw-alpha-three-value">63.6%</span> to
+      <span data-intervention-summary-bind="remap-value">72.1%</span>
+      (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>), restoring the expected monotonic trend.
       Negative controls confirm the effect is H-neuron-specific:
       scaling 38 random neurons produces a compliance slope 26&times; flatter.
     </p>
 
-    <p class="subtitle" style="margin-top: 1.25rem;">
-      The replication holds. Three extensions are now running:
+    <p class="subtitle" style="margin-top: 1.25rem;" data-source="manual">
+      The replication holds. Four focused extensions are now live in the roadmap:
       <strong>SAE decomposition</strong> to find a monosemantic "compliance feature" inside the polysemantic H-Neurons, using Gemma Scope's 16k-width SAEs that fit alongside the model in 16GB VRAM;
-      <strong>anti-H-Neuron investigation</strong> of the 38 negative-weight (hallucination-suppressive) neurons the paper ignored, testing whether amplifying a natural truthfulness circuit can reduce hallucination;
-      and <strong>swing sample profiling</strong> to determine whether H-Neurons override genuine knowledge (alarming) or just mask appropriate uncertainty (a narrower safety concern).
+      <strong>suppressive-neuron investigation</strong> of the negative-weight neurons the paper ignored, testing whether amplifying a natural truthfulness circuit can reduce hallucination;
+      <strong>swing sample profiling</strong> to determine whether H-Neurons override genuine knowledge (alarming) or just mask appropriate uncertainty (a narrower safety concern);
+      and a <strong>safety/refusal overlap pilot</strong> to test whether the detector intersects refusal or policy-style behaviors rather than hallucination alone.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
       <div class="metric-card" data-status="STABLE">
         <div class="label">H-Neurons found</div>
-        <div class="value val-coral">38</div>
-        <div class="detail">0.011% of 348,160 MLP neurons</div>
+        <div class="value val-coral" data-classifier-bind="selected-count">38</div>
+        <div class="detail"><span data-classifier-bind="selected-ratio">0.011%</span> of 348,160 MLP neurons</div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Clean detector</div>
-        <div class="value val-teal">76.5%</div>
-        <div class="detail">Disjoint test accuracy (0% overlap)</div>
+        <div class="value val-teal" data-classifier-bind="accuracy-value">76.5%</div>
+        <div class="detail">Disjoint test accuracy <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Compliance slope</div>
-        <div class="value val-amber">2.1%/&alpha;</div>
-        <div class="detail">Monotonic, &rho;=1.0, 26&times; above random</div>
+        <div class="value val-amber" data-intervention-summary-bind="anti-slope-value">2.1pp/&alpha;</div>
+        <div class="detail"><span data-intervention-summary-bind="anti-slope-ci-text">95% CI 1.4-2.8pp/&alpha;</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Swing population</div>
-        <div class="value val-purple">14%</div>
-        <div class="detail">138 of 1,000 samples &alpha;-sensitive</div>
+        <div class="value val-purple" data-intervention-summary-bind="swing-share-value">13.8%</div>
+        <div class="detail"><span data-intervention-summary-bind="swing-count">138</span> of 1,000 samples &alpha;-sensitive <span data-intervention-summary-bind="swing-share-ci-bracket">[11.8, 16.1]</span></div>
       </div>
     </div>
 
@@ -141,7 +149,8 @@
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">A</div>
         <h3>Classifier signal survives the clean split</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The disjoint 76.5% result still anchors the replication claim. The overlap issue reduced the score modestly, not catastrophically.
+          The disjoint <span data-classifier-bind="accuracy-value">76.5%</span> result still anchors the replication claim.
+          Its <span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span> still clears the overlap correction by a comfortable margin.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Open classifier section</a></p>
       </div>
@@ -165,7 +174,9 @@
         <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">D</div>
         <h3>The intervention story is now cleaner</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The apparent standard-prompt decline is mostly an evaluator-format mismatch. The current best corrected point is 72.1% at &alpha;=3.0.
+          The apparent standard-prompt decline is mostly an evaluator-format mismatch. The current best corrected point is
+          <span data-intervention-summary-bind="remap-value">72.1%</span> at &alpha;=3.0, with
+          <span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#intervention">Open intervention section</a></p>
       </div>
@@ -212,8 +223,8 @@
     <div class="metrics-grid" style="margin-top: 1.5rem;">
       <div class="metric-card">
         <div class="label">Paper-faithful sparse set</div>
-        <div class="value val-amber">38</div>
-        <div class="detail">Gemma-3-4B, C=1.0, 76.5% local disjoint accuracy</div>
+        <div class="value val-amber" data-classifier-bind="selected-count">38</div>
+        <div class="detail">Gemma-3-4B, C=1.0, <span data-classifier-bind="accuracy-value">76.5%</span> local disjoint accuracy <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></div>
       </div>
       <div class="metric-card">
         <div class="label">Higher-signal set</div>

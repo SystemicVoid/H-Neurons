@@ -45,13 +45,13 @@
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Strongest signal</div>
-        <div class="value val-purple">76.5%</div>
-        <div class="detail">Clean held-out classifier accuracy</div>
+        <div class="value val-purple" data-classifier-bind="accuracy-value">76.5%</div>
+        <div class="detail">Clean held-out classifier accuracy <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Causal foothold</div>
-        <div class="value val-amber">6.3pp</div>
-        <div class="detail">Anti-compliance shift from &alpha;=0.0 to &alpha;=3.0</div>
+        <div class="value val-amber" data-intervention-summary-bind="anti-delta-value">6.3pp</div>
+        <div class="detail">Anti-compliance shift from &alpha;=0.0 to &alpha;=3.0 · <span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span></div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Main threat</div>
@@ -117,7 +117,8 @@
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <h3 style="color: var(--accent-teal);">Clean detector result</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The 76.5% disjoint-test accuracy is the core replication anchor because it survives the overlap correction instead of collapsing once memorization pressure is removed.
+          The <span data-classifier-bind="accuracy-value">76.5%</span> disjoint-test accuracy
+          (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>) is the core replication anchor because it survives the overlap correction instead of collapsing once memorization pressure is removed.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Open the results ledger</a></p>
       </div>
@@ -145,13 +146,13 @@
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Corrected standard point</div>
-        <div class="value val-amber">72.1%</div>
-        <div class="detail">Strict answer-text remap at &alpha;=3.0</div>
+        <div class="value val-amber" data-intervention-summary-bind="remap-value">72.1%</div>
+        <div class="detail">Strict answer-text remap at &alpha;=3.0 (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>)</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Swing population</div>
-        <div class="value val-purple">14%</div>
-        <div class="detail">Most samples stay frozen under scaling</div>
+        <div class="value val-purple" data-intervention-summary-bind="swing-share-value">13.8%</div>
+        <div class="detail"><span data-intervention-summary-bind="swing-share-value">13.8%</span> swing share <span data-intervention-summary-bind="swing-share-ci-bracket">[11.8, 16.1]</span></div>
       </div>
     </div>
   </div>

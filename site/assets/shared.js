@@ -1,4 +1,7 @@
 (() => {
+  const sharedScriptUrl = document.currentScript?.src
+    ? new URL(document.currentScript.src, window.location.href)
+    : new URL('assets/shared.js', window.location.href);
   const progressBar = document.getElementById('progressBar');
 
   if (progressBar) {
@@ -78,4 +81,187 @@
   );
 
   document.querySelectorAll('.scoreboard').forEach((element) => scoreObserver.observe(element));
+
+  function setBoundText(attribute, binding, value) {
+    document.querySelectorAll(`[${attribute}="${binding}"]`).forEach((element) => {
+      element.textContent = value;
+    });
+  }
+
+  function hasBinding(attribute) {
+    return document.querySelector(`[${attribute}]`) !== null;
+  }
+
+  function formatRatePercent(rate, digits = 1) {
+    return `${(rate * 100).toFixed(digits)}%`;
+  }
+
+  function formatPercent(value, digits = 1) {
+    return `${value.toFixed(digits)}%`;
+  }
+
+  function formatRateCiText(ci, digits = 1) {
+    return `95% CI ${(ci.lower * 100).toFixed(digits)}-${(ci.upper * 100).toFixed(digits)}%`;
+  }
+
+  function formatRateCiBracket(ci, digits = 1) {
+    return `[${(ci.lower * 100).toFixed(digits)}, ${(ci.upper * 100).toFixed(digits)}]`;
+  }
+
+  function formatDecimal(value, digits = 3) {
+    return value.toFixed(digits);
+  }
+
+  function formatDecimalCiText(ci, digits = 3) {
+    return `95% CI ${ci.lower.toFixed(digits)}-${ci.upper.toFixed(digits)}`;
+  }
+
+  function formatPp(value, digits = 1) {
+    return `${value.toFixed(digits)}pp`;
+  }
+
+  function formatPpCiText(ci, digits = 1) {
+    return `95% CI ${ci.lower.toFixed(digits)}-${ci.upper.toFixed(digits)}pp`;
+  }
+
+  function hydrateClassifierSummary(summary) {
+    const accuracy = summary.metrics.accuracy;
+    const precision = summary.metrics.precision;
+    const recall = summary.metrics.recall;
+    const f1 = summary.metrics.f1;
+    const auroc = summary.metrics.auroc;
+
+    setBoundText('data-classifier-bind', 'selected-count', summary.selected_h_neurons.toLocaleString());
+    setBoundText(
+      'data-classifier-bind',
+      'selected-ratio',
+      `${(summary.selected_ratio_per_mille / 10).toFixed(3)}%`,
+    );
+    setBoundText('data-classifier-bind', 'n-examples', summary.n_examples.toLocaleString());
+    setBoundText('data-classifier-bind', 'accuracy-value', formatRatePercent(accuracy.estimate));
+    setBoundText('data-classifier-bind', 'accuracy-ci-text', formatRateCiText(accuracy.ci));
+    setBoundText('data-classifier-bind', 'accuracy-ci-bracket', formatRateCiBracket(accuracy.ci));
+    setBoundText('data-classifier-bind', 'auc-value', formatDecimal(auroc.estimate));
+    setBoundText('data-classifier-bind', 'auc-ci-text', formatDecimalCiText(auroc.ci));
+    setBoundText('data-classifier-bind', 'precision-value', formatRatePercent(precision.estimate));
+    setBoundText('data-classifier-bind', 'precision-ci-text', formatRateCiText(precision.ci));
+    setBoundText('data-classifier-bind', 'recall-value', formatRatePercent(recall.estimate));
+    setBoundText('data-classifier-bind', 'recall-ci-text', formatRateCiText(recall.ci));
+    setBoundText(
+      'data-classifier-bind',
+      'f1-chip',
+      `${formatRatePercent(f1.estimate)} ${formatRateCiBracket(f1.ci)}`,
+    );
+  }
+
+  function hydrateInterventionSummary(summary) {
+    const antiEffects = summary.series.anti_compliance.effects;
+    const swing = summary.population.anti_compliance.swing;
+    const remap = summary.series.standard_text_remap.by_alpha['3.0'];
+    const swingEffectShare = antiEffects.delta_0_to_max_pp.estimate / swing.pct;
+
+    setBoundText(
+      'data-intervention-summary-bind',
+      'anti-slope-value',
+      `${antiEffects.slope_pp_per_alpha.estimate.toFixed(1)}pp/\u03b1`,
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'anti-slope-ci-text',
+      `${formatPpCiText(antiEffects.slope_pp_per_alpha.ci)}/\u03b1`,
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'anti-delta-value',
+      formatPp(antiEffects.delta_0_to_max_pp.estimate),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'anti-delta-ci-text',
+      formatPpCiText(antiEffects.delta_0_to_max_pp.ci),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'swing-share-value',
+      formatPercent(swing.pct),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'swing-share-ci-text',
+      formatRateCiText(swing.ci),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'swing-share-ci-bracket',
+      formatRateCiBracket(swing.ci),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'swing-count',
+      swing.count.toLocaleString(),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'swing-effect-share',
+      formatPercent(swingEffectShare),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'remap-value',
+      formatPercent(remap.strict_rescored_compliance_pct),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'remap-ci-text',
+      formatRateCiText(remap.strict_rescored_compliance_summary.ci),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'raw-alpha-three-value',
+      formatPercent(remap.raw_compliance_pct),
+    );
+  }
+
+  async function hydrateSiteSummaryBindings() {
+    const classifierNeeded = hasBinding('data-classifier-bind');
+    const interventionNeeded = hasBinding('data-intervention-summary-bind');
+
+    if (!classifierNeeded && !interventionNeeded) {
+      return;
+    }
+
+    const requests = [];
+
+    if (classifierNeeded) {
+      requests.push(
+        fetch(new URL('../data/classifier_summary.json', sharedScriptUrl))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to load classifier summary: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((summary) => hydrateClassifierSummary(summary)),
+      );
+    }
+
+    if (interventionNeeded) {
+      requests.push(
+        fetch(new URL('../data/intervention_sweep.json', sharedScriptUrl))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to load intervention summary: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((summary) => hydrateInterventionSummary(summary)),
+      );
+    }
+
+    await Promise.all(requests);
+  }
+
+  hydrateSiteSummaryBindings().catch((error) => {
+    console.error('Failed to hydrate shared site summary bindings.', error);
+  });
 })();

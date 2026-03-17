@@ -50,8 +50,8 @@
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Clean test set</div>
-        <div class="value val-coral">782</div>
-        <div class="detail">Disjoint examples held out for the main classifier result</div>
+        <div class="value val-coral" data-classifier-bind="n-examples">780</div>
+        <div class="detail">Disjoint examples evaluated for the main classifier result (782 sampled, 2 missing activations)</div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Run cost</div>
@@ -136,7 +136,7 @@
       </div>
       <div class="funnel-bar" style="width: 22.3%; background: rgba(127, 119, 221, 0.18);">
         <span class="funnel-label">Disjoint test set</span>
-        <span class="funnel-num val-purple">782</span>
+        <span class="funnel-num val-purple" data-classifier-bind="n-examples">780</span>
       </div>
       <div class="funnel-bar" style="width: 1.1%; min-width: 180px; background: rgba(255, 107, 107, 0.25);">
         <span class="funnel-label">H-Neurons</span>
@@ -244,7 +244,7 @@ Answer:</code>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
         <h3 style="color: var(--accent-coral);">Current limitation</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Confidence intervals are still missing, so all current site metrics must continue to say "no CI yet" rather than pretending the error bars are settled.
+          The main classifier and intervention exports now carry confidence intervals; any remaining naked point estimate should be treated as blocked data, not as silently settled evidence.
         </p>
       </div>
     </div>
