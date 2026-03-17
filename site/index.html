@@ -27,44 +27,57 @@
 
 <section id="hero">
   <div class="fade-in">
-    <span class="tag tag-teal">This week</span>
-    <h1>Advisor Update<br>for Gemma 3 4B</h1>
+    <h1>H-Neurons:<br>Replication, Artifacts,<br>and Open Questions</h1>
     <p class="subtitle">
-      The weekly page now acts like the cover memo, not the full lab notebook.
-      Stable findings live on a dedicated results page; this page is for what changed, what needs a decision, and what runs next.
+      Gao et al. (2025) claim that fewer than 0.1% of a language model's MLP neurons, dubbed "H-Neurons,"
+      reliably predict hallucination and causally drive over-compliance when amplified.
+      We replicated their pipeline on Gemma&nbsp;3 4B-IT and confirmed the core signal:
+      38 neurons out of 348,160 predict hallucination at 76.5% accuracy on fully held-out data,
+      and scaling them monotonically increases compliance with misleading context.
+      But replication also surfaced problems the paper doesn't discuss.
+    </p>
+
+    <p class="subtitle" style="margin-top: 1rem;">
+      The top-ranked neuron's classifier weight is an L1 regularization artifact, not a uniquely important "hallucination hub."
+      Only 14% of evaluation samples actually respond to the intervention;
+      the 6.3pp headline effect is really a 45.7% swing concentrated in a small sensitive subpopulation.
+      The paper's standard-prompt evaluation also likely underreports compliance at high &alpha;
+      because the model emits exact answer text instead of option letters, which MC-letter parsers misread as non-compliance.
+      Strict text remapping at &alpha;=3.0 lifts the raw 63.6% to 72.1%, restoring the expected monotonic trend.
+      Negative controls confirm the effect is H-neuron-specific:
+      scaling 38 random neurons produces a compliance slope 26&times; flatter.
+    </p>
+
+    <p class="subtitle" style="margin-top: 1rem;">
+      The replication holds. The question is what these neurons actually encode
+      (general over-compliance, context credulity, or something else)
+      and whether they can be safely targeted without weakening the model's refusal capabilities.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
       <div class="metric-card">
+        <div class="label">H-Neurons found</div>
+        <div class="value val-coral">38</div>
+        <div class="detail">0.011% of 348,160 MLP neurons</div>
+      </div>
+      <div class="metric-card">
         <div class="label">Clean detector</div>
         <div class="value val-teal">76.5%</div>
-        <div class="detail">Disjoint test accuracy</div>
+        <div class="detail">Disjoint test accuracy (0% overlap)</div>
       </div>
       <div class="metric-card">
-        <div class="label">Paper-faithful set</div>
-        <div class="value val-amber">38</div>
-        <div class="detail">Positive-weight neurons at C=1.0</div>
+        <div class="label">Compliance slope</div>
+        <div class="value val-amber">2.1%/&alpha;</div>
+        <div class="detail">Monotonic, &rho;=1.0, 26&times; above random</div>
       </div>
       <div class="metric-card">
-        <div class="label">Higher-signal set</div>
-        <div class="value val-coral">219</div>
-        <div class="detail">Positive-weight neurons at C=3.0</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Corrected standard &alpha;=3.0</div>
-        <div class="value val-teal">72.1%</div>
-        <div class="detail">Text-remapped FaithEval estimate</div>
+        <div class="label">Swing population</div>
+        <div class="value val-purple">14%</div>
+        <div class="detail">138 of 1,000 samples &alpha;-sensitive</div>
       </div>
     </div>
 
-    <div class="delta-block">
-      <div class="delta-item delta-new"><strong>NEW:</strong> Stable Gemma findings now live on <a href="results/gemma-3-4b.html" style="color: var(--accent-teal);">their own results page</a>, so the weekly entry point can stay short.</div>
-      <div class="delta-item delta-updated"><strong>UPDATED:</strong> Intervention charts, summary cards, and parse-failure tiles are all reading from the same `intervention_sweep.json` export.</div>
-      <div class="delta-item delta-decision"><strong>DECISION:</strong> Choose whether the main story should stay with the sparse 38-neuron replication set or pivot to the 219-neuron higher-signal detector.</div>
-      <div class="delta-item delta-blocker"><strong>BLOCKER:</strong> The standard-prompt sweep still needs all-&alpha; text-based scoring, and the random-neuron negative control is still missing.</div>
-    </div>
-
-    <div class="section-links">
+    <div class="section-links" style="margin-top: 2rem;">
       <a class="section-link" href="#agenda">Agenda</a>
       <a class="section-link" href="#snapshot">Stable findings</a>
       <a class="section-link" href="#advisor-questions">Decisions</a>
