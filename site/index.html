@@ -3,15 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>H-Neurons: Finding Hallucination Neurons in Gemma 3 4B</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<title>H-Neurons Weekly Update | Gemma 3 4B</title>
 <link rel="stylesheet" href="assets/shared.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- Navigation -->
 <nav>
   <div class="nav-shell">
     <div class="nav-primary">
@@ -25,839 +23,168 @@
 </nav>
 <div class="progress-bar" id="progressBar"></div>
 
-<!-- 1. Hero -->
 <section id="hero">
   <div class="fade-in">
-    <span class="tag tag-teal">Mechanistic interpretability</span>
-    <h1>Finding Hallucination<br>Neurons in <span style="color: var(--accent-teal);">Gemma 3 4B</span></h1>
+    <span class="tag tag-teal">This week</span>
+    <h1>Advisor Update<br>for Gemma 3 4B</h1>
     <p class="subtitle">
-      A replication and extension of <em>H-Neurons</em> (Gao et al., 2025).
-      Can 0.01% of MLP neurons predict when an LLM hallucinates?
+      The weekly page now acts like the cover memo, not the full lab notebook.
+      Stable findings live on a dedicated results page; this page is for what changed, what needs a decision, and what runs next.
     </p>
+
     <div class="metrics-grid" style="margin-top: 2.5rem;">
       <div class="metric-card">
-        <div class="label">Model</div>
-        <div class="value" style="font-size: 1.3rem;">Gemma 3 4B</div>
-        <div class="detail">34 layers, 10,240 neurons each</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Total neurons scanned</div>
-        <div class="value val-purple"><span class="counter" data-target="348160" data-duration="2000">0</span></div>
-        <div class="detail">34 x 10,240 MLP positions</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">H-Neurons found</div>
-        <div class="value val-coral"><span class="counter" data-target="38" data-duration="1500">0</span></div>
-        <div class="detail">0.011% of all neurons</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Test accuracy</div>
+        <div class="label">Clean detector</div>
         <div class="value val-teal">76.5%</div>
-        <div class="detail">Disjoint test set (0% overlap)</div>
+        <div class="detail">Disjoint test accuracy</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Paper-faithful set</div>
+        <div class="value val-amber">38</div>
+        <div class="detail">Positive-weight neurons at C=1.0</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Higher-signal set</div>
+        <div class="value val-coral">219</div>
+        <div class="detail">Positive-weight neurons at C=3.0</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Corrected standard &alpha;=3.0</div>
+        <div class="value val-teal">72.1%</div>
+        <div class="detail">Text-remapped FaithEval estimate</div>
       </div>
     </div>
-    <p style="font-size: 12px; color: var(--accent-coral); margin-top: 0.5rem;">
-      Note: confidence intervals not yet computed for these metrics. Bootstrap CIs are a priority follow-up.
-    </p>
 
-    <div class="insight-box" style="margin-top: 1.5rem;">
-      <strong>Bottom line:</strong> The detection signal replicated — 76.5% accuracy on a clean test set,
-      within 0.4pp of the paper. On FaithEval, scaling the 38 H-Neurons increases content-following
-      under both prompts. The seeming standard-prompt drop is mostly an evaluator confound: more
-      high-α responses become exact-answer strings that our MC-letter parser cannot score.
+    <div class="delta-block">
+      <div class="delta-item delta-new"><strong>NEW:</strong> Stable Gemma findings now live on <a href="results/gemma-3-4b.html" style="color: var(--accent-teal);">their own results page</a>, so the weekly entry point can stay short.</div>
+      <div class="delta-item delta-updated"><strong>UPDATED:</strong> Intervention charts, summary cards, and parse-failure tiles are all reading from the same `intervention_sweep.json` export.</div>
+      <div class="delta-item delta-decision"><strong>DECISION:</strong> Choose whether the main story should stay with the sparse 38-neuron replication set or pivot to the 219-neuron higher-signal detector.</div>
+      <div class="delta-item delta-blocker"><strong>BLOCKER:</strong> The standard-prompt sweep still needs all-&alpha; text-based scoring, and the random-neuron negative control is still missing.</div>
+    </div>
+
+    <div class="section-links">
+      <a class="section-link" href="#agenda">Agenda</a>
+      <a class="section-link" href="#snapshot">Stable findings</a>
+      <a class="section-link" href="#advisor-questions">Decisions</a>
+      <a class="section-link" href="#nextsteps">Next runs</a>
     </div>
   </div>
 </section>
 
-<!-- Meeting agenda -->
 <section class="short" id="agenda" style="min-height: auto; padding: 2rem 2rem;">
   <div class="fade-in">
-    <span class="tag tag-amber">Meeting agenda &mdash; March 16</span>
-    <h2>First advisor meeting</h2>
+    <span class="tag tag-amber">Meeting agenda</span>
+    <h2>What to cover in the next advisor pass</h2>
     <div class="next-steps">
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
-        <h3>Context &amp; pipeline (10 min)</h3>
+        <h3>Quick recap of stable results</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          What the paper claims, what we replicated, how the pipeline works.
-          <strong>Priority: high</strong> &mdash; sets the frame for everything else.
+          Use the dedicated results page for the settled evidence so we do not spend meeting time scrolling through the old monolith.
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
-        <h3>Key results &amp; neuron investigation (15 min)</h3>
+        <h3>Decide the main detector object</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Detection accuracy, layer distribution, the neuron 4288 artifact finding.
-          <strong>Priority: high</strong> &mdash; our main novel contribution so far.
+          Resolve whether the paper-faithful sparse set or the broader C=3.0 detector should anchor the main story.
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
-        <h3>Intervention confound (10 min)</h3>
+        <h3>Pick the next model family</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Raw score vs content score under FaithEval. Why the standard prompt first looked contradictory.
-          <strong>Priority: medium</strong> &mdash; interesting but unresolved.
+          Choose between Mistral-Small-24B for engineering continuity and Llama-3.3-70B for stronger external-validity pressure.
         </p>
       </div>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">4</div>
-        <h3>Next experiments &amp; feedback (10 min)</h3>
+        <h3>Confirm run order</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Negative controls, three hypotheses, what to prioritize next.
-          <strong>We want advisor input on experiment ordering.</strong>
+          Sequence the cheapest cleanup first: all-&alpha; text scoring, negative control, then prompt disentangling.
         </p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 2. Pipeline -->
-<section id="pipeline">
+<section id="snapshot">
   <div class="fade-in">
-    <span class="tag tag-purple">The pipeline</span>
-    <h2>We filtered 3,500 questions down to 38 neurons</h2>
-    <p class="subtitle">Replicating the H-Neurons methodology on Gemma 3 4B with TriviaQA.</p>
-
-    <div class="pipeline" style="margin-top: 2rem;">
-      <div class="pipeline-step">
-        <div class="step-num">Stage 1</div>
-        <div class="step-title">Response collection</div>
-        <div class="step-stat val-teal">3,500</div>
-        <div class="step-detail">TriviaQA questions, 10 responses each</div>
-      </div>
-      <div class="pipeline-arrow">&rarr;</div>
-      <div class="pipeline-step">
-        <div class="step-num">Stage 2</div>
-        <div class="step-title">Consistency filter</div>
-        <div class="step-stat val-teal">3,115</div>
-        <div class="step-detail">89% agreement (10/10 match)</div>
-      </div>
-      <div class="pipeline-arrow">&rarr;</div>
-      <div class="pipeline-step">
-        <div class="step-num">Stage 3</div>
-        <div class="step-title">Answer extraction</div>
-        <div class="step-stat val-teal">2,997</div>
-        <div class="step-detail">GPT-4o token extraction</div>
-      </div>
-      <div class="pipeline-arrow">&rarr;</div>
-      <div class="pipeline-step">
-        <div class="step-num">Stage 4</div>
-        <div class="step-title">Activation extraction</div>
-        <div class="step-stat val-purple">348K</div>
-        <div class="step-detail">CETT features per sample</div>
-      </div>
-      <div class="pipeline-arrow">&rarr;</div>
-      <div class="pipeline-step">
-        <div class="step-num">Stage 5</div>
-        <div class="step-title">L1 classifier</div>
-        <div class="step-stat val-coral">38</div>
-        <div class="step-detail">H-Neurons identified</div>
-      </div>
-    </div>
-
-    <h3 style="margin-top: 2.5rem;">Data funnel</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">How 3,500 questions narrow to 38 hallucination neurons</p>
-    <div class="funnel">
-      <div class="funnel-bar" style="width: 100%; background: rgba(78, 205, 196, 0.25);">
-        <span class="funnel-label">TriviaQA questions</span>
-        <span class="funnel-num val-teal">3,500</span>
-      </div>
-      <div class="funnel-bar" style="width: 89%; background: rgba(78, 205, 196, 0.22);">
-        <span class="funnel-label">Consistent (10/10)</span>
-        <span class="funnel-num val-teal">3,115</span>
-      </div>
-      <div class="funnel-bar" style="width: 85.6%; background: rgba(78, 205, 196, 0.19);">
-        <span class="funnel-label">Tokens extracted</span>
-        <span class="funnel-num val-teal">2,997</span>
-      </div>
-      <div class="funnel-bar" style="width: 57.1%; background: rgba(127, 119, 221, 0.22);">
-        <span class="funnel-label">Train set (balanced)</span>
-        <span class="funnel-num val-purple">2,000</span>
-      </div>
-      <div class="funnel-bar" style="width: 22.3%; background: rgba(127, 119, 221, 0.18);">
-        <span class="funnel-label">Disjoint test set</span>
-        <span class="funnel-num val-purple">782</span>
-      </div>
-      <div class="funnel-bar" style="width: 1.1%; min-width: 180px; background: rgba(255, 107, 107, 0.25);">
-        <span class="funnel-label">H-Neurons</span>
-        <span class="funnel-num val-coral">38</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Reflection: Pipeline -->
-<div class="reflection">
-  <div class="ref-label">Process note</div>
-  <p class="ref-text">
-    The funnel shape tells a story about <strong>methodological choices masquerading as data</strong>.
-    The 89% consistency filter is aggressive &mdash; it discards every question where the model hesitates even once across 10 samples.
-    This selects for questions the model either knows cold or consistently gets wrong, filtering out the messy middle where
-    hallucination is most interesting. The 118 apostrophe failures (3.8%) are not random either &mdash; they systematically
-    remove Irish names, possessives, and contractions. <strong>Every pipeline stage shapes what the classifier can learn.</strong>
-  </p>
-</div>
-
-<!-- 3. Main result -->
-<section id="results">
-  <div class="fade-in">
-    <span class="tag tag-teal">Main result</span>
-    <h2>76.5% accuracy on a clean test set confirms a real signal</h2>
-    <p class="subtitle">An L1 logistic regression on 348,160 CETT features identifies 38 neurons with positive weight. On a fully disjoint test set (0% overlap with training), the classifier achieves 76.5% accuracy.</p>
-
-    <div class="metrics-grid" style="margin-top: 2rem;">
-      <div class="metric-card">
-        <div class="label">Accuracy</div>
-        <div class="value val-teal">76.5%</div>
-        <div class="detail">Disjoint test (782 samples) · no CI yet</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">AUC</div>
-        <div class="value val-teal">0.843</div>
-        <div class="detail">Strong ranking ability · no CI yet</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Precision</div>
-        <div class="value val-purple">76.7%</div>
-        <div class="detail">Positive predictive value · no CI yet</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Recall</div>
-        <div class="value val-purple">76.1%</div>
-        <div class="detail">Coverage of hallucinations · no CI yet</div>
-      </div>
-    </div>
-
-    <div class="chart-container">
-      <canvas id="classifierChart"></canvas>
-    </div>
-
-    <div class="insight-box">
-      <strong>Why disjoint matters:</strong> Our initial overlapping test set showed 77.7% accuracy, but 66.3% of test IDs also appeared in training.
-      The disjoint set (0% overlap) shows 76.5% &mdash; confirming the signal is genuine, not memorization.
-    </div>
-
-    <div class="comparison">
-      <div class="compare-card">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Overlapping test</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--text-secondary);">77.7%</div>
-        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">66.3% data leakage</div>
-      </div>
-      <div class="compare-card highlight">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Disjoint test</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);">76.5%</div>
-        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">0% overlap &mdash; clean</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Reflection: Results -->
-<div class="reflection">
-  <div class="ref-label">On the data leakage</div>
-  <p class="ref-text">
-    Finding <strong>66.3% train/test overlap</strong> was the first surprise. The paper samples train and test independently,
-    which is standard &mdash; but with only 1,391 true-label IDs and both splits requesting 1,000, overlap is mathematically inevitable.
-    The reassuring part: the accuracy drop from 77.7% to 76.5% is only <span class="highlight">1.2 percentage points</span>,
-    meaning the leakage inflated results modestly, not catastrophically. The signal survived a clean test.
-    This is worth flagging as a <strong>general replication concern</strong> &mdash;
-    papers that don't report overlap statistics may be hiding this kind of quiet inflation.
-  </p>
-</div>
-
-<!-- 4. Layer distribution -->
-<section id="distribution">
-  <div class="fade-in">
-    <span class="tag tag-purple">Layer distribution</span>
-    <h2>47% of H-Neurons sit in layers 0&ndash;10</h2>
-    <p class="subtitle">47% of H-Neurons concentrate in layers 0&ndash;10. The remaining 53% split evenly between middle and late layers. The classifier signal is concentrated early &mdash; one possible interpretation is that these layers encode something like "familiarity" before deep reasoning begins.</p>
-
-    <div class="chart-container">
-      <canvas id="layerChart"></canvas>
-    </div>
-
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="label">Early (L0&ndash;10)</div>
-        <div class="value val-coral">47%</div>
-        <div class="detail">18 of 38 H-Neurons</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Middle (L11&ndash;20)</div>
-        <div class="value val-purple">26%</div>
-        <div class="detail">10 of 38 H-Neurons</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Late (L21&ndash;33)</div>
-        <div class="value val-teal">26%</div>
-        <div class="detail">10 of 38 H-Neurons</div>
-      </div>
-    </div>
-
-    <div class="insight-box">
-      <strong>What this means:</strong> Hallucination detection is not a last-layer phenomenon.
-      The neurons that distinguish true from false activations are distributed across the model,
-      with a strong bias toward early layers &mdash; consistent with early commitment to an answer,
-      though other interpretations are possible.
-    </div>
-  </div>
-</section>
-
-<!-- Reflection: Layer distribution -->
-<div class="reflection">
-  <div class="ref-label">What surprised us</div>
-  <p class="ref-text">
-    Layer 5 alone hosts <strong>4 of 38 H-Neurons</strong> &mdash; more than any other layer.
-    In a 34-layer model, the "decision to hallucinate" appearing this early is counterintuitive.
-    One interpretation: early MLP layers encode <strong>token familiarity</strong> &mdash; how well the model
-    "recognizes" the entity before deep reasoning begins. A question about <em>O'Neill</em> vs <em>Shakespeare</em>
-    might already register different confidence patterns in layer 5, before attention has had a chance to compose
-    multi-hop reasoning. This aligns with recent residual stream probing work showing factual recall
-    signals emerging in the first third of transformer depth.
-  </p>
-</div>
-
-<!-- 5. The surprise: Neuron 4288 -->
-<section id="surprise">
-  <div class="fade-in">
-    <span class="tag tag-coral">The surprise</span>
-    <h2>One neuron got 1.65x the weight &mdash; we investigated why</h2>
-    <p class="subtitle">Neuron (Layer 20, Index 4288) received an L1 weight of <strong style="color: var(--accent-coral);">12.17</strong> &mdash; 1.65x the runner-up. Is this a genuine "hallucination hub" or an L1 regularization artifact?</p>
-
-    <div class="comparison" style="margin-top: 2rem;">
-      <div class="compare-card" style="border-color: var(--accent-coral);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (20, 4288)</div>
-        <div style="font-size: 3rem; font-weight: 700; color: var(--accent-coral);">12.17</div>
-        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight (rank #1)</div>
-      </div>
-      <div class="compare-card">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (14, 8547)</div>
-        <div style="font-size: 3rem; font-weight: 700; color: var(--text-secondary);">7.39</div>
-        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight (rank #2)</div>
-      </div>
-    </div>
-
-    <div class="chart-container" style="margin-top: 1.5rem;">
-      <canvas id="topNeuronsChart"></canvas>
-    </div>
-
-    <div class="insight-box">
-      <strong>The question:</strong> L1 regularization has a known "winner-take-all" effect &mdash; when two features carry similar signals,
-      L1 arbitrarily assigns all weight to one and zeros the other. A 1.65x gap is unusual enough to warrant investigation.
-      We ran <strong>six independent analyses</strong> to determine the truth.
-    </div>
-  </div>
-</section>
-
-<!-- 6. The investigation -->
-<section id="investigation" class="short" style="max-width: 1200px;">
-  <div class="fade-in">
-    <span class="tag tag-coral">Forensic investigation</span>
-    <h2>Six tests all point to a regularization artifact</h2>
-    <p class="subtitle" style="margin-bottom: 2rem;">Each analysis probes neuron 4288's importance from a different angle. Real signal requires at least 4 of 6 supporting evidence.</p>
-
-    <div class="investigation-grid">
-      <!-- Panel 1: Single-neuron AUC -->
-      <div class="investigation-panel">
-        <img src="01_single_neuron_auc.png" alt="Single-neuron AUC comparison" loading="lazy">
-        <div class="panel-body">
-          <div class="panel-title">
-            1. Single-neuron AUC
-            <span class="verdict-badge">Artifact</span>
-          </div>
-          <p class="panel-desc">
-            Can neuron 4288 <em>alone</em> classify hallucinations? Its standalone AUC is <strong>0.590</strong> &mdash; outperformed by
-            L13:N833 (0.703) and L14:N8547 (0.666). Despite the highest L1 weight, it's not the most informative individual neuron.
-          </p>
-        </div>
-      </div>
-
-      <!-- Panel 2: Distributions -->
-      <div class="investigation-panel">
-        <img src="02_distributions.png" alt="Activation distributions" loading="lazy">
-        <div class="panel-body">
-          <div class="panel-title">
-            2. Distribution separation
-            <span class="verdict-badge">Artifact</span>
-          </div>
-          <p class="panel-desc">
-            Cohen's d = <strong>0.326</strong> (below 0.5 threshold). The runner-up achieves d = 0.477 with better class separation.
-            Neuron 4288 has signal, but it's not exceptional.
-          </p>
-        </div>
-      </div>
-
-      <!-- Panel 3: C-sweep -->
-      <div class="investigation-panel">
-        <img src="03_c_sweep.png" alt="C-sweep stability analysis" loading="lazy">
-        <div class="panel-body">
-          <div class="panel-title">
-            3. C-sweep stability
-            <span class="verdict-badge">Artifact</span>
-          </div>
-          <p class="panel-desc">
-            <strong>The most decisive test.</strong> Neuron 4288 is completely absent at C &le; 0.3.
-            It only enters at C = 1.0, drops to rank 5 at C = 3.0, and rank 11 at C = 10.0.
-            Its dominance is C-specific, not fundamental.
-          </p>
-        </div>
-      </div>
-
-      <!-- Panel 4: Contributions -->
-      <div class="investigation-panel">
-        <img src="04_contributions.png" alt="Per-example contribution analysis" loading="lazy">
-        <div class="panel-body">
-          <div class="panel-title">
-            4. Per-example contribution
-            <span class="verdict-badge">Artifact</span>
-          </div>
-          <p class="panel-desc">
-            Despite 1.65x the weight of #2, neuron 4288 is the largest positive contributor for only <strong>7.4%</strong> of examples (threshold: 30%).
-            Median absolute contribution: just 2.6% of total score.
-          </p>
-        </div>
-      </div>
-
-      <!-- Panel 5: Ablation -->
-      <div class="investigation-panel">
-        <img src="05_ablation.png" alt="Leave-one-out ablation" loading="lazy">
-        <div class="panel-body">
-          <div class="panel-title">
-            5. Leave-one-out ablation
-            <span class="verdict-badge">Artifact</span>
-          </div>
-          <p class="panel-desc">
-            Zeroing out neuron 4288 drops accuracy by <strong>1.03pp</strong> (below 2pp threshold).
-            Keeping only 4288 yields AUC = 0.828 but accuracy = 50.1% &mdash; good ranking, no decision power alone.
-          </p>
-        </div>
-      </div>
-
-      <!-- Panel 6: Correlations -->
-      <div class="investigation-panel">
-        <img src="06_correlations.png" alt="Correlation structure heatmap" loading="lazy">
-        <div class="panel-body">
-          <div class="panel-title">
-            6. Correlation structure
-            <span class="verdict-badge">Artifact</span>
-          </div>
-          <p class="panel-desc">
-            Neuron 4288 correlates at r = <strong>0.492</strong> with L26:N1359 (a zero-weight neuron).
-            L1 likely picked 4288 as the "representative" of a correlated feature group.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Reflection: Investigation -->
-<div class="reflection">
-  <div class="ref-label">Methodological reflection</div>
-  <p class="ref-text">
-    The investigation of neuron 4288 wasn't planned &mdash; it emerged from a simple question:
-    <strong>"why is one neuron 1.65x the runner-up?"</strong> The six-test framework was designed to be
-    unfalsifiable from any single angle. We set thresholds <em>before</em> running the analyses
-    (AUC&gt;0.60, Cohen's d&gt;0.5, ablation&gt;2pp) to avoid post-hoc rationalization.
-    The unanimous 0/6 verdict was the strongest possible outcome &mdash; and it points to a
-    <strong>systematic issue with L1-based neuron ranking</strong> that likely affects other work using this methodology.
-    The C-sweep (Analysis 3) was the most revealing: the fact that C=3.0 yields
-    <span class="highlight">+4pp accuracy with 6x more neurons</span> suggests the paper's headline
-    "~35 H-Neurons" is a regularization artifact, not a fundamental property of the model.
-  </p>
-</div>
-
-<!-- Verdict scoreboard -->
-<section id="verdict" class="short">
-  <div class="fade-in" style="text-align: center;">
-    <h2>Verdict: <span style="color: var(--accent-coral);">0/6</span> support real signal</h2>
-    <p class="subtitle" style="margin: 0 auto 2rem;">All six independent analyses point the same direction. Neuron 4288's dominance is an L1 weight concentration effect.</p>
-
-    <div class="scoreboard">
-      <div class="score-item artifact">
-        <div class="score-label">AUC</div>
-        <div class="score-value val-coral">0.590</div>
-      </div>
-      <div class="score-item artifact">
-        <div class="score-label">Cohen's d</div>
-        <div class="score-value val-coral">0.326</div>
-      </div>
-      <div class="score-item artifact">
-        <div class="score-label">C-sweep</div>
-        <div class="score-value val-coral">3/9</div>
-      </div>
-      <div class="score-item artifact">
-        <div class="score-label">Top contrib</div>
-        <div class="score-value val-coral">7.4%</div>
-      </div>
-      <div class="score-item artifact">
-        <div class="score-label">Ablation</div>
-        <div class="score-value val-coral">1.0pp</div>
-      </div>
-      <div class="score-item artifact">
-        <div class="score-label">Max |r|</div>
-        <div class="score-value val-coral">0.492</div>
-      </div>
-    </div>
-
-    <div class="insight-box" style="text-align: left; max-width: 700px; margin: 2rem auto;">
-      <strong>Key insight:</strong> L1 weight magnitude does not equal neuron importance.
-      The paper's methodology of ranking H-Neurons by L1 weight conflates signal strength with regularization artifacts.
-      At C = 3.0, the model achieves <strong>80.5% accuracy</strong> (+4pp) using 219 positive-weight neurons &mdash;
-      the signal is <em>distributed</em>, not concentrated.
-    </div>
-  </div>
-</section>
-
-<!-- 7. Intervention experiments -->
-<section id="intervention">
-  <div class="fade-in">
-    <span class="tag tag-teal">Causal evidence</span>
-    <h2>Scaling H-Neuron activations changes model behavior</h2>
-    <p class="subtitle" data-source="manual">Scale H-Neuron activations by &alpha; during inference. The anti-compliance curve rises cleanly. The standard raw curve only looks like it falls because more responses become exact-answer strings that our MC-letter evaluator cannot decode; at &alpha;=3.0, strict text remapping lifts the standard estimate from 63.6% raw to 72.1%.</p>
-
-    <div class="metrics-grid" style="margin-top: 2rem;">
-      <div class="metric-card">
-        <div class="label">Benchmark</div>
-        <div class="value" style="font-size: 1.1rem;">FaithEval</div>
-        <div class="detail" data-intervention-bind="benchmark-detail">Loading intervention summary...</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Anti-compliance baseline</div>
-        <div class="value val-teal" data-intervention-bind="anti-baseline-value">--</div>
-        <div class="detail" data-intervention-bind="anti-baseline-detail">Loading...</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Standard raw baseline</div>
-        <div class="value val-amber" data-intervention-bind="standard-raw-baseline-value">--</div>
-        <div class="detail" data-intervention-bind="standard-raw-baseline-detail">Loading...</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Anti at &alpha;=3.0</div>
-        <div class="value val-teal" data-intervention-bind="anti-alpha-three-value">--</div>
-        <div class="detail" data-intervention-bind="anti-alpha-three-detail">Loading...</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Standard corrected at &alpha;=3.0</div>
-        <div class="value val-amber" data-intervention-bind="standard-remap-alpha-three-value">--</div>
-        <div class="detail" data-intervention-bind="standard-remap-alpha-three-detail">Loading...</div>
-      </div>
-    </div>
-
-    <div class="chart-container">
-      <canvas id="interventionChart"></canvas>
-    </div>
-
-    <div class="insight-box" data-source="manual">
-      <strong>Not actually opposite effects.</strong> The anti-compliance prompt shows a clean monotonic increase
-      (Pearson r = 0.997). The standard raw curve turns down only because the evaluator expects an option letter,
-      while the prompt asks for the exact answer only. At high &alpha;, more responses keep the answer content but
-      stop surfacing a recoverable letter. Once those exact-answer strings are remapped at &alpha;=3.0, the standard
-      estimate rises to 72.1% instead of staying at the raw 63.6%.
-    </div>
-  </div>
-</section>
-
-<!-- Evaluator-format mismatch -->
-<section id="format-puzzle" class="short">
-  <div class="fade-in">
-    <span class="tag tag-amber">Evaluation confound</span>
-    <h2>Content-following rises while MC-letter recoverability falls</h2>
-    <p class="subtitle" data-source="manual">The apparent contradiction dissolves once you separate answer content from evaluator-visible format. Under the standard prompt, many high-α responses switch from option-letter outputs to exact-answer strings. That hurts the raw MC-letter score, but after strict α=3.0 remapping the corrected standard estimate is 72.1%.</p>
-
-    <div class="prompt-compare">
-      <div class="prompt-card" style="border-color: var(--accent-teal);">
-        <div class="prompt-label" style="color: var(--accent-teal);">Anti-compliance prompt</div>
-        <code>Context: {context}
-Question: {question}
-{choices}
-
-<em>If the context conflicts with
-established knowledge, answer based
-on your own knowledge.</em>
-Answer with just the letter.</code>
-      </div>
-      <div class="prompt-card" style="border-color: var(--accent-amber);">
-        <div class="prompt-label" style="color: var(--accent-amber);">Standard FaithEval prompt</div>
-        <code>You are an expert in retrieval
-question answering. Please respond
-with <em>the exact answer only</em>. Do not
-be verbose or provide extra information.
-
-Context: {context}
-Question: {question}
-{choices}
-Answer:</code>
-      </div>
-    </div>
-
-    <h3 style="margin-top: 2rem;">MC-letter recoverability drops at high &alpha;</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">Under the standard prompt, more responses stop surfacing the answer as an initial option letter, so our evaluator records <code>chosen=None</code>. Many of these are short exact-answer strings like <em>"Energy molecules"</em>, not blank outputs.</p>
-
-    <div class="chart-container">
-      <canvas id="parseFailureChart"></canvas>
-    </div>
-
-    <div class="comparison" style="margin-top: 1.5rem;">
-      <div class="compare-card">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Unparseable at &alpha;=0.0</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);" data-intervention-bind="parse-alpha-zero-count">--</div>
-        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;" data-intervention-bind="parse-alpha-zero-detail">Loading...</div>
-      </div>
-      <div class="compare-card" style="border-color: var(--accent-coral);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Unparseable at &alpha;=3.0</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-coral);" data-intervention-bind="parse-alpha-three-count">--</div>
-        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;" data-intervention-bind="parse-alpha-three-detail">Loading...</div>
-      </div>
-    </div>
-
-    <h3 style="margin-top: 2.5rem;">Conditioned on parseable responses, both curves go up</h3>
-    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;" data-source="manual">Among responses that still exposed a recoverable option letter, compliance under the standard prompt rises from 69.7% to 74.8% &mdash; matching the anti-compliance direction. But that is only a conditional rate on the parseable subset. The current best full-population estimate at &alpha;=3.0 is 72.1% after text remapping, not 74.8%.</p>
-
-    <div class="chart-container">
-      <canvas id="adjustedComplianceChart"></canvas>
-    </div>
-
-    <div class="insight-box">
-      <strong>The raw contradiction dissolves</strong> &mdash; but the interpretation becomes narrower.
-      Content-following rises under both prompts. What falls under the standard prompt is evaluator-visible MC-letter
-      recoverability, not clearly prompt obedience: the prompt asks for the exact answer only, while our evaluator is
-      extracting a choice letter. The open question is why higher &alpha; preserves answer content while shifting
-      the surface form toward answer-text-only outputs.
-    </div>
-  </div>
-</section>
-
-<!-- Three Hypotheses -->
-<section id="hypotheses" class="short">
-  <div class="fade-in">
-    <span class="tag tag-purple">Open questions</span>
-    <h2>Three mechanisms we cannot yet distinguish</h2>
-    <p class="subtitle" style="margin-bottom: 2rem;">The data rules out a simple "general obedience" story. Here are three competing explanations for why &alpha; boosts content-following while making standard-prompt outputs more likely to bypass the MC-letter evaluator.</p>
+    <span class="tag tag-purple">Stable findings</span>
+    <h2>The detailed evidence moved off the landing page</h2>
+    <p class="subtitle">
+      Treat the results page like the standing appendix. Each card below jumps directly to the settled evidence that used to live inline on the weekly page.
+    </p>
 
     <div class="next-steps">
-      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+      <div class="step-card">
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">A</div>
-        <h3>Context-credulity neurons</h3>
+        <h3>Classifier signal survives the clean split</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          These neurons modulate how much the model treats provided context as ground truth.
-          High &alpha; makes it more credulous (accept counterfactual claims) while reducing attention to
-          evaluator-friendly answer framing. The surface-form shift is a side effect of over-weighting context.
+          The disjoint 76.5% result still anchors the replication claim. The overlap issue reduced the score modestly, not catastrophically.
         </p>
-        <p style="font-size: 12px; color: var(--accent-teal); margin-top: 8px;">
-          <strong>Test it:</strong> Run without any context passage. If high &alpha; still shifts outputs away from recoverable letters, credulity is not the mechanism.
-        </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Open classifier section</a></p>
       </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">B</div>
-        <h3>Answer-text bypass</h3>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">B</div>
+        <h3>Layer distribution is early-heavy</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          These neurons may amplify answer selection more than answer rendering. The model picks the
-          context-supported option more often, but emits the option text rather than the MC label, which
-          hurts letter-based evaluation without necessarily hurting prompt compliance.
+          Nearly half of the selected neurons sit in layers 0&ndash;10, which keeps the interpretation pointed at early confidence or familiarity cues.
         </p>
-        <p style="font-size: 12px; color: var(--accent-amber); margin-top: 8px;" data-source="manual">
-          <strong>Status:</strong> The &alpha;=3.0 remap is now done: 140/150 <code>chosen=None</code> responses map cleanly by answer text, and 85 of those are compliant. The next test is extending that text-based scoring across all &alpha;.
-        </p>
+        <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#distribution">Open distribution section</a></p>
       </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+      <div class="step-card">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">C</div>
-        <h3>Generic surface-form degradation</h3>
+        <h3>The top-neuron story was narrowed</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Extreme activation scaling (&alpha;=2&ndash;3) simply degrades output precision.
-          Exact-answer strings and short free-form responses survive better than precise symbolic formatting,
-          so letter-based evaluation breaks before semantic answer content does.
+          Neuron 4288 is still visually dramatic, but the six-test verdict points to a regularization artifact rather than a unique hub neuron.
         </p>
-        <p style="font-size: 12px; color: var(--accent-coral); margin-top: 8px;">
-          <strong>Test it:</strong> Scale 38 random non-H-neurons by the same &alpha; values. If parsability degrades similarly, the effect is not specific to these neurons.
+        <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#surprise">Open top-neuron section</a></p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">D</div>
+        <h3>The intervention story is now cleaner</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The apparent standard-prompt decline is mostly an evaluator-format mismatch. The current best corrected point is 72.1% at &alpha;=3.0.
         </p>
+        <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#intervention">Open intervention section</a></p>
       </div>
     </div>
 
     <div class="insight-box">
-      <strong>We don't know yet.</strong> The data is consistent with all three mechanisms.
-      The negative control is still the most urgent, but the cheapest remaining cleanup is now broader:
-      extend answer-text scoring across the full standard-prompt α sweep, not just the α=3.0 endpoint.
+      <strong>Reason for the split:</strong> the old landing page was doing two jobs at once.
+      Moving the stable findings out is like moving background material from the meeting agenda into the appendix:
+      the details stay accessible, but the front page becomes readable again.
     </div>
   </div>
 </section>
 
-<!-- Population breakdown -->
-<section id="population" class="short">
-  <div class="fade-in">
-    <span class="tag tag-purple">Hidden structure</span>
-    <h2>Most samples are unaffected by scaling</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">The anti-compliance prompt shows a clear tri-modal population. Earlier versions of this deck also quoted a standard-prompt split of 563 always compliant / 234 never compliant / 203 swing, but that raw-parser breakdown is now withdrawn pending text-based scoring across all &alpha;.</p>
-
-    <h3>Anti-compliance prompt</h3>
-    <div class="pop-bar-container">
-      <div class="pop-bar">
-        <div class="pop-segment" style="flex: 60; background: rgba(255, 107, 107, 0.6); color: var(--text-primary);">60.0%</div>
-        <div class="pop-segment" style="flex: 26.2; background: rgba(127, 119, 221, 0.6); color: var(--text-primary);">26.2%</div>
-        <div class="pop-segment" style="flex: 13.8; background: rgba(78, 205, 196, 0.6); color: var(--text-primary);">13.8%</div>
-      </div>
-      <div class="pop-legend">
-        <div class="pop-legend-item">
-          <div class="pop-legend-dot" style="background: rgba(255, 107, 107, 0.8);"></div>
-          Always compliant (600)
-        </div>
-        <div class="pop-legend-item">
-          <div class="pop-legend-dot" style="background: rgba(127, 119, 221, 0.8);"></div>
-          Never compliant (262)
-        </div>
-        <div class="pop-legend-item">
-          <div class="pop-legend-dot" style="background: rgba(78, 205, 196, 0.8);"></div>
-          Swing samples (138)
-        </div>
-      </div>
-    </div>
-
-    <h3 style="margin-top: 1.5rem;">Standard prompt</h3>
-    <div class="insight-box" style="margin-bottom: 1.5rem;">
-      <strong>Standard-prompt population split: not stable yet.</strong> The earlier raw-parser counts
-      (<code>563</code> always compliant, <code>234</code> never compliant, <code>203</code> swing) treated many
-      answer-text-only α=3.0 outputs as resistant. Those numbers are preserved in the written report as a historical
-      note, but they should not be used as current evidence until text-based scoring is extended across the full sweep.
-    </div>
-
-    <div class="chart-container">
-      <canvas id="populationChart"></canvas>
-    </div>
-
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="label">Anti headline effect</div>
-        <div class="value val-teal">6.3pp</div>
-        <div class="detail">&alpha;=0.0 to &alpha;=3.0</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Anti swing samples</div>
-        <div class="value val-teal">138</div>
-        <div class="detail">13.8% of population</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Standard split</div>
-        <div class="value val-amber" style="font-size: 1.4rem;">Pending</div>
-        <div class="detail">Raw 203-swing count withdrawn pending all-α text scoring</div>
-      </div>
-    </div>
-
-    <div class="insight-box">
-      <strong>The stable finding is concentration, not the exact standard split.</strong> Under the anti-compliance
-      prompt, only 138 of 1,000 samples move with &alpha;. The standard prompt likely also has a tri-modal structure,
-      but its exact breakdown now depends on extending text-based scoring beyond the α=3.0 endpoint.
-    </div>
-  </div>
-</section>
-
-<!-- Reflection: Population -->
-<div class="reflection">
-  <div class="ref-label">On negative controls</div>
-  <p class="ref-text">
-    Neither the paper nor this replication tests whether scaling <strong>38 random non-H-neurons</strong>
-    by the same &alpha; values would produce a similar compliance trend. Without this negative control,
-    we can't rule out that <em>any</em> perturbation to intermediate activations increases compliance.
-    This is <span class="highlight">the single most valuable experiment still missing</span> &mdash;
-    it would take ~2 hours and $0 to run.
-  </p>
-</div>
-
-<!-- 8. Takeaways -->
-<section id="takeaways">
-  <div class="fade-in">
-    <span class="tag tag-amber">Takeaways</span>
-    <h2>Four things we now know (and don't know)</h2>
-
-    <div class="next-steps" style="margin-top: 1.5rem;">
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
-        <h3>The signal is real &mdash; and causal on FaithEval</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-          76.5% detection accuracy on a disjoint test set. On FaithEval, content-level compliance rises with
-          &alpha; under both prompts; the standard raw decline is explained largely by an MC-letter evaluator confound,
-          and the corrected α=3.0 estimate is 72.1% rather than 63.6%.
-        </p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
-        <h3>Broader than hallucination &mdash; but not a simple obedience dial</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          The data is consistent with a context-following role, but the standard prompt shows a split between
-          answer content and surface form. That is broader than hallucination detection, but still not a clean
-          "do what you're told" mechanism.
-        </p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
-        <h3>Effect is concentrated</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          80&ndash;86% of samples are unaffected by &alpha;. The headline effect is diluted across a frozen majority.
-          The causal influence acts on the uncertain margin, not on deeply-held beliefs or obvious fabrications.
-        </p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">4</div>
-        <h3>Prompt engineering dwarfs it</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Our slope (2.10%/&alpha;) means a full &alpha;=0&rarr;3 sweep yields 6.3pp. Prompt engineering routinely achieves
-          30&ndash;50pp swings. Neuron scaling establishes causation but is a weak practical lever.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Reflection: Takeaways -->
-<div class="reflection">
-  <div class="ref-label">The bigger picture</div>
-  <p class="ref-text">
-    We went from <strong>correlation to causation, and from causation to confusion</strong> &mdash; which is progress.
-    The paper frames these as "hallucination neurons." Our first prompt variant suggested "compliance neurons."
-    The standard-prompt rerun forced a tighter claim: these neurons increase content-following under misleading
-    context, but they also shift outputs away from the MC-letter surface form our evaluator expects.
-    That means even <span class="highlight">"compliance" is too simple</span>. The honest answer is that
-    <strong>we don't yet know what these neurons do</strong>, but the uncertainty is now better localized:
-    content selection, answer rendering, or generic surface-form degradation.
-  </p>
-</div>
-
-<!-- Advisor questions -->
 <section id="advisor-questions" class="short">
   <div class="fade-in">
     <span class="tag tag-coral">Questions for advisor</span>
     <h2>Two strategy decisions to make before the next wave of runs</h2>
     <p class="subtitle" style="margin-bottom: 1.5rem;">
-      These belong <em>before</em> the execution plan. They decide which neuron set counts as the main object of study,
-      and which second model would add the most external validity per unit of compute.
+      These should be settled before more compute gets spent. They decide which detector counts as the main object of study and which second model buys the most signal per unit of effort.
     </p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
         <h3 style="color: var(--accent-amber);">1. Which neuron set should define the main story?</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Should we keep focusing on the <strong>38 neurons at C=1.0</strong> because that is closest to the paper's
-          sparse-intervention methodology, or pivot to the <strong>219 positive neurons at C=3.0</strong> because that
-          detector appears to capture more of the real Gemma signal?
+          Should the project stay anchored to the <strong>38 neurons at C=1.0</strong> because that is closest to the paper's sparse-intervention framing, or pivot to the <strong>219 positive neurons at C=3.0</strong> because that detector appears to capture more of the real Gemma signal?
         </p>
         <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;">
-          Current evidence: C=1.0 gives the paper-faithful sparse story and reproduced the paper's Gemma-3-4B TriviaQA
-          accuracy almost exactly (paper 76.9%, ours 76.5% disjoint). But our C-sweep found C=3.0 reaches
-          <strong>80.5%</strong> accuracy with <strong>219</strong> positive neurons, and neuron 4288 drops from rank 1 to
-          rank 5, which suggests the 38-neuron set is partly a regularization artifact rather than the full circuit.
+          The tradeoff is straightforward: C=1.0 buys paper faithfulness and a clean replication headline, while C=3.0 buys better predictive performance and a story less vulnerable to the 4288 artifact.
         </p>
       </div>
 
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <h3 style="color: var(--accent-teal);">2. Which second model adds the most value?</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          If we replicate beyond Gemma-3-4B, should the next target be <strong>Mistral-Small-24B</strong> or
-          <strong>Llama-3.3-70B</strong>?
+          If the replication extends beyond Gemma-3-4B, should the next target be <strong>Mistral-Small-24B</strong> or <strong>Llama-3.3-70B</strong>?
         </p>
         <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;">
-          Mentor framing: Mistral is the cleaner engineering choice; Llama is the stronger external-validity choice.
-          Mistral sits on the paper's best-behaving family and is feasible on our validated ~96GB single-GPU path.
-          Llama-3.3-70B posts the strongest large-model paper numbers, but our current hardware notes say a pure-GPU bf16
-          run does <em>not</em> fit on a single GH200, so reproducing it would require a more expensive deployment strategy.
+          Mistral is the cleaner engineering continuation and sits close to the paper's best-behaving family. Llama is the stronger external-validity test, but it asks for a much more expensive deployment story.
         </p>
       </div>
     </div>
@@ -876,84 +203,67 @@ Answer:</code>
       <div class="metric-card">
         <div class="label">Paper Mistral-24B</div>
         <div class="value val-teal">81.0%</div>
-        <div class="detail">TriviaQA detection, 0.01‰ H-Neurons, base-rank 0.971</div>
+        <div class="detail">TriviaQA detection headline from Gao et al.</div>
       </div>
       <div class="metric-card">
         <div class="label">Paper Llama-70B</div>
         <div class="value val-purple">82.7%</div>
-        <div class="detail">TriviaQA detection, 0.01‰ H-Neurons, NonExist 96.7%</div>
+        <div class="detail">Stronger headline, heavier deployment burden</div>
       </div>
-    </div>
-
-    <div class="insight-box" style="margin-top: 1.25rem;">
-      <strong>Recommendation to discuss, not hide:</strong> if the goal is the strongest <em>paper-faithful</em> story,
-      continue with the 38-neuron set and choose Mistral-Small-24B as the next family. If the goal is the strongest
-      <em>mechanistic</em> story, elevate the C-sweep result, treat 219 neurons as the better detector, and explicitly ask
-      whether the paper's sparsity headline is partly an artifact of one regularization setting.
     </div>
   </div>
 </section>
 
-<!-- 8. Next steps -->
 <section id="nextsteps" class="short">
   <div class="fade-in">
     <span class="tag tag-teal">Next steps</span>
     <h2>Three highest-signal follow-ups</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">The first extends today's evaluator cleanup across the full α sweep. The other two test whether the effect is specific and what mechanism is most plausible.</p>
+    <p class="subtitle" style="margin-bottom: 1.5rem;">
+      The first closes the evaluator gap across the full sweep. The other two test whether the effect is specific and what mechanism is actually moving.
+    </p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Extend text-based scoring (~30&ndash;60min, $0)</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-          The α=3.0 remap is done: 140/150 <code>chosen=None</code> responses map back to answer-option text,
-          lifting the standard estimate to 72.1%. The next cleanup is to apply the same answer-text scoring
-          across all α and recompute the full standard-prompt curve and population split.
+        <h3 style="color: var(--accent-amber);">Extend text-based scoring (~30&ndash;60 min, $0)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Apply the same answer-text remap used at &alpha;=3.0 across the full standard-prompt sweep, then recompute the curve and the population split from that corrected series.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">Negative control (~1h, $0)</h3>
+        <h3 style="color: var(--accent-coral);">Negative control (~1 h, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Scale 38 random non-H-neurons by the same &alpha; values.
-          <strong>Tests Hypothesis C</strong> (generic degradation). If content and parsability shift similarly
-          for random neurons, the effect is not specific to H-Neurons.
-          The single most important missing experiment.
+          Scale 38 random non-H-neurons by the same &alpha; values. This is the cleanest test of whether the observed behavior change is specific or just generic activation damage.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Prompt disentangling (~1&ndash;2h, $0)</h3>
+        <h3 style="color: var(--accent-teal);">Prompt disentangling (~1&ndash;2 h, $0)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Run two small ablations: a no-context version of the standard prompt, and an aligned-instruction prompt
-          where answer selection and output format point the same way. Together they separate context-credulity
-          from answer-rendering effects.
+          Run a no-context standard prompt and an aligned-format prompt so answer selection, answer rendering, and generic degradation can be separated more cleanly.
         </p>
       </div>
     </div>
 
     <p style="font-size: 13px; color: var(--text-muted); margin-top: 1rem;">
-      <s>Standard prompt re-run</s> &mdash; Done. <s>α=3.0 parse-failure remap</s> &mdash; Done.
-      The next cleanup is evaluator-side across the full sweep: score answer text at every α, not just by option letter.
+      Completed cleanup: the stable Gemma results now live on a dedicated page, and the intervention summary widgets no longer duplicate numbers in HTML.
     </p>
   </div>
 </section>
 
-<!-- Reproducibility note -->
 <div class="reflection">
-  <div class="ref-label">Reproducibility note</div>
+  <div class="ref-label">Why this page is shorter</div>
   <p class="ref-text">
-    Total pipeline cost: ~$3.50 (GPT-4o answer-token extraction) and ~4.5 hours wall time.
-    Runs on a single 16GB GPU. Every bug we hit is documented &mdash; the apostrophe parser,
-    the train/test overlap, the token-matching failures &mdash; so the next replication on a
-    different model starts from where we finished.
+    A weekly page should read like a briefing note, not like a scrollback dump from the whole project.
+    The old version mixed settled evidence with live decisions. Splitting those layers means the front page can now answer the meeting question first:
+    <strong>what changed, what is blocked, and what needs a call?</strong>
   </p>
 </div>
 
 <footer>
-  H-Neurons Replication &mdash; Gemma 3 4B &mdash; March 2026<br>
-  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a>
+  H-Neurons Weekly Update &mdash; Gemma 3 4B &mdash; March 2026<br>
+  Stable findings: <a href="results/gemma-3-4b.html">Gemma 3 4B Results</a>
 </footer>
 
 <script src="assets/shared.js"></script>
-<script type="module" src="assets/charts.js"></script>
 
 </body>
 </html>
