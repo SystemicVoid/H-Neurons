@@ -2,7 +2,7 @@
 
 > Implementation guidelines for evolving `site/` from a single-page monolith into a maintainable, data-driven multi-page research presentation.
 >
-> **Status**: In progress — Session 13 completed on 2026-03-17.
+> **Status**: In progress — Session 14 completed on 2026-03-17.
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
@@ -381,6 +381,7 @@ Each entry links to its results page when work begins.
 | 2026-03-17 | Session 11 | `feat(site): add extensions roadmap page` | Added `site/extensions.html` as a standing roadmap page, expanded the shared nav across the weekly, story, results, methods, extensions, and deep-dive pages, and deliberately narrowed the roadmap to four concrete workstreams: SAE feature decomposition, suppressive-neuron investigation, swing-sample characterization, and a refusal-overlap safety pilot. | Leave `archive/` deferred until a real post-split weekly page exists, and move the next site slice to Phase 5 polish on status badges plus chart annotations. |
 | 2026-03-17 | Session 12 | `feat(site): add research status badges`; `feat(site): label results charts with values and context` | Added explicit `NEW`/`STABLE`/`PROVISIONAL`/`ARTIFACT` badges to metric cards and summary callouts across the six live pages, annotated `site/results/gemma-3-4b.html` with chart-level value labels plus `n=` / CI-status chips, and re-verified over local HTTP that the weekly, story, results, methods, extensions, and deep-dive pages still load with the JSON-backed intervention charts and nested appendix images. | Finish the remaining Phase 5 cleanup by reviewing chart color counts and deciding whether a lightweight `here-now` deployment check is worth doing before the next content-heavy site pass. |
 | 2026-03-17 | Session 13 | `docs(site): refresh anti-drift handoff guidance` | Updated this plan to reflect the current local-source state: `site/data/intervention_sweep.json` now carries CI-bearing intervention summaries, `site/data/classifier_summary.json` exists from the exporter, and the next agent must reconcile page claims against those local JSON artifacts before doing another polish pass. | Start the next slice with exporter-driven reconciliation, then use the remaining time for page polish only after the rendered numbers match current local sources. |
+| 2026-03-17 | Session 14 | `chore(site): refresh exported summary data`; `feat(site): hydrate shared summary callouts`; `feat(site): sync results charts with exported summaries`; `style(site): tighten chart annotation chips` | Regenerated `site/data/intervention_sweep.json` plus the newly tracked `site/data/classifier_summary.json`, wired the weekly/story/results/methods/deep-dive summary callouts to those exports through `site/assets/shared.js`, fixed the results-page chart runtime so classifier/intervention chart context reflects the exported metrics, and tightened the annotation-chip styling after the new labels landed. | Audit the remaining manual numeric pockets, then decide whether layer/top-neuron exports or a lightweight deployment check is the better next payoff. |
 
 ---
 
@@ -396,30 +397,31 @@ Each entry links to its results page when work begins.
 - `site/index.html` has been reduced to a weekly landing page with delta/agenda/decision sections, and the shared nav now connects six live pages.
 - The split pages now carry explicit research-status badges, and the results ledger charts expose direct value labels plus `n=` / CI-status context over local HTTP instead of relying only on prose.
 - `scripts/export_site_data.py` now exports both `site/data/intervention_sweep.json` and `site/data/classifier_summary.json` from local repo sources.
+- Shared summary callouts on the weekly page, standing story, stable results ledger, methods page, and neuron-4288 appendix now hydrate from those exported JSON files instead of repeating the same classifier/intervention numbers manually.
+- `site/assets/charts.js` now reads the classifier chart from `site/data/classifier_summary.json` and uses the CI-bearing intervention export for results-page sweep context over HTTP.
 
 ### Open issues / constraints
 
-- Remaining intervention prose still carries embedded numeric claims, but those blocks are explicitly tagged `data-source="manual"` rather than silently drifting.
-- The local source of truth has advanced beyond some rendered copy: `site/data/intervention_sweep.json` now carries Wilson/per-paired-bootstrap CI fields and `site/data/classifier_summary.json` now carries stratified-bootstrap classifier CIs, but the live pages still need a reconciliation pass to consume that newer context consistently.
+- Remaining manual numeric pockets are now narrower: the biggest drift risk is in unsourced comparison copy (for example the overlap comparison, negative-control prose, and hardcoded layer/top-neuron sections) rather than in the shared classifier/intervention summary callouts.
 - The standard-prompt strict answer-text correction is only canonical for `alpha=3.0`; do not imply a full corrected sweep yet.
 - Standard-prompt population breakdown remains withdrawn until text-based rescoring exists across all alpha values.
 - `archive/` still does not exist, and there is not yet a second post-split weekly page to justify creating it.
 - `extensions.html` is intentionally narrower than the full idea bank in `docs/extensions-ideas/`; keep the live page focused on the four branches with the sharpest near-term falsifiers.
-- Classifier, layer-distribution, and top-neuron cards/charts remain partly hardcoded even though `site/data/classifier_summary.json` now exists locally.
+- Layer-distribution and top-neuron cards/charts remain intentionally hardcoded until canonical local exports exist for those views.
 - The HTTP verification pass covered all six live pages, the `site/data/intervention_sweep.json` fetch path, and the nested deep-dive PNG assets; use the same local-server path for future site checks because `file://` still breaks `fetch()`.
-- The exporter now emits CI objects for classifier and intervention summaries, but the site still mixes older `no CI yet` prose with newer local JSON. Preventing that drift is the top short-term maintenance task.
+- The exporter now emits CI objects for classifier and intervention summaries, and the main shared callouts consume them; future drift prevention should focus on not reintroducing unsourced literals outside the binding system.
 
 ### Recommended next slice
 
-1. Start with a reconciliation pass: rerun `uv run python scripts/export_site_data.py`, diff `site/data/intervention_sweep.json` and `site/data/classifier_summary.json` against the rendered claims in `site/results/gemma-3-4b.html`, `site/story.html`, `site/index.html`, and `site/methods.html`, and remove any stale literals.
-2. Once the rendered numbers match current local sources, finish the remaining Phase 5 polish by reviewing chart color counts and tightening any overly dense chip/value blocks.
-3. Keep `archive/` deferred until there is an actual post-split weekly page to archive; do not add empty navigation for a page class that still has no content.
-4. Leave layer-distribution and top-neuron charts hardcoded until canonical local exports exist for those views, but stop treating classifier metrics as exempt now that `site/data/classifier_summary.json` is available.
-5. Decide whether to run a lightweight `here-now` deployment check only after the anti-drift reconciliation is complete.
+1. Start with a narrower anti-drift audit: rerun `uv run python scripts/export_site_data.py`, then inspect the remaining manual-number pockets in `site/results/gemma-3-4b.html`, `site/index.html`, `site/story.html`, and `site/methods.html` that are not yet covered by `data-classifier-bind`, `data-intervention-bind`, or `data-intervention-summary-bind`.
+2. If the next slice stays inside Phase 5 polish, focus on chart-color discipline and any remaining annotation clutter without undoing the new direct-on-chart reporting context.
+3. If the next slice turns data-heavy instead, decide whether to add real local exports for layer distribution and top-neuron weights before touching those sections; otherwise keep them explicitly hardcoded.
+4. Keep `archive/` deferred until there is an actual post-split weekly page to archive; do not add empty navigation for a page class that still has no content.
+5. Decide whether a lightweight `here-now` deployment check is worthwhile only after the remaining manual-number audit is clean.
 
 ### Acceptance checks for tomorrow
 
-- Rendered site metrics match current local-source JSON rather than stale HTML literals or older exported snapshots.
+- Exported classifier/intervention summaries remain the single source of truth for the shared visible callouts across the live pages.
 - Status badges remain obvious without overwhelming the pages or blurring the split-page roles.
 - Results-page charts keep their visible value labels plus `n=` / CI-status annotations under HTTP without breaking the existing JSON hydration path.
 - The current six-page split remains intact: short weekly page, standing story page, stable results page, methods reference page, focused extensions roadmap, and image-backed deep dive.
@@ -436,7 +438,7 @@ Continue the `site/` scaling work in `/home/hugo/Documents/Engineering/mech-inte
 Before editing, inspect `git status` and assume the worktree may contain newer local experiment outputs than the current rendered pages.
 
 Primary goal:
-- reconcile the live site against current local sources first, then spend the remaining time on polish
+- audit the remaining manual-number pockets against current local sources first, then spend the remaining time on polish
 
 Local-source contract:
 - `scripts/export_site_data.py` is the only generator for site JSON
@@ -449,6 +451,7 @@ Local-source contract:
 Reconciliation targets:
 - `site/data/intervention_sweep.json`
 - `site/data/classifier_summary.json`
+- `site/assets/shared.js`
 - `site/results/gemma-3-4b.html`
 - `site/story.html`
 - `site/index.html`
@@ -456,6 +459,7 @@ Reconciliation targets:
 - `site/assets/charts.js`
 
 Specific checks:
+- keep the existing `data-classifier-bind`, `data-intervention-bind`, and `data-intervention-summary-bind` paths authoritative for shared summary numbers
 - make sure rendered classifier metrics and any CI language match `site/data/classifier_summary.json`
 - make sure intervention summary cards, chart annotations, and prose do not drift from `site/data/intervention_sweep.json`
 - do not imply a full standard-prompt correction sweep beyond the committed `alpha=3.0` remap
