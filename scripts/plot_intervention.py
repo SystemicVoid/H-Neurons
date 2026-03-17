@@ -12,6 +12,7 @@ import json
 import argparse
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -25,11 +26,11 @@ BENCHMARK_LABELS = {
 }
 
 COLORS = {
-    "faitheval": "#1D9E75",      # teal
+    "faitheval": "#1D9E75",  # teal
     "faitheval_standard": "#0E6B4F",  # dark teal
-    "falseqa": "#7F77DD",        # purple
+    "falseqa": "#7F77DD",  # purple
     "sycophancy_triviaqa": "#D85A30",  # coral
-    "jailbreak": "#E24B4A",      # red
+    "jailbreak": "#E24B4A",  # red
 }
 
 
@@ -65,8 +66,11 @@ def plot_compliance(all_results, output_path):
         results = all_results[benchmark]
 
         alphas = sorted(float(a) for a in results.keys())
-        rates = [results[str(a) if str(a) in results else f"{a:.1f}"]["compliance_rate"] * 100
-                 for a in alphas]
+        rates = [
+            results[str(a) if str(a) in results else f"{a:.1f}"]["compliance_rate"]
+            * 100
+            for a in alphas
+        ]
 
         color = COLORS.get(benchmark, "#378ADD")
         ax.plot(alphas, rates, "o-", color=color, linewidth=2, markersize=6)
@@ -94,7 +98,11 @@ def plot_compliance(all_results, output_path):
 def parse_args():
     p = argparse.ArgumentParser(description="Plot intervention results")
     p.add_argument("--input_dir", type=str, default="data/gemma3_4b/intervention")
-    p.add_argument("--output", type=str, default="data/gemma3_4b/intervention/figure3_compliance.png")
+    p.add_argument(
+        "--output",
+        type=str,
+        default="data/gemma3_4b/intervention/figure3_compliance.png",
+    )
     return p.parse_args()
 
 

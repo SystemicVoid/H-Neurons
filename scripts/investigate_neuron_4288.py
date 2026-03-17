@@ -43,20 +43,33 @@ TARGET_IDX = TARGET_LAYER * NUM_NEURONS + TARGET_NEURON  # 209,168
 
 def parse_args():
     p = argparse.ArgumentParser(description="Investigate Neuron (20, 4288)")
-    p.add_argument("--classifier", required=True, help="Path to trained classifier .pkl")
+    p.add_argument(
+        "--classifier", required=True, help="Path to trained classifier .pkl"
+    )
     p.add_argument("--train_ids", required=True, help="Path to train_qids.json")
     p.add_argument("--test_ids", required=True, help="Path to test_qids.json")
-    p.add_argument("--train_ans_acts", required=True, help="Dir of answer token activations")
-    p.add_argument("--train_other_acts", required=True, help="Dir of other token activations (for 3-vs-1)")
+    p.add_argument(
+        "--train_ans_acts", required=True, help="Dir of answer token activations"
+    )
+    p.add_argument(
+        "--train_other_acts",
+        required=True,
+        help="Dir of other token activations (for 3-vs-1)",
+    )
     p.add_argument("--test_acts", required=True, help="Dir of test activations")
-    p.add_argument("--output_dir", default="data/investigation_neuron_4288", help="Dir for plots")
-    p.add_argument("--skip_csweep", action="store_true", help="Skip the slow C-sweep analysis")
+    p.add_argument(
+        "--output_dir", default="data/investigation_neuron_4288", help="Dir for plots"
+    )
+    p.add_argument(
+        "--skip_csweep", action="store_true", help="Skip the slow C-sweep analysis"
+    )
     return p.parse_args()
 
 
 # ---------------------------------------------------------------------------
 # Data loading (replicates classifier.py pattern)
 # ---------------------------------------------------------------------------
+
 
 def load_data(ids_path, ans_acts_dir, other_acts_dir=None, mode="1-vs-1"):
     with open(ids_path, "r") as f:
@@ -82,7 +95,9 @@ def load_data(ids_path, ans_acts_dir, other_acts_dir=None, mode="1-vs-1"):
         if not other_acts_dir:
             raise ValueError("other_acts_dir required for 3-vs-1 mode")
         for label_key in ["t", "f"]:
-            for qid in tqdm(id_map[label_key], desc=f"Loading Other - {label_key} (Label 0)"):
+            for qid in tqdm(
+                id_map[label_key], desc=f"Loading Other - {label_key} (Label 0)"
+            ):
                 path = os.path.join(other_acts_dir, f"act_{qid}.npy")
                 if os.path.exists(path):
                     X.append(np.load(path).flatten())
@@ -104,6 +119,7 @@ def loc_to_str(idx):
 # ---------------------------------------------------------------------------
 # Analysis 1: Single-Neuron Classification
 # ---------------------------------------------------------------------------
+
 
 def analysis_single_neuron(X_train_1v1, y_train_1v1, X_test, y_test, model):
     print("\n" + "=" * 60)
@@ -145,12 +161,17 @@ def analysis_single_neuron(X_train_1v1, y_train_1v1, X_test, y_test, model):
     print(f"  Mean random AUC: {mean_random:.3f}")
     print(f"  Verdict: {'REAL SIGNAL' if target_auc > 0.60 else 'WEAK/ARTIFACT'}")
 
-    return {"results": results, "target_auc": target_auc, "mean_random_auc": mean_random}
+    return {
+        "results": results,
+        "target_auc": target_auc,
+        "mean_random_auc": mean_random,
+    }
 
 
 # ---------------------------------------------------------------------------
 # Analysis 2: Activation Distribution Separation
 # ---------------------------------------------------------------------------
+
 
 def analysis_distributions(X_test, y_test, model):
     print("\n" + "=" * 60)
@@ -179,7 +200,11 @@ def analysis_distributions(X_test, y_test, model):
 
         # Cohen's d
         pooled_std = np.sqrt((np.std(true_vals) ** 2 + np.std(false_vals) ** 2) / 2)
-        d = (np.mean(false_vals) - np.mean(true_vals)) / pooled_std if pooled_std > 0 else 0
+        d = (
+            (np.mean(false_vals) - np.mean(true_vals)) / pooled_std
+            if pooled_std > 0
+            else 0
+        )
 
         # Mann-Whitney U
         u_stat, u_p = stats.mannwhitneyu(true_vals, false_vals, alternative="two-sided")
@@ -201,7 +226,9 @@ def analysis_distributions(X_test, y_test, model):
         }
 
         print(f"\n  {name}:")
-        print(f"    Mean (true): {np.mean(true_vals):.4f}, Mean (false): {np.mean(false_vals):.4f}")
+        print(
+            f"    Mean (true): {np.mean(true_vals):.4f}, Mean (false): {np.mean(false_vals):.4f}"
+        )
         print(f"    Cohen's d: {d:.3f}")
         print(f"    Mann-Whitney U p: {u_p:.2e}")
         print(f"    KS stat: {ks_stat:.3f}, p: {ks_p:.2e}")
@@ -217,6 +244,7 @@ def analysis_distributions(X_test, y_test, model):
 # Analysis 3: C-Sweep Stability
 # ---------------------------------------------------------------------------
 
+
 def analysis_c_sweep(X_train_3v1, y_train_3v1, X_test, y_test):
     print("\n" + "=" * 60)
     print("ANALYSIS 3: C-Sweep Stability")
@@ -228,8 +256,12 @@ def analysis_c_sweep(X_train_3v1, y_train_3v1, X_test, y_test):
     for c_val in C_values:
         print(f"\n  Training C={c_val}...", end=" ", flush=True)
         lr = LogisticRegression(
-            penalty="l1", C=c_val, solver="liblinear",
-            max_iter=1000, random_state=42, verbose=0,
+            penalty="l1",
+            C=c_val,
+            solver="liblinear",
+            max_iter=1000,
+            random_state=42,
+            verbose=0,
         )
         lr.fit(X_train_3v1, y_train_3v1)
 
@@ -270,8 +302,10 @@ def analysis_c_sweep(X_train_3v1, y_train_3v1, X_test, y_test):
         sweep_results.append(result)
 
         rank_str = f"rank {rank}" if rank > 0 else "NOT SELECTED"
-        print(f"Acc={acc:.3f} AUC={auc:.3f} NZ={n_nonzero} Pos={n_positive} "
-              f"4288_w={target_weight:.3f} ({rank_str})")
+        print(
+            f"Acc={acc:.3f} AUC={auc:.3f} NZ={n_nonzero} Pos={n_positive} "
+            f"4288_w={target_weight:.3f} ({rank_str})"
+        )
 
     # Summary
     c_selected = sum(1 for r in sweep_results if r["target_rank"] > 0)
@@ -286,6 +320,7 @@ def analysis_c_sweep(X_train_3v1, y_train_3v1, X_test, y_test):
 # ---------------------------------------------------------------------------
 # Analysis 4: Per-Example Contribution
 # ---------------------------------------------------------------------------
+
 
 def analysis_contributions(model, X_test, y_test):
     print("\n" + "=" * 60)
@@ -337,6 +372,7 @@ def analysis_contributions(model, X_test, y_test):
 # Analysis 5: Leave-One-Out Ablation
 # ---------------------------------------------------------------------------
 
+
 def analysis_ablation(model, X_test, y_test):
     print("\n" + "=" * 60)
     print("ANALYSIS 5: Leave-One-Out Ablation")
@@ -367,8 +403,10 @@ def analysis_ablation(model, X_test, y_test):
             "drop_auc": drop_auc,
         }
         is_target = "  <<<" if idx == TARGET_IDX else ""
-        print(f"  Ablate {label:12s}  Acc={abl_acc:.4f} (drop {drop_acc:+.4f})  "
-              f"AUC={abl_auc:.4f} (drop {drop_auc:+.4f}){is_target}")
+        print(
+            f"  Ablate {label:12s}  Acc={abl_acc:.4f} (drop {drop_acc:+.4f})  "
+            f"AUC={abl_auc:.4f} (drop {drop_auc:+.4f}){is_target}"
+        )
 
     # Ablate all positives except 4288
     X_only4288 = X_test.copy()
@@ -391,6 +429,7 @@ def analysis_ablation(model, X_test, y_test):
 # Analysis 6: Correlation Structure
 # ---------------------------------------------------------------------------
 
+
 def analysis_correlations(X_train_1v1, model):
     print("\n" + "=" * 60)
     print("ANALYSIS 6: Correlation Structure")
@@ -409,7 +448,9 @@ def analysis_correlations(X_train_1v1, model):
         layer_zeros = zero_idxs[(zero_idxs >= layer_start) & (zero_idxs < layer_end)]
         if len(layer_zeros) > 0:
             rng = np.random.RandomState(42 + layer)
-            chosen = rng.choice(layer_zeros, size=min(2, len(layer_zeros)), replace=False)
+            chosen = rng.choice(
+                layer_zeros, size=min(2, len(layer_zeros)), replace=False
+            )
             nearby_zero.extend(chosen)
     nearby_zero = np.array(nearby_zero[:10])
 
@@ -433,17 +474,24 @@ def analysis_correlations(X_train_1v1, model):
         print(f"    {label:40s}  r={r:+.3f}{flag}")
 
     # Summary stats
-    top10_corrs = [corr_matrix[target_pos_in_array, i]
-                   for i in range(len(top10_pos)) if all_idxs[i] != TARGET_IDX]
-    zero_corrs = [corr_matrix[target_pos_in_array, i]
-                  for i in range(len(top10_pos), len(all_idxs))]
+    top10_corrs = [
+        corr_matrix[target_pos_in_array, i]
+        for i in range(len(top10_pos))
+        if all_idxs[i] != TARGET_IDX
+    ]
+    zero_corrs = [
+        corr_matrix[target_pos_in_array, i]
+        for i in range(len(top10_pos), len(all_idxs))
+    ]
 
     max_top10_r = max(abs(r) for r in top10_corrs) if top10_corrs else 0
     max_zero_r = max(abs(r) for r in zero_corrs) if zero_corrs else 0
 
     print(f"\n  Max |r| with other top-10: {max_top10_r:.3f}")
     print(f"  Max |r| with nearby zero-weight: {max_zero_r:.3f}")
-    print(f"  Verdict: {'REAL SIGNAL' if max_top10_r < 0.3 and max_zero_r < 0.5 else 'POSSIBLE ARTIFACT'}")
+    print(
+        f"  Verdict: {'REAL SIGNAL' if max_top10_r < 0.3 and max_zero_r < 0.5 else 'POSSIBLE ARTIFACT'}"
+    )
 
     return {
         "corr_matrix": corr_matrix,
@@ -458,6 +506,7 @@ def analysis_correlations(X_train_1v1, model):
 # Plotting
 # ---------------------------------------------------------------------------
 
+
 def plot_results(output_dir, a1, a2, a3, a4, a5, a6):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -465,9 +514,14 @@ def plot_results(output_dir, a1, a2, a3, a4, a5, a6):
     fig, ax = plt.subplots(figsize=(12, 5))
     labels = list(a1["results"].keys())
     aucs = [a1["results"][lb]["auc"] for lb in labels]
-    colors = ["#d62728" if a1["results"][lb]["idx"] == TARGET_IDX
-              else "#1f77b4" if "random" not in lb
-              else "#7f7f7f" for lb in labels]
+    colors = [
+        "#d62728"
+        if a1["results"][lb]["idx"] == TARGET_IDX
+        else "#1f77b4"
+        if "random" not in lb
+        else "#7f7f7f"
+        for lb in labels
+    ]
     short_labels = [lb.split(" (")[0] for lb in labels]
     ax.bar(range(len(labels)), aucs, color=colors)
     ax.set_xticks(range(len(labels)))
@@ -485,9 +539,25 @@ def plot_results(output_dir, a1, a2, a3, a4, a5, a6):
     for ax, (name, data) in zip(axes, a2.items()):
         true_v = data["true_vals"]
         false_v = data["false_vals"]
-        ax.hist(true_v, bins=50, alpha=0.6, label="True (no hallucination)", color="#2ca02c", density=True)
-        ax.hist(false_v, bins=50, alpha=0.6, label="False (hallucination)", color="#d62728", density=True)
-        ax.set_title(f"{name}\nCohen's d={data['cohen_d']:.3f}, MW p={data['mw_p']:.1e}")
+        ax.hist(
+            true_v,
+            bins=50,
+            alpha=0.6,
+            label="True (no hallucination)",
+            color="#2ca02c",
+            density=True,
+        )
+        ax.hist(
+            false_v,
+            bins=50,
+            alpha=0.6,
+            label="False (hallucination)",
+            color="#d62728",
+            density=True,
+        )
+        ax.set_title(
+            f"{name}\nCohen's d={data['cohen_d']:.3f}, MW p={data['mw_p']:.1e}"
+        )
         ax.set_xlabel("CETT Activation")
         ax.legend(fontsize=7)
     fig.suptitle("Analysis 2: Activation Distributions (True vs False)", fontsize=12)
@@ -516,7 +586,11 @@ def plot_results(output_dir, a1, a2, a3, a4, a5, a6):
 
         for nidx, weights in sorted(tracked.items(), key=lambda x: -max(x[1])):
             label = loc_to_str(nidx)
-            style = {"linewidth": 2.5, "color": "#d62728"} if nidx == TARGET_IDX else {"linewidth": 1, "alpha": 0.7}
+            style = (
+                {"linewidth": 2.5, "color": "#d62728"}
+                if nidx == TARGET_IDX
+                else {"linewidth": 1, "alpha": 0.7}
+            )
             ax1.plot(c_vals, weights, "o-", label=label, **style)
 
         ax1.set_xscale("log")
@@ -544,20 +618,33 @@ def plot_results(output_dir, a1, a2, a3, a4, a5, a6):
     fig, ax = plt.subplots(figsize=(8, 6))
     y = a4["y_test"]
     correct = a4["correct"]
-    for c_val, m, label in [("#2ca02c", "o", "True (correct)"), ("#d62728", "o", "False (correct)"),
-                             ("#2ca02c", "x", "True (wrong)"), ("#d62728", "x", "False (wrong)")]:
+    for c_val, m, label in [
+        ("#2ca02c", "o", "True (correct)"),
+        ("#d62728", "o", "False (correct)"),
+        ("#2ca02c", "x", "True (wrong)"),
+        ("#d62728", "x", "False (wrong)"),
+    ]:
         is_false = c_val == "#d62728"
         is_correct = m == "o"
         mask = (y == int(is_false)) & (correct == is_correct)
         if mask.sum() > 0:
-            ax.scatter(a4["scores_total"][mask], a4["scores_4288"][mask],
-                      c=c_val, marker=m, alpha=0.4, s=20, label=label)
+            ax.scatter(
+                a4["scores_total"][mask],
+                a4["scores_4288"][mask],
+                c=c_val,
+                marker=m,
+                alpha=0.4,
+                s=20,
+                label=label,
+            )
     ax.axhline(0, color="gray", linestyle="--", alpha=0.3)
     ax.axvline(0, color="gray", linestyle="--", alpha=0.3)
     ax.set_xlabel("Total log-odds score")
     ax.set_ylabel("Neuron 4288 contribution")
-    ax.set_title(f"Analysis 4: Per-Example Contribution\n"
-                 f"4288 is largest positive contributor for {a4['pct_largest']:.1f}% of examples")
+    ax.set_title(
+        f"Analysis 4: Per-Example Contribution\n"
+        f"4288 is largest positive contributor for {a4['pct_largest']:.1f}% of examples"
+    )
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, "04_contributions.png"), dpi=150)
@@ -565,12 +652,18 @@ def plot_results(output_dir, a1, a2, a3, a4, a5, a6):
 
     # --- Plot 5: Ablation Bar Chart ---
     fig, ax = plt.subplots(figsize=(10, 5))
-    ablation_items = [(k, v) for k, v in a5.items()
-                      if k not in ("baseline_acc", "baseline_auc", "only_4288") and isinstance(v, dict)]
+    ablation_items = [
+        (k, v)
+        for k, v in a5.items()
+        if k not in ("baseline_acc", "baseline_auc", "only_4288")
+        and isinstance(v, dict)
+    ]
     ablation_items.sort(key=lambda x: -abs(x[1]["drop_acc"]))
     labels_abl = [k for k, _ in ablation_items]
     drops = [v["drop_acc"] for _, v in ablation_items]
-    colors_abl = ["#d62728" if loc_to_str(TARGET_IDX) == k else "#1f77b4" for k in labels_abl]
+    colors_abl = [
+        "#d62728" if loc_to_str(TARGET_IDX) == k else "#1f77b4" for k in labels_abl
+    ]
     ax.bar(range(len(labels_abl)), drops, color=colors_abl)
     ax.set_xticks(range(len(labels_abl)))
     ax.set_xticklabels(labels_abl, rotation=45, ha="right")
@@ -601,6 +694,7 @@ def plot_results(output_dir, a1, a2, a3, a4, a5, a6):
 # ---------------------------------------------------------------------------
 # Final Verdict
 # ---------------------------------------------------------------------------
+
 
 def print_verdict(a1, a2, a3, a4, a5, a6):
     print("\n" + "=" * 60)
@@ -645,7 +739,9 @@ def print_verdict(a1, a2, a3, a4, a5, a6):
     # 6. Correlation
     v6 = "real" if a6["max_top10_r"] < 0.3 and a6["max_zero_r"] < 0.5 else "artifact"
     votes[v6] += 1
-    print(f"  6. Max |r| top10={a6['max_top10_r']:.3f}, zero={a6['max_zero_r']:.3f}: {v6.upper()}")
+    print(
+        f"  6. Max |r| top10={a6['max_top10_r']:.3f}, zero={a6['max_zero_r']:.3f}: {v6.upper()}"
+    )
 
     total = votes["real"] + votes["artifact"]
     print(f"\n  SCORE: {votes['real']}/{total} analyses point to REAL SIGNAL")
@@ -654,12 +750,15 @@ def print_verdict(a1, a2, a3, a4, a5, a6):
     elif votes["artifact"] >= 4:
         print("  CONCLUSION: Neuron (20, 4288) dominance is likely an L1 ARTIFACT")
     else:
-        print("  CONCLUSION: INCONCLUSIVE — mixed evidence, further investigation needed")
+        print(
+            "  CONCLUSION: INCONCLUSIVE — mixed evidence, further investigation needed"
+        )
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     args = parse_args()
@@ -686,8 +785,10 @@ def main():
     if not args.skip_csweep:
         print("\nLoading train data (3-vs-1) for C-sweep...")
         X_train_3v1, y_train_3v1, _ = load_data(
-            args.train_ids, args.train_ans_acts,
-            other_acts_dir=args.train_other_acts, mode="3-vs-1",
+            args.train_ids,
+            args.train_ans_acts,
+            other_acts_dir=args.train_other_acts,
+            mode="3-vs-1",
         )
         a3 = analysis_c_sweep(X_train_3v1, y_train_3v1, X_test, y_test)
 

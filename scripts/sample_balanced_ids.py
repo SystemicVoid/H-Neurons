@@ -3,15 +3,40 @@ import argparse
 import random
 from tqdm import tqdm
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="Sample balanced True and False IDs for training.")
-    parser.add_argument("--input_path", type=str, required=True, help="Path to extraction results (jsonl)")
-    parser.add_argument("--output_path", type=str, default="data/train_qids.json", help="Path to save balanced IDs (json)")
-    parser.add_argument("--num_samples", type=int, default=1000, help="Number of samples per class (default: 1000)")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
-    parser.add_argument("--exclude_path", type=str, default=None,
-                        help="Path to a previously-sampled qids.json whose IDs should be excluded (for disjoint splits)")
+    parser = argparse.ArgumentParser(
+        description="Sample balanced True and False IDs for training."
+    )
+    parser.add_argument(
+        "--input_path",
+        type=str,
+        required=True,
+        help="Path to extraction results (jsonl)",
+    )
+    parser.add_argument(
+        "--output_path",
+        type=str,
+        default="data/train_qids.json",
+        help="Path to save balanced IDs (json)",
+    )
+    parser.add_argument(
+        "--num_samples",
+        type=int,
+        default=1000,
+        help="Number of samples per class (default: 1000)",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for reproducibility"
+    )
+    parser.add_argument(
+        "--exclude_path",
+        type=str,
+        default=None,
+        help="Path to a previously-sampled qids.json whose IDs should be excluded (for disjoint splits)",
+    )
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -50,22 +75,22 @@ def main():
     # Determine final sample count based on availability
     actual_samples = min(args.num_samples, len(true_ids), len(false_ids))
     if actual_samples < args.num_samples:
-        print(f"Warning: Only {actual_samples} samples per class available. Sampling maximum possible.")
+        print(
+            f"Warning: Only {actual_samples} samples per class available. Sampling maximum possible."
+        )
 
     # Randomly sample equal amounts
     sampled_t = random.sample(true_ids, actual_samples)
     sampled_f = random.sample(false_ids, actual_samples)
 
-    output_data = {
-        "t": sampled_t,
-        "f": sampled_f
-    }
+    output_data = {"t": sampled_t, "f": sampled_f}
 
     # Save to JSON
     with open(args.output_path, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=4, ensure_ascii=False)
 
     print(f"Successfully saved {actual_samples * 2} balanced IDs to {args.output_path}")
+
 
 if __name__ == "__main__":
     main()
