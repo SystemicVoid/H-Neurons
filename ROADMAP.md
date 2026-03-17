@@ -10,8 +10,17 @@ benefit from timestamped, level-filtered output -- especially with the
 suspend/resume workflow on Pop!_OS where post-wake debugging currently relies on
 scrollback grep.
 
-## AGENTS.md Freshness Validation
+## AGENTS.md Staleness Detection
 
-`AGENTS.md` and `CLAUDE.md` are currently identical copies. Symlink one to the
-other (or consolidate into a single canonical file) to eliminate drift risk when
-guidelines are updated.
+CLAUDE.md already symlinks to AGENTS.md, so drift between files is solved. The
+real problem is that AGENTS.md goes stale when codebase behaviour changes --
+e.g. a new shared module is extracted, test infrastructure is added, or a
+workflow step is removed -- but nobody updates the guidelines.
+
+Possible approaches:
+- A pre-commit hook that flags when files in `scripts/` or `tests/` change but
+  AGENTS.md does not (noisy, but catches the obvious case).
+- A periodic `/readiness-report`-style agent task that diffs AGENTS.md claims
+  against the actual file tree and import graph.
+- Convention: any commit that changes project structure or workflow must include
+  a corresponding AGENTS.md update (enforced by review, not tooling).

@@ -13,7 +13,8 @@ Core pipeline code lives in `scripts/` (flat — sibling imports like `from inte
 
 ## Key Workflow Notes
 
-- `scripts/collect_responses.py` imports `torch`/`transformers`/`openai` at module level — don't import it from lightweight scripts just for `normalize_answer`; copy the function instead.
+- `scripts/utils.py` contains shared lightweight helpers (`normalize_answer`, `extract_mc_answer`). Import from there — never duplicate these functions into individual scripts.
+- `scripts/collect_responses.py` imports `torch`/`transformers`/`openai` at module level — don't import it from lightweight scripts for utility functions.
 - `scripts/evaluate_intervention.py` loads the OpenAI key via `python-dotenv` from the repo-root `.env`.
 - For zero-cost runs without an OpenAI key: `--strategy synthetic-output` on `extract_answer_tokens.py` paired with `--locations output` on `extract_activations.py`.
 - `extract_activations.py` needs the same `apply_chat_template()` tensor-vs-`BatchEncoding` guard as `collect_responses.py`.
@@ -31,7 +32,7 @@ Core pipeline code lives in `scripts/` (flat — sibling imports like `from inte
 Use `uv` for Python environment management.
 
 - `uv sync` installs the project from `pyproject.toml`.
-- `uv add <package>` adds a dependency; keep `requirements.txt` aligned in the same change.
+- `uv add <package>` adds a dependency; regenerate `requirements.txt` with `uv export --no-hashes --frozen --no-emit-project > requirements.txt` in the same change.
 - `ruff check scripts` and `ruff format scripts` lint and format Python before review.
 - `ty check` type-checks `scripts/` (configured in `[tool.ty]` in pyproject.toml; resolves third-party imports from `../.venv`).
 - `prek run` runs all pre-commit hooks (ruff check, ruff format, ty) on staged files. `prek install` wires hooks into `.git/hooks/`.
@@ -65,7 +66,7 @@ Follow PEP 8 naming conventions, enforced by ruff's `pep8-naming` (N) rules:
 - **ML convention exception**: uppercase `X`, `X_train`, `X_test`, `C`, `C_values` are allowed for scikit-learn feature matrices and regularization parameters (configured in `[tool.ruff.lint.pep8-naming]` ignore-names).
 
 ## Testing Guidelines
-No formal `tests/` suite yet. Use judgment and follow best practices.
+Tests live in `tests/` and run via `uv run pytest`. Core evaluation helpers (`normalize_answer`, `extract_mc_answer`) have unit tests in `tests/test_utils.py`. When modifying scoring or extraction logic, add or update tests before committing.
 
 ## Commit & Pull Request Guidelines
 Recent history uses Conventional Commit-style subjects.
