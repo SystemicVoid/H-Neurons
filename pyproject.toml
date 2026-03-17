@@ -8,3 +8,9 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "scipy>=1.17.1",
 ]
+
+[tool.ty.environment]
+python = "../.venv"
+
+[tool.ty.src]
+include = ["scripts"]

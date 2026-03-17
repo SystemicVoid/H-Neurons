@@ -31,8 +31,10 @@ Use `uv` for Python environment management.
 
 - `uv sync` installs the project from `pyproject.toml`.
 - `uv add <package>` adds a dependency; keep `requirements.txt` aligned in the same change.
-- `uv run ruff check scripts` and `uv run ruff format scripts` lint and format Python before review.
-- `uv run ty check` performs a lightweight type pass if you introduce nontrivial new logic.
+- `ruff check scripts` and `ruff format scripts` lint and format Python before review.
+- `ty check` type-checks `scripts/` (configured in `[tool.ty]` in pyproject.toml; resolves third-party imports from `../.venv`).
+- `prek run` runs all pre-commit hooks (ruff check, ruff format, ty) on staged files. `prek install` wires hooks into `.git/hooks/`.
+- `ruff`, `ty`, and `prek` are global tools on PATH (installed via `uv tool`). No venv activation needed to run them.
 
 ## Quantitative Reporting Standards
 Every quantitative claim in presentation materials must include uncertainty estimates. Use bootstrap 95% CIs where sample sizes allow (n > 30). For classifier metrics, report ± from stratified bootstrap over test samples. For intervention compliance rates, report ± from binomial proportion CIs. If uncertainty cannot yet be computed, flag the number explicitly as "no CI".
