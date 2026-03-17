@@ -17,6 +17,7 @@ Core pipeline code lives in `scripts/` (flat — sibling imports like `from inte
 - `scripts/evaluate_intervention.py` loads the OpenAI key via `python-dotenv` from the repo-root `.env`.
 - For zero-cost runs without an OpenAI key: `--strategy synthetic-output` on `extract_answer_tokens.py` paired with `--locations output` on `extract_activations.py`.
 - `extract_activations.py` needs the same `apply_chat_template()` tensor-vs-`BatchEncoding` guard as `collect_responses.py`.
+- For BioASQ OOD probing, use the official BioASQ Task B JSON (question `body` + `type` + `exact_answer`) rather than HF mirrors like `kroshan/BioASQ`, which flatten answer/context into CSV text and do not match the original task schema.
 
 ## Known Issues
 - **FaithEval standard-prompt mis-scoring**: The MC letter extractor in `evaluate_intervention.py` fails on ~150 items at `alpha=3.0`; a strict answer-text remap recovers most. Treat raw standard-prompt compliance drops as evaluator artifacts until text-based rescoring is wired in.
