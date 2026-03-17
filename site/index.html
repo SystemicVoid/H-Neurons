@@ -48,10 +48,11 @@
       scaling 38 random neurons produces a compliance slope 26&times; flatter.
     </p>
 
-    <p class="subtitle" style="margin-top: 1rem;">
-      The replication holds. The question is what these neurons actually encode
-      (general over-compliance, context credulity, or something else)
-      and whether they can be safely targeted without weakening the model's refusal capabilities.
+    <p class="subtitle" style="margin-top: 1.25rem;">
+      The replication holds. Three extensions are now running:
+      <strong>SAE decomposition</strong> to find a monosemantic "compliance feature" inside the polysemantic H-Neurons, using Gemma Scope's 16k-width SAEs that fit alongside the model in 16GB VRAM;
+      <strong>anti-H-Neuron investigation</strong> of the 38 negative-weight (hallucination-suppressive) neurons the paper ignored, testing whether amplifying a natural truthfulness circuit can reduce hallucination;
+      and <strong>swing sample profiling</strong> to determine whether H-Neurons override genuine knowledge (alarming) or just mask appropriate uncertainty (a narrower safety concern).
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
