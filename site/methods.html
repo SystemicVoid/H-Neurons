@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Methods | H-Neurons</title>
+<link rel="stylesheet" href="assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="index.html">This Week</a>
+        <a href="results/gemma-3-4b.html">Gemma 3 4B Results</a>
+        <a class="active" href="methods.html">Methods</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-purple">Methods</span>
+    <h1>Pipeline, prompts,<br>and evaluation contract</h1>
+    <p class="subtitle">
+      This page holds the background material that was crowding the weekly landing page:
+      how the Gemma detector was built, what gets filtered out before the classifier sees anything,
+      and where prompt wording and evaluator assumptions can quietly distort the headline.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2.5rem;">
+      <div class="metric-card">
+        <div class="label">TriviaQA start</div>
+        <div class="value val-teal">3,500</div>
+        <div class="detail">Questions sampled for the Gemma pass</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Usable extraction set</div>
+        <div class="value val-purple">2,997</div>
+        <div class="detail">Rows that survived consistency and answer extraction</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Clean test set</div>
+        <div class="value val-coral">782</div>
+        <div class="detail">Disjoint examples held out for the main classifier result</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Run cost</div>
+        <div class="value val-amber">$3.50</div>
+        <div class="detail">GPT-4o answer-token extraction only</div>
+      </div>
+    </div>
+
+    <div class="section-links">
+      <a class="section-link" href="#pipeline">Pipeline</a>
+      <a class="section-link" href="#prompting">Prompt framing</a>
+      <a class="section-link" href="#reproducibility">Reproducibility</a>
+    </div>
+  </div>
+</section>
+
+<section id="pipeline">
+  <div class="fade-in">
+    <span class="tag tag-teal">Pipeline</span>
+    <h2>From 3,500 questions to 38 paper-faithful neurons</h2>
+    <p class="subtitle">
+      The detector is downstream of several aggressive filters. That matters because each filter removes a different kind of uncertainty before the classifier ever fits a boundary.
+    </p>
+
+    <div class="pipeline" style="margin-top: 2rem;">
+      <div class="pipeline-step">
+        <div class="step-num">Stage 1</div>
+        <div class="step-title">Response collection</div>
+        <div class="step-stat val-teal">3,500</div>
+        <div class="step-detail">TriviaQA questions, 10 responses each</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-num">Stage 2</div>
+        <div class="step-title">Consistency filter</div>
+        <div class="step-stat val-teal">3,115</div>
+        <div class="step-detail">89% agreement, exact 10/10 match</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-num">Stage 3</div>
+        <div class="step-title">Answer extraction</div>
+        <div class="step-stat val-teal">2,997</div>
+        <div class="step-detail">GPT-4o token extraction</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-num">Stage 4</div>
+        <div class="step-title">Activation extraction</div>
+        <div class="step-stat val-purple">348K</div>
+        <div class="step-detail">CETT features per sample</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-num">Stage 5</div>
+        <div class="step-title">L1 classifier</div>
+        <div class="step-stat val-coral">38</div>
+        <div class="step-detail">Positive-weight neurons at C=1.0</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top: 2.5rem;">Data funnel</h3>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">
+      Like a sieve with several different mesh sizes, the pipeline removes unstable questions, extraction failures, and overlapping evaluation rows before any neuron gets credited for predictive signal.
+    </p>
+    <div class="funnel">
+      <div class="funnel-bar" style="width: 100%; background: rgba(78, 205, 196, 0.25);">
+        <span class="funnel-label">TriviaQA questions</span>
+        <span class="funnel-num val-teal">3,500</span>
+      </div>
+      <div class="funnel-bar" style="width: 89%; background: rgba(78, 205, 196, 0.22);">
+        <span class="funnel-label">Consistent (10/10)</span>
+        <span class="funnel-num val-teal">3,115</span>
+      </div>
+      <div class="funnel-bar" style="width: 85.6%; background: rgba(78, 205, 196, 0.19);">
+        <span class="funnel-label">Tokens extracted</span>
+        <span class="funnel-num val-teal">2,997</span>
+      </div>
+      <div class="funnel-bar" style="width: 57.1%; background: rgba(127, 119, 221, 0.22);">
+        <span class="funnel-label">Train set (balanced)</span>
+        <span class="funnel-num val-purple">2,000</span>
+      </div>
+      <div class="funnel-bar" style="width: 22.3%; background: rgba(127, 119, 221, 0.18);">
+        <span class="funnel-label">Disjoint test set</span>
+        <span class="funnel-num val-purple">782</span>
+      </div>
+      <div class="funnel-bar" style="width: 1.1%; min-width: 180px; background: rgba(255, 107, 107, 0.25);">
+        <span class="funnel-label">H-Neurons</span>
+        <span class="funnel-num val-coral">38</span>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Methodological consequence:</strong> the consistency filter is not neutral.
+      It removes exactly the rows where the model wobbles across samples, so the fitted detector is trained more on confident behavior than on borderline uncertainty.
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">Process note</div>
+  <p class="ref-text">
+    The funnel is a reminder that data preparation is part of the hypothesis, not just housekeeping.
+    The 89% consistency filter and the 118 apostrophe-related extraction failures both tilt the final dataset toward cleaner surface forms and stabler answers.
+    That does not invalidate the detector, but it does narrow the regime it speaks for.
+  </p>
+</div>
+
+<section id="prompting" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Prompt framing</span>
+    <h2>Prompt wording and evaluator format need to agree</h2>
+    <p class="subtitle">
+      The anti-compliance prompt and the standard FaithEval prompt ask for different output styles.
+      If the evaluator only knows how to read one of them, a formatting shift can look like a semantic failure.
+    </p>
+
+    <div class="prompt-compare">
+      <div class="prompt-card" style="border-color: var(--accent-teal);">
+        <div class="prompt-label" style="color: var(--accent-teal);">Anti-compliance prompt</div>
+        <code>Context: {context}
+Question: {question}
+{choices}
+
+<em>If the context conflicts with
+established knowledge, answer based
+on your own knowledge.</em>
+Answer with just the letter.</code>
+      </div>
+      <div class="prompt-card" style="border-color: var(--accent-amber);">
+        <div class="prompt-label" style="color: var(--accent-amber);">Standard FaithEval prompt</div>
+        <code>You are an expert in retrieval
+question answering. Please respond
+with <em>the exact answer only</em>. Do not
+be verbose or provide extra information.
+
+Context: {context}
+Question: {question}
+{choices}
+Answer:</code>
+      </div>
+    </div>
+
+    <div class="comparison">
+      <div class="compare-card" style="text-align: left;">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Prompt contract</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--text-primary);">Letter vs exact answer</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          One prompt rewards a multiple-choice surface form. The other explicitly asks the model to suppress that surface form.
+        </div>
+      </div>
+      <div class="compare-card highlight" style="text-align: left;">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Evaluator contract</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">MC-letter parser</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          If the model outputs the exact answer text instead of a recoverable option letter, the raw score can drop even when answer content improved.
+        </div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Why this belongs in methods:</strong> this is a measurement contract issue, not just a result.
+      It is the same kind of failure mode as reading a temperature probe in Fahrenheit when the sensor switched to Celsius:
+      the world may be stable while the measurement pipeline misreads the units.
+    </div>
+  </div>
+</section>
+
+<section id="reproducibility" class="short">
+  <div class="fade-in">
+    <span class="tag tag-teal">Reproducibility</span>
+    <h2>The replication is cheap enough to rerun, if the failure modes stay documented</h2>
+    <p class="subtitle">
+      The main operational win is not just the cost. It is that the bugs are now known, named, and recoverable instead of hiding as silent drift in a slide deck.
+    </p>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Wall time and hardware</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The full Gemma pass took about 4.5 hours wall time and fits on a single 16GB GPU for the local pipeline stages.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Known bugs now surfaced</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The apostrophe parser issue, train/test overlap, token-matching failures, and standard-prompt parse confound are all documented instead of being buried in notes.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Current limitation</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Confidence intervals are still missing, so all current site metrics must continue to say "no CI yet" rather than pretending the error bars are settled.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">Reproducibility note</div>
+  <p class="ref-text">
+    A good replication pipeline should behave like a flight checklist: expensive mistakes become visible before takeoff.
+    The value here is not that Gemma was easy once, but that the next model family can start from a map of the failure points instead of rediscovering each one.
+  </p>
+</div>
+
+<footer>
+  H-Neurons Methods &mdash; Gemma 3 4B &mdash; March 2026<br>
+  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a>
+</footer>
+
+<script src="assets/shared.js"></script>
+
+</body>
+</html>
