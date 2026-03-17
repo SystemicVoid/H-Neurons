@@ -2,7 +2,7 @@
 
 > Implementation guidelines for evolving `site/` from a single-page monolith into a maintainable, data-driven multi-page research presentation.
 >
-> **Status**: In progress — Session 3 completed on 2026-03-16.
+> **Status**: In progress — Session 4 completed on 2026-03-17.
 > **Created**: 2026-03-16
 > **Context**: The current `site/index.html` is a ~2100-line, 77KB hand-maintained HTML file containing all narrative, CSS, chart data, and JS. As the project grows (Mistral-24B replication, SAE features, conditional gating, weekly advisor meetings), this monolith will not scale.
 
@@ -305,7 +305,7 @@ Each entry links to its results page when work begins.
 
 - [x] Write `scripts/export_site_data.py` to export `site/data/intervention_sweep.json` from committed intervention artifacts with provenance notes
 - [ ] Extend the exporter to classifier-derived site JSON files once a direct canonical source exists
-- [ ] Wire `charts.js` to `fetch()` these files instead of hardcoded arrays
+- [x] Wire `charts.js` to `fetch()` these files instead of hardcoded arrays
 - [ ] Wire metric cards to read from fetched data
 - [ ] Verify all charts and cards render identically to current
 
@@ -354,6 +354,38 @@ Each entry links to its results page when work begins.
 | 2026-03-16 | Session 1 | `refactor(site): extract shared styles and runtime helpers` | Extracted shared CSS and non-chart runtime from `site/index.html`, rewired the page to load `site/assets/shared.css` and `site/assets/shared.js`, and created `site/data/` for future JSON exports. | Move the remaining inline chart bootstrapping into `site/assets/charts.js` without changing the current hardcoded data yet. |
 | 2026-03-16 | Session 2 | `refactor(site): move chart bootstrapping into charts module` | Extracted the remaining Chart.js setup from `site/index.html` into `site/assets/charts.js`, rewired the page to load the new asset, and kept all chart data hardcoded so rendered behavior stays equivalent. | Add a small export script for `site/data/intervention_sweep.json` from committed intervention artifacts, with provenance fields and no classifier backfill from prose. |
 | 2026-03-16 | Session 3 | `feat(site): export intervention sweep data` | Added `scripts/export_site_data.py` and generated `site/data/intervention_sweep.json` from committed FaithEval artifacts, including derived parse-failure and parseable-subset series, anti-compliance population structure, and explicit notes that strict answer-text remapping is only available for standard prompt α=3.0. | Wire the four intervention charts in `site/assets/charts.js` to fetch `site/data/intervention_sweep.json`, remove the hardcoded intervention arrays, and keep any still-manual intervention prose explicitly marked as partial where it depends on the α=3.0-only remap. |
+| 2026-03-17 | Session 4 | `refactor(site): load intervention charts from exported sweep data` | Rewired the four intervention charts in `site/assets/charts.js` to fetch `site/data/intervention_sweep.json`, resolved the JSON path relative to the module so future nested pages can reuse it safely, and verified over local HTTP that the page fetches the JSON and instantiates all intervention charts with the expected series. | Wire the intervention metric cards and static comparison numbers in `site/index.html` to the same JSON so the intervention section stops duplicating values in HTML as well as JS. |
+
+---
+
+## Tomorrow Pickup
+
+### Current state
+
+- Phase 1 is complete: shared CSS, shared runtime, and chart bootstrapping are all extracted from `site/index.html`.
+- The first site data contract now exists at `site/data/intervention_sweep.json`, and the four intervention charts now render from it over HTTP.
+- The exporter is intentionally scoped to intervention data only; classifier-derived site JSON remains deferred until a direct canonical source exists.
+
+### Open issues / constraints
+
+- `site/index.html` still hardcodes intervention metric-card values and comparison-tile numbers even though the exported JSON now exists.
+- The standard-prompt strict answer-text correction is only canonical for `alpha=3.0`; do not imply a full corrected sweep yet.
+- Standard-prompt population breakdown remains withdrawn until text-based rescoring exists across all alpha values.
+- Confidence intervals are still missing, so all exported intervention metrics remain explicitly `no_ci_yet`.
+
+### Recommended next slice
+
+1. Wire the intervention metric cards in `site/index.html` to `site/data/intervention_sweep.json` so values like `66.0%`, `68.8%`, `70.5%`, and `72.1%` stop living as HTML literals.
+2. Wire the parse-failure comparison tiles (`9`, `0.9%`, `150`, `15.0%`) and any other intervention-only numeric callouts from the same JSON payload.
+3. Mark any still-manual intervention prose with explicit provenance comments or `data-source="manual"` where injection is not worth the complexity yet.
+4. Leave classifier, layer-distribution, and top-neuron sections hardcoded for now.
+5. Re-verify over HTTP after the card wiring, because the section will now depend on JSON for both charts and visible summary numbers.
+
+### Acceptance checks for tomorrow
+
+- The intervention section no longer duplicates its own chart numbers inside metric cards or comparison tiles.
+- The page still renders over HTTP with one fetched source of truth for intervention charts and intervention summary numbers.
+- Any narrative sentence that still references the `72.1%` corrected standard result makes clear that it is an `alpha=3.0` correction, not a full-sweep correction.
 
 ---
 
