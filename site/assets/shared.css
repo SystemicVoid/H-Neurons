@@ -465,6 +465,11 @@ h3 {
   gap: 0.65rem;
 }
 
+.chart-value-strip {
+  gap: 0.5rem;
+  margin-top: -0.15rem;
+}
+
 .chart-chip {
   display: inline-flex;
   align-items: center;
@@ -481,6 +486,13 @@ h3 {
 .chart-chip strong {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+.chart-value-strip .chart-chip,
+.chart-series-card .chart-chip {
+  padding: 0.38rem 0.65rem;
+  background: rgba(157, 163, 196, 0.05);
+  font-size: 11.5px;
 }
 
 .chart-series-grid {
