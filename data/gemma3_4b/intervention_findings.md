@@ -5,6 +5,8 @@
 **Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC=0.843 on disjoint test)
 **Reference:** Gao et al., "H-Neurons" (arXiv:2512.01797v2), Section 3 replication
 
+**Related reports:** [pipeline_report.md](pipeline_report.md), [bioasq13b_factoid_probe_transfer_audit.md](bioasq13b_factoid_probe_transfer_audit.md)
+
 ---
 
 ## 1. Raw Data

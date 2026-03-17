@@ -5,6 +5,8 @@
 **Hardware:** RTX 5060 Ti (16 GB VRAM), AMD 9900X, 64 GB RAM
 **Paper reference:** Gao et al., "H-Neurons: On the Existence, Impact, and Origin of Hallucination-Associated Neurons in LLMs" (arXiv:2512.01797v2)
 
+**Related reports:** [intervention_findings.md](intervention_findings.md), [bioasq13b_factoid_probe_transfer_audit.md](bioasq13b_factoid_probe_transfer_audit.md)
+
 ---
 
 ## 1. Results Summary
