@@ -8,6 +8,117 @@ const chartDefaults = {
 Chart.defaults.color = chartDefaults.color;
 Chart.defaults.font.family = chartDefaults.font.family;
 
+const valueLabelPlugin = {
+  id: 'valueLabels',
+  afterDatasetsDraw(chart, _args, pluginOptions) {
+    if (!pluginOptions || pluginOptions.disabled) {
+      return;
+    }
+
+    const { ctx } = chart;
+    const defaultColor = pluginOptions.color ?? '#e8eaf6';
+    const defaultFont = pluginOptions.font ?? { size: 11, weight: '600' };
+    const defaultOffset = pluginOptions.offset ?? 10;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      if (!chart.isDatasetVisible(datasetIndex)) {
+        return;
+      }
+
+      const meta = chart.getDatasetMeta(datasetIndex);
+
+      meta.data.forEach((element, dataIndex) => {
+        const rawValue = dataset.data[dataIndex];
+        const numericValue = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+
+        if (!Number.isFinite(numericValue)) {
+          return;
+        }
+
+        if (pluginOptions.skipZero && numericValue === 0) {
+          return;
+        }
+
+        const formatter = pluginOptions.formatter ?? ((value) => String(value));
+        const label = formatter(rawValue, { chart, dataset, datasetIndex, dataIndex });
+
+        if (!label) {
+          return;
+        }
+
+        const { x, y } = element.tooltipPosition();
+        const isHorizontalBar =
+          chart.config.type === 'bar' && chart.options.indexAxis === 'y';
+        const isLine = chart.config.type === 'line';
+        const offset =
+          typeof pluginOptions.offset === 'function'
+            ? pluginOptions.offset({ chart, dataset, datasetIndex, dataIndex })
+            : defaultOffset;
+
+        let drawX = x;
+        let drawY = y - offset;
+        let textAlign = 'center';
+
+        if (isHorizontalBar) {
+          drawX = x + offset;
+          drawY = y;
+          textAlign = 'left';
+        } else if (isLine) {
+          const direction =
+            typeof pluginOptions.direction === 'function'
+              ? pluginOptions.direction({ chart, dataset, datasetIndex, dataIndex })
+              : pluginOptions.direction ?? (datasetIndex % 2 === 0 ? -1 : 1);
+          drawY = y + offset * direction;
+        }
+
+        ctx.fillStyle =
+          typeof pluginOptions.color === 'function'
+            ? pluginOptions.color({ chart, dataset, datasetIndex, dataIndex })
+            : defaultColor;
+        ctx.font = `${defaultFont.weight ?? '600'} ${defaultFont.size ?? 11}px ${Chart.defaults.font.family}`;
+        ctx.textAlign = textAlign;
+        ctx.fillText(label, drawX, drawY);
+      });
+    });
+
+    ctx.restore();
+  },
+};
+
+Chart.register(valueLabelPlugin);
+
+function renderHtml(targetId, html) {
+  const node = document.getElementById(targetId);
+
+  if (node) {
+    node.innerHTML = html;
+  }
+}
+
+function alphaChip(alpha, value) {
+  return `<span class="chart-chip"><strong>\u03b1=${alpha.toFixed(1)}</strong> ${value}</span>`;
+}
+
+function renderSeriesGrid(targetId, cards) {
+  renderHtml(
+    targetId,
+    cards
+      .map(
+        (card) => `
+          <div class="chart-series-card">
+            <div class="chart-series-title ${card.tone}">${card.title}</div>
+            <div class="chart-chip-row">${card.chips.join('')}</div>
+          </div>
+        `
+      )
+      .join('')
+  );
+}
+
 // --- Classifier performance chart ---
 const classifierChartCanvas = document.getElementById('classifierChart');
 
@@ -35,6 +146,12 @@ if (classifierChartCanvas) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
+        valueLabels: {
+          formatter: (value, context) => {
+            const metric = context.chart.data.labels[context.dataIndex];
+            return metric === 'AUC' ? value.toFixed(3) : `${(value * 100).toFixed(1)}%`;
+          },
+        },
         tooltip: {
           callbacks: {
             label: (ctx) => (ctx.parsed.y * 100).toFixed(1) + '%'
@@ -108,6 +225,11 @@ if (layerChartCanvas) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
+        valueLabels: {
+          formatter: (value) => (value > 0 ? `${value}` : ''),
+          skipZero: true,
+          offset: 12,
+        },
         tooltip: {
           callbacks: {
             title: (items) => 'Layer ' + items[0].label.slice(1),
@@ -168,6 +290,10 @@ if (topNeuronsChartCanvas) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
+        valueLabels: {
+          formatter: (value) => value.toFixed(3),
+          offset: 10,
+        },
         tooltip: {
           callbacks: {
             label: (ctx) => 'Weight: ' + ctx.parsed.x.toFixed(3)
@@ -252,6 +378,17 @@ function hydrateInterventionSummary(interventionData) {
     'benchmark-detail',
     `${formatCount(antiBaseline.n_total)} counterfactual MC questions · ${formatCiStatus(interventionData.ci_status)}`
   );
+  setInterventionText('intervention-chart-n', `n=${formatCount(antiBaseline.n_total)} questions per α`);
+  setInterventionText('intervention-chart-ci', `CI status: ${formatCiStatus(antiComplianceSeries.ci_status)}`);
+  setInterventionText('parse-failure-chart-n', `n=${formatCount(parseAlphaZero.n_total)} responses per α`);
+  setInterventionText('parse-failure-chart-ci', `CI status: ${formatCiStatus(interventionData.parse_failures.ci_status)}`);
+  setInterventionText(
+    'adjusted-chart-n',
+    `n=1,000 total; parseable subset ${formatCount(interventionPointByAlpha(standardParseableSubsetSeries.points, 0.0).parseable_n)}→${formatCount(interventionPointByAlpha(standardParseableSubsetSeries.points, 3.0).parseable_n)}`
+  );
+  setInterventionText('adjusted-chart-ci', `CI status: ${formatCiStatus(standardParseableSubsetSeries.ci_status)}`);
+  setInterventionText('population-chart-n', `n=1,000 questions`);
+  setInterventionText('population-chart-ci', `CI status: ${formatCiStatus(interventionData.population.anti_compliance.ci_status)}`);
   setInterventionText('anti-baseline-value', formatPercent(antiBaseline.compliance_pct));
   setInterventionText(
     'anti-baseline-detail',
@@ -320,11 +457,85 @@ async function initInterventionCharts() {
   const antiComplianceSeries = interventionData.series.anti_compliance;
   const standardRawSeries = interventionData.series.standard_raw;
   const standardParseableSubsetSeries = interventionData.series.standard_parseable_subset;
+  const standardTextRemapAlphaThree = interventionData.series.standard_text_remap.by_alpha['3.0'];
   const parseFailures = interventionData.parse_failures.points;
   const antiCompliancePopulation = interventionData.population.anti_compliance;
   const swingBreakdown = antiCompliancePopulation.swing_breakdown;
 
   hydrateInterventionSummary(interventionData);
+  renderSeriesGrid('interventionValueGrid', [
+    {
+      title: 'Anti-compliance',
+      tone: 'teal',
+      chips: antiComplianceSeries.points.map((point) =>
+        alphaChip(point.alpha, formatPercent(point.compliance_pct))
+      ),
+    },
+    {
+      title: 'Standard raw',
+      tone: 'amber',
+      chips: standardRawSeries.points.map((point) =>
+        alphaChip(point.alpha, formatPercent(point.compliance_pct))
+      ),
+    },
+  ]);
+  renderHtml(
+    'parseFailureValueStrip',
+    parseFailures
+      .map((point) => alphaChip(point.alpha, `${formatCount(point.count)} (${formatPercent(point.pct)})`))
+      .join('')
+  );
+  renderSeriesGrid('adjustedComplianceValueGrid', [
+    {
+      title: 'Anti-compliance',
+      tone: 'teal',
+      chips: antiComplianceSeries.points.map((point) =>
+        alphaChip(point.alpha, formatPercent(point.compliance_pct))
+      ),
+    },
+    {
+      title: 'Standard raw',
+      tone: 'amber',
+      chips: standardRawSeries.points.map((point) =>
+        alphaChip(point.alpha, formatPercent(point.compliance_pct))
+      ),
+    },
+    {
+      title: 'Parseable subset',
+      tone: 'purple',
+      chips: standardParseableSubsetSeries.points.map((point) =>
+        alphaChip(point.alpha, `${formatPercent(point.compliance_pct)} on n=${formatCount(point.parseable_n)}`)
+      ),
+    },
+    {
+      title: 'Strict remap',
+      tone: 'coral',
+      chips: [
+        alphaChip(
+          standardTextRemapAlphaThree.alpha,
+          `${formatPercent(standardTextRemapAlphaThree.strict_rescored_compliance_pct)} full-pop correction`
+        ),
+      ],
+    },
+  ]);
+  renderSeriesGrid('populationValueGrid', [
+    {
+      title: 'Fixed groups',
+      tone: 'purple',
+      chips: [
+        `<span class="chart-chip"><strong>Always compliant</strong> ${formatCount(antiCompliancePopulation.always_compliant.count)} (${formatPercent(antiCompliancePopulation.always_compliant.pct)})</span>`,
+        `<span class="chart-chip"><strong>Never compliant</strong> ${formatCount(antiCompliancePopulation.never_compliant.count)} (${formatPercent(antiCompliancePopulation.never_compliant.pct)})</span>`,
+        `<span class="chart-chip"><strong>Swing pool</strong> ${formatCount(antiCompliancePopulation.swing.count)} (${formatPercent(antiCompliancePopulation.swing.pct)})</span>`,
+      ],
+    },
+    {
+      title: 'Swing by α',
+      tone: 'teal',
+      chips: swingBreakdown.map((point) =>
+        alphaChip(point.alpha, `${point.swing_compliant}/${point.swing_resistant} compliant/resistant`)
+      ),
+    },
+  ]);
 
   if (interventionChartCanvas) {
     new Chart(interventionChartCanvas, {
@@ -376,6 +587,12 @@ async function initInterventionCharts() {
               padding: 16,
               font: { size: 12 }
             }
+          },
+          valueLabels: {
+            formatter: (value) => `${value.toFixed(1)}%`,
+            offset: 12,
+            direction: ({ datasetIndex }) => (datasetIndex === 0 ? -1 : 1),
+            color: ({ datasetIndex }) => (datasetIndex === 0 ? '#4ecdc4' : '#f0a500'),
           },
           tooltip: {
             callbacks: {
@@ -430,6 +647,10 @@ async function initInterventionCharts() {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
+          valueLabels: {
+            formatter: (value) => `${value}`,
+            offset: 12,
+          },
           tooltip: {
             callbacks: {
               label: (ctx) => ctx.parsed.y + ' responses (' + (ctx.parsed.y / 10).toFixed(1) + '%)'

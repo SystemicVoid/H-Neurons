@@ -108,8 +108,23 @@
       </div>
     </div>
 
+    <div class="chart-meta">
+      <div class="chart-kicker">Bars print the exact held-out metric values directly on the plot.</div>
+      <div class="chart-chip-row">
+        <span class="chart-chip"><strong>n=782</strong> disjoint test samples</span>
+        <span class="chart-chip"><strong>CI status:</strong> no CI yet</span>
+        <span class="chart-chip"><strong>F1:</strong> 76.4%</span>
+      </div>
+    </div>
     <div class="chart-container">
       <canvas id="classifierChart"></canvas>
+    </div>
+    <div class="chart-value-strip">
+      <span class="chart-chip"><strong>Accuracy</strong> 76.5%</span>
+      <span class="chart-chip"><strong>AUC</strong> 0.843</span>
+      <span class="chart-chip"><strong>Precision</strong> 76.7%</span>
+      <span class="chart-chip"><strong>Recall</strong> 76.1%</span>
+      <span class="chart-chip"><strong>F1</strong> 76.4%</span>
     </div>
 
     <div class="comparison">
@@ -150,6 +165,14 @@
       which is more consistent with early confidence or familiarity cues than with a purely late-stage reasoning effect.
     </p>
 
+    <div class="chart-meta">
+      <div class="chart-kicker">Only non-zero bars are labeled so the sparse layer counts stay readable.</div>
+      <div class="chart-chip-row">
+        <span class="chart-chip"><strong>n=38</strong> selected H-Neurons</span>
+        <span class="chart-chip"><strong>CI status:</strong> descriptive count</span>
+        <span class="chart-chip"><strong>Early-heavy split:</strong> 18 in layers 0-10</span>
+      </div>
+    </div>
     <div class="chart-container">
       <canvas id="layerChart"></canvas>
     </div>
@@ -201,6 +224,14 @@
       </div>
     </div>
 
+    <div class="chart-meta">
+      <div class="chart-kicker">Each horizontal bar carries its exact L1 weight so the rank gaps are visible at a glance.</div>
+      <div class="chart-chip-row">
+        <span class="chart-chip"><strong>n=10</strong> top-weight neurons shown</span>
+        <span class="chart-chip"><strong>CI status:</strong> not applicable</span>
+        <span class="chart-chip"><strong>#1 vs #2 gap:</strong> 1.65&times;</span>
+      </div>
+    </div>
     <div class="chart-container">
       <canvas id="topNeuronsChart"></canvas>
     </div>
@@ -299,9 +330,18 @@
       </div>
     </div>
 
+    <div class="chart-meta">
+      <div class="chart-kicker">Point labels print both prompt-style compliance rates at every intervention strength.</div>
+      <div class="chart-chip-row">
+        <span class="chart-chip" data-intervention-bind="intervention-chart-n">Loading n...</span>
+        <span class="chart-chip" data-intervention-bind="intervention-chart-ci">Loading CI status...</span>
+        <span class="chart-chip"><strong>Prompt frames:</strong> anti-compliance vs standard raw</span>
+      </div>
+    </div>
     <div class="chart-container">
       <canvas id="interventionChart"></canvas>
     </div>
+    <div class="chart-series-grid" id="interventionValueGrid"></div>
 
     <div class="insight-box" data-source="manual" data-status="ARTIFACT">
       <strong>Why the curves disagree on first read:</strong> the anti-compliance prompt asks for a letter and the evaluator grades letters.
@@ -345,9 +385,18 @@ Answer:</code>
       </div>
     </div>
 
+    <div class="chart-meta">
+      <div class="chart-kicker">Bar labels show the exact count of standard-prompt responses the MC-letter parser could not recover.</div>
+      <div class="chart-chip-row">
+        <span class="chart-chip" data-intervention-bind="parse-failure-chart-n">Loading n...</span>
+        <span class="chart-chip" data-intervention-bind="parse-failure-chart-ci">Loading CI status...</span>
+        <span class="chart-chip"><strong>Worst point:</strong> 150 failures at &alpha;=3.0</span>
+      </div>
+    </div>
     <div class="chart-container">
       <canvas id="parseFailureChart"></canvas>
     </div>
+    <div class="chart-value-strip" id="parseFailureValueStrip"></div>
 
     <div class="comparison" style="margin-top: 1.5rem;">
       <div class="compare-card">
@@ -362,9 +411,18 @@ Answer:</code>
       </div>
     </div>
 
+    <div class="chart-meta">
+      <div class="chart-kicker">The three rows below separate raw scoring, parseable-only scoring, and the strict answer-text correction that currently exists only at &alpha;=3.0.</div>
+      <div class="chart-chip-row">
+        <span class="chart-chip" data-intervention-bind="adjusted-chart-n">Loading sample context...</span>
+        <span class="chart-chip" data-intervention-bind="adjusted-chart-ci">Loading CI status...</span>
+        <span class="chart-chip"><strong>Current full-pop correction:</strong> only committed for &alpha;=3.0</span>
+      </div>
+    </div>
     <div class="chart-container">
       <canvas id="adjustedComplianceChart"></canvas>
     </div>
+    <div class="chart-series-grid" id="adjustedComplianceValueGrid"></div>
   </div>
 </section>
 
@@ -377,9 +435,18 @@ Answer:</code>
       but it also means average-rate changes blur together two very different populations: frozen cases and swing cases.
     </p>
 
+    <div class="chart-meta">
+      <div class="chart-kicker">The stacked bars show fixed groups plus the swing bloc that flips toward compliance as &alpha; increases.</div>
+      <div class="chart-chip-row">
+        <span class="chart-chip" data-intervention-bind="population-chart-n">Loading n...</span>
+        <span class="chart-chip" data-intervention-bind="population-chart-ci">Loading CI status...</span>
+        <span class="chart-chip"><strong>Swing pool:</strong> 138 samples</span>
+      </div>
+    </div>
     <div class="chart-container">
       <canvas id="populationChart"></canvas>
     </div>
+    <div class="chart-series-grid" id="populationValueGrid"></div>
 
     <div class="metrics-grid">
       <div class="metric-card" data-status="PROVISIONAL">
