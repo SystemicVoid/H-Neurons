@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-16",
+  "generated_at": "2026-03-17",
   "generated_by": "scripts/export_site_data.py",
   "benchmark": "faitheval",
   "model": "google/gemma-3-4b-it",
   "classifier": "models/gemma3_4b_classifier.pkl",
   "n_h_neurons": 38,
-  "ci_status": "no_ci_yet",
+  "ci_status": "available_with_partial_series",
   "alphas": [
     0.0,
     0.5,
@@ -46,119 +46,275 @@
     "anti_compliance": {
       "label": "Anti-compliance prompt",
       "prompt_style": "anti_compliance",
-      "ci_status": "no_ci_yet",
+      "ci_status": "available",
+      "effects": {
+        "rates": [
+          0.642,
+          0.654,
+          0.66,
+          0.67,
+          0.682,
+          0.695,
+          0.705
+        ],
+        "delta_0_to_max_pp": {
+          "estimate": 6.2999999999999945,
+          "ci": {
+            "lower": 4.199999999999992,
+            "upper": 8.499999999999996,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "slope_pp_per_alpha": {
+          "estimate": 2.092857142857138,
+          "ci": {
+            "lower": 1.378571428571427,
+            "upper": 2.8285714285714203,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
       "points": [
         {
           "alpha": 0.0,
           "n_total": 1000,
           "n_compliant": 642,
           "compliance_rate": 0.642,
-          "compliance_pct": 64.2
+          "compliance_pct": 64.2,
+          "ci": {
+            "lower": 0.6117948042178514,
+            "upper": 0.671118396372251,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 0.5,
           "n_total": 1000,
           "n_compliant": 654,
           "compliance_rate": 0.654,
-          "compliance_pct": 65.4
+          "compliance_pct": 65.4,
+          "ci": {
+            "lower": 0.6239780184885133,
+            "upper": 0.6828433398979358,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 1.0,
           "n_total": 1000,
           "n_compliant": 660,
           "compliance_rate": 0.66,
-          "compliance_pct": 66.0
+          "compliance_pct": 66.0,
+          "ci": {
+            "lower": 0.6300773195897643,
+            "upper": 0.6886981176948581,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 1.5,
           "n_total": 1000,
           "n_compliant": 670,
           "compliance_rate": 0.67,
-          "compliance_pct": 67.0
+          "compliance_pct": 67.0,
+          "ci": {
+            "lower": 0.6402544426353417,
+            "upper": 0.6984444594795697,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 2.0,
           "n_total": 1000,
           "n_compliant": 682,
           "compliance_rate": 0.682,
-          "compliance_pct": 68.2
+          "compliance_pct": 68.2,
+          "ci": {
+            "lower": 0.6524865706462925,
+            "upper": 0.7101204892649655,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 2.5,
           "n_total": 1000,
           "n_compliant": 695,
           "compliance_rate": 0.695,
-          "compliance_pct": 69.5
+          "compliance_pct": 69.5,
+          "ci": {
+            "lower": 0.6657628366716069,
+            "upper": 0.7227447275190266,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 3.0,
           "n_total": 1000,
           "n_compliant": 705,
           "compliance_rate": 0.705,
-          "compliance_pct": 70.5
+          "compliance_pct": 70.5,
+          "ci": {
+            "lower": 0.6759934395775895,
+            "upper": 0.7324375894433328,
+            "level": 0.95,
+            "method": "wilson"
+          }
         }
       ]
     },
     "standard_raw": {
       "label": "Standard prompt (raw MC-letter score)",
       "prompt_style": "standard",
-      "ci_status": "no_ci_yet",
+      "ci_status": "available",
+      "effects": {
+        "rates": [
+          0.691,
+          0.684,
+          0.688,
+          0.698,
+          0.686,
+          0.669,
+          0.636
+        ],
+        "delta_0_to_max_pp": {
+          "estimate": -5.499999999999994,
+          "ci": {
+            "lower": -8.102499999999985,
+            "upper": -2.8000000000000025,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "slope_pp_per_alpha": {
+          "estimate": -1.4071428571428672,
+          "ci": {
+            "lower": -2.3000000000000167,
+            "upper": -0.5214285714285782,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
       "points": [
         {
           "alpha": 0.0,
           "n_total": 1000,
           "n_compliant": 691,
           "compliance_rate": 0.691,
-          "compliance_pct": 69.1
+          "compliance_pct": 69.1,
+          "ci": {
+            "lower": 0.6616750359751814,
+            "upper": 0.7188631422833365,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 0.5,
           "n_total": 1000,
           "n_compliant": 684,
           "compliance_rate": 0.684,
-          "compliance_pct": 68.4
+          "compliance_pct": 68.4,
+          "ci": {
+            "lower": 0.6545273749814833,
+            "upper": 0.7120643778958327,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 1.0,
           "n_total": 1000,
           "n_compliant": 688,
           "compliance_rate": 0.688,
-          "compliance_pct": 68.8
+          "compliance_pct": 68.8,
+          "ci": {
+            "lower": 0.6586108249018995,
+            "upper": 0.7159503139075317,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 1.5,
           "n_total": 1000,
           "n_compliant": 698,
           "compliance_rate": 0.698,
-          "compliance_pct": 69.8
+          "compliance_pct": 69.8,
+          "ci": {
+            "lower": 0.6688303415169654,
+            "upper": 0.7256542621227547,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 2.0,
           "n_total": 1000,
           "n_compliant": 686,
           "compliance_rate": 0.686,
-          "compliance_pct": 68.6
+          "compliance_pct": 68.6,
+          "ci": {
+            "lower": 0.6565687920179984,
+            "upper": 0.7140076538253752,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 2.5,
           "n_total": 1000,
           "n_compliant": 669,
           "compliance_rate": 0.669,
-          "compliance_pct": 66.9
+          "compliance_pct": 66.9,
+          "ci": {
+            "lower": 0.63923606946991,
+            "upper": 0.6974704861619725,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 3.0,
           "n_total": 1000,
           "n_compliant": 636,
           "compliance_rate": 0.636,
-          "compliance_pct": 63.6
+          "compliance_pct": 63.6,
+          "ci": {
+            "lower": 0.6057107726047041,
+            "upper": 0.665248349087225,
+            "level": 0.95,
+            "method": "wilson"
+          }
         }
       ]
     },
     "standard_parseable_subset": {
       "label": "Standard prompt (parseable subset only)",
       "prompt_style": "standard",
-      "ci_status": "no_ci_yet",
+      "ci_status": "available_conditional_metric",
       "status": "conditional_metric",
       "notes": [
         "Computed on rows where the evaluator recovered an initial option letter.",
@@ -171,7 +327,13 @@
           "parseable_n": 991,
           "n_compliant": 691,
           "compliance_rate": 0.6972754793138244,
-          "compliance_pct": 69.7
+          "compliance_pct": 69.7,
+          "ci": {
+            "lower": 0.6679541525734413,
+            "upper": 0.7250732957030906,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 0.5,
@@ -179,7 +341,13 @@
           "parseable_n": 989,
           "n_compliant": 684,
           "compliance_rate": 0.6916076845298281,
-          "compliance_pct": 69.2
+          "compliance_pct": 69.2,
+          "ci": {
+            "lower": 0.6621297900470923,
+            "upper": 0.7196028588394476,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 1.0,
@@ -187,7 +355,13 @@
           "parseable_n": 983,
           "n_compliant": 688,
           "compliance_rate": 0.6998982706002035,
-          "compliance_pct": 70.0
+          "compliance_pct": 70.0,
+          "ci": {
+            "lower": 0.6705154658793607,
+            "upper": 0.7277247949925802,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 1.5,
@@ -195,7 +369,13 @@
           "parseable_n": 968,
           "n_compliant": 698,
           "compliance_rate": 0.7210743801652892,
-          "compliance_pct": 72.1
+          "compliance_pct": 72.1,
+          "ci": {
+            "lower": 0.691991174772322,
+            "upper": 0.7484098763614376,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 2.0,
@@ -203,7 +383,13 @@
           "parseable_n": 935,
           "n_compliant": 686,
           "compliance_rate": 0.7336898395721925,
-          "compliance_pct": 73.4
+          "compliance_pct": 73.4,
+          "ci": {
+            "lower": 0.704442521829713,
+            "upper": 0.7610247792723582,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 2.5,
@@ -211,7 +397,13 @@
           "parseable_n": 895,
           "n_compliant": 669,
           "compliance_rate": 0.7474860335195531,
-          "compliance_pct": 74.7
+          "compliance_pct": 74.7,
+          "ci": {
+            "lower": 0.7180065208064461,
+            "upper": 0.7748501400125029,
+            "level": 0.95,
+            "method": "wilson"
+          }
         },
         {
           "alpha": 3.0,
@@ -219,14 +411,20 @@
           "parseable_n": 850,
           "n_compliant": 636,
           "compliance_rate": 0.7482352941176471,
-          "compliance_pct": 74.8
+          "compliance_pct": 74.8,
+          "ci": {
+            "lower": 0.7179847972221771,
+            "upper": 0.7762521546621418,
+            "level": 0.95,
+            "method": "wilson"
+          }
         }
       ]
     },
     "standard_text_remap": {
       "label": "Standard prompt (strict answer-text remap)",
       "prompt_style": "standard",
-      "ci_status": "no_ci_yet",
+      "ci_status": "available_single_alpha_only",
       "status": "single_alpha_only",
       "notes": [
         "Committed strict answer-text remap exists only for alpha=3.0.",
@@ -243,9 +441,31 @@
           "strict_recovered_count": 140,
           "strict_recovered_rate_within_failures": 0.9333333333333333,
           "strict_recovered_compliant_count": 85,
+          "strict_recovered_rate_summary": {
+            "estimate": 0.9333333333333333,
+            "count": 140,
+            "n_total": 150,
+            "ci": {
+              "lower": 0.881637644883941,
+              "upper": 0.9633881433303926,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
           "strict_rescored_compliance_count": 721,
           "strict_rescored_compliance_rate": 0.721,
           "strict_rescored_compliance_pct": 72.1,
+          "strict_rescored_compliance_summary": {
+            "estimate": 0.721,
+            "n_compliant": 721,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.6923963660323501,
+              "upper": 0.7479122067170345,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
           "review_category_counts": {
             "strict_remap": 140,
             "off_option_counterfactual": 3,
@@ -266,78 +486,174 @@
   "parse_failures": {
     "label": "Responses without recoverable option letter",
     "prompt_style": "standard",
-    "ci_status": "no_ci_yet",
+    "ci_status": "available",
+    "effects": {
+      "rates": [
+        0.009,
+        0.011,
+        0.017,
+        0.032,
+        0.065,
+        0.105,
+        0.15
+      ],
+      "delta_0_to_max_pp": {
+        "estimate": 14.099999999999998,
+        "ci": {
+          "lower": 12.0,
+          "upper": 16.3,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "slope_pp_per_alpha": {
+        "estimate": 4.707142857142856,
+        "ci": {
+          "lower": 3.964285714285714,
+          "upper": 5.478571428571429,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "paired_by_sample_id",
+        "interval": "percentile"
+      }
+    },
     "points": [
       {
         "alpha": 0.0,
         "n_total": 1000,
         "count": 9,
         "rate": 0.009,
-        "pct": 0.9
+        "pct": 0.9,
+        "ci": {
+          "lower": 0.004742060667477063,
+          "upper": 0.01701581616533807,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       {
         "alpha": 0.5,
         "n_total": 1000,
         "count": 11,
         "rate": 0.011,
-        "pct": 1.1
+        "pct": 1.1,
+        "ci": {
+          "lower": 0.006153174098086637,
+          "upper": 0.019589395700786275,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       {
         "alpha": 1.0,
         "n_total": 1000,
         "count": 17,
         "rate": 0.017,
-        "pct": 1.7
+        "pct": 1.7,
+        "ci": {
+          "lower": 0.010640689856816326,
+          "upper": 0.027055958840229925,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       {
         "alpha": 1.5,
         "n_total": 1000,
         "count": 32,
         "rate": 0.032,
-        "pct": 3.2
+        "pct": 3.2,
+        "ci": {
+          "lower": 0.02275710785871096,
+          "upper": 0.04482473808376864,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       {
         "alpha": 2.0,
         "n_total": 1000,
         "count": 65,
         "rate": 0.065,
-        "pct": 6.5
+        "pct": 6.5,
+        "ci": {
+          "lower": 0.05132377056906205,
+          "upper": 0.08200550931337092,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       {
         "alpha": 2.5,
         "n_total": 1000,
         "count": 105,
         "rate": 0.105,
-        "pct": 10.5
+        "pct": 10.5,
+        "ci": {
+          "lower": 0.08748778261441682,
+          "upper": 0.1255353565891717,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       {
         "alpha": 3.0,
         "n_total": 1000,
         "count": 150,
         "rate": 0.15,
-        "pct": 15.0
+        "pct": 15.0,
+        "ci": {
+          "lower": 0.12921007251308828,
+          "upper": 0.17346865842680032,
+          "level": 0.95,
+          "method": "wilson"
+        }
       }
     ]
   },
   "population": {
     "anti_compliance": {
       "label": "Anti-compliance prompt",
-      "ci_status": "no_ci_yet",
+      "ci_status": "available",
       "notes": [
         "Derived from per-sample compliance trajectories across the committed anti-compliance alpha sweep."
       ],
       "n_total": 1000,
       "always_compliant": {
         "count": 600,
-        "pct": 60.0
+        "pct": 60.0,
+        "ci": {
+          "lower": 0.5693094295142663,
+          "upper": 0.6299252187886226,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       "never_compliant": {
         "count": 262,
-        "pct": 26.2
+        "pct": 26.2,
+        "ci": {
+          "lower": 0.23569393157936602,
+          "upper": 0.2901276054597582,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       "swing": {
         "count": 138,
-        "pct": 13.8
+        "pct": 13.8,
+        "ci": {
+          "lower": 0.11800457326997434,
+          "upper": 0.16076599987356763,
+          "level": 0.95,
+          "method": "wilson"
+        }
       },
       "swing_breakdown": [
         {
