@@ -272,6 +272,7 @@ h3 {
   border-radius: 12px;
   padding: 1.25rem;
   transition: border-color 0.3s;
+  position: relative;
 }
 .metric-card:hover { border-color: var(--border-accent); }
 .metric-card .label {
@@ -290,6 +291,86 @@ h3 {
   font-size: 13px;
   color: var(--text-secondary);
   margin-top: 4px;
+}
+
+.metric-card[data-status],
+.insight-box[data-status] {
+  position: relative;
+}
+
+.metric-card[data-status]::before,
+.insight-box[data-status]::before {
+  content: attr(data-status);
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  pointer-events: none;
+}
+
+.metric-card[data-status] {
+  padding-top: 2.8rem;
+}
+
+.insight-box[data-status] {
+  padding-top: 2.85rem;
+}
+
+.metric-card[data-status="NEW"],
+.insight-box[data-status="NEW"] {
+  border-color: rgba(127, 119, 221, 0.35);
+}
+
+.metric-card[data-status="NEW"]::before,
+.insight-box[data-status="NEW"]::before {
+  background: var(--accent-purple-dim);
+  border-color: rgba(127, 119, 221, 0.3);
+  color: var(--accent-purple);
+}
+
+.metric-card[data-status="STABLE"],
+.insight-box[data-status="STABLE"] {
+  border-color: rgba(78, 205, 196, 0.24);
+}
+
+.metric-card[data-status="STABLE"]::before,
+.insight-box[data-status="STABLE"]::before {
+  background: var(--accent-teal-dim);
+  border-color: rgba(78, 205, 196, 0.3);
+  color: var(--accent-teal);
+}
+
+.metric-card[data-status="PROVISIONAL"],
+.insight-box[data-status="PROVISIONAL"] {
+  border-color: rgba(240, 165, 0, 0.28);
+}
+
+.metric-card[data-status="PROVISIONAL"]::before,
+.insight-box[data-status="PROVISIONAL"]::before {
+  background: var(--accent-amber-dim);
+  border-color: rgba(240, 165, 0, 0.35);
+  color: var(--accent-amber);
+}
+
+.metric-card[data-status="ARTIFACT"],
+.insight-box[data-status="ARTIFACT"] {
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.metric-card[data-status="ARTIFACT"]::before,
+.insight-box[data-status="ARTIFACT"]::before {
+  background: var(--accent-coral-dim);
+  border-color: rgba(255, 107, 107, 0.35);
+  color: var(--accent-coral);
 }
 
 .val-teal { color: var(--accent-teal); }

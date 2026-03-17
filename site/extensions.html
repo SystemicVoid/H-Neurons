@@ -38,22 +38,22 @@
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Tracked workstreams</div>
         <div class="value val-teal">4</div>
         <div class="detail">Only the near-term branches worth carrying right now</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Fastest falsifier</div>
         <div class="value val-amber">10 min</div>
         <div class="detail">Negative-weight C-sweep stability on CPU</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Best next bet</div>
         <div class="value val-purple" style="font-size: 1.3rem;">Layer-13 SAE</div>
         <div class="detail">Main mechanism sprint on the existing Gemma artifacts</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Zero-GPU branch</div>
         <div class="value val-coral" style="font-size: 1.3rem;">Swing audit</div>
         <div class="detail">Pure analysis on the 14% sensitive population</div>
@@ -253,7 +253,7 @@
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="NEW">
       <strong>Current recommendation:</strong> keep the extensions page focused on these four only for now.
       SAE decomposition is the main sprint. The suppressive-neuron check, swing-sample audit, and refusal-overlap pilot are the short side experiments that make the eventual story harder to fool.
     </div>

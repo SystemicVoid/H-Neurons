@@ -58,22 +58,22 @@
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">H-Neurons found</div>
         <div class="value val-coral">38</div>
         <div class="detail">0.011% of 348,160 MLP neurons</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Clean detector</div>
         <div class="value val-teal">76.5%</div>
         <div class="detail">Disjoint test accuracy (0% overlap)</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Compliance slope</div>
         <div class="value val-amber">2.1%/&alpha;</div>
         <div class="detail">Monotonic, &rho;=1.0, 26&times; above random</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Swing population</div>
         <div class="value val-purple">14%</div>
         <div class="detail">138 of 1,000 samples &alpha;-sensitive</div>
@@ -171,7 +171,7 @@
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="NEW">
       <strong>Reason for the split:</strong> the old landing page was doing two jobs at once.
       Moving the stable findings out is like moving background material from the meeting agenda into the appendix:
       the details stay accessible, but the front page becomes readable again.

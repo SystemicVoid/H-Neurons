@@ -50,22 +50,22 @@
     </div>
 
     <div class="metrics-grid">
-      <div class="metric-card">
+      <div class="metric-card" data-status="ARTIFACT">
         <div class="label">Standalone AUC</div>
         <div class="value val-coral">0.590</div>
         <div class="detail">Below the threshold we set for a unique hub story</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="ARTIFACT">
         <div class="label">Largest contribution share</div>
         <div class="value val-coral">7.4%</div>
         <div class="detail">Far below the 30% "dominant feature" threshold</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="ARTIFACT">
         <div class="label">Ablation loss</div>
         <div class="value val-coral">1.0pp</div>
         <div class="detail">Too small for a single-neuron bottleneck claim</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="ARTIFACT">
         <div class="label">Overall verdict</div>
         <div class="value val-coral">0/6</div>
         <div class="detail">No test supports a unique neuron-hub interpretation</div>
@@ -168,7 +168,7 @@
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="ARTIFACT">
       <strong>Why six tests instead of one:</strong> a neuron can look important by one measure and ordinary by another.
       This grid is designed like a cross-examination, where each test checks a different loophole in the original "hub neuron" hypothesis.
     </div>
@@ -254,7 +254,7 @@
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="ARTIFACT">
       <strong>Practical interpretation:</strong> think of neuron 4288 as the boldface term in a sparse summary, not as the whole argument.
       If the project wants the cleanest paper-faithful replication headline, the 38-neuron set still works as a baseline.
       If the project wants the best mechanistic description, the wider positive-weight detector is the better object.

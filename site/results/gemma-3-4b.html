@@ -38,29 +38,29 @@
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Model</div>
         <div class="value" style="font-size: 1.3rem;">Gemma 3 4B</div>
         <div class="detail">34 layers, 10,240 neurons each</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Total neurons scanned</div>
         <div class="value val-purple">348,160</div>
         <div class="detail">34 x 10,240 MLP positions</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">H-Neurons found</div>
         <div class="value val-coral">38</div>
         <div class="detail">0.011% of all neurons</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Test accuracy</div>
         <div class="value val-teal">76.5%</div>
         <div class="detail">Disjoint test set (0% overlap)</div>
       </div>
     </div>
 
-    <div class="insight-box" style="margin-top: 1.5rem;">
+    <div class="insight-box" data-status="PROVISIONAL" style="margin-top: 1.5rem;">
       <strong>Bottom line:</strong> The detection signal replicated on Gemma, but the sparse 38-neuron story is not the whole story.
       The strongest single neuron is an L1 artifact, and the intervention effect looks more like content-following plus format drift
       than a clean obedience dial.
@@ -86,22 +86,22 @@
     </p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Accuracy</div>
         <div class="value val-teal">76.5%</div>
         <div class="detail">Disjoint test (782 samples) · no CI yet</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">AUC</div>
         <div class="value val-teal">0.843</div>
         <div class="detail">Strong ranking ability · no CI yet</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Precision</div>
         <div class="value val-purple">76.7%</div>
         <div class="detail">Positive predictive value · no CI yet</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Recall</div>
         <div class="value val-purple">76.1%</div>
         <div class="detail">Coverage of hallucinations · no CI yet</div>
@@ -125,7 +125,7 @@
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="STABLE">
       <strong>Why this matters:</strong> Think of the overlap check like retaking an exam with a new question sheet instead of the same answer key.
       The score barely moved, which means the classifier kept its edge when memorization was taken off the table.
     </div>
@@ -155,24 +155,24 @@
     </div>
 
     <div class="metrics-grid">
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Early (L0&ndash;10)</div>
         <div class="value val-coral">47%</div>
         <div class="detail">18 of 38 H-Neurons</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Middle (L11&ndash;20)</div>
         <div class="value val-purple">26%</div>
         <div class="detail">10 of 38 H-Neurons</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Late (L21&ndash;33)</div>
         <div class="value val-teal">26%</div>
         <div class="detail">10 of 38 H-Neurons</div>
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="STABLE">
       <strong>Reading:</strong> If hallucination-related signal were only a last-minute decoding effect, it should pile up near the output end.
       Instead it shows up early, which suggests the model is leaning toward a right-or-wrong path long before it finishes the answer.
     </div>
@@ -205,7 +205,7 @@
       <canvas id="topNeuronsChart"></canvas>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="ARTIFACT">
       <strong>Interpretation:</strong> Weight ranking alone is a bad proxy for importance under L1 sparsity.
       The regularizer concentrates credit onto one representative of a correlated group, so the tallest bar can be a bookkeeping artifact.
     </div>
@@ -251,7 +251,7 @@
       </div>
     </div>
 
-    <div class="insight-box" style="text-align: left; max-width: 720px; margin: 2rem auto;">
+    <div class="insight-box" data-status="ARTIFACT" style="text-align: left; max-width: 720px; margin: 2rem auto;">
       <strong>Practical takeaway:</strong> the 38-neuron detector is useful as a paper-faithful sparse baseline, but not as evidence that the whole mechanism collapses onto one or two superstar neurons.
       The broader 219-neuron detector at C=3.0 is the better candidate if the goal is mechanism coverage rather than paper mimicry.
     </div>
@@ -272,27 +272,27 @@
     </p>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Benchmark</div>
         <div class="value" style="font-size: 1.1rem;">FaithEval</div>
         <div class="detail" data-intervention-bind="benchmark-detail">Loading intervention summary...</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Anti-compliance baseline</div>
         <div class="value val-teal" data-intervention-bind="anti-baseline-value">--</div>
         <div class="detail" data-intervention-bind="anti-baseline-detail">Loading...</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="ARTIFACT">
         <div class="label">Standard raw baseline</div>
         <div class="value val-amber" data-intervention-bind="standard-raw-baseline-value">--</div>
         <div class="detail" data-intervention-bind="standard-raw-baseline-detail">Loading...</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Anti at &alpha;=3.0</div>
         <div class="value val-teal" data-intervention-bind="anti-alpha-three-value">--</div>
         <div class="detail" data-intervention-bind="anti-alpha-three-detail">Loading...</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Standard corrected at &alpha;=3.0</div>
         <div class="value val-amber" data-intervention-bind="standard-remap-alpha-three-value">--</div>
         <div class="detail" data-intervention-bind="standard-remap-alpha-three-detail">Loading...</div>
@@ -303,7 +303,7 @@
       <canvas id="interventionChart"></canvas>
     </div>
 
-    <div class="insight-box" data-source="manual">
+    <div class="insight-box" data-source="manual" data-status="ARTIFACT">
       <strong>Why the curves disagree on first read:</strong> the anti-compliance prompt asks for a letter and the evaluator grades letters.
       The standard prompt asks for exact answer text while the evaluator still looks for letters. That mismatch turns a surface-form shift into a fake compliance drop.
     </div>
@@ -382,24 +382,24 @@ Answer:</code>
     </div>
 
     <div class="metrics-grid">
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Anti headline effect</div>
         <div class="value val-teal">6.3pp</div>
         <div class="detail">&alpha;=0.0 to &alpha;=3.0</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Anti swing samples</div>
         <div class="value val-teal">138</div>
         <div class="detail">13.8% of population</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Standard split</div>
         <div class="value val-amber" style="font-size: 1.4rem;">Pending</div>
         <div class="detail">Raw parser split withdrawn pending all-&alpha; text scoring</div>
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="PROVISIONAL">
       <strong>Analogy:</strong> this looks less like turning a global thermostat and more like nudging a small undecided bloc in an election.
       Most examples do not budge. The visible average shift is carried by a relatively small swing population.
     </div>

@@ -38,22 +38,22 @@
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Current object</div>
         <div class="value val-teal" style="font-size: 1.35rem;">Distributed detector</div>
         <div class="detail">38-neuron sparse baseline, broader 219-neuron mechanism candidate</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Strongest signal</div>
         <div class="value val-purple">76.5%</div>
         <div class="detail">Clean held-out classifier accuracy</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Causal foothold</div>
         <div class="value val-amber">6.3pp</div>
         <div class="detail">Anti-compliance shift from &alpha;=0.0 to &alpha;=3.0</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Main threat</div>
         <div class="value val-coral" style="font-size: 1.35rem;">Measurement drift</div>
         <div class="detail">Prompt/evaluator mismatch and sparse-credit artifacts</div>
@@ -138,17 +138,17 @@
     </div>
 
     <div class="metrics-grid" style="margin-top: 1.5rem;">
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Early-layer concentration</div>
         <div class="value val-coral">47%</div>
         <div class="detail">18 of 38 H-Neurons appear in layers 0-10</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Corrected standard point</div>
         <div class="value val-amber">72.1%</div>
         <div class="detail">Strict answer-text remap at &alpha;=3.0</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Swing population</div>
         <div class="value val-purple">14%</div>
         <div class="detail">Most samples stay frozen under scaling</div>
@@ -193,7 +193,7 @@
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="PROVISIONAL">
       <strong>Why this is the biggest threat:</strong> both failure modes can manufacture a clean-sounding story from a messy underlying process.
       They do not destroy the result outright, but they can quietly change what the result means.
     </div>

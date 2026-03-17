@@ -38,22 +38,22 @@
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">TriviaQA start</div>
         <div class="value val-teal">3,500</div>
         <div class="detail">Questions sampled for the Gemma pass</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Usable extraction set</div>
         <div class="value val-purple">2,997</div>
         <div class="detail">Rows that survived consistency and answer extraction</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Clean test set</div>
         <div class="value val-coral">782</div>
         <div class="detail">Disjoint examples held out for the main classifier result</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" data-status="STABLE">
         <div class="label">Run cost</div>
         <div class="value val-amber">$3.50</div>
         <div class="detail">GPT-4o answer-token extraction only</div>
@@ -212,7 +212,7 @@ Answer:</code>
       </div>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-status="ARTIFACT">
       <strong>Why this belongs in methods:</strong> this is a measurement contract issue, not just a result.
       It is the same kind of failure mode as reading a temperature probe in Fahrenheit when the sensor switched to Celsius:
       the world may be stable while the measurement pipeline misreads the units.
