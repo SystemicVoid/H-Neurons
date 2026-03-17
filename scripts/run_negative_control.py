@@ -20,6 +20,7 @@ import argparse
 import json
 import os
 import sys
+from typing import Any, cast
 
 import joblib
 import matplotlib
@@ -403,11 +404,10 @@ def build_comparison_summary(
 
     # Statistical tests (unconstrained vs H-neurons)
     if "unconstrained_random" in summary:
-        unc = summary["unconstrained_random"]
+        unc = cast(dict[str, Any], summary["unconstrained_random"])
+        per_seed = cast(dict[str, dict[str, Any]], unc["per_seed"])
         # t-test on compliance at alpha=3.0 (per-seed rates vs H-neuron rate)
-        seed_rates_3 = [
-            unc["per_seed"][k]["compliance_rates"][-1] for k in unc["per_seed"]
-        ]
+        seed_rates_3 = [per_seed[k]["compliance_rates"][-1] for k in per_seed]
         h_rate_3 = h_rates[-1]
         if len(seed_rates_3) > 1:
             _, t_p = stats.ttest_1samp(seed_rates_3, h_rate_3)
@@ -415,7 +415,7 @@ def build_comparison_summary(
             t_p = float("nan")
 
         # Slope comparison
-        seed_slopes = [unc["per_seed"][k]["slope_per_alpha"] for k in unc["per_seed"]]
+        seed_slopes = [per_seed[k]["slope_per_alpha"] for k in per_seed]
         if len(seed_slopes) > 1:
             _, s_p = stats.ttest_1samp(seed_slopes, h_slope)
         else:

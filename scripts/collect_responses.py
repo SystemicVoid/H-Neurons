@@ -2,7 +2,7 @@ import os
 import json
 import argparse
 import time
-from typing import List, Set
+from typing import Any, List, Set, cast
 
 import torch
 from tqdm import tqdm
@@ -157,12 +157,14 @@ class ConsistencySampler:
 
         for attempt in range(5):
             try:
+                assert self.judge_client is not None
                 completion = self.judge_client.chat.completions.create(
                     model=self.args.judge_model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
                 )
-                res = completion.choices[0].message.content.strip().lower()
+                content = completion.choices[0].message.content or ""
+                res = content.strip().lower()
                 if "t" in res:
                     return "true"
                 if "f" in res:
@@ -240,7 +242,11 @@ class ConsistencySampler:
                                 skip_special_tokens=True,
                             ).strip()
                         else:
-                            completion = self.sampling_client.chat.completions.create(
+                            create_completion = cast(
+                                Any,
+                                self.sampling_client.chat.completions.create,
+                            )
+                            completion = create_completion(
                                 model="local",
                                 messages=messages,
                                 temperature=1.0,
@@ -248,7 +254,8 @@ class ConsistencySampler:
                                 top_k=50,
                                 max_tokens=50,
                             )
-                            ans = completion.choices[0].message.content.strip()
+                            content = completion.choices[0].message.content or ""
+                            ans = content.strip()
                         responses.append(ans)
 
                         # 1. Uncertainty check (Rule-based pre-filter)
