@@ -52,6 +52,7 @@ scripts/infra/cron_gh200_wakeup.sh
 
 # Local orchestration/scratch state
 .herenow/
+.ob1/
 
 # Costs log for grant reporting
 costs/
