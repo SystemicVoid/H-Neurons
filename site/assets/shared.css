@@ -442,23 +442,29 @@ h3 {
   border-radius: 12px;
   padding: 1.25rem;
   margin: 1.5rem 0;
-  min-height: 380px;
 }
-.chart-container canvas {
+
+.chart-container.chart-shell {
+  min-height: var(--chart-shell-height, 320px);
+  height: var(--chart-shell-height, 320px);
+}
+
+.chart-container.chart-shell canvas {
   display: block;
   width: 100% !important;
-  height: 330px !important;
+  height: 100% !important;
   max-height: none;
+}
+
+.chart-container img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 @media (max-width: 720px) {
   .chart-container {
-    min-height: 300px;
     padding: 1rem;
-  }
-
-  .chart-container canvas {
-    height: 260px !important;
   }
 }
 

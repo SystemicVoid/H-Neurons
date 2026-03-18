@@ -124,12 +124,15 @@ function setChartContainerHeight(canvas, desktopHeight, mobileHeight = 260) {
     return;
   }
 
+  canvas.parentElement.classList.add('chart-shell');
   const targetHeight = window.matchMedia('(max-width: 720px)').matches
     ? mobileHeight
     : desktopHeight;
 
+  canvas.parentElement.style.setProperty('--chart-shell-height', `${targetHeight}px`);
   canvas.parentElement.style.height = `${targetHeight}px`;
   canvas.parentElement.style.minHeight = `${targetHeight}px`;
+  canvas.style.height = '100%';
 }
 
 // --- Classifier performance chart ---
