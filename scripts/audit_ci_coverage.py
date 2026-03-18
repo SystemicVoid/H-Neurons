@@ -312,7 +312,7 @@ def main() -> int:
             errors,
         )
         audit_classifier_summary(
-            "data/gemma3_4b/bioasq13b_factoid_classifier_summary.json",
+            "data/gemma3_4b/probing/bioasq13b_factoid/classifier_summary.json",
             "bioasq_recovery",
             errors,
         )

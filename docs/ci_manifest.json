@@ -81,7 +81,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/bioasq13b_factoid_classifier_summary.json",
+        "file": "data/gemma3_4b/probing/bioasq13b_factoid/classifier_summary.json",
         "path": [
           "evaluation",
           "metrics",
