@@ -128,8 +128,8 @@
     <h2>138 samples, 7 alpha values: the full compliance matrix</h2>
     <p class="subtitle" style="margin-bottom: 1.5rem;">
       Each row is one swing sample, each column is an &alpha; value (0.0 to 3.0).
-      Dark cells indicate compliance with misleading context. The dominant R&rarr;C pattern
-      shows up as rows that transition from light to dark as &alpha; increases.
+      Orange cells indicate resistant behavior, while green cells indicate compliance with misleading context.
+      The dominant R&rarr;C pattern shows up as rows that transition from orange to green as &alpha; increases.
     </p>
 
     <div class="chart-container" style="text-align: center;">
@@ -138,8 +138,8 @@
     </div>
 
     <div class="insight-box">
-      <strong>Reading the heatmap:</strong> if R&rarr;C were just noise, you would see random salt-and-pepper.
-      Instead, the transitions form bands: rows stay light (resistant) at low &alpha; then flip dark (compliant)
+      <strong>Reading the heatmap:</strong> if R&rarr;C were just noise, you would see a scattered mix of orange and green.
+      Instead, the transitions form bands: rows stay orange (resistant) at low &alpha; then flip green (compliant)
       at a specific threshold. That banding pattern is consistent with a genuine decision boundary
       being crossed, not random format drift.
     </div>
