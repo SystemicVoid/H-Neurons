@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-17",
+  "generated_at": "2026-03-18",
   "generated_by": "scripts/export_site_data.py",
   "benchmark": "faitheval",
   "model": "google/gemma-3-4b-it",
@@ -34,7 +34,8 @@
       "data/gemma3_4b/intervention/faitheval_standard/alpha_2.0.jsonl",
       "data/gemma3_4b/intervention/faitheval_standard/alpha_2.5.jsonl",
       "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0.jsonl",
-      "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json"
+      "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json",
+      "data/gemma3_4b/intervention/negative_control/comparison_summary.json"
     ],
     "notes": [
       "Standard-prompt parse failures and parseable-subset rates are derived from committed per-alpha JSONL rows because results.json only stores raw compliance totals.",
@@ -616,6 +617,29 @@
         }
       }
     ]
+  },
+  "negative_control": {
+    "label": "Random 38-neuron control",
+    "status": "available",
+    "source_file": "data/gemma3_4b/intervention/negative_control/comparison_summary.json",
+    "comparison_to_h_neurons": {
+      "alpha_3_h_rate_pct": 70.5,
+      "alpha_3_random_mean_pct": 66.1,
+      "alpha_3_random_percentile_interval_pct": {
+        "lower": 65.8,
+        "upper": 66.46,
+        "level": 0.95,
+        "method": "empirical_random_set_percentile"
+      },
+      "slope_h_pp_per_alpha": 2.09,
+      "slope_random_mean_pp_per_alpha": 0.02,
+      "slope_random_percentile_interval": {
+        "lower": -0.106,
+        "upper": 0.164,
+        "level": 0.95,
+        "method": "empirical_random_set_percentile"
+      }
+    }
   },
   "population": {
     "anti_compliance": {

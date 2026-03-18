@@ -46,7 +46,7 @@
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Total neurons scanned</div>
-        <div class="value val-purple">348,160</div>
+        <div class="value val-purple" data-classifier-bind="total-neurons">348,160</div>
         <div class="detail">34 x 10,240 MLP positions</div>
       </div>
       <div class="metric-card" data-status="STABLE">
@@ -83,7 +83,7 @@
     <!-- from: classifier_disjoint_accuracy -->
     <h2>76.5% accuracy on a clean test set confirms a real signal</h2>
     <p class="subtitle" data-source="manual">
-      An L1 logistic regression on 348,160 CETT features identifies 38 neurons with positive weight.
+      An L1 logistic regression on <span data-classifier-bind="total-neurons">348,160</span> CETT features identifies 38 neurons with positive weight.
       On the fully disjoint evaluated subset, the classifier reaches <span data-classifier-bind="accuracy-value">76.5%</span> accuracy with a <span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>.
     </p>
 
@@ -121,24 +121,17 @@
     <div class="chart-container">
       <canvas id="classifierChart"></canvas>
     </div>
-    <div class="chart-value-strip">
-      <span class="chart-chip"><strong>Accuracy</strong> <span data-classifier-bind="accuracy-value">76.5%</span> <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></span>
-      <span class="chart-chip"><strong>AUC</strong> <span data-classifier-bind="auc-value">0.843</span></span>
-      <span class="chart-chip"><strong>Precision</strong> <span data-classifier-bind="precision-value">76.7%</span></span>
-      <span class="chart-chip"><strong>Recall</strong> <span data-classifier-bind="recall-value">76.1%</span></span>
-      <span class="chart-chip"><strong>F1</strong> <span data-classifier-bind="f1-chip">76.4% [73.2, 79.4]</span></span>
-    </div>
 
     <div class="comparison">
       <div class="compare-card">
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Overlapping test</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--text-secondary);">77.7%</div>
-        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">n=1,993 · 95% CI 75.9-79.5%</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--text-secondary);" data-classifier-bind="overlap-accuracy-value">77.7%</div>
+        <div style="font-size: 13px; color: var(--accent-coral); margin-top: 4px;">n=<span data-classifier-bind="overlap-n-examples">1,993</span> · <span data-classifier-bind="overlap-accuracy-ci-text">95% CI 75.9-79.5%</span></div>
       </div>
       <div class="compare-card highlight">
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Disjoint test</div>
         <div style="font-size: 2rem; font-weight: 700; color: var(--accent-teal);" data-classifier-bind="accuracy-value">76.5%</div>
-        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">n=<span data-classifier-bind="n-examples">780</span> · <span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span></div>
+        <div style="font-size: 13px; color: var(--accent-teal); margin-top: 4px;">n=<span data-classifier-bind="n-examples">780</span> evaluated from <span data-classifier-bind="disjoint-sampled-n">782</span> sampled (<span data-classifier-bind="disjoint-missing-activations">2</span> missing activations)</div>
       </div>
     </div>
 
@@ -153,7 +146,8 @@
   <div class="ref-label">On the data leakage</div>
   <p class="ref-text">
     The paper-style train/test sampling makes overlap mathematically hard to avoid at this dataset size.
-    What matters is the size of the correction: the clean split cost only <span class="highlight">1.1 percentage points</span>.
+    <!-- from: classifier_overlap_accuracy -->
+    What matters is the size of the correction: the clean split cost only <span class="highlight" data-classifier-bind="accuracy-drop-value">1.1pp</span>.
     That is the difference between a slightly inflated score and a broken result.
   </p>
 </div>
@@ -333,17 +327,26 @@
     </div>
 
     <div class="chart-meta">
-      <div class="chart-kicker">Point labels print both prompt-style compliance rates at every intervention strength.</div>
+      <div class="chart-kicker">The curve carries the full sweep; the chips below only call out the endpoints and effect size.</div>
       <div class="chart-chip-row">
         <span class="chart-chip" data-intervention-bind="intervention-chart-n">Loading n...</span>
         <span class="chart-chip" data-intervention-bind="intervention-chart-ci">Loading CI status...</span>
-        <span class="chart-chip"><strong>Prompt frames:</strong> anti-compliance vs standard raw</span>
+        <span class="chart-chip" data-intervention-bind="negative-control-chart-chip">Loading control summary...</span>
       </div>
     </div>
     <div class="chart-container">
       <canvas id="interventionChart"></canvas>
     </div>
     <div class="chart-series-grid" id="interventionValueGrid"></div>
+
+    <!-- from: negative_control_random_slope_interval -->
+    <div class="insight-box" data-source="manual" data-status="PROVISIONAL">
+      <strong>Specificity check:</strong> random 38-neuron controls average
+      <span data-intervention-summary-bind="negative-control-random-slope-value">0.02pp/&alpha;</span>
+      (<span data-intervention-summary-bind="negative-control-random-slope-ci-text">95% interval -0.11-0.16pp/&alpha;</span>),
+      while H-neurons move <span data-intervention-summary-bind="negative-control-h-slope-value">2.09pp/&alpha;</span>.
+      This looks like a targeted direction, not generic activation damage.
+    </div>
 
     <div class="insight-box" data-source="manual" data-status="ARTIFACT">
       <strong>Why the curves disagree on first read:</strong> the anti-compliance prompt asks for a letter and the evaluator grades letters.
@@ -359,7 +362,7 @@
     <!-- from: standard_text_remap_alpha_3_rescored_rate -->
     <p class="subtitle" data-source="manual">
       Once you separate answer content from evaluator-visible formatting, the contradiction shrinks.
-      At &alpha;=3.0, strict text remapping lifts the standard estimate from
+      At &alpha;=3.0 only, strict text remapping lifts the standard estimate from
       <span data-intervention-summary-bind="raw-alpha-three-value">63.6%</span> raw to
       <span data-intervention-summary-bind="remap-value">72.1%</span>
       (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>).
@@ -392,7 +395,7 @@ Answer:</code>
     </div>
 
     <div class="chart-meta">
-      <div class="chart-kicker">Bar labels show the exact count of standard-prompt responses the MC-letter parser could not recover.</div>
+      <div class="chart-kicker">The bars show how recoverable-letter formatting degrades as &alpha; increases; the chips below just anchor the endpoints.</div>
       <div class="chart-chip-row">
         <span class="chart-chip" data-intervention-bind="parse-failure-chart-n">Loading n...</span>
         <span class="chart-chip" data-intervention-bind="parse-failure-chart-ci">Loading CI status...</span>
@@ -418,7 +421,7 @@ Answer:</code>
     </div>
 
     <div class="chart-meta">
-      <div class="chart-kicker">The three rows below separate raw scoring, parseable-only scoring, and the strict answer-text correction that currently exists only at &alpha;=3.0.</div>
+      <div class="chart-kicker">The rows below separate raw scoring, the parseable-only conditional metric, and the strict answer-text correction committed for &alpha;=3.0 only.</div>
       <div class="chart-chip-row">
         <span class="chart-chip" data-intervention-bind="adjusted-chart-n">Loading sample context...</span>
         <span class="chart-chip" data-intervention-bind="adjusted-chart-ci">Loading CI status...</span>
@@ -455,6 +458,7 @@ Answer:</code>
     <div class="chart-series-grid" id="populationValueGrid"></div>
 
     <div class="metrics-grid">
+      <!-- from: anti_compliance_delta_0_to_3 -->
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Anti headline effect</div>
         <div class="value val-teal" data-intervention-summary-bind="anti-delta-value">6.3pp</div>
@@ -478,11 +482,11 @@ Answer:</code>
     </div>
 
     <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
-      <h3 style="color: var(--accent-coral);">Swing deep dive: 68% show knowledge override</h3>
+      <h3 style="color: var(--accent-coral);">Swing deep dive: <span data-swing-bind="rc-pct-display">68.1%</span> show knowledge override</h3>
       <p style="font-size: 14px; color: var(--text-secondary);">
-        Profiling the 138 swing samples reveals that two-thirds follow R&rarr;C trajectories:
+        Profiling the <span data-intervention-summary-bind="swing-count">138</span> swing samples reveals that most follow R&rarr;C trajectories:
         the model initially gave the correct answer but switched to following misleading context under H-neuron scaling.
-        Only 23% show the beneficial C&rarr;R pattern. Surface features (question length, word overlap, response length) do not predict swing status &mdash;
+        Only <span data-swing-bind="cr-pct-display">23.2%</span> show the beneficial C&rarr;R pattern. Surface features do not predict swing status &mdash;
         the mechanism appears driven by internal model states rather than input structure.
       </p>
       <p style="margin-top: 1rem;"><a class="button-link" href="../deep-dives/swing-characterization.html">Open the swing characterization deep dive</a></p>

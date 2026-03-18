@@ -124,14 +124,24 @@
     return `95% CI ${ci.lower.toFixed(digits)}-${ci.upper.toFixed(digits)}pp`;
   }
 
+  function formatIntervalText(interval, unit = '', digits = 1, label = '95% interval') {
+    return `${label} ${interval.lower.toFixed(digits)}-${interval.upper.toFixed(digits)}${unit}`;
+  }
+
+  function formatPpPerAlpha(value, digits = 1) {
+    return `${value.toFixed(digits)}pp/\u03b1`;
+  }
+
   function hydrateClassifierSummary(summary) {
     const accuracy = summary.metrics.accuracy;
     const precision = summary.metrics.precision;
     const recall = summary.metrics.recall;
     const f1 = summary.metrics.f1;
     const auroc = summary.metrics.auroc;
+    const overlapAccuracy = summary.overlap.metrics.accuracy;
 
     setBoundText('data-classifier-bind', 'selected-count', summary.selected_h_neurons.toLocaleString());
+    setBoundText('data-classifier-bind', 'total-neurons', summary.total_ffn_neurons.toLocaleString());
     setBoundText(
       'data-classifier-bind',
       'selected-ratio',
@@ -152,12 +162,32 @@
       'f1-chip',
       `${formatRatePercent(f1.estimate)} ${formatRateCiBracket(f1.ci)}`,
     );
+    setBoundText('data-classifier-bind', 'overlap-n-examples', summary.overlap.n_examples.toLocaleString());
+    setBoundText('data-classifier-bind', 'overlap-accuracy-value', formatRatePercent(overlapAccuracy.estimate));
+    setBoundText('data-classifier-bind', 'overlap-accuracy-ci-text', formatRateCiText(overlapAccuracy.ci));
+    setBoundText('data-classifier-bind', 'overlap-accuracy-ci-bracket', formatRateCiBracket(overlapAccuracy.ci));
+    setBoundText(
+      'data-classifier-bind',
+      'accuracy-drop-value',
+      formatPp(summary.disjoint_accuracy_drop_vs_overlap_pp),
+    );
+    setBoundText(
+      'data-classifier-bind',
+      'disjoint-sampled-n',
+      summary.disjoint_sampled_n.toLocaleString(),
+    );
+    setBoundText(
+      'data-classifier-bind',
+      'disjoint-missing-activations',
+      summary.disjoint_missing_activations.toLocaleString(),
+    );
   }
 
   function hydrateInterventionSummary(summary) {
     const antiEffects = summary.series.anti_compliance.effects;
     const swing = summary.population.anti_compliance.swing;
     const remap = summary.series.standard_text_remap.by_alpha['3.0'];
+    const negativeControl = summary.negative_control.comparison_to_h_neurons;
     const swingEffectShare = antiEffects.delta_0_to_max_pp.estimate / swing.pct;
 
     setBoundText(
@@ -220,6 +250,81 @@
       'raw-alpha-three-value',
       formatPercent(remap.raw_compliance_pct),
     );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'negative-control-h-slope-value',
+      formatPpPerAlpha(negativeControl.slope_h_pp_per_alpha, 2),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'negative-control-random-slope-value',
+      formatPpPerAlpha(negativeControl.slope_random_mean_pp_per_alpha, 2),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'negative-control-random-slope-ci-text',
+      `${formatIntervalText(negativeControl.slope_random_percentile_interval, 'pp/\u03b1', 2)}`,
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'negative-control-h-alpha-three-value',
+      formatPercent(negativeControl.alpha_3_h_rate_pct),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'negative-control-random-alpha-three-value',
+      formatPercent(negativeControl.alpha_3_random_mean_pct),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'negative-control-random-alpha-three-ci-text',
+      formatIntervalText(negativeControl.alpha_3_random_percentile_interval_pct, '%', 1),
+    );
+  }
+
+  function hydratePipelineSummary(summary) {
+    const counts = summary.counts;
+    const ratios = summary.ratios;
+    const runtime = summary.runtime;
+
+    setBoundText('data-pipeline-bind', 'sampled-questions', counts.sampled_questions.toLocaleString());
+    setBoundText('data-pipeline-bind', 'all-correct', counts.all_correct.toLocaleString());
+    setBoundText('data-pipeline-bind', 'all-incorrect', counts.all_incorrect.toLocaleString());
+    setBoundText('data-pipeline-bind', 'mixed', counts.mixed.toLocaleString());
+    setBoundText('data-pipeline-bind', 'consistent-total', counts.consistent_total.toLocaleString());
+    setBoundText('data-pipeline-bind', 'consistent-rate', formatRatePercent(ratios.consistent_share, 0));
+    setBoundText(
+      'data-pipeline-bind',
+      'answer-token-count',
+      counts.extracted_answer_tokens.toLocaleString(),
+    );
+    setBoundText(
+      'data-pipeline-bind',
+      'extraction-failures',
+      counts.extraction_failures.toLocaleString(),
+    );
+    setBoundText(
+      'data-pipeline-bind',
+      'train-sampled-total',
+      counts.train_sampled_total.toLocaleString(),
+    );
+    setBoundText(
+      'data-pipeline-bind',
+      'disjoint-sampled-total',
+      counts.disjoint_sampled_total.toLocaleString(),
+    );
+    setBoundText(
+      'data-pipeline-bind',
+      'disjoint-evaluated-total',
+      counts.disjoint_evaluated_total.toLocaleString(),
+    );
+    setBoundText(
+      'data-pipeline-bind',
+      'disjoint-missing-activations',
+      counts.disjoint_missing_activations.toLocaleString(),
+    );
+    setBoundText('data-pipeline-bind', 'run-cost', runtime.api_cost_display);
+    setBoundText('data-pipeline-bind', 'wall-time', runtime.wall_time_display);
   }
 
   function hydrateSwingCharacterization(summary) {
@@ -293,8 +398,9 @@
     const classifierNeeded = hasBinding('data-classifier-bind');
     const interventionNeeded = hasBinding('data-intervention-summary-bind');
     const swingNeeded = hasBinding('data-swing-bind');
+    const pipelineNeeded = hasBinding('data-pipeline-bind');
 
-    if (!classifierNeeded && !interventionNeeded && !swingNeeded) {
+    if (!classifierNeeded && !interventionNeeded && !swingNeeded && !pipelineNeeded) {
       return;
     }
 
@@ -336,6 +442,19 @@
             return response.json();
           })
           .then((summary) => hydrateSwingCharacterization(summary)),
+      );
+    }
+
+    if (pipelineNeeded) {
+      requests.push(
+        fetch(new URL('../data/pipeline_summary.json', sharedScriptUrl))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to load pipeline summary: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((summary) => hydratePipelineSummary(summary)),
       );
     }
 

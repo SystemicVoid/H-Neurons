@@ -41,22 +41,22 @@
     <div class="metrics-grid" style="margin-top: 2.5rem;">
       <div class="metric-card" data-status="STABLE">
         <div class="label">TriviaQA start</div>
-        <div class="value val-teal">3,500</div>
+        <div class="value val-teal" data-pipeline-bind="sampled-questions">3,500</div>
         <div class="detail">Questions sampled for the Gemma pass</div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Usable extraction set</div>
-        <div class="value val-purple">2,997</div>
+        <div class="value val-purple" data-pipeline-bind="answer-token-count">2,997</div>
         <div class="detail">Rows that survived consistency and answer extraction</div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Clean test set</div>
-        <div class="value val-coral" data-classifier-bind="n-examples">780</div>
-        <div class="detail">Disjoint examples evaluated for the main classifier result (782 sampled, 2 missing activations)</div>
+        <div class="value val-coral" data-pipeline-bind="disjoint-evaluated-total">780</div>
+        <div class="detail">Disjoint examples evaluated for the main classifier result (<span data-pipeline-bind="disjoint-sampled-total">782</span> sampled, <span data-pipeline-bind="disjoint-missing-activations">2</span> missing activations)</div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Run cost</div>
-        <div class="value val-amber">$3.50</div>
+        <div class="value val-amber" data-pipeline-bind="run-cost">$3.50</div>
         <div class="detail">GPT-4o answer-token extraction only</div>
       </div>
     </div>
@@ -72,7 +72,7 @@
 <section id="pipeline">
   <div class="fade-in">
     <span class="tag tag-teal">Pipeline</span>
-    <h2>From 3,500 questions to 38 paper-faithful neurons</h2>
+    <h2>From <span data-pipeline-bind="sampled-questions">3,500</span> questions to <span data-classifier-bind="selected-count">38</span> paper-faithful neurons</h2>
     <p class="subtitle">
       The detector is downstream of several aggressive filters. That matters because each filter removes a different kind of uncertainty before the classifier ever fits a boundary.
     </p>
@@ -81,21 +81,21 @@
       <div class="pipeline-step">
         <div class="step-num">Stage 1</div>
         <div class="step-title">Response collection</div>
-        <div class="step-stat val-teal">3,500</div>
+        <div class="step-stat val-teal" data-pipeline-bind="sampled-questions">3,500</div>
         <div class="step-detail">TriviaQA questions, 10 responses each</div>
       </div>
       <div class="pipeline-arrow">&rarr;</div>
       <div class="pipeline-step">
         <div class="step-num">Stage 2</div>
         <div class="step-title">Consistency filter</div>
-        <div class="step-stat val-teal">3,115</div>
-        <div class="step-detail">89% agreement, exact 10/10 match</div>
+        <div class="step-stat val-teal" data-pipeline-bind="consistent-total">3,115</div>
+        <div class="step-detail"><span data-pipeline-bind="consistent-rate">89%</span> agreement, exact 10/10 match</div>
       </div>
       <div class="pipeline-arrow">&rarr;</div>
       <div class="pipeline-step">
         <div class="step-num">Stage 3</div>
         <div class="step-title">Answer extraction</div>
-        <div class="step-stat val-teal">2,997</div>
+        <div class="step-stat val-teal" data-pipeline-bind="answer-token-count">2,997</div>
         <div class="step-detail">GPT-4o token extraction</div>
       </div>
       <div class="pipeline-arrow">&rarr;</div>
@@ -109,7 +109,7 @@
       <div class="pipeline-step">
         <div class="step-num">Stage 5</div>
         <div class="step-title">L1 classifier</div>
-        <div class="step-stat val-coral">38</div>
+        <div class="step-stat val-coral" data-classifier-bind="selected-count">38</div>
         <div class="step-detail">Positive-weight neurons at C=1.0</div>
       </div>
     </div>
@@ -121,27 +121,27 @@
     <div class="funnel">
       <div class="funnel-bar" style="width: 100%; background: rgba(78, 205, 196, 0.25);">
         <span class="funnel-label">TriviaQA questions</span>
-        <span class="funnel-num val-teal">3,500</span>
+        <span class="funnel-num val-teal" data-pipeline-bind="sampled-questions">3,500</span>
       </div>
       <div class="funnel-bar" style="width: 89%; background: rgba(78, 205, 196, 0.22);">
         <span class="funnel-label">Consistent (10/10)</span>
-        <span class="funnel-num val-teal">3,115</span>
+        <span class="funnel-num val-teal" data-pipeline-bind="consistent-total">3,115</span>
       </div>
       <div class="funnel-bar" style="width: 85.6%; background: rgba(78, 205, 196, 0.19);">
         <span class="funnel-label">Tokens extracted</span>
-        <span class="funnel-num val-teal">2,997</span>
+        <span class="funnel-num val-teal" data-pipeline-bind="answer-token-count">2,997</span>
       </div>
       <div class="funnel-bar" style="width: 57.1%; background: rgba(127, 119, 221, 0.22);">
         <span class="funnel-label">Train set (balanced)</span>
-        <span class="funnel-num val-purple">2,000</span>
+        <span class="funnel-num val-purple" data-pipeline-bind="train-sampled-total">2,000</span>
       </div>
       <div class="funnel-bar" style="width: 22.3%; background: rgba(127, 119, 221, 0.18);">
         <span class="funnel-label">Disjoint test set</span>
-        <span class="funnel-num val-purple" data-classifier-bind="n-examples">780</span>
+        <span class="funnel-num val-purple" data-pipeline-bind="disjoint-evaluated-total">780</span>
       </div>
       <div class="funnel-bar" style="width: 1.1%; min-width: 180px; background: rgba(255, 107, 107, 0.25);">
         <span class="funnel-label">H-Neurons</span>
-        <span class="funnel-num val-coral">38</span>
+        <span class="funnel-num val-coral" data-classifier-bind="selected-count">38</span>
       </div>
     </div>
 
@@ -156,7 +156,7 @@
   <div class="ref-label">Process note</div>
   <p class="ref-text">
     The funnel is a reminder that data preparation is part of the hypothesis, not just housekeeping.
-    The 89% consistency filter and the 118 apostrophe-related extraction failures both tilt the final dataset toward cleaner surface forms and stabler answers.
+    The <span data-pipeline-bind="consistent-rate">89%</span> consistency filter and the <span data-pipeline-bind="extraction-failures">118</span> answer-extraction failures both tilt the final dataset toward cleaner surface forms and stabler answers.
     That does not invalidate the detector, but it does narrow the regime it speaks for.
   </p>
 </div>
@@ -233,7 +233,7 @@ Answer:</code>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <h3 style="color: var(--accent-teal);">Wall time and hardware</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The full Gemma pass took about 4.5 hours wall time and fits on a single 16GB GPU for the local pipeline stages.
+          The full Gemma pass took about <span data-pipeline-bind="wall-time">~4.5 hours</span> wall time and fits on a single 16GB GPU for the local pipeline stages.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">

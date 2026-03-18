@@ -118,16 +118,17 @@
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <h3 style="color: var(--accent-teal);">Clean detector result</h3>
         <!-- from: classifier_disjoint_accuracy -->
+        <!-- from: classifier_overlap_accuracy -->
         <p style="font-size: 14px; color: var(--text-secondary);">
           The <span data-classifier-bind="accuracy-value">76.5%</span> disjoint-test accuracy
-          (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>) is the core replication anchor because it survives the overlap correction instead of collapsing once memorization pressure is removed.
+          (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>) is the core replication anchor because it stays within <span data-classifier-bind="accuracy-drop-value">1.1pp</span> of the overlap estimate instead of collapsing once memorization pressure is removed.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Open the results ledger</a></p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
         <h3 style="color: var(--accent-amber);">Intervention still moves behavior</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The anti-compliance curve rises monotonically, and the standard-prompt contradiction weakens once answer content is separated from MC-letter recoverability.
+          The anti-compliance curve rises monotonically, and the standard-prompt contradiction weakens once the committed &alpha;=3.0 answer-text remap separates content from MC-letter recoverability.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#intervention">Open intervention evidence</a></p>
       </div>
@@ -240,8 +241,8 @@
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">4</div>
         <h3>Swing samples reduce to formatting artifacts &mdash; tested, survived</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">swing characterization</a> shows that 68% of swing samples (94/138) exhibit genuine R&rarr;C knowledge override, not formatting drift.
-          Surface features (question length, word overlap, response length) do not predict swing status (all p &gt; 0.78).
+          The <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">swing characterization</a> shows that <span data-swing-bind="rc-pct-display">68.1%</span> of swing samples (<span data-swing-bind="rc-count">94</span>/<span data-intervention-summary-bind="swing-count">138</span>) exhibit genuine R&rarr;C knowledge override, not formatting drift.
+          Surface features do not predict swing status.
           This falsification condition was tested and the claim survived: the swing population reflects real belief-following behavior.
         </p>
       </div>

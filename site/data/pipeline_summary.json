@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-03-18",
+  "generated_by": "scripts/export_site_data.py",
+  "model": "google/gemma-3-4b-it",
+  "source_files": [
+    "data/gemma3_4b/consistency_samples.jsonl",
+    "data/batch3500_review.md",
+    "data/gemma3_4b/answer_tokens.jsonl",
+    "data/gemma3_4b/train_qids.json",
+    "data/gemma3_4b/test_qids_disjoint.json",
+    "data/gemma3_4b/pipeline_report.md",
+    "data/gemma3_4b/classifier_disjoint_summary.json"
+  ],
+  "counts": {
+    "sampled_questions": 3500,
+    "all_correct": 1435,
+    "all_incorrect": 1680,
+    "mixed": 385,
+    "consistent_total": 3115,
+    "extracted_answer_tokens": 2997,
+    "extraction_failures": 118,
+    "train_sampled_total": 2000,
+    "disjoint_sampled_total": 782,
+    "disjoint_evaluated_total": 780,
+    "disjoint_missing_activations": 2,
+    "selected_h_neurons": 38,
+    "total_ffn_neurons": 348160
+  },
+  "ratios": {
+    "consistent_share": 0.89,
+    "extracted_share_of_consistent": 0.9621187800963081,
+    "train_share_of_sampled": 0.5714285714285714,
+    "disjoint_evaluated_share_of_sampled": 0.22285714285714286
+  },
+  "runtime": {
+    "wall_time_hours": 4.5,
+    "wall_time_display": "~4.5 hours",
+    "api_cost_usd": 3.5,
+    "api_cost_display": "~$3.50"
+  }
+}

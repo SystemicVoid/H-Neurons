@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,11 @@ def alpha_key(alpha: float) -> str:
 
 def as_pct(rate: float) -> float:
     return round(rate * 100, 1)
+
+
+def count_jsonl_rows(path: Path) -> int:
+    with path.open() as handle:
+        return sum(1 for line in handle if line.strip())
 
 
 def with_pct(summary: dict[str, Any], estimate_key: str = "estimate") -> dict[str, Any]:
@@ -250,23 +256,54 @@ def build_parse_failure_effects(base_dir: Path) -> dict[str, Any]:
 
 
 def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
-    summary_path = repo_root / "data/gemma3_4b/classifier_disjoint_summary.json"
-    summary = load_json(summary_path)
+    disjoint_summary_path = (
+        repo_root / "data/gemma3_4b/classifier_disjoint_summary.json"
+    )
+    overlap_summary_path = repo_root / "data/gemma3_4b/classifier_overlap_summary.json"
+    qids_path = repo_root / "data/gemma3_4b/test_qids_disjoint.json"
+    summary = load_json(disjoint_summary_path)
+    overlap_summary = load_json(overlap_summary_path)
+    disjoint_qids = load_json(qids_path)
     evaluation = summary["evaluation"]
+    overlap_evaluation = overlap_summary["evaluation"]
+    disjoint_sampled_n = sum(len(ids) for ids in disjoint_qids.values())
     return {
         "schema_version": 1,
         "generated_at": date.today().isoformat(),
         "generated_by": "scripts/export_site_data.py",
         "model": "google/gemma-3-4b-it",
-        "source_file": "data/gemma3_4b/classifier_disjoint_summary.json",
+        "source_files": [
+            "data/gemma3_4b/classifier_disjoint_summary.json",
+            "data/gemma3_4b/classifier_overlap_summary.json",
+            "data/gemma3_4b/test_qids_disjoint.json",
+        ],
         "n_examples": evaluation["n_examples"],
         "n_positive": evaluation["n_positive"],
         "n_negative": evaluation["n_negative"],
         "selected_h_neurons": summary["selected_h_neurons"],
+        "total_ffn_neurons": summary["total_ffn_neurons"],
         "selected_ratio_per_mille": summary["selected_ratio_per_mille"],
         "metrics": evaluation["metrics"],
         "bootstrap": evaluation["bootstrap"],
         "confusion_matrix": evaluation["confusion_matrix"],
+        "overlap": {
+            "n_examples": overlap_evaluation["n_examples"],
+            "n_positive": overlap_evaluation["n_positive"],
+            "n_negative": overlap_evaluation["n_negative"],
+            "metrics": overlap_evaluation["metrics"],
+            "bootstrap": overlap_evaluation["bootstrap"],
+            "confusion_matrix": overlap_evaluation["confusion_matrix"],
+        },
+        "disjoint_sampled_n": disjoint_sampled_n,
+        "disjoint_missing_activations": disjoint_sampled_n - evaluation["n_examples"],
+        "disjoint_accuracy_drop_vs_overlap_pp": round(
+            (
+                overlap_evaluation["metrics"]["accuracy"]["estimate"]
+                - evaluation["metrics"]["accuracy"]["estimate"]
+            )
+            * 100,
+            1,
+        ),
     }
 
 
@@ -365,8 +402,13 @@ def build_swing_characterization_payload(repo_root: Path) -> dict[str, Any]:
 def build_payload(repo_root: Path) -> dict[str, Any]:
     anti_dir = repo_root / "data/gemma3_4b/intervention/faitheval"
     standard_dir = repo_root / "data/gemma3_4b/intervention/faitheval_standard"
+    negative_control_summary_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/negative_control/comparison_summary.json"
+    )
     anti_results = load_json(anti_dir / "results.json")
     standard_results = load_json(standard_dir / "results.json")
+    negative_control_summary = load_json(negative_control_summary_path)
     remap_summary = load_json(
         standard_dir / "alpha_3.0_parse_failure_remap_summary.json"
     )
@@ -396,6 +438,7 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
         "data/gemma3_4b/intervention/faitheval_standard/alpha_2.5.jsonl",
         "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0.jsonl",
         "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json",
+        "data/gemma3_4b/intervention/negative_control/comparison_summary.json",
     ]
 
     return {
@@ -508,6 +551,14 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
             "effects": parse_failure_effects,
             "points": parse_failure_points,
         },
+        "negative_control": {
+            "label": "Random 38-neuron control",
+            "status": "available",
+            "source_file": "data/gemma3_4b/intervention/negative_control/comparison_summary.json",
+            "comparison_to_h_neurons": negative_control_summary[
+                "comparison_to_h_neurons"
+            ],
+        },
         "population": {
             "anti_compliance": {
                 "label": "Anti-compliance prompt",
@@ -524,6 +575,100 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
                 ],
             },
         },
+    }
+
+
+def extract_markdown_count(path: Path, label: str) -> int:
+    pattern = rf"\|\s*{re.escape(label)}\s*\|\s*(\d+)\s*\|"
+    match = re.search(pattern, path.read_text())
+    if not match:
+        raise ValueError(f"Could not find markdown count '{label}' in {path}")
+    return int(match.group(1))
+
+
+def parse_pipeline_report_runtime(path: Path) -> dict[str, Any]:
+    report = path.read_text()
+    wall_time_match = re.search(
+        r"\|\s+\*\*Total\*\*\s+\|\s+\*\*~([0-9.]+)\s+hours\*\*\s+\|",
+        report,
+    )
+    api_cost_match = re.search(
+        r"\|\s+\*\*Total\*\*\s+\|.*?\|\s+\*\*~\$([0-9.]+)\*\*\s+\|",
+        report,
+    )
+    if not wall_time_match or not api_cost_match:
+        raise ValueError(f"Could not parse runtime summary from {path}")
+
+    wall_time_hours = float(wall_time_match.group(1))
+    api_cost_usd = float(api_cost_match.group(1))
+    return {
+        "wall_time_hours": wall_time_hours,
+        "wall_time_display": f"~{wall_time_hours:g} hours",
+        "api_cost_usd": api_cost_usd,
+        "api_cost_display": f"~${api_cost_usd:.2f}",
+    }
+
+
+def build_pipeline_site_payload(repo_root: Path) -> dict[str, Any]:
+    consistency_samples_path = repo_root / "data/gemma3_4b/consistency_samples.jsonl"
+    batch_review_path = repo_root / "data/batch3500_review.md"
+    answer_tokens_path = repo_root / "data/gemma3_4b/answer_tokens.jsonl"
+    train_qids_path = repo_root / "data/gemma3_4b/train_qids.json"
+    test_qids_path = repo_root / "data/gemma3_4b/test_qids_disjoint.json"
+    pipeline_report_path = repo_root / "data/gemma3_4b/pipeline_report.md"
+    classifier_summary = build_classifier_site_payload(repo_root)
+
+    sampled_questions = count_jsonl_rows(consistency_samples_path)
+    all_correct = extract_markdown_count(batch_review_path, "All-correct")
+    all_incorrect = extract_markdown_count(batch_review_path, "All-incorrect")
+    mixed = extract_markdown_count(batch_review_path, "Mixed")
+    consistent_total = all_correct + all_incorrect
+    extracted_answer_tokens = count_jsonl_rows(answer_tokens_path)
+    train_qids = load_json(train_qids_path)
+    test_qids = load_json(test_qids_path)
+    runtime = parse_pipeline_report_runtime(pipeline_report_path)
+    train_sampled_total = sum(len(ids) for ids in train_qids.values())
+    disjoint_sampled_total = sum(len(ids) for ids in test_qids.values())
+
+    return {
+        "schema_version": 1,
+        "generated_at": date.today().isoformat(),
+        "generated_by": "scripts/export_site_data.py",
+        "model": "google/gemma-3-4b-it",
+        "source_files": [
+            "data/gemma3_4b/consistency_samples.jsonl",
+            "data/batch3500_review.md",
+            "data/gemma3_4b/answer_tokens.jsonl",
+            "data/gemma3_4b/train_qids.json",
+            "data/gemma3_4b/test_qids_disjoint.json",
+            "data/gemma3_4b/pipeline_report.md",
+            "data/gemma3_4b/classifier_disjoint_summary.json",
+        ],
+        "counts": {
+            "sampled_questions": sampled_questions,
+            "all_correct": all_correct,
+            "all_incorrect": all_incorrect,
+            "mixed": mixed,
+            "consistent_total": consistent_total,
+            "extracted_answer_tokens": extracted_answer_tokens,
+            "extraction_failures": consistent_total - extracted_answer_tokens,
+            "train_sampled_total": train_sampled_total,
+            "disjoint_sampled_total": disjoint_sampled_total,
+            "disjoint_evaluated_total": classifier_summary["n_examples"],
+            "disjoint_missing_activations": classifier_summary[
+                "disjoint_missing_activations"
+            ],
+            "selected_h_neurons": classifier_summary["selected_h_neurons"],
+            "total_ffn_neurons": classifier_summary["total_ffn_neurons"],
+        },
+        "ratios": {
+            "consistent_share": consistent_total / sampled_questions,
+            "extracted_share_of_consistent": extracted_answer_tokens / consistent_total,
+            "train_share_of_sampled": train_sampled_total / sampled_questions,
+            "disjoint_evaluated_share_of_sampled": classifier_summary["n_examples"]
+            / sampled_questions,
+        },
+        "runtime": runtime,
     }
 
 
@@ -547,6 +692,12 @@ def main() -> None:
         default=Path("site/data/swing_characterization.json"),
         help="Output path for exported swing characterization site data.",
     )
+    parser.add_argument(
+        "--pipeline-output",
+        type=Path,
+        default=Path("site/data/pipeline_summary.json"),
+        help="Output path for exported pipeline summary site data.",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[1]
@@ -567,6 +718,10 @@ def main() -> None:
         swing_output_path = repo_root / args.swing_output
         swing_output_path.parent.mkdir(parents=True, exist_ok=True)
         swing_output_path.write_text(json.dumps(swing_payload, indent=2) + "\n")
+    pipeline_payload = build_pipeline_site_payload(repo_root)
+    pipeline_output_path = repo_root / args.pipeline_output
+    pipeline_output_path.parent.mkdir(parents=True, exist_ok=True)
+    pipeline_output_path.write_text(json.dumps(pipeline_payload, indent=2) + "\n")
 
 
 if __name__ == "__main__":

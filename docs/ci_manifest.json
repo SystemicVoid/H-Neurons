@@ -59,6 +59,14 @@
       },
       "surfaces": [
         {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
           "file": "data/gemma3_4b/pipeline_report.md",
           "mode": "comment"
         },
@@ -95,6 +103,14 @@
         ]
       },
       "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
         {
           "file": "data/gemma3_4b/intervention_findings.md",
           "mode": "comment"

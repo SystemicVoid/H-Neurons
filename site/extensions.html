@@ -57,7 +57,7 @@
       <div class="metric-card" data-status="STABLE">
         <div class="label">Zero-GPU branch</div>
         <div class="value val-teal" style="font-size: 1.3rem;">Swing done</div>
-        <div class="detail">68% knowledge override &middot; <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">deep dive</a></div>
+        <div class="detail"><span data-swing-bind="rc-pct-display">68.1%</span> knowledge override &middot; <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">deep dive</a></div>
       </div>
     </div>
 
@@ -108,7 +108,7 @@
           <tr>
             <td><strong>Swing sample characterization</strong></td>
             <td><span class="status-pill status-complete">Complete</span></td>
-            <td>68% of swing samples (94/138) show R&rarr;C knowledge override; 23% show the beneficial C&rarr;R pattern. Surface features do not predict swing status.</td>
+            <td><span data-swing-bind="rc-pct-display">68.1%</span> of swing samples (<span data-swing-bind="rc-count">94</span>/<span data-intervention-summary-bind="swing-count">138</span>) show R&rarr;C knowledge override; <span data-swing-bind="cr-pct-display">23.2%</span> show the beneficial C&rarr;R pattern. Surface features do not predict swing status.</td>
             <td>Structural proxies, topic analysis, LLM-enriched knowledge classification, independent verification, and persuasiveness rating. <a href="deep-dives/swing-characterization.html">See the deep dive.</a></td>
             <td>Complete. Results integrated into the site.</td>
           </tr>
@@ -144,7 +144,7 @@
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
         <h3>Near-free filters (swing done, suppressive pending)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Swing characterization is <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">complete</a>: 68% knowledge override confirmed.
+          Swing characterization is <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">complete</a>: <span data-swing-bind="rc-pct-display">68.1%</span> knowledge override confirmed.
           Negative-weight stability check remains pending.
         </p>
       </div>
@@ -199,7 +199,7 @@
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <h3 style="color: var(--accent-teal);">Swing sample characterization (complete)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Resolved: H-neurons mostly override genuine knowledge (68% R&rarr;C), not just appropriate uncertainty.
+          Resolved: H-neurons mostly override genuine knowledge (<span data-swing-bind="rc-pct-display">68.1%</span> R&rarr;C), not just appropriate uncertainty.
           Surface features do not predict swing status; the mechanism is internal.
           <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">See the deep dive.</a>
         </p>

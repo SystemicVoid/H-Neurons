@@ -390,6 +390,10 @@ function formatPercent(value) {
   return value.toFixed(1) + '%';
 }
 
+function formatInterval(interval, digits = 1, suffix = '') {
+  return `[${interval.lower.toFixed(digits)}, ${interval.upper.toFixed(digits)}]${suffix}`;
+}
+
 function formatCount(value) {
   return value.toLocaleString();
 }
@@ -417,6 +421,7 @@ function hydrateInterventionSummary(interventionData) {
   const standardRawSeries = interventionData.series.standard_raw;
   const standardParseableSubsetSeries = interventionData.series.standard_parseable_subset;
   const standardTextRemapAlphaThree = interventionData.series.standard_text_remap.by_alpha['3.0'];
+  const negativeControl = interventionData.negative_control.comparison_to_h_neurons;
   const parseFailures = interventionData.parse_failures.points;
   const antiBaseline = interventionPointByAlpha(antiComplianceSeries.points, 0.0);
   const antiAlphaThree = interventionPointByAlpha(antiComplianceSeries.points, 3.0);
@@ -438,9 +443,13 @@ function hydrateInterventionSummary(interventionData) {
     'adjusted-chart-n',
     `n=1,000 total; parseable subset ${formatCount(interventionPointByAlpha(standardParseableSubsetSeries.points, 0.0).parseable_n)}→${formatCount(interventionPointByAlpha(standardParseableSubsetSeries.points, 3.0).parseable_n)}`
   );
-  setInterventionText('adjusted-chart-ci', 'Wilson CIs on raw and conditional rates; α=3 remap has a full-population Wilson CI');
+  setInterventionText('adjusted-chart-ci', 'Wilson CIs on raw and conditional rates; strict answer-text remap is committed for α=3.0 only');
   setInterventionText('population-chart-n', `n=1,000 questions`);
   setInterventionText('population-chart-ci', 'Wilson CIs on always / never / swing shares');
+  setInterventionText(
+    'negative-control-chart-chip',
+    `Random 38-neuron controls average ${negativeControl.slope_random_mean_pp_per_alpha.toFixed(2)}pp/α ${formatInterval(negativeControl.slope_random_percentile_interval, 2, 'pp/α')}; H-neurons move ${negativeControl.slope_h_pp_per_alpha.toFixed(2)}pp/α`
+  );
   setInterventionText('anti-baseline-value', formatPercent(antiBaseline.compliance_pct));
   setInterventionText(
     'anti-baseline-detail',
@@ -462,7 +471,7 @@ function hydrateInterventionSummary(interventionData) {
   );
   setInterventionText(
     'standard-remap-alpha-three-detail',
-    `${formatPercent(standardTextRemapAlphaThree.raw_compliance_pct)} raw MC-letter score · ${standardTextRemapAlphaThree.strict_recovered_count}/${standardTextRemapAlphaThree.parse_failures} remapped by answer text`
+    `${formatPercent(standardTextRemapAlphaThree.raw_compliance_pct)} raw MC-letter score · α=3.0 only answer-text remap recovered ${standardTextRemapAlphaThree.strict_recovered_count}/${standardTextRemapAlphaThree.parse_failures}`
   );
   setInterventionText('parse-alpha-zero-count', formatCount(parseAlphaZero.count));
   setInterventionText('parse-alpha-zero-detail', `${formatPercent(parseAlphaZero.pct)} of samples`);
@@ -519,45 +528,57 @@ async function initInterventionCharts() {
     {
       title: 'Anti-compliance',
       tone: 'teal',
-      chips: antiComplianceSeries.points.map((point) =>
-        alphaChip(point.alpha, formatPercent(point.compliance_pct))
-      ),
+      chips: [
+        alphaChip(antiBaseline.alpha, formatPercent(antiBaseline.compliance_pct)),
+        alphaChip(antiAlphaThree.alpha, formatPercent(antiAlphaThree.compliance_pct)),
+        `<span class="chart-chip"><strong>Slope</strong> ${antiEffects.slope_pp_per_alpha.estimate.toFixed(1)}pp/α</span>`,
+      ],
     },
     {
       title: 'Standard raw',
       tone: 'amber',
-      chips: standardRawSeries.points.map((point) =>
-        alphaChip(point.alpha, formatPercent(point.compliance_pct))
-      ),
+      chips: [
+        alphaChip(standardRawBaseline.alpha, formatPercent(standardRawBaseline.compliance_pct)),
+        alphaChip(standardTextRemapAlphaThree.alpha, formatPercent(standardTextRemapAlphaThree.raw_compliance_pct)),
+        `<span class="chart-chip"><strong>Parse failures at α=3.0</strong> ${formatCount(parseAlphaThree.count)}</span>`,
+      ],
     },
   ]);
-  renderHtml(
-    'parseFailureValueStrip',
-    parseFailures
-      .map((point) => alphaChip(point.alpha, `${formatCount(point.count)} (${formatPercent(point.pct)})`))
-      .join('')
-  );
+  renderHtml('parseFailureValueStrip', [
+    alphaChip(parseAlphaZero.alpha, `${formatCount(parseAlphaZero.count)} (${formatPercent(parseAlphaZero.pct)})`),
+    alphaChip(parseAlphaThree.alpha, `${formatCount(parseAlphaThree.count)} (${formatPercent(parseAlphaThree.pct)})`),
+    `<span class="chart-chip"><strong>Increase</strong> ${(parseAlphaThree.count / parseAlphaZero.count).toFixed(1)}× more unparseable responses</span>`,
+  ].join(''));
   renderSeriesGrid('adjustedComplianceValueGrid', [
     {
       title: 'Anti-compliance',
       tone: 'teal',
-      chips: antiComplianceSeries.points.map((point) =>
-        alphaChip(point.alpha, formatPercent(point.compliance_pct))
-      ),
+      chips: [
+        alphaChip(antiBaseline.alpha, formatPercent(antiBaseline.compliance_pct)),
+        alphaChip(antiAlphaThree.alpha, formatPercent(antiAlphaThree.compliance_pct)),
+      ],
     },
     {
       title: 'Standard raw',
       tone: 'amber',
-      chips: standardRawSeries.points.map((point) =>
-        alphaChip(point.alpha, formatPercent(point.compliance_pct))
-      ),
+      chips: [
+        alphaChip(standardRawBaseline.alpha, formatPercent(standardRawBaseline.compliance_pct)),
+        alphaChip(standardTextRemapAlphaThree.alpha, formatPercent(standardTextRemapAlphaThree.raw_compliance_pct)),
+      ],
     },
     {
       title: 'Parseable subset',
-      tone: 'purple',
-      chips: standardParseableSubsetSeries.points.map((point) =>
-        alphaChip(point.alpha, `${formatPercent(point.compliance_pct)} on n=${formatCount(point.parseable_n)}`)
-      ),
+      tone: 'teal',
+      chips: [
+        alphaChip(
+          0.0,
+          `${formatPercent(standardParseableBaseline.compliance_pct)} on n=${formatCount(standardParseableBaseline.parseable_n)}`
+        ),
+        alphaChip(
+          3.0,
+          `${formatPercent(interventionPointByAlpha(standardParseableSubsetSeries.points, 3.0).compliance_pct)} on n=${formatCount(interventionPointByAlpha(standardParseableSubsetSeries.points, 3.0).parseable_n)}`
+        ),
+      ],
     },
     {
       title: 'Strict remap',
@@ -573,7 +594,7 @@ async function initInterventionCharts() {
   renderSeriesGrid('populationValueGrid', [
     {
       title: 'Fixed groups',
-      tone: 'purple',
+      tone: 'teal',
       chips: [
         `<span class="chart-chip"><strong>Always compliant</strong> ${formatCount(antiCompliancePopulation.always_compliant.count)} (${formatPercent(antiCompliancePopulation.always_compliant.pct)})</span>`,
         `<span class="chart-chip"><strong>Never compliant</strong> ${formatCount(antiCompliancePopulation.never_compliant.count)} (${formatPercent(antiCompliancePopulation.never_compliant.pct)})</span>`,
@@ -583,9 +604,10 @@ async function initInterventionCharts() {
     {
       title: 'Swing by α',
       tone: 'teal',
-      chips: swingBreakdown.map((point) =>
-        alphaChip(point.alpha, `${point.swing_compliant}/${point.swing_resistant} compliant/resistant`)
-      ),
+      chips: [
+        alphaChip(0.0, `${swingBreakdown[0].swing_compliant}/${swingBreakdown[0].swing_resistant} compliant/resistant`),
+        alphaChip(3.0, `${swingBreakdown[swingBreakdown.length - 1].swing_compliant}/${swingBreakdown[swingBreakdown.length - 1].swing_resistant} compliant/resistant`),
+      ],
     },
   ]);
 
@@ -640,12 +662,6 @@ async function initInterventionCharts() {
               font: { size: 12 }
             }
           },
-          valueLabels: {
-            formatter: (value) => `${value.toFixed(1)}%`,
-            offset: 12,
-            direction: ({ datasetIndex }) => (datasetIndex === 0 ? -1 : 1),
-            color: ({ datasetIndex }) => (datasetIndex === 0 ? '#4ecdc4' : '#f0a500'),
-          },
           tooltip: {
             callbacks: {
               title: (items) => items[0].label,
@@ -699,10 +715,6 @@ async function initInterventionCharts() {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          valueLabels: {
-            formatter: (value) => `${value}`,
-            offset: 12,
-          },
           tooltip: {
             callbacks: {
               label: (ctx) => ctx.parsed.y + ' responses (' + (ctx.parsed.y / 10).toFixed(1) + '%)'
@@ -762,12 +774,12 @@ async function initInterventionCharts() {
           {
             label: 'Standard (parseable subset only)',
             data: compliancePercentages(standardParseableSubsetSeries.points),
-            borderColor: '#f0a500',
-            backgroundColor: 'rgba(240, 165, 0, 0.10)',
+            borderColor: '#9da3c4',
+            backgroundColor: 'rgba(157, 163, 196, 0.12)',
             fill: true,
             tension: 0.3,
             pointRadius: 5,
-            pointBackgroundColor: '#f0a500',
+            pointBackgroundColor: '#9da3c4',
             borderWidth: 2.5,
           }
         ]
@@ -830,7 +842,7 @@ async function initInterventionCharts() {
           {
             label: 'Always compliant',
             data: new Array(swingBreakdown.length).fill(antiCompliancePopulation.always_compliant.count),
-            backgroundColor: 'rgba(255, 107, 107, 0.5)',
+            backgroundColor: 'rgba(157, 163, 196, 0.35)',
             borderRadius: 0,
             borderSkipped: false,
           },
@@ -851,7 +863,7 @@ async function initInterventionCharts() {
           {
             label: 'Never compliant',
             data: new Array(swingBreakdown.length).fill(antiCompliancePopulation.never_compliant.count),
-            backgroundColor: 'rgba(127, 119, 221, 0.4)',
+            backgroundColor: 'rgba(157, 163, 196, 0.18)',
             borderRadius: { topLeft: 4, topRight: 4 },
             borderSkipped: false,
           }
