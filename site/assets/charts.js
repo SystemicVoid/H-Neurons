@@ -1,8 +1,8 @@
 // --- Chart.js config ---
 const chartDefaults = {
-  color: '#9da3c4',
-  borderColor: 'rgba(157, 163, 196, 0.12)',
-  font: { family: "'Inter', sans-serif", size: 12 }
+  color: '#a09b91',
+  borderColor: 'rgba(160, 155, 145, 0.12)',
+  font: { family: "'Outfit', sans-serif", size: 12 }
 };
 
 Chart.defaults.color = chartDefaults.color;
@@ -16,7 +16,7 @@ const valueLabelPlugin = {
     }
 
     const { ctx } = chart;
-    const defaultColor = pluginOptions.color ?? '#e8eaf6';
+    const defaultColor = pluginOptions.color ?? '#ede8e0';
     const defaultFont = pluginOptions.font ?? { size: 11, weight: '600' };
     const defaultOffset = pluginOptions.offset ?? 10;
 
@@ -193,11 +193,11 @@ async function initClassifierChart() {
         label: 'Disjoint test set',
         data: metricOrder.map((metricName) => classifierData.metrics[metricName].estimate),
         backgroundColor: [
-          'rgba(78, 205, 196, 0.8)',
-          'rgba(78, 205, 196, 0.65)',
-          'rgba(127, 119, 221, 0.7)',
-          'rgba(127, 119, 221, 0.55)',
-          'rgba(127, 119, 221, 0.45)'
+          'rgba(126, 200, 160, 0.8)',
+          'rgba(126, 200, 160, 0.65)',
+          'rgba(123, 140, 222, 0.7)',
+          'rgba(123, 140, 222, 0.55)',
+          'rgba(123, 140, 222, 0.45)'
         ],
         borderRadius: 6,
         borderSkipped: false,
@@ -228,11 +228,11 @@ async function initClassifierChart() {
         x: {
           grid: { display: false },
           ticks: { font: { size: 13, weight: '500' } },
-          border: { color: 'rgba(157, 163, 196, 0.12)' }
+          border: { color: 'rgba(160, 155, 145, 0.12)' }
         },
         y: {
           min: 0, max: 1,
-          grid: { color: 'rgba(157, 163, 196, 0.08)' },
+          grid: { color: 'rgba(160, 155, 145, 0.08)' },
           ticks: {
             callback: (v) => Math.round(v * 100) + '%',
             font: { size: 12 }
@@ -266,9 +266,9 @@ const layerCounts = new Array(34).fill(0);
 layerData.forEach(d => { layerCounts[d.layer] = d.count; });
 
 const layerColors = layerCounts.map((_, i) => {
-  if (i <= 10) return 'rgba(255, 107, 107, 0.7)';
-  if (i <= 20) return 'rgba(127, 119, 221, 0.7)';
-  return 'rgba(78, 205, 196, 0.7)';
+  if (i <= 10) return 'rgba(230, 57, 70, 0.7)';
+  if (i <= 20) return 'rgba(123, 140, 222, 0.7)';
+  return 'rgba(126, 200, 160, 0.7)';
 });
 
 const layerChartCanvas = document.getElementById('layerChart');
@@ -309,11 +309,11 @@ if (layerChartCanvas) {
         x: {
           grid: { display: false },
           ticks: { font: { size: 10 }, maxRotation: 0 },
-          border: { color: 'rgba(157, 163, 196, 0.12)' }
+          border: { color: 'rgba(160, 155, 145, 0.12)' }
         },
         y: {
           beginAtZero: true,
-          grid: { color: 'rgba(157, 163, 196, 0.08)' },
+          grid: { color: 'rgba(160, 155, 145, 0.08)' },
           ticks: { stepSize: 1, font: { size: 12 } },
           border: { display: false }
         }
@@ -349,7 +349,7 @@ if (topNeuronsChartCanvas) {
       datasets: [{
         label: 'L1 weight',
         data: topNeurons.map(n => n.weight),
-        backgroundColor: topNeurons.map((_, i) => i === 0 ? 'rgba(255, 107, 107, 0.85)' : 'rgba(127, 119, 221, 0.55)'),
+        backgroundColor: topNeurons.map((_, i) => i === 0 ? 'rgba(230, 57, 70, 0.85)' : 'rgba(123, 140, 222, 0.55)'),
         borderRadius: 6,
         borderSkipped: false,
       }]
@@ -372,14 +372,14 @@ if (topNeuronsChartCanvas) {
       },
       scales: {
         x: {
-          grid: { color: 'rgba(157, 163, 196, 0.08)' },
+          grid: { color: 'rgba(160, 155, 145, 0.08)' },
           ticks: { font: { size: 12 } },
           border: { display: false }
         },
         y: {
           grid: { display: false },
-          ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-          border: { color: 'rgba(157, 163, 196, 0.12)' }
+          ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+          border: { color: 'rgba(160, 155, 145, 0.12)' }
         }
       }
     }
@@ -686,28 +686,28 @@ async function initInterventionCharts() {
           {
             label: antiComplianceSeries.label,
             data: compliancePercentages(antiComplianceSeries.points),
-            borderColor: '#4ecdc4',
-            backgroundColor: 'rgba(78, 205, 196, 0.10)',
+            borderColor: '#7EC8A0',
+            backgroundColor: 'rgba(126, 200, 160, 0.10)',
             fill: true,
             tension: 0.3,
             pointRadius: 5,
             pointHoverRadius: 8,
-            pointBackgroundColor: '#4ecdc4',
-            pointBorderColor: '#4ecdc4',
+            pointBackgroundColor: '#7EC8A0',
+            pointBorderColor: '#7EC8A0',
             pointBorderWidth: 2,
             borderWidth: 2.5,
           },
           {
             label: 'Standard prompt (raw)',
             data: compliancePercentages(standardRawSeries.points),
-            borderColor: '#f0a500',
-            backgroundColor: 'rgba(240, 165, 0, 0.08)',
+            borderColor: '#D4A574',
+            backgroundColor: 'rgba(212, 165, 116, 0.08)',
             fill: true,
             tension: 0.3,
             pointRadius: 5,
             pointHoverRadius: 8,
-            pointBackgroundColor: '#f0a500',
-            pointBorderColor: '#f0a500',
+            pointBackgroundColor: '#D4A574',
+            pointBorderColor: '#D4A574',
             pointBorderWidth: 2,
             borderWidth: 2.5,
             borderDash: [8, 4],
@@ -739,12 +739,12 @@ async function initInterventionCharts() {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-            border: { color: 'rgba(157, 163, 196, 0.12)' }
+            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
             min: 60, max: 74,
-            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: {
               callback: (value) => value + '%',
               font: { size: 12 }
@@ -754,7 +754,7 @@ async function initInterventionCharts() {
               display: true,
               text: 'Compliance rate (%)',
               font: { size: 12 },
-              color: '#9da3c4'
+              color: '#a09b91'
             }
           }
         }
@@ -774,7 +774,7 @@ async function initInterventionCharts() {
         datasets: [{
           label: 'Responses without letter prefix',
           data: parseFailureTotals,
-          backgroundColor: parseFailureTotals.map((count) => count > 50 ? 'rgba(255, 107, 107, 0.7)' : 'rgba(240, 165, 0, 0.5)'),
+          backgroundColor: parseFailureTotals.map((count) => count > 50 ? 'rgba(230, 57, 70, 0.7)' : 'rgba(212, 165, 116, 0.5)'),
           borderRadius: 6,
           borderSkipped: false,
         }]
@@ -793,19 +793,19 @@ async function initInterventionCharts() {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-            border: { color: 'rgba(157, 163, 196, 0.12)' }
+            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
             beginAtZero: true,
-            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: { font: { size: 12 } },
             border: { display: false },
             title: {
               display: true,
               text: 'Parse failures (chosen=None)',
               font: { size: 12 },
-              color: '#9da3c4'
+              color: '#a09b91'
             }
           }
         }
@@ -824,33 +824,33 @@ async function initInterventionCharts() {
           {
             label: antiComplianceSeries.label,
             data: compliancePercentages(antiComplianceSeries.points),
-            borderColor: '#4ecdc4',
+            borderColor: '#7EC8A0',
             backgroundColor: 'transparent',
             tension: 0.3,
             pointRadius: 4,
-            pointBackgroundColor: '#4ecdc4',
+            pointBackgroundColor: '#7EC8A0',
             borderWidth: 2.5,
           },
           {
             label: 'Standard (raw)',
             data: compliancePercentages(standardRawSeries.points),
-            borderColor: '#f0a500',
+            borderColor: '#D4A574',
             backgroundColor: 'transparent',
             tension: 0.3,
             pointRadius: 4,
-            pointBackgroundColor: '#f0a500',
+            pointBackgroundColor: '#D4A574',
             borderWidth: 2,
             borderDash: [8, 4],
           },
           {
             label: 'Standard (parseable subset only)',
             data: compliancePercentages(standardParseableSubsetSeries.points),
-            borderColor: '#9da3c4',
-            backgroundColor: 'rgba(157, 163, 196, 0.12)',
+            borderColor: '#a09b91',
+            backgroundColor: 'rgba(160, 155, 145, 0.12)',
             fill: true,
             tension: 0.3,
             pointRadius: 5,
-            pointBackgroundColor: '#9da3c4',
+            pointBackgroundColor: '#a09b91',
             borderWidth: 2.5,
           }
         ]
@@ -879,12 +879,12 @@ async function initInterventionCharts() {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-            border: { color: 'rgba(157, 163, 196, 0.12)' }
+            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
             min: 60, max: 80,
-            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: {
               callback: (value) => value + '%',
               font: { size: 12 }
@@ -894,7 +894,7 @@ async function initInterventionCharts() {
               display: true,
               text: 'Compliance rate (%)',
               font: { size: 12 },
-              color: '#9da3c4'
+              color: '#a09b91'
             }
           }
         }
@@ -916,28 +916,28 @@ async function initInterventionCharts() {
           {
             label: 'Always compliant',
             data: new Array(swingBreakdown.length).fill(antiCompliancePopulation.always_compliant.count),
-            backgroundColor: 'rgba(157, 163, 196, 0.35)',
+            backgroundColor: 'rgba(160, 155, 145, 0.35)',
             borderRadius: 0,
             borderSkipped: false,
           },
           {
             label: 'Swing \u2192 compliant',
             data: swingCompliant,
-            backgroundColor: 'rgba(78, 205, 196, 0.7)',
+            backgroundColor: 'rgba(126, 200, 160, 0.7)',
             borderRadius: 0,
             borderSkipped: false,
           },
           {
             label: 'Swing \u2192 resistant',
             data: swingResistant,
-            backgroundColor: 'rgba(78, 205, 196, 0.25)',
+            backgroundColor: 'rgba(126, 200, 160, 0.25)',
             borderRadius: 0,
             borderSkipped: false,
           },
           {
             label: 'Never compliant',
             data: new Array(swingBreakdown.length).fill(antiCompliancePopulation.never_compliant.count),
-            backgroundColor: 'rgba(157, 163, 196, 0.18)',
+            backgroundColor: 'rgba(160, 155, 145, 0.18)',
             borderRadius: { topLeft: 4, topRight: 4 },
             borderSkipped: false,
           }
@@ -967,20 +967,20 @@ async function initInterventionCharts() {
           x: {
             stacked: true,
             grid: { display: false },
-            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-            border: { color: 'rgba(157, 163, 196, 0.12)' }
+            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
             stacked: true,
             max: antiCompliancePopulation.n_total,
-            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: { font: { size: 12 } },
             border: { display: false },
             title: {
               display: true,
               text: `Samples (n=${antiCompliancePopulation.n_total.toLocaleString()})`,
               font: { size: 12 },
-              color: '#9da3c4'
+              color: '#a09b91'
             }
           }
         }
@@ -1058,7 +1058,7 @@ async function initSwingCharts() {
           {
             label: 'R\u2192C (knowledge override)',
             data: rcCounts,
-            backgroundColor: 'rgba(155, 89, 182, 0.7)',
+            backgroundColor: 'rgba(123, 140, 222, 0.7)',
             borderRadius: 4,
             borderSkipped: false,
           },
@@ -1091,19 +1091,19 @@ async function initSwingCharts() {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 12, family: "'JetBrains Mono', monospace" } },
-            border: { color: 'rgba(157, 163, 196, 0.12)' }
+            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
             beginAtZero: true,
-            grid: { color: 'rgba(157, 163, 196, 0.08)' },
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: { stepSize: 5, font: { size: 12 } },
             border: { display: false },
             title: {
               display: true,
               text: 'R\u2192C samples transitioning at each \u03b1',
               font: { size: 12 },
-              color: '#9da3c4'
+              color: '#a09b91'
             }
           }
         }
@@ -1123,18 +1123,18 @@ async function initSwingCharts() {
       });
       const categoryList = [...categories];
       const colors = {
-        'WELL_KNOWN': 'rgba(78, 205, 196, 0.8)',
-        'COMMON_KNOWLEDGE': 'rgba(78, 205, 196, 0.6)',
-        'SPECIALIZED': 'rgba(240, 165, 0, 0.6)',
-        'OBSCURE': 'rgba(255, 107, 107, 0.6)',
-        'AMBIGUOUS': 'rgba(157, 163, 196, 0.4)',
-        'well_known': 'rgba(78, 205, 196, 0.8)',
-        'common_knowledge': 'rgba(78, 205, 196, 0.6)',
-        'specialized': 'rgba(240, 165, 0, 0.6)',
-        'obscure': 'rgba(255, 107, 107, 0.6)',
-        'ambiguous': 'rgba(157, 163, 196, 0.4)',
+        'WELL_KNOWN': 'rgba(126, 200, 160, 0.8)',
+        'COMMON_KNOWLEDGE': 'rgba(126, 200, 160, 0.6)',
+        'SPECIALIZED': 'rgba(212, 165, 116, 0.6)',
+        'OBSCURE': 'rgba(230, 57, 70, 0.6)',
+        'AMBIGUOUS': 'rgba(160, 155, 145, 0.4)',
+        'well_known': 'rgba(126, 200, 160, 0.8)',
+        'common_knowledge': 'rgba(126, 200, 160, 0.6)',
+        'specialized': 'rgba(212, 165, 116, 0.6)',
+        'obscure': 'rgba(230, 57, 70, 0.6)',
+        'ambiguous': 'rgba(160, 155, 145, 0.4)',
       };
-      const defaultColor = 'rgba(127, 119, 221, 0.5)';
+      const defaultColor = 'rgba(123, 140, 222, 0.5)';
 
       const datasets = categoryList.map((cat) => ({
         label: cat.replace(/_/g, ' '),
@@ -1175,19 +1175,19 @@ async function initSwingCharts() {
               stacked: true,
               grid: { display: false },
               ticks: { font: { size: 12 } },
-              border: { color: 'rgba(157, 163, 196, 0.12)' }
+              border: { color: 'rgba(160, 155, 145, 0.12)' }
             },
             y: {
               stacked: true,
               beginAtZero: true,
-              grid: { color: 'rgba(157, 163, 196, 0.08)' },
+              grid: { color: 'rgba(160, 155, 145, 0.08)' },
               ticks: { font: { size: 12 } },
               border: { display: false },
               title: {
                 display: true,
                 text: 'Samples by knowledge classification',
                 font: { size: 12 },
-                color: '#9da3c4'
+                color: '#a09b91'
               }
             }
           }
