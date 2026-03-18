@@ -8,12 +8,12 @@
 
 **Status:** Complete. **H-neuron specificity confirmed on FalseQA.**
 
-**Results** (`data/gemma3_4b/intervention/negative_control_falseqa/comparison_summary.json`):
+**Results** (`data/gemma3_4b/intervention/falseqa/control/comparison_summary.json`):
 - H-neurons: 69.6% → 71.9% → 74.4% (slope +1.55%/α, ρ=1.0, monotonic)
 - Random mean: 72.3% → 72.2% → 72.3% (slope 0.00%/α, flat)
 - Random 95% slope interval: [-0.40, +0.38] pp/α — H-neuron slope of +1.55 is well outside
 - H-neuron α=3.0 compliance (74.4%) is above the random 95% interval [71.8%, 72.9%]
-- Plot: `data/gemma3_4b/intervention/negative_control_falseqa/negative_control_comparison.png`
+- Plot: `data/gemma3_4b/intervention/falseqa/control/negative_control_comparison.png`
 
 This is the second benchmark (after FaithEval) confirming H-neuron specificity, using a completely different evaluator (GPT-4o judge vs regex letter extraction) and task type (open-ended false-premise rejection vs MC counterfactual context).
 
@@ -23,9 +23,9 @@ This is the second benchmark (after FaithEval) confirming H-neuron specificity, 
 3. **Analysis** (`scripts/run_negative_control.py --benchmark falseqa --quick --analysis_only`): Comparison summary, slope intervals, and plot.
 
 **Data:**
-- Generated responses: `data/gemma3_4b/intervention/negative_control_falseqa/seed_{0,1,2}_unconstrained/alpha_{0.0,1.0,3.0}.jsonl`
-- Per-seed results: `data/gemma3_4b/intervention/negative_control_falseqa/seed_{0,1,2}_unconstrained/results.json`
-- H-neuron FalseQA baseline: `data/gemma3_4b/intervention/falseqa/results.json` (7 alphas, 687 samples, GPT-4o judged)
+- Generated responses: `data/gemma3_4b/intervention/falseqa/control/seed_{0,1,2}_unconstrained/alpha_{0.0,1.0,3.0}.jsonl`
+- Per-seed results: `data/gemma3_4b/intervention/falseqa/control/seed_{0,1,2}_unconstrained/results.json`
+- H-neuron FalseQA baseline: `data/gemma3_4b/intervention/falseqa/experiment/results.json` (7 alphas, 687 samples, GPT-4o judged)
 
 **Reviewer note:** The quick-mode run only tested 3 alphas (0.0, 1.0, 3.0) with 3 unconstrained seeds. The FaithEval control used 7 alphas with 5 unconstrained + 3 layer-matched seeds. A full FalseQA sweep (8 seeds x 7 alphas) would cost ~$16 API + ~8h GPU and is warranted if the result needs to go into a publication figure.
 
@@ -37,17 +37,17 @@ This is the second benchmark (after FaithEval) confirming H-neuron specificity, 
 
 **Scientific question:** Does amplifying H-neurons causally change factoid accuracy on an out-of-distribution biomedical QA benchmark?
 
-**Context:** The probe transfer audit (`data/gemma3_4b/bioasq13b_factoid_probe_transfer_audit.md`) shows H-neurons are *detectable* on BioASQ (AUROC 0.82, accuracy 0.70). The intervention tests whether they are *causally active* for factoid accuracy — a stronger claim.
+**Context:** The probe transfer audit (`data/gemma3_4b/probing/bioasq13b_factoid/probe_transfer_audit.md`) shows H-neurons are *detectable* on BioASQ (AUROC 0.82, accuracy 0.70). The intervention tests whether they are *causally active* for factoid accuracy — a stronger claim.
 
 **Status:** H-neuron baseline complete, negative control running.
 
-**H-neuron baseline results** (`data/gemma3_4b/intervention/bioasq/results.json`):
+**H-neuron baseline results** (`data/gemma3_4b/intervention/bioasq/experiment/results.json`):
 - α=0.0: 16.9% accuracy (270/1600)
 - α=1.0: 18.6% accuracy (297/1600)
 - α=3.0: 16.8% accuracy (269/1600)
 - **Flat curve — no dose-response.** H-neuron scaling does not affect BioASQ factoid accuracy despite neurons being detectable. This dissociation between detection and causal intervention is scientifically interesting.
 
-**Negative control results** (`data/gemma3_4b/intervention/negative_control_bioasq/comparison_summary.json`):
+**Negative control results** (`data/gemma3_4b/intervention/bioasq/control/comparison_summary.json`):
 - Random neurons: 18.6% → 18.6% → 18.7% across α (perfectly flat, slope +0.04%/α)
 - H-neurons: 16.9% → 18.6% → 16.8% (non-monotonic V-shape, slope -0.14%/α)
 - Both are flat and indistinguishable from noise at n=1600 (Wilson 95% CI width ~3.8pp)
@@ -57,11 +57,11 @@ This is the second benchmark (after FaithEval) confirming H-neuron specificity, 
 
 **Data:**
 - BioASQ benchmark: `data/benchmarks/bioasq13b_factoid.parquet`
-- BioASQ samples (1600 questions, GPT-4o judged): `data/gemma3_4b/bioasq13b_factoid_samples.jsonl`
-- H-neuron baseline: `data/gemma3_4b/intervention/bioasq/results.json`
-- Negative control: `data/gemma3_4b/intervention/negative_control_bioasq/comparison_summary.json`
-- Negative control plot: `data/gemma3_4b/intervention/negative_control_bioasq/negative_control_comparison.png`
-- Probe transfer audit: `data/gemma3_4b/bioasq13b_factoid_probe_transfer_audit.md`
+- BioASQ samples (1600 questions, GPT-4o judged): `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl`
+- H-neuron baseline: `data/gemma3_4b/intervention/bioasq/experiment/results.json`
+- Negative control: `data/gemma3_4b/intervention/bioasq/control/comparison_summary.json`
+- Negative control plot: `data/gemma3_4b/intervention/bioasq/control/negative_control_comparison.png`
+- Probe transfer audit: `data/gemma3_4b/probing/bioasq13b_factoid/probe_transfer_audit.md`
 
 **Evaluation method:** Inline `normalize_answer()` substring matching against BioASQ alias lists — no GPT-4o cost for judging.
 
@@ -71,7 +71,7 @@ The detection-without-intervention result on BioASQ needs explanation. It could 
 
 **1. Check whether the evaluation metric is too coarse (zero GPU cost, ~1h)**
 BioASQ factoid accuracy is ~18% — the model gets most questions wrong regardless of alpha. If the "floor" is already at random-guess level, H-neuron scaling might be changing *how* the model is wrong (e.g., shifting from confident wrong answers to hedged wrong answers) without changing the binary correct/incorrect count. Concrete steps:
-- Load `data/gemma3_4b/intervention/bioasq/alpha_{0.0,1.0,3.0}.jsonl` and compare response *text* across alphas for the same questions
+- Load `data/gemma3_4b/intervention/bioasq/experiment/alpha_{0.0,1.0,3.0}.jsonl` and compare response *text* across alphas for the same questions
 - Classify responses into: correct, wrong-but-confident, wrong-and-hedged, refusal, off-topic
 - Check if the distribution across these categories shifts with alpha even when binary accuracy doesn't
 - Check average response length per alpha — format degradation would show up here
@@ -107,7 +107,7 @@ For reference, the FaithEval anti-compliance negative control is complete and co
 - **H-neuron slope:** 2.09%/α (monotonic, ρ=1.0, 6.3pp total swing)
 - **Random neuron slope:** 0.02%/α mean (5 unconstrained seeds), 0.17%/α mean (3 layer-matched seeds)
 - **Separation:** t-test p < 10⁻⁵ on both compliance and slope
-- **Full analysis:** `data/gemma3_4b/intervention/negative_control/comparison_summary.json`
+- **Full analysis:** `data/gemma3_4b/intervention/faitheval/control/comparison_summary.json`
 - **Detailed write-up:** `data/gemma3_4b/intervention_findings.md` (sections 1.4, 1.5)
 
 ---
