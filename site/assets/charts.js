@@ -416,7 +416,7 @@ function setInterventionText(binding, value) {
   });
 }
 
-function hydrateInterventionSummary(interventionData) {
+function buildInterventionSummary(interventionData) {
   const antiComplianceSeries = interventionData.series.anti_compliance;
   const standardRawSeries = interventionData.series.standard_raw;
   const standardParseableSubsetSeries = interventionData.series.standard_parseable_subset;
@@ -430,6 +430,38 @@ function hydrateInterventionSummary(interventionData) {
   const standardParseableBaseline = interventionPointByAlpha(standardParseableSubsetSeries.points, 0.0);
   const parseAlphaZero = interventionPointByAlpha(parseFailures, 0.0);
   const parseAlphaThree = interventionPointByAlpha(parseFailures, 3.0);
+
+  return {
+    antiComplianceSeries,
+    standardRawSeries,
+    standardParseableSubsetSeries,
+    standardTextRemapAlphaThree,
+    negativeControl,
+    parseFailures,
+    antiBaseline,
+    antiAlphaThree,
+    antiEffects,
+    standardRawBaseline,
+    standardParseableBaseline,
+    parseAlphaZero,
+    parseAlphaThree,
+  };
+}
+
+function hydrateInterventionSummary(summary) {
+  const {
+    antiComplianceSeries,
+    standardParseableSubsetSeries,
+    standardTextRemapAlphaThree,
+    negativeControl,
+    antiBaseline,
+    antiAlphaThree,
+    antiEffects,
+    standardRawBaseline,
+    standardParseableBaseline,
+    parseAlphaZero,
+    parseAlphaThree,
+  } = summary;
 
   setInterventionText(
     'benchmark-detail',
@@ -515,15 +547,25 @@ async function initInterventionCharts() {
 
   const interventionData = await loadInterventionData();
   const interventionAlphaLabels = interventionData.alphas.map(formatAlphaLabel);
-  const antiComplianceSeries = interventionData.series.anti_compliance;
-  const standardRawSeries = interventionData.series.standard_raw;
-  const standardParseableSubsetSeries = interventionData.series.standard_parseable_subset;
-  const standardTextRemapAlphaThree = interventionData.series.standard_text_remap.by_alpha['3.0'];
-  const parseFailures = interventionData.parse_failures.points;
+  const summary = buildInterventionSummary(interventionData);
+  const {
+    antiComplianceSeries,
+    standardRawSeries,
+    standardParseableSubsetSeries,
+    standardTextRemapAlphaThree,
+    parseFailures,
+    antiBaseline,
+    antiAlphaThree,
+    antiEffects,
+    standardRawBaseline,
+    standardParseableBaseline,
+    parseAlphaZero,
+    parseAlphaThree,
+  } = summary;
   const antiCompliancePopulation = interventionData.population.anti_compliance;
   const swingBreakdown = antiCompliancePopulation.swing_breakdown;
 
-  hydrateInterventionSummary(interventionData);
+  hydrateInterventionSummary(summary);
   renderSeriesGrid('interventionValueGrid', [
     {
       title: 'Anti-compliance',
