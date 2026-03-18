@@ -46,6 +46,10 @@ DEFAULT_SYCOPHANCY_DATA = os.environ.get(
     "HNEURONS_SYCOPHANCY_DATA",
     "data/gemma3_4b/consistency_samples.jsonl",
 )
+DEFAULT_BIOASQ_DATA = os.environ.get(
+    "HNEURONS_BIOASQ_DATA",
+    "data/benchmarks/bioasq13b_factoid.parquet",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -410,6 +414,84 @@ def run_falseqa(model, tokenizer, scaler, samples, alpha, output_dir, max_sample
 
 
 # ---------------------------------------------------------------------------
+# Benchmark: BioASQ (factoid QA)
+# ---------------------------------------------------------------------------
+
+
+def load_bioasq(data_path="data/benchmarks/bioasq13b_factoid.parquet"):
+    """Load BioASQ 13b factoid questions from parquet.
+
+    Returns samples with raw aliases; normalization happens at evaluation time.
+    """
+    import pandas as pd
+
+    df = pd.read_parquet(data_path)
+    samples = []
+    for _, row in df.iterrows():
+        samples.append(
+            {
+                "id": row["question_id"],
+                "question": row["question"],
+                "ground_truth": list(row["answer"]["aliases"]),
+            }
+        )
+    return samples
+
+
+def _bioasq_prompt(sample):
+    """Build the BioASQ factoid QA prompt.
+
+    Matches the prompt used in the original response collection
+    (see collect_responses.py).
+    """
+    return (
+        f"{sample['question'].strip()} "
+        "Respond with the answer only, without any explanation."
+    )
+
+
+def run_bioasq(model, tokenizer, scaler, samples, alpha, output_dir, max_samples=None):
+    """Run BioASQ factoid QA for a single alpha value.
+
+    Inline accuracy evaluation: checks if any ground truth alias appears
+    in the normalized response.  Uses ``compliance`` field for consistency
+    with the aggregation pipeline (here compliance ≡ factoid accuracy).
+    """
+    out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+    existing_ids = load_existing_ids(out_path)
+
+    if max_samples:
+        samples = samples[:max_samples]
+
+    scaler.alpha = alpha
+
+    with open(out_path, "a") as f:
+        for sample in tqdm(samples, desc=f"BioASQ α={alpha:.1f}"):
+            if sample["id"] in existing_ids:
+                continue
+
+            prompt = _bioasq_prompt(sample)
+            messages = [{"role": "user", "content": prompt}]
+            response = generate_response(
+                model, tokenizer, messages, do_sample=False, max_new_tokens=128
+            )
+
+            norm_gts = [normalize_answer(gt) for gt in sample["ground_truth"]]
+            norm_resp = normalize_answer(response)
+            correct = any(gt in norm_resp for gt in norm_gts if gt)
+
+            record = {
+                "id": sample["id"],
+                "alpha": alpha,
+                "question": sample["question"],
+                "response": response,
+                "ground_truth": sample["ground_truth"],
+                "compliance": correct,
+            }
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+# ---------------------------------------------------------------------------
 # Benchmark: Sycophancy (two-turn challenge)
 # ---------------------------------------------------------------------------
 
@@ -727,7 +809,7 @@ def parse_args():
         "--benchmark",
         type=str,
         required=True,
-        choices=["faitheval", "falseqa", "sycophancy_triviaqa", "jailbreak"],
+        choices=["faitheval", "falseqa", "bioasq", "sycophancy_triviaqa", "jailbreak"],
     )
     p.add_argument(
         "--alphas", type=float, nargs="+", default=[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
@@ -752,6 +834,8 @@ def parse_args():
     p.add_argument(
         "--falseqa_path", type=str, default="data/benchmarks/falseqa_test.csv"
     )
+    # BioASQ-specific
+    p.add_argument("--bioasq_path", type=str, default=DEFAULT_BIOASQ_DATA)
     # Sycophancy-specific
     p.add_argument("--sycophancy_data", type=str, default=DEFAULT_SYCOPHANCY_DATA)
     return p.parse_args()
@@ -786,6 +870,9 @@ def main():
     elif args.benchmark == "falseqa":
         samples = load_falseqa(args.falseqa_path)
         run_fn = run_falseqa
+    elif args.benchmark == "bioasq":
+        samples = load_bioasq(args.bioasq_path)
+        run_fn = run_bioasq
     elif args.benchmark == "sycophancy_triviaqa":
         samples = load_sycophancy_triviaqa(
             args.sycophancy_data, max_samples=args.max_samples or 500
