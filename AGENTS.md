@@ -20,6 +20,7 @@ Core pipeline code lives in `scripts/` (flat — sibling imports like `from inte
 - `extract_activations.py` needs the same `apply_chat_template()` tensor-vs-`BatchEncoding` guard as `collect_responses.py`.
 - For BioASQ OOD probing, use the official BioASQ Task B JSON (question `body` + `type` + `exact_answer`) rather than HF mirrors like `kroshan/BioASQ`, which flatten answer/context into CSV text and do not match the original task schema.
 - `data/gemma3_4b/test_qids_disjoint.json` contains 782 sampled IDs, but the current disjoint classifier evaluation covers 780 because two IDs are missing activation files. Use the CI-bearing summary JSON as the reporting source of truth.
+- `scripts/infra/lambda-bootstrap.sh` now supports Tailscale-first access. Pass `TAILSCALE_AUTH_KEY` to auto-enroll/tag the instance; SSH is only locked to the Tailscale address after enrollment succeeds, so a missing/bad key will not cut off the public bootstrap session.
 
 ## Known Issues
 - **FaithEval standard-prompt mis-scoring**: The MC letter extractor in `evaluate_intervention.py` fails on ~150 items at `alpha=3.0`; a strict answer-text remap recovers most. Treat raw standard-prompt compliance drops as evaluator artifacts until text-based rescoring is wired in.
