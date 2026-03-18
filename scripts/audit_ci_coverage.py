@@ -181,7 +181,7 @@ def audit_text_surfaces(errors: list[str]) -> None:
         "site/story.html",
         "site/results/gemma-3-4b.html",
         "site/methods.html",
-        "data/gemma3_4b/pipeline_report.md",
+        "data/gemma3_4b/pipeline/pipeline_report.md",
         "data/gemma3_4b/intervention_findings.md",
         "docs/bluedot-rapid-grant-2026.md",
     )
@@ -302,12 +302,12 @@ def main() -> int:
 
     try:
         audit_classifier_summary(
-            "data/gemma3_4b/classifier_disjoint_summary.json",
+            "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
             "classifier_disjoint",
             errors,
         )
         audit_classifier_summary(
-            "data/gemma3_4b/classifier_overlap_summary.json",
+            "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
             "classifier_overlap",
             errors,
         )

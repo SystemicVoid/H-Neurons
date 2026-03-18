@@ -4,9 +4,9 @@
   "generated_by": "scripts/export_site_data.py",
   "model": "google/gemma-3-4b-it",
   "source_files": [
-    "data/gemma3_4b/classifier_disjoint_summary.json",
-    "data/gemma3_4b/classifier_overlap_summary.json",
-    "data/gemma3_4b/test_qids_disjoint.json"
+    "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+    "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
+    "data/gemma3_4b/pipeline/test_qids_disjoint.json"
   ],
   "n_examples": 780,
   "n_positive": 389,

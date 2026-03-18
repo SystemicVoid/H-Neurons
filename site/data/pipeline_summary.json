@@ -4,13 +4,13 @@
   "generated_by": "scripts/export_site_data.py",
   "model": "google/gemma-3-4b-it",
   "source_files": [
-    "data/gemma3_4b/consistency_samples.jsonl",
+    "data/gemma3_4b/pipeline/consistency_samples.jsonl",
     "data/batch3500_review.md",
-    "data/gemma3_4b/answer_tokens.jsonl",
-    "data/gemma3_4b/train_qids.json",
-    "data/gemma3_4b/test_qids_disjoint.json",
-    "data/gemma3_4b/pipeline_report.md",
-    "data/gemma3_4b/classifier_disjoint_summary.json"
+    "data/gemma3_4b/pipeline/answer_tokens.jsonl",
+    "data/gemma3_4b/pipeline/train_qids.json",
+    "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+    "data/gemma3_4b/pipeline/pipeline_report.md",
+    "data/gemma3_4b/pipeline/classifier_disjoint_summary.json"
   ],
   "counts": {
     "sampled_questions": 3500,

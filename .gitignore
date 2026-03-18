@@ -31,8 +31,8 @@ scripts/infra/watch_gh200_pipeline_and_sync.sh
 *.safetensors
 *.bin
 *.gguf
-data/*/activations/
-data/*/investigation_*/
+data/**/activations/
+data/**/investigation_*/
 models/
 data/benchmarks/BioASQ-training*.zip
 data/benchmarks/BioASQ-training*/

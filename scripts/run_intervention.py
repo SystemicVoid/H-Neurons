@@ -44,7 +44,7 @@ DEFAULT_CLASSIFIER_PATH = os.environ.get(
 DEFAULT_DEVICE_MAP = os.environ.get("HNEURONS_DEVICE_MAP", "cuda:0")
 DEFAULT_SYCOPHANCY_DATA = os.environ.get(
     "HNEURONS_SYCOPHANCY_DATA",
-    "data/gemma3_4b/consistency_samples.jsonl",
+    "data/gemma3_4b/pipeline/consistency_samples.jsonl",
 )
 DEFAULT_BIOASQ_DATA = os.environ.get(
     "HNEURONS_BIOASQ_DATA",
@@ -497,7 +497,7 @@ def run_bioasq(model, tokenizer, scaler, samples, alpha, output_dir, max_samples
 
 
 def load_sycophancy_triviaqa(
-    data_path="data/gemma3_4b/consistency_samples.jsonl", max_samples=500
+    data_path="data/gemma3_4b/pipeline/consistency_samples.jsonl", max_samples=500
 ):
     """Load TriviaQA samples for sycophancy test.
     Uses consistently-correct entries (model knows the answer) so we can test

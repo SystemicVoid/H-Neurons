@@ -7,11 +7,11 @@ the runner-up) reflects genuine signal or L1 regularization artifact.
 Usage:
     uv run python scripts/investigate_neuron_4288.py \
         --classifier models/gemma3_4b_classifier_disjoint.pkl \
-        --train_ids data/gemma3_4b/train_qids.json \
-        --test_ids data/gemma3_4b/test_qids_disjoint.json \
-        --train_ans_acts data/gemma3_4b/activations/answer_tokens \
-        --train_other_acts data/gemma3_4b/activations/all_except_answer_tokens \
-        --test_acts data/gemma3_4b/activations/answer_tokens \
+        --train_ids data/gemma3_4b/pipeline/train_qids.json \
+        --test_ids data/gemma3_4b/pipeline/test_qids_disjoint.json \
+        --train_ans_acts data/gemma3_4b/pipeline/activations/answer_tokens \
+        --train_other_acts data/gemma3_4b/pipeline/activations/all_except_answer_tokens \
+        --test_acts data/gemma3_4b/pipeline/activations/answer_tokens \
         --output_dir data/gemma3_4b/investigation_neuron_4288
 """
 

@@ -11,7 +11,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/classifier_disjoint_summary.json",
+        "file": "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
         "path": [
           "evaluation",
           "metrics",
@@ -36,7 +36,7 @@
           "mode": "comment"
         },
         {
-          "file": "data/gemma3_4b/pipeline_report.md",
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
         },
         {
@@ -50,7 +50,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/classifier_overlap_summary.json",
+        "file": "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
         "path": [
           "evaluation",
           "metrics",
@@ -67,7 +67,7 @@
           "mode": "comment"
         },
         {
-          "file": "data/gemma3_4b/pipeline_report.md",
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
         },
         {
@@ -116,7 +116,7 @@
           "mode": "comment"
         },
         {
-          "file": "data/gemma3_4b/pipeline_report.md",
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
         }
       ]
@@ -139,7 +139,7 @@
           "mode": "comment"
         },
         {
-          "file": "data/gemma3_4b/pipeline_report.md",
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
         }
       ]
@@ -199,7 +199,7 @@
           "mode": "comment"
         },
         {
-          "file": "data/gemma3_4b/pipeline_report.md",
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
         }
       ]
@@ -222,7 +222,7 @@
           "mode": "comment"
         },
         {
-          "file": "data/gemma3_4b/pipeline_report.md",
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
         }
       ]
@@ -244,7 +244,7 @@
           "mode": "comment"
         },
         {
-          "file": "data/gemma3_4b/pipeline_report.md",
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
         }
       ]

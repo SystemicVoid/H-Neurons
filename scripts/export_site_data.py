@@ -257,10 +257,12 @@ def build_parse_failure_effects(base_dir: Path) -> dict[str, Any]:
 
 def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
     disjoint_summary_path = (
-        repo_root / "data/gemma3_4b/classifier_disjoint_summary.json"
+        repo_root / "data/gemma3_4b/pipeline/classifier_disjoint_summary.json"
     )
-    overlap_summary_path = repo_root / "data/gemma3_4b/classifier_overlap_summary.json"
-    qids_path = repo_root / "data/gemma3_4b/test_qids_disjoint.json"
+    overlap_summary_path = (
+        repo_root / "data/gemma3_4b/pipeline/classifier_overlap_summary.json"
+    )
+    qids_path = repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json"
     summary = load_json(disjoint_summary_path)
     overlap_summary = load_json(overlap_summary_path)
     disjoint_qids = load_json(qids_path)
@@ -273,9 +275,9 @@ def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
         "generated_by": "scripts/export_site_data.py",
         "model": "google/gemma-3-4b-it",
         "source_files": [
-            "data/gemma3_4b/classifier_disjoint_summary.json",
-            "data/gemma3_4b/classifier_overlap_summary.json",
-            "data/gemma3_4b/test_qids_disjoint.json",
+            "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+            "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
+            "data/gemma3_4b/pipeline/test_qids_disjoint.json",
         ],
         "n_examples": evaluation["n_examples"],
         "n_positive": evaluation["n_positive"],
@@ -610,12 +612,14 @@ def parse_pipeline_report_runtime(path: Path) -> dict[str, Any]:
 
 
 def build_pipeline_site_payload(repo_root: Path) -> dict[str, Any]:
-    consistency_samples_path = repo_root / "data/gemma3_4b/consistency_samples.jsonl"
+    consistency_samples_path = (
+        repo_root / "data/gemma3_4b/pipeline/consistency_samples.jsonl"
+    )
     batch_review_path = repo_root / "data/batch3500_review.md"
-    answer_tokens_path = repo_root / "data/gemma3_4b/answer_tokens.jsonl"
-    train_qids_path = repo_root / "data/gemma3_4b/train_qids.json"
-    test_qids_path = repo_root / "data/gemma3_4b/test_qids_disjoint.json"
-    pipeline_report_path = repo_root / "data/gemma3_4b/pipeline_report.md"
+    answer_tokens_path = repo_root / "data/gemma3_4b/pipeline/answer_tokens.jsonl"
+    train_qids_path = repo_root / "data/gemma3_4b/pipeline/train_qids.json"
+    test_qids_path = repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json"
+    pipeline_report_path = repo_root / "data/gemma3_4b/pipeline/pipeline_report.md"
     classifier_summary = build_classifier_site_payload(repo_root)
 
     sampled_questions = count_jsonl_rows(consistency_samples_path)
@@ -636,13 +640,13 @@ def build_pipeline_site_payload(repo_root: Path) -> dict[str, Any]:
         "generated_by": "scripts/export_site_data.py",
         "model": "google/gemma-3-4b-it",
         "source_files": [
-            "data/gemma3_4b/consistency_samples.jsonl",
+            "data/gemma3_4b/pipeline/consistency_samples.jsonl",
             "data/batch3500_review.md",
-            "data/gemma3_4b/answer_tokens.jsonl",
-            "data/gemma3_4b/train_qids.json",
-            "data/gemma3_4b/test_qids_disjoint.json",
-            "data/gemma3_4b/pipeline_report.md",
-            "data/gemma3_4b/classifier_disjoint_summary.json",
+            "data/gemma3_4b/pipeline/answer_tokens.jsonl",
+            "data/gemma3_4b/pipeline/train_qids.json",
+            "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+            "data/gemma3_4b/pipeline/pipeline_report.md",
+            "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
         ],
         "counts": {
             "sampled_questions": sampled_questions,
