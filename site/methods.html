@@ -6,7 +6,7 @@
 <title>Methods | H-Neurons</title>
 <link rel="stylesheet" href="assets/shared.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital,wght@0,400;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -119,27 +119,27 @@
       Like a sieve with several different mesh sizes, the pipeline removes unstable questions, extraction failures, and overlapping evaluation rows before any neuron gets credited for predictive signal.
     </p>
     <div class="funnel">
-      <div class="funnel-bar" style="width: 100%; background: rgba(78, 205, 196, 0.25);">
+      <div class="funnel-bar" style="width: 100%; background: rgba(126, 200, 160, 0.25);">
         <span class="funnel-label">TriviaQA questions</span>
         <span class="funnel-num val-teal" data-pipeline-bind="sampled-questions">3,500</span>
       </div>
-      <div class="funnel-bar" style="width: 89%; background: rgba(78, 205, 196, 0.22);">
+      <div class="funnel-bar" style="width: 89%; background: rgba(126, 200, 160, 0.22);">
         <span class="funnel-label">Consistent (10/10)</span>
         <span class="funnel-num val-teal" data-pipeline-bind="consistent-total">3,115</span>
       </div>
-      <div class="funnel-bar" style="width: 85.6%; background: rgba(78, 205, 196, 0.19);">
+      <div class="funnel-bar" style="width: 85.6%; background: rgba(126, 200, 160, 0.19);">
         <span class="funnel-label">Tokens extracted</span>
         <span class="funnel-num val-teal" data-pipeline-bind="answer-token-count">2,997</span>
       </div>
-      <div class="funnel-bar" style="width: 57.1%; background: rgba(127, 119, 221, 0.22);">
+      <div class="funnel-bar" style="width: 57.1%; background: rgba(123, 140, 222, 0.22);">
         <span class="funnel-label">Train set (balanced)</span>
         <span class="funnel-num val-purple" data-pipeline-bind="train-sampled-total">2,000</span>
       </div>
-      <div class="funnel-bar" style="width: 22.3%; background: rgba(127, 119, 221, 0.18);">
+      <div class="funnel-bar" style="width: 22.3%; background: rgba(123, 140, 222, 0.18);">
         <span class="funnel-label">Disjoint test set</span>
         <span class="funnel-num val-purple" data-pipeline-bind="disjoint-evaluated-total">780</span>
       </div>
-      <div class="funnel-bar" style="width: 1.1%; min-width: 180px; background: rgba(255, 107, 107, 0.25);">
+      <div class="funnel-bar" style="width: 1.1%; min-width: 180px; background: rgba(230, 57, 70, 0.25);">
         <span class="funnel-label">H-Neurons</span>
         <span class="funnel-num val-coral" data-classifier-bind="selected-count">38</span>
       </div>
