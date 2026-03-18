@@ -13,6 +13,10 @@
 #        TAILSCALE_HOSTNAME=hneurons-gh200
 #        TAILSCALE_ADVERTISE_TAGS=tag:lambda
 #        TAILSCALE_LOCKDOWN_SSH=1
+#   5. One-time tailnet prep before the first private-only launch:
+#        - enable MagicDNS in the Tailscale admin console
+#        - add tag ownership / grants for tag:lambda
+#        - mint a tagged auth key for tag:lambda
 #
 # After bootstrap completes, start claude code in the project tmux session:
 #   tmux attach -t hneurons
@@ -92,6 +96,10 @@ if [[ -n "$TAILSCALE_AUTH_KEY" ]]; then
     fi
 else
     echo "TAILSCALE_AUTH_KEY not set; installed Tailscale but skipped enrollment."
+    echo "Tailnet prep checklist (once per tailnet):"
+    echo "  - enable MagicDNS"
+    echo "  - add tag ownership / grants for $TAILSCALE_ADVERTISE_TAGS"
+    echo "  - mint a tagged auth key for $TAILSCALE_ADVERTISE_TAGS"
     echo "Later, run:"
     echo "  sudo tailscale up --auth-key=tskey-... --hostname=$TAILSCALE_HOSTNAME --advertise-tags=$TAILSCALE_ADVERTISE_TAGS"
 fi
@@ -231,15 +239,20 @@ if [[ "$TAILSCALE_CONNECTED" == "1" ]]; then
     echo "     scp scripts/lambda-AGENTS.md ubuntu@$TAILSCALE_HOSTNAME:~/h-neurons/AGENTS.md"
     echo "     # Or use the Tailscale IP directly:"
     [[ -n "$TAILSCALE_IPV4" ]] && echo "     scp scripts/*.py ubuntu@$TAILSCALE_IPV4:~/h-neurons/scripts/"
+    attach_step=2
+    claude_step=3
 else
-    echo "  1. Enroll the box into Tailscale, then upload your scripts + AGENTS.md:"
+    echo "  1. Tailnet prep once: enable MagicDNS, add tag ownership / grants for $TAILSCALE_ADVERTISE_TAGS, mint a tagged auth key."
+    echo "  2. Enroll the box into Tailscale, then upload your scripts + AGENTS.md:"
     echo "     sudo tailscale up --auth-key=tskey-... --hostname=$TAILSCALE_HOSTNAME --advertise-tags=$TAILSCALE_ADVERTISE_TAGS"
     echo "     scp scripts/*.py ubuntu@$TAILSCALE_HOSTNAME:~/h-neurons/scripts/"
     echo "     scp scripts/lambda-AGENTS.md ubuntu@$TAILSCALE_HOSTNAME:~/h-neurons/AGENTS.md"
+    attach_step=3
+    claude_step=4
 fi
-echo "  2. Attach to tmux:"
+echo "  $attach_step. Attach to tmux:"
 echo "     tmux attach -t hneurons"
-echo "  3. Start Claude Code (full autonomy, no permission prompts):"
+echo "  $claude_step. Start Claude Code (full autonomy, no permission prompts):"
 echo "     claude --dangerously-skip-permissions"
 if [[ "$TAILSCALE_CONNECTED" == "1" && "$TAILSCALE_LOCKDOWN_SSH" == "1" ]]; then
     echo "  4. Public SSH is disabled. To reverse it:"
