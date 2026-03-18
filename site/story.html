@@ -32,7 +32,18 @@
   <div class="fade-in">
     <span class="tag tag-coral">Core story</span>
     <h1>What still holds,<br>what got narrower,<br>and what decides the paper</h1>
+    <!-- from: classifier_disjoint_accuracy -->
     <p class="subtitle" data-source="manual">
+      Gao et al. (2025) claim that fewer than 0.1% of a language model's MLP neurons, dubbed "H-Neurons,"
+      reliably predict hallucination and causally drive over-compliance when amplified.
+      We replicated their pipeline on Gemma&nbsp;3 4B-IT and confirmed the core signal:
+      38 neurons out of <span data-classifier-bind="total-neurons">348,160</span> predict hallucination at
+      <span data-classifier-bind="accuracy-value">76.5%</span> accuracy on fully held-out data
+      (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>),
+      and scaling them monotonically increases compliance with misleading context.
+      But replication also surfaced problems the paper doesn't discuss.
+    </p>
+    <p class="subtitle" style="margin-top: 1rem;" data-source="manual">
       This page is the standing narrative, not the weekly memo and not the full appendix.
       The current best reading is that Gemma does contain a distributed hallucination-related detector that predicts errors on a clean split and causally shifts FaithEval behavior when amplified.
       What got narrower is the interpretation: the sparse 38-neuron set is a useful replication baseline, but not clean evidence for a single obedience circuit or a unique hub neuron.
