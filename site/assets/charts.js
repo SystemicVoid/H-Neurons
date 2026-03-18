@@ -119,6 +119,19 @@ function renderSeriesGrid(targetId, cards) {
   );
 }
 
+function setChartContainerHeight(canvas, desktopHeight, mobileHeight = 260) {
+  if (!canvas?.parentElement) {
+    return;
+  }
+
+  const targetHeight = window.matchMedia('(max-width: 720px)').matches
+    ? mobileHeight
+    : desktopHeight;
+
+  canvas.parentElement.style.height = `${targetHeight}px`;
+  canvas.parentElement.style.minHeight = `${targetHeight}px`;
+}
+
 // --- Classifier performance chart ---
 const classifierDataUrl = new URL('../data/classifier_summary.json', import.meta.url);
 let classifierDataPromise = null;
@@ -162,6 +175,8 @@ async function initClassifierChart() {
   if (!classifierChartCanvas) {
     return;
   }
+
+  setChartContainerHeight(classifierChartCanvas, 330, 250);
 
   const classifierData = await loadClassifierData();
   const metricOrder = ['accuracy', 'auroc', 'precision', 'recall', 'f1'];
@@ -256,6 +271,8 @@ const layerColors = layerCounts.map((_, i) => {
 const layerChartCanvas = document.getElementById('layerChart');
 
 if (layerChartCanvas) {
+  setChartContainerHeight(layerChartCanvas, 320, 240);
+
   new Chart(layerChartCanvas, {
     type: 'bar',
     data: {
@@ -320,6 +337,8 @@ const topNeurons = [
 const topNeuronsChartCanvas = document.getElementById('topNeuronsChart');
 
 if (topNeuronsChartCanvas) {
+  setChartContainerHeight(topNeuronsChartCanvas, 340, 260);
+
   new Chart(topNeuronsChartCanvas, {
     type: 'bar',
     data: {
@@ -654,6 +673,8 @@ async function initInterventionCharts() {
   ]);
 
   if (interventionChartCanvas) {
+    setChartContainerHeight(interventionChartCanvas, 360, 270);
+
     new Chart(interventionChartCanvas, {
       type: 'line',
       data: {
@@ -704,6 +725,7 @@ async function initInterventionCharts() {
               font: { size: 12 }
             }
           },
+          valueLabels: { disabled: true },
           tooltip: {
             callbacks: {
               title: (items) => items[0].label,
@@ -738,6 +760,8 @@ async function initInterventionCharts() {
   }
 
   if (parseFailureChartCanvas) {
+    setChartContainerHeight(parseFailureChartCanvas, 320, 250);
+
     const parseFailureTotals = parseFailures.map((point) => point.count);
 
     new Chart(parseFailureChartCanvas, {
@@ -787,6 +811,8 @@ async function initInterventionCharts() {
   }
 
   if (adjustedComplianceChartCanvas) {
+    setChartContainerHeight(adjustedComplianceChartCanvas, 360, 270);
+
     new Chart(adjustedComplianceChartCanvas, {
       type: 'line',
       data: {
@@ -840,6 +866,7 @@ async function initInterventionCharts() {
               font: { size: 11 }
             }
           },
+          valueLabels: { disabled: true },
           tooltip: {
             callbacks: {
               label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
@@ -873,6 +900,8 @@ async function initInterventionCharts() {
   }
 
   if (populationChartCanvas) {
+    setChartContainerHeight(populationChartCanvas, 360, 270);
+
     const swingCompliant = swingBreakdown.map((point) => point.swing_compliant);
     const swingResistant = swingBreakdown.map((point) => point.swing_resistant);
 
@@ -924,6 +953,7 @@ async function initInterventionCharts() {
               font: { size: 11 }
             }
           },
+          valueLabels: { disabled: true },
           tooltip: {
             callbacks: {
               label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y
@@ -985,6 +1015,8 @@ async function initSwingCharts() {
   const swingData = await loadSwingData();
 
   if (transitionAlphaCanvas) {
+    setChartContainerHeight(transitionAlphaCanvas, 320, 250);
+
     const alphas = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
     const alphaLabels = alphas.map((a) => '\u03b1=' + a.toFixed(1));
 
@@ -1077,6 +1109,8 @@ async function initSwingCharts() {
   }
 
   if (knowledgeCanvas) {
+    setChartContainerHeight(knowledgeCanvas, 340, 260);
+
     const llm = swingData.llm_enrichment;
     if (llm && llm.knowledge_by_population) {
       const populations = Object.keys(llm.knowledge_by_population);
@@ -1126,6 +1160,7 @@ async function initSwingCharts() {
                 font: { size: 11 }
               }
             },
+            valueLabels: { disabled: true },
             tooltip: {
               callbacks: {
                 label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y + ' samples'
