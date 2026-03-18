@@ -1,0 +1,58 @@
+{
+  "config": "seed_2_unconstrained",
+  "benchmark": "bioasq",
+  "n_neurons": 38,
+  "results": {
+    "0.0": {
+      "compliance_rate": 0.1869,
+      "n_compliant": 299,
+      "n_total": 1600,
+      "parse_failures": 0,
+      "compliance": {
+        "estimate": 0.186875,
+        "n_compliant": 299,
+        "n_total": 1600,
+        "ci": {
+          "lower": 0.16853274114297428,
+          "upper": 0.20671722855367436,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "1.0": {
+      "compliance_rate": 0.1856,
+      "n_compliant": 297,
+      "n_total": 1600,
+      "parse_failures": 0,
+      "compliance": {
+        "estimate": 0.185625,
+        "n_compliant": 297,
+        "n_total": 1600,
+        "ci": {
+          "lower": 0.16733488123285986,
+          "upper": 0.2054210763667694,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "3.0": {
+      "compliance_rate": 0.1862,
+      "n_compliant": 298,
+      "n_total": 1600,
+      "parse_failures": 0,
+      "compliance": {
+        "estimate": 0.18625,
+        "n_compliant": 298,
+        "n_total": 1600,
+        "ci": {
+          "lower": 0.16793377087877182,
+          "upper": 0.20606919276936708,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    }
+  }
+}
