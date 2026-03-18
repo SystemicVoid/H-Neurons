@@ -2,6 +2,38 @@
   "benchmark": "falseqa",
   "results": {
     "0.0": {
+      "compliance_rate": 0.7307,
+      "n_compliant": 502,
+      "n_total": 687,
+      "compliance": {
+        "estimate": 0.7307132459970888,
+        "n_compliant": 502,
+        "n_total": 687,
+        "ci": {
+          "lower": 0.6963274363974986,
+          "upper": 0.7625332702849538,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "1.0": {
+      "compliance_rate": 0.7234,
+      "n_compliant": 497,
+      "n_total": 687,
+      "compliance": {
+        "estimate": 0.7234352256186317,
+        "n_compliant": 497,
+        "n_total": 687,
+        "ci": {
+          "lower": 0.6888149626748307,
+          "upper": 0.7555706428504465,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "3.0": {
       "compliance_rate": 0.7176,
       "n_compliant": 493,
       "n_total": 687,
@@ -16,61 +48,29 @@
           "method": "wilson"
         }
       }
-    },
-    "1.0": {
-      "compliance_rate": 0.7205,
-      "n_compliant": 495,
-      "n_total": 687,
-      "compliance": {
-        "estimate": 0.7205240174672489,
-        "n_compliant": 495,
-        "n_total": 687,
-        "ci": {
-          "lower": 0.6858130543229634,
-          "upper": 0.7527825107394438,
-          "level": 0.95,
-          "method": "wilson"
-        }
-      }
-    },
-    "3.0": {
-      "compliance_rate": 0.7293,
-      "n_compliant": 501,
-      "n_total": 687,
-      "compliance": {
-        "estimate": 0.7292576419213974,
-        "n_compliant": 501,
-        "n_total": 687,
-        "ci": {
-          "lower": 0.694824052621992,
-          "upper": 0.7611416338290254,
-          "level": 0.95,
-          "method": "wilson"
-        }
-      }
     }
   },
   "effects": {
     "compliance_curve": {
       "rates": [
-        0.7176128093158661,
-        0.7205240174672489,
-        0.7292576419213974
+        0.7307132459970888,
+        0.7234352256186317,
+        0.7176128093158661
       ],
       "delta_0_to_max_pp": {
-        "estimate": 1.1644832605531286,
+        "estimate": -1.3100436681222627,
         "ci": {
-          "lower": -1.0189228529839944,
-          "upper": 3.3478893740902516,
+          "lower": -3.3478893740902405,
+          "upper": 0.727802037845704,
           "level": 0.95,
           "method": "bootstrap_percentile_paired"
         }
       },
       "slope_pp_per_alpha": {
-        "estimate": 0.3950925348305367,
+        "estimate": -0.41588687876895347,
         "ci": {
-          "lower": -0.33270950301517854,
-          "upper": 1.133291744645458,
+          "lower": -1.0607714701601125,
+          "upper": 0.22873778332293068,
           "level": 0.95,
           "method": "bootstrap_percentile_paired"
         }
