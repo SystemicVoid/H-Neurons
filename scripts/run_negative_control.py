@@ -34,13 +34,16 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.dirname(__file__))
 from run_intervention import (
     HNeuronScaler,
+    _bioasq_prompt,
     _faitheval_prompt,
     extract_mc_answer,
     generate_response,
+    load_bioasq,
     load_existing_ids,
     load_faitheval,
     load_falseqa,
     load_model_and_tokenizer,
+    normalize_answer,
 )
 from uncertainty import build_rate_summary, percentile_interval
 
@@ -81,12 +84,15 @@ CLASSIFIER_PATH = "models/gemma3_4b_classifier.pkl"
 OUTPUT_BASES = {
     "faitheval": "data/gemma3_4b/intervention/negative_control",
     "falseqa": "data/gemma3_4b/intervention/negative_control_falseqa",
+    "bioasq": "data/gemma3_4b/intervention/negative_control_bioasq",
 }
 H_NEURON_BASELINES = {
     "faitheval": "data/gemma3_4b/intervention/faitheval/results.json",
     "falseqa": "data/gemma3_4b/intervention/falseqa/results.json",
+    "bioasq": "data/gemma3_4b/intervention/bioasq/results.json",
 }
 FALSEQA_DATA_PATH = "data/benchmarks/falseqa_test.csv"
+BIOASQ_DATA_PATH = "data/benchmarks/bioasq13b_factoid.parquet"
 
 
 def get_zero_weight_indices(classifier_path: str) -> np.ndarray:
@@ -171,6 +177,10 @@ def run_single_config(
         )
     elif benchmark == "falseqa":
         results = _run_falseqa_alphas(
+            model, tokenizer, samples, scaler, alphas, output_dir, config_name
+        )
+    elif benchmark == "bioasq":
+        results = _run_bioasq_alphas(
             model, tokenizer, samples, scaler, alphas, output_dir, config_name
         )
     else:
@@ -300,6 +310,70 @@ def _run_falseqa_alphas(
     return results
 
 
+def _run_bioasq_alphas(
+    model, tokenizer, samples, scaler, alphas, output_dir, config_name
+):
+    """BioASQ factoid QA: inline accuracy evaluation via normalize_answer matching."""
+    from tqdm import tqdm
+
+    results = {}
+    for alpha in alphas:
+        out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+        existing_ids = load_existing_ids(out_path)
+        scaler.alpha = alpha
+        total = 0
+
+        with open(out_path, "a") as f:
+            for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
+                if sample["id"] in existing_ids:
+                    total += 1
+                    continue
+
+                prompt = _bioasq_prompt(sample)
+                messages = [{"role": "user", "content": prompt}]
+                response = generate_response(
+                    model,
+                    tokenizer,
+                    messages,
+                    do_sample=False,
+                    max_new_tokens=128,
+                )
+
+                norm_gts = [normalize_answer(gt) for gt in sample["ground_truth"]]
+                norm_resp = normalize_answer(response)
+                correct = any(gt in norm_resp for gt in norm_gts if gt)
+                total += 1
+
+                record = {
+                    "id": sample["id"],
+                    "alpha": alpha,
+                    "question": sample["question"],
+                    "response": response,
+                    "ground_truth": sample["ground_truth"],
+                    "compliance": correct,
+                }
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+        comp_total, n_total, pf_total = _count_compliance_and_pf(out_path)
+        results[str(alpha)] = {
+            "compliance_rate": round(comp_total / n_total, 4) if n_total else 0,
+            "n_compliant": comp_total,
+            "n_total": n_total,
+            "parse_failures": pf_total,
+            "compliance": build_rate_summary(
+                comp_total,
+                n_total,
+                count_key="n_compliant",
+                total_key="n_total",
+            ),
+        }
+        print(
+            f"  α={alpha:.1f}: {comp_total / n_total:.1%} accuracy "
+            f"({comp_total}/{n_total})"
+        )
+    return results
+
+
 def _count_lines(path: str) -> int:
     """Count valid JSONL lines in a file."""
     count = 0
@@ -381,7 +455,7 @@ def build_comparison_summary(
 
         for name, res in sorted(seed_results.items()):
             rates = [res[str(float(a))]["compliance_rate"] for a in alphas]
-            pfs = [res[str(float(a))]["parse_failures"] for a in alphas]
+            pfs = [res[str(float(a))].get("parse_failures", 0) for a in alphas]
             all_rates.append(rates)
             all_pf.append(pfs)
 
@@ -473,6 +547,7 @@ def build_comparison_summary(
 BENCHMARK_TITLES = {
     "faitheval": "H-Neuron Specificity: Negative Control (FaithEval Anti-Compliance)",
     "falseqa": "H-Neuron Specificity: Negative Control (FalseQA)",
+    "bioasq": "H-Neuron Specificity: Negative Control (BioASQ Factoid)",
 }
 
 
@@ -560,7 +635,7 @@ def parse_args():
         "--benchmark",
         type=str,
         default="faitheval",
-        choices=["faitheval", "falseqa"],
+        choices=["faitheval", "falseqa", "bioasq"],
         help="Benchmark to run negative control on",
     )
     p.add_argument(
@@ -572,6 +647,7 @@ def parse_args():
     p.add_argument("--classifier_path", type=str, default=CLASSIFIER_PATH)
     p.add_argument("--device_map", type=str, default="cuda:0")
     p.add_argument("--falseqa_path", type=str, default=FALSEQA_DATA_PATH)
+    p.add_argument("--bioasq_path", type=str, default=BIOASQ_DATA_PATH)
     p.add_argument(
         "--analysis_only",
         action="store_true",
@@ -634,6 +710,8 @@ def main():
             samples = load_faitheval()
         elif benchmark == "falseqa":
             samples = load_falseqa(args.falseqa_path)
+        elif benchmark == "bioasq":
+            samples = load_bioasq(args.bioasq_path)
         print(f"  {len(samples)} samples")
 
         all_results = {}
@@ -692,6 +770,12 @@ def main():
                 f"--benchmark falseqa {'--quick' if args.quick else ''} --analysis_only"
             )
             return
+
+    baseline_path = H_NEURON_BASELINES[benchmark]
+    if not os.path.exists(baseline_path):
+        print(f"\nH-neuron baseline not found at {baseline_path}")
+        print("Run the H-neuron intervention first, then re-run with --analysis_only")
+        return
 
     print("\n" + "=" * 60)
     print("Building comparison summary...")
