@@ -7,7 +7,7 @@ FalseQA and Jailbreak need GPT-4o judging, handled here.
 Usage:
     uv run python scripts/evaluate_intervention.py \
         --benchmark falseqa \
-        --input_dir data/gemma3_4b/intervention/falseqa \
+        --input_dir data/gemma3_4b/intervention/falseqa/experiment \
         --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0
 """
 

@@ -42,7 +42,7 @@ def load_benchmark_results(input_dir):
     """
     all_results = {}
     for name in os.listdir(input_dir):
-        results_path = os.path.join(input_dir, name, "results.json")
+        results_path = os.path.join(input_dir, name, "experiment", "results.json")
         if os.path.isfile(results_path):
             with open(results_path) as f:
                 data = json.load(f)

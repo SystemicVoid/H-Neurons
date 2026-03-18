@@ -82,14 +82,14 @@ QUICK_ALPHAS = [0.0, 1.0, 3.0]
 MODEL_PATH = "google/gemma-3-4b-it"
 CLASSIFIER_PATH = "models/gemma3_4b_classifier.pkl"
 OUTPUT_BASES = {
-    "faitheval": "data/gemma3_4b/intervention/negative_control",
-    "falseqa": "data/gemma3_4b/intervention/negative_control_falseqa",
-    "bioasq": "data/gemma3_4b/intervention/negative_control_bioasq",
+    "faitheval": "data/gemma3_4b/intervention/faitheval/control",
+    "falseqa": "data/gemma3_4b/intervention/falseqa/control",
+    "bioasq": "data/gemma3_4b/intervention/bioasq/control",
 }
 H_NEURON_BASELINES = {
-    "faitheval": "data/gemma3_4b/intervention/faitheval/results.json",
-    "falseqa": "data/gemma3_4b/intervention/falseqa/results.json",
-    "bioasq": "data/gemma3_4b/intervention/bioasq/results.json",
+    "faitheval": "data/gemma3_4b/intervention/faitheval/experiment/results.json",
+    "falseqa": "data/gemma3_4b/intervention/falseqa/experiment/results.json",
+    "bioasq": "data/gemma3_4b/intervention/bioasq/experiment/results.json",
 }
 FALSEQA_DATA_PATH = "data/benchmarks/falseqa_test.csv"
 BIOASQ_DATA_PATH = "data/benchmarks/bioasq13b_factoid.parquet"

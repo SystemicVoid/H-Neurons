@@ -7,7 +7,7 @@ CHECK_INTERVAL=60
 EXPECTED_LINES=687
 ALPHAS=(0.0 0.5 1.0 1.5 2.0 2.5 3.0)
 MODEL_DIR="data/gemma3_4b"
-INPUT_DIR="$MODEL_DIR/intervention/falseqa"
+INPUT_DIR="$MODEL_DIR/intervention/falseqa/experiment"
 
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -49,7 +49,7 @@ while true; do
 
     uv run python scripts/evaluate_intervention.py \
       --benchmark falseqa \
-      --input_dir "$MODEL_DIR/intervention/falseqa" \
+      --input_dir "$MODEL_DIR/intervention/falseqa/experiment" \
       --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 2>&1 | tee -a "$LOG_FILE"
 
     log "Phase 2 completed successfully."
@@ -64,7 +64,7 @@ while true; do
       --benchmark faitheval \
       --prompt_style standard \
       --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 \
-      --output_dir "$MODEL_DIR/intervention/faitheval_standard" 2>&1 | tee -a "$LOG_FILE"
+      --output_dir "$MODEL_DIR/intervention/faitheval_standard/experiment" 2>&1 | tee -a "$LOG_FILE"
 
     log "Phase 3 (FaithEval standard) completed successfully. Starting Phase 4 plotting."
 

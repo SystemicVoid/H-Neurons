@@ -95,7 +95,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/intervention/faitheval/results.json",
+        "file": "data/gemma3_4b/intervention/faitheval/experiment/results.json",
         "path": [
           "effects",
           "compliance_curve",
@@ -126,7 +126,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/intervention/faitheval/results.json",
+        "file": "data/gemma3_4b/intervention/faitheval/experiment/results.json",
         "path": [
           "effects",
           "compliance_curve",
@@ -209,7 +209,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/intervention/falseqa/results.json",
+        "file": "data/gemma3_4b/intervention/falseqa/experiment/results.json",
         "path": [
           "effects",
           "compliance_curve",
@@ -232,7 +232,7 @@
       "status": "required",
       "kind": "interval_only",
       "source": {
-        "file": "data/gemma3_4b/intervention/negative_control/comparison_summary.json",
+        "file": "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json",
         "path": [
           "comparison_to_h_neurons",
           "slope_random_percentile_interval"

@@ -402,11 +402,13 @@ def build_swing_characterization_payload(repo_root: Path) -> dict[str, Any]:
 
 
 def build_payload(repo_root: Path) -> dict[str, Any]:
-    anti_dir = repo_root / "data/gemma3_4b/intervention/faitheval"
-    standard_dir = repo_root / "data/gemma3_4b/intervention/faitheval_standard"
+    anti_dir = repo_root / "data/gemma3_4b/intervention/faitheval/experiment"
+    standard_dir = (
+        repo_root / "data/gemma3_4b/intervention/faitheval_standard/experiment"
+    )
     negative_control_summary_path = (
         repo_root
-        / "data/gemma3_4b/intervention/negative_control/comparison_summary.json"
+        / "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"
     )
     anti_results = load_json(anti_dir / "results.json")
     standard_results = load_json(standard_dir / "results.json")
@@ -423,24 +425,24 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
     parse_failure_effects = build_parse_failure_effects(standard_dir)
 
     source_files = [
-        "data/gemma3_4b/intervention/faitheval/results.json",
-        "data/gemma3_4b/intervention/faitheval/alpha_0.0.jsonl",
-        "data/gemma3_4b/intervention/faitheval/alpha_0.5.jsonl",
-        "data/gemma3_4b/intervention/faitheval/alpha_1.0.jsonl",
-        "data/gemma3_4b/intervention/faitheval/alpha_1.5.jsonl",
-        "data/gemma3_4b/intervention/faitheval/alpha_2.0.jsonl",
-        "data/gemma3_4b/intervention/faitheval/alpha_2.5.jsonl",
-        "data/gemma3_4b/intervention/faitheval/alpha_3.0.jsonl",
-        "data/gemma3_4b/intervention/faitheval_standard/results.json",
-        "data/gemma3_4b/intervention/faitheval_standard/alpha_0.0.jsonl",
-        "data/gemma3_4b/intervention/faitheval_standard/alpha_0.5.jsonl",
-        "data/gemma3_4b/intervention/faitheval_standard/alpha_1.0.jsonl",
-        "data/gemma3_4b/intervention/faitheval_standard/alpha_1.5.jsonl",
-        "data/gemma3_4b/intervention/faitheval_standard/alpha_2.0.jsonl",
-        "data/gemma3_4b/intervention/faitheval_standard/alpha_2.5.jsonl",
-        "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0.jsonl",
-        "data/gemma3_4b/intervention/faitheval_standard/alpha_3.0_parse_failure_remap_summary.json",
-        "data/gemma3_4b/intervention/negative_control/comparison_summary.json",
+        "data/gemma3_4b/intervention/faitheval/experiment/results.json",
+        "data/gemma3_4b/intervention/faitheval/experiment/alpha_0.0.jsonl",
+        "data/gemma3_4b/intervention/faitheval/experiment/alpha_0.5.jsonl",
+        "data/gemma3_4b/intervention/faitheval/experiment/alpha_1.0.jsonl",
+        "data/gemma3_4b/intervention/faitheval/experiment/alpha_1.5.jsonl",
+        "data/gemma3_4b/intervention/faitheval/experiment/alpha_2.0.jsonl",
+        "data/gemma3_4b/intervention/faitheval/experiment/alpha_2.5.jsonl",
+        "data/gemma3_4b/intervention/faitheval/experiment/alpha_3.0.jsonl",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/results.json",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_0.0.jsonl",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_0.5.jsonl",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_1.0.jsonl",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_1.5.jsonl",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_2.0.jsonl",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_2.5.jsonl",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_3.0.jsonl",
+        "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_3.0_parse_failure_remap_summary.json",
+        "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json",
     ]
 
     return {
@@ -556,7 +558,7 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
         "negative_control": {
             "label": "Random 38-neuron control",
             "status": "available",
-            "source_file": "data/gemma3_4b/intervention/negative_control/comparison_summary.json",
+            "source_file": "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json",
             "comparison_to_h_neurons": negative_control_summary[
                 "comparison_to_h_neurons"
             ],

@@ -322,18 +322,18 @@ def main() -> int:
             errors,
         )
         audit_intervention_result(
-            "data/gemma3_4b/intervention/faitheval/results.json",
+            "data/gemma3_4b/intervention/faitheval/experiment/results.json",
             "faitheval_anti",
             errors,
         )
         audit_intervention_result(
-            "data/gemma3_4b/intervention/falseqa/results.json",
+            "data/gemma3_4b/intervention/falseqa/experiment/results.json",
             "falseqa",
             errors,
         )
         audit_site_intervention("site/data/intervention_sweep.json", errors)
         audit_negative_control(
-            "data/gemma3_4b/intervention/negative_control/comparison_summary.json",
+            "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json",
             errors,
         )
         audit_text_surfaces(errors)

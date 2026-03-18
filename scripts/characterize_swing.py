@@ -1491,8 +1491,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[1]
-    anti_dir = repo_root / "data/gemma3_4b/intervention/faitheval"
-    standard_dir = repo_root / "data/gemma3_4b/intervention/faitheval_standard"
+    anti_dir = repo_root / "data/gemma3_4b/intervention/faitheval/experiment"
+    standard_dir = (
+        repo_root / "data/gemma3_4b/intervention/faitheval_standard/experiment"
+    )
     output_dir = repo_root / args.output_dir
     figures_dir = output_dir / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)

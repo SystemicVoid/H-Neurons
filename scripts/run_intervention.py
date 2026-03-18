@@ -10,7 +10,7 @@ Usage:
         --classifier_path models/gemma3_4b_classifier.pkl \
         --benchmark faitheval \
         --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 \
-        --output_dir data/gemma3_4b/intervention/faitheval \
+        --output_dir data/gemma3_4b/intervention/faitheval/experiment \
         --max_samples 500
 """
 
@@ -818,7 +818,7 @@ def parse_args():
         "--output_dir",
         type=str,
         default=None,
-        help="Output directory (default: data/gemma3_4b/intervention/{benchmark})",
+        help="Output directory (default: data/gemma3_4b/intervention/{benchmark}/experiment)",
     )
     p.add_argument("--max_samples", type=int, default=None)
     # FaithEval-specific
@@ -843,7 +843,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    output_dir = args.output_dir or f"data/gemma3_4b/intervention/{args.benchmark}"
+    output_dir = (
+        args.output_dir or f"data/gemma3_4b/intervention/{args.benchmark}/experiment"
+    )
     os.makedirs(output_dir, exist_ok=True)
 
     # Load model
