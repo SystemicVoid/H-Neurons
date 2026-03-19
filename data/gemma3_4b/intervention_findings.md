@@ -5,7 +5,7 @@
 **Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC 0.843, 95% CI [0.815, 0.870] on the disjoint evaluated test set, n=780)
 **Reference:** Gao et al., "H-Neurons" (arXiv:2512.01797v2), Section 3 replication
 
-**Related reports:** [pipeline_report.md](pipeline_report.md), [bioasq13b_factoid_probe_transfer_audit.md](bioasq13b_factoid_probe_transfer_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md)
+**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md)
 
 ---
 
@@ -238,6 +238,7 @@ The intervention story is now quantified instead of implied. FaithEval anti-comp
 ### Missing controls and measurements
 
 - **FalseQA negative control uses quick-mode sampling.** The FalseQA control (§1.6) used 3 seeds × 3 alphas, while the FaithEval control (§1.4) used 8 seeds × 7 alphas. The FalseQA "95% interval" is effectively [min, max] of 3 slopes. A full sweep is warranted for publication.
+- **BioASQ now has a dedicated audit rather than a mainline causal claim.** The side report [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md) shows flat alias-level accuracy but strong answer-style drift, plus a manual audit separating judge-side label noise from detector-side failures.
 - **No text-based remap at α<3.0 for FaithEval standard.** The current standard-prompt curve mixes raw letter extraction at α<3.0 with remapped scores only at α=3.0. The full curve shape is unknown.
 - **Judge-model error is not in the FalseQA CI.** The Wilson and paired-bootstrap intervals quantify sampling uncertainty over the 687 judged items, not systematic error in GPT-4o's labels. Measured judge nondeterminism at α=1.0 is 0.4% (3/687), which is a lower bound on total judge error.
 - **Negative-control random-set intervals are empirical, not asymptotic.** With 8 seeds (FaithEval) or 3 seeds (FalseQA), the right summary is an empirical interval over sampled random sets, not a claim about the entire zero-weight neuron universe.

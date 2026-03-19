@@ -1,24 +1,24 @@
 # BioASQ OOD Probe-Transfer Audit: Gemma-3-4B
 
-**Related reports:** [pipeline_report.md](pipeline_report.md), [intervention_findings.md](intervention_findings.md)
+**Related reports:** [pipeline_report.md](../../pipeline/pipeline_report.md), [intervention_findings.md](../../intervention_findings.md)
 
 ## Bottom line
 
-- **This BioASQ result is trustworthy enough to cite internally as an approximate OOD transfer result, not as an exact paper-faithful replication.** The recovery run on `data/gemma3_4b/bioasq13b_factoid_report_recovery.json` gives **accuracy 0.6982** and **AUROC 0.8219** over **1,090** scored examples, with bootstrap 95% CIs **[0.6688, 0.7257]** and **[0.7976, 0.8459]** from the saved local activations and `models/gemma3_4b_classifier_disjoint.pkl`.
-- **The main conclusion is stable under the recovery patch.** Coverage improved materially while metrics stayed nearly flat: answer-token rows **1542 -> 1561**, activation coverage **1060/1078 -> 1090/1092**, accuracy **0.7019 -> 0.6982**, AUROC **0.8294 -> 0.8219** (`data/gemma3_4b/bioasq13b_factoid_report.json`, `data/gemma3_4b/bioasq13b_factoid_report_recovery.json`).
+- **This BioASQ result is trustworthy enough to cite internally as an approximate OOD transfer result, not as an exact paper-faithful replication.** The recovery run on `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json` gives **accuracy 0.6982** and **AUROC 0.8219** over **1,090** scored examples, with bootstrap 95% CIs **[0.6688, 0.7257]** and **[0.7976, 0.8459]** from the saved local activations and `models/gemma3_4b_classifier_disjoint.pkl`.
+- **The main conclusion is stable under the recovery patch.** Coverage improved materially while metrics stayed nearly flat: answer-token rows **1542 -> 1561**, activation coverage **1060/1078 -> 1090/1092**, accuracy **0.7019 -> 0.6982**, AUROC **0.8294 -> 0.8219** (`data/gemma3_4b/probing/bioasq13b_factoid/report.json`, `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`).
 - **BioASQ is materially harder than local TriviaQA disjoint eval for this detector, but the gap is modest and mostly accuracy-side.** Reproducing the local TriviaQA disjoint eval from `data/gemma3_4b/test_qids_disjoint.json` and `data/gemma3_4b/activations/answer_tokens/` gives **accuracy 0.7654** and **AUROC 0.8429**, versus BioASQ recovery **0.6982** and **0.8219**.
 - **The detector’s clearest BioASQ weakness is overcalling verbose faithful biomedical answers as hallucinations.** It is much better at catching long/list-like false answers than at sparing long/list-like true answers. This is a true detector weakness, distinct from the earlier extraction/span data-loss issue.
 
 ## What was run
 
 - Primary committed evidence:
-  `data/gemma3_4b/bioasq13b_factoid_samples.jsonl`,
-  `data/gemma3_4b/bioasq13b_factoid_answer_tokens.jsonl`,
-  `data/gemma3_4b/bioasq13b_factoid_eval_qids.json`,
-  `data/gemma3_4b/bioasq13b_factoid_report.json`,
-  `data/gemma3_4b/bioasq13b_factoid_report_recovery.json`,
-  `data/gemma3_4b/bioasq13b_factoid_classifier_metrics.json`,
-  `data/gemma3_4b/bioasq13b_factoid_classifier_metrics_recovery.json`.
+  `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl`,
+  `data/gemma3_4b/probing/bioasq13b_factoid/answer_tokens.jsonl`,
+  `data/gemma3_4b/probing/bioasq13b_factoid/eval_qids.json`,
+  `data/gemma3_4b/probing/bioasq13b_factoid/report.json`,
+  `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`,
+  `data/gemma3_4b/probing/bioasq13b_factoid/classifier_metrics.json`,
+  `data/gemma3_4b/probing/bioasq13b_factoid/classifier_metrics_recovery.json`.
 - Code / provenance anchors:
   commit `c41ee28` (`fix(bioasq): harden answer token span recovery`),
   commit `f07d167` (`data(bioasq): add Gemma-3-4B OOD transfer artifacts`),
@@ -52,10 +52,10 @@
 
 ## Is the BioASQ result trustworthy?
 
-- **OOD setup: mostly paper-faithful on the important axes.** The paper’s OOD setup is “single response” on BioASQ after training the detector on TriviaQA (`original-paper-markdown-converted.md`). This run matches that shape: one sampled BioASQ response per question in `data/gemma3_4b/bioasq13b_factoid_samples.jsonl`, official BioASQ factoid questions from `data/benchmarks/bioasq13b_factoid.parquet`, and a reused TriviaQA-trained detector in `models/gemma3_4b_classifier_disjoint.pkl`.
-- **Not an exact replication.** The repo’s detector selection is the simpler baseline described in `data/gemma3_4b/pipeline_report.md`, not the paper’s full suppression-aware selection rule. That means “close to the paper’s BioASQ number” is a fair internal claim; “paper-faithful replication succeeded” is not.
-- **Label path: sound enough, but the main residual fragility.** `scripts/collect_responses.py` uses an LLM judge (`gpt-4o`) with the prompt “Return 't' if correct, 'f' if incorrect” against BioASQ alias lists. Operationally it was stable on this run: `data/gemma3_4b/bioasq13b_factoid_report_recovery.json` shows **560 true, 1040 false, 0 uncertain, 0 error**. The remaining risk is not pipeline crashes; it is semantic leniency on biomedical paraphrases.
-- **Inference:** several high-confidence false positives look semantically close to the alias list rather than plainly wrong. Examples from `data/gemma3_4b/bioasq13b_factoid_samples.jsonl` and local scoring:
+- **OOD setup: mostly paper-faithful on the important axes.** The paper’s OOD setup is “single response” on BioASQ after training the detector on TriviaQA (`original-paper-markdown-converted.md`). This run matches that shape: one sampled BioASQ response per question in `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl`, official BioASQ factoid questions from `data/benchmarks/bioasq13b_factoid.parquet`, and a reused TriviaQA-trained detector in `models/gemma3_4b_classifier_disjoint.pkl`.
+- **Not an exact replication.** The repo’s detector selection is the simpler baseline described in `data/gemma3_4b/pipeline/pipeline_report.md`, not the paper’s full suppression-aware selection rule. That means “close to the paper’s BioASQ number” is a fair internal claim; “paper-faithful replication succeeded” is not.
+- **Label path: sound enough, but the main residual fragility.** `scripts/collect_responses.py` uses an LLM judge (`gpt-4o`) with the prompt “Return 't' if correct, 'f' if incorrect” against BioASQ alias lists. Operationally it was stable on this run: `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json` shows **560 true, 1040 false, 0 uncertain, 0 error**. The remaining risk is not pipeline crashes; it is semantic leniency on biomedical paraphrases.
+- **Inference:** several high-confidence false positives look semantically close to the alias list rather than plainly wrong. Examples from `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl` and local scoring:
   `Mtm1` vs ground truth `MTM1 gene test`,
   `Yellow-orange` vs `yellow`,
   `TRK (Tropomyosin receptor kinase)` vs `tropomyosin receptor kinases`.
@@ -70,7 +70,7 @@
 | Initial | 1542 | 58 | 539 true / 1003 false | 1078 | 1060/1078 | 0.7019 | 0.8294 |
 | Recovery | 1561 | 39 | 546 true / 1015 false | 1092 | 1090/1092 | 0.6982 | 0.8219 |
 
-- Recovery gained **19** answer-token rows: **+7 true** and **+12 false** (`data/gemma3_4b/bioasq13b_factoid_report.json`, `data/gemma3_4b/bioasq13b_factoid_report_recovery.json`).
+- Recovery gained **19** answer-token rows: **+7 true** and **+12 false** (`data/gemma3_4b/probing/bioasq13b_factoid/report.json`, `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`).
 - Coverage improved from **96.38%** to **97.56%** at answer-token extraction, Wilson 95% CIs **[95.34, 97.19]** and **[96.69, 98.21]**. Activation coverage improved from **98.33%** to **99.82%**, Wilson 95% CIs **[97.38, 98.94]** and **[99.33, 99.95]**.
 - Point-metric movement was small:
   accuracy **-0.0037**,
@@ -78,7 +78,7 @@
   recall **-0.0024**,
   F1 **-0.0029**,
   AUROC **-0.0076**.
-- The **19 recovered rows were not random**. Looking at the appended rows in `data/gemma3_4b/bioasq13b_factoid_answer_tokens.jsonl`:
+- The **19 recovered rows were not random**. Looking at the appended rows in `data/gemma3_4b/probing/bioasq13b_factoid/answer_tokens.jsonl`:
   mean response length rose from **3.79** words in the initial 1542 rows to **9.05** words in the 19 recovered rows,
   mean token count from **7.03** to **16.05**,
   mean answer-token count from **6.13** to **13.26**.
@@ -91,7 +91,7 @@
   **0/19** slashes,
   **0/19** actual Greek characters.
   This matches the syntax-failure pattern in `data/gemma3_4b/bioasq13b_factoid_extract_tokens.log`, which repeatedly shows `Expecting ',' delimiter`, and the clean recovery log in `data/gemma3_4b/bioasq13b_factoid_extract_tokens_recovery.log`.
-- **Inference, with an evidence gap:** the exact initial `data/gemma3_4b/bioasq13b_factoid_eval_qids.json` was overwritten by the recovery run, so an exact saved overlap comparison of initial-vs-recovery eval IDs is unavailable.
+- **Inference, with an evidence gap:** the exact initial `data/gemma3_4b/probing/bioasq13b_factoid/eval_qids.json` was overwritten by the recovery run, so an exact saved overlap comparison of initial-vs-recovery eval IDs is unavailable.
 - To compensate, I used local-only activation file mtimes in `data/gemma3_4b/bioasq13b_factoid_activations/answer_tokens/`. On the **current recovery eval sample**, restricting evaluation to rows that were already present before the recovery activation run gives **accuracy 0.6993** and **AUROC 0.8232** over **1074** scored examples, almost identical to the recovery headline **0.6982 / 0.8219**. That strongly suggests the patch changed coverage more than it changed the measured result.
 - The **16 recovered rows that made it into the current balanced eval** scored worse (**accuracy 0.625**, **AUROC 0.7143**, local-only, no CI, very small `n`), so the recovered cases are not obviously “easy wins.” They look more like hard or noisy edge cases than metric-padding.
 
@@ -111,8 +111,8 @@
 - BioASQ raw faithfulness on the single-response collection is poor:
   **560/1600 = 35.0% faithful** with Wilson 95% CI **[32.7%, 37.4%]**,
   **1040/1600 = 65.0% false** with Wilson 95% CI **[62.6%, 67.3%]**
-  from `data/gemma3_4b/bioasq13b_factoid_report_recovery.json`.
-- I do **not** think we can make a like-for-like raw faithfulness comparison against the repo’s TriviaQA artifacts. The local TriviaQA pipeline in `data/gemma3_4b/pipeline_report.md` is consistency-filtered over multiple samples, not this single-response OOD setup.
+  from `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`.
+- I do **not** think we can make a like-for-like raw faithfulness comparison against the repo’s TriviaQA artifacts. The local TriviaQA pipeline in `data/gemma3_4b/pipeline/pipeline_report.md` is consistency-filtered over multiple samples, not this single-response OOD setup.
 - Within BioASQ’s raw 1600-question sample, longer and list-like outputs are more failure-prone:
   **5-7 word responses:** **72.4% false** (exploratory, no CI),
   **list-like responses:** **75.7% false** vs **63.9%** for non-list-like (exploratory, no CI).
@@ -122,7 +122,7 @@
   raw false rate **62.0%** for 2013-2016,
   **66.8%** for 2017-2020,
   **65.4%** for 2021-2024
-  from `data/benchmarks/bioasq13b_factoid.parquet` joined to `data/gemma3_4b/bioasq13b_factoid_samples.jsonl` (exploratory, no CI).
+  from `data/benchmarks/bioasq13b_factoid.parquet` joined to `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl` (exploratory, no CI).
 
 ## Failure mode analysis
 
@@ -140,7 +140,7 @@
 
 ## Detector error analysis
 
-- Overall confusion on the recovery eval, from local-only rescoring of `data/gemma3_4b/bioasq13b_factoid_eval_qids.json` against `data/gemma3_4b/bioasq13b_factoid_activations/answer_tokens/`:
+- Overall confusion on the recovery eval, from local-only rescoring of `data/gemma3_4b/probing/bioasq13b_factoid/eval_qids.json` against `data/gemma3_4b/bioasq13b_factoid_activations/answer_tokens/`:
   **267 false positives**,
   **62 false negatives**.
 - **False positives cluster on faithful but broad / verbose / list-like biomedical answers.**
@@ -173,8 +173,8 @@
 
 ## Recommended headline result
 
-- **Primary headline:** the **recovery run** in `data/gemma3_4b/bioasq13b_factoid_report_recovery.json`.
-- **Sensitivity analysis:** report the initial run from `data/gemma3_4b/bioasq13b_factoid_report.json` beside it.
+- **Primary headline:** the **recovery run** in `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`.
+- **Sensitivity analysis:** report the initial run from `data/gemma3_4b/probing/bioasq13b_factoid/report.json` beside it.
 - Why:
   the recovery run fixes obvious pipeline loss,
   raises coverage on both extraction and activations,
@@ -185,9 +185,9 @@
 
 ### High-confidence
 
-- The Gemma-3-4B BioASQ OOD detector result is **about 70% accuracy** and **0.82 AUROC** on the recovery run, specifically **0.6982** accuracy and **0.8219** AUROC on **1090** scored examples from `data/gemma3_4b/bioasq13b_factoid_report_recovery.json`, close to the paper’s BioASQ accuracy of **71.0** in `original-paper-markdown-converted.md`.
+- The Gemma-3-4B BioASQ OOD detector result is **about 70% accuracy** and **0.82 AUROC** on the recovery run, specifically **0.6982** accuracy and **0.8219** AUROC on **1090** scored examples from `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`, close to the paper’s BioASQ accuracy of **71.0** in `original-paper-markdown-converted.md`.
 - The recovery patch in `c41ee28` materially improved pipeline fidelity without materially changing the conclusion: answer-token rows **+19**, activation misses **18 -> 2**, accuracy **0.7019 -> 0.6982**, AUROC **0.8294 -> 0.8219**.
-- BioASQ transfer is worse than the local TriviaQA disjoint eval for this detector: **0.6982 vs 0.7654** accuracy and **0.8219 vs 0.8429** AUROC, using `data/gemma3_4b/bioasq13b_factoid_eval_qids.json` and `data/gemma3_4b/test_qids_disjoint.json`.
+- BioASQ transfer is worse than the local TriviaQA disjoint eval for this detector: **0.6982 vs 0.7654** accuracy and **0.8219 vs 0.8429** AUROC, using `data/gemma3_4b/probing/bioasq13b_factoid/eval_qids.json` and `data/gemma3_4b/test_qids_disjoint.json`.
 
 ### Medium-confidence
 
@@ -203,6 +203,6 @@
 
 ## Highest-value next analyses
 
-- **Manual judge-quality audit of the top detector errors.** Review about 20 high-confidence false positives and 20 high-confidence false negatives from `data/gemma3_4b/bioasq13b_factoid_samples.jsonl` against the official aliases in `data/benchmarks/bioasq13b_factoid.parquet`. This has the highest payoff because it will separate detector weakness from judge permissiveness.
+- **Manual judge-quality audit of the top detector errors.** Review about 20 high-confidence false positives and 20 high-confidence false negatives from `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl` against the official aliases in `data/benchmarks/bioasq13b_factoid.parquet`. This has the highest payoff because it will separate detector weakness from judge permissiveness.
 - **Micro-sensitivity on the remaining 2 activation misses.** Implement only a punctuation-tolerant boundary matcher for `),` / `).` style cases, then rescore just those two examples. This is cheap and would close the last obvious span-recovery gap without blurring the target the way whole-output fallback would.
-- **Preserve eval IDs for future OOD audits.** The exact initial-vs-recovery overlap analysis is limited because the initial `data/gemma3_4b/bioasq13b_factoid_eval_qids.json` was overwritten. Future OOD runs should commit both initial and sensitivity eval ID lists so “same IDs only” comparisons are first-class rather than reconstructive.
+- **Preserve eval IDs for future OOD audits.** The exact initial-vs-recovery overlap analysis is limited because the initial `data/gemma3_4b/probing/bioasq13b_factoid/eval_qids.json` was overwritten. Future OOD runs should commit both initial and sensitivity eval ID lists so “same IDs only” comparisons are first-class rather than reconstructive.
