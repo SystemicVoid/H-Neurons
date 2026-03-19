@@ -139,6 +139,11 @@ function setChartContainerHeight(canvas, desktopHeight, mobileHeight = 260) {
 const classifierDataUrl = new URL('../data/classifier_summary.json', import.meta.url);
 let classifierDataPromise = null;
 const classifierChartCanvas = document.getElementById('classifierChart');
+const layerChartCanvas = document.getElementById('layerChart');
+const topNeuronsChartCanvas = document.getElementById('topNeuronsChart');
+const hasClassifierStructureBindings = document.querySelector(
+  '[data-classifier-structure-bind]'
+);
 
 function formatPercentFromRate(value) {
   return (value * 100).toFixed(1) + '%';
@@ -160,6 +165,60 @@ function formatClassifierMetricInterval(metricName, ci) {
   return formatPercentInterval(ci);
 }
 
+function formatRoundedPercent(pct) {
+  return `${Math.round(pct)}%`;
+}
+
+function setClassifierStructureBinding(binding, value) {
+  document
+    .querySelectorAll(`[data-classifier-structure-bind="${binding}"]`)
+    .forEach((node) => {
+      node.textContent = value;
+    });
+}
+
+function hydrateClassifierStructure(classifierData) {
+  const structure = classifierData.selected_h_neuron_structure;
+
+  if (!structure) {
+    if (layerChartCanvas || topNeuronsChartCanvas || hasClassifierStructureBindings) {
+      throw new Error('Classifier structure missing from classifier summary payload.');
+    }
+    return null;
+  }
+
+  const { bands, top_positive_neurons: topPositiveNeurons } = structure;
+  const topOne = topPositiveNeurons?.[0];
+  const topTwo = topPositiveNeurons?.[1];
+
+  setClassifierStructureBinding('early-pct', formatRoundedPercent(bands.early.pct));
+  setClassifierStructureBinding('early-count', formatCount(bands.early.count));
+  setClassifierStructureBinding(
+    'middle-pct',
+    formatRoundedPercent(bands.middle.pct)
+  );
+  setClassifierStructureBinding('middle-count', formatCount(bands.middle.count));
+  setClassifierStructureBinding('late-pct', formatRoundedPercent(bands.late.pct));
+  setClassifierStructureBinding('late-count', formatCount(bands.late.count));
+
+  if (topOne) {
+    setClassifierStructureBinding('top-1-label', topOne.label);
+    setClassifierStructureBinding('top-1-weight', topOne.weight.toFixed(2));
+  }
+  if (topTwo) {
+    setClassifierStructureBinding('top-2-label', topTwo.label);
+    setClassifierStructureBinding('top-2-weight', topTwo.weight.toFixed(2));
+  }
+  if (topOne && topTwo) {
+    setClassifierStructureBinding(
+      'top-gap-ratio',
+      `${(topOne.weight / topTwo.weight).toFixed(2)}×`
+    );
+  }
+
+  return structure;
+}
+
 function loadClassifierData() {
   if (!classifierDataPromise) {
     classifierDataPromise = fetch(classifierDataUrl)
@@ -175,215 +234,187 @@ function loadClassifierData() {
 }
 
 async function initClassifierChart() {
-  if (!classifierChartCanvas) {
+  if (
+    !classifierChartCanvas &&
+    !layerChartCanvas &&
+    !topNeuronsChartCanvas &&
+    !hasClassifierStructureBindings
+  ) {
     return;
   }
 
-  setChartContainerHeight(classifierChartCanvas, 330, 250);
-
   const classifierData = await loadClassifierData();
+  const classifierStructure = hydrateClassifierStructure(classifierData);
   const metricOrder = ['accuracy', 'auroc', 'precision', 'recall', 'f1'];
   const metricLabels = ['Accuracy', 'AUC', 'Precision', 'Recall', 'F1'];
 
-  new Chart(classifierChartCanvas, {
-    type: 'bar',
-    data: {
-      labels: metricLabels,
-      datasets: [{
-        label: 'Disjoint test set',
-        data: metricOrder.map((metricName) => classifierData.metrics[metricName].estimate),
-        backgroundColor: [
-          'rgba(126, 200, 160, 0.8)',
-          'rgba(126, 200, 160, 0.65)',
-          'rgba(123, 140, 222, 0.7)',
-          'rgba(123, 140, 222, 0.55)',
-          'rgba(123, 140, 222, 0.45)'
-        ],
-        borderRadius: 6,
-        borderSkipped: false,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        valueLabels: {
-          formatter: (value, context) => {
-            const metricName = metricOrder[context.dataIndex];
-            return formatClassifierMetricValue(metricName, value);
+  if (classifierChartCanvas) {
+    setChartContainerHeight(classifierChartCanvas, 330, 250);
+
+    new Chart(classifierChartCanvas, {
+      type: 'bar',
+      data: {
+        labels: metricLabels,
+        datasets: [{
+          label: 'Disjoint test set',
+          data: metricOrder.map((metricName) => classifierData.metrics[metricName].estimate),
+          backgroundColor: [
+            'rgba(126, 200, 160, 0.8)',
+            'rgba(126, 200, 160, 0.65)',
+            'rgba(123, 140, 222, 0.7)',
+            'rgba(123, 140, 222, 0.55)',
+            'rgba(123, 140, 222, 0.45)'
+          ],
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          valueLabels: {
+            formatter: (value, context) => {
+              const metricName = metricOrder[context.dataIndex];
+              return formatClassifierMetricValue(metricName, value);
+            },
           },
-        },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const metricName = metricOrder[ctx.dataIndex];
-              const metric = classifierData.metrics[metricName];
-              return `${formatClassifierMetricValue(metricName, metric.estimate)} (95% CI ${formatClassifierMetricInterval(metricName, metric.ci)})`;
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const metricName = metricOrder[ctx.dataIndex];
+                const metric = classifierData.metrics[metricName];
+                return `${formatClassifierMetricValue(metricName, metric.estimate)} (95% CI ${formatClassifierMetricInterval(metricName, metric.ci)})`;
+              }
             }
           }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 13, weight: '500' } },
-          border: { color: 'rgba(160, 155, 145, 0.12)' }
         },
-        y: {
-          min: 0, max: 1,
-          grid: { color: 'rgba(160, 155, 145, 0.08)' },
-          ticks: {
-            callback: (v) => Math.round(v * 100) + '%',
-            font: { size: 12 }
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 13, weight: '500' } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
-          border: { display: false }
+          y: {
+            min: 0, max: 1,
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
+            ticks: {
+              callback: (v) => Math.round(v * 100) + '%',
+              font: { size: 12 }
+            },
+            border: { display: false }
+          },
         }
       }
-    }
-  });
-}
+    });
+  }
 
-// --- Layer distribution chart ---
-// Verified from models/gemma3_4b_classifier.pkl — actual per-layer H-Neuron counts
-const layerData = [
-  { layer: 0, count: 2 }, { layer: 2, count: 1 },
-  { layer: 4, count: 3 }, { layer: 5, count: 4 },
-  { layer: 6, count: 2 }, { layer: 7, count: 3 },
-  { layer: 9, count: 1 }, { layer: 10, count: 2 },
-  { layer: 12, count: 1 }, { layer: 13, count: 2 },
-  { layer: 14, count: 2 }, { layer: 15, count: 2 },
-  { layer: 16, count: 2 }, { layer: 20, count: 1 },
-  { layer: 23, count: 1 }, { layer: 24, count: 1 },
-  { layer: 25, count: 1 }, { layer: 26, count: 1 },
-  { layer: 27, count: 1 }, { layer: 28, count: 1 },
-  { layer: 30, count: 1 }, { layer: 31, count: 2 },
-  { layer: 33, count: 1 }
-];
+  if (layerChartCanvas) {
+    const layerCounts = classifierStructure.positive_counts_by_layer;
+    const layerLabels = Array.from({ length: layerCounts.length }, (_, i) => `L${i}`);
+    const layerColors = layerCounts.map((_, i) => {
+      if (i <= 10) return 'rgba(230, 57, 70, 0.7)';
+      if (i <= 20) return 'rgba(123, 140, 222, 0.7)';
+      return 'rgba(126, 200, 160, 0.7)';
+    });
 
-const layerLabels = Array.from({length: 34}, (_, i) => 'L' + i);
-const layerCounts = new Array(34).fill(0);
-layerData.forEach(d => { layerCounts[d.layer] = d.count; });
+    setChartContainerHeight(layerChartCanvas, 320, 240);
 
-const layerColors = layerCounts.map((_, i) => {
-  if (i <= 10) return 'rgba(230, 57, 70, 0.7)';
-  if (i <= 20) return 'rgba(123, 140, 222, 0.7)';
-  return 'rgba(126, 200, 160, 0.7)';
-});
-
-const layerChartCanvas = document.getElementById('layerChart');
-
-if (layerChartCanvas) {
-  setChartContainerHeight(layerChartCanvas, 320, 240);
-
-  new Chart(layerChartCanvas, {
-    type: 'bar',
-    data: {
-      labels: layerLabels,
-      datasets: [{
-        label: 'H-Neurons',
-        data: layerCounts,
-        backgroundColor: layerColors,
-        borderRadius: 4,
-        borderSkipped: false,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        valueLabels: {
-          formatter: (value) => (value > 0 ? `${value}` : ''),
-          skipZero: true,
-          offset: 12,
+    new Chart(layerChartCanvas, {
+      type: 'bar',
+      data: {
+        labels: layerLabels,
+        datasets: [{
+          label: 'H-Neurons',
+          data: layerCounts,
+          backgroundColor: layerColors,
+          borderRadius: 4,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          valueLabels: {
+            formatter: (value) => (value > 0 ? `${value}` : ''),
+            skipZero: true,
+            offset: 12,
+          },
+          tooltip: {
+            callbacks: {
+              title: (items) => 'Layer ' + items[0].label.slice(1),
+              label: (ctx) => ctx.parsed.y + ' H-Neuron' + (ctx.parsed.y !== 1 ? 's' : '')
+            }
+          }
         },
-        tooltip: {
-          callbacks: {
-            title: (items) => 'Layer ' + items[0].label.slice(1),
-            label: (ctx) => ctx.parsed.y + ' H-Neuron' + (ctx.parsed.y !== 1 ? 's' : '')
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10 }, maxRotation: 0 },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
+            ticks: { stepSize: 1, font: { size: 12 } },
+            border: { display: false }
           }
         }
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 10 }, maxRotation: 0 },
-          border: { color: 'rgba(160, 155, 145, 0.12)' }
-        },
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(160, 155, 145, 0.08)' },
-          ticks: { stepSize: 1, font: { size: 12 } },
-          border: { display: false }
-        }
       }
-    }
-  });
-}
+    });
+  }
 
-// --- Top neurons weight chart ---
-// Verified from models/gemma3_4b_classifier.pkl — actual top-10 by L1 weight
-const topNeurons = [
-  { label: 'L20:N4288', weight: 12.169 },
-  { label: 'L14:N8547', weight: 7.386 },
-  { label: 'L13:N833', weight: 3.451 },
-  { label: 'L5:N5227', weight: 3.337 },
-  { label: 'L33:N8011', weight: 3.071 },
-  { label: 'L24:N7995', weight: 2.603 },
-  { label: 'L26:N1359', weight: 2.456 },
-  { label: 'L9:N5580', weight: 1.824 },
-  { label: 'L10:N4996', weight: 1.705 },
-  { label: 'L0:N1819', weight: 1.693 }
-];
+  if (topNeuronsChartCanvas) {
+    const topNeurons = classifierStructure.top_positive_neurons;
 
-const topNeuronsChartCanvas = document.getElementById('topNeuronsChart');
+    setChartContainerHeight(topNeuronsChartCanvas, 340, 260);
 
-if (topNeuronsChartCanvas) {
-  setChartContainerHeight(topNeuronsChartCanvas, 340, 260);
-
-  new Chart(topNeuronsChartCanvas, {
-    type: 'bar',
-    data: {
-      labels: topNeurons.map(n => n.label),
-      datasets: [{
-        label: 'L1 weight',
-        data: topNeurons.map(n => n.weight),
-        backgroundColor: topNeurons.map((_, i) => i === 0 ? 'rgba(230, 57, 70, 0.85)' : 'rgba(123, 140, 222, 0.55)'),
-        borderRadius: 6,
-        borderSkipped: false,
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        valueLabels: {
-          formatter: (value) => value.toFixed(3),
-          offset: 10,
+    new Chart(topNeuronsChartCanvas, {
+      type: 'bar',
+      data: {
+        labels: topNeurons.map((neuron) => neuron.label),
+        datasets: [{
+          label: 'L1 weight',
+          data: topNeurons.map((neuron) => neuron.weight),
+          backgroundColor: topNeurons.map((_, i) => i === 0 ? 'rgba(230, 57, 70, 0.85)' : 'rgba(123, 140, 222, 0.55)'),
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          valueLabels: {
+            formatter: (value) => value.toFixed(3),
+            offset: 10,
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => 'Weight: ' + ctx.parsed.x.toFixed(3)
+            }
+          }
         },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => 'Weight: ' + ctx.parsed.x.toFixed(3)
+        scales: {
+          x: {
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
+            ticks: { font: { size: 12 } },
+            border: { display: false }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
           }
         }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(160, 155, 145, 0.08)' },
-          ticks: { font: { size: 12 } },
-          border: { display: false }
-        },
-        y: {
-          grid: { display: false },
-          ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
-          border: { color: 'rgba(160, 155, 145, 0.12)' }
-        }
       }
-    }
-  });
+    });
+  }
 }
 
 // --- Intervention charts from canonical site data ---

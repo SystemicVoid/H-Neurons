@@ -155,7 +155,7 @@
 <section id="distribution">
   <div class="fade-in">
     <span class="tag tag-purple">Layer distribution</span>
-    <h2>47% of H-Neurons sit in layers 0&ndash;10</h2>
+    <h2><span data-classifier-structure-bind="early-pct">47%</span> of H-Neurons sit in layers 0&ndash;10</h2>
     <p class="subtitle" data-source="manual">
       The detector signal is front-loaded. Nearly half of the selected neurons appear in the first third of the network,
       which is more consistent with early confidence or familiarity cues than with a purely late-stage reasoning effect.
@@ -164,9 +164,9 @@
     <div class="chart-meta">
       <div class="chart-kicker">Only non-zero bars are labeled so the sparse layer counts stay readable.</div>
       <div class="chart-chip-row">
-        <span class="chart-chip"><strong>n=38</strong> selected H-Neurons</span>
+        <span class="chart-chip"><strong>n=<span data-classifier-bind="selected-count">38</span></strong> selected H-Neurons</span>
         <span class="chart-chip"><strong>CI status:</strong> descriptive count</span>
-        <span class="chart-chip"><strong>Early-heavy split:</strong> 18 in layers 0-10</span>
+        <span class="chart-chip"><strong>Early-heavy split:</strong> <span data-classifier-structure-bind="early-count">18</span> in layers 0-10</span>
       </div>
     </div>
     <div class="chart-container">
@@ -176,18 +176,18 @@
     <div class="metrics-grid">
       <div class="metric-card" data-status="STABLE">
         <div class="label">Early (L0&ndash;10)</div>
-        <div class="value val-coral">47%</div>
-        <div class="detail">18 of 38 H-Neurons</div>
+        <div class="value val-coral" data-classifier-structure-bind="early-pct">47%</div>
+        <div class="detail"><span data-classifier-structure-bind="early-count">18</span> of <span data-classifier-bind="selected-count">38</span> H-Neurons</div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Middle (L11&ndash;20)</div>
-        <div class="value val-purple">26%</div>
-        <div class="detail">10 of 38 H-Neurons</div>
+        <div class="value val-purple" data-classifier-structure-bind="middle-pct">26%</div>
+        <div class="detail"><span data-classifier-structure-bind="middle-count">10</span> of <span data-classifier-bind="selected-count">38</span> H-Neurons</div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Late (L21&ndash;33)</div>
-        <div class="value val-teal">26%</div>
-        <div class="detail">10 of 38 H-Neurons</div>
+        <div class="value val-teal" data-classifier-structure-bind="late-pct">26%</div>
+        <div class="detail"><span data-classifier-structure-bind="late-count">10</span> of <span data-classifier-bind="selected-count">38</span> H-Neurons</div>
       </div>
     </div>
 
@@ -203,19 +203,19 @@
     <span class="tag tag-coral">Top-neuron section</span>
     <h2>Neuron 4288 looks dramatic in the weights, not in the evidence</h2>
     <p class="subtitle" data-source="manual">
-      The highest-weight neuron, L20:N4288, is 1.65x the runner-up by L1 weight. That is visually striking,
+      The highest-weight neuron, <span data-classifier-structure-bind="top-1-label">L20:N4288</span>, is <span data-classifier-structure-bind="top-gap-ratio">1.65×</span> the runner-up by L1 weight. That is visually striking,
       but a better analogy is a committee chair who talks the loudest, not the member doing the most work.
     </p>
 
     <div class="comparison" style="margin-top: 2rem;">
       <div class="compare-card" style="border-color: var(--accent-coral);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (20, 4288)</div>
-        <div style="font-size: 3rem; font-weight: 700; color: var(--accent-coral);">12.17</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;" data-classifier-structure-bind="top-1-label">L20:N4288</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--accent-coral);" data-classifier-structure-bind="top-1-weight">12.17</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight (rank #1)</div>
       </div>
       <div class="compare-card">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Neuron (14, 8547)</div>
-        <div style="font-size: 3rem; font-weight: 700; color: var(--text-secondary);">7.39</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;" data-classifier-structure-bind="top-2-label">L14:N8547</div>
+        <div style="font-size: 3rem; font-weight: 700; color: var(--text-secondary);" data-classifier-structure-bind="top-2-weight">7.39</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">L1 weight (rank #2)</div>
       </div>
     </div>
@@ -225,7 +225,7 @@
       <div class="chart-chip-row">
         <span class="chart-chip"><strong>n=10</strong> top-weight neurons shown</span>
         <span class="chart-chip"><strong>CI status:</strong> not applicable</span>
-        <span class="chart-chip"><strong>#1 vs #2 gap:</strong> 1.65&times;</span>
+        <span class="chart-chip"><strong>#1 vs #2 gap:</strong> <span data-classifier-structure-bind="top-gap-ratio">1.65×</span></span>
       </div>
     </div>
     <div class="chart-container">
