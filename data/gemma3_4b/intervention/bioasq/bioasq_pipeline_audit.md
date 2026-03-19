@@ -9,7 +9,7 @@
 ## Bottom Line
 
 - **The detector-side BioASQ transfer result is real, but not clean.** The committed recovery eval still lands at **0.698 accuracy** with bootstrap 95% CI **[0.673, 0.723]** and **0.822 AUROC** with bootstrap 95% CI **[0.797, 0.846]** on **1,090** balanced examples. That is worth citing internally as OOD transfer, but it is not a paper-faithful replication.
-- **Manual review shows judge noise is real within the audited top-confidence errors, but it is not the dominant pattern there.** In a 40-item audit of the highest-confidence detector errors, **8/40** look like judge-side label errors and **1/40** looks like a benchmark-alias issue. The remaining **31/40** are detector-side failures, mostly verbosity-sensitive false positives and ordinary false negatives. This audit is not a random sample of all detector errors, so it should not be read as a population estimate.
+- **Judge-vs-alias disagreement is common, but representative human review still leaves most reported detector error on the detector.** On the full **1,600** committed BioASQ responses, GPT-4o and strict alias matching disagree on **322 / 1,600 (20.1%)**. On the **329** detector errors, that rises to **170 / 329 (51.7%)**. But a representative **182-item** manual audit estimates only **14.2%** of reported detector errors are really judge-side or benchmark-side issues (bootstrap 95% CI **[9.5, 19.6]**), while **85.8%** remain detector-side (bootstrap 95% CI **[80.4, 90.5]**).
 - **The BioASQ intervention is not a clean null.** Alias-level accuracy is flat (**16.9% -> 18.6% -> 16.8%**), but H-neuron scaling rewrites most answers and strongly shortens them. From `alpha=0.0` to `alpha=3.0`, **1,339/1,600** responses change text and mean response length falls from **41.3** to **26.6** characters. Random controls stay much flatter.
 - **The safe claim is narrower than the old handoff.** BioASQ currently supports: detector transfer exists, label noise exists, and H-neuron scaling changes answer style much more than alias accuracy. It does **not** yet support a clean “detected but causally inactive” mechanistic dissociation claim.
 
@@ -58,75 +58,108 @@ The AI handoff in `ROADMAP.md` was directionally useful, but it mixed distinct a
 
 ---
 
-## 3. Manual Audit of 40 High-Confidence Detector Errors
+## 3. Representative Ground-Truth Audit of Detector Errors
 
-**Audit design:** top **20** false positives and top **20** false negatives by wrong-prediction confidence from `classifier_summary.json`, scored manually against the official BioASQ aliases in `data/benchmarks/bioasq13b_factoid.parquet`.
+The earlier 40-item sheet was useful for examples, but it was a convenience sample of the highest-confidence mistakes. For population claims, it is superseded by a representative audit.
 
-**Spreadsheet:** [manual_audit_top40.csv](./manual_audit_top40.csv)
+**Primary artifacts:**
 
-### 3.1 Summary Table
+- [manual_audit_representative_182.csv](./manual_audit_representative_182.csv)
+- [representative_audit_summary.json](./representative_audit_summary.json)
 
-| Bucket | Human-correct | Human-incorrect | Main attribution |
-|---|---:|---:|---|
-| Top 20 false positives | 14 | 6 | Detector verbosity bias on faithful-but-broad answers |
-| Top 20 false negatives | 2 | 18 | Ordinary detector misses on actually wrong answers |
-| All 40 audited errors | 16 | 24 | Detector-side issues dominate; judge-side noise is real but smaller |
+The older [manual_audit_top40.csv](./manual_audit_top40.csv) is still useful as an illustrative appendix, but not as the estimator for judge-noise prevalence.
 
-Attribution counts from the sheet:
+### 3.1 Full-Population Judge-vs-Alias Disagreement
 
-| Attribution | Count |
-|---|---:|
-| `detector_miss` | 17 |
-| `detector_verbosity_bias` | 14 |
-| `judge_side_label_error` | 8 |
-| `benchmark_alias_issue` | 1 |
+Before manual review, the cleanest population-level question is: how often does GPT-4o disagree with strict alias matching on the committed responses?
 
-### 3.2 What the False Positives Actually Are
+| Slice | Judge true / alias false | Judge false / alias true | Total disagreement |
+|---|---:|---:|---:|
+| All committed BioASQ responses (`n=1,600`) | 289 | 33 | 20.1% |
+| Detector eval subset (`n=1,090`) | 277 | 19 | 27.2% |
+| Detector errors only (`n=329`) | 166 | 4 | 51.7% |
 
-The high-confidence false positives are not mostly “judge hallucinations sneaking through.” They are mostly faithful answers that the detector over-penalises for being broader, more descriptive, or more list-like than the alias list.
+This is the key thing the old report could not say clearly. Judge-vs-alias disagreement is not rare. But disagreement is not the same thing as judge noise. Many of the `judge=true / alias=false` cases are faithful biomedical paraphrases that strict alias matching misses.
 
-Representative detector-side false positives from the audit:
+### 3.2 Representative Audit Design
 
-- `MTM1` for “Which gene test can be used for the X-linked myotubular myopathy?” versus alias `MTM1 gene test`
-- `TRK (Tropomyosin receptor kinase)` versus alias `tropomyosin receptor kinases`
-- `KDEL (Lys-Asp-Glu-Leu)` versus alias `ER retention sequence (KDEL)`
+The representative audit is designed to estimate that distinction rather than assume it.
 
-Representative judge-side false positives from the audit:
+- **False negatives:** audited as a full census of all **62 / 62**
+- **False positives:** audited as a random sample of **120 / 267**
+- **False-positive sampling:** proportional across the two automatically observable FP strata:
+  `judge=true / alias=false` (**75** audited from population **166**) and
+  `judge=true / alias=true` (**45** audited from population **101**)
+- **Seed:** `20260319`
+- **Estimator:** FP rows are weighted back to the full FP population; FN rows are exact because they are a census
+- **Uncertainty:** stratified bootstrap over the sampled FP strata with the FN census held fixed
 
-- `Chromosome 19, 19q13.2` for a question whose alias specifies the **short arm** of chromosome 19
-- `RNA.` for Xist, where the alias requires **long non-coding RNA**
-- `Southeast Asians` where the alias is much narrower (`Han Chinese and other Asian populations, except Japanese`)
+This is closer to surveying an electorate with one small county counted exhaustively and the larger county sampled randomly, then weighting the sample back up. The point is to estimate the whole electorate, not just the loudest precinct.
 
-The pattern is therefore mixed, but the center of mass is clear: the detector really is punishing faithful biomedical answers for response form.
+### 3.3 Weighted Results Over All 329 Detector Errors
 
-### 3.3 What the False Negatives Actually Are
+Weighted attribution totals:
 
-Within the audited high-confidence false negatives, the main pattern is not hidden judge noise. They are mostly ordinary wrong answers that the detector fails to catch.
+| Attribution | Estimated count | Share of detector errors |
+|---|---:|---:|
+| `detector_verbosity_bias` | 130.9 | 39.8% |
+| `detector_false_positive` | 98.4 | 29.9% |
+| `detector_miss` | 53.0 | 16.1% |
+| `judge_side_label_error` | 35.9 | 10.9% |
+| `benchmark_alias_issue` | 10.9 | 3.3% |
 
-Representative detector misses:
+Collapsed into detector-side versus label/benchmark-side:
 
-- `Bardet-Biedl syndrome` for a GRK1 question whose alias is `Oguchi disease`
-- `COVID-19` for a drug whose alias target disease is `Respiratory Syncytial Virus`
-- `IL-5` for a Siltuximab question whose alias is `interleukin-6`
+- **Detector-side:** **85.8%** of reported detector errors (bootstrap 95% CI **[80.4, 90.5]**)
+- **Judge-side only:** **10.9%** (bootstrap 95% CI **[6.8, 15.6]**)
+- **Benchmark / alias issues:** **3.3%** (bootstrap 95% CI **[1.3, 6.0]**)
+- **Judge or benchmark combined:** **14.2%** (bootstrap 95% CI **[9.5, 19.6]**)
 
-Judge-side error is present but narrow:
+The population answer is therefore sharper than the 40-item audit:
 
-- `MicroRNA` was scored false by GPT-4o against an alias phrased as “MiRs are small (~23 nt) noncoding RNAs”, but as a human audit item it is a faithful short answer
-- `Inhibition` was scored false against alias `inhibits`, which is just a part-of-speech mismatch
+- **Most reported detector error still lands detector-side after representative human review**
+- **Judge noise is real, but it is materially smaller than the automatic judge-vs-alias disagreement rate would suggest**
+- **The dominant failure mode is still FP overcalling on faithful biomedical answers, not FN judge corruption**
 
-One item looks like benchmark-side ambiguity rather than detector or judge error:
+### 3.4 What Actually Survives Human Review
 
-- `1955` for polio-vaccine availability, where the committed alias is `1954`
+The detector-side mass splits into two different behaviors:
 
-### 3.4 Interpretation
+- **Verbosity / paraphrase-sensitive false positives** are the largest bucket. These are faithful answers that are broader, more descriptive, or more list-like than the alias string.
+- **Ordinary detector false positives** are also common. These are answers that are directly correct, often exact or near-exact, but still get overcalled.
+- **Ordinary detector misses** are smaller but real. In the FN census, **53 / 62** survive as genuine detector misses after review.
 
-The mentor’s core question was whether BioASQ error is “classifier dumbness” or “judge leniency.” The best answer from this audit is:
+Representative examples that stayed detector-side after review:
 
-- **False positives:** mostly classifier dumbness, specifically verbosity/form bias
-- **False negatives:** mostly classifier misses on genuinely wrong answers
-- **Judge noise:** real, but not the dominant explanation for the observed detector error
+- `Human epithelial cells from larynx carcinoma` for HEp-2 origin versus alias `human larynx epidermoid carcinoma cell line`
+- `70` for MammaPrint versus alias `70 genes`
+- `PP1` for the HSP20 phosphatase question versus alias `Protein phosphatase 1 | PP1`
+- `Bardet-Biedl syndrome` for the GRK1 question versus alias `Oguchi disease`
 
-In other words, the judge is adding some sand to the gears, but the machine is still misaligned on its own.
+Representative items that really were judge-side or benchmark-side problems:
+
+- `MicroRNA` for “What is a miR?” versus an alias phrased as a longer definition
+- `Inhibition` versus alias `inhibits`
+- `CDK4 and CDK6` for Palbociclib, where the benchmark alias incorrectly says `epidermal growth factor receptor`
+- `1955` for polio-vaccine availability, where the benchmark alias says `1954`
+
+### 3.5 Confidence-Bias Check
+
+The reviewer’s core concern was that the earlier estimate came from the highest-confidence errors only. The representative audit removes that bias, and the confidence check does **not** show a clean monotonic story where judge/benchmark issues concentrate only at the top end.
+
+- In the random FP sample, the weighted judge-or-benchmark share ranges from **6.6%** to **19.9%** across confidence quartiles.
+- In the FN census, the corresponding share ranges from **6.7%** to **18.8%**.
+- That pattern is noisy, but it is not “all the judge noise lives in the highest-confidence bucket.”
+
+### 3.6 Interpretation
+
+The mentor’s question was whether BioASQ error mostly comes from “classifier dumbness” or “judge leniency.” The best current answer is:
+
+- **Classifier-side error dominates overall.**
+- **Judge leniency is a real minority contributor.**
+- **Strict alias disagreement is a poor proxy for judge noise by itself.**
+
+The last point matters most. If we only looked at judge-vs-alias disagreement, we would overestimate judge noise badly. Human review shows that much of that disagreement is actually the detector mishandling faithful biomedical phrasing.
 
 ---
 
@@ -188,7 +221,7 @@ That is weaker than “BioASQ falsifies the causal role,” but stronger than �
 
 - The BioASQ detector transfer result is approximately real and survives the recovery patch.
 - The detector has a genuine verbosity-sensitive false-positive problem on faithful biomedical answers.
-- Judge-side label noise exists on BioASQ, but a manual audit suggests it is not the main source of detector error.
+- Judge-side label noise exists on BioASQ, but the representative audit estimates judge-plus-benchmark issues at about **14%** of reported detector errors rather than most of them.
 - H-neuron scaling on BioASQ changes answer text much more than random-neuron scaling does.
 - The current BioASQ alias metric does not show a robust dose-response on net factoid accuracy.
 
@@ -206,6 +239,6 @@ That is weaker than “BioASQ falsifies the causal role,” but stronger than �
 
 If BioASQ is revisited, the highest-value follow-ons are:
 
-1. **Keep the manual-audit sheet as the canonical judge-quality reference.** Future BioASQ writeups should cite it directly instead of hand-waving about “possible label noise.”
+1. **Use the representative audit as the canonical estimator and the top-40 sheet only as an example bank.** Future BioASQ writeups should cite the weighted representative result rather than the old convenience sample.
 2. **Add a style-aware intervention analysis.** The current intervention metric is too coarse for the behavior that is actually moving.
 3. **Preserve per-example prediction artifacts for future OOD runs.** The repo should always commit the exact eval IDs and per-example detector outputs for both initial and recovery analyses.

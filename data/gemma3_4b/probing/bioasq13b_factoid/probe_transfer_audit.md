@@ -54,12 +54,12 @@
 
 - **OOD setup: mostly paper-faithful on the important axes.** The paper’s OOD setup is “single response” on BioASQ after training the detector on TriviaQA (`original-paper-markdown-converted.md`). This run matches that shape: one sampled BioASQ response per question in `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl`, official BioASQ factoid questions from `data/benchmarks/bioasq13b_factoid.parquet`, and a reused TriviaQA-trained detector in `models/gemma3_4b_classifier_disjoint.pkl`.
 - **Not an exact replication.** The repo’s detector selection is the simpler baseline described in `data/gemma3_4b/pipeline/pipeline_report.md`, not the paper’s full suppression-aware selection rule. That means “close to the paper’s BioASQ number” is a fair internal claim; “paper-faithful replication succeeded” is not.
-- **Label path: sound enough, but the main residual fragility.** `scripts/collect_responses.py` uses an LLM judge (`gpt-4o`) with the prompt “Return 't' if correct, 'f' if incorrect” against BioASQ alias lists. Operationally it was stable on this run: `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json` shows **560 true, 1040 false, 0 uncertain, 0 error**. The remaining risk is not pipeline crashes; it is semantic leniency on biomedical paraphrases.
+- **Label path: sound enough, but the main residual fragility.** `scripts/collect_responses.py` uses an LLM judge (`gpt-4o`) with the prompt “Return 't' if correct, 'f' if incorrect” against BioASQ alias lists. Operationally it was stable on this run: `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json` shows **560 true, 1040 false, 0 uncertain, 0 error**. The remaining risk is not pipeline crashes; it is semantic leniency on biomedical paraphrases. The later representative audit in `data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md` and `data/gemma3_4b/intervention/bioasq/representative_audit_summary.json` narrows that risk: judge-plus-benchmark issues explain about **14%** of reported detector errors, not most of them.
 - **Inference:** several high-confidence false positives look semantically close to the alias list rather than plainly wrong. Examples from `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl` and local scoring:
   `Mtm1` vs ground truth `MTM1 gene test`,
   `Yellow-orange` vs `yellow`,
   `TRK (Tropomyosin receptor kinase)` vs `tropomyosin receptor kinases`.
-  That likely injects some judge noise into the “true” class.
+  The representative audit confirms this is a real but minority issue rather than the dominant explanation for detector error.
 - **Balanced eval is appropriate for accuracy/AUROC, but not for natural-prevalence precision.** `scripts/sample_balanced_ids.py` samples equal true/false IDs after judging. That is aligned with the paper’s detector-evaluation framing, but it means the reported precision is not the operating precision at BioASQ’s raw prevalence.
 - **Recovery patch improves fidelity more than it changes the target.** The patch in `c41ee28` does two conservative things: parse more extractor outputs, and map ordered subsequences to minimal enclosing contiguous spans. That can slightly widen a selected answer region, but it stays inside the answer-focused target rather than switching to “whole response.” The near-flat metrics after recovery are evidence against a large target shift.
 
@@ -193,7 +193,7 @@
 
 - BioASQ appears harder mainly because the model hallucinates a lot in this single-response biomedical setting and because the detector overcalls verbose faithful answers. Evidence: raw BioASQ false rate **65.0%**, plus very high FP rates on long/list-like true answers.
 - The recovery patch mostly restored formatting-heavy biomedical answers rather than “easy” generic cases. Evidence: recovered rows are longer and enriched for apostrophes, hyphens, parentheses, abbreviations, and list-like formatting.
-- Some of the measured detector error on BioASQ is likely label-noise-sensitive, because the GPT-4o judge accepts several semantically broad faithful paraphrases that are close to but not identical to the alias list.
+- Some of the measured detector error on BioASQ is label-path-sensitive, because the GPT-4o judge accepts semantically broad faithful paraphrases that strict alias matching would miss. But the later representative audit indicates this is a minority effect, not the main driver of the detector’s BioASQ error profile.
 
 ## Claims we should avoid
 
@@ -203,6 +203,6 @@
 
 ## Highest-value next analyses
 
-- **Manual judge-quality audit of the top detector errors.** Review about 20 high-confidence false positives and 20 high-confidence false negatives from `data/gemma3_4b/probing/bioasq13b_factoid/samples.jsonl` against the official aliases in `data/benchmarks/bioasq13b_factoid.parquet`. This has the highest payoff because it will separate detector weakness from judge permissiveness.
+- **Treat the representative BioASQ ground-truth audit as the current judge-quality reference.** The follow-on report in `data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md` replaces the earlier proposed top-error spot check with a representative weighted audit. Future work should extend that estimator if needed, not restart from a convenience sample.
 - **Micro-sensitivity on the remaining 2 activation misses.** Implement only a punctuation-tolerant boundary matcher for `),` / `).` style cases, then rescore just those two examples. This is cheap and would close the last obvious span-recovery gap without blurring the target the way whole-output fallback would.
 - **Preserve eval IDs for future OOD audits.** The exact initial-vs-recovery overlap analysis is limited because the initial `data/gemma3_4b/probing/bioasq13b_factoid/eval_qids.json` was overwritten. Future OOD runs should commit both initial and sensitivity eval ID lists so “same IDs only” comparisons are first-class rather than reconstructive.
