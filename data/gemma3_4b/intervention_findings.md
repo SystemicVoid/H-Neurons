@@ -5,7 +5,7 @@
 **Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC 0.843, 95% CI [0.815, 0.870] on the disjoint evaluated test set, n=780)
 **Reference:** Gao et al., "H-Neurons" (arXiv:2512.01797v2), Section 3 replication
 
-**Related reports:** [pipeline_report.md](pipeline_report.md), [bioasq13b_factoid_probe_transfer_audit.md](bioasq13b_factoid_probe_transfer_audit.md)
+**Related reports:** [pipeline_report.md](pipeline_report.md), [bioasq13b_factoid_probe_transfer_audit.md](bioasq13b_factoid_probe_transfer_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md)
 
 ---
 
@@ -158,6 +158,34 @@ The H-neuron slope (2.09 pp / α, 95% CI [1.38, 2.83], 6.3 pp total swing, 95% C
 - Scenario 4 (random neurons cause format degradation): Not observed. Zero parse failures everywhere.
 - Scenario 5 (layer position matters independently): Not supported at current sample sizes. See above.
 
+### 1.6 Negative Control — FalseQA (n=687 per seed)
+
+**Data:** `data/gemma3_4b/intervention/falseqa/control/`
+**Script:** `scripts/run_negative_control.py --benchmark falseqa --quick`
+**Full audit:** [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md)
+
+Three unconstrained random seeds, quick-mode (α ∈ {0.0, 1.0, 3.0}). GPT-4o judged with the same prompt as the H-neuron FalseQA experiment. Data integrity verified: all 9 JSONL files have exactly 687 lines, compliance recounts match, zero seed-to-seed and seed-to-H-neuron overlap, zero parse failures.
+
+| α | H-neurons | Seed 0 | Seed 1 | Seed 2 | Random mean |
+|---|-----------|--------|--------|--------|-------------|
+| 0.0 | 69.6% | 71.8% | 72.1% | 73.1% | 72.3% |
+| 1.0 | 71.9% | 72.1% | 72.3% | 72.3% | 72.2% |
+| 3.0 | 74.4% | 72.9% | 72.2% | 71.8% | 72.3% |
+
+Per-seed slopes (pp/α): +0.40, +0.03, -0.42. Mean slope: **+0.00 pp/α**. H-neuron slope: **+1.55 pp/α** (3-point OLS). Random 95% slope interval: **[-0.40, +0.38] pp/α**. H-neuron α=3.0 compliance (**74.4%**) exceeds random interval **[71.8%, 72.9%]**.
+
+### 1.7 FalseQA Negative Control Analysis
+
+**Verdict: H-neuron specificity confirmed on FalseQA.** The H-neuron slope (+1.55 pp/α) falls outside the empirical random-set slope interval, and the H-neuron endpoint at α=3.0 exceeds the random interval. The pattern matches the FaithEval control (§1.5) on a completely different task type and evaluator.
+
+**Ablation-side finding.** At α=0.0, H-neuron compliance drops to 69.6% (versus 71.9% at α=1.0, a -2.3pp ablation dip), while random ablation shows no effect (72.3% → 72.2% → 72.3%). This two-sided specificity mirrors the FaithEval result.
+
+**Swing analysis.** H-neuron scaling flips 22.3% of questions between α=0 and α=3 (net +4.8pp), versus only 8.7% for random (net +1.2pp). Notably, the questions flipped by ablation-recovery (α=0→1) are entirely disjoint from those flipped by amplification (α=1→3) — zero overlap — suggesting H-neurons affect at least two distinct subpopulations.
+
+**Response length.** H-neuron amplification shortens mean responses (930→848 chars, -9%), while random leaves them flat (~894). Shorter responses on false-premise questions suggest more confident premise acceptance with less hedging.
+
+**Caveats.** Quick mode (3 seeds × 3 alphas) is lighter than the FaithEval control (8 seeds × 7 alphas). The 3-seed empirical interval is effectively [min, max]. A full sweep is warranted for publication. See full audit for details.
+
 ---
 
 ## 2. Findings
@@ -176,7 +204,7 @@ This is the cleanest signal in the experiment: zero parse failures, deterministi
 <!-- from: falseqa_delta_0_to_3 -->
 FalseQA shows a **+4.8 pp** swing (69.6% → 74.4%) with a paired-bootstrap 95% CI of **[1.3, 8.3] pp**, plus a visible step-up between the low-α cluster (69.6-71.9%) and high-α cluster (73.9-75.0%). The trend is not monotonic — α=1.5 dips below α=1.0, and α=2.5 dips below α=2.0.
 
-This makes the benchmark informative but weaker than FaithEval anti-compliance. The endpoint CI clears zero, but the per-point Wilson intervals overlap substantially, so the result is best described as **suggestive evidence of the same mechanism**, not as a standalone clean dose-response proof. The likely source of roughness is GPT-4o judge variance on borderline responses.
+This makes the benchmark informative but weaker than FaithEval anti-compliance. The endpoint CI clears zero, but the per-point Wilson intervals overlap substantially, so the result is best described as **suggestive evidence of the same mechanism**, not as a standalone clean dose-response proof. The likely source of roughness is GPT-4o judge variance on borderline responses. The FalseQA negative control (§1.6–1.7) confirms this effect is H-neuron-specific: random neurons produce a flat slope of 0.00 pp/α (interval [-0.40, +0.38]), well separated from the H-neuron slope of +1.55 pp/α.
 
 ### Finding 3: Standard-prompt FaithEval raw scores are confounded by parse failures
 
@@ -189,7 +217,7 @@ This means the standard-prompt curve as currently scored is an evaluator artifac
 
 ### Finding 4: Cross-benchmark consistency supports a general over-compliance mechanism
 
-Two independently evaluated benchmarks (FaithEval anti-compliance and FalseQA) both show compliance increasing with α, while the negative control is flat. The tasks are qualitatively different — one tests susceptibility to misleading context in a retrieval QA format, the other tests acceptance of false premises in open-ended generation. Both use different evaluation methods (regex letter matching vs. GPT-4o judging).
+Two independently evaluated benchmarks (FaithEval anti-compliance and FalseQA) both show compliance increasing with α, while negative controls on both benchmarks are flat. The tasks are qualitatively different — one tests susceptibility to misleading context in a retrieval QA format, the other tests acceptance of false premises in open-ended generation. Both use different evaluation methods (regex letter matching vs. GPT-4o judging). Both have independently confirmed H-neuron specificity via random-neuron controls (§1.4–1.5 for FaithEval, §1.6–1.7 for FalseQA).
 
 The fact that 38 neurons (0.011% of the network) shift behavior on both tasks in the same direction is evidence that these neurons participate in a general compliance-related circuit, not a task-specific one.
 
@@ -209,10 +237,10 @@ The intervention story is now quantified instead of implied. FaithEval anti-comp
 
 ### Missing controls and measurements
 
-- **No negative control on FalseQA.** The random-neuron control was only run on FaithEval. Running it on FalseQA would independently confirm H-neuron specificity for that benchmark.
+- **FalseQA negative control uses quick-mode sampling.** The FalseQA control (§1.6) used 3 seeds × 3 alphas, while the FaithEval control (§1.4) used 8 seeds × 7 alphas. The FalseQA "95% interval" is effectively [min, max] of 3 slopes. A full sweep is warranted for publication.
 - **No text-based remap at α<3.0 for FaithEval standard.** The current standard-prompt curve mixes raw letter extraction at α<3.0 with remapped scores only at α=3.0. The full curve shape is unknown.
-- **Judge-model error is not in the FalseQA CI.** The Wilson and paired-bootstrap intervals quantify sampling uncertainty over the 687 judged items, not systematic error in GPT-4o's labels.
-- **Negative-control random-set intervals are empirical, not asymptotic.** With 8 random seeds, the right summary is an empirical interval over sampled random sets, not a claim about the entire zero-weight neuron universe.
+- **Judge-model error is not in the FalseQA CI.** The Wilson and paired-bootstrap intervals quantify sampling uncertainty over the 687 judged items, not systematic error in GPT-4o's labels. Measured judge nondeterminism at α=1.0 is 0.4% (3/687), which is a lower bound on total judge error.
+- **Negative-control random-set intervals are empirical, not asymptotic.** With 8 seeds (FaithEval) or 3 seeds (FalseQA), the right summary is an empirical interval over sampled random sets, not a claim about the entire zero-weight neuron universe.
 
 ### Classifier selection caveat
 
@@ -232,10 +260,11 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 | FaithEval (standard, raw) | -5.5 pp | [-8.1, -2.8] pp | No | Regex letter match | Parse failures scale with α |
 | FaithEval (standard, α=3 remap) | 72.1% level estimate | [69.2, 74.8]% | n/a | Strict answer-text remap | Only α=3.0 corrected so far |
 | FalseQA | +4.8 pp | [1.3, 8.3] pp | No | GPT-4o judge | Judge variance on borderline cases |
-| NC unconstrained (5 seeds) | +0.02 pp / α mean | [-0.106, 0.164] pp / α | No | Regex letter match | Empirical random-set interval |
-| NC layer-matched (3 seeds) | +0.17 pp / α mean | [0.151, 0.208] pp / α | No | Regex letter match | Small seed count; descriptive only |
+| NC FaithEval unconstrained (5 seeds) | +0.02 pp / α mean | [-0.106, 0.164] pp / α | No | Regex letter match | Empirical random-set interval |
+| NC FaithEval layer-matched (3 seeds) | +0.17 pp / α mean | [0.151, 0.208] pp / α | No | Regex letter match | Small seed count; descriptive only |
+| NC FalseQA unconstrained (3 seeds) | +0.00 pp / α mean | [-0.40, 0.38] pp / α | No | GPT-4o judge | Quick mode; 3-seed interval |
 
-The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact). The effect generalises across at least two distinct compliance-test benchmarks. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal.
+The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact). The effect generalises across at least two distinct compliance-test benchmarks, with independent negative controls confirming specificity on both. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal.
 
 ---
 

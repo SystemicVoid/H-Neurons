@@ -2,36 +2,9 @@
 
 ## Research
 
-### FalseQA Negative Control (complete)
+### FalseQA Negative Control — done
 
-**Scientific question:** Is the H-neuron compliance effect on FalseQA specific to H-neurons, or does scaling any 38 random neurons produce a similar trend?
-
-**Status:** Complete. **H-neuron specificity confirmed on FalseQA.**
-
-**Results** (`data/gemma3_4b/intervention/falseqa/control/comparison_summary.json`):
-- H-neurons: 69.6% → 71.9% → 74.4% (slope +1.55%/α, ρ=1.0, monotonic)
-- Random mean: 72.3% → 72.2% → 72.3% (slope 0.00%/α, flat)
-- Random 95% slope interval: [-0.40, +0.38] pp/α — H-neuron slope of +1.55 is well outside
-- H-neuron α=3.0 compliance (74.4%) is above the random 95% interval [71.8%, 72.9%]
-- Plot: `data/gemma3_4b/intervention/falseqa/control/negative_control_comparison.png`
-
-This is the second benchmark (after FaithEval) confirming H-neuron specificity, using a completely different evaluator (GPT-4o judge vs regex letter extraction) and task type (open-ended false-premise rejection vs MC counterfactual context).
-
-**Pipeline:**
-1. **Generation** (`scripts/run_negative_control.py --benchmark falseqa --quick`): 3 unconstrained random seeds x 3 alphas (0.0, 1.0, 3.0) x 687 FalseQA samples = 6,183 responses.
-2. **GPT-4o judging** (`scripts/evaluate_intervention.py --benchmark falseqa`): Same judge prompt as the H-neuron FalseQA baseline for apples-to-apples comparison. ~$2.50 API cost.
-3. **Analysis** (`scripts/run_negative_control.py --benchmark falseqa --quick --analysis_only`): Comparison summary, slope intervals, and plot.
-
-**Data:**
-- Generated responses: `data/gemma3_4b/intervention/falseqa/control/seed_{0,1,2}_unconstrained/alpha_{0.0,1.0,3.0}.jsonl`
-- Per-seed results: `data/gemma3_4b/intervention/falseqa/control/seed_{0,1,2}_unconstrained/results.json`
-- H-neuron FalseQA baseline: `data/gemma3_4b/intervention/falseqa/experiment/results.json` (7 alphas, 687 samples, GPT-4o judged)
-
-**Reviewer note:** The quick-mode run only tested 3 alphas (0.0, 1.0, 3.0) with 3 unconstrained seeds. The FaithEval control used 7 alphas with 5 unconstrained + 3 layer-matched seeds. A full FalseQA sweep (8 seeds x 7 alphas) would cost ~$16 API + ~8h GPU and is warranted if the result needs to go into a publication figure.
-
-**Scripts modified:**
-- `scripts/run_negative_control.py` — extended with `--benchmark {faitheval,falseqa,bioasq}` flag, benchmark-specific generation loops (`_run_faitheval_alphas`, `_run_falseqa_alphas`, `_run_bioasq_alphas`), deferred-judging workflow for FalseQA, benchmark-aware `build_comparison_summary()` and `plot_comparison()`
-- `scripts/run_intervention.py` — added `load_bioasq()`, `run_bioasq()`, BioASQ CLI wiring
+H-neuron specificity confirmed. Full audit: [`data/gemma3_4b/intervention/falseqa/falseqa_negative_control_audit.md`](data/gemma3_4b/intervention/falseqa/falseqa_negative_control_audit.md). Integrated into `intervention_findings.md` §1.6–1.7.
 
 ### BioASQ H-Neuron Intervention (in progress)
 
@@ -103,12 +76,17 @@ The probe transfer audit used saved activations from single responses. Run `scri
 
 ### Summary of Existing Negative Control Results
 
-For reference, the FaithEval anti-compliance negative control is complete and conclusive:
+Both compliance benchmarks have independently confirmed H-neuron specificity:
+
+**FaithEval anti-compliance** (8 seeds × 7 alphas):
 - **H-neuron slope:** 2.09%/α (monotonic, ρ=1.0, 6.3pp total swing)
 - **Random neuron slope:** 0.02%/α mean (5 unconstrained seeds), 0.17%/α mean (3 layer-matched seeds)
-- **Separation:** t-test p < 10⁻⁵ on both compliance and slope
-- **Full analysis:** `data/gemma3_4b/intervention/faitheval/control/comparison_summary.json`
-- **Detailed write-up:** `data/gemma3_4b/intervention_findings.md` (sections 1.4, 1.5)
+- **Full analysis:** `data/gemma3_4b/intervention_findings.md` §1.4–1.5
+
+**FalseQA** (3 seeds × 3 alphas, quick mode):
+- **H-neuron slope:** 1.55%/α (3-point OLS, +4.8pp endpoint)
+- **Random neuron slope:** 0.00%/α mean (3 unconstrained seeds)
+- **Full audit:** `data/gemma3_4b/intervention/falseqa/falseqa_negative_control_audit.md`
 
 ---
 
