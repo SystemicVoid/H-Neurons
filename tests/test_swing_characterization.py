@@ -198,6 +198,33 @@ def test_build_classifier_site_payload_exports_model_structure():
     )
 
 
+def test_results_page_intervention_narrative_uses_live_bindings():
+    repo_root = Path(__file__).resolve().parents[1]
+    results_html = (repo_root / "site/results/gemma-3-4b.html").read_text()
+    charts_js = (repo_root / "site/assets/charts.js").read_text()
+
+    bindings = [
+        "parse-peak-count",
+        "parse-peak-alpha",
+        "strict-remap-recovered-count",
+        "strict-remap-reviewed-count",
+        "strict-remap-recovery-rate",
+        "frozen-count",
+        "frozen-share-value",
+        "always-compliant-count",
+        "never-compliant-count",
+        "swing-alpha-three-compliant-count",
+        "swing-alpha-three-resistant-count",
+    ]
+
+    for binding in bindings:
+        assert f'data-intervention-bind="{binding}"' in results_html
+        assert f"'{binding}'" in charts_js
+
+    assert "150 failures at &alpha;=3.0" not in results_html
+    assert "<h2>Most samples are unaffected by scaling</h2>" not in results_html
+
+
 def test_build_classifier_site_payload_uses_tracked_structure_summary(tmp_path: Path):
     repo_root = tmp_path
     write_json(

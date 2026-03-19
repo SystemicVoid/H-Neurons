@@ -358,14 +358,17 @@
 <section id="format-puzzle" class="short">
   <div class="fade-in">
     <span class="tag tag-amber">Evaluation confound</span>
-    <h2>Content-following rises while MC-letter recoverability falls</h2>
+    <h2><span data-intervention-bind="parse-alpha-zero-count">9</span> parse failures grow to <span data-intervention-bind="parse-peak-count">150</span> by <span data-intervention-bind="parse-peak-alpha">&alpha;=3.0</span></h2>
     <!-- from: standard_text_remap_alpha_3_rescored_rate -->
     <p class="subtitle" data-source="manual">
       Once you separate answer content from evaluator-visible formatting, the contradiction shrinks.
       At &alpha;=3.0 only, strict text remapping lifts the standard estimate from
       <span data-intervention-summary-bind="raw-alpha-three-value">63.6%</span> raw to
       <span data-intervention-summary-bind="remap-value">72.1%</span>
-      (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>).
+      (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>) by recovering
+      <span data-intervention-bind="strict-remap-recovered-count">140</span> of
+      <span data-intervention-bind="strict-remap-reviewed-count">150</span> parse failures
+      (<span data-intervention-bind="strict-remap-recovery-rate">93.3%</span> of the reviewed set).
     </p>
 
     <div class="prompt-compare">
@@ -399,7 +402,7 @@ Answer:</code>
       <div class="chart-chip-row">
         <span class="chart-chip" data-intervention-bind="parse-failure-chart-n">Loading n...</span>
         <span class="chart-chip" data-intervention-bind="parse-failure-chart-ci">Loading CI status...</span>
-        <span class="chart-chip"><strong>Worst point:</strong> 150 failures at &alpha;=3.0</span>
+        <span class="chart-chip"><strong>Worst point:</strong> <span data-intervention-bind="parse-peak-count">150</span> failures at <span data-intervention-bind="parse-peak-alpha">&alpha;=3.0</span></span>
       </div>
     </div>
     <div class="chart-container">
@@ -438,10 +441,13 @@ Answer:</code>
 <section id="population" class="short">
   <div class="fade-in">
     <span class="tag tag-purple">Hidden structure</span>
-    <h2>Most samples are unaffected by scaling</h2>
+    <h2><span data-intervention-bind="frozen-share-value">86.2%</span> of samples never change under scaling</h2>
     <p class="subtitle" data-source="manual">
-      The intervention effect is concentrated in a minority of cases. That makes the result mechanistically interesting,
-      but it also means average-rate changes blur together two very different populations: frozen cases and swing cases.
+      The intervention effect is concentrated in <span data-intervention-summary-bind="swing-count">138</span> swing samples,
+      while <span data-intervention-bind="frozen-count">862</span> stay fixed: <span data-intervention-bind="always-compliant-count">600</span>
+      always compliant (<span data-intervention-bind="always-compliant-pct">60.0%</span>) and
+      <span data-intervention-bind="never-compliant-count">262</span> never compliant
+      (<span data-intervention-bind="never-compliant-pct">26.2%</span>).
     </p>
 
     <div class="chart-meta">
@@ -485,7 +491,8 @@ Answer:</code>
       <h3 style="color: var(--accent-coral);">Swing deep dive: <span data-swing-bind="rc-pct-display">68.1%</span> show knowledge override</h3>
       <p style="font-size: 14px; color: var(--text-secondary);">
         Profiling the <span data-intervention-summary-bind="swing-count">138</span> swing samples reveals that most follow R&rarr;C trajectories:
-        the model initially gave the correct answer but switched to following misleading context under H-neuron scaling.
+        by &alpha;=3.0, <span data-intervention-bind="swing-alpha-three-compliant-count">105</span> are compliant and
+        <span data-intervention-bind="swing-alpha-three-resistant-count">33</span> remain resistant inside the swing pool.
         Only <span data-swing-bind="cr-pct-display">23.2%</span> show the beneficial C&rarr;R pattern. Surface features do not predict swing status &mdash;
         the mechanism appears driven by internal model states rather than input structure.
       </p>

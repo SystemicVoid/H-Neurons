@@ -476,6 +476,7 @@ function buildInterventionSummary(interventionData) {
   const standardTextRemapAlphaThree = interventionData.series.standard_text_remap.by_alpha['3.0'];
   const negativeControl = interventionData.negative_control.comparison_to_h_neurons;
   const parseFailures = interventionData.parse_failures.points;
+  const antiCompliancePopulation = interventionData.population.anti_compliance;
   const antiBaseline = interventionPointByAlpha(antiComplianceSeries.points, 0.0);
   const antiAlphaThree = interventionPointByAlpha(antiComplianceSeries.points, 3.0);
   const antiEffects = antiComplianceSeries.effects;
@@ -483,6 +484,22 @@ function buildInterventionSummary(interventionData) {
   const standardParseableBaseline = interventionPointByAlpha(standardParseableSubsetSeries.points, 0.0);
   const parseAlphaZero = interventionPointByAlpha(parseFailures, 0.0);
   const parseAlphaThree = interventionPointByAlpha(parseFailures, 3.0);
+  const parsePeak = parseFailures.reduce((currentPeak, point) => {
+    if (!currentPeak || point.count > currentPeak.count) {
+      return point;
+    }
+    return currentPeak;
+  }, null);
+  const swingAlphaThree = interventionPointByAlpha(
+    antiCompliancePopulation.swing_breakdown,
+    3.0
+  );
+  const frozenCount =
+    antiCompliancePopulation.always_compliant.count +
+    antiCompliancePopulation.never_compliant.count;
+  const frozenPct =
+    antiCompliancePopulation.always_compliant.pct +
+    antiCompliancePopulation.never_compliant.pct;
 
   return {
     antiComplianceSeries,
@@ -498,12 +515,16 @@ function buildInterventionSummary(interventionData) {
     standardParseableBaseline,
     parseAlphaZero,
     parseAlphaThree,
+    parsePeak,
+    antiCompliancePopulation,
+    frozenCount,
+    frozenPct,
+    swingAlphaThree,
   };
 }
 
 function hydrateInterventionSummary(summary) {
   const {
-    antiComplianceSeries,
     standardParseableSubsetSeries,
     standardTextRemapAlphaThree,
     negativeControl,
@@ -514,6 +535,11 @@ function hydrateInterventionSummary(summary) {
     standardParseableBaseline,
     parseAlphaZero,
     parseAlphaThree,
+    parsePeak,
+    antiCompliancePopulation,
+    frozenCount,
+    frozenPct,
+    swingAlphaThree,
   } = summary;
 
   setInterventionText(
@@ -557,6 +583,50 @@ function hydrateInterventionSummary(summary) {
   setInterventionText(
     'standard-remap-alpha-three-detail',
     `${formatPercent(standardTextRemapAlphaThree.raw_compliance_pct)} raw MC-letter score · α=3.0 only answer-text remap recovered ${standardTextRemapAlphaThree.strict_recovered_count}/${standardTextRemapAlphaThree.parse_failures}`
+  );
+  if (parsePeak) {
+    setInterventionText('parse-peak-count', formatCount(parsePeak.count));
+    setInterventionText('parse-peak-alpha', `α=${parsePeak.alpha.toFixed(1)}`);
+  }
+  setInterventionText(
+    'strict-remap-recovered-count',
+    formatCount(standardTextRemapAlphaThree.strict_recovered_count)
+  );
+  setInterventionText(
+    'strict-remap-reviewed-count',
+    formatCount(standardTextRemapAlphaThree.parse_failures)
+  );
+  setInterventionText(
+    'strict-remap-recovery-rate',
+    formatPercent(
+      standardTextRemapAlphaThree.strict_recovered_rate_within_failures * 100
+    )
+  );
+  setInterventionText('frozen-count', formatCount(frozenCount));
+  setInterventionText('frozen-share-value', formatPercent(frozenPct));
+  setInterventionText(
+    'always-compliant-count',
+    formatCount(antiCompliancePopulation.always_compliant.count)
+  );
+  setInterventionText(
+    'always-compliant-pct',
+    formatPercent(antiCompliancePopulation.always_compliant.pct)
+  );
+  setInterventionText(
+    'never-compliant-count',
+    formatCount(antiCompliancePopulation.never_compliant.count)
+  );
+  setInterventionText(
+    'never-compliant-pct',
+    formatPercent(antiCompliancePopulation.never_compliant.pct)
+  );
+  setInterventionText(
+    'swing-alpha-three-compliant-count',
+    formatCount(swingAlphaThree.swing_compliant)
+  );
+  setInterventionText(
+    'swing-alpha-three-resistant-count',
+    formatCount(swingAlphaThree.swing_resistant)
   );
   setInterventionText('parse-alpha-zero-count', formatCount(parseAlphaZero.count));
   setInterventionText('parse-alpha-zero-detail', `${formatPercent(parseAlphaZero.pct)} of samples`);

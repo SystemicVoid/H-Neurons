@@ -22,15 +22,16 @@ Recent completed work:
 - `site/data/classifier_summary.json` now includes classifier structure data, not just headline metrics
 - `site/assets/charts.js` no longer hardcodes `layerData` or `topNeurons`
 - the layer-distribution and top-neuron sections on `results/gemma-3-4b.html` now read from canonical classifier JSON
+- the intervention, evaluation-confound, and swing-population sections on `results/gemma-3-4b.html` now bind their peak parse-failure, strict-remap recovery, and frozen-vs-swing counts from canonical intervention JSON
 - `scripts/audit_ci_coverage.py` now validates the classifier-structure payload
 - `data/gemma3_4b/pipeline/classifier_structure_summary.json` is now tracked alongside the other classifier outputs
 - `scripts/export_site_data.py` now reads that tracked summary by default instead of loading the checkpoint during normal site export
 - a local validator now exists at `uv run python scripts/export_site_data.py --validate-classifier-structure-summary`
 
-That matters because the site no longer tells two separate stories about classifier structure: one in the committed JSON and another in manually maintained JS arrays.
+That matters because the site no longer tells two separate stories about key quantitative surfaces: one in committed JSON and another in manually maintained page literals.
 
 The main remaining weak point is no longer classifier-structure export reproducibility.
-That gap is now closed for normal site work. The remaining risk has moved back to the more ordinary static-site problem: mixed manual/data prose on the results and story pages.
+That gap is now closed for normal site work. The remaining risk is now concentrated in the static copy that still wraps the evidence pages: especially the 4288/verdict blocks on `results/gemma-3-4b.html` and the claim-heavy synthesis on `story.html`.
 
 ## Current Snapshot
 
@@ -171,6 +172,7 @@ These parts are in good shape:
 - Repeated classifier headline metrics via `data-classifier-bind`
 - Repeated classifier structure values on `results/gemma-3-4b.html` via `data-classifier-structure-bind`
 - Repeated intervention summary metrics via `data-intervention-summary-bind`
+- Results-page intervention narrative facts via `data-intervention-bind`
 - Pipeline counts via `data-pipeline-bind`
 - Swing characterization metrics via `data-swing-bind`
 - Main intervention charts via `site/data/intervention_sweep.json`
@@ -188,7 +190,7 @@ These areas remain drift-prone:
 - Manual qualitative framing of what counts as the current story
 - Manual roadmap prioritization on `extensions.html`
 - Static appendix claims on `deep-dives/neuron-4288.html`
-- Some mixed prose blocks on `results/gemma-3-4b.html` that cite live numbers inside manually written sentences
+- The 4288/verdict/takeaway blocks on `results/gemma-3-4b.html`, which still summarize live evidence in static prose
 
 ### No longer hardcoded in JS
 
@@ -257,9 +259,9 @@ What is good:
 
 What is still fragile:
 
-- It also has the highest concentration of manual narrative and mixed manual/data prose
-- It is the page most likely to drift if results change and the prose is not updated with the data exports
-- Several prose claims near stable charts are still hand-maintained sentences rather than pure bindings or provenance-backed renders
+- It still has the highest concentration of manual narrative in the site
+- It is still the page most likely to drift if results change and the prose is not updated with the data exports
+- The intervention sections are materially safer than before, but the 4288 verdict block and some concluding synthesis still remain static appendix-style text
 
 If one page deserves the next anti-drift pass first, it is this one.
 
@@ -349,10 +351,17 @@ These counts are not a scorecard by themselves.
 
 By that standard, the biggest remaining risk is still `results/gemma-3-4b.html`, followed by `story.html` and then `index.html`.
 
+That ordering is now much closer than before:
+
+- `results/gemma-3-4b.html` still leads because it is the densest evidence page
+- `story.html` is now a near-second because more of the easy quantitative cleanup on the results page has already been done
+- `index.html` remains lower risk because it is intentionally a current memo, not the canonical ledger
+
 What changed since the prior audit:
 
 - the largest quantitative JS drift source on the results page has been removed
-- the remaining risk on that page is now mostly mixed prose and editorial framing, not chart-array duplication
+- the intervention page copy now reads more of its peak counts and population splits from canonical JSON
+- the remaining risk on that page is now mostly editorial framing and static appendix-style verdict text, not chart-array duplication
 
 ## What Is Good Enough Now
 
@@ -384,7 +393,7 @@ Adding those prematurely would add structure without adding much signal.
 ### 1. Partial anti-drift coverage
 
 The site has the right principle but incomplete coverage.
-Some repeated metrics are nicely centralized, but some prose still embeds important numbers manually or mixes live numbers into hand-written conclusions.
+Some repeated metrics are nicely centralized, but the remaining static synthesis blocks still compress live evidence into prose that has to be updated by hand.
 
 ### 2. Nav and shell duplication
 
@@ -418,14 +427,15 @@ If this file is going to name priorities, they should reflect the site we actual
 Highest-leverage cleanup:
 
 - continue replacing repeated literals on the results and story pages with bindings or provenance comments
-- keep shrinking mixed manual/data prose on `results/gemma-3-4b.html`
+- focus the next results-page pass on the 4288/verdict/takeaway blocks rather than the intervention sections
+- then move to `story.html`, which now carries more of the remaining mixed claim/data burden
 
 This is now the most important remaining site-facing technical debt.
 
 ### Priority 2: treat `results/gemma-3-4b.html` as the main maintenance surface
 
-That page carries the most quantitative weight and the most mixed manual/data content.
-If results change, this is still the page most likely to go out of sync first.
+That page still carries the most quantitative weight.
+If results change, it is still the page most likely to go out of sync first, but the remaining risk is now concentrated in the 4288/verdict/takeaway synthesis rather than the intervention sections.
 
 ### Priority 3: keep archive work deferred until there is real archival content
 
@@ -541,9 +551,10 @@ The best fit is selective borrowing into the narrative-facing pages while keepin
 The website is in a much better state than the old plan now implies.
 The major scaling step already happened: the monolith was split, the shared assets exist, the main data export path exists, and the site has distinct page roles.
 
-What remains is mostly cleanup and discipline:
+What remains is now a narrower maintenance queue, not a vague migration backlog:
 
-- continue replacing mixed manual/data prose on the results and story pages
+- finish the 4288/verdict/takeaway anti-drift pass on the results page
+- then reduce the remaining mixed claim/data burden on `story.html`
 - keep the results page synchronized with exporter-backed data
 - keep the story and roadmap pages manually sharp and pruned
 - avoid adding archive/build complexity before the content volume justifies it
