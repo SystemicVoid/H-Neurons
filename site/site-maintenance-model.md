@@ -11,7 +11,26 @@ The original scaling problem is mostly solved.
 `site/` is no longer a single-page monolith that mixes all narrative, charts, CSS, and JS in one file. The website is now a small multi-page static presentation with shared assets, generated JSON, and clearer separation between weekly memo content, stable results, methods, roadmap, and deep dives.
 
 The main remaining problem is no longer page-splitting. It is drift control.
-Some parts of the site already read from canonical JSON exports, while other parts still depend on hand-maintained prose, hardcoded chart arrays, or appendix-style literals. The next phase should therefore be an anti-drift cleanup, not another architecture rewrite.
+Some parts of the site already read from canonical JSON exports, while other parts still depend on hand-maintained prose, mixed manual/data sentences, or appendix-style literals. The next phase should therefore be an anti-drift cleanup, not another architecture rewrite.
+
+## Progress Since Last Update
+
+The highest-leverage reliability pass from the previous version of this document has now been done.
+
+Recent completed work:
+
+- `site/data/classifier_summary.json` now includes classifier structure data, not just headline metrics
+- `site/assets/charts.js` no longer hardcodes `layerData` or `topNeurons`
+- the layer-distribution and top-neuron sections on `results/gemma-3-4b.html` now read from canonical classifier JSON
+- `scripts/audit_ci_coverage.py` now validates the classifier-structure payload
+- `data/gemma3_4b/pipeline/classifier_structure_summary.json` is now tracked alongside the other classifier outputs
+- `scripts/export_site_data.py` now reads that tracked summary by default instead of loading the checkpoint during normal site export
+- a local validator now exists at `uv run python scripts/export_site_data.py --validate-classifier-structure-summary`
+
+That matters because the site no longer tells two separate stories about classifier structure: one in the committed JSON and another in manually maintained JS arrays.
+
+The main remaining weak point is no longer classifier-structure export reproducibility.
+That gap is now closed for normal site work. The remaining risk has moved back to the more ordinary static-site problem: mixed manual/data prose on the results and story pages.
 
 ## Current Snapshot
 
@@ -117,6 +136,13 @@ The intended write path is already in place:
 
 That is important. It means the project already has the right spine for data-driven rendering, even though not every page element is fully wired yet.
 
+One detail is now worth making explicit:
+
+- `classifier_summary.json` is now schema v2 and includes `selected_h_neuron_structure`
+- `data/gemma3_4b/pipeline/classifier_structure_summary.json` is the tracked upstream contract for classifier structure
+- the site exporter reads that tracked summary by default
+- checkpoint-based recomputation is now an explicit local validation/update step, not a default export dependency
+
 ### Nested-page fetch handling
 
 One real implementation detail deserves to stay documented: the site correctly handles nested pages.
@@ -143,11 +169,13 @@ Some surfaces are already tied to generated data; others are still curated edito
 These parts are in good shape:
 
 - Repeated classifier headline metrics via `data-classifier-bind`
+- Repeated classifier structure values on `results/gemma-3-4b.html` via `data-classifier-structure-bind`
 - Repeated intervention summary metrics via `data-intervention-summary-bind`
 - Pipeline counts via `data-pipeline-bind`
 - Swing characterization metrics via `data-swing-bind`
 - Main intervention charts via `site/data/intervention_sweep.json`
 - Classifier performance chart via `site/data/classifier_summary.json`
+- Classifier layer-distribution and top-neuron charts via `site/data/classifier_summary.json`
 - Swing transition / enrichment charts via `site/data/swing_characterization.json`
 
 This is the main success of the current architecture: repeated numbers are no longer copied by hand everywhere.
@@ -162,17 +190,25 @@ These areas remain drift-prone:
 - Static appendix claims on `deep-dives/neuron-4288.html`
 - Some mixed prose blocks on `results/gemma-3-4b.html` that cite live numbers inside manually written sentences
 
-### Still hardcoded in JS
+### No longer hardcoded in JS
 
-Two notable chart inputs are still embedded directly in `site/assets/charts.js`:
+One previously important gap is now closed:
 
-- `layerData`
-- `topNeurons`
+- `layerData` is no longer hardcoded in `site/assets/charts.js`
+- `topNeurons` is no longer hardcoded in `site/assets/charts.js`
 
-This is the clearest gap between the old plan and the actual implementation.
-The site is not yet fully JSON-driven for all quantitative visuals.
+That was the cleanest remaining quantitative anti-drift issue in the earlier version of this document, and it is now resolved at the site-consumption level.
 
-That does not make the site broken, but it means the anti-drift story is incomplete.
+### Upstream reliability model
+
+Classifier structure now follows a clearer contract:
+
+- the raw scientific source remains the classifier checkpoint
+- the tracked site-facing source is `data/gemma3_4b/pipeline/classifier_structure_summary.json`
+- `site/data/classifier_summary.json` is regenerated from that tracked summary
+- local checkpoint-based validation remains available when the checkpoint is present
+
+This is a better fit for the repo than making the site exporter depend on an ignored local file.
 
 ## Page-by-Page Assessment
 
@@ -223,7 +259,7 @@ What is still fragile:
 
 - It also has the highest concentration of manual narrative and mixed manual/data prose
 - It is the page most likely to drift if results change and the prose is not updated with the data exports
-- The layer-distribution and top-neuron charts are still fed by hardcoded arrays
+- Several prose claims near stable charts are still hand-maintained sentences rather than pure bindings or provenance-backed renders
 
 If one page deserves the next anti-drift pass first, it is this one.
 
@@ -313,6 +349,11 @@ These counts are not a scorecard by themselves.
 
 By that standard, the biggest remaining risk is still `results/gemma-3-4b.html`, followed by `story.html` and then `index.html`.
 
+What changed since the prior audit:
+
+- the largest quantitative JS drift source on the results page has been removed
+- the remaining risk on that page is now mostly mixed prose and editorial framing, not chart-array duplication
+
 ## What Is Good Enough Now
 
 Several things from the old plan should now be considered settled unless the site grows materially again.
@@ -343,26 +384,21 @@ Adding those prematurely would add structure without adding much signal.
 ### 1. Partial anti-drift coverage
 
 The site has the right principle but incomplete coverage.
-Some repeated metrics are nicely centralized; some quantitative visuals are still hardcoded; some prose still embeds important numbers manually.
+Some repeated metrics are nicely centralized, but some prose still embeds important numbers manually or mixes live numbers into hand-written conclusions.
 
-### 2. Chart asymmetry
-
-The site uses generated JSON for some charts, but not all of them.
-That asymmetry is exactly where future contributors will get confused.
-
-### 3. Nav and shell duplication
+### 2. Nav and shell duplication
 
 The nav markup is duplicated across the HTML files.
 At the current size this is tolerable.
 If page count grows further, it will become an editing tax.
 
-### 4. No historical weekly trail
+### 3. No historical weekly trail
 
 `index.html` currently behaves like "the current memo," not like a true weekly archive system.
 That is fine, but it should be described honestly.
 The site does not yet preserve meeting history as a first-class feature.
 
-### 5. Mixed page maturity
+### 4. Mixed page maturity
 
 Different pages are at different maturity levels:
 
@@ -381,16 +417,15 @@ If this file is going to name priorities, they should reflect the site we actual
 
 Highest-leverage cleanup:
 
-- export layer-distribution data instead of hardcoding `layerData`
-- export top-neuron-weight data instead of hardcoding `topNeurons`
 - continue replacing repeated literals on the results and story pages with bindings or provenance comments
+- keep shrinking mixed manual/data prose on `results/gemma-3-4b.html`
 
-This is the most important remaining technical site debt.
+This is now the most important remaining site-facing technical debt.
 
 ### Priority 2: treat `results/gemma-3-4b.html` as the main maintenance surface
 
 That page carries the most quantitative weight and the most mixed manual/data content.
-If results change, this is the page most likely to go out of sync first.
+If results change, this is still the page most likely to go out of sync first.
 
 ### Priority 3: keep archive work deferred until there is real archival content
 
@@ -422,6 +457,38 @@ The site is easiest to maintain if each page class is treated like a different d
 
 That mental model is already visible in the current implementation.
 The best next work is to reinforce it, not redesign it.
+
+## Export Reliability Note
+
+The recent classifier-structure improvement exposed a distinction that matters:
+
+- runtime site reliability
+- export-workflow reproducibility
+
+Those are related, but they are not the same thing.
+
+Current state:
+
+- runtime reliability is better than before because the site reads one canonical classifier structure payload
+- clean-checkout export reproducibility is also better because the site exporter now reads a tracked classifier-structure summary artifact
+- checkpoint recomputation still exists, but only as an explicit local validation/update path
+
+The right fix is **not**:
+
+- put the old JS arrays back
+- silently fall back to stale literals if the checkpoint is missing
+- weaken the audit so missing structure passes quietly
+
+Those options make the site easier to regenerate locally at the cost of making it easier to ship stale numbers.
+
+The implemented fix is:
+
+- `data/gemma3_4b/pipeline/classifier_structure_summary.json` is now tracked
+- `scripts/export_site_data.py` reads that file during normal site export
+- `uv run python scripts/export_site_data.py --refresh-classifier-structure-summary` updates it from the local checkpoint
+- `uv run python scripts/export_site_data.py --validate-classifier-structure-summary` checks that the tracked summary still matches the local checkpoint
+
+That follows the same pattern already used elsewhere in the repo: site exports should prefer committed structured artifacts over workstation-local state.
 
 ## Template Note: Clarity
 
@@ -476,7 +543,7 @@ The major scaling step already happened: the monolith was split, the shared asse
 
 What remains is mostly cleanup and discipline:
 
-- finish data-driving the last hardcoded quantitative visuals
+- continue replacing mixed manual/data prose on the results and story pages
 - keep the results page synchronized with exporter-backed data
 - keep the story and roadmap pages manually sharp and pruned
 - avoid adding archive/build complexity before the content volume justifies it
