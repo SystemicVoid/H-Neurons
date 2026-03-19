@@ -930,7 +930,7 @@ async function initInterventionCharts() {
           {
             label: 'Swing \u2192 resistant',
             data: swingResistant,
-            backgroundColor: 'rgba(126, 200, 160, 0.25)',
+            backgroundColor: 'rgba(212, 165, 116, 0.72)',
             borderRadius: 0,
             borderSkipped: false,
           },
@@ -1058,7 +1058,7 @@ async function initSwingCharts() {
           {
             label: 'R\u2192C (knowledge override)',
             data: rcCounts,
-            backgroundColor: 'rgba(123, 140, 222, 0.7)',
+            backgroundColor: 'rgba(230, 57, 70, 0.72)',
             borderRadius: 4,
             borderSkipped: false,
           },
