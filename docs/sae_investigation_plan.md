@@ -5,13 +5,14 @@
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 0: Write plan | **DONE** | This file |
-| Phase 1: Feasibility spike | **CPU DONE, GPU BLOCKED** | SAE loads, dims match. GPU hook test waiting for jailbreak eval to finish. |
-| Phase 2: SAE feature extraction | **SCRIPT WRITTEN** | `scripts/extract_sae_activations.py` — needs GPU to run |
-| Phase 3: SAE probe training | **SCRIPT WRITTEN** | `scripts/classifier_sae.py` — needs Phase 2 data |
+| Phase 1: Feasibility spike | **CPU REVALIDATED, GPU HOOK FIXED** | `scripts/spike_sae_feasibility.py` now uses the pinned `sae-lens` API and validates `post_feedforward_layernorm`, not `down_proj`. |
+| Phase 2: SAE feature extraction | **SCRIPT READY** | `scripts/extract_sae_activations.py` mirrors CETT `--locations`, writes `output_root/<location>/act_<qid>.npy`, and stores root `metadata.json`. |
+| Phase 3: SAE probe training | **SCRIPT READY** | `scripts/classifier_sae.py` now validates extraction metadata before training/evaluation and records it in the summary JSON. |
 | Phase 4: Interpretability analysis | PENDING | Blocked on Phase 3 |
-| Phase 5: SAE-based steering | **SCRIPT WRITTEN** | `scripts/intervene_sae.py` — needs Phase 3 gate |
+| Phase 5: SAE-based steering | **HELPER READY** | `scripts/intervene_sae.py` now preserves the exact activation at `alpha=1.0`; benchmark runs remain gated on Phase 3 results. |
 
 ### Phase 1 Findings (CPU spike)
+- **Revalidated on 2026-03-19:** CPU smoke run succeeded against the real Gemma Scope artifact after the API/hook fixes.
 - **SAE type:** JumpReLUSAE (JumpReLU activation, not standard ReLU)
 - **SAE dimensions:** d_in=2560 (hidden_size), d_sae=16384 (16k features)
 - **Available widths:** 16k, 262k (with l0_small and l0_big variants)
@@ -19,7 +20,7 @@
   - Gemma 3 architecture: `residual → pre_ff_norm → MLP → post_ff_norm → + residual`
   - SAE hooks at post_ff_norm output (after MLP, after norm, before residual add)
   - Our CETT hooks capture down_proj input/output (inside MLP, before post_ff_norm)
-  - Extraction script hooks at correct point (`post_feedforward_layernorm`)
+  - Feasibility spike and extraction script both validate the correct point (`post_feedforward_layernorm`)
 - **Dependency:** `sae-lens==6.39.0` installed cleanly, no conflicts
 - **Release name:** `gemma-scope-2-4b-it-mlp-all` (covers all 34 layers)
 - **SAE ID format:** `layer_{N}_width_{16k|262k}_l0_{small|big}`
@@ -56,26 +57,20 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 
 **Steps:**
 
-1. **Add `sae-lens` dependency**
-   ```bash
-   uv add sae-lens
-   ```
-   Verify no conflicts with existing torch/transformers (these are script-level deps, not in pyproject.toml — `sae-lens` may pull them in as transitive deps).
-
-2. **Load and inspect Gemma Scope SAE for layer 13** (where L13:N833, our best single predictor, lives)
+1. **Load and inspect Gemma Scope SAE for layer 13** (where L13:N833, our best single predictor, lives)
    - Use SAELens to load `google/gemma-scope-2-4b-it` layer-13 MLP-output SAE (16k width)
    - Verify: input dimension matches Gemma-3-4B MLP output dimension (should be model hidden_size, not intermediate_size — check this)
    - Record: SAE encoder/decoder shapes, activation function, feature count
 
-3. **Verify hook point compatibility** *(RESOLVED)*
+2. **Verify hook point compatibility** *(RESOLVED on CPU, corrected for GPU rerun)*
    - Gemma Scope 2 SAEs are trained on `post_feedforward_layernorm` output (AFTER MLP + norm, BEFORE residual addition)
    - This is NOT the raw `down_proj` output — there's a post-feedforward RMSNorm between them
-   - Extraction script hooks at `post_feedforward_layernorm` (correct point)
-   - GPU hook test pending (jailbreak eval running)
+   - Feasibility and extraction scripts both hook `post_feedforward_layernorm`
+   - The corrected GPU hook test should only treat that tensor as the success criterion
 
-4. **Design extraction architecture** — two options to evaluate:
-   - **Option A (Recommended):** Extend `CETTManager` to also save full MLP output h_t (not just norm). New script `extract_sae_features.py` loads saved h_t tensors + SAE encoder to produce sparse features offline. Decouples GPU model inference from SAE projection.
-   - **Option B:** Load model + SAE together. Hook captures z_t for CETT AND projects h_t through SAE encoder in-flight. One pass, but higher VRAM.
+3. **Chosen extraction architecture**
+   - Load model + SAEs together and project `post_feedforward_layernorm` activations through the SAE encoder in the extraction pass
+   - Keep token-region selection shared with CETT extraction so `answer_tokens` and `all_except_answer_tokens` stay definitionally aligned across probe families
 
 **Output:** Feasibility confirmed or blocked. If blocked (SAE dimensions mismatch, VRAM doesn't fit, etc.), document why and stop.
 
@@ -87,13 +82,14 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 
 **Steps:**
 
-1. **Create `scripts/extract_sae_activations.py`** *(DONE)*
+1. **Use `scripts/extract_sae_activations.py`**
    - Reuses the sample-loading, tokenization, and region-selection logic from `extract_activations.py`
    - Hooks at `post_feedforward_layernorm` output (where Gemma Scope SAEs are trained)
    - Projects through SAE encoder: `f = SAE.encode(h_t)` → sparse feature vector per token
-   - Aggregate over answer tokens: mean across answer-token positions (same as CETT pipeline)
-   - Save per-sample `.npy` files to `data/gemma3_4b/pipeline/activations_sae/answer_tokens/`
+   - Aggregate over requested token locations: mean across token positions by default (same as CETT pipeline)
+   - Save per-sample `.npy` files under `data/gemma3_4b/pipeline/activations_sae/<location>/`
    - Shape per file: `[num_sae_layers, sae_width]` (e.g., `[34, 16384]` for 16k SAE at all layers, or just key layers)
+   - Write `metadata.json` at the extraction root so classifier training and steering validation can verify the exact SAE basis used
 
 2. **Layer selection strategy:**
    - Start with layers where H-neurons concentrate: 0, 5, 6, 7, 13, 14, 15, 16, 17, 20
@@ -110,12 +106,13 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 
 **Steps:**
 
-1. **Create `scripts/classifier_sae.py`** (or extend `classifier.py` with a `--feature_type sae` flag)
+1. **Use `scripts/classifier_sae.py`**
    - Load SAE feature `.npy` files
    - Flatten to `[samples, layers × sae_width]` feature matrix
    - Train L1 logistic regression with C sweep (same C values as CETT classifier)
    - Evaluate on disjoint test set
    - Report: AUROC, accuracy, precision, recall, F1 with bootstrap 95% CIs
+   - Record extraction metadata (hook point, layer order, SAE width, aggregation method, source locations) in the summary JSON
 
 2. **Key comparisons:**
 
@@ -161,13 +158,14 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 
 **Steps:**
 
-1. **Create `scripts/intervene_sae.py`** *(DONE)*
-   - New class `SAEFeatureScaler` that:
+1. **Use `scripts/intervene_sae.py`**
+   - `SAEFeatureScaler`:
      - Hooks at `post_feedforward_layernorm` output (where SAEs are trained)
      - Encodes through SAE: `f = SAE.encode(h_t)`
      - Scales target features: `f[target_indices] *= alpha`
      - Decodes back: `h_t_new = SAE.decode(f)`
      - Replaces original h_t with h_t_new in residual stream
+     - Returns the original activation unchanged when `alpha=1.0`, so the control point is an exact no-op
    - This is architecturally different from neuron scaling — it operates in SAE feature space
 
 2. **Run FaithEval anti-compliance sweep** (same α range: 0.0 to 3.0)
@@ -194,16 +192,16 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 
 ## Dependencies & Infrastructure
 
-**New dependency:** `sae-lens` (via `uv add sae-lens`)
+**Pinned dependency:** `sae-lens>=6.39.0` in `pyproject.toml`
 - Pulls in: `transformer-lens`, `einops`, potentially `circuitsvis`
 - May conflict with existing bare `torch`/`transformers` if versions diverge — test in Phase 1
 
-**New scripts:**
+**Current scripts:**
 - `scripts/extract_sae_activations.py` — Phase 2
 - `scripts/classifier_sae.py` (or flag on `classifier.py`) — Phase 3
 - `scripts/intervene_sae.py` (or class in `intervene_model.py`) — Phase 5
 
-**New data directories:**
+**Data directories:**
 - `data/gemma3_4b/pipeline/activations_sae/` — SAE feature files (gitignored, like current activations)
 - `data/gemma3_4b/pipeline/classifier_sae_summary.json` — probe comparison (committed)
 - `data/gemma3_4b/intervention/faitheval_sae/` — steering results (committed)
@@ -234,7 +232,7 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 
 ## Verification
 
-1. After Phase 1: confirm SAE encoder input dim == model MLP output dim (likely hidden_size=3072, not intermediate_size=10240 — MUST verify)
+1. After Phase 1: confirm SAE encoder input dim == `post_feedforward_layernorm` output dim (Gemma 3 hidden size), not the `down_proj` input dimension
 2. After Phase 2: spot-check 5 SAE feature files for correct shape and no NaN/Inf
 3. After Phase 3: run `uv run python scripts/audit_ci_coverage.py` to register new claims
 4. After Phase 5: verify negative control SAE features don't overlap with H-features
