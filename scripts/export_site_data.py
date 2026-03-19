@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+import joblib
 import numpy as np
 
 try:
@@ -19,6 +20,7 @@ except ModuleNotFoundError:
 
 
 ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+GEMMA_3_4B_LAYER_COUNT = 34
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -285,6 +287,82 @@ def build_parse_failure_effects(base_dir: Path) -> dict[str, Any]:
     return paired_bootstrap_curve_effects(trajectories, np.array(ALPHAS, dtype=float))
 
 
+def build_selected_h_neuron_structure(
+    repo_root: Path,
+    total_ffn_neurons: int,
+    selected_h_neurons: int,
+) -> dict[str, Any]:
+    classifier_path = repo_root / "models/gemma3_4b_classifier.pkl"
+    model = joblib.load(classifier_path)
+    coef = np.asarray(model.coef_[0], dtype=float)
+
+    if coef.shape[0] != total_ffn_neurons:
+        raise ValueError(
+            "Classifier feature width does not match reported total FFN neurons: "
+            f"{coef.shape[0]} vs {total_ffn_neurons}"
+        )
+    if total_ffn_neurons % GEMMA_3_4B_LAYER_COUNT != 0:
+        raise ValueError(
+            "Total FFN neurons must divide cleanly into Gemma 3 4B layers: "
+            f"{total_ffn_neurons}"
+        )
+
+    neurons_per_layer = total_ffn_neurons // GEMMA_3_4B_LAYER_COUNT
+    positive_indices = np.flatnonzero(coef > 0)
+    if len(positive_indices) != selected_h_neurons:
+        raise ValueError(
+            "Classifier positive-weight count does not match reported selected "
+            f"H-neurons: {len(positive_indices)} vs {selected_h_neurons}"
+        )
+
+    positive_counts_by_layer = [0] * GEMMA_3_4B_LAYER_COUNT
+    for index in positive_indices:
+        positive_counts_by_layer[int(index // neurons_per_layer)] += 1
+
+    def band(label: str, start_layer: int, end_layer: int) -> dict[str, Any]:
+        count = sum(positive_counts_by_layer[start_layer : end_layer + 1])
+        return {
+            "label": label,
+            "start_layer": start_layer,
+            "end_layer": end_layer,
+            "count": count,
+            "pct": as_pct(count / selected_h_neurons),
+        }
+
+    top_positive_indices = positive_indices[
+        np.argsort(coef[positive_indices])[::-1][:10]
+    ]
+    top_positive_neurons = [
+        {
+            "rank": rank,
+            "layer": int(index // neurons_per_layer),
+            "neuron": int(index % neurons_per_layer),
+            "label": (
+                f"L{int(index // neurons_per_layer)}:N{int(index % neurons_per_layer)}"
+            ),
+            "weight": round(float(coef[index]), 3),
+        }
+        for rank, index in enumerate(top_positive_indices, start=1)
+    ]
+
+    return {
+        "n_layers": GEMMA_3_4B_LAYER_COUNT,
+        "neurons_per_layer": neurons_per_layer,
+        "positive_counts_by_layer": positive_counts_by_layer,
+        "nonzero_layers": [
+            {"layer": layer, "count": count}
+            for layer, count in enumerate(positive_counts_by_layer)
+            if count > 0
+        ],
+        "bands": {
+            "early": band("early", 0, 10),
+            "middle": band("middle", 11, 20),
+            "late": band("late", 21, 33),
+        },
+        "top_positive_neurons": top_positive_neurons,
+    }
+
+
 def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
     disjoint_summary_path = (
         repo_root / "data/gemma3_4b/pipeline/classifier_disjoint_summary.json"
@@ -296,11 +374,16 @@ def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
     summary = load_json(disjoint_summary_path)
     overlap_summary = load_json(overlap_summary_path)
     disjoint_qids = load_json(qids_path)
+    selected_h_neuron_structure = build_selected_h_neuron_structure(
+        repo_root,
+        summary["total_ffn_neurons"],
+        summary["selected_h_neurons"],
+    )
     evaluation = summary["evaluation"]
     overlap_evaluation = overlap_summary["evaluation"]
     disjoint_sampled_n = sum(len(ids) for ids in disjoint_qids.values())
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": date.today().isoformat(),
         "generated_by": "scripts/export_site_data.py",
         "model": "google/gemma-3-4b-it",
@@ -308,12 +391,14 @@ def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
             "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
             "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
             "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+            "models/gemma3_4b_classifier.pkl",
         ],
         "n_examples": evaluation["n_examples"],
         "n_positive": evaluation["n_positive"],
         "n_negative": evaluation["n_negative"],
         "selected_h_neurons": summary["selected_h_neurons"],
         "total_ffn_neurons": summary["total_ffn_neurons"],
+        "selected_h_neuron_structure": selected_h_neuron_structure,
         "selected_ratio_per_mille": summary["selected_ratio_per_mille"],
         "metrics": evaluation["metrics"],
         "bootstrap": evaluation["bootstrap"],

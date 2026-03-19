@@ -1,18 +1,248 @@
 {
-  "schema_version": 1,
-  "generated_at": "2026-03-18",
+  "schema_version": 2,
+  "generated_at": "2026-03-19",
   "generated_by": "scripts/export_site_data.py",
   "model": "google/gemma-3-4b-it",
   "source_files": [
     "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
     "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
-    "data/gemma3_4b/pipeline/test_qids_disjoint.json"
+    "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+    "models/gemma3_4b_classifier.pkl"
   ],
   "n_examples": 780,
   "n_positive": 389,
   "n_negative": 391,
   "selected_h_neurons": 38,
   "total_ffn_neurons": 348160,
+  "selected_h_neuron_structure": {
+    "n_layers": 34,
+    "neurons_per_layer": 10240,
+    "positive_counts_by_layer": [
+      2,
+      0,
+      1,
+      0,
+      3,
+      4,
+      2,
+      3,
+      0,
+      1,
+      2,
+      0,
+      1,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      2,
+      0,
+      1
+    ],
+    "nonzero_layers": [
+      {
+        "layer": 0,
+        "count": 2
+      },
+      {
+        "layer": 2,
+        "count": 1
+      },
+      {
+        "layer": 4,
+        "count": 3
+      },
+      {
+        "layer": 5,
+        "count": 4
+      },
+      {
+        "layer": 6,
+        "count": 2
+      },
+      {
+        "layer": 7,
+        "count": 3
+      },
+      {
+        "layer": 9,
+        "count": 1
+      },
+      {
+        "layer": 10,
+        "count": 2
+      },
+      {
+        "layer": 12,
+        "count": 1
+      },
+      {
+        "layer": 13,
+        "count": 2
+      },
+      {
+        "layer": 14,
+        "count": 2
+      },
+      {
+        "layer": 15,
+        "count": 2
+      },
+      {
+        "layer": 16,
+        "count": 2
+      },
+      {
+        "layer": 20,
+        "count": 1
+      },
+      {
+        "layer": 23,
+        "count": 1
+      },
+      {
+        "layer": 24,
+        "count": 1
+      },
+      {
+        "layer": 25,
+        "count": 1
+      },
+      {
+        "layer": 26,
+        "count": 1
+      },
+      {
+        "layer": 27,
+        "count": 1
+      },
+      {
+        "layer": 28,
+        "count": 1
+      },
+      {
+        "layer": 30,
+        "count": 1
+      },
+      {
+        "layer": 31,
+        "count": 2
+      },
+      {
+        "layer": 33,
+        "count": 1
+      }
+    ],
+    "bands": {
+      "early": {
+        "label": "early",
+        "start_layer": 0,
+        "end_layer": 10,
+        "count": 18,
+        "pct": 47.4
+      },
+      "middle": {
+        "label": "middle",
+        "start_layer": 11,
+        "end_layer": 20,
+        "count": 10,
+        "pct": 26.3
+      },
+      "late": {
+        "label": "late",
+        "start_layer": 21,
+        "end_layer": 33,
+        "count": 10,
+        "pct": 26.3
+      }
+    },
+    "top_positive_neurons": [
+      {
+        "rank": 1,
+        "layer": 20,
+        "neuron": 4288,
+        "label": "L20:N4288",
+        "weight": 12.169
+      },
+      {
+        "rank": 2,
+        "layer": 14,
+        "neuron": 8547,
+        "label": "L14:N8547",
+        "weight": 7.386
+      },
+      {
+        "rank": 3,
+        "layer": 13,
+        "neuron": 833,
+        "label": "L13:N833",
+        "weight": 3.451
+      },
+      {
+        "rank": 4,
+        "layer": 5,
+        "neuron": 5227,
+        "label": "L5:N5227",
+        "weight": 3.337
+      },
+      {
+        "rank": 5,
+        "layer": 33,
+        "neuron": 8011,
+        "label": "L33:N8011",
+        "weight": 3.071
+      },
+      {
+        "rank": 6,
+        "layer": 24,
+        "neuron": 7995,
+        "label": "L24:N7995",
+        "weight": 2.603
+      },
+      {
+        "rank": 7,
+        "layer": 26,
+        "neuron": 1359,
+        "label": "L26:N1359",
+        "weight": 2.456
+      },
+      {
+        "rank": 8,
+        "layer": 9,
+        "neuron": 5580,
+        "label": "L9:N5580",
+        "weight": 1.824
+      },
+      {
+        "rank": 9,
+        "layer": 10,
+        "neuron": 4996,
+        "label": "L10:N4996",
+        "weight": 1.705
+      },
+      {
+        "rank": 10,
+        "layer": 0,
+        "neuron": 1819,
+        "label": "L0:N1819",
+        "weight": 1.693
+      }
+    ]
+  },
   "selected_ratio_per_mille": 0.1091452205882353,
   "metrics": {
     "accuracy": {

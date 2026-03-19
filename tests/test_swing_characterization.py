@@ -9,6 +9,7 @@ from scripts.characterize_swing import (
     summarize_llm_enrichment,
 )
 from scripts.export_site_data import (
+    build_classifier_site_payload,
     build_swing_characterization_payload,
     compact_llm_enrichment,
 )
@@ -161,6 +162,29 @@ def test_build_swing_characterization_payload_exports_real_transition_counts():
         "3.0": 6,
     }
     assert rc_series["early_share_le_1_5"]["count"] == 60
+
+
+def test_build_classifier_site_payload_exports_model_structure():
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = build_classifier_site_payload(repo_root)
+
+    structure = payload["selected_h_neuron_structure"]
+    top_positive = structure["top_positive_neurons"]
+
+    assert payload["schema_version"] == 2
+    assert len(structure["positive_counts_by_layer"]) == 34
+    assert sum(structure["positive_counts_by_layer"]) == payload["selected_h_neurons"]
+    assert structure["bands"]["early"]["count"] == 18
+    assert structure["bands"]["middle"]["count"] == 10
+    assert structure["bands"]["late"]["count"] == 10
+    assert top_positive[0]["label"] == "L20:N4288"
+    assert top_positive[0]["weight"] == 12.169
+    assert top_positive[1]["label"] == "L14:N8547"
+    assert top_positive[1]["weight"] == 7.386
+    assert [entry["weight"] for entry in top_positive] == sorted(
+        (entry["weight"] for entry in top_positive),
+        reverse=True,
+    )
 
 
 def test_summarize_llm_enrichment_uses_actual_answer_agreement():
