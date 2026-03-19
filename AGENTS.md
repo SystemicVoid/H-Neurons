@@ -48,6 +48,9 @@ Within `data/gemma3_4b/`, artifacts are grouped by pipeline stage:
 - `scripts/run_intervention.py` defaults to `--prompt_style anti_compliance`; use `--prompt_style standard` for paper-faithful replication (matches official Salesforce/FaithEval framing).
 - Jailbreak eval uses JailbreakBench (Chao et al., NeurIPS 2024) by default (`--jailbreak_source jailbreakbench`). Use `--jailbreak_source forbidden` + `--jailbreak_path` for the legacy 390-question forbidden set. `--benchmark jailbreak_benign` runs the JBB benign split for over-refusal testing.
 
+## Codebase Prompt Export
+`./code2prompt.sh` wraps `code2prompt` with repo-tuned exclusions (data, models, binaries, caches) to export all source code, docs, and configs as a single LLM-ready prompt (~215K tokens); pass `--output-file=prompt.txt` or `-c` for clipboard.
+
 ## Build, Test, and Development Commands
 Use `uv` for Python environment management.
 

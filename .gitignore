@@ -58,6 +58,9 @@ scripts/infra/cron_gh200_wakeup.sh
 # Costs log for grant reporting
 costs/
 
+# code2prompt output
+prompt.txt
+
 # Personal scratch notes
 initial-setup-opus-notes.md
 
