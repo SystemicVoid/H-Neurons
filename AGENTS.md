@@ -29,6 +29,14 @@ Within `data/gemma3_4b/`, artifacts are grouped by pipeline stage:
 - `data/gemma3_4b/pipeline/test_qids_disjoint.json` contains 782 sampled IDs, but the current disjoint classifier evaluation covers 780 because two IDs are missing activation files. Use the CI-bearing summary JSON as the reporting source of truth.
 - `scripts/infra/lambda-bootstrap.sh` now supports Tailscale-first access. Pass `TAILSCALE_AUTH_KEY` to auto-enroll/tag the instance; SSH is only locked to the Tailscale address after enrollment succeeds, so a missing/bad key will not cut off the public bootstrap session.
 
+## SAE Investigation (Gemma Scope 2)
+- Full plan and status tracker: `docs/sae_investigation_plan.md`
+- SAE scripts: `extract_sae_activations.py`, `classifier_sae.py`, `intervene_sae.py`, `spike_sae_feasibility.py`
+- **Critical hook point:** Gemma Scope 2 MLP SAEs are trained on `post_feedforward_layernorm` output, NOT raw `down_proj` output. Gemma 3 has a post-feedforward RMSNorm between MLP output and residual addition. SAE extraction/intervention must hook at `post_feedforward_layernorm`, not `down_proj`.
+- SAE release: `gemma-scope-2-4b-it-mlp-all`, SAE IDs: `layer_{N}_width_{16k|262k}_l0_{small|big}`
+- SAE dimensions: d_in=2560 (hidden_size), d_sae=16384 (16k width)
+- SAE feature data goes to `data/gemma3_4b/pipeline/activations_sae/` (gitignored)
+
 ## Known Issues
 - **FaithEval standard-prompt mis-scoring**: The MC letter extractor in `evaluate_intervention.py` fails on ~150 items at `alpha=3.0`; a strict answer-text remap recovers most. Treat raw standard-prompt compliance drops as evaluator artifacts until text-based rescoring is wired in.
 - **`extract_answer_tokens.py` JSON brittleness**: The judge model occasionally returns malformed JSON on short quoted answers (observed on `tc_115` in Mistral canary). Needs retry/fallback hardening.
