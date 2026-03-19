@@ -175,6 +175,7 @@ STOP_WORDS = {
     "too",
     "very",
 }
+VALID_MC_ANSWERS = frozenset("ABCDEFGH")
 
 
 # ---------------------------------------------------------------------------
@@ -1196,6 +1197,55 @@ def rate_persuasiveness(
     return 0
 
 
+def is_valid_mc_answer(answer: str) -> bool:
+    """Return whether an extracted answer is a usable MC option label."""
+    return isinstance(answer, str) and answer.upper() in VALID_MC_ANSWERS
+
+
+def summarize_llm_enrichment(results_list: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate per-sample LLM enrichment outputs into site-facing summaries."""
+    if not results_list:
+        return {
+            "samples": [],
+            "knowledge_by_population": {},
+            "persuasiveness_by_population": {},
+        }
+
+    llm_df = pd.DataFrame(results_list)
+    knowledge_by_pop: dict[str, dict[str, int]] = {}
+    persuasiveness_by_population: dict[str, dict[str, float | int]] = {}
+
+    for pop in llm_df["population"].unique():
+        subset = llm_df[llm_df["population"] == pop]
+        knowledge_by_pop[pop] = {
+            str(k): int(v) for k, v in subset["knowledge_class"].value_counts().items()
+        }
+        persuasiveness_by_population[pop] = {
+            "mean": round(float(subset["persuasiveness"].mean()), 2),
+            "n": int(len(subset)),
+        }
+
+    comparable_agreement = [
+        sample["answer_agrees_with_model_alpha0"]
+        for sample in results_list
+        if sample.get("answer_agrees_with_model_alpha0") is not None
+    ]
+
+    summary: dict[str, Any] = {
+        "samples": results_list,
+        "knowledge_by_population": knowledge_by_pop,
+        "persuasiveness_by_population": persuasiveness_by_population,
+    }
+    if comparable_agreement:
+        summary["verification_agreement"] = build_rate_summary(
+            int(sum(comparable_agreement)),
+            len(comparable_agreement),
+            total_key="n_total",
+        )
+
+    return summary
+
+
 def run_llm_enrichment(
     df: pd.DataFrame,
     hf_data: dict[str, dict[str, Any]],
@@ -1256,6 +1306,32 @@ def run_llm_enrichment(
         # Get model's α=0 answer
         alpha0_row = rows_by_alpha[0.0].get(sid, {})
         model_alpha0_answer = alpha0_row.get("chosen", "")
+        counterfactual_key = hf.get("answer_key", "")
+        llm_answer_valid = is_valid_mc_answer(answer)
+        model_answer_valid = is_valid_mc_answer(model_alpha0_answer)
+        key_valid = is_valid_mc_answer(counterfactual_key)
+        answer_agrees_with_model = (
+            answer == model_alpha0_answer
+            if llm_answer_valid and model_answer_valid
+            else None
+        )
+        llm_answer_correct = (
+            answer == counterfactual_key if llm_answer_valid and key_valid else None
+        )
+        model_alpha0_answer_correct = (
+            model_alpha0_answer == counterfactual_key
+            if model_answer_valid and key_valid
+            else None
+        )
+        shared_error = (
+            answer_agrees_with_model
+            and llm_answer_correct is False
+            and model_alpha0_answer_correct is False
+            if answer_agrees_with_model is not None
+            and llm_answer_correct is not None
+            and model_alpha0_answer_correct is not None
+            else None
+        )
 
         results_list.append(
             {
@@ -1265,36 +1341,16 @@ def run_llm_enrichment(
                 "knowledge_class": knowledge,
                 "llm_answer": answer,
                 "model_alpha0_answer": model_alpha0_answer,
-                "counterfactual_key": hf.get("answer_key", ""),
-                "both_correct": answer == model_alpha0_answer
-                and answer != hf.get("answer_key", ""),
+                "counterfactual_key": counterfactual_key,
+                "answer_agrees_with_model_alpha0": answer_agrees_with_model,
+                "llm_answer_correct": llm_answer_correct,
+                "model_alpha0_answer_correct": model_alpha0_answer_correct,
+                "shared_error": shared_error,
                 "persuasiveness": persuasiveness,
             }
         )
 
-    # Aggregate
-    llm_df = pd.DataFrame(results_list)
-    knowledge_by_pop: dict[str, dict[str, int]] = {}
-    for pop in llm_df["population"].unique():
-        subset = llm_df[llm_df["population"] == pop]
-        knowledge_by_pop[pop] = {
-            str(k): int(v) for k, v in subset["knowledge_class"].value_counts().items()
-        }
-
-    return {
-        "samples": results_list,
-        "knowledge_by_population": knowledge_by_pop,
-        "persuasiveness_by_population": {
-            pop: {
-                "mean": round(
-                    float(llm_df[llm_df["population"] == pop]["persuasiveness"].mean()),
-                    2,
-                ),
-                "n": int((llm_df["population"] == pop).sum()),
-            }
-            for pop in llm_df["population"].unique()
-        },
-    }
+    return summarize_llm_enrichment(results_list)
 
 
 # ---------------------------------------------------------------------------

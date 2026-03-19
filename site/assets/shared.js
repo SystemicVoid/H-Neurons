@@ -440,11 +440,17 @@
       if (totalSamples != null) {
         setBoundText('data-swing-bind', 'llm-sample-count', totalSamples.toLocaleString());
       }
-      // Compute verification agreement from samples
-      if (llm.samples) {
-        const withVerification = llm.samples.filter((s) => s.both_correct !== undefined);
+      const agreement = llm.verification_agreement;
+      if (agreement?.pct !== undefined) {
+        setBoundText('data-swing-bind', 'llm-agreement', formatPercent(agreement.pct));
+      } else if (llm.samples) {
+        const withVerification = llm.samples.filter(
+          (s) =>
+            s.answer_agrees_with_model_alpha0 !== null &&
+            s.answer_agrees_with_model_alpha0 !== undefined,
+        );
         if (withVerification.length > 0) {
-          const agreeCount = withVerification.filter((s) => s.both_correct).length;
+          const agreeCount = withVerification.filter((s) => s.answer_agrees_with_model_alpha0).length;
           const agreeRate = (agreeCount / withVerification.length) * 100;
           setBoundText('data-swing-bind', 'llm-agreement', formatPercent(agreeRate));
         }

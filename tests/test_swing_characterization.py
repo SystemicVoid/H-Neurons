@@ -6,8 +6,12 @@ import pandas as pd
 from scripts.characterize_swing import (
     analyze_structural_predictability,
     analyze_transitions,
+    summarize_llm_enrichment,
 )
-from scripts.export_site_data import build_swing_characterization_payload
+from scripts.export_site_data import (
+    build_swing_characterization_payload,
+    compact_llm_enrichment,
+)
 
 
 def test_analyze_transitions_reports_counts_and_early_share():
@@ -157,3 +161,100 @@ def test_build_swing_characterization_payload_exports_real_transition_counts():
         "3.0": 6,
     }
     assert rc_series["early_share_le_1_5"]["count"] == 60
+
+
+def test_summarize_llm_enrichment_uses_actual_answer_agreement():
+    summary = summarize_llm_enrichment(
+        [
+            {
+                "id": "agree_correct",
+                "population": "swing",
+                "swing_subtype": "R→C",
+                "knowledge_class": "COMMON_KNOWLEDGE",
+                "llm_answer": "A",
+                "model_alpha0_answer": "A",
+                "counterfactual_key": "A",
+                "answer_agrees_with_model_alpha0": True,
+                "llm_answer_correct": True,
+                "model_alpha0_answer_correct": True,
+                "shared_error": False,
+                "persuasiveness": 4,
+            },
+            {
+                "id": "agree_wrong",
+                "population": "swing",
+                "swing_subtype": "C→R",
+                "knowledge_class": "SPECIALIZED",
+                "llm_answer": "B",
+                "model_alpha0_answer": "B",
+                "counterfactual_key": "C",
+                "answer_agrees_with_model_alpha0": True,
+                "llm_answer_correct": False,
+                "model_alpha0_answer_correct": False,
+                "shared_error": True,
+                "persuasiveness": 3,
+            },
+            {
+                "id": "disagree",
+                "population": "always_compliant",
+                "swing_subtype": "",
+                "knowledge_class": "COMMON_KNOWLEDGE",
+                "llm_answer": "D",
+                "model_alpha0_answer": "A",
+                "counterfactual_key": "D",
+                "answer_agrees_with_model_alpha0": False,
+                "llm_answer_correct": True,
+                "model_alpha0_answer_correct": False,
+                "shared_error": False,
+                "persuasiveness": 2,
+            },
+            {
+                "id": "unknown",
+                "population": "never_compliant",
+                "swing_subtype": "",
+                "knowledge_class": "AMBIGUOUS",
+                "llm_answer": "UNKNOWN",
+                "model_alpha0_answer": "A",
+                "counterfactual_key": "A",
+                "answer_agrees_with_model_alpha0": None,
+                "llm_answer_correct": None,
+                "model_alpha0_answer_correct": True,
+                "shared_error": None,
+                "persuasiveness": 1,
+            },
+        ]
+    )
+
+    assert summary["verification_agreement"]["count"] == 2
+    assert summary["verification_agreement"]["n_total"] == 3
+    assert summary["verification_agreement"]["estimate"] == 2 / 3
+
+
+def test_compact_llm_enrichment_refuses_shared_error_backfill():
+    payload = compact_llm_enrichment(
+        {
+            "samples": [
+                {"both_correct": True},
+                {"both_correct": False},
+            ]
+        }
+    )
+
+    assert "verification_agreement" not in payload
+
+
+def test_compact_llm_enrichment_uses_explicit_agreement_fields():
+    payload = compact_llm_enrichment(
+        {
+            "samples": [
+                {"answer_agrees_with_model_alpha0": True},
+                {"answer_agrees_with_model_alpha0": False},
+                {"answer_agrees_with_model_alpha0": True},
+                {"answer_agrees_with_model_alpha0": None},
+            ]
+        }
+    )
+
+    assert payload["verification_agreement"]["count"] == 2
+    assert payload["verification_agreement"]["n_total"] == 3
+    assert payload["verification_agreement"]["pct"] == 66.7

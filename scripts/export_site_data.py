@@ -48,6 +48,33 @@ def with_pct(summary: dict[str, Any], estimate_key: str = "estimate") -> dict[st
     return payload
 
 
+def explicit_answer_agreement_summary(
+    samples: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    agreement_flags = [
+        sample["answer_agrees_with_model_alpha0"]
+        for sample in samples
+        if sample.get("answer_agrees_with_model_alpha0") is not None
+    ]
+    if not agreement_flags:
+        return None
+    return build_rate_summary(
+        int(sum(agreement_flags)),
+        len(agreement_flags),
+        total_key="n_total",
+    )
+
+
+def compact_llm_enrichment(llm: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(llm)
+    agreement = payload.get(
+        "verification_agreement"
+    ) or explicit_answer_agreement_summary(payload.get("samples", []))
+    if agreement:
+        payload["verification_agreement"] = with_pct(agreement)
+    return payload
+
+
 def compliance_summary_from_record(record: dict[str, Any]) -> dict[str, Any]:
     return record.get("compliance") or build_rate_summary(
         record["n_compliant"],
@@ -494,7 +521,7 @@ def build_swing_characterization_payload(repo_root: Path) -> dict[str, Any]:
     # Add LLM enrichment if available
     llm = summary.get("llm_enrichment")
     if llm:
-        payload["llm_enrichment"] = llm
+        payload["llm_enrichment"] = compact_llm_enrichment(llm)
 
     return payload
 
