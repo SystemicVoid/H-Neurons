@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from datetime import date
@@ -21,6 +22,9 @@ except ModuleNotFoundError:
 
 ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 GEMMA_3_4B_LAYER_COUNT = 34
+CLASSIFIER_STRUCTURE_SUMMARY_PATH = Path(
+    "data/gemma3_4b/pipeline/classifier_structure_summary.json"
+)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -288,14 +292,10 @@ def build_parse_failure_effects(base_dir: Path) -> dict[str, Any]:
 
 
 def build_selected_h_neuron_structure(
-    repo_root: Path,
+    coef: np.ndarray,
     total_ffn_neurons: int,
     selected_h_neurons: int,
 ) -> dict[str, Any]:
-    classifier_path = repo_root / "models/gemma3_4b_classifier.pkl"
-    model = joblib.load(classifier_path)
-    coef = np.asarray(model.coef_[0], dtype=float)
-
     if coef.shape[0] != total_ffn_neurons:
         raise ValueError(
             "Classifier feature width does not match reported total FFN neurons: "
@@ -363,7 +363,110 @@ def build_selected_h_neuron_structure(
     }
 
 
-def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
+def resolve_classifier_checkpoint_path(
+    repo_root: Path,
+    summary: dict[str, Any],
+) -> Path:
+    candidates = [
+        summary.get("loaded_model_path"),
+        "models/gemma3_4b_classifier.pkl",
+    ]
+    checked: list[str] = []
+    for candidate in candidates:
+        if not isinstance(candidate, str) or not candidate:
+            continue
+        checked.append(candidate)
+        candidate_path = repo_root / candidate
+        if candidate_path.exists():
+            return candidate_path
+
+    raise FileNotFoundError(
+        "No local classifier checkpoint found. Looked for: " + ", ".join(checked)
+    )
+
+
+def coefficient_sha256(coef: np.ndarray) -> str:
+    normalized = np.ascontiguousarray(coef, dtype=np.float64)
+    return hashlib.sha256(normalized.tobytes()).hexdigest()
+
+
+def build_classifier_structure_summary_payload(repo_root: Path) -> dict[str, Any]:
+    disjoint_summary_path = (
+        repo_root / "data/gemma3_4b/pipeline/classifier_disjoint_summary.json"
+    )
+    summary = load_json(disjoint_summary_path)
+    checkpoint_path = resolve_classifier_checkpoint_path(repo_root, summary)
+    model = joblib.load(checkpoint_path)
+    coef = np.asarray(model.coef_[0], dtype=float)
+    structure = build_selected_h_neuron_structure(
+        coef,
+        summary["total_ffn_neurons"],
+        summary["selected_h_neurons"],
+    )
+
+    return {
+        "schema_version": 1,
+        "generated_at": date.today().isoformat(),
+        "generated_by": "scripts/export_site_data.py",
+        "model": summary["model_path"],
+        "model_path": checkpoint_path.relative_to(repo_root).as_posix(),
+        "generation_script": "scripts/export_site_data.py",
+        "source_files": [
+            "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+            checkpoint_path.relative_to(repo_root).as_posix(),
+        ],
+        "selected_h_neurons": summary["selected_h_neurons"],
+        "total_ffn_neurons": summary["total_ffn_neurons"],
+        "coefficient_sha256": coefficient_sha256(coef),
+        "structure": structure,
+    }
+
+
+def load_classifier_structure_summary(
+    repo_root: Path,
+    summary_path: Path = CLASSIFIER_STRUCTURE_SUMMARY_PATH,
+) -> dict[str, Any]:
+    return load_json(repo_root / summary_path)
+
+
+def validate_classifier_structure_summary(
+    repo_root: Path,
+    summary_path: Path = CLASSIFIER_STRUCTURE_SUMMARY_PATH,
+) -> None:
+    tracked = load_classifier_structure_summary(repo_root, summary_path)
+    expected = build_classifier_structure_summary_payload(repo_root)
+    comparable_keys = (
+        "schema_version",
+        "generated_by",
+        "model",
+        "model_path",
+        "generation_script",
+        "source_files",
+        "selected_h_neurons",
+        "total_ffn_neurons",
+        "coefficient_sha256",
+        "structure",
+    )
+    mismatches = [
+        key for key in comparable_keys if tracked.get(key) != expected.get(key)
+    ]
+    if not mismatches:
+        return
+
+    mismatch_lines = [
+        f"{key}: tracked={tracked.get(key)!r} expected={expected.get(key)!r}"
+        for key in mismatches
+    ]
+    raise ValueError(
+        "Tracked classifier structure summary disagrees with local checkpoint:\n"
+        + "\n".join(mismatch_lines)
+    )
+
+
+def build_classifier_site_payload(
+    repo_root: Path,
+    classifier_structure_summary_path: Path = CLASSIFIER_STRUCTURE_SUMMARY_PATH,
+) -> dict[str, Any]:
     disjoint_summary_path = (
         repo_root / "data/gemma3_4b/pipeline/classifier_disjoint_summary.json"
     )
@@ -374,11 +477,20 @@ def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
     summary = load_json(disjoint_summary_path)
     overlap_summary = load_json(overlap_summary_path)
     disjoint_qids = load_json(qids_path)
-    selected_h_neuron_structure = build_selected_h_neuron_structure(
-        repo_root,
-        summary["total_ffn_neurons"],
-        summary["selected_h_neurons"],
+    tracked_structure_summary = load_classifier_structure_summary(
+        repo_root, classifier_structure_summary_path
     )
+    selected_h_neuron_structure = tracked_structure_summary["structure"]
+    if tracked_structure_summary["selected_h_neurons"] != summary["selected_h_neurons"]:
+        raise ValueError(
+            "Tracked classifier structure summary selected_h_neurons does not match "
+            "classifier_disjoint_summary.json"
+        )
+    if tracked_structure_summary["total_ffn_neurons"] != summary["total_ffn_neurons"]:
+        raise ValueError(
+            "Tracked classifier structure summary total_ffn_neurons does not match "
+            "classifier_disjoint_summary.json"
+        )
     evaluation = summary["evaluation"]
     overlap_evaluation = overlap_summary["evaluation"]
     disjoint_sampled_n = sum(len(ids) for ids in disjoint_qids.values())
@@ -391,7 +503,7 @@ def build_classifier_site_payload(repo_root: Path) -> dict[str, Any]:
             "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
             "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
             "data/gemma3_4b/pipeline/test_qids_disjoint.json",
-            "models/gemma3_4b_classifier.pkl",
+            classifier_structure_summary_path.as_posix(),
         ],
         "n_examples": evaluation["n_examples"],
         "n_positive": evaluation["n_positive"],
@@ -914,14 +1026,56 @@ def main() -> None:
         default=Path("site/data/pipeline_summary.json"),
         help="Output path for exported pipeline summary site data.",
     )
+    parser.add_argument(
+        "--classifier-structure-summary-output",
+        type=Path,
+        default=CLASSIFIER_STRUCTURE_SUMMARY_PATH,
+        help="Output path for tracked classifier structure summary.",
+    )
+    parser.add_argument(
+        "--refresh-classifier-structure-summary",
+        action="store_true",
+        help="Regenerate the tracked classifier structure summary from a local checkpoint.",
+    )
+    parser.add_argument(
+        "--validate-classifier-structure-summary",
+        action="store_true",
+        help="Compare the tracked classifier structure summary against a local checkpoint.",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[1]
+    classifier_structure_summary_output_path = (
+        repo_root / args.classifier_structure_summary_output
+    )
+
+    if args.refresh_classifier_structure_summary:
+        classifier_structure_summary = build_classifier_structure_summary_payload(
+            repo_root
+        )
+        classifier_structure_summary_output_path.parent.mkdir(
+            parents=True, exist_ok=True
+        )
+        classifier_structure_summary_output_path.write_text(
+            json.dumps(classifier_structure_summary, indent=2) + "\n"
+        )
+
+    if args.validate_classifier_structure_summary:
+        validate_classifier_structure_summary(
+            repo_root,
+            args.classifier_structure_summary_output,
+        )
+        print("Tracked classifier structure summary matches local checkpoint.")
+        return
+
     payload = build_payload(repo_root)
     output_path = repo_root / args.output
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2) + "\n")
-    classifier_payload = build_classifier_site_payload(repo_root)
+    classifier_payload = build_classifier_site_payload(
+        repo_root,
+        args.classifier_structure_summary_output,
+    )
     classifier_output_path = repo_root / args.classifier_output
     classifier_output_path.parent.mkdir(parents=True, exist_ok=True)
     classifier_output_path.write_text(json.dumps(classifier_payload, indent=2) + "\n")

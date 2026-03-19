@@ -1,20 +1,18 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "generated_at": "2026-03-19",
   "generated_by": "scripts/export_site_data.py",
   "model": "google/gemma-3-4b-it",
+  "model_path": "models/gemma3_4b_classifier_disjoint.pkl",
+  "generation_script": "scripts/export_site_data.py",
   "source_files": [
     "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
-    "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
-    "data/gemma3_4b/pipeline/test_qids_disjoint.json",
-    "data/gemma3_4b/pipeline/classifier_structure_summary.json"
+    "models/gemma3_4b_classifier_disjoint.pkl"
   ],
-  "n_examples": 780,
-  "n_positive": 389,
-  "n_negative": 391,
   "selected_h_neurons": 38,
   "total_ffn_neurons": 348160,
-  "selected_h_neuron_structure": {
+  "coefficient_sha256": "0c245f698a1686f70e8b0b5a2a58a6a2ac2e220428cc79945d8045257d1b08f9",
+  "structure": {
     "n_layers": 34,
     "neurons_per_layer": 10240,
     "positive_counts_by_layer": [
@@ -242,134 +240,5 @@
         "weight": 1.693
       }
     ]
-  },
-  "selected_ratio_per_mille": 0.1091452205882353,
-  "metrics": {
-    "accuracy": {
-      "estimate": 0.7653846153846153,
-      "ci": {
-        "lower": 0.735897435897436,
-        "upper": 0.7948717948717948,
-        "level": 0.95,
-        "method": "bootstrap_percentile_stratified"
-      }
-    },
-    "precision": {
-      "estimate": 0.7668393782383419,
-      "ci": {
-        "lower": 0.733502538071066,
-        "upper": 0.8005653551218626,
-        "level": 0.95,
-        "method": "bootstrap_percentile_stratified"
-      }
-    },
-    "recall": {
-      "estimate": 0.7609254498714653,
-      "ci": {
-        "lower": 0.7172236503856041,
-        "upper": 0.8046272493573264,
-        "level": 0.95,
-        "method": "bootstrap_percentile_stratified"
-      }
-    },
-    "f1": {
-      "estimate": 0.7638709677419355,
-      "ci": {
-        "lower": 0.7319587628865979,
-        "upper": 0.794344473007712,
-        "level": 0.95,
-        "method": "bootstrap_percentile_stratified"
-      }
-    },
-    "auroc": {
-      "estimate": 0.842904950065418,
-      "ci": {
-        "lower": 0.8148766592811261,
-        "upper": 0.8695129488030822,
-        "level": 0.95,
-        "method": "bootstrap_percentile_stratified"
-      }
-    }
-  },
-  "bootstrap": {
-    "n_resamples": 10000,
-    "seed": 42,
-    "confidence": 0.95,
-    "resampling": "stratified_by_label",
-    "interval": "percentile"
-  },
-  "confusion_matrix": {
-    "tp": 296,
-    "tn": 301,
-    "fp": 90,
-    "fn": 93
-  },
-  "overlap": {
-    "n_examples": 1993,
-    "n_positive": 993,
-    "n_negative": 1000,
-    "metrics": {
-      "accuracy": {
-        "estimate": 0.7767185148018063,
-        "ci": {
-          "lower": 0.7586552935273457,
-          "upper": 0.7947817360762669,
-          "level": 0.95,
-          "method": "bootstrap_percentile_stratified"
-        }
-      },
-      "precision": {
-        "estimate": 0.7795918367346939,
-        "ci": {
-          "lower": 0.7592208781910121,
-          "upper": 0.8010205389848246,
-          "level": 0.95,
-          "method": "bootstrap_percentile_stratified"
-        }
-      },
-      "recall": {
-        "estimate": 0.7693856998992951,
-        "ci": {
-          "lower": 0.743202416918429,
-          "upper": 0.7955689828801611,
-          "level": 0.95,
-          "method": "bootstrap_percentile_stratified"
-        }
-      },
-      "f1": {
-        "estimate": 0.774455144450076,
-        "ci": {
-          "lower": 0.7554430379746836,
-          "upper": 0.7933639152752374,
-          "level": 0.95,
-          "method": "bootstrap_percentile_stratified"
-        }
-      },
-      "auroc": {
-        "estimate": 0.8632678751258813,
-        "ci": {
-          "lower": 0.8474337613293053,
-          "upper": 0.8786488167170191,
-          "level": 0.95,
-          "method": "bootstrap_percentile_stratified"
-        }
-      }
-    },
-    "bootstrap": {
-      "n_resamples": 10000,
-      "seed": 42,
-      "confidence": 0.95,
-      "resampling": "stratified_by_label",
-      "interval": "percentile"
-    },
-    "confusion_matrix": {
-      "tp": 764,
-      "tn": 784,
-      "fp": 216,
-      "fn": 229
-    }
-  },
-  "disjoint_sampled_n": 782,
-  "disjoint_missing_activations": 2,
-  "disjoint_accuracy_drop_vs_overlap_pp": 1.1
+  }
 }
