@@ -116,6 +116,10 @@
     return `95% CI ${ci.lower.toFixed(digits)}-${ci.upper.toFixed(digits)}`;
   }
 
+  function formatDecimalCiBracket(ci, digits = 3) {
+    return `[${ci.lower.toFixed(digits)}, ${ci.upper.toFixed(digits)}]`;
+  }
+
   function formatPp(value, digits = 1) {
     return `${value.toFixed(digits)}pp`;
   }
@@ -352,6 +356,32 @@
     setBoundText('data-swing-bind', 'cr-mean-alpha', crAlpha.mean.toFixed(1));
     setBoundText('data-swing-bind', 'cr-median-alpha', crAlpha.median.toFixed(1));
     setBoundText('data-swing-bind', 'rc-cr-p', `p=${rcCrTest.p.toFixed(2)}`);
+    if (rcAlpha.early_share_le_1_5) {
+      setBoundText('data-swing-bind', 'rc-early-pct', formatRatePercent(rcAlpha.early_share_le_1_5.estimate));
+      setBoundText(
+        'data-swing-bind',
+        'rc-early-count',
+        `${rcAlpha.early_share_le_1_5.count}/${rcAlpha.early_share_le_1_5.n_total}`,
+      );
+      setBoundText(
+        'data-swing-bind',
+        'rc-early-ci',
+        formatRateCiBracket(rcAlpha.early_share_le_1_5.ci),
+      );
+    }
+    if (crAlpha.early_share_le_1_5) {
+      setBoundText('data-swing-bind', 'cr-early-pct', formatRatePercent(crAlpha.early_share_le_1_5.estimate));
+      setBoundText(
+        'data-swing-bind',
+        'cr-early-count',
+        `${crAlpha.early_share_le_1_5.count}/${crAlpha.early_share_le_1_5.n_total}`,
+      );
+      setBoundText(
+        'data-swing-bind',
+        'cr-early-ci',
+        formatRateCiBracket(crAlpha.early_share_le_1_5.ci),
+      );
+    }
 
     const sp = summary.structural_proxies || {};
     if (sp.context_length) {
@@ -365,6 +395,43 @@
     }
     if (summary.source_datasets && summary.source_datasets.cramers_v != null) {
       setBoundText('data-swing-bind', 'source-v', `V=${summary.source_datasets.cramers_v.toFixed(2)}`);
+    }
+
+    const predictability = summary.structural_predictability;
+    if (predictability?.tasks?.swing_vs_non_swing) {
+      const primary = predictability.tasks.swing_vs_non_swing.all_ex_ante;
+      const sourceOnly = predictability.tasks.swing_vs_non_swing.source_only;
+      if (predictability.interpretation) {
+        setBoundText('data-swing-bind', 'structural-headline', predictability.interpretation.headline);
+        setBoundText('data-swing-bind', 'structural-subtitle', predictability.interpretation.subtitle);
+        setBoundText('data-swing-bind', 'structural-insight', predictability.interpretation.insight);
+      }
+      setBoundText('data-swing-bind', 'structural-auroc', primary.auroc.estimate.toFixed(3));
+      setBoundText(
+        'data-swing-bind',
+        'structural-auroc-ci',
+        formatDecimalCiBracket(primary.auroc.ci, 3),
+      );
+      setBoundText(
+        'data-swing-bind',
+        'structural-auroc-p',
+        `perm p=${primary.permutation_test.auroc.p_value.toFixed(3)}`,
+      );
+      setBoundText(
+        'data-swing-bind',
+        'structural-balanced-accuracy',
+        primary.balanced_accuracy.estimate.toFixed(3),
+      );
+      setBoundText(
+        'data-swing-bind',
+        'structural-balanced-accuracy-ci',
+        formatDecimalCiBracket(primary.balanced_accuracy.ci, 3),
+      );
+      setBoundText('data-swing-bind', 'structural-source-auroc', sourceOnly.auroc.estimate.toFixed(3));
+    }
+    if (predictability?.tasks?.r_to_c_vs_other_swing) {
+      const subtypeTask = predictability.tasks.r_to_c_vs_other_swing.all_ex_ante;
+      setBoundText('data-swing-bind', 'structural-subtype-auroc', subtypeTask.auroc.estimate.toFixed(3));
     }
 
     const llm = summary.llm_enrichment;

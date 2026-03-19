@@ -12,7 +12,10 @@ from typing import Any
 
 import numpy as np
 
-from uncertainty import build_rate_summary, paired_bootstrap_curve_effects
+try:
+    from uncertainty import build_rate_summary, paired_bootstrap_curve_effects
+except ModuleNotFoundError:
+    from scripts.uncertainty import build_rate_summary, paired_bootstrap_curve_effects
 
 
 ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
@@ -318,6 +321,59 @@ def build_swing_characterization_payload(repo_root: Path) -> dict[str, Any]:
     subtypes = transitions["subtype_counts"]
     alpha_stats = transitions["transition_alpha"]
     rc_vs_cr = transitions["rc_vs_cr_transition"]
+    predictability = summary.get("structural_predictability", {})
+
+    def compact_predictive_result(result: dict[str, Any]) -> dict[str, Any]:
+        metrics = result["metrics"]
+        permutation = result["permutation_test"]["metrics"]
+        return {
+            "n_samples": result["n_samples"],
+            "n_positive": result["n_positive"],
+            "n_negative": result["n_negative"],
+            "auroc": metrics["auroc"],
+            "balanced_accuracy": metrics["balanced_accuracy"],
+            "precision": metrics["precision"],
+            "recall": metrics["recall"],
+            "f1": metrics["f1"],
+            "permutation_test": permutation,
+        }
+
+    def build_predictability_interpretation(
+        task_results: dict[str, Any],
+    ) -> dict[str, str]:
+        primary = task_results["all_ex_ante"]
+        source_only = task_results["source_only"]
+        structure_only = task_results["structure_only"]
+        auroc = primary["auroc"]["estimate"]
+        perm_p = primary["permutation_test"]["auroc"]["p_value"]
+        source_auroc = source_only["auroc"]["estimate"]
+        structure_auroc = structure_only["auroc"]["estimate"]
+
+        if perm_p >= 0.05:
+            return {
+                "status": "no_detectable_signal",
+                "headline": "Surface features are near chance at predicting swing status",
+                "subtitle": "Held-out prediction on question structure, source, and topic does not beat a no-signal null by enough to support a strong structural claim.",
+                "insight": "Descriptive shifts exist, but on the current feature set they do not translate into reliable swing classification.",
+            }
+        if auroc < 0.70:
+            driver = "source dataset"
+            if structure_auroc > source_auroc + 0.02:
+                driver = "content structure"
+            elif abs(structure_auroc - source_auroc) <= 0.02:
+                driver = "a mix of source and structure"
+            return {
+                "status": "weak_signal",
+                "headline": "Surface features carry a weak but non-zero swing signal",
+                "subtitle": f"Held-out prediction beats the null, but only weakly; the current signal is driven mainly by {driver}.",
+                "insight": "This supports a limited claim: some surface correlation exists, but it is too weak to treat swing status as structurally well-separated.",
+            }
+        return {
+            "status": "strong_signal",
+            "headline": "Surface features partially predict swing status",
+            "subtitle": "Held-out prediction is materially above chance, so the page should not frame swing as structurally indistinguishable.",
+            "insight": "Any mechanism story now needs to treat input structure as part of the explanation rather than just background variation.",
+        }
 
     structural: dict[str, Any] = {}
     for proxy_name in (
@@ -346,9 +402,29 @@ def build_swing_characterization_payload(repo_root: Path) -> dict[str, Any]:
 
     source_test = summary.get("source_datasets", {}).get("test", {})
     topic_test = summary.get("topics", {}).get("test", {})
+    structural_tasks = predictability.get("tasks", {})
+    swing_predictability = structural_tasks.get("swing_vs_non_swing", {}).get(
+        "feature_sets", {}
+    )
+    subtype_predictability = structural_tasks.get("r_to_c_vs_other_swing", {}).get(
+        "feature_sets", {}
+    )
+    transition_histogram = {
+        "alphas": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+        "series": {
+            key: {
+                "count": subtypes[key]["count"],
+                "mean": alpha_stats[key]["mean"],
+                "median": alpha_stats[key]["median"],
+                "counts_by_alpha": alpha_stats[key]["counts_by_alpha"],
+                "early_share_le_1_5": alpha_stats[key].get("early_share_le_1_5"),
+            }
+            for key in ("R→C", "C→R")
+        },
+    }
 
     payload: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": date.today().isoformat(),
         "generated_by": "scripts/export_site_data.py",
         "model": "google/gemma-3-4b-it",
@@ -372,9 +448,12 @@ def build_swing_characterization_payload(repo_root: Path) -> dict[str, Any]:
             key: {
                 "mean": val["mean"],
                 "median": val["median"],
+                "counts_by_alpha": val["counts_by_alpha"],
+                "early_share_le_1_5": val.get("early_share_le_1_5"),
             }
             for key, val in alpha_stats.items()
         },
+        "transition_histogram": transition_histogram,
         "rc_vs_cr_test": {
             "U": rc_vs_cr["U"],
             "p": rc_vs_cr["p"],
@@ -392,6 +471,25 @@ def build_swing_characterization_payload(repo_root: Path) -> dict[str, Any]:
             "cramers_v": topic_test.get("cramers_v"),
         },
     }
+
+    if swing_predictability:
+        compact_swing_predictability = {
+            name: compact_predictive_result(result)
+            for name, result in swing_predictability.items()
+        }
+        payload["structural_predictability"] = {
+            "interpretation": build_predictability_interpretation(
+                compact_swing_predictability
+            ),
+            "tasks": {
+                "swing_vs_non_swing": compact_swing_predictability,
+            },
+        }
+        if subtype_predictability:
+            payload["structural_predictability"]["tasks"]["r_to_c_vs_other_swing"] = {
+                name: compact_predictive_result(result)
+                for name, result in subtype_predictability.items()
+            }
 
     # Add LLM enrichment if available
     llm = summary.get("llm_enrichment")

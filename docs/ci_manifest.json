@@ -250,6 +250,37 @@
       ]
     },
     {
+      "id": "swing_transition_rc_early_share_le_1_5",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/swing_characterization.json",
+        "path": [
+          "transition_histogram",
+          "series",
+          "R→C",
+          "early_share_le_1_5"
+        ]
+      },
+      "surfaces": []
+    },
+    {
+      "id": "swing_structural_predictability_auroc",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/swing_characterization.json",
+        "path": [
+          "structural_predictability",
+          "tasks",
+          "swing_vs_non_swing",
+          "all_ex_ante",
+          "auroc"
+        ]
+      },
+      "surfaces": []
+    },
+    {
       "id": "mistral_training_metrics",
       "status": "not_applicable",
       "reason": "training_only_descriptive_metrics"

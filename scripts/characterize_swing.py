@@ -30,6 +30,28 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy import stats
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import balanced_accuracy_score, roc_auc_score
+from sklearn.model_selection import StratifiedKFold
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+try:
+    from uncertainty import (
+        DEFAULT_BOOTSTRAP_RESAMPLES,
+        DEFAULT_BOOTSTRAP_SEED,
+        build_rate_summary,
+        stratified_bootstrap_classifier_metrics,
+    )
+except ModuleNotFoundError:
+    from scripts.uncertainty import (
+        DEFAULT_BOOTSTRAP_RESAMPLES,
+        DEFAULT_BOOTSTRAP_SEED,
+        build_rate_summary,
+        stratified_bootstrap_classifier_metrics,
+    )
 
 ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 
@@ -48,6 +70,110 @@ SUBTYPE_COLORS = {
     "R→C": "#9B59B6",
     "C→R": "#3498DB",
     "non-monotonic": "#95A5A6",
+}
+STRUCTURAL_NUMERIC_FEATURES = [
+    "question_length",
+    "context_length",
+    "word_overlap",
+    "num_options",
+]
+STRUCTURAL_CATEGORICAL_FEATURES = ["source", "topic"]
+STRUCTURAL_FEATURE_SETS: dict[str, dict[str, list[str]]] = {
+    "all_ex_ante": {
+        "numeric": STRUCTURAL_NUMERIC_FEATURES,
+        "categorical": STRUCTURAL_CATEGORICAL_FEATURES,
+    },
+    "structure_only": {
+        "numeric": STRUCTURAL_NUMERIC_FEATURES,
+        "categorical": ["topic"],
+    },
+    "source_only": {
+        "numeric": [],
+        "categorical": ["source"],
+    },
+}
+STRUCTURAL_TASKS: dict[str, dict[str, str]] = {
+    "swing_vs_non_swing": {
+        "subset_population": "all",
+        "positive_label": "swing",
+        "description": "Predict whether an item belongs to the swing population.",
+    },
+    "r_to_c_vs_other_swing": {
+        "subset_population": "swing",
+        "positive_label": "R→C",
+        "description": "Within swing samples, predict whether the subtype is R→C rather than C→R or non-monotonic.",
+    },
+}
+STOP_WORDS = {
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "shall",
+    "should",
+    "may",
+    "might",
+    "must",
+    "can",
+    "could",
+    "of",
+    "in",
+    "to",
+    "for",
+    "with",
+    "on",
+    "at",
+    "from",
+    "by",
+    "as",
+    "or",
+    "and",
+    "but",
+    "if",
+    "not",
+    "no",
+    "so",
+    "it",
+    "its",
+    "that",
+    "this",
+    "these",
+    "those",
+    "which",
+    "what",
+    "who",
+    "whom",
+    "how",
+    "when",
+    "where",
+    "why",
+    "all",
+    "each",
+    "every",
+    "both",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "than",
+    "too",
+    "very",
 }
 
 
@@ -155,6 +281,15 @@ def find_transition_alpha(trajectories: dict[str, list[bool]], sample_id: str) -
         if traj[i] != traj[i - 1]:
             return ALPHAS[i]
     return ALPHAS[-1]
+
+
+def compute_word_overlap(question: str, context: str) -> float:
+    """Fraction of non-stopword question tokens that also appear in the context."""
+    q_words = set(re.findall(r"\w+", question.lower())) - STOP_WORDS
+    c_words = (
+        set(re.findall(r"\w+", context.lower())) - STOP_WORDS if context else set()
+    )
+    return len(q_words & c_words) / len(q_words) if q_words else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -385,6 +520,43 @@ def classify_topic(question: str) -> str:
     return best
 
 
+def build_feature_table(
+    df: pd.DataFrame,
+    hf_data: dict[str, dict[str, Any]],
+    standard_dir: Path | None,
+) -> pd.DataFrame:
+    """Build an auditable per-item feature table for descriptive and predictive analyses."""
+    std_rows = {}
+    if standard_dir and (standard_dir / "alpha_1.0.jsonl").exists():
+        std_rows = {r["id"]: r for r in load_jsonl(standard_dir / "alpha_1.0.jsonl")}
+
+    records = []
+    for _, row in df.iterrows():
+        hf = hf_data.get(row["id"], {})
+        context = str(hf.get("context", ""))
+        records.append(
+            {
+                "id": row["id"],
+                "population": row["population"],
+                "swing_subtype": row["swing_subtype"],
+                "source": row["source"],
+                "topic": row["topic"],
+                "question_length": int(len(row["question"])),
+                "context_length": int(len(context)),
+                "word_overlap": round(
+                    compute_word_overlap(row["question"], context), 4
+                ),
+                "num_options": int(hf.get("num_options", 0) or 0),
+                "anti_compliance_response_length": int(len(row["response"])),
+                "standard_response_length": int(
+                    len(std_rows.get(row["id"], {}).get("response", ""))
+                ),
+            }
+        )
+
+    return pd.DataFrame(records)
+
+
 # ---------------------------------------------------------------------------
 # Statistical helpers
 # ---------------------------------------------------------------------------
@@ -467,22 +639,262 @@ def mann_whitney_effect_size(x: list[float], y: list[float]) -> dict[str, Any]:
     }
 
 
+def build_structural_model(
+    numeric_features: list[str],
+    categorical_features: list[str],
+) -> Pipeline:
+    """Shared preprocessing + logistic baseline for held-out structural prediction."""
+    transformers = []
+    if numeric_features:
+        transformers.append(
+            (
+                "num",
+                Pipeline(
+                    [
+                        ("impute", SimpleImputer(strategy="median")),
+                        ("scale", StandardScaler()),
+                    ]
+                ),
+                numeric_features,
+            )
+        )
+    if categorical_features:
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("impute", SimpleImputer(strategy="most_frequent")),
+                        ("one_hot", OneHotEncoder(handle_unknown="ignore")),
+                    ]
+                ),
+                categorical_features,
+            )
+        )
+    if not transformers:
+        raise ValueError("At least one feature is required for structural prediction")
+
+    return Pipeline(
+        [
+            ("preprocess", ColumnTransformer(transformers=transformers)),
+            (
+                "classifier",
+                LogisticRegression(
+                    class_weight="balanced",
+                    max_iter=2000,
+                    random_state=42,
+                ),
+            ),
+        ]
+    )
+
+
+def cross_validated_probabilities(
+    feature_df: pd.DataFrame,
+    labels: np.ndarray,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    *,
+    n_splits: int = 5,
+    seed: int = 42,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return out-of-fold probabilities and hard predictions for a fixed feature set."""
+    X = feature_df[numeric_features + categorical_features].copy()
+    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    probabilities = np.zeros(len(feature_df), dtype=float)
+
+    for train_idx, test_idx in cv.split(X, labels):
+        model = build_structural_model(numeric_features, categorical_features)
+        model.fit(X.iloc[train_idx], labels[train_idx])
+        probabilities[test_idx] = model.predict_proba(X.iloc[test_idx])[:, 1]
+
+    predictions = (probabilities >= 0.5).astype(int)
+    return probabilities, predictions
+
+
+def permutation_test_classifier_metrics(
+    feature_df: pd.DataFrame,
+    labels: np.ndarray,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    *,
+    observed_auroc: float,
+    observed_balanced_accuracy: float,
+    n_splits: int = 5,
+    n_resamples: int = 100,
+    seed: int = 42,
+) -> dict[str, Any]:
+    """Permutation test for held-out AUROC and balanced accuracy."""
+    rng = np.random.default_rng(seed)
+    auroc_samples = np.empty(n_resamples, dtype=float)
+    balanced_accuracy_samples = np.empty(n_resamples, dtype=float)
+
+    for sample_idx in range(n_resamples):
+        permuted = rng.permutation(labels)
+        probs, preds = cross_validated_probabilities(
+            feature_df,
+            permuted,
+            numeric_features,
+            categorical_features,
+            n_splits=n_splits,
+            seed=seed + sample_idx + 1,
+        )
+        auroc_samples[sample_idx] = float(roc_auc_score(permuted, probs))
+        balanced_accuracy_samples[sample_idx] = float(
+            balanced_accuracy_score(permuted, preds)
+        )
+
+    auroc_p = (1 + int(np.sum(auroc_samples >= observed_auroc))) / (n_resamples + 1)
+    balanced_accuracy_p = (
+        1 + int(np.sum(balanced_accuracy_samples >= observed_balanced_accuracy))
+    ) / (n_resamples + 1)
+
+    return {
+        "n_resamples": int(n_resamples),
+        "seed": int(seed),
+        "metrics": {
+            "auroc": {
+                "p_value": float(auroc_p),
+                "null_mean": float(np.mean(auroc_samples)),
+                "null_std": float(np.std(auroc_samples)),
+            },
+            "balanced_accuracy": {
+                "p_value": float(balanced_accuracy_p),
+                "null_mean": float(np.mean(balanced_accuracy_samples)),
+                "null_std": float(np.std(balanced_accuracy_samples)),
+            },
+        },
+    }
+
+
+def evaluate_prediction_feature_set(
+    feature_df: pd.DataFrame,
+    labels: np.ndarray,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    *,
+    n_splits: int = 5,
+    bootstrap_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    permutation_resamples: int = 100,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+) -> dict[str, Any]:
+    """Evaluate one structural feature set with held-out metrics and permutation p-values."""
+    probabilities, predictions = cross_validated_probabilities(
+        feature_df,
+        labels,
+        numeric_features,
+        categorical_features,
+        n_splits=n_splits,
+        seed=seed,
+    )
+    bootstrap = stratified_bootstrap_classifier_metrics(
+        labels,
+        probabilities,
+        n_resamples=bootstrap_resamples,
+        seed=seed,
+    )
+    permutation = permutation_test_classifier_metrics(
+        feature_df,
+        labels,
+        numeric_features,
+        categorical_features,
+        observed_auroc=bootstrap["metrics"]["auroc"]["estimate"],
+        observed_balanced_accuracy=bootstrap["metrics"]["balanced_accuracy"][
+            "estimate"
+        ],
+        n_splits=n_splits,
+        n_resamples=permutation_resamples,
+        seed=seed,
+    )
+
+    return {
+        "n_samples": int(len(labels)),
+        "n_positive": int(np.sum(labels == 1)),
+        "n_negative": int(np.sum(labels == 0)),
+        "numeric_features": numeric_features,
+        "categorical_features": categorical_features,
+        "cv": {
+            "n_splits": int(n_splits),
+            "shuffle": True,
+            "seed": int(seed),
+            "prediction_mode": "out_of_fold",
+        },
+        "metrics": bootstrap["metrics"],
+        "bootstrap": bootstrap["bootstrap"],
+        "permutation_test": permutation,
+        "confusion_matrix": {
+            "tp": int(np.sum((labels == 1) & (predictions == 1))),
+            "tn": int(np.sum((labels == 0) & (predictions == 0))),
+            "fp": int(np.sum((labels == 0) & (predictions == 1))),
+            "fn": int(np.sum((labels == 1) & (predictions == 0))),
+        },
+    }
+
+
+def analyze_structural_predictability(
+    feature_df: pd.DataFrame,
+    *,
+    n_splits: int = 5,
+    bootstrap_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    permutation_resamples: int = 100,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+) -> dict[str, Any]:
+    """Held-out prediction tests for whether surface features classify swing behavior."""
+    tasks: dict[str, Any] = {}
+
+    for task_name, task_spec in STRUCTURAL_TASKS.items():
+        if task_spec["subset_population"] == "swing":
+            task_df = feature_df[feature_df["population"] == "swing"].reset_index(
+                drop=True
+            )
+            labels = (task_df["swing_subtype"] == task_spec["positive_label"]).astype(
+                int
+            )
+        else:
+            task_df = feature_df.reset_index(drop=True)
+            labels = (task_df["population"] == task_spec["positive_label"]).astype(int)
+
+        feature_set_results = {
+            name: evaluate_prediction_feature_set(
+                task_df,
+                labels.to_numpy(),
+                spec["numeric"],
+                spec["categorical"],
+                n_splits=n_splits,
+                bootstrap_resamples=bootstrap_resamples,
+                permutation_resamples=permutation_resamples,
+                seed=seed,
+            )
+            for name, spec in STRUCTURAL_FEATURE_SETS.items()
+        }
+
+        tasks[task_name] = {
+            "description": task_spec["description"],
+            "positive_label": task_spec["positive_label"],
+            "subset_population": task_spec["subset_population"],
+            "feature_sets": feature_set_results,
+        }
+
+    return {
+        "feature_sets": STRUCTURAL_FEATURE_SETS,
+        "tasks": tasks,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Analysis functions
 # ---------------------------------------------------------------------------
 
 
 def analyze_structural_proxies(
-    df: pd.DataFrame,
-    hf_data: dict[str, dict[str, Any]],
-    standard_dir: Path | None,
+    feature_df: pd.DataFrame,
 ) -> dict[str, Any]:
     """Analyze question length, context length, number of options."""
     results: dict[str, Any] = {}
 
     # Question length
     q_lens = {
-        pop: df[df["population"] == pop]["question"].str.len().tolist()
+        pop: feature_df[feature_df["population"] == pop]["question_length"].tolist()
         for pop in ["always_compliant", "never_compliant", "swing"]
     }
     results["question_length"] = {
@@ -499,15 +911,10 @@ def analyze_structural_proxies(
     }
 
     # Context length
-    c_lens: dict[str, list[float]] = {
-        "always_compliant": [],
-        "never_compliant": [],
-        "swing": [],
+    c_lens = {
+        pop: feature_df[feature_df["population"] == pop]["context_length"].tolist()
+        for pop in ["always_compliant", "never_compliant", "swing"]
     }
-    for _, row in df.iterrows():
-        hf = hf_data.get(row["id"])
-        if hf and hf["context"]:
-            c_lens[row["population"]].append(float(len(hf["context"])))
     results["context_length"] = {
         "stats": {
             pop: {
@@ -522,15 +929,10 @@ def analyze_structural_proxies(
     }
 
     # Number of answer options
-    n_opts: dict[str, list[float]] = {
-        "always_compliant": [],
-        "never_compliant": [],
-        "swing": [],
+    n_opts = {
+        pop: feature_df[feature_df["population"] == pop]["num_options"].tolist()
+        for pop in ["always_compliant", "never_compliant", "swing"]
     }
-    for _, row in df.iterrows():
-        hf = hf_data.get(row["id"])
-        if hf:
-            n_opts[row["population"]].append(float(hf["num_options"]))
     results["num_options"] = {
         "stats": {
             pop: {
@@ -544,7 +946,9 @@ def analyze_structural_proxies(
 
     # Response length for anti-compliance (α=1.0) — expected null
     resp_lens = {
-        pop: df[df["population"] == pop]["response"].str.len().tolist()
+        pop: feature_df[feature_df["population"] == pop][
+            "anti_compliance_response_length"
+        ].tolist()
         for pop in ["always_compliant", "never_compliant", "swing"]
     }
     results["anti_compliance_response_length"] = {
@@ -561,18 +965,13 @@ def analyze_structural_proxies(
     }
 
     # Standard-prompt response lengths using anti-compliance population labels
-    if standard_dir and (standard_dir / "alpha_1.0.jsonl").exists():
-        std_rows = {r["id"]: r for r in load_jsonl(standard_dir / "alpha_1.0.jsonl")}
-        std_resp_lens: dict[str, list[float]] = {
-            "always_compliant": [],
-            "never_compliant": [],
-            "swing": [],
+    if "standard_response_length" in feature_df.columns:
+        std_resp_lens = {
+            pop: feature_df[feature_df["population"] == pop][
+                "standard_response_length"
+            ].tolist()
+            for pop in ["always_compliant", "never_compliant", "swing"]
         }
-        for _, row in df.iterrows():
-            if row["id"] in std_rows:
-                std_resp_lens[row["population"]].append(
-                    float(len(std_rows[row["id"]].get("response", "")))
-                )
         results["standard_response_length"] = {
             "stats": {
                 pop: {
@@ -655,9 +1054,24 @@ def analyze_transitions(
             "mean": round(float(np.mean(vals)), 3) if vals else None,
             "median": float(np.median(vals)) if vals else None,
             "values": sorted(vals),
+            "counts_by_alpha": {
+                f"{alpha:.1f}": int(Counter(vals).get(alpha, 0)) for alpha in ALPHAS[1:]
+            },
         }
         for st, vals in trans_alphas.items()
     }
+
+    for st in ["R→C", "C→R"]:
+        vals = trans_alphas.get(st, [])
+        if not vals:
+            continue
+        early_count = sum(alpha <= 1.5 for alpha in vals)
+        results["transition_alpha"][st]["early_share_le_1_5"] = build_rate_summary(
+            early_count,
+            len(vals),
+            count_key="count",
+            total_key="n_total",
+        )
 
     # Mann-Whitney U: R→C vs C→R transition alphas
     rc = trans_alphas.get("R→C", [])
@@ -677,98 +1091,12 @@ def analyze_transitions(
     return results
 
 
-def analyze_word_overlap(
-    df: pd.DataFrame, hf_data: dict[str, dict[str, Any]]
-) -> dict[str, Any]:
+def analyze_word_overlap(feature_df: pd.DataFrame) -> dict[str, Any]:
     """Lexical overlap between question words and context, by population."""
-    stop_words = {
-        "the",
-        "a",
-        "an",
-        "is",
-        "are",
-        "was",
-        "were",
-        "be",
-        "been",
-        "being",
-        "have",
-        "has",
-        "had",
-        "do",
-        "does",
-        "did",
-        "will",
-        "would",
-        "shall",
-        "should",
-        "may",
-        "might",
-        "must",
-        "can",
-        "could",
-        "of",
-        "in",
-        "to",
-        "for",
-        "with",
-        "on",
-        "at",
-        "from",
-        "by",
-        "as",
-        "or",
-        "and",
-        "but",
-        "if",
-        "not",
-        "no",
-        "so",
-        "it",
-        "its",
-        "that",
-        "this",
-        "these",
-        "those",
-        "which",
-        "what",
-        "who",
-        "whom",
-        "how",
-        "when",
-        "where",
-        "why",
-        "all",
-        "each",
-        "every",
-        "both",
-        "few",
-        "more",
-        "most",
-        "other",
-        "some",
-        "such",
-        "than",
-        "too",
-        "very",
+    overlaps = {
+        pop: feature_df[feature_df["population"] == pop]["word_overlap"].tolist()
+        for pop in ["always_compliant", "never_compliant", "swing"]
     }
-
-    overlaps: dict[str, list[float]] = {
-        "always_compliant": [],
-        "never_compliant": [],
-        "swing": [],
-    }
-
-    for _, row in df.iterrows():
-        hf = hf_data.get(row["id"])
-        if not hf or not hf["context"]:
-            continue
-        q_words = set(re.findall(r"\w+", row["question"].lower())) - stop_words
-        c_words = set(re.findall(r"\w+", hf["context"].lower())) - stop_words
-        if not q_words:
-            continue
-        overlap = len(q_words & c_words) / len(q_words)
-        overlaps[row["population"]].append(overlap)
 
     return {
         "stats": {
@@ -1102,103 +1430,13 @@ def plot_transition_alpha(
 
 
 def plot_structural_proxies(
-    df: pd.DataFrame,
-    hf_data: dict[str, dict[str, Any]],
+    feature_df: pd.DataFrame,
     output_dir: Path,
 ) -> None:
     """Violin plots for question length, context length, word overlap."""
-    # Build data
-    records = []
-    stop_words = {
-        "the",
-        "a",
-        "an",
-        "is",
-        "are",
-        "was",
-        "were",
-        "be",
-        "been",
-        "being",
-        "have",
-        "has",
-        "had",
-        "do",
-        "does",
-        "did",
-        "will",
-        "would",
-        "shall",
-        "should",
-        "may",
-        "might",
-        "must",
-        "can",
-        "could",
-        "of",
-        "in",
-        "to",
-        "for",
-        "with",
-        "on",
-        "at",
-        "from",
-        "by",
-        "as",
-        "or",
-        "and",
-        "but",
-        "if",
-        "not",
-        "no",
-        "so",
-        "it",
-        "its",
-        "that",
-        "this",
-        "these",
-        "those",
-        "which",
-        "what",
-        "who",
-        "whom",
-        "how",
-        "when",
-        "where",
-        "why",
-        "all",
-        "each",
-        "every",
-        "both",
-        "few",
-        "more",
-        "most",
-        "other",
-        "some",
-        "such",
-        "than",
-        "too",
-        "very",
-    }
-
-    for _, row in df.iterrows():
-        hf = hf_data.get(row["id"])
-        context = hf["context"] if hf else ""
-        q_words = set(re.findall(r"\w+", row["question"].lower())) - stop_words
-        c_words = (
-            set(re.findall(r"\w+", context.lower())) - stop_words if context else set()
-        )
-        overlap = len(q_words & c_words) / len(q_words) if q_words else 0
-
-        records.append(
-            {
-                "population": row["population"],
-                "question_length": len(row["question"]),
-                "context_length": len(context),
-                "word_overlap": overlap,
-            }
-        )
-    plot_df = pd.DataFrame(records)
+    plot_df = feature_df[
+        ["population", "question_length", "context_length", "word_overlap"]
+    ].copy()
 
     pop_order = ["always_compliant", "never_compliant", "swing"]
     pop_labels = {
@@ -1551,6 +1789,7 @@ def main() -> None:
             }
         )
     df = pd.DataFrame(records)
+    feature_df = build_feature_table(df, hf_data, standard_dir)
 
     # Save population IDs
     pop_ids = {
@@ -1567,10 +1806,21 @@ def main() -> None:
         json.dumps(pop_ids, indent=2) + "\n"
     )
     print("  Saved population_ids.json")
+    (output_dir / "feature_table.jsonl").write_text(
+        "\n".join(
+            json.dumps(record)
+            for record in feature_df.sort_values("id").to_dict(orient="records")
+        )
+        + "\n"
+    )
+    print("  Saved feature_table.jsonl")
 
     # ── Step 2: Structural proxies ────────────────────────────────────────
     print("\nStep 2: Analyzing structural proxies...")
-    structural = analyze_structural_proxies(df, hf_data, standard_dir)
+    structural = analyze_structural_proxies(feature_df)
+
+    print("\nStep 2b: Testing held-out structural predictability...")
+    structural_predictability = analyze_structural_predictability(feature_df)
 
     # ── Step 3: Source datasets & topics ───────────────────────────────────
     print("\nStep 3: Analyzing source datasets & topics...")
@@ -1583,7 +1833,7 @@ def main() -> None:
 
     # ── Step 5: Word overlap ──────────────────────────────────────────────
     print("\nStep 5: Analyzing question–context word overlap...")
-    overlap_analysis = analyze_word_overlap(df, hf_data)
+    overlap_analysis = analyze_word_overlap(feature_df)
 
     # ── Step 6: LLM enrichment (optional) ─────────────────────────────────
     llm_results = None
@@ -1602,6 +1852,7 @@ def main() -> None:
             "total": len(always_ids) + len(never_ids) + len(swing_ids),
         },
         "structural_proxies": structural,
+        "structural_predictability": structural_predictability,
         "source_datasets": source_analysis,
         "topics": topic_analysis,
         "transitions": transition_analysis,
@@ -1634,7 +1885,7 @@ def main() -> None:
             len(always_ids), len(never_ids), dict(subtype_counts), figures_dir
         )
         plot_transition_alpha(trajectories, swing_ids, subtypes, figures_dir)
-        plot_structural_proxies(df, hf_data, figures_dir)
+        plot_structural_proxies(feature_df, figures_dir)
         plot_source_datasets(df, figures_dir)
         plot_topic_by_population(df, figures_dir)
         plot_trajectory_heatmap(trajectories, swing_ids, subtypes, figures_dir)

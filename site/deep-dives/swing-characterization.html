@@ -36,7 +36,7 @@
     <p class="subtitle">
       Of 1,000 FaithEval samples, only 138 respond to H-neuron scaling.
       This page profiles that sensitive subpopulation: what types of transitions occur,
-      what structural features predict swing status, and whether knowledge override or
+      how much structural features predict swing status, and whether knowledge override or
       uncertainty resolution dominates.
     </p>
 
@@ -149,10 +149,11 @@
 <section id="transitions" class="short">
   <div class="fade-in">
     <span class="tag tag-amber">Transition dynamics</span>
-    <h2>R&rarr;C transitions cluster early in the &alpha; sweep</h2>
+    <h2>Monotonic swing transitions skew toward low &alpha;, but subtype timing still overlaps</h2>
     <p class="subtitle" style="margin-bottom: 1.5rem;">
       The transition &alpha; is the scaling factor at which a sample first changes compliance state.
-      This chart reconstructs the R&rarr;C timing pattern from the exported resistance-strength summary; the statistics below indicate that C&rarr;R transitions occur on a similar schedule (p=0.19), but that second distribution is not yet plotted here.
+      These bars are plotted from exported per-sample first-transition values, not reconstructed from summary means.
+      Both monotonic subtypes concentrate in the first half of the sweep, and the current subtype timing difference remains inconclusive.
     </p>
 
     <div class="chart-container">
@@ -161,38 +162,38 @@
 
     <div class="metrics-grid">
       <div class="metric-card">
-        <div class="label">R&rarr;C mean &alpha;</div>
-        <div class="value val-coral" data-swing-bind="rc-mean-alpha">1.4</div>
-        <div class="detail">Median <span data-swing-bind="rc-median-alpha">1.25</span></div>
+        <div class="label">R&rarr;C by &alpha; &le; 1.5</div>
+        <div class="value val-coral" data-swing-bind="rc-early-pct">63.8%</div>
+        <div class="detail"><span data-swing-bind="rc-early-count">60/94</span> &middot; 95% CI <span data-swing-bind="rc-early-ci">[53.8, 72.8]</span></div>
       </div>
       <div class="metric-card">
-        <div class="label">C&rarr;R mean &alpha;</div>
-        <div class="value val-teal" data-swing-bind="cr-mean-alpha">1.2</div>
-        <div class="detail">Median <span data-swing-bind="cr-median-alpha">1.0</span></div>
+        <div class="label">C&rarr;R by &alpha; &le; 1.5</div>
+        <div class="value val-teal" data-swing-bind="cr-early-pct">71.9%</div>
+        <div class="detail"><span data-swing-bind="cr-early-count">23/32</span> &middot; 95% CI <span data-swing-bind="cr-early-ci">[54.6, 84.4]</span></div>
       </div>
       <div class="metric-card">
-        <div class="label">R&rarr;C vs C&rarr;R</div>
+        <div class="label">Subtype timing difference</div>
         <div class="value" style="font-size: 1.4rem;" data-swing-bind="rc-cr-p">p=0.19</div>
-        <div class="detail">Mann-Whitney U, not significant</div>
+        <div class="detail">Mann-Whitney U on first-transition &alpha;</div>
       </div>
     </div>
 
     <div class="insight-box">
-      <strong>What this means:</strong> most observed R&rarr;C transitions happen early (&alpha; &le; 1.5).
-      The summary statistics suggest C&rarr;R follows a similar threshold, so the main difference between the two subtypes is directional, not temporal:
-      R&rarr;C samples lose knowledge while C&rarr;R samples gain it.
+      <strong>What this means:</strong> the evidence now supports a narrower claim than before:
+      low-&alpha; transitions are common in both monotonic subtypes, but the current sample does not justify saying
+      that R&rarr;C transitions follow a uniquely earlier schedule than C&rarr;R.
     </div>
   </div>
 </section>
 
 <section id="structural" class="short">
   <div class="fade-in">
-    <span class="tag tag-purple">Structural proxies</span>
-    <h2>Swing samples are not structurally distinguishable</h2>
+    <span class="tag tag-purple">Structural prediction</span>
+    <h2 data-swing-bind="structural-headline">Surface features are near chance at predicting swing status</h2>
     <p class="subtitle" style="margin-bottom: 1.5rem;">
-      We tested whether swing status correlates with surface-level features of the evaluation items.
-      Two features show weak effects; the rest are null. Swing behavior appears to be driven by
-      internal model states rather than input structure.
+      <span data-swing-bind="structural-subtitle">Held-out prediction on question structure, topic, and source does not support a strong structural separation claim on the current feature set.</span>
+      Descriptively, context length still differs across populations (<span data-swing-bind="context-length-p">p=0.0001</span>)
+      and source composition is imbalanced (<span data-swing-bind="source-v">V=0.20</span>), but those effects need not imply useful classification.
     </p>
 
     <div class="chart-container" style="text-align: center;">
@@ -202,32 +203,30 @@
 
     <div class="metrics-grid">
       <div class="metric-card">
-        <div class="label">Context length</div>
-        <div class="value val-coral" style="font-size: 1.3rem;" data-swing-bind="context-length-p">p=0.0001</div>
-        <div class="detail">Significant: always-compliant has longer contexts</div>
+        <div class="label">Held-out AUROC</div>
+        <div class="value val-coral" style="font-size: 1.3rem;" data-swing-bind="structural-auroc">0.54</div>
+        <div class="detail">95% CI <span data-swing-bind="structural-auroc-ci">[--, --]</span> &middot; <span data-swing-bind="structural-auroc-p">perm p=--</span></div>
       </div>
       <div class="metric-card">
-        <div class="label">Source dataset</div>
-        <div class="value val-amber" style="font-size: 1.3rem;" data-swing-bind="source-v">V=0.20</div>
-        <div class="detail">Weak effect: some source imbalance</div>
+        <div class="label">Balanced accuracy</div>
+        <div class="value val-amber" style="font-size: 1.3rem;" data-swing-bind="structural-balanced-accuracy">0.54</div>
+        <div class="detail">95% CI <span data-swing-bind="structural-balanced-accuracy-ci">[--, --]</span></div>
       </div>
       <div class="metric-card">
-        <div class="label">Word overlap</div>
-        <div class="value val-teal" style="font-size: 1.3rem;" data-swing-bind="overlap-p">p=0.78</div>
-        <div class="detail">Null: context similarity does not predict swing</div>
+        <div class="label">Source-only AUROC</div>
+        <div class="value val-teal" style="font-size: 1.3rem;" data-swing-bind="structural-source-auroc">0.52</div>
+        <div class="detail">Dataset identity alone is weak</div>
       </div>
       <div class="metric-card">
-        <div class="label">Response length</div>
-        <div class="value val-teal" style="font-size: 1.3rem;" data-swing-bind="response-p">p=0.93</div>
-        <div class="detail">Null: output verbosity does not differ</div>
+        <div class="label">R&rarr;C subtype AUROC</div>
+        <div class="value val-teal" style="font-size: 1.3rem;" data-swing-bind="structural-subtype-auroc">0.61</div>
+        <div class="detail">Within swing, subtype prediction is still modest</div>
       </div>
     </div>
 
     <div class="insight-box">
-      <strong>Why null results matter here:</strong> if swing samples were just longer questions or more persuasive contexts,
-      the story would be about input features, not internal model states.
-      The fact that surface features do not predict swing status means the mechanism is likely about how the model
-      weighs internal knowledge against contextual evidence &mdash; exactly the kind of thing H-neurons might modulate.
+      <strong>Interpretation:</strong>
+      <span data-swing-bind="structural-insight">Descriptive differences exist, but on the current feature set they do not translate into reliable swing classification.</span>
     </div>
   </div>
 </section>

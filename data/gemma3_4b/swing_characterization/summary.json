@@ -206,6 +206,677 @@
       }
     }
   },
+  "structural_predictability": {
+    "feature_sets": {
+      "all_ex_ante": {
+        "numeric": [
+          "question_length",
+          "context_length",
+          "word_overlap",
+          "num_options"
+        ],
+        "categorical": [
+          "source",
+          "topic"
+        ]
+      },
+      "structure_only": {
+        "numeric": [
+          "question_length",
+          "context_length",
+          "word_overlap",
+          "num_options"
+        ],
+        "categorical": [
+          "topic"
+        ]
+      },
+      "source_only": {
+        "numeric": [],
+        "categorical": [
+          "source"
+        ]
+      }
+    },
+    "tasks": {
+      "swing_vs_non_swing": {
+        "description": "Predict whether an item belongs to the swing population.",
+        "positive_label": "swing",
+        "subset_population": "all",
+        "feature_sets": {
+          "all_ex_ante": {
+            "n_samples": 1000,
+            "n_positive": 138,
+            "n_negative": 862,
+            "numeric_features": [
+              "question_length",
+              "context_length",
+              "word_overlap",
+              "num_options"
+            ],
+            "categorical_features": [
+              "source",
+              "topic"
+            ],
+            "cv": {
+              "n_splits": 5,
+              "shuffle": true,
+              "seed": 42,
+              "prediction_mode": "out_of_fold"
+            },
+            "metrics": {
+              "accuracy": {
+                "estimate": 0.554,
+                "ci": {
+                  "lower": 0.523,
+                  "upper": 0.585,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "balanced_accuracy": {
+                "estimate": 0.5100205117858704,
+                "ci": {
+                  "lower": 0.4659504354551263,
+                  "upper": 0.554087225528767,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "precision": {
+                "estimate": 0.14351851851851852,
+                "ci": {
+                  "lower": 0.11920529801324503,
+                  "upper": 0.167816091954023,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "recall": {
+                "estimate": 0.4492753623188406,
+                "ci": {
+                  "lower": 0.3695652173913043,
+                  "upper": 0.5289855072463768,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "f1": {
+                "estimate": 0.21754385964912282,
+                "ci": {
+                  "lower": 0.18085058289407874,
+                  "upper": 0.25448028673835127,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "auroc": {
+                "estimate": 0.5178133091227008,
+                "ci": {
+                  "lower": 0.46577705201923403,
+                  "upper": 0.5699922660479505,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              }
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "stratified_by_label",
+              "interval": "percentile"
+            },
+            "permutation_test": {
+              "n_resamples": 100,
+              "seed": 42,
+              "metrics": {
+                "auroc": {
+                  "p_value": 0.3564356435643564,
+                  "null_mean": 0.5017061770738761,
+                  "null_std": 0.03463444011621539
+                },
+                "balanced_accuracy": {
+                  "p_value": 0.37623762376237624,
+                  "null_mean": 0.5034296714751673,
+                  "null_std": 0.026057494566671353
+                }
+              }
+            },
+            "confusion_matrix": {
+              "tp": 62,
+              "tn": 492,
+              "fp": 370,
+              "fn": 76
+            }
+          },
+          "structure_only": {
+            "n_samples": 1000,
+            "n_positive": 138,
+            "n_negative": 862,
+            "numeric_features": [
+              "question_length",
+              "context_length",
+              "word_overlap",
+              "num_options"
+            ],
+            "categorical_features": [
+              "topic"
+            ],
+            "cv": {
+              "n_splits": 5,
+              "shuffle": true,
+              "seed": 42,
+              "prediction_mode": "out_of_fold"
+            },
+            "metrics": {
+              "accuracy": {
+                "estimate": 0.498,
+                "ci": {
+                  "lower": 0.467,
+                  "upper": 0.529,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "balanced_accuracy": {
+                "estimate": 0.5018830491946602,
+                "ci": {
+                  "lower": 0.45767342546824036,
+                  "upper": 0.5453615202259658,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "precision": {
+                "estimate": 0.1388888888888889,
+                "ci": {
+                  "lower": 0.118,
+                  "upper": 0.15950920245398773,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "recall": {
+                "estimate": 0.5072463768115942,
+                "ci": {
+                  "lower": 0.427536231884058,
+                  "upper": 0.5869565217391305,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "f1": {
+                "estimate": 0.21806853582554517,
+                "ci": {
+                  "lower": 0.18471337579617833,
+                  "upper": 0.2504204472493615,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "auroc": {
+                "estimate": 0.4965449409865832,
+                "ci": {
+                  "lower": 0.4426582097582299,
+                  "upper": 0.5504812703856887,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              }
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "stratified_by_label",
+              "interval": "percentile"
+            },
+            "permutation_test": {
+              "n_resamples": 100,
+              "seed": 42,
+              "metrics": {
+                "auroc": {
+                  "p_value": 0.4752475247524752,
+                  "null_mean": 0.49553439927368104,
+                  "null_std": 0.035387350044453696
+                },
+                "balanced_accuracy": {
+                  "p_value": 0.44554455445544555,
+                  "null_mean": 0.49886848918928,
+                  "null_std": 0.02834525271218542
+                }
+              }
+            },
+            "confusion_matrix": {
+              "tp": 70,
+              "tn": 428,
+              "fp": 434,
+              "fn": 68
+            }
+          },
+          "source_only": {
+            "n_samples": 1000,
+            "n_positive": 138,
+            "n_negative": 862,
+            "numeric_features": [],
+            "categorical_features": [
+              "source"
+            ],
+            "cv": {
+              "n_splits": 5,
+              "shuffle": true,
+              "seed": 42,
+              "prediction_mode": "out_of_fold"
+            },
+            "metrics": {
+              "accuracy": {
+                "estimate": 0.641,
+                "ci": {
+                  "lower": 0.612,
+                  "upper": 0.669,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "balanced_accuracy": {
+                "estimate": 0.4996217088671442,
+                "ci": {
+                  "lower": 0.45904368001614043,
+                  "upper": 0.5418087360032281,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "precision": {
+                "estimate": 0.1377049180327869,
+                "ci": {
+                  "lower": 0.10596026490066225,
+                  "upper": 0.17065054524265377,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "recall": {
+                "estimate": 0.30434782608695654,
+                "ci": {
+                  "lower": 0.2318840579710145,
+                  "upper": 0.38405797101449274,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "f1": {
+                "estimate": 0.18961625282167044,
+                "ci": {
+                  "lower": 0.14527845036319612,
+                  "upper": 0.23502329692337562,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "auroc": {
+                "estimate": 0.5028329802616093,
+                "ci": {
+                  "lower": 0.4506068420256229,
+                  "upper": 0.555260768687582,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              }
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "stratified_by_label",
+              "interval": "percentile"
+            },
+            "permutation_test": {
+              "n_resamples": 100,
+              "seed": 42,
+              "metrics": {
+                "auroc": {
+                  "p_value": 0.46534653465346537,
+                  "null_mean": 0.4918345018326103,
+                  "null_std": 0.03378427903285523
+                },
+                "balanced_accuracy": {
+                  "p_value": 0.5742574257425742,
+                  "null_mean": 0.5040491442213928,
+                  "null_std": 0.030553764359072116
+                }
+              }
+            },
+            "confusion_matrix": {
+              "tp": 42,
+              "tn": 599,
+              "fp": 263,
+              "fn": 96
+            }
+          }
+        }
+      },
+      "r_to_c_vs_other_swing": {
+        "description": "Within swing samples, predict whether the subtype is R\u2192C rather than C\u2192R or non-monotonic.",
+        "positive_label": "R\u2192C",
+        "subset_population": "swing",
+        "feature_sets": {
+          "all_ex_ante": {
+            "n_samples": 138,
+            "n_positive": 94,
+            "n_negative": 44,
+            "numeric_features": [
+              "question_length",
+              "context_length",
+              "word_overlap",
+              "num_options"
+            ],
+            "categorical_features": [
+              "source",
+              "topic"
+            ],
+            "cv": {
+              "n_splits": 5,
+              "shuffle": true,
+              "seed": 42,
+              "prediction_mode": "out_of_fold"
+            },
+            "metrics": {
+              "accuracy": {
+                "estimate": 0.6159420289855072,
+                "ci": {
+                  "lower": 0.5362318840579711,
+                  "upper": 0.6956521739130435,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "balanced_accuracy": {
+                "estimate": 0.6153288201160542,
+                "ci": {
+                  "lower": 0.5280464216634428,
+                  "upper": 0.7026112185686654,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "precision": {
+                "estimate": 0.7733333333333333,
+                "ci": {
+                  "lower": 0.7037037037037037,
+                  "upper": 0.8461538461538461,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "recall": {
+                "estimate": 0.6170212765957447,
+                "ci": {
+                  "lower": 0.5212765957446809,
+                  "upper": 0.7127659574468085,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "f1": {
+                "estimate": 0.6863905325443787,
+                "ci": {
+                  "lower": 0.6037735849056604,
+                  "upper": 0.7602464750834138,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "auroc": {
+                "estimate": 0.6375725338491296,
+                "ci": {
+                  "lower": 0.5415860735009671,
+                  "upper": 0.7338007736943908,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              }
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "stratified_by_label",
+              "interval": "percentile"
+            },
+            "permutation_test": {
+              "n_resamples": 100,
+              "seed": 42,
+              "metrics": {
+                "auroc": {
+                  "p_value": 0.0297029702970297,
+                  "null_mean": 0.49005077369439065,
+                  "null_std": 0.07058100009502441
+                },
+                "balanced_accuracy": {
+                  "p_value": 0.0297029702970297,
+                  "null_mean": 0.49600822050290133,
+                  "null_std": 0.05664722310097281
+                }
+              }
+            },
+            "confusion_matrix": {
+              "tp": 58,
+              "tn": 27,
+              "fp": 17,
+              "fn": 36
+            }
+          },
+          "structure_only": {
+            "n_samples": 138,
+            "n_positive": 94,
+            "n_negative": 44,
+            "numeric_features": [
+              "question_length",
+              "context_length",
+              "word_overlap",
+              "num_options"
+            ],
+            "categorical_features": [
+              "topic"
+            ],
+            "cv": {
+              "n_splits": 5,
+              "shuffle": true,
+              "seed": 42,
+              "prediction_mode": "out_of_fold"
+            },
+            "metrics": {
+              "accuracy": {
+                "estimate": 0.5942028985507246,
+                "ci": {
+                  "lower": 0.5144927536231884,
+                  "upper": 0.6739130434782609,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "balanced_accuracy": {
+                "estimate": 0.5993713733075435,
+                "ci": {
+                  "lower": 0.5120889748549323,
+                  "upper": 0.6873791102514507,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "precision": {
+                "estimate": 0.7638888888888888,
+                "ci": {
+                  "lower": 0.6911764705882353,
+                  "upper": 0.8400144927536229,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "recall": {
+                "estimate": 0.5851063829787234,
+                "ci": {
+                  "lower": 0.48936170212765956,
+                  "upper": 0.6808510638297872,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "f1": {
+                "estimate": 0.6626506024096386,
+                "ci": {
+                  "lower": 0.5786163522012578,
+                  "upper": 0.7403417229384078,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "auroc": {
+                "estimate": 0.6382978723404256,
+                "ci": {
+                  "lower": 0.5415860735009671,
+                  "upper": 0.7347739361702127,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              }
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "stratified_by_label",
+              "interval": "percentile"
+            },
+            "permutation_test": {
+              "n_resamples": 100,
+              "seed": 42,
+              "metrics": {
+                "auroc": {
+                  "p_value": 0.0297029702970297,
+                  "null_mean": 0.48918762088974854,
+                  "null_std": 0.06857008978122373
+                },
+                "balanced_accuracy": {
+                  "p_value": 0.039603960396039604,
+                  "null_mean": 0.49974613152804637,
+                  "null_std": 0.05537443444637486
+                }
+              }
+            },
+            "confusion_matrix": {
+              "tp": 55,
+              "tn": 27,
+              "fp": 17,
+              "fn": 39
+            }
+          },
+          "source_only": {
+            "n_samples": 138,
+            "n_positive": 94,
+            "n_negative": 44,
+            "numeric_features": [],
+            "categorical_features": [
+              "source"
+            ],
+            "cv": {
+              "n_splits": 5,
+              "shuffle": true,
+              "seed": 42,
+              "prediction_mode": "out_of_fold"
+            },
+            "metrics": {
+              "accuracy": {
+                "estimate": 0.6159420289855072,
+                "ci": {
+                  "lower": 0.5362318840579711,
+                  "upper": 0.6956521739130435,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "balanced_accuracy": {
+                "estimate": 0.566972920696325,
+                "ci": {
+                  "lower": 0.4813769342359768,
+                  "upper": 0.655705996131528,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "precision": {
+                "estimate": 0.7252747252747253,
+                "ci": {
+                  "lower": 0.6699975728155341,
+                  "upper": 0.7857142857142857,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "recall": {
+                "estimate": 0.7021276595744681,
+                "ci": {
+                  "lower": 0.6063829787234043,
+                  "upper": 0.7978723404255319,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "f1": {
+                "estimate": 0.7135135135135136,
+                "ci": {
+                  "lower": 0.6444444444444445,
+                  "upper": 0.7759722706662013,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              },
+              "auroc": {
+                "estimate": 0.5906673114119924,
+                "ci": {
+                  "lower": 0.49080331237911035,
+                  "upper": 0.6894342359767891,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_stratified"
+                }
+              }
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "stratified_by_label",
+              "interval": "percentile"
+            },
+            "permutation_test": {
+              "n_resamples": 100,
+              "seed": 42,
+              "metrics": {
+                "auroc": {
+                  "p_value": 0.0594059405940594,
+                  "null_mean": 0.472767166344294,
+                  "null_std": 0.07123423659224919
+                },
+                "balanced_accuracy": {
+                  "p_value": 0.2079207920792079,
+                  "null_mean": 0.4988563829787235,
+                  "null_std": 0.06609830361556493
+                }
+              }
+            },
+            "confusion_matrix": {
+              "tp": 66,
+              "tn": 19,
+              "fp": 25,
+              "fn": 28
+            }
+          }
+        }
+      }
+    }
+  },
   "source_datasets": {
     "counts": {
       "always_compliant": {
@@ -492,7 +1163,26 @@
           3.0,
           3.0,
           3.0
-        ]
+        ],
+        "counts_by_alpha": {
+          "0.5": 32,
+          "1.0": 15,
+          "1.5": 13,
+          "2.0": 13,
+          "2.5": 15,
+          "3.0": 6
+        },
+        "early_share_le_1_5": {
+          "estimate": 0.6382978723404256,
+          "count": 60,
+          "n_total": 94,
+          "ci": {
+            "lower": 0.5375052079060171,
+            "upper": 0.7282308135452579,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        }
       },
       "C\u2192R": {
         "mean": 1.188,
@@ -530,7 +1220,26 @@
           2.5,
           2.5,
           3.0
-        ]
+        ],
+        "counts_by_alpha": {
+          "0.5": 15,
+          "1.0": 4,
+          "1.5": 4,
+          "2.0": 5,
+          "2.5": 3,
+          "3.0": 1
+        },
+        "early_share_le_1_5": {
+          "estimate": 0.71875,
+          "count": 23,
+          "n_total": 32,
+          "ci": {
+            "lower": 0.5462549057408342,
+            "upper": 0.8443541950225723,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        }
       },
       "non-monotonic": {
         "mean": 0.792,
@@ -548,7 +1257,15 @@
           1.0,
           1.0,
           2.0
-        ]
+        ],
+        "counts_by_alpha": {
+          "0.5": 7,
+          "1.0": 4,
+          "1.5": 0,
+          "2.0": 1,
+          "2.5": 0,
+          "3.0": 0
+        }
       }
     },
     "rc_vs_cr_transition": {
@@ -618,2239 +1335,6 @@
           "n1": 262,
           "n2": 138
         }
-      }
-    }
-  },
-  "llm_enrichment": {
-    "samples": [
-      {
-        "id": "Mercury_7188528",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "CSZ_2009_8_CSZ20740",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 2
-      },
-      {
-        "id": "Mercury_7029803",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 2
-      },
-      {
-        "id": "Mercury_406777",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7064680",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7084665",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 2
-      },
-      {
-        "id": "Mercury_7040793",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_405685",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_LBS10018",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7008855",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_406625",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7234360",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_400374",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_407125",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MDSA_2013_8_23",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7212870",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MSA_2013_5_11",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_401912",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 2
-      },
-      {
-        "id": "MCAS_1999_4_23",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7213430",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MCAS_2002_8_17",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_416230",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "C",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "TIMSS_1995_8_R2",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "TIMSS_2011_8_pg15",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_416459",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "ACTAAP_2011_5_16",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_LBS10302",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 1
-      },
-      {
-        "id": "Mercury_416380",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MDSA_2007_8_3",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_401309",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_LBS11018",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7270358",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "ACTAAP_2015_7_9",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 2
-      },
-      {
-        "id": "MCAS_2014_5_7",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7218628",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MDSA_2009_5_39",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2008_4_28",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_407613",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7263060",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 2
-      },
-      {
-        "id": "TIMSS_2003_8_pg16",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7018270",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MSA_2013_5_23",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "ACTAAP_2009_5_8",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 1
-      },
-      {
-        "id": "Mercury_7081480",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7228725",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "LEAP_2007_8_10417",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_417593",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7026723",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_402502",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 1
-      },
-      {
-        "id": "Mercury_SC_400057",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7116288",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "LEAP__7_10348",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_400880",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "MEA_2010_8_18",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_401006",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7085295",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "Mercury_7223370",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "AKDE&ED_2008_8_36",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "OHAT_2007_8_12",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7252245",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_407260",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7132405",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_412202",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_407228",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MCAS_2006_9_34",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 1
-      },
-      {
-        "id": "Mercury_412681",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "MCAS_2010_8_12005",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_408366",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7216318",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_402120",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_183890",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7216248",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "TIMSS_2007_8_pg109",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "AMBIGUOUS",
-        "llm_answer": "C",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7072380",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "B",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7206938",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_400985",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MEA_2013_8_8",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_401147",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MSA_2012_5_15",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_LBS11009",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7205800",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2012_4_29",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_412673",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_413458",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7009993",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MEA_2011_8_19",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MCAS_8_2015_18",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_185325",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7268240",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_403930",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_405726",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7056858",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_400400",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MCAS_2004_9_5",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_402616",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_410602",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "Mercury_7230388",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_413240",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_400701",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "TAKS_2009_5_14",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "Mercury_7085225",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7131530",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_413299",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "LEAP__4_10225",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MCAS_1998_4_12",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 5
-      },
-      {
-        "id": "ACTAAP_2012_7_9",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_402282",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MCAS_2013_8_29416",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_414339",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7247678",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_416104",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_409114",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_409301",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7138915",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_407070",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7252088",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "TIMSS_2011_4_pg45",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7064575",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MCAS_2005_5_24",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7210473",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_412774",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_400699",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_405827",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_400407",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_401373",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "LEAP_2001_8_10379",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_401277",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MSA_2012_8_30",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "VASoL_2009_3_2",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "D",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_405086",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "TAKS_2009_5_26",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_415081",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 2
-      },
-      {
-        "id": "Mercury_400811",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 5
-      },
-      {
-        "id": "MSA_2012_5_2",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "TIMSS_2003_4_pg7",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "AMBIGUOUS",
-        "llm_answer": "D",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7017710",
-        "population": "swing",
-        "swing_subtype": "R\u2192C",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_409317",
-        "population": "swing",
-        "swing_subtype": "C\u2192R",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "AKDE&ED_2008_4_35",
-        "population": "swing",
-        "swing_subtype": "non-monotonic",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 2
-      },
-      {
-        "id": "Mercury_7094133",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "AIMS_2008_8_11",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_415471",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7150728",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7097493",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_407610",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_400839",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "AMBIGUOUS",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_416645",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7038028",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7064750",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7075040",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "AMBIGUOUS",
-        "llm_answer": "C",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "MDSA_2007_8_30",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_416529",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_406833",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "AMBIGUOUS",
-        "llm_answer": "C",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7093958",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7131845",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NCEOGA_2013_8_28",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_408922",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "SPECIALIZED",
-        "llm_answer": "C",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7142415",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7139650",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 5
-      },
-      {
-        "id": "Mercury_7162400",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MCAS_2000_4_30",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_405161",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7016538",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "ACTAAP_2011_5_1",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 5
-      },
-      {
-        "id": "Mercury_404820",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7082845",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7218820",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_402057",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "B",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7103600",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "LEAP__8_10365",
-        "population": "always_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_SC_408568",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2008_4_26",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MEAP_2005_8_13",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_188335",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_402547",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7032620",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7212328",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2015_8_9",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "2",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2012_4_2",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 5
-      },
-      {
-        "id": "MCAS_2003_5_33",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2010_8_35",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "4",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2008_8_36",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "3",
-        "counterfactual_key": "D",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "AKDE&ED_2008_8_47",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MEA_2013_5_12",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "NYSEDREGENTS_2008_8_9",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "3",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "OHAT_2010_8_8",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2012_8_42",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "3",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2013_8_34",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "3",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7207550",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7139545",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_7128923",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "A",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_404609",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "D",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "TIMSS_2007_8_pg53",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 3
-      },
-      {
-        "id": "Mercury_7103530",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_400443",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "TIMSS_2003_8_pg80",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "B",
-        "both_correct": true,
-        "persuasiveness": 2
-      },
-      {
-        "id": "MCAS_2006_9_17-v1",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "A",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MDSA_2009_5_20",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "B",
-        "model_alpha0_answer": "B",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "Mercury_SC_407247",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "C",
-        "model_alpha0_answer": "C",
-        "counterfactual_key": "D",
-        "both_correct": true,
-        "persuasiveness": 4
-      },
-      {
-        "id": "NYSEDREGENTS_2008_8_11",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "D",
-        "model_alpha0_answer": "3",
-        "counterfactual_key": "C",
-        "both_correct": false,
-        "persuasiveness": 4
-      },
-      {
-        "id": "MDSA_2009_8_2",
-        "population": "never_compliant",
-        "swing_subtype": "",
-        "knowledge_class": "COMMON_KNOWLEDGE",
-        "llm_answer": "A",
-        "model_alpha0_answer": "A",
-        "counterfactual_key": "C",
-        "both_correct": true,
-        "persuasiveness": 2
-      }
-    ],
-    "knowledge_by_population": {
-      "swing": {
-        "COMMON_KNOWLEDGE": 118,
-        "SPECIALIZED": 18,
-        "AMBIGUOUS": 2
-      },
-      "always_compliant": {
-        "COMMON_KNOWLEDGE": 26,
-        "AMBIGUOUS": 3,
-        "SPECIALIZED": 2
-      },
-      "never_compliant": {
-        "COMMON_KNOWLEDGE": 31
-      }
-    },
-    "persuasiveness_by_population": {
-      "swing": {
-        "mean": 3.37,
-        "n": 138
-      },
-      "always_compliant": {
-        "mean": 3.61,
-        "n": 31
-      },
-      "never_compliant": {
-        "mean": 3.61,
-        "n": 31
       }
     }
   }

@@ -7,6 +7,7 @@ import numpy as np
 from scipy.stats import norm
 from sklearn.metrics import (
     accuracy_score,
+    balanced_accuracy_score,
     precision_recall_fscore_support,
     roc_auc_score,
 )
@@ -109,6 +110,7 @@ def classifier_metric_values(
     )
     return {
         "accuracy": float(accuracy_score(y_true, y_pred)),
+        "balanced_accuracy": float(balanced_accuracy_score(y_true, y_pred)),
         "precision": float(precision),
         "recall": float(recall),
         "f1": float(f1),

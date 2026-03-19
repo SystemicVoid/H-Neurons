@@ -63,6 +63,8 @@ idna==3.11
     #   yarl
 iniconfig==2.3.0
     # via pytest
+joblib==1.5.3
+    # via scikit-learn
 kiwisolver==1.5.0
     # via matplotlib
 matplotlib==3.10.8
@@ -81,6 +83,7 @@ numpy==1.26.4
     #   datasets
     #   matplotlib
     #   pandas
+    #   scikit-learn
     #   scipy
     #   seaborn
 packaging==25.0
@@ -125,12 +128,18 @@ requests==2.32.5
     # via
     #   datasets
     #   huggingface-hub
-scipy==1.17.1
+scikit-learn==1.8.0
     # via 02-h-neurons
+scipy==1.17.1
+    # via
+    #   02-h-neurons
+    #   scikit-learn
 seaborn==0.13.2
     # via 02-h-neurons
 six==1.17.0
     # via python-dateutil
+threadpoolctl==3.6.0
+    # via scikit-learn
 tqdm==4.67.1
     # via
     #   datasets

@@ -1019,96 +1019,86 @@ async function initSwingCharts() {
 
   if (transitionAlphaCanvas) {
     setChartContainerHeight(transitionAlphaCanvas, 320, 250);
-
-    const alphas = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
-    const alphaLabels = alphas.map((a) => '\u03b1=' + a.toFixed(1));
-
-    // Build histogram counts from the summary
-    const rcValues = swingData.transition_alpha['\u2192C']
-      ? null
-      : null;
-
-    // We need to reconstruct from the resistance strength distribution
-    const resistance = swingData.rc_resistance_strength?.distribution ?? {};
-
-    // Count transitions per alpha bucket for each subtype
-    // Use the raw counts from transition_alpha values if available in the source
-    const rcCounts = alphas.map(() => 0);
-    const crCounts = alphas.map(() => 0);
-    const nmCounts = alphas.map(() => 0);
-
-    // Parse from the source summary's transition_alpha values
-    // Since we don't have raw values in the export, use resistance_strength distribution for R→C
-    if (resistance && Object.keys(resistance).length > 0) {
-      Object.entries(resistance).forEach(([alpha, count]) => {
-        const idx = alphas.indexOf(parseFloat(alpha));
-        if (idx >= 0) rcCounts[idx] = count;
-      });
+    const histogram = swingData.transition_histogram;
+    const container = transitionAlphaCanvas.closest('.chart-container');
+    const rcSeries = histogram?.series ? (histogram.series['R\u2192C'] || histogram.series['R→C']) : null;
+    const crSeries = histogram?.series ? (histogram.series['C\u2192R'] || histogram.series['C→R']) : null;
+    if (!histogram?.alphas || !rcSeries?.counts_by_alpha || !crSeries?.counts_by_alpha) {
+      if (container) {
+        container.innerHTML = '<p class="subtitle">Transition histogram unavailable: exported raw transition counts were not found.</p>';
+      }
     } else {
-      // Fallback: use subtype counts and mean to approximate
-      const rc = swingData.subtypes['R\u2192C'] || swingData.subtypes['R→C'];
-      if (rc) rcCounts[2] = rc.count; // put all at median
-    }
+      const alphaLabels = histogram.alphas.map((a) => '\u03b1=' + a.toFixed(1));
+      const rcCounts = histogram.alphas.map((alpha) => rcSeries.counts_by_alpha[alpha.toFixed(1)] ?? 0);
+      const crCounts = histogram.alphas.map((alpha) => crSeries.counts_by_alpha[alpha.toFixed(1)] ?? 0);
 
-    new Chart(transitionAlphaCanvas, {
-      type: 'bar',
-      data: {
-        labels: alphaLabels,
-        datasets: [
-          {
-            label: 'R\u2192C (knowledge override)',
-            data: rcCounts,
-            backgroundColor: 'rgba(230, 57, 70, 0.72)',
-            borderRadius: 4,
-            borderSkipped: false,
-          },
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              usePointStyle: true,
-              pointStyle: 'rectRounded',
-              padding: 16,
-              font: { size: 12 }
-            }
-          },
-          valueLabels: {
-            formatter: (value) => value > 0 ? `${value}` : '',
-            skipZero: true,
-            offset: 12,
-          },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y + ' samples'
-            }
-          }
+      new Chart(transitionAlphaCanvas, {
+        type: 'bar',
+        data: {
+          labels: alphaLabels,
+          datasets: [
+            {
+              label: 'R\u2192C (knowledge override)',
+              data: rcCounts,
+              backgroundColor: 'rgba(230, 57, 70, 0.72)',
+              borderRadius: 4,
+              borderSkipped: false,
+            },
+            {
+              label: 'C\u2192R (uncertainty resolution)',
+              data: crCounts,
+              backgroundColor: 'rgba(29, 158, 117, 0.72)',
+              borderRadius: 4,
+              borderSkipped: false,
+            },
+          ]
         },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
-            border: { color: 'rgba(160, 155, 145, 0.12)' }
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                pointStyle: 'rectRounded',
+                padding: 16,
+                font: { size: 12 }
+              }
+            },
+            valueLabels: {
+              formatter: (value) => value > 0 ? `${value}` : '',
+              skipZero: true,
+              offset: 12,
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y + ' samples'
+              }
+            }
           },
-          y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(160, 155, 145, 0.08)' },
-            ticks: { stepSize: 5, font: { size: 12 } },
-            border: { display: false },
-            title: {
-              display: true,
-              text: 'R\u2192C samples transitioning at each \u03b1',
-              font: { size: 12 },
-              color: '#a09b91'
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+              border: { color: 'rgba(160, 155, 145, 0.12)' }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(160, 155, 145, 0.08)' },
+              ticks: { stepSize: 5, font: { size: 12 } },
+              border: { display: false },
+              title: {
+                display: true,
+                text: 'Samples transitioning at each \u03b1',
+                font: { size: 12 },
+                color: '#a09b91'
+              }
             }
           }
         }
-      }
-    });
+      });
+    }
   }
 
   if (knowledgeCanvas) {

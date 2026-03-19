@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from scripts.uncertainty import (
     paired_bootstrap_binary_rate_difference,
@@ -34,6 +35,7 @@ def test_stratified_bootstrap_classifier_metrics_is_reproducible():
 
     assert first == second
     assert first["metrics"]["accuracy"]["estimate"] == 5 / 6
+    assert first["metrics"]["balanced_accuracy"]["estimate"] == pytest.approx(5 / 6)
 
 
 def test_paired_bootstrap_curve_effects_reports_positive_delta_for_increasing_curve():
