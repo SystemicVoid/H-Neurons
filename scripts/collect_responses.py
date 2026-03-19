@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+import sys
 import time
 from typing import Any, List, Set, cast
 
@@ -92,7 +93,7 @@ def parse_args():
 # Utilities
 # ==========================================
 
-from utils import normalize_answer  # noqa: E402
+from utils import get_git_sha, normalize_answer, sanitize_run_config  # noqa: E402
 
 
 def load_existing_qids(path: str) -> Set[str]:
@@ -317,29 +318,30 @@ class ConsistencySampler:
 
 
 if __name__ == "__main__":
-    import subprocess
-
     args = parse_args()
 
     wb_run = None
     if args.wandb:
-        import wandb
+        try:
+            import wandb
+        except ImportError as exc:
+            raise ImportError(
+                "--wandb requested but wandb is not installed. "
+                "Install project dependencies with `uv sync` or add it with `uv add wandb`."
+            ) from exc
 
-        git_sha = (
-            subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+        config = sanitize_run_config(vars(args))
+        git_sha = get_git_sha()
+        if git_sha is None:
+            print(
+                "Warning: git metadata unavailable; omitting git_sha from W&B config.",
+                file=sys.stderr,
             )
-            .decode()
-            .strip()
-        )
+        else:
+            config["git_sha"] = git_sha
         wb_run = wandb.init(
             project="h-neurons",
-            config={
-                **{
-                    k: v for k, v in vars(args).items() if k not in ("wandb", "api_key")
-                },
-                "git_sha": git_sha,
-            },
+            config=config,
             tags=["collect_responses"],
         )
 

@@ -19,7 +19,6 @@ Usage:
 import argparse
 import json
 import os
-import subprocess
 import sys
 from typing import Any, cast
 
@@ -46,6 +45,7 @@ from run_intervention import (
     load_model_and_tokenizer,
     normalize_answer,
 )
+from utils import get_git_sha, sanitize_run_config
 from uncertainty import build_rate_summary, percentile_interval
 
 # H-neuron layer distribution: {layer: count}
@@ -691,23 +691,29 @@ def main():
     # W&B tracking (opt-in)
     wb_run = None
     if args.wandb:
-        import wandb
+        try:
+            import wandb
+        except ImportError as exc:
+            raise ImportError(
+                "--wandb requested but wandb is not installed. "
+                "Install project dependencies with `uv sync` or add it with `uv add wandb`."
+            ) from exc
 
-        git_sha = (
-            subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-            )
-            .decode()
-            .strip()
+        config = sanitize_run_config(
+            vars(args),
+            extra={"alphas": [float(a) for a in alphas], "n_configs": len(configs)},
         )
+        git_sha = get_git_sha()
+        if git_sha is None:
+            print(
+                "Warning: git metadata unavailable; omitting git_sha from W&B config.",
+                file=sys.stderr,
+            )
+        else:
+            config["git_sha"] = git_sha
         wb_run = wandb.init(
             project="h-neurons",
-            config={
-                **{k: v for k, v in vars(args).items() if k != "wandb"},
-                "alphas": [float(a) for a in alphas],
-                "n_configs": len(configs),
-                "git_sha": git_sha,
-            },
+            config=config,
             tags=[f"neg_ctrl_{benchmark}"],
         )
 

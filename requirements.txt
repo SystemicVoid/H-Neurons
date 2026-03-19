@@ -379,7 +379,9 @@ urllib3==2.6.3
 wadler-lindig==0.1.7
     # via jaxtyping
 wandb==0.24.0
-    # via transformer-lens
+    # via
+    #   02-h-neurons
+    #   transformer-lens
 xxhash==3.6.0
     # via datasets
 yarl==1.22.0

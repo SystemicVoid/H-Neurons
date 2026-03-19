@@ -12,6 +12,7 @@ dependencies = [
     "scikit-learn>=1.8.0",
     "scipy>=1.17.1",
     "seaborn>=0.13.2",
+    "wandb>=0.24.0",
 ]
 
 [tool.ruff]

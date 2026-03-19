@@ -17,7 +17,7 @@ Usage:
 import os
 import json
 import argparse
-import subprocess
+import sys
 
 import torch
 import joblib
@@ -215,7 +215,12 @@ def load_results(output_dir: str, alphas: list) -> dict:
 # Answer parsing
 # ---------------------------------------------------------------------------
 
-from utils import extract_mc_answer, normalize_answer  # noqa: E402
+from utils import (  # noqa: E402
+    extract_mc_answer,
+    get_git_sha,
+    normalize_answer,
+    sanitize_run_config,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -981,23 +986,29 @@ def main():
     # W&B tracking (opt-in)
     wb_run = None
     if args.wandb:
-        import wandb
+        try:
+            import wandb
+        except ImportError as exc:
+            raise ImportError(
+                "--wandb requested but wandb is not installed. "
+                "Install project dependencies with `uv sync` or add it with `uv add wandb`."
+            ) from exc
 
-        git_sha = (
-            subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-            )
-            .decode()
-            .strip()
+        config = sanitize_run_config(
+            vars(args),
+            extra={"n_h_neurons": total_neurons, "n_samples": len(samples)},
         )
+        git_sha = get_git_sha()
+        if git_sha is None:
+            print(
+                "Warning: git metadata unavailable; omitting git_sha from W&B config.",
+                file=sys.stderr,
+            )
+        else:
+            config["git_sha"] = git_sha
         wb_run = wandb.init(
             project="h-neurons",
-            config={
-                **{k: v for k, v in vars(args).items() if k != "wandb"},
-                "n_h_neurons": total_neurons,
-                "n_samples": len(samples),
-                "git_sha": git_sha,
-            },
+            config=config,
             tags=[args.benchmark, args.model_path.split("/")[-1]],
         )
 

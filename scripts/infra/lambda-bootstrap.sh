@@ -147,7 +147,7 @@ mkdir -p data/TriviaQA/rc.nocontext data/activations scripts models
 
 # Set up Python env
 uv init --no-readme --python 3.12 2>/dev/null || true
-uv add torch transformers datasets accelerate scikit-learn joblib openai tqdm numpy
+uv add torch transformers datasets accelerate scikit-learn joblib openai tqdm numpy wandb
 
 # Create a launcher script that can prefer a GH200 fallback env when needed.
 cat > scripts/lambda-run-python.sh <<'EOF'
@@ -183,7 +183,7 @@ PY
     ~/.local/bin/uv venv --python /usr/bin/python3 --system-site-packages .venv-gpu --allow-existing
     source .venv-gpu/bin/activate
     python -m ensurepip --upgrade
-    python -m pip install transformers datasets openai accelerate joblib scikit-learn
+    python -m pip install transformers datasets openai accelerate joblib scikit-learn wandb
     python -m pip install --upgrade pillow "jinja2>=3.1"
     deactivate || true
   else

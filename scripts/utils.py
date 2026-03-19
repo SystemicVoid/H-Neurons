@@ -8,6 +8,12 @@ from __future__ import annotations
 
 import re
 import string
+import subprocess
+from typing import Any
+
+
+_SENSITIVE_ARG_SUFFIXES = ("token", "secret", "password", "auth_key", "_api_key")
+_SENSITIVE_ARG_NAMES = {"api_key", "sampling_api_key"}
 
 
 def normalize_answer(s: str | None) -> str:
@@ -50,3 +56,41 @@ def extract_mc_answer(response: str, valid_letters: list[str]) -> str | None:
         if re.search(rf"\b{letter}\b", text):
             return letter
     return None
+
+
+def get_git_sha() -> str | None:
+    """Return the current git SHA when available, otherwise None."""
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        check=False,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    sha = result.stdout.strip()
+    return sha or None
+
+
+def _is_sensitive_arg_name(name: str) -> bool:
+    lowered = name.lower()
+    if lowered in _SENSITIVE_ARG_NAMES:
+        return True
+    return lowered in _SENSITIVE_ARG_SUFFIXES or lowered.endswith(
+        _SENSITIVE_ARG_SUFFIXES
+    )
+
+
+def sanitize_run_config(
+    args_dict: dict[str, Any], extra: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Drop secret-like CLI args before uploading run metadata."""
+    config = {
+        key: value
+        for key, value in args_dict.items()
+        if key != "wandb" and not _is_sensitive_arg_name(key)
+    }
+    if extra:
+        config.update({key: value for key, value in extra.items() if value is not None})
+    return config
