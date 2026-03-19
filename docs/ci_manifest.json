@@ -262,7 +262,7 @@
     {
       "id": "jailbreak_benchmark",
       "status": "blocked_data",
-      "reason": "no_committed_result_artifact"
+      "reason": "pipeline_ready_awaiting_first_run"
     },
     {
       "id": "sycophancy_benchmark",
