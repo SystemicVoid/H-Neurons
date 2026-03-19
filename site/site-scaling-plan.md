@@ -418,6 +418,7 @@ Each entry links to its results page when work begins.
 - `archive/` still does not exist, and there is not yet a second post-split weekly page to justify creating it.
 - `extensions.html` is intentionally narrower than the full idea bank in `docs/extensions-ideas/`; keep the live page focused on the four branches with the sharpest near-term falsifiers.
 - Layer-distribution and top-neuron cards/charts remain intentionally hardcoded until canonical local exports exist for those views.
+- `site/deep-dives/swing-characterization.html` now states explicitly that the transition-dynamics chart only visualizes `R→C`; redesign that chart to add a second `C→R` series only after the export carries canonical subtype-by-alpha transition counts.
 - The HTTP verification pass covered all six live pages, the `site/data/intervention_sweep.json` fetch path, and the nested deep-dive PNG assets; use the same local-server path for future site checks because `file://` still breaks `fetch()`.
 - The exporter now emits CI objects for classifier and intervention summaries, and the main shared callouts consume them; future drift prevention should focus on not reintroducing unsourced literals outside the binding system.
 
