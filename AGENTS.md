@@ -58,6 +58,9 @@ Use `uv` for Python environment management.
 - `prek run` runs all pre-commit hooks (ruff check, ruff format, ty) on staged files. `prek install` wires hooks into `.git/hooks/`.
 - `ruff`, `ty`, and `prek` are global tools on PATH (installed via `uv tool`). No venv activation needed to run them.
 
+## GPU Monitoring
+`nvitop` is available on PATH (installed via `uv tool`). Use `nvitop -1` for a one-shot status check before/during long GPU jobs to verify utilization, VRAM headroom, and process state. Use `nvitop -1 --no-header -o compact` for machine-parseable output. See `nvitop --help` for full options.
+
 ## Quantitative Reporting Standards
 Every quantitative claim in presentation materials must include uncertainty estimates. Use bootstrap 95% CIs where sample sizes allow (n > 30). For classifier metrics, report ± from stratified bootstrap over test samples. For intervention compliance rates, report ± from binomial proportion CIs. If uncertainty cannot yet be computed, flag the number explicitly as "no CI".
 
