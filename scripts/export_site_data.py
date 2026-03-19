@@ -367,22 +367,38 @@ def resolve_classifier_checkpoint_path(
     repo_root: Path,
     summary: dict[str, Any],
 ) -> Path:
+    checkpoint_path = find_local_classifier_checkpoint_path(repo_root, summary)
+    if checkpoint_path is not None:
+        return checkpoint_path
+
+    candidates = classifier_checkpoint_candidates(summary)
+    raise FileNotFoundError(
+        "No local classifier checkpoint found. Looked for: " + ", ".join(candidates)
+    )
+
+
+def classifier_checkpoint_candidates(summary: dict[str, Any]) -> list[str]:
     candidates = [
         summary.get("loaded_model_path"),
-        "models/gemma3_4b_classifier.pkl",
+        "models/gemma3_4b_classifier_disjoint.pkl",
     ]
-    checked: list[str] = []
-    for candidate in candidates:
-        if not isinstance(candidate, str) or not candidate:
-            continue
-        checked.append(candidate)
+    return [
+        candidate
+        for candidate in candidates
+        if isinstance(candidate, str) and candidate
+    ]
+
+
+def find_local_classifier_checkpoint_path(
+    repo_root: Path,
+    summary: dict[str, Any],
+) -> Path | None:
+    for candidate in classifier_checkpoint_candidates(summary):
         candidate_path = repo_root / candidate
         if candidate_path.exists():
             return candidate_path
 
-    raise FileNotFoundError(
-        "No local classifier checkpoint found. Looked for: " + ", ".join(checked)
-    )
+    return None
 
 
 def coefficient_sha256(coef: np.ndarray) -> str:
@@ -463,6 +479,35 @@ def validate_classifier_structure_summary(
     )
 
 
+def validate_tracked_classifier_hash_against_local_checkpoint(
+    repo_root: Path,
+    tracked_summary: dict[str, Any],
+    disjoint_summary: dict[str, Any],
+) -> None:
+    checkpoint_path = find_local_classifier_checkpoint_path(repo_root, disjoint_summary)
+    if checkpoint_path is None:
+        return
+
+    model = joblib.load(checkpoint_path)
+    coef = np.asarray(model.coef_[0], dtype=float)
+    actual_sha256 = coefficient_sha256(coef)
+    tracked_sha256 = tracked_summary.get("coefficient_sha256")
+    if tracked_sha256 == actual_sha256:
+        return
+
+    raise ValueError(
+        "Tracked classifier structure summary does not match the local disjoint "
+        "checkpoint. Run "
+        "`uv run python scripts/export_site_data.py "
+        "--refresh-classifier-structure-summary` to refresh the tracked summary or "
+        "`uv run python scripts/export_site_data.py "
+        "--validate-classifier-structure-summary` to inspect the mismatch. "
+        f"tracked coefficient_sha256={tracked_sha256!r} "
+        f"local coefficient_sha256={actual_sha256!r} "
+        f"checkpoint={checkpoint_path.relative_to(repo_root).as_posix()!r}"
+    )
+
+
 def build_classifier_site_payload(
     repo_root: Path,
     classifier_structure_summary_path: Path = CLASSIFIER_STRUCTURE_SUMMARY_PATH,
@@ -479,6 +524,11 @@ def build_classifier_site_payload(
     disjoint_qids = load_json(qids_path)
     tracked_structure_summary = load_classifier_structure_summary(
         repo_root, classifier_structure_summary_path
+    )
+    validate_tracked_classifier_hash_against_local_checkpoint(
+        repo_root,
+        tracked_structure_summary,
+        summary,
     )
     selected_h_neuron_structure = tracked_structure_summary["structure"]
     if tracked_structure_summary["selected_h_neurons"] != summary["selected_h_neurons"]:

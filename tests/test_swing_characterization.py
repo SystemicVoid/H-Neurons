@@ -301,6 +301,118 @@ def test_build_classifier_site_payload_uses_tracked_structure_summary(tmp_path: 
     )
 
 
+def test_build_classifier_site_payload_rejects_stale_tracked_structure_when_local_checkpoint_exists(
+    tmp_path: Path,
+):
+    repo_root = tmp_path
+    coef = np.array([9.0 - idx * 0.5 for idx in range(10)] + [-1.0] * 24, dtype=float)
+    checkpoint_path = repo_root / "models/gemma3_4b_classifier_disjoint.pkl"
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(SimpleNamespace(coef_=np.array([coef], dtype=float)), checkpoint_path)
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+        {
+            "model_path": "google/gemma-3-4b-it",
+            "loaded_model_path": "models/gemma3_4b_classifier_disjoint.pkl",
+            "selected_h_neurons": 10,
+            "selected_ratio_per_mille": 0.1,
+            "total_ffn_neurons": 34,
+            "evaluation": {
+                "n_examples": 10,
+                "n_positive": 5,
+                "n_negative": 5,
+                "metrics": {"accuracy": {"estimate": 0.8}},
+                "bootstrap": {},
+                "confusion_matrix": {},
+            },
+        },
+    )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
+        {
+            "evaluation": {
+                "n_examples": 12,
+                "n_positive": 6,
+                "n_negative": 6,
+                "metrics": {"accuracy": {"estimate": 0.9}},
+                "bootstrap": {},
+                "confusion_matrix": {},
+            }
+        },
+    )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+        {"group_a": ["q1", "q2", "q3"]},
+    )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/classifier_structure_summary.json",
+        {
+            "schema_version": 1,
+            "generated_at": "2026-03-19",
+            "generated_by": "scripts/export_site_data.py",
+            "model": "google/gemma-3-4b-it",
+            "model_path": "models/gemma3_4b_classifier_disjoint.pkl",
+            "generation_script": "scripts/export_site_data.py",
+            "source_files": [
+                "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+                "models/gemma3_4b_classifier_disjoint.pkl",
+            ],
+            "selected_h_neurons": 10,
+            "total_ffn_neurons": 34,
+            "coefficient_sha256": "0" * 64,
+            "structure": {
+                "n_layers": 34,
+                "neurons_per_layer": 1,
+                "positive_counts_by_layer": [1] * 10 + [0] * 24,
+                "nonzero_layers": [{"layer": layer, "count": 1} for layer in range(10)],
+                "bands": {
+                    "early": {
+                        "label": "early",
+                        "start_layer": 0,
+                        "end_layer": 10,
+                        "count": 10,
+                        "pct": 100.0,
+                    },
+                    "middle": {
+                        "label": "middle",
+                        "start_layer": 11,
+                        "end_layer": 20,
+                        "count": 0,
+                        "pct": 0.0,
+                    },
+                    "late": {
+                        "label": "late",
+                        "start_layer": 21,
+                        "end_layer": 33,
+                        "count": 0,
+                        "pct": 0.0,
+                    },
+                },
+                "top_positive_neurons": [
+                    {
+                        "rank": rank,
+                        "layer": rank - 1,
+                        "neuron": 0,
+                        "label": f"L{rank - 1}:N0",
+                        "weight": round(10.0 - rank * 0.1, 3),
+                    }
+                    for rank in range(1, 11)
+                ],
+            },
+        },
+    )
+
+    try:
+        build_classifier_site_payload(repo_root)
+    except ValueError as exc:
+        assert "does not match the local disjoint checkpoint" in str(exc)
+        assert "coefficient_sha256" in str(exc)
+    else:
+        raise AssertionError(
+            "Expected stale tracked classifier structure to be rejected"
+        )
+
+
 def test_build_classifier_structure_summary_payload_and_validator_use_checkpoint(
     tmp_path: Path,
 ):
@@ -332,6 +444,34 @@ def test_build_classifier_structure_summary_payload_and_validator_use_checkpoint
         {**payload, "generated_at": "2026-03-18"},
     )
     validate_classifier_structure_summary(repo_root)
+
+
+def test_build_classifier_structure_summary_payload_does_not_use_legacy_overlap_checkpoint(
+    tmp_path: Path,
+):
+    repo_root = tmp_path
+    legacy_checkpoint_path = repo_root / "models/gemma3_4b_classifier.pkl"
+    legacy_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(
+        SimpleNamespace(coef_=np.array([[1.0] * 34], dtype=float)),
+        legacy_checkpoint_path,
+    )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+        {
+            "model_path": "google/gemma-3-4b-it",
+            "selected_h_neurons": 34,
+            "total_ffn_neurons": 34,
+        },
+    )
+
+    try:
+        build_classifier_structure_summary_payload(repo_root)
+    except FileNotFoundError as exc:
+        assert "models/gemma3_4b_classifier_disjoint.pkl" in str(exc)
+        assert "models/gemma3_4b_classifier.pkl" not in str(exc)
+    else:
+        raise AssertionError("Expected missing disjoint checkpoint to fail")
 
 
 def test_summarize_llm_enrichment_uses_actual_answer_agreement():
