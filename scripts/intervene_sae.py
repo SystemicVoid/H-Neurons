@@ -12,6 +12,11 @@ Usage:
     Can also be used standalone for testing.
 """
 
+import json
+from pathlib import Path
+
+import joblib
+import numpy as np
 import torch
 
 
@@ -57,9 +62,12 @@ class SAEFeatureScaler:
 
             def make_hook(sae_ref, idx):
                 def hook_fn(module, input, output):
+                    if self._alpha == 1.0:
+                        return output
+
                     # output shape: [batch, seq, hidden_size]
                     original_dtype = output.dtype
-                    h = output.float()
+                    h = output.float().to(sae_ref.device)
 
                     # Encode through SAE
                     features = sae_ref.encode(h)
@@ -105,7 +113,59 @@ class SAEFeatureScaler:
         self.hooks.clear()
 
 
-def load_target_features_from_classifier(classifier_path, layer_indices, d_sae):
+def _load_json(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _load_extraction_metadata(extraction_dir: str) -> dict:
+    path = Path(extraction_dir)
+    candidates = [path / "metadata.json", path.parent / "metadata.json"]
+    for candidate in candidates:
+        if candidate.exists():
+            return _load_json(str(candidate))
+    raise FileNotFoundError(
+        f"Could not find SAE extraction metadata for directory {extraction_dir}"
+    )
+
+
+def _validate_classifier_metadata(classifier_summary_path: str, extraction_dir: str):
+    summary = _load_json(classifier_summary_path)
+    classifier_metadata = summary.get("extraction_metadata")
+    if classifier_metadata is None:
+        raise ValueError(
+            "Classifier summary is missing extraction_metadata; retrain the SAE "
+            "classifier with the updated metadata-aware script."
+        )
+
+    extraction_metadata = _load_extraction_metadata(extraction_dir)
+    for key in (
+        "hook_point",
+        "sae_release",
+        "sae_width",
+        "sae_l0",
+        "layer_indices",
+        "d_in",
+        "d_sae",
+        "aggregation_method",
+    ):
+        if classifier_metadata.get(key) != extraction_metadata.get(key):
+            raise ValueError(
+                f"Classifier/extraction metadata mismatch for {key}: "
+                f"{classifier_metadata.get(key)!r} != {extraction_metadata.get(key)!r}"
+            )
+
+    return classifier_metadata
+
+
+def load_target_features_from_classifier(
+    classifier_path,
+    *,
+    classifier_summary_path=None,
+    extraction_dir=None,
+    layer_indices=None,
+    d_sae=None,
+):
     """Extract target SAE feature indices from a trained SAE classifier.
 
     The classifier's positive-weight features map back to
@@ -114,14 +174,26 @@ def load_target_features_from_classifier(classifier_path, layer_indices, d_sae):
 
     Args:
         classifier_path: Path to saved sklearn model (.pkl).
-        layer_indices: Sorted list of layer indices used during SAE extraction.
-        d_sae: Number of SAE features per layer.
+        classifier_summary_path: Metrics JSON from classifier_sae.py.
+        extraction_dir: Directory within the matching SAE extraction root.
+        layer_indices: Fallback layer order if no metadata is provided.
+        d_sae: Fallback number of SAE features per layer if no metadata is provided.
 
     Returns:
         dict mapping layer_idx -> list of SAE feature indices.
     """
-    import joblib
-    import numpy as np
+    if classifier_summary_path and extraction_dir:
+        classifier_metadata = _validate_classifier_metadata(
+            classifier_summary_path, extraction_dir
+        )
+        layer_indices = classifier_metadata["layer_indices"]
+        d_sae = classifier_metadata["d_sae"]
+
+    if layer_indices is None or d_sae is None:
+        raise ValueError(
+            "Provide classifier_summary_path + extraction_dir or explicit "
+            "layer_indices + d_sae."
+        )
 
     model = joblib.load(classifier_path)
     coef = model.coef_[0]

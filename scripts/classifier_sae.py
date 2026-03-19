@@ -27,6 +27,7 @@ Usage (3-vs-1, with C sweep):
 import argparse
 import json
 import os
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -103,6 +104,89 @@ def parse_args():
     return parser.parse_args()
 
 
+def find_metadata_path(acts_dir: str) -> Path:
+    path = Path(acts_dir)
+    candidates = [path / "metadata.json", path.parent / "metadata.json"]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        f"Could not find SAE metadata.json for activations directory {acts_dir}"
+    )
+
+
+def load_extraction_metadata(acts_dir: str) -> dict:
+    metadata_file = find_metadata_path(acts_dir)
+    with metadata_file.open("r", encoding="utf-8") as handle:
+        metadata = json.load(handle)
+    metadata["metadata_path"] = str(metadata_file)
+    return metadata
+
+
+def location_name_from_dir(acts_dir: str) -> str:
+    return Path(acts_dir).name
+
+
+def validate_location_present(metadata: dict, acts_dir: str, context: str) -> None:
+    location = location_name_from_dir(acts_dir)
+    if location not in metadata.get("locations", []):
+        raise ValueError(
+            f"SAE metadata for {context} does not list required location {location!r}"
+        )
+
+
+def validate_metadata_pair(reference: dict, candidate: dict, context: str) -> None:
+    keys = [
+        "hook_point",
+        "sae_release",
+        "sae_width",
+        "sae_l0",
+        "layer_indices",
+        "d_in",
+        "d_sae",
+        "aggregation_method",
+    ]
+    mismatches = [key for key in keys if reference.get(key) != candidate.get(key)]
+    if mismatches:
+        raise ValueError(
+            f"SAE extraction metadata mismatch for {context}: {', '.join(mismatches)}"
+        )
+
+
+def build_classifier_metadata(
+    answer_metadata: dict,
+    *,
+    train_mode: str,
+    train_answer_dir: str,
+    train_other_dir: str | None = None,
+    test_dir: str | None = None,
+) -> dict:
+    metadata = {
+        key: answer_metadata[key]
+        for key in [
+            "hook_point",
+            "sae_release",
+            "sae_width",
+            "sae_l0",
+            "layer_indices",
+            "d_in",
+            "d_sae",
+            "aggregation_method",
+        ]
+    }
+    metadata["train_mode"] = train_mode
+    metadata["source_locations"] = {
+        "train_answer": location_name_from_dir(train_answer_dir),
+    }
+    if train_other_dir:
+        metadata["source_locations"]["train_other"] = location_name_from_dir(
+            train_other_dir
+        )
+    if test_dir:
+        metadata["source_locations"]["test"] = location_name_from_dir(test_dir)
+    return metadata
+
+
 def load_sae_data(
     ids_path, ans_acts_dir, other_acts_dir=None, mode="1-vs-1", return_qids=False
 ):
@@ -177,7 +261,7 @@ def summarize_sae_candidate(candidate, selection_metric, prefer_test):
     }
 
 
-def decode_sae_feature_indices(flat_indices, n_layers, d_sae, layer_indices):
+def decode_sae_feature_indices(flat_indices, d_sae, layer_indices):
     """Map flat feature indices back to (layer, sae_feature_idx) pairs."""
     decoded = []
     for idx in flat_indices:
@@ -193,6 +277,51 @@ def decode_sae_feature_indices(flat_indices, n_layers, d_sae, layer_indices):
 def main():
     args = parse_args()
     prefer_test = bool(args.test_ids and args.test_acts)
+    extraction_metadata = None
+    classifier_metadata = None
+
+    if (
+        args.train_mode == "3-vs-1"
+        and args.train_ans_acts
+        and not args.train_other_acts
+    ):
+        raise ValueError("train_other_acts directory required for 3-vs-1 mode.")
+
+    if args.train_ans_acts:
+        extraction_metadata = load_extraction_metadata(args.train_ans_acts)
+        validate_location_present(
+            extraction_metadata, args.train_ans_acts, "train_ans_acts"
+        )
+        classifier_metadata = build_classifier_metadata(
+            extraction_metadata,
+            train_mode=args.train_mode,
+            train_answer_dir=args.train_ans_acts,
+            train_other_dir=args.train_other_acts,
+            test_dir=args.test_acts,
+        )
+
+        if args.train_mode == "3-vs-1":
+            other_metadata = load_extraction_metadata(args.train_other_acts)
+            validate_location_present(
+                other_metadata, args.train_other_acts, "train_other_acts"
+            )
+            validate_metadata_pair(
+                extraction_metadata, other_metadata, "train_other_acts"
+            )
+
+        if prefer_test:
+            test_metadata = load_extraction_metadata(args.test_acts)
+            validate_location_present(test_metadata, args.test_acts, "test_acts")
+            validate_metadata_pair(extraction_metadata, test_metadata, "test_acts")
+    elif prefer_test:
+        extraction_metadata = load_extraction_metadata(args.test_acts)
+        validate_location_present(extraction_metadata, args.test_acts, "test_acts")
+        classifier_metadata = build_classifier_metadata(
+            extraction_metadata,
+            train_mode=args.train_mode,
+            train_answer_dir=args.test_acts,
+            test_dir=args.test_acts,
+        )
 
     # Load test data
     X_test = y_test = test_qids = None
@@ -230,6 +359,7 @@ def main():
                 "loaded_model_path": args.load_model,
                 "n_positive_features": n_positive,
                 "n_nonzero_features": n_nonzero,
+                "extraction_metadata": classifier_metadata,
                 "evaluation": evaluation,
             }
             with open(args.metrics_out, "w", encoding="utf-8") as f:
@@ -249,7 +379,14 @@ def main():
         other_acts_dir=args.train_other_acts,
         mode=args.train_mode,
     )
-    total_features = get_sae_feature_info(X_train)
+    assert classifier_metadata is not None
+    layer_indices = classifier_metadata["layer_indices"]
+    d_sae = classifier_metadata["d_sae"]
+    total_features = get_sae_feature_info(
+        X_train,
+        n_layers=len(layer_indices),
+        d_sae=d_sae,
+    )
     print(f"  Train set: {len(y_train)} samples, {total_features} features")
 
     # C sweep
@@ -325,6 +462,7 @@ def main():
         payload = {
             "feature_type": "sae",
             "model_path": args.model_path,
+            "extraction_metadata": classifier_metadata,
             "train_mode": args.train_mode,
             "penalty": args.penalty,
             "solver": args.solver,
@@ -336,10 +474,14 @@ def main():
             ),
             "top_positive_features": [
                 {
-                    "flat_idx": int(idx),
-                    "weight": float(coef[idx]),
+                    **decoded,
+                    "weight": float(coef[decoded["flat_idx"]]),
                 }
-                for idx in top_positive_idx
+                for decoded in decode_sae_feature_indices(
+                    top_positive_idx,
+                    d_sae=d_sae,
+                    layer_indices=layer_indices,
+                )
             ],
             "candidates": [
                 summarize_sae_candidate(c, args.selection_metric, prefer_test)

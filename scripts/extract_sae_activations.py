@@ -1,15 +1,16 @@
 """Extract SAE feature activations for TriviaQA samples.
 
 Hooks at post_feedforward_layernorm output (the exact point Gemma Scope 2
-SAEs are trained on), projects through SAE encoder, and saves per-sample
-sparse feature vectors aggregated over answer-token positions.
+SAEs are trained on), projects through SAE encoders, and saves per-sample
+sparse feature vectors aggregated over requested token locations.
 
 Usage:
     uv run python scripts/extract_sae_activations.py \
         --model_path google/gemma-3-4b-it \
         --input_path data/gemma3_4b/pipeline/answer_tokens.jsonl \
         --train_ids_path data/gemma3_4b/pipeline/train_qids.json \
-        --output_root data/gemma3_4b/pipeline/activations_sae/answer_tokens \
+        --output_root data/gemma3_4b/pipeline/activations_sae \
+        --locations answer_tokens all_except_answer_tokens \
         --sae_release gemma-scope-2-4b-it-mlp-all \
         --sae_width 16k \
         --sae_l0 small \
@@ -22,13 +23,19 @@ For all layers:
 import argparse
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import torch
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from extract_activations import get_region_indices, unwrap_chat_template_output
+from extract_activations import (
+    aggregate_token_activations,
+    get_region_indices,
+    select_token_activations,
+    unwrap_chat_template_output,
+)
 
 
 def parse_args():
@@ -46,7 +53,7 @@ def parse_args():
         "--output_root",
         type=str,
         required=True,
-        help="Root directory for saving SAE feature .npy files",
+        help="Root directory for saving SAE feature .npy files.",
     )
     parser.add_argument(
         "--device_map",
@@ -80,24 +87,100 @@ def parse_args():
         default=["0", "5", "6", "7", "13", "14", "15", "16", "17", "20"],
         help="Layers to extract. Use 'all' for all layers.",
     )
+    parser.add_argument(
+        "--locations",
+        nargs="+",
+        default=["answer_tokens"],
+        choices=["input", "output", "answer_tokens", "all_except_answer_tokens"],
+        help="List of positions to extract SAE activations from.",
+    )
     parser.add_argument("--method", type=str, choices=["mean", "max"], default="mean")
     return parser.parse_args()
+
+
+def sae_cfg_to_dict(sae) -> dict:
+    cfg = sae.cfg
+    if hasattr(cfg, "to_dict"):
+        return cfg.to_dict()
+    return {key: value for key, value in vars(cfg).items() if not key.startswith("_")}
+
+
+def resolve_layer_indices(model_path: str, layers: list[str]) -> list[int]:
+    if layers == ["all"]:
+        config = AutoConfig.from_pretrained(model_path)
+        text_cfg = config.text_config if hasattr(config, "text_config") else config
+        return list(range(text_cfg.num_hidden_layers))
+    return [int(x) for x in layers]
+
+
+def metadata_path(output_root: str) -> Path:
+    return Path(output_root) / "metadata.json"
+
+
+def build_metadata(
+    args,
+    layer_indices: list[int],
+    sae_cfg: dict,
+) -> dict:
+    return {
+        "model_path": args.model_path,
+        "hook_point": "post_feedforward_layernorm",
+        "sae_release": args.sae_release,
+        "sae_width": args.sae_width,
+        "sae_l0": args.sae_l0,
+        "layer_indices": layer_indices,
+        "d_in": sae_cfg.get("d_in"),
+        "d_sae": sae_cfg.get("d_sae"),
+        "aggregation_method": args.method,
+        "locations": list(args.locations),
+    }
+
+
+def ensure_metadata(output_root: str, metadata: dict) -> None:
+    path = metadata_path(output_root)
+    if path.exists():
+        with path.open("r", encoding="utf-8") as handle:
+            existing = json.load(handle)
+        keys_to_match = [
+            "model_path",
+            "hook_point",
+            "sae_release",
+            "sae_width",
+            "sae_l0",
+            "layer_indices",
+            "d_in",
+            "d_sae",
+            "aggregation_method",
+        ]
+        mismatches = [
+            key for key in keys_to_match if existing.get(key) != metadata.get(key)
+        ]
+        if mismatches:
+            raise ValueError(
+                f"Existing SAE metadata at {path} does not match this extraction run. "
+                "Use a fresh output directory or remove the stale metadata file."
+            )
+        merged_locations = list(
+            dict.fromkeys(existing.get("locations", []) + metadata["locations"])
+        )
+        if merged_locations != existing.get("locations", []):
+            existing["locations"] = merged_locations
+            with path.open("w", encoding="utf-8") as handle:
+                json.dump(existing, handle, indent=2)
+        return
+
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(metadata, handle, indent=2)
 
 
 class SAEExtractor:
     """Captures post_feedforward_layernorm outputs and projects through SAEs."""
 
     def __init__(self, model, saes, layer_indices):
-        """
-        Args:
-            model: HuggingFace model.
-            saes: dict mapping layer_idx -> loaded SAE object.
-            layer_indices: list of layer indices to hook.
-        """
         self.model = model
         self.saes = saes
         self.layer_indices = sorted(layer_indices)
-        self.captured = {}  # layer_idx -> tensor
+        self.captured = {}
         self.hooks = []
         self._register_hooks()
 
@@ -105,7 +188,6 @@ class SAEExtractor:
         for name, module in self.model.named_modules():
             if "post_feedforward_layernorm" not in name:
                 continue
-            # Extract layer index from name like "model.layers.13.post_feedforward_layernorm"
             layer_idx = self._extract_layer_idx(name)
             if layer_idx is None or layer_idx not in self.layer_indices:
                 continue
@@ -128,39 +210,31 @@ class SAEExtractor:
     def clear(self):
         self.captured.clear()
 
-    def get_sae_features(self, token_slice=None):
+    def get_sae_features(self):
         """Project captured activations through SAE encoders.
 
-        Args:
-            token_slice: Optional (start, end) tuple to select token positions.
-
         Returns:
-            Tensor of shape [n_layers, n_tokens, d_sae] with SAE feature activations.
+            Tensor of shape [n_layers, n_tokens, d_sae].
         """
         features_by_layer = []
         for layer_idx in self.layer_indices:
             if layer_idx not in self.captured:
                 raise ValueError(f"Layer {layer_idx} not captured")
 
-            h_t = self.captured[layer_idx]  # [batch, seq, hidden_size]
+            h_t = self.captured[layer_idx]
             if h_t.dim() == 3 and h_t.size(0) == 1:
-                h_t = h_t.squeeze(0)  # [seq, hidden_size]
-
-            if token_slice is not None:
-                start, end = token_slice
-                h_t = h_t[start:end]  # [n_tokens, hidden_size]
+                h_t = h_t.squeeze(0)
 
             sae = self.saes[layer_idx]
             with torch.no_grad():
-                # SAE expects float32 input
                 feat = sae.encode(h_t.float().to(sae.device))
             features_by_layer.append(feat.cpu())
 
-        return torch.stack(features_by_layer)  # [n_layers, n_tokens, d_sae]
+        return torch.stack(features_by_layer)
 
     def remove(self):
-        for h in self.hooks:
-            h.remove()
+        for hook in self.hooks:
+            hook.remove()
         self.hooks.clear()
 
 
@@ -183,33 +257,20 @@ def load_saes(release, layer_indices, width, l0, device):
 
 def main():
     args = parse_args()
-
-    # Determine layer indices
-    if args.layers == ["all"]:
-        from transformers import AutoConfig
-
-        config = AutoConfig.from_pretrained(args.model_path)
-        text_cfg = config.text_config if hasattr(config, "text_config") else config
-        layer_indices = list(range(text_cfg.num_hidden_layers))
-    else:
-        layer_indices = [int(x) for x in args.layers]
-
+    layer_indices = resolve_layer_indices(args.model_path, args.layers)
     print(f"Extracting SAE features for layers: {layer_indices}")
 
-    # Load target sample IDs
-    with open(args.train_ids_path, "r") as f:
-        id_map = json.load(f)
+    with open(args.train_ids_path, "r", encoding="utf-8") as handle:
+        id_map = json.load(handle)
         target_ids = set(id_map["t"] + id_map["f"])
     print(f"Loaded {len(target_ids)} target IDs for extraction.")
 
-    # Load samples
-    with open(args.input_path, "r", encoding="utf-8") as f:
-        samples = [json.loads(line) for line in f]
+    with open(args.input_path, "r", encoding="utf-8") as handle:
+        samples = [json.loads(line) for line in handle]
 
-    # Prepare output directory
-    os.makedirs(args.output_root, exist_ok=True)
+    for location in args.locations:
+        os.makedirs(os.path.join(args.output_root, location), exist_ok=True)
 
-    # Load model
     print(f"Loading model: {args.model_path}")
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
     model = AutoModelForCausalLM.from_pretrained(
@@ -219,7 +280,6 @@ def main():
     )
     model.eval()
 
-    # Load SAEs — put on same device as model
     model_device = next(model.parameters()).device
     sae_device = str(model_device)
     print(f"Loading SAEs on device: {sae_device}")
@@ -227,32 +287,35 @@ def main():
         args.sae_release, layer_indices, args.sae_width, args.sae_l0, sae_device
     )
 
-    # Check dimensions match
     first_sae = next(iter(saes.values()))
-    d_sae = first_sae.cfg.d_sae
-    d_in = first_sae.cfg.d_in
-    print(f"SAE dimensions: d_in={d_in}, d_sae={d_sae}")
+    first_cfg = sae_cfg_to_dict(first_sae)
+    print(
+        f"SAE dimensions: d_in={first_cfg.get('d_in')}, d_sae={first_cfg.get('d_sae')}"
+    )
 
-    # Install hooks
+    metadata = build_metadata(args, layer_indices, first_cfg)
+    ensure_metadata(args.output_root, metadata)
+
     extractor = SAEExtractor(model, saes, layer_indices)
     print(f"Installed {len(extractor.hooks)} hooks")
 
-    # Process samples
-    skipped = 0
-    extracted = 0
+    skipped = {location: 0 for location in args.locations}
+    extracted = {location: 0 for location in args.locations}
+
     for sample_dict in tqdm(samples, desc="Processing"):
-        qid = list(sample_dict.keys())[0]
+        qid = next(iter(sample_dict))
         if qid not in target_ids:
             continue
 
-        save_path = os.path.join(args.output_root, f"act_{qid}.npy")
-        if os.path.exists(save_path):
-            continue  # Resume support
+        if all(
+            os.path.exists(os.path.join(args.output_root, loc, f"act_{qid}.npy"))
+            for loc in args.locations
+        ):
+            continue
 
         data = sample_dict[qid]
         extractor.clear()
 
-        # Forward pass
         msgs = [
             {"role": "user", "content": data["question"]},
             {"role": "assistant", "content": data["response"]},
@@ -266,7 +329,6 @@ def main():
         with torch.no_grad():
             model(input_ids)
 
-        # Find answer token region
         regions = get_region_indices(
             input_ids,
             tokenizer,
@@ -274,26 +336,27 @@ def main():
             data["response"],
             data["answer_tokens"],
         )
-        answer_region = regions.get("answer_tokens")
-        if answer_region is None:
-            skipped += 1
-            continue
+        sae_features = extractor.get_sae_features()
 
-        # Extract SAE features for answer tokens
-        sae_features = extractor.get_sae_features(
-            token_slice=answer_region
-        )  # [n_layers, n_answer_tokens, d_sae]
+        for location in args.locations:
+            save_path = os.path.join(args.output_root, location, f"act_{qid}.npy")
+            if os.path.exists(save_path):
+                continue
 
-        # Aggregate over answer tokens
-        if args.method == "mean":
-            aggregated = sae_features.mean(dim=1)  # [n_layers, d_sae]
-        else:
-            aggregated, _ = sae_features.max(dim=1)
+            selected = select_token_activations(sae_features, location, regions)
+            if selected is None:
+                skipped[location] += 1
+                continue
 
-        np.save(save_path, aggregated.numpy())
-        extracted += 1
+            aggregated = aggregate_token_activations(selected, args.method)
+            np.save(save_path, aggregated.numpy())
+            extracted[location] += 1
 
-    print(f"\nDone. Extracted: {extracted}, Skipped (no answer region): {skipped}")
+    print("\nDone.")
+    for location in args.locations:
+        print(
+            f"  {location}: extracted={extracted[location]}, skipped={skipped[location]}"
+        )
     extractor.remove()
 
 

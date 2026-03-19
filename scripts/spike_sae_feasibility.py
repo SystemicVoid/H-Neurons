@@ -13,16 +13,25 @@ import argparse
 import torch
 
 
+def sae_cfg_to_dict(sae) -> dict:
+    """Convert an SAE cfg object into a regular dict for reporting/tests."""
+    cfg = sae.cfg
+    if hasattr(cfg, "to_dict"):
+        return cfg.to_dict()
+    return {key: value for key, value in vars(cfg).items() if not key.startswith("_")}
+
+
 def inspect_sae(release: str, sae_id: str, device: str = "cpu"):
     """Load an SAE and print its configuration and dimensions."""
     from sae_lens import SAE
 
     print(f"Loading SAE: release={release!r}, sae_id={sae_id!r}")
-    sae, cfg_dict, sparsity = SAE.from_pretrained(
+    sae = SAE.from_pretrained(
         release=release,
         sae_id=sae_id,
         device=device,
     )
+    cfg_dict = sae_cfg_to_dict(sae)
     print(f"\nSAE loaded successfully on device={device}")
     print(f"  Type: {type(sae).__name__}")
     print(f"  Config keys: {sorted(cfg_dict.keys())}")
@@ -86,11 +95,13 @@ def check_model_dims(model_path: str):
         f"  MLP architecture: up_proj/gate_proj [{hidden_size}→{intermediate_size}]"
         f" → down_proj [{intermediate_size}→{hidden_size}]"
     )
+    print(f"\n  post_feedforward_layernorm output dim: {hidden_size}")
+    print(f"  down_proj output dim before RMSNorm: {hidden_size}")
+    print(f"  down_proj input dim (CETT neuron activations): {intermediate_size}")
     print(
-        f"\n  down_proj INPUT dim (z_t, intermediate activations): {intermediate_size}"
+        "  Gemma Scope 2 MLP SAEs are trained on post_feedforward_layernorm output, "
+        f"so SAE d_in should match hidden_size = {hidden_size}"
     )
-    print(f"  down_proj OUTPUT dim (h_t, MLP output): {hidden_size}")
-    print(f"  SAE mlp_out should match: d_in = {hidden_size}")
 
     return {
         "hidden_size": hidden_size,
@@ -120,33 +131,31 @@ def gpu_hook_test(model_path: str, release: str, sae_id: str):
     model.eval()
 
     print("Loading SAE...")
-    sae, cfg_dict, _ = SAE.from_pretrained(
+    sae = SAE.from_pretrained(
         release=release,
         sae_id=sae_id,
         device=device,
     )
     sae.eval()
+    cfg_dict = sae_cfg_to_dict(sae)
 
-    # Hook to capture down_proj output (= MLP block output)
     captured_outputs = []
 
-    def capture_down_proj_output(module, input, output):
+    def capture_post_ff_output(module, input, output):
         captured_outputs.append(output.detach())
 
-    # Also capture down_proj input for CETT comparison
-    captured_inputs = []
-
-    def capture_down_proj_input(module, input, output):
-        captured_inputs.append(input[0].detach())
-
-    # Register hooks on layer 13 down_proj
     target_layer = 13
+    hooked_name = None
     for name, module in model.named_modules():
-        if f"layers.{target_layer}" in name and "down_proj" in name:
-            module.register_forward_hook(capture_down_proj_output)
-            module.register_forward_hook(capture_down_proj_input)
+        if f"layers.{target_layer}" in name and "post_feedforward_layernorm" in name:
+            module.register_forward_hook(capture_post_ff_output)
+            hooked_name = name
             print(f"Hooked: {name}")
             break
+    if hooked_name is None:
+        raise RuntimeError(
+            "Could not find target post_feedforward_layernorm module for GPU hook test"
+        )
 
     # Run a single forward pass
     msgs = [{"role": "user", "content": "What is the capital of France?"}]
@@ -163,18 +172,15 @@ def gpu_hook_test(model_path: str, release: str, sae_id: str):
         model(input_ids)
 
     # Check captured tensors
-    print(
-        f"\nCaptured {len(captured_outputs)} output tensors, {len(captured_inputs)} input tensors"
-    )
+    print(f"\nCaptured {len(captured_outputs)} post-feedforward outputs")
     if captured_outputs:
         h_t = captured_outputs[0]
-        print(f"  down_proj output (h_t) shape: {h_t.shape}")
-        print(f"  down_proj output dim: {h_t.shape[-1]}")
+        print(f"  post_feedforward_layernorm output shape: {h_t.shape}")
+        print(f"  post_feedforward_layernorm output dim: {h_t.shape[-1]}")
         print(f"  SAE d_in: {cfg_dict['d_in']}")
         print(f"  Dimensions match: {h_t.shape[-1] == cfg_dict['d_in']}")
 
         if h_t.shape[-1] == cfg_dict["d_in"]:
-            # Test SAE encode on real activations
             h_t_float = h_t.float()
             features = sae.encode(h_t_float)
             print("\n  SAE encode on real activations:")
@@ -182,23 +188,18 @@ def gpu_hook_test(model_path: str, release: str, sae_id: str):
             n_active = (features > 0).float().sum(dim=-1).mean().item()
             print(f"    Mean active features per token: {n_active:.1f}")
 
-            # Reconstruct
             reconstructed = sae.decode(features)
             error = (h_t_float - reconstructed).norm() / h_t_float.norm()
             print(f"    Reconstruction error (relative L2): {error.item():.4f}")
         else:
             print(
-                "\n  *** DIMENSION MISMATCH — SAE cannot be used on down_proj output ***"
+                "\n  *** DIMENSION MISMATCH — SAE cannot be used on "
+                "post_feedforward_layernorm output ***"
             )
-
-    if captured_inputs:
-        z_t = captured_inputs[0]
-        print(f"\n  down_proj input (z_t) shape: {z_t.shape}")
-        print(f"  This is what CETT hooks capture (intermediate_size={z_t.shape[-1]})")
 
     print("\nFeasibility verdict:", end=" ")
     if captured_outputs and h_t.shape[-1] == cfg_dict["d_in"]:
-        print("PASS — SAE is compatible with down_proj output")
+        print("PASS — SAE is compatible with post_feedforward_layernorm output")
     else:
         print("FAIL — dimension mismatch")
 
@@ -246,11 +247,11 @@ def main():
         print(f"  Model intermediate_size: {model_dims['intermediate_size']}")
 
         if d_in == model_dims["hidden_size"]:
-            print("  ✓ SAE d_in matches hidden_size (MLP output dim)")
-            print("    → Hook at down_proj OUTPUT is correct")
+            print("  ✓ SAE d_in matches hidden_size")
+            print("    → Hook at post_feedforward_layernorm output is correct")
         elif d_in == model_dims["intermediate_size"]:
-            print("  ✓ SAE d_in matches intermediate_size (MLP intermediate dim)")
-            print("    → Hook at down_proj INPUT is correct")
+            print("  ✗ SAE d_in matches intermediate_size instead of hidden_size")
+            print("    → This would indicate the wrong hook point for Gemma Scope 2")
         else:
             print("  ✗ SAE d_in matches neither — BLOCKED")
 

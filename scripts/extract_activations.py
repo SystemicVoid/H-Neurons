@@ -1,10 +1,11 @@
-import os
-import json
 import argparse
-import torch
+import json
+import os
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
+import torch
 from tqdm import tqdm
-from typing import List, Dict, Optional, Tuple
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
@@ -172,6 +173,52 @@ def get_region_indices(
     }
 
 
+def select_token_activations(
+    activations: torch.Tensor,
+    location: str,
+    regions: Dict[str, Optional[Tuple[int, int]]],
+) -> Optional[torch.Tensor]:
+    """Select token activations for a named location.
+
+    Args:
+        activations: Tensor shaped [layers, tokens, features].
+        location: One of input/output/answer_tokens/all_except_answer_tokens.
+        regions: Region map from get_region_indices().
+
+    Returns:
+        Selected tensor shaped [layers, selected_tokens, features], or None when the
+        requested region cannot be resolved.
+    """
+    if location in {"input", "output", "answer_tokens"}:
+        indices = regions.get(location)
+        if indices is None:
+            return None
+        start, end = indices
+        return activations[:, start:end, :]
+
+    if location == "all_except_answer_tokens":
+        answer_region = regions.get("answer_tokens")
+        if answer_region is None:
+            return None
+        ans_start, ans_end = answer_region
+        return torch.cat(
+            [activations[:, :ans_start, :], activations[:, ans_end:, :]],
+            dim=1,
+        )
+
+    raise ValueError(f"Unsupported extraction location: {location}")
+
+
+def aggregate_token_activations(activations: torch.Tensor, method: str) -> torch.Tensor:
+    """Aggregate token activations across the token dimension."""
+    if method == "mean":
+        return activations.mean(dim=1)
+    if method == "max":
+        aggregated, _ = activations.max(dim=1)
+        return aggregated
+    raise ValueError(f"Unsupported aggregation method: {method}")
+
+
 def main():
     args = parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
@@ -235,29 +282,11 @@ def main():
             if os.path.exists(save_path):
                 continue  # Resume support: skip already-extracted QIDs
 
-            indices = None
-            if loc in ["input", "output", "answer_tokens"]:
-                indices = regions[loc]
-            elif loc == "all_except_answer_tokens" and regions["answer_tokens"]:
-                # Special logic for inverse slicing
-                ans_s, ans_e = regions["answer_tokens"]
-                # Concatenate segments before and after answer tokens within the output
-                seg1 = cett_full[:, :ans_s, :]
-                seg2 = cett_full[:, ans_e:, :]
-                selected_cett = torch.cat([seg1, seg2], dim=1)
-            elif loc == "all_except_answer_tokens":
-                continue  # Can't compute inverse without answer region
-
-            if loc != "all_except_answer_tokens" and indices:
-                selected_cett = cett_full[:, indices[0] : indices[1], :]
-            elif loc != "all_except_answer_tokens":
+            selected_cett = select_token_activations(cett_full, loc, regions)
+            if selected_cett is None:
                 continue
 
-            # Aggregate
-            if args.method == "mean":
-                final_act = selected_cett.mean(dim=1)
-            else:
-                final_act, _ = selected_cett.max(dim=1)
+            final_act = aggregate_token_activations(selected_cett, args.method)
 
             np.save(save_path, final_act.cpu().float().numpy())
 
