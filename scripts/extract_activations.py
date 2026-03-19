@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import subprocess
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -51,6 +52,11 @@ def parse_args():
     parser.add_argument("--method", type=str, choices=["mean", "max"], default="mean")
     parser.add_argument("--use_mag", action="store_true", default=True)
     parser.add_argument("--use_abs", action="store_true", default=True)
+    parser.add_argument(
+        "--wandb",
+        action="store_true",
+        help="Enable Weights & Biases run tracking",
+    )
     return parser.parse_args()
 
 
@@ -221,6 +227,28 @@ def aggregate_token_activations(activations: torch.Tensor, method: str) -> torch
 
 def main():
     args = parse_args()
+
+    # W&B tracking (opt-in)
+    wb_run = None
+    if args.wandb:
+        import wandb
+
+        git_sha = (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
+        wb_run = wandb.init(
+            project="h-neurons",
+            config={
+                **{k: v for k, v in vars(args).items() if k != "wandb"},
+                "git_sha": git_sha,
+            },
+            tags=["extract_activations"],
+        )
+
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
     model = AutoModelForCausalLM.from_pretrained(
         args.model_path,
@@ -289,6 +317,9 @@ def main():
             final_act = aggregate_token_activations(selected_cett, args.method)
 
             np.save(save_path, final_act.cpu().float().numpy())
+
+    if wb_run is not None:
+        wandb.finish()
 
 
 if __name__ == "__main__":

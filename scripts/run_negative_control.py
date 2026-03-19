@@ -19,6 +19,7 @@ Usage:
 import argparse
 import json
 import os
+import subprocess
 import sys
 from typing import Any, cast
 
@@ -653,6 +654,11 @@ def parse_args():
         action="store_true",
         help="Skip generation, only run analysis/plotting on existing data",
     )
+    p.add_argument(
+        "--wandb",
+        action="store_true",
+        help="Enable Weights & Biases run tracking",
+    )
     return p.parse_args()
 
 
@@ -681,6 +687,29 @@ def main():
         ]
 
     os.makedirs(output_base, exist_ok=True)
+
+    # W&B tracking (opt-in)
+    wb_run = None
+    if args.wandb:
+        import wandb
+
+        git_sha = (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
+        wb_run = wandb.init(
+            project="h-neurons",
+            config={
+                **{k: v for k, v in vars(args).items() if k != "wandb"},
+                "alphas": [float(a) for a in alphas],
+                "n_configs": len(configs),
+                "git_sha": git_sha,
+            },
+            tags=[f"neg_ctrl_{benchmark}"],
+        )
 
     # Load classifier zero-weight indices
     print("Loading classifier for neuron sampling...")
@@ -819,6 +848,10 @@ def main():
 
     plot_path = os.path.join(output_base, "negative_control_comparison.png")
     plot_comparison(summary, alphas, plot_path, benchmark=benchmark)
+
+    if wb_run is not None:
+        wandb.log({"comparison_summary": summary})
+        wandb.finish()
 
 
 if __name__ == "__main__":

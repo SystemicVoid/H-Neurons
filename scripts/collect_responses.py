@@ -79,6 +79,11 @@ def parse_args():
     parser.add_argument(
         "--judge_model", type=str, default="gpt-4o", help="Model name for LLM Judge"
     )
+    parser.add_argument(
+        "--wandb",
+        action="store_true",
+        help="Enable Weights & Biases run tracking",
+    )
 
     return parser.parse_args()
 
@@ -312,6 +317,34 @@ class ConsistencySampler:
 
 
 if __name__ == "__main__":
+    import subprocess
+
     args = parse_args()
+
+    wb_run = None
+    if args.wandb:
+        import wandb
+
+        git_sha = (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
+        wb_run = wandb.init(
+            project="h-neurons",
+            config={
+                **{
+                    k: v for k, v in vars(args).items() if k not in ("wandb", "api_key")
+                },
+                "git_sha": git_sha,
+            },
+            tags=["collect_responses"],
+        )
+
     sampler = ConsistencySampler(args)
     sampler.process_data()
+
+    if wb_run is not None:
+        wandb.finish()

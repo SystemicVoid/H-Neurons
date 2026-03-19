@@ -17,6 +17,7 @@ Usage:
 import os
 import json
 import argparse
+import subprocess
 
 import torch
 import joblib
@@ -916,6 +917,11 @@ def parse_args():
         choices=range(1, 6),
         help="Number of jailbreak templates to use (1-5)",
     )
+    p.add_argument(
+        "--wandb",
+        action="store_true",
+        help="Enable Weights & Biases run tracking",
+    )
     return p.parse_args()
 
 
@@ -972,6 +978,29 @@ def main():
 
     print(f"Loaded {len(samples)} samples")
 
+    # W&B tracking (opt-in)
+    wb_run = None
+    if args.wandb:
+        import wandb
+
+        git_sha = (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
+        wb_run = wandb.init(
+            project="h-neurons",
+            config={
+                **{k: v for k, v in vars(args).items() if k != "wandb"},
+                "n_h_neurons": total_neurons,
+                "n_samples": len(samples),
+                "git_sha": git_sha,
+            },
+            tags=[args.benchmark, args.model_path.split("/")[-1]],
+        )
+
     # Sweep alpha values
     extra_kwargs = {}
     if args.benchmark == "faitheval":
@@ -1014,6 +1043,19 @@ def main():
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
     print(f"\nSaved results to {summary_path}")
+
+    if wb_run is not None:
+        for alpha_str, alpha_result in aggregation["results"].items():
+            wandb.log(
+                {
+                    "alpha": float(alpha_str),
+                    "compliance_rate": alpha_result["compliance_rate"],
+                    "n_compliant": alpha_result["n_compliant"],
+                    "n_total": alpha_result["n_total"],
+                }
+            )
+        wandb.log({"summary": summary})
+        wandb.finish()
 
     scaler.remove()
 
