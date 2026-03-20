@@ -33,6 +33,7 @@
     <span class="tag tag-coral">Core story</span>
     <h1>What still holds,<br>what got narrower,<br>and what decides the paper</h1>
     <!-- from: classifier_disjoint_accuracy -->
+    <!-- from: anti_compliance_delta_0_to_3 -->
     <p class="subtitle" data-source="manual">
       Gao et al. (2025) claim that fewer than 0.1% of a language model's MLP neurons, dubbed "H-Neurons,"
       reliably predict hallucination and causally drive over-compliance when amplified.
@@ -40,7 +41,9 @@
       38 neurons out of <span data-classifier-bind="total-neurons">348,160</span> predict hallucination at
       <span data-classifier-bind="accuracy-value">76.5%</span> accuracy on fully held-out data
       (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>),
-      and scaling them monotonically increases compliance with misleading context.
+      and amplifying them still produces a <span data-intervention-summary-bind="anti-delta-value">6.3pp</span>
+      compliance shift on anti-compliance FaithEval prompts from &alpha;=0.0 to &alpha;=3.0
+      (<span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span>).
       But replication also surfaced problems the paper doesn't discuss.
     </p>
     <p class="subtitle" style="margin-top: 1rem;" data-source="manual">
@@ -138,8 +141,11 @@
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
         <h3 style="color: var(--accent-amber);">Intervention still moves behavior</h3>
+        <!-- from: standard_text_remap_alpha_3_rescored_rate -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The anti-compliance curve rises monotonically, and the standard-prompt contradiction weakens once the committed &alpha;=3.0 answer-text remap separates content from MC-letter recoverability.
+          On anti-compliance FaithEval prompts, the sparse-detector intervention still produces a <span data-intervention-summary-bind="anti-delta-value">6.3pp</span> shift from &alpha;=0.0 to &alpha;=3.0
+          (<span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span>), and the standard-prompt contradiction weakens once the committed &alpha;=3.0 answer-text remap scores the full population at
+          <span data-intervention-summary-bind="remap-value">72.1%</span> (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>) instead of relying only on MC-letter recoverability.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#intervention">Open intervention evidence</a></p>
       </div>
