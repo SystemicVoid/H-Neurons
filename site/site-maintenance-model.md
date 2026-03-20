@@ -31,7 +31,7 @@ Recent completed work:
 - the intervention trend copy on `story.html` now binds the anti-compliance `&alpha;=0.0` to `&alpha;=3.0` effect from canonical intervention JSON instead of freezing "monotonic rise" prose in HTML
 - the `story.html` intervention evidence card now binds the existing standard raw `&alpha;=3.0` point alongside the committed strict-remap point, so that comparison no longer depends on half-editorial prose
 - the `story.html` 4288 evidence card now binds the tracked top-neuron takeaway from the artifact payload instead of carrying a page-local summary of the verdict
-- `docs/ci_manifest.json` now treats `site/story.html` as a required provenance surface for `anti_compliance_delta_0_to_3`
+- `docs/ci_manifest.json` now actually enforces `site/story.html` as a required provenance surface for `anti_compliance_delta_0_to_3`, matching the live story-page comment
 - `scripts/audit_ci_coverage.py` now validates the top-neuron verdict payload alongside the classifier-structure payload
 - `scripts/audit_ci_coverage.py` now validates the classifier-structure payload
 - `data/gemma3_4b/pipeline/classifier_structure_summary.json` is now tracked alongside the other classifier outputs
