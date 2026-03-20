@@ -5,7 +5,7 @@
 **Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC 0.843, 95% CI [0.815, 0.870] on the disjoint evaluated test set, n=780)
 **Reference:** Gao et al., "H-Neurons" (arXiv:2512.01797v2), Section 3 replication
 
-**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md)
+**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md)
 
 ---
 
@@ -205,7 +205,7 @@ Tests harmful compliance on adversarial jailbreak prompts. Data: JailbreakBench 
 <!-- from: jailbreak_compliance_delta_0_to_3 -->
 Endpoint effect from α=0.0 to α=3.0 is **+6.2 pp** with a paired-bootstrap 95% CI of **[2.4, 10.0] pp**. The fitted slope is **+2.14 pp/α** with a paired-bootstrap 95% CI of **[0.91, 3.39] pp/α**.
 
-The curve plateaus at α=1.5 (28.6%) and does not increase further (Spearman ρ=0.679, p=0.094). This contrasts with the steadily monotonic FaithEval anti-compliance curve (ρ=1.0).
+The curve plateaus at α=1.5 (28.6%) and does not increase further. The Spearman rank correlation (ρ=0.679, p=0.094) is **not significant at α=0.05**, so monotonic dose-response is not established on this benchmark — in contrast with FaithEval anti-compliance (ρ=1.0). The endpoint CI excluding zero remains the valid basis for claiming an effect exists; the curve shape is better described as threshold-then-saturation than as linear dose-response.
 
 **Template-level heterogeneity** (condensed — see audit for full table):
 
@@ -218,6 +218,8 @@ The curve plateaus at α=1.5 (28.6%) and does not increase further (Spearman ρ=
 | T4 | 22.0% | 29.0% | 26.0% | +1.64 |
 
 Templates T1 and T3 drive the aggregate effect; Template T2 is immune to H-neuron scaling. No negative control exists for jailbreak.
+
+**Stochastic generation caveat:** Unlike FaithEval and FalseQA (greedy decoding), jailbreak uses `do_sample=True, temperature=0.7`. This means per-item behavioral flips between adjacent alphas conflate H-neuron effects with sampling noise — the audit reports 92% bidirectional churn among swing items, consistent with noise dominating per-item transitions. Cross-benchmark comparisons of per-item flip patterns (e.g., disjoint-subpopulation structure) are not valid between greedy and stochastic benchmarks. Aggregate endpoint effects remain valid because they average over sampling noise. See [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md) for full analysis.
 
 ---
 
@@ -261,7 +263,7 @@ On JailbreakBench (100 adversarial behaviors × 5 templates), H-neuron amplifica
 
 This extends the over-compliance mechanism (Findings 1–2) to an adversarial safety setting: the same 38 neurons that increase susceptibility to misleading context (FaithEval) and false premises (FalseQA) also weaken resistance to jailbreak attempts. The three-benchmark pattern strengthens the case for a general compliance circuit.
 
-**Important caveats:** (1) The curve plateaus at α=1.5 and slightly reverses, unlike the monotonic FaithEval curve. (2) Template heterogeneity is extreme — Template T1 accounts for ~40% of all harmful responses, while Template T2 is immune. (3) **No negative control confirms H-neuron specificity for jailbreak.** The effect could in principle result from scaling any neurons. (4) Stochastic generation (`do_sample=True, temp=0.7`) introduces per-item noise absent from the deterministic FaithEval/FalseQA experiments.
+**Important caveats:** (1) The curve plateaus at α=1.5 and slightly reverses, unlike the monotonic FaithEval curve; the Spearman test for monotonicity is non-significant (p=0.094). (2) Template heterogeneity is extreme — Template T1 accounts for ~40% of all harmful responses, while Template T2 is immune (2-6% compliance across all alphas is indistinguishable from sampling noise at n=100). (3) **No negative control confirms H-neuron specificity for jailbreak.** The effect could in principle result from scaling any neurons. (4) Stochastic generation (`do_sample=True, temp=0.7`) invalidates per-item flip analysis and cross-benchmark flip comparisons; see [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md) §3. (5) **No judge test-retest reliability measurement exists for jailbreak.** FalseQA established 0.4% nondeterminism, but the jailbreak rubric is more complex and responses are longer — judge noise could be higher.
 
 ---
 
@@ -287,6 +289,7 @@ The intervention story is now quantified instead of implied. FaithEval anti-comp
 - **Negative-control random-set intervals are empirical, not asymptotic.** With 8 seeds (FaithEval) or 3 seeds (FalseQA), the right summary is an empirical interval over sampled random sets, not a claim about the entire zero-weight neuron universe.
 - **No jailbreak negative control.** The jailbreak compliance increase (+6.2pp) has not been tested against random-neuron baselines. This is the highest-priority missing control. Estimated cost: ~4h GPU + ~$19 API for quick mode.
 - **Stochastic generation in jailbreak.** Unlike FaithEval/FalseQA (greedy decoding), jailbreak uses `do_sample=True, temperature=0.7`. This adds per-item sampling noise, contributing to non-monotonicity and high per-item churn (15.2% swing items at α=1→3, net +1.2%).
+- **No judge test-retest reliability for jailbreak.** FalseQA measured 0.4% GPT-4o nondeterminism at α=1.0. No equivalent measurement exists for jailbreak, where the rubric is more complex (structured rubric + 6 few-shot examples vs simple ACCEPTED/REFUSED) and responses are longer (~1300 vs ~900 chars). The judge's contribution to apparent alpha-to-alpha variation is unknown.
 
 ### Classifier selection caveat
 

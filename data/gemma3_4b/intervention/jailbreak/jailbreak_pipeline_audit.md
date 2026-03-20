@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-20
 **Model:** `google/gemma-3-4b-it`
-**Related reports:** [intervention_findings.md](../../intervention_findings.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md)
+**Related reports:** [intervention_findings.md](../../intervention_findings.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](jailbreak_interpretive_review.md)
 
 ---
 
@@ -103,7 +103,7 @@ The categories with near-zero H-neuron effect (Harassment, Sexual content) are a
 | Net | +6 (+1.2%) | -25 (-5.0%) |
 | Total swing items | 76 (15.2%) | 69 (13.8%) |
 
-Overlap between items flipping up in both stages: **5** (near-zero). This replicates the disjoint-subpopulation finding from FalseQA (§1.7 of intervention_findings.md) — ablation and amplification affect different items.
+Overlap between items flipping up in both stages: **5** (near-zero). This pattern superficially resembles the disjoint-subpopulation finding from FalseQA (§1.7 of intervention_findings.md), but the comparison is **not valid**: FalseQA uses greedy decoding where per-item flips reflect the intervention alone, while jailbreak uses stochastic generation (`do_sample=True, temp=0.7`) where flips conflate H-neuron effects with sampling noise. Under independence, the expected overlap between 41 and 22 random up-flips from 500 items is ~1.8, so observing 5 is not evidence of subpopulation structure. See [jailbreak_interpretive_review.md](jailbreak_interpretive_review.md) §3 for full analysis.
 
 The net amplification effect (+6 items) is small compared to total churn (76 swing items). The high churn likely reflects stochastic generation noise (do_sample=True, temp=0.7) rather than a strong directional signal at the per-item level.
 
