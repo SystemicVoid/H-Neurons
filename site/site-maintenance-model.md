@@ -30,6 +30,7 @@ Recent completed work:
 - the main early-layer and 38-vs-219 detector claims on `story.html` now read from canonical JSON instead of page-local literals
 - the intervention trend copy on `story.html` now binds the anti-compliance `&alpha;=0.0` to `&alpha;=3.0` effect from canonical intervention JSON instead of freezing "monotonic rise" prose in HTML
 - the `story.html` intervention evidence card now binds the existing standard raw `&alpha;=3.0` point alongside the committed strict-remap point, so that comparison no longer depends on half-editorial prose
+- the `story.html` 4288 evidence card now binds the tracked verdict count from the top-neuron artifact payload instead of freezing "six-test" wording in the page copy
 - `docs/ci_manifest.json` now treats `site/story.html` as a required provenance surface for `anti_compliance_delta_0_to_3`
 - `scripts/audit_ci_coverage.py` now validates the top-neuron verdict payload alongside the classifier-structure payload
 - `scripts/audit_ci_coverage.py` now validates the classifier-structure payload
@@ -41,7 +42,7 @@ That matters because the site no longer tells two separate stories about key qua
 
 The main remaining weak point is no longer classifier-structure export reproducibility.
 That gap is now closed for normal site work. The remaining risk is now concentrated in the static copy that still wraps the evidence pages, especially the claim-heavy synthesis on `story.html` that still depends on manual framing and incomplete provenance coverage.
-Within that story-page risk, the intervention/mechanism slice is now narrower: the headline effect size and the raw-vs-remap `&alpha;=3.0` comparison are both wired, and the remaining open decisions are about whether parse-failure framing or other repeated comparisons should stay manual, bind from existing JSON, or wait for a tracked exporter field.
+Within that story-page risk, the intervention/mechanism slice is now narrower: the headline effect size, the raw-vs-remap `&alpha;=3.0` comparison, and the 4288 verdict count are all wired, and the remaining open decisions are about whether parse-failure framing or other repeated comparisons should stay manual, bind from existing JSON, or wait for a tracked exporter field.
 
 ## Current Snapshot
 
@@ -451,7 +452,7 @@ Current intervention/mechanism decision state on `story.html`:
 - the standard raw MC-letter `&alpha;=3.0` point can also stay a live binding from the existing intervention export, and `story.html` now uses that bound comparison instead of implying it editorially
 - any explicit remap-vs-raw lift claim should wait for a tracked exporter field rather than freezing an untracked delta into prose
 - parse-failure trajectory numerics can stay on `results/gemma-3-4b.html` unless they are promoted into repeated story-page prose, at which point they should bind from the existing export rather than be restated manually
-- the "six-test 4288" wording can remain manual appendix framing for now, but if it becomes a repeated headline metric it should bind from the tracked top-neuron artifact payload
+- the 4288 verdict count can stay a live binding from the tracked top-neuron artifact payload, while the broader verdict framing can remain manual appendix prose unless it becomes a repeated headline claim
 
 ### Priority 2: keep `results/gemma-3-4b.html` as the main ledger, but not the first cleanup target
 
