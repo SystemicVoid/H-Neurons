@@ -1,8 +1,8 @@
 import argparse
 import json
 import os
-import sys
-from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, cast
 
 import numpy as np
 import torch
@@ -10,13 +10,19 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from utils import (
+    define_wandb_metrics,
     finish_run_provenance,
-    get_git_sha,
+    init_wandb_run,
+    log_wandb_files_as_artifact,
     provenance_error_message,
     provenance_status_for_exception,
-    sanitize_run_config,
+    summarize_numeric_values,
     start_run_provenance,
 )
+
+
+PROGRESS_LOG_EVERY = 25
+CURATED_MISSING_LIMIT = 50
 
 
 def unwrap_chat_template_output(chat_template_output):
@@ -234,10 +240,225 @@ def aggregate_token_activations(activations: torch.Tensor, method: str) -> torch
     raise ValueError(f"Unsupported aggregation method: {method}")
 
 
+def metadata_path(output_root: str) -> Path:
+    return Path(output_root) / "metadata.json"
+
+
+def summary_path(output_root: str) -> Path:
+    return Path(output_root) / "summary.json"
+
+
+def build_metadata(args, n_target_ids: int) -> dict:
+    return {
+        "model_path": args.model_path,
+        "input_path": args.input_path,
+        "train_ids_path": args.train_ids_path,
+        "locations": list(args.locations),
+        "aggregation_method": args.method,
+        "use_abs": args.use_abs,
+        "use_mag": args.use_mag,
+        "n_target_ids": n_target_ids,
+    }
+
+
+def ensure_metadata(output_root: str, metadata: dict) -> None:
+    path = metadata_path(output_root)
+    if path.exists():
+        with path.open("r", encoding="utf-8") as handle:
+            existing = json.load(handle)
+        keys_to_match = [
+            "model_path",
+            "input_path",
+            "train_ids_path",
+            "aggregation_method",
+            "use_abs",
+            "use_mag",
+            "n_target_ids",
+        ]
+        mismatches = [
+            key for key in keys_to_match if existing.get(key) != metadata.get(key)
+        ]
+        if mismatches:
+            raise ValueError(
+                f"Existing extraction metadata at {path} does not match this run. "
+                "Use a fresh output directory or remove the stale metadata file."
+            )
+        merged_locations = list(
+            dict.fromkeys(existing.get("locations", []) + metadata["locations"])
+        )
+        if merged_locations != existing.get("locations", []):
+            existing["locations"] = merged_locations
+            path.write_text(f"{json.dumps(existing, indent=2)}\n", encoding="utf-8")
+        return
+    path.write_text(f"{json.dumps(metadata, indent=2)}\n", encoding="utf-8")
+
+
+def scan_existing_activation_qids(
+    output_root: str, locations: list[str]
+) -> dict[str, set[str]]:
+    existing: dict[str, set[str]] = {}
+    for location in locations:
+        location_dir = Path(output_root) / location
+        qids: set[str] = set()
+        if location_dir.exists():
+            for path in location_dir.glob("act_*.npy"):
+                qids.add(path.stem.removeprefix("act_"))
+        existing[location] = qids
+    return existing
+
+
+def load_existing_activation_summary(output_root: str) -> dict[str, object] | None:
+    path = summary_path(output_root)
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def scan_existing_activation_norms(
+    output_root: str, locations: list[str]
+) -> dict[str, list[float]]:
+    norms: dict[str, list[float]] = {}
+    for location in locations:
+        location_dir = Path(output_root) / location
+        location_norms: list[float] = []
+        if location_dir.exists():
+            for path in sorted(location_dir.glob("act_*.npy")):
+                try:
+                    activation = np.load(path)
+                except (OSError, ValueError):
+                    continue
+                location_norms.append(float(np.linalg.norm(activation)))
+        norms[location] = location_norms
+    return norms
+
+
+def build_activation_triage(summary_payload: dict) -> tuple[str, str, str]:
+    miss_rates = []
+    for location_summary in summary_payload["per_location"].values():
+        total = (
+            location_summary["final_completed_count"]
+            + location_summary["missing_region_count"]
+        )
+        if total:
+            miss_rates.append(location_summary["missing_region_count"] / total)
+    worst_miss_rate = max(miss_rates, default=0.0)
+    if worst_miss_rate >= 0.1:
+        return (
+            "high_missing_regions",
+            "At least one extraction location has a high unresolved token-region miss rate.",
+            "Inspect the missing-region examples before trusting downstream classifier runs.",
+        )
+    return (
+        "ready_for_downstream",
+        "Extraction coverage is stable across requested locations.",
+        "Use the completion and norm summaries to choose the next classifier or intervention step.",
+    )
+
+
+def build_activation_summary_payload(
+    args,
+    *,
+    status: str,
+    total_input_rows: int,
+    n_target_ids: int,
+    target_qids_seen: int,
+    skipped_complete_qids: int,
+    existing_qids: dict[str, set[str]],
+    extracted_counts: dict[str, int],
+    missing_counts: dict[str, int],
+    prompt_token_counts: list[int],
+    response_token_counts: list[int],
+    answer_token_counts: list[int],
+    selected_token_counts: dict[str, list[int]],
+    activation_norms: dict[str, list[float]],
+    missing_examples: list[dict[str, object]],
+    prior_summary: dict[str, object] | None = None,
+    error: str | None = None,
+) -> dict:
+    per_location = {}
+    prior_per_location = (
+        cast(dict[str, dict[str, object]], prior_summary.get("per_location", {}))
+        if isinstance(prior_summary, dict)
+        and isinstance(prior_summary.get("per_location"), dict)
+        else {}
+    )
+    for location in args.locations:
+        existing_count = len(existing_qids[location]) - extracted_counts[location]
+        selected_token_summary = summarize_numeric_values(
+            selected_token_counts[location]
+        )
+        if (
+            existing_count > 0
+            and not selected_token_counts[location]
+            and location in prior_per_location
+        ):
+            prior_selected_summary = prior_per_location[location].get(
+                "selected_token_count_summary"
+            )
+            if isinstance(prior_selected_summary, dict):
+                selected_token_summary = dict(prior_selected_summary)
+        per_location[location] = {
+            "existing_count": max(existing_count, 0),
+            "newly_extracted_count": extracted_counts[location],
+            "missing_region_count": missing_counts[location],
+            "final_completed_count": len(existing_qids[location]),
+            "selected_token_count_summary": selected_token_summary,
+            "activation_norm_summary": summarize_numeric_values(
+                activation_norms[location]
+            ),
+        }
+    payload = {
+        "schema_version": 1,
+        "status": status,
+        "model_path": args.model_path,
+        "input_path": args.input_path,
+        "train_ids_path": args.train_ids_path,
+        "locations": list(args.locations),
+        "n_target_ids": n_target_ids,
+        "total_input_rows": total_input_rows,
+        "target_qids_seen": target_qids_seen,
+        "skipped_complete_qids": skipped_complete_qids,
+        "per_location": per_location,
+        "token_span_diagnostics": {
+            "prompt_token_count_summary": summarize_numeric_values(prompt_token_counts),
+            "response_token_count_summary": summarize_numeric_values(
+                response_token_counts
+            ),
+            "answer_token_count_summary": summarize_numeric_values(answer_token_counts),
+        },
+        "missing_region_examples": missing_examples[:CURATED_MISSING_LIMIT],
+        "error": error,
+    }
+    triage_status, triage_note, recommended_next_action = build_activation_triage(
+        payload
+    )
+    payload["triage_status"] = triage_status
+    payload["triage_note"] = triage_note
+    payload["recommended_next_action"] = recommended_next_action
+    return payload
+
+
+def _wandb_table_from_rows(wandb_module, rows: list[dict]):
+    if not rows:
+        return None
+    columns = list(rows[0].keys())
+    data = [[row.get(column) for column in columns] for row in rows]
+    return wandb_module.Table(columns=columns, data=data)
+
+
 def main():
     args = parse_args()
     output_targets = [
         args.output_root,
+        metadata_path(args.output_root),
+        summary_path(args.output_root),
         *[os.path.join(args.output_root, loc) for loc in args.locations],
     ]
     provenance_handle = start_run_provenance(
@@ -252,6 +473,7 @@ def main():
     try:
         # W&B tracking (opt-in)
         wb_run = None
+        wandb = None
         if args.wandb:
             try:
                 import wandb
@@ -260,26 +482,38 @@ def main():
                     "--wandb requested but wandb is not installed. "
                     "Install project dependencies with `uv sync` or add it with `uv add wandb`."
                 ) from exc
-
-            config = sanitize_run_config(vars(args))
-            git_sha = get_git_sha()
-            if git_sha is None:
-                print(
-                    "Warning: git metadata unavailable; omitting git_sha from W&B config.",
-                    file=sys.stderr,
-                )
-            else:
-                config["git_sha"] = git_sha
-            wb_run = wandb.init(
-                project="h-neurons",
-                config=config,
-                tags=["extract_activations"],
+            wb_run, wandb_provenance = init_wandb_run(
+                wandb,
+                args,
+                job_type="extract_activations",
+                group=f"extract_activations:{Path(args.input_path).stem}",
+                tags=[
+                    "extract_activations",
+                    Path(args.model_path).name,
+                    *args.locations,
+                ],
+                config_extra={
+                    "metadata_path": str(metadata_path(args.output_root)),
+                    "summary_path": str(summary_path(args.output_root)),
+                },
             )
-            provenance_extra["wandb"] = {
-                "project": "h-neurons",
-                "mode": os.environ.get("WANDB_MODE", "online"),
-                "tags": ["extract_activations"],
-            }
+            provenance_extra["wandb"] = wandb_provenance
+            metrics = [
+                "progress/target_qids_seen",
+                "progress/skipped_complete_qids",
+            ]
+            for location in args.locations:
+                metrics.extend(
+                    [
+                        f"coverage/{location}/final_completed_count",
+                        f"coverage/{location}/missing_region_count",
+                    ]
+                )
+            define_wandb_metrics(
+                wandb,
+                step_metric="progress/processed_items",
+                metrics=metrics,
+            )
 
         tokenizer = AutoTokenizer.from_pretrained(args.model_path)
         model = AutoModelForCausalLM.from_pretrained(
@@ -293,6 +527,22 @@ def main():
             id_map = json.load(f)
             target_ids = set(id_map["t"] + id_map["f"])
         print(f"Loaded {len(target_ids)} target IDs for extraction.")
+        os.makedirs(args.output_root, exist_ok=True)
+        ensure_metadata(args.output_root, build_metadata(args, len(target_ids)))
+        existing_qids = scan_existing_activation_qids(args.output_root, args.locations)
+        prior_summary = load_existing_activation_summary(args.output_root)
+        extracted_counts = {location: 0 for location in args.locations}
+        missing_counts = {location: 0 for location in args.locations}
+        prompt_token_counts: list[int] = []
+        response_token_counts: list[int] = []
+        answer_token_counts: list[int] = []
+        selected_token_counts = {location: [] for location in args.locations}
+        activation_norms = scan_existing_activation_norms(
+            args.output_root, args.locations
+        )
+        missing_examples: list[dict[str, object]] = []
+        target_qids_seen = 0
+        skipped_complete_qids = 0
 
         # Prepare directories
         for loc in args.locations:
@@ -301,15 +551,56 @@ def main():
         with open(args.input_path, "r", encoding="utf-8") as f:
             samples = [json.loads(line) for line in f]
 
+        summary_payload = build_activation_summary_payload(
+            args,
+            status="running",
+            total_input_rows=len(samples),
+            n_target_ids=len(target_ids),
+            target_qids_seen=target_qids_seen,
+            skipped_complete_qids=skipped_complete_qids,
+            existing_qids=existing_qids,
+            extracted_counts=extracted_counts,
+            missing_counts=missing_counts,
+            prompt_token_counts=prompt_token_counts,
+            response_token_counts=response_token_counts,
+            answer_token_counts=answer_token_counts,
+            selected_token_counts=selected_token_counts,
+            activation_norms=activation_norms,
+            missing_examples=missing_examples,
+            prior_summary=prior_summary,
+        )
+        summary_path(args.output_root).write_text(
+            f"{json.dumps(summary_payload, indent=2, sort_keys=True)}\n",
+            encoding="utf-8",
+        )
+        progress_interval = max(
+            PROGRESS_LOG_EVERY,
+            max(1, int(np.ceil(len(target_ids) * 0.05))),
+        )
+
         for sample_dict in tqdm(samples, desc="Processing"):
             qid = list(sample_dict.keys())[0]
             if qid not in target_ids:
                 continue
+            target_qids_seen += 1
             # Skip if all locations already extracted
             if all(
                 os.path.exists(os.path.join(args.output_root, loc, f"act_{qid}.npy"))
                 for loc in args.locations
             ):
+                skipped_complete_qids += 1
+                if (
+                    wb_run is not None
+                    and wandb is not None
+                    and target_qids_seen % progress_interval == 0
+                ):
+                    wandb.log(
+                        {
+                            "progress/processed_items": target_qids_seen,
+                            "progress/target_qids_seen": target_qids_seen,
+                            "progress/skipped_complete_qids": skipped_complete_qids,
+                        }
+                    )
                 continue
             data = sample_dict[qid]
             cett_manager.clear()
@@ -337,6 +628,15 @@ def main():
                 data["response"],
                 data["answer_tokens"],
             )
+            prompt_region = regions["input"]
+            output_region = regions["output"]
+            answer_region = regions["answer_tokens"]
+            assert prompt_region is not None
+            assert output_region is not None
+            prompt_token_counts.append(prompt_region[1] - prompt_region[0])
+            response_token_counts.append(output_region[1] - output_region[0])
+            if answer_region is not None:
+                answer_token_counts.append(answer_region[1] - answer_region[0])
             for loc in args.locations:
                 save_path = os.path.join(args.output_root, loc, f"act_{qid}.npy")
                 if os.path.exists(save_path):
@@ -344,16 +644,192 @@ def main():
 
                 selected_cett = select_token_activations(cett_full, loc, regions)
                 if selected_cett is None:
+                    missing_counts[loc] += 1
+                    if len(missing_examples) < CURATED_MISSING_LIMIT:
+                        missing_examples.append(
+                            {
+                                "qid": qid,
+                                "location": loc,
+                                "question_preview": data["question"][:140],
+                                "answer_tokens_preview": data["answer_tokens"][:8],
+                                "response_preview": data["response"][:140],
+                            }
+                        )
                     continue
 
+                selected_token_counts[loc].append(int(selected_cett.shape[1]))
                 final_act = aggregate_token_activations(selected_cett, args.method)
+                activation_norms[loc].append(float(final_act.norm().item()))
                 np.save(save_path, final_act.cpu().float().numpy())
+                extracted_counts[loc] += 1
+                existing_qids[loc].add(qid)
 
-        if wb_run is not None:
+            if target_qids_seen % progress_interval == 0:
+                running_summary = build_activation_summary_payload(
+                    args,
+                    status="running",
+                    total_input_rows=len(samples),
+                    n_target_ids=len(target_ids),
+                    target_qids_seen=target_qids_seen,
+                    skipped_complete_qids=skipped_complete_qids,
+                    existing_qids=existing_qids,
+                    extracted_counts=extracted_counts,
+                    missing_counts=missing_counts,
+                    prompt_token_counts=prompt_token_counts,
+                    response_token_counts=response_token_counts,
+                    answer_token_counts=answer_token_counts,
+                    selected_token_counts=selected_token_counts,
+                    activation_norms=activation_norms,
+                    missing_examples=missing_examples,
+                    prior_summary=prior_summary,
+                )
+                summary_path(args.output_root).write_text(
+                    f"{json.dumps(running_summary, indent=2, sort_keys=True)}\n",
+                    encoding="utf-8",
+                )
+                if wb_run is not None and wandb is not None:
+                    log_payload = {
+                        "progress/processed_items": target_qids_seen,
+                        "progress/target_qids_seen": target_qids_seen,
+                        "progress/skipped_complete_qids": skipped_complete_qids,
+                    }
+                    for location in args.locations:
+                        location_summary = running_summary["per_location"][location]
+                        log_payload[f"coverage/{location}/final_completed_count"] = (
+                            location_summary["final_completed_count"]
+                        )
+                        log_payload[f"coverage/{location}/missing_region_count"] = (
+                            location_summary["missing_region_count"]
+                        )
+                    wandb.log(log_payload)
+
+        summary_payload = build_activation_summary_payload(
+            args,
+            status="completed",
+            total_input_rows=len(samples),
+            n_target_ids=len(target_ids),
+            target_qids_seen=target_qids_seen,
+            skipped_complete_qids=skipped_complete_qids,
+            existing_qids=existing_qids,
+            extracted_counts=extracted_counts,
+            missing_counts=missing_counts,
+            prompt_token_counts=prompt_token_counts,
+            response_token_counts=response_token_counts,
+            answer_token_counts=answer_token_counts,
+            selected_token_counts=selected_token_counts,
+            activation_norms=activation_norms,
+            missing_examples=missing_examples,
+            prior_summary=prior_summary,
+        )
+        summary_path(args.output_root).write_text(
+            f"{json.dumps(summary_payload, indent=2, sort_keys=True)}\n",
+            encoding="utf-8",
+        )
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
+
+        if wb_run is not None and wandb is not None:
+            coverage_rows = []
+            for location in args.locations:
+                location_summary = summary_payload["per_location"][location]
+                coverage_rows.append(
+                    {
+                        "location": location,
+                        "existing_count": location_summary["existing_count"],
+                        "newly_extracted_count": location_summary[
+                            "newly_extracted_count"
+                        ],
+                        "missing_region_count": location_summary[
+                            "missing_region_count"
+                        ],
+                        "final_completed_count": location_summary[
+                            "final_completed_count"
+                        ],
+                    }
+                )
+            wb_run.summary["run_health/status"] = "completed"
+            wb_run.summary["run_health/resumed"] = skipped_complete_qids > 0
+            wb_run.summary["run_health/processed"] = target_qids_seen
+            wb_run.summary["run_health/skipped_existing"] = skipped_complete_qids
+            wb_run.summary["run_health/errors"] = 0
+            wb_run.summary["run_health/output_path_count"] = 2 + len(args.locations)
+            wb_run.summary["run_health/triage_status"] = summary_payload[
+                "triage_status"
+            ]
+            wb_run.summary["run_health/triage_note"] = summary_payload["triage_note"]
+            wb_run.summary["recommended_next_action"] = summary_payload[
+                "recommended_next_action"
+            ]
+            wandb.log(
+                {
+                    "tables/coverage_by_location": _wandb_table_from_rows(
+                        wandb, coverage_rows
+                    ),
+                    "tables/missing_region_examples": _wandb_table_from_rows(
+                        wandb, summary_payload["missing_region_examples"]
+                    ),
+                }
+            )
+            artifact_paths = [
+                metadata_path(args.output_root),
+                summary_path(args.output_root),
+            ]
+            if provenance_handle is not None:
+                artifact_paths.append(provenance_handle["path"])
+            log_wandb_files_as_artifact(
+                wb_run,
+                wandb,
+                name=f"extract-activations-{Path(args.output_root).name}",
+                artifact_type="activation_summary",
+                paths=artifact_paths,
+            )
+
+        if wb_run is not None and wandb is not None:
             wandb.finish()
     except BaseException as exc:
         provenance_status = provenance_status_for_exception(exc)
         provenance_extra["error"] = provenance_error_message(exc)
+        if "samples" in locals() and "target_ids" in locals():
+            failed_summary = build_activation_summary_payload(
+                args,
+                status=provenance_status,
+                total_input_rows=len(samples),
+                n_target_ids=len(target_ids),
+                target_qids_seen=locals().get("target_qids_seen", 0),
+                skipped_complete_qids=locals().get("skipped_complete_qids", 0),
+                existing_qids=locals().get(
+                    "existing_qids",
+                    {location: set() for location in args.locations},
+                ),
+                extracted_counts=locals().get(
+                    "extracted_counts",
+                    {location: 0 for location in args.locations},
+                ),
+                missing_counts=locals().get(
+                    "missing_counts",
+                    {location: 0 for location in args.locations},
+                ),
+                prompt_token_counts=locals().get("prompt_token_counts", []),
+                response_token_counts=locals().get("response_token_counts", []),
+                answer_token_counts=locals().get("answer_token_counts", []),
+                selected_token_counts=locals().get(
+                    "selected_token_counts",
+                    {location: [] for location in args.locations},
+                ),
+                activation_norms=locals().get(
+                    "activation_norms",
+                    {location: [] for location in args.locations},
+                ),
+                missing_examples=locals().get("missing_examples", []),
+                prior_summary=locals().get("prior_summary"),
+                error=provenance_error_message(exc),
+            )
+            summary_path(args.output_root).write_text(
+                f"{json.dumps(failed_summary, indent=2, sort_keys=True)}\n",
+                encoding="utf-8",
+            )
+        if "wb_run" in locals() and wb_run is not None:
+            wb_run.summary["run_health/status"] = provenance_status
+            wb_run.summary["run_health/triage_status"] = "needs_review"
         raise
     finally:
         finish_run_provenance(provenance_handle, provenance_status, provenance_extra)

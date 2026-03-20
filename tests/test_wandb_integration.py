@@ -13,14 +13,28 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "infra"))
 
 from lambda_bootstrap_and_start_step1 import remote_setup_script  # noqa: E402
+from collect_responses import (  # noqa: E402
+    build_collect_review_row,
+    build_collect_triage,
+)
+from extract_activations import (  # noqa: E402
+    build_activation_summary_payload,
+    build_metadata as build_activation_metadata,
+    load_existing_activation_summary,
+    scan_existing_activation_norms,
+)
 from utils import (  # noqa: E402
+    define_wandb_metrics,
     finish_run_provenance,
     get_git_dirty,
     get_git_sha,
+    init_wandb_run,
+    log_wandb_files_as_artifact,
     provenance_error_message,
     provenance_status_for_exception,
     resolve_provenance_path,
     sanitize_run_config,
+    summarize_numeric_values,
     start_run_provenance,
 )
 
@@ -109,6 +123,107 @@ class TestSanitizeRunConfig:
             "benchmark": "faitheval",
             "ssh_key_path": "~/.ssh/lambda",
             "git_sha": "abc123",
+        }
+
+
+class TestWandbHelpers:
+    class FakeArtifact:
+        def __init__(self, name, type):
+            self.name = name
+            self.type = type
+            self.files = []
+
+        def add_file(self, path, name=None):
+            self.files.append((path, name))
+
+    class FakeRun:
+        def __init__(self):
+            self.summary = {}
+            self.artifacts = []
+
+        def log_artifact(self, artifact):
+            self.artifacts.append(artifact)
+
+    class FakeWandb:
+        def __init__(self):
+            self.init_kwargs = None
+            self.defined_metrics = []
+            self.Artifact = TestWandbHelpers.FakeArtifact
+            self.run = TestWandbHelpers.FakeRun()
+
+        def init(self, **kwargs):
+            self.init_kwargs = kwargs
+            return self.run
+
+        def define_metric(self, name, **kwargs):
+            self.defined_metrics.append((name, kwargs))
+
+    def test_init_wandb_run_uses_group_job_type_and_redacted_config(self, monkeypatch):
+        fake_wandb = self.FakeWandb()
+        monkeypatch.setattr("utils.get_git_sha", lambda: "abc123")
+
+        run, provenance = init_wandb_run(
+            fake_wandb,
+            args={"api_key": "secret", "model_path": "google/gemma-3-4b-it"},
+            job_type="collect_responses",
+            group="collect_responses:triviaqa",
+            tags=["collect_responses", "rule"],
+            config_extra={"sample_num": 10},
+        )
+
+        assert run is fake_wandb.run
+        assert fake_wandb.init_kwargs["job_type"] == "collect_responses"
+        assert fake_wandb.init_kwargs["group"] == "collect_responses:triviaqa"
+        assert fake_wandb.init_kwargs["config"] == {
+            "model_path": "google/gemma-3-4b-it",
+            "sample_num": 10,
+            "git_sha": "abc123",
+        }
+        assert provenance["job_type"] == "collect_responses"
+        assert provenance["group"] == "collect_responses:triviaqa"
+
+    def test_define_metrics_and_log_artifact_files(self, tmp_path):
+        fake_wandb = self.FakeWandb()
+        define_wandb_metrics(
+            fake_wandb,
+            step_metric="progress/processed_items",
+            metrics=["progress/completed_qids"],
+        )
+
+        summary_path = tmp_path / "summary.json"
+        summary_path.write_text("{}", encoding="utf-8")
+        ignored_dir = tmp_path / "dir"
+        ignored_dir.mkdir()
+        log_wandb_files_as_artifact(
+            fake_wandb.run,
+            fake_wandb,
+            name="collect-summary",
+            artifact_type="collection_summary",
+            paths=[summary_path, ignored_dir],
+        )
+
+        assert fake_wandb.defined_metrics == [
+            ("progress/processed_items", {}),
+            (
+                "progress/completed_qids",
+                {"step_metric": "progress/processed_items"},
+            ),
+        ]
+        assert len(fake_wandb.run.artifacts) == 1
+        assert fake_wandb.run.artifacts[0].files == [
+            (str(summary_path), summary_path.name)
+        ]
+
+    def test_summarize_numeric_values_handles_empty_and_non_empty(self):
+        assert summarize_numeric_values([])["count"] == 0
+        summary = summarize_numeric_values([1, 2, 3, 4, 5])
+        assert summary == {
+            "count": 5,
+            "min": 1.0,
+            "max": 5.0,
+            "mean": 3.0,
+            "median": 3.0,
+            "p95": 5.0,
         }
 
 
@@ -338,6 +453,48 @@ class TestRunProvenance:
     def test_finish_run_provenance_is_noop_for_missing_handle(self):
         finish_run_provenance(None, "completed")
 
+    def test_finish_run_provenance_is_idempotent_after_first_success(
+        self, monkeypatch, tmp_path
+    ):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("utils.get_git_sha", lambda: "abc123")
+        monkeypatch.setattr("utils.get_git_dirty", lambda: False)
+        monkeypatch.setattr("utils.sys.argv", ["scripts/run_negative_control.py"])
+        monkeypatch.setattr(
+            "utils.sys.orig_argv",
+            ["uv", "run", "python", "scripts/run_negative_control.py"],
+            raising=False,
+        )
+
+        output_dir = tmp_path / "data" / "control"
+        handle = start_run_provenance(
+            args={},
+            primary_target=output_dir,
+            output_targets=[output_dir / "comparison_summary.json"],
+            primary_target_is_dir=True,
+        )
+        assert handle is not None
+
+        provenance_path = output_dir / "run_negative_control.provenance.json"
+        finish_run_provenance(
+            handle,
+            "completed",
+            extra={
+                "output_targets": [
+                    str((output_dir / "comparison_summary.json").resolve())
+                ]
+            },
+        )
+        first_payload = json.loads(provenance_path.read_text())
+
+        finish_run_provenance(handle, "failed", extra={"error": "should-not-override"})
+        second_payload = json.loads(provenance_path.read_text())
+
+        assert first_payload == second_payload
+        assert second_payload["status"] == "completed"
+        assert second_payload["completed_at_utc"] is not None
+        assert "error" not in second_payload
+
 
 class TestProvenanceExceptionHelpers:
     def test_marks_interrupt_signals_as_interrupted(self):
@@ -350,6 +507,164 @@ class TestProvenanceExceptionHelpers:
     def test_formats_error_messages_with_type_and_detail(self):
         assert provenance_error_message(RuntimeError("boom")) == "RuntimeError: boom"
         assert provenance_error_message(KeyboardInterrupt()) == "KeyboardInterrupt"
+
+
+class TestCollectObservabilityHelpers:
+    def test_build_collect_review_row_and_triage_for_mixed_question(self):
+        row = build_collect_review_row(
+            "tc_1",
+            "Who wrote Hamlet?",
+            ["Shakespeare", "Marlowe", "Shakespeare"],
+            ["true", "false", "true"],
+            sample_num=3,
+        )
+
+        assert row["category"] == "mixed"
+        assert row["true_count"] == 2
+        assert row["false_count"] == 1
+        assert row["unique_response_count"] == 2
+
+        triage = build_collect_triage(
+            {
+                "completed_qids": 10,
+                "mixed_count": 3,
+                "uncertain_count": 1,
+                "partial_failed_qids": 0,
+            }
+        )
+        assert triage[0] == "review_sampling_or_judge"
+
+
+class TestActivationObservabilityHelpers:
+    def test_build_activation_metadata(self):
+        class Args:
+            model_path = "google/gemma-3-4b-it"
+            input_path = "data/input.jsonl"
+            train_ids_path = "data/train_ids.json"
+            locations = ["answer_tokens", "output"]
+            method = "mean"
+            use_abs = True
+            use_mag = True
+
+        metadata = build_activation_metadata(Args(), 42)
+        assert metadata == {
+            "model_path": "google/gemma-3-4b-it",
+            "input_path": "data/input.jsonl",
+            "train_ids_path": "data/train_ids.json",
+            "locations": ["answer_tokens", "output"],
+            "aggregation_method": "mean",
+            "use_abs": True,
+            "use_mag": True,
+            "n_target_ids": 42,
+        }
+
+    def test_build_activation_summary_payload_marks_high_missing_regions(self):
+        class Args:
+            model_path = "google/gemma-3-4b-it"
+            input_path = "data/input.jsonl"
+            train_ids_path = "data/train_ids.json"
+            locations = ["answer_tokens", "output"]
+
+        payload = build_activation_summary_payload(
+            Args(),
+            status="completed",
+            total_input_rows=100,
+            n_target_ids=20,
+            target_qids_seen=20,
+            skipped_complete_qids=5,
+            existing_qids={"answer_tokens": {"a", "b"}, "output": {"a", "b", "c"}},
+            extracted_counts={"answer_tokens": 1, "output": 1},
+            missing_counts={"answer_tokens": 2, "output": 0},
+            prompt_token_counts=[10, 12],
+            response_token_counts=[20, 22],
+            answer_token_counts=[2, 3],
+            selected_token_counts={"answer_tokens": [2], "output": [20]},
+            activation_norms={"answer_tokens": [1.5], "output": [4.0]},
+            missing_examples=[{"qid": "tc_2", "location": "answer_tokens"}],
+        )
+
+        assert payload["per_location"]["answer_tokens"]["missing_region_count"] == 2
+        assert payload["triage_status"] == "high_missing_regions"
+        assert (
+            "Inspect the missing-region examples" in payload["recommended_next_action"]
+        )
+
+    def test_resume_helpers_seed_existing_norms_and_prior_selected_token_summary(
+        self, tmp_path
+    ):
+        output_root = tmp_path / "activations"
+        answer_dir = output_root / "answer_tokens"
+        answer_dir.mkdir(parents=True)
+        npy_path = answer_dir / "act_tc_1.npy"
+
+        import numpy as np
+
+        np.save(npy_path, np.array([[3.0, 4.0]], dtype=np.float32))
+        summary_payload = {
+            "per_location": {
+                "answer_tokens": {
+                    "selected_token_count_summary": {
+                        "count": 1,
+                        "min": 2.0,
+                        "max": 2.0,
+                        "mean": 2.0,
+                        "median": 2.0,
+                        "p95": 2.0,
+                    }
+                }
+            }
+        }
+        (output_root / "summary.json").write_text(
+            json.dumps(summary_payload), encoding="utf-8"
+        )
+
+        class Args:
+            model_path = "google/gemma-3-4b-it"
+            input_path = "data/input.jsonl"
+            train_ids_path = "data/train_ids.json"
+            locations = ["answer_tokens"]
+
+        loaded_summary = load_existing_activation_summary(str(output_root))
+        activation_norms = scan_existing_activation_norms(
+            str(output_root), ["answer_tokens"]
+        )
+        payload = build_activation_summary_payload(
+            Args(),
+            status="completed",
+            total_input_rows=1,
+            n_target_ids=1,
+            target_qids_seen=1,
+            skipped_complete_qids=1,
+            existing_qids={"answer_tokens": {"tc_1"}},
+            extracted_counts={"answer_tokens": 0},
+            missing_counts={"answer_tokens": 0},
+            prompt_token_counts=[],
+            response_token_counts=[],
+            answer_token_counts=[],
+            selected_token_counts={"answer_tokens": []},
+            activation_norms=activation_norms,
+            missing_examples=[],
+            prior_summary=loaded_summary,
+        )
+
+        assert payload["per_location"]["answer_tokens"][
+            "selected_token_count_summary"
+        ] == {
+            "count": 1,
+            "min": 2.0,
+            "max": 2.0,
+            "mean": 2.0,
+            "median": 2.0,
+            "p95": 2.0,
+        }
+        assert payload["per_location"]["answer_tokens"]["activation_norm_summary"] == {
+            "count": 1,
+            "min": 5.0,
+            "max": 5.0,
+            "mean": 5.0,
+            "median": 5.0,
+            "p95": 5.0,
+        }
 
 
 class TestRemoteBootstrapDependencies:

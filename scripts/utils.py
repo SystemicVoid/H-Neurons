@@ -13,10 +13,12 @@ from pathlib import Path
 import re
 import shlex
 import socket
+import statistics
 import string
 import subprocess
 import sys
 from typing import Any
+from collections.abc import Sequence
 
 
 _SENSITIVE_ARG_SUFFIXES = ("token", "secret", "password", "auth_key", "_api_key")
@@ -126,6 +128,30 @@ def sanitize_run_config(
     return normalized if isinstance(normalized, dict) else config
 
 
+def summarize_numeric_values(values: Sequence[float | int]) -> dict[str, Any]:
+    normalized = [float(value) for value in values]
+    if not normalized:
+        return {
+            "count": 0,
+            "min": None,
+            "max": None,
+            "mean": None,
+            "median": None,
+            "p95": None,
+        }
+
+    sorted_values = sorted(normalized)
+    p95_index = min(len(sorted_values) - 1, round((len(sorted_values) - 1) * 0.95))
+    return {
+        "count": len(sorted_values),
+        "min": min(sorted_values),
+        "max": max(sorted_values),
+        "mean": statistics.fmean(sorted_values),
+        "median": statistics.median(sorted_values),
+        "p95": sorted_values[p95_index],
+    }
+
+
 def resolve_provenance_path(
     primary_target: str | os.PathLike[str],
     script_stem: str,
@@ -210,6 +236,78 @@ def _safe_env() -> dict[str, str]:
     return {key: value for key in keys if (value := os.environ.get(key)) is not None}
 
 
+def init_wandb_run(
+    wandb_module: Any,
+    args: Any,
+    *,
+    job_type: str,
+    tags: list[str],
+    group: str,
+    config_extra: dict[str, Any] | None = None,
+    project: str = "h-neurons",
+    name: str | None = None,
+) -> tuple[Any, dict[str, Any]]:
+    config = sanitize_run_config(
+        vars(args) if hasattr(args, "__dict__") else dict(args),
+        extra=config_extra,
+    )
+    git_sha = get_git_sha()
+    if git_sha is None:
+        print(
+            "Warning: git metadata unavailable; omitting git_sha from W&B config.",
+            file=sys.stderr,
+        )
+    else:
+        config["git_sha"] = git_sha
+
+    run = wandb_module.init(
+        project=project,
+        config=config,
+        tags=tags,
+        group=group,
+        job_type=job_type,
+        name=name,
+    )
+    return run, {
+        "project": project,
+        "mode": os.environ.get("WANDB_MODE", "online"),
+        "tags": tags,
+        "group": group,
+        "job_type": job_type,
+    }
+
+
+def define_wandb_metrics(
+    wandb_module: Any,
+    *,
+    step_metric: str,
+    metrics: list[str],
+) -> None:
+    wandb_module.define_metric(step_metric)
+    for metric in metrics:
+        wandb_module.define_metric(metric, step_metric=step_metric)
+
+
+def log_wandb_files_as_artifact(
+    wandb_run: Any,
+    wandb_module: Any,
+    *,
+    name: str,
+    artifact_type: str,
+    paths: Sequence[str | os.PathLike[str]],
+) -> None:
+    artifact = wandb_module.Artifact(name=name, type=artifact_type)
+    added = False
+    for path_like in paths:
+        path = Path(path_like)
+        if not path.exists() or path.is_dir():
+            continue
+        artifact.add_file(str(path), name=path.name)
+        added = True
+    if added:
+        wandb_run.log_artifact(artifact)
+
+
 def provenance_status_for_exception(exc: BaseException) -> str:
     if isinstance(exc, (KeyboardInterrupt, SystemExit)):
         return "interrupted"
@@ -267,7 +365,7 @@ def start_run_provenance(
             {key: value for key, value in extra.items() if value is not None}
         )
 
-    handle = {"path": sidecar_path, "payload": payload}
+    handle = {"path": sidecar_path, "payload": payload, "finalized": False}
     try:
         _write_provenance_file(sidecar_path, payload)
     except Exception as exc:
@@ -285,7 +383,7 @@ def finish_run_provenance(
     extra: dict[str, Any] | None = None,
 ) -> None:
     """Finalize a run provenance sidecar if one was created successfully."""
-    if handle is None:
+    if handle is None or handle.get("finalized", False):
         return
     payload = handle["payload"]
     payload["status"] = status
@@ -296,6 +394,7 @@ def finish_run_provenance(
         )
     try:
         _write_provenance_file(handle["path"], payload)
+        handle["finalized"] = True
     except Exception as exc:
         print(
             f"Warning: failed to finalize run provenance at {handle['path']}: {exc}",

@@ -46,11 +46,12 @@ from run_intervention import (
     normalize_answer,
 )
 from utils import (
+    define_wandb_metrics,
     finish_run_provenance,
-    get_git_sha,
+    init_wandb_run,
+    log_wandb_files_as_artifact,
     provenance_error_message,
     provenance_status_for_exception,
-    sanitize_run_config,
     start_run_provenance,
 )
 from uncertainty import build_rate_summary, percentile_interval
@@ -635,6 +636,171 @@ def plot_comparison(
     print(f"Saved plot to {output_path}")
 
 
+def build_negative_control_curve_rows(
+    summary: dict[str, Any], alphas: list[float], benchmark: str
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for alpha, rate, ci, parse_failures in zip(
+        alphas,
+        summary["h_neuron_baseline"]["compliance_rates"],
+        summary["h_neuron_baseline"]["compliance_ci_by_alpha"],
+        summary["h_neuron_baseline"]["parse_failures"],
+        strict=True,
+    ):
+        rows.append(
+            {
+                "benchmark": benchmark,
+                "strategy": "h_neuron_baseline",
+                "seed": "baseline",
+                "alpha": float(alpha),
+                "compliance_rate": rate,
+                "n_compliant": ci.get("n_compliant"),
+                "n_total": ci.get("n_total"),
+                "parse_failures": parse_failures,
+                "ci_lower": ci["ci"]["lower"] if ci and ci.get("ci") else None,
+                "ci_upper": ci["ci"]["upper"] if ci and ci.get("ci") else None,
+                "slope_per_alpha": summary["h_neuron_baseline"]["slope_per_alpha"],
+                "spearman_rho": summary["h_neuron_baseline"]["spearman_rho"],
+                "is_h_baseline": True,
+            }
+        )
+
+    for strategy_key in ("unconstrained_random", "layer_matched_random"):
+        if strategy_key not in summary:
+            continue
+        strategy_summary = cast(dict[str, Any], summary[strategy_key])
+        for seed_name, seed_data in sorted(strategy_summary["per_seed"].items()):
+            seed_data = cast(dict[str, Any], seed_data)
+            for alpha, rate, ci, parse_failures in zip(
+                alphas,
+                seed_data["compliance_rates"],
+                seed_data["compliance_ci_by_alpha"],
+                seed_data["parse_failures"],
+                strict=True,
+            ):
+                rows.append(
+                    {
+                        "benchmark": benchmark,
+                        "strategy": strategy_key,
+                        "seed": seed_name,
+                        "alpha": float(alpha),
+                        "compliance_rate": rate,
+                        "n_compliant": ci.get("n_compliant"),
+                        "n_total": ci.get("n_total"),
+                        "parse_failures": parse_failures,
+                        "ci_lower": ci["ci"]["lower"] if ci and ci.get("ci") else None,
+                        "ci_upper": ci["ci"]["upper"] if ci and ci.get("ci") else None,
+                        "slope_per_alpha": seed_data["slope_per_alpha"],
+                        "spearman_rho": seed_data["spearman_rho"],
+                        "is_h_baseline": False,
+                    }
+                )
+    return rows
+
+
+def build_negative_control_strategy_rows(
+    summary: dict[str, Any],
+) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "strategy": "h_neuron_baseline",
+            "mean_slope_per_alpha": summary["h_neuron_baseline"]["slope_per_alpha"],
+            "mean_spearman_rho": summary["h_neuron_baseline"]["spearman_rho"],
+            "any_seed_monotonic": True,
+            "alpha_3_interval_lower": None,
+            "alpha_3_interval_upper": None,
+            "slope_interval_lower": None,
+            "slope_interval_upper": None,
+        }
+    ]
+    for strategy_key in ("unconstrained_random", "layer_matched_random"):
+        if strategy_key not in summary:
+            continue
+        strategy_summary = cast(dict[str, Any], summary[strategy_key])
+        alpha_3_interval = strategy_summary[
+            "alpha_3_compliance_percentile_interval_pct"
+        ]
+        slope_interval = strategy_summary["slope_percentile_interval"]
+        rows.append(
+            {
+                "strategy": strategy_key,
+                "mean_slope_per_alpha": strategy_summary["mean_slope_per_alpha"],
+                "mean_spearman_rho": strategy_summary["mean_spearman_rho"],
+                "any_seed_monotonic": strategy_summary["any_seed_monotonic"],
+                "alpha_3_interval_lower": alpha_3_interval["lower"],
+                "alpha_3_interval_upper": alpha_3_interval["upper"],
+                "slope_interval_lower": slope_interval["lower"],
+                "slope_interval_upper": slope_interval["upper"],
+            }
+        )
+    return rows
+
+
+def build_negative_control_seed_ranking_rows(
+    summary: dict[str, Any],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for strategy_key in ("unconstrained_random", "layer_matched_random"):
+        if strategy_key not in summary:
+            continue
+        per_seed = cast(dict[str, dict[str, Any]], summary[strategy_key]["per_seed"])
+        for seed_name, seed_data in sorted(per_seed.items()):
+            rows.append(
+                {
+                    "strategy": strategy_key,
+                    "seed": seed_name,
+                    "slope_per_alpha": seed_data["slope_per_alpha"],
+                    "spearman_rho": seed_data["spearman_rho"],
+                    "alpha_3_rate_pct": round(
+                        seed_data["compliance_rates"][-1] * 100, 2
+                    ),
+                    "monotonic": all(
+                        seed_data["compliance_rates"][i]
+                        <= seed_data["compliance_rates"][i + 1]
+                        for i in range(len(seed_data["compliance_rates"]) - 1)
+                    ),
+                }
+            )
+    return sorted(
+        rows,
+        key=lambda row: (row["slope_per_alpha"], row["alpha_3_rate_pct"]),
+        reverse=True,
+    )
+
+
+def negative_control_triage(summary: dict[str, Any]) -> tuple[str, str, str]:
+    comparison = cast(dict[str, Any] | None, summary.get("comparison_to_h_neurons"))
+    if comparison is None:
+        return (
+            "needs_judging",
+            "Compliance metrics are unavailable until judged results exist.",
+            "Run `evaluate_intervention.py`, then rerun `run_negative_control.py --analysis_only`.",
+        )
+
+    slope_h = comparison["slope_h_pp_per_alpha"]
+    slope_interval = comparison["slope_random_percentile_interval"]
+    if slope_interval["lower"] <= slope_h <= slope_interval["upper"]:
+        return (
+            "review_specificity",
+            "H-neuron slope overlaps the random-set interval.",
+            "Inspect seed ranking and rerun with more seeds or a second benchmark.",
+        )
+
+    return (
+        "specificity_supported",
+        "H-neuron slope separates from the random-set interval.",
+        "Use the strongest benchmark and seed spread views to choose the next validation run.",
+    )
+
+
+def _wandb_table_from_rows(wandb_module, rows: list[dict[str, Any]]):
+    if not rows:
+        return None
+    columns = list(rows[0].keys())
+    data = [[row.get(column) for column in columns] for row in rows]
+    return wandb_module.Table(columns=columns, data=data)
+
+
 def parse_args():
     p = argparse.ArgumentParser(
         description="Negative control experiment for H-neuron specificity"
@@ -694,6 +860,13 @@ def main():
         ]
 
     os.makedirs(output_base, exist_ok=True)
+    resumed_from_existing = any(
+        any(
+            os.path.exists(os.path.join(output_base, name, f"alpha_{alpha:.1f}.jsonl"))
+            for alpha in alphas
+        )
+        for name, _, _ in configs
+    )
     summary_path = os.path.join(output_base, "comparison_summary.json")
     plot_path = os.path.join(output_base, "negative_control_comparison.png")
     provenance_handle = start_run_provenance(
@@ -716,29 +889,36 @@ def main():
                     "--wandb requested but wandb is not installed. "
                     "Install project dependencies with `uv sync` or add it with `uv add wandb`."
                 ) from exc
-
-            config = sanitize_run_config(
-                vars(args),
-                extra={"alphas": [float(a) for a in alphas], "n_configs": len(configs)},
+            wb_run, wandb_provenance = init_wandb_run(
+                wandb_module,
+                args,
+                job_type="run_negative_control",
+                group=f"negative_control:{benchmark}",
+                tags=[
+                    "negative_control",
+                    benchmark,
+                    "quick" if args.quick else "full",
+                    "analysis_only" if args.analysis_only else "generate_and_analyze",
+                ],
+                config_extra={
+                    "alphas": [float(a) for a in alphas],
+                    "n_configs": len(configs),
+                },
             )
-            git_sha = get_git_sha()
-            if git_sha is None:
-                print(
-                    "Warning: git metadata unavailable; omitting git_sha from W&B config.",
-                    file=sys.stderr,
-                )
-            else:
-                config["git_sha"] = git_sha
-            wb_run = wandb_module.init(
-                project="h-neurons",
-                config=config,
-                tags=[f"neg_ctrl_{benchmark}"],
+            provenance_extra["wandb"] = wandb_provenance
+            define_wandb_metrics(
+                wandb_module,
+                step_metric="alpha",
+                metrics=[
+                    "curve/h_neurons/compliance_rate_pct",
+                    "curve/unconstrained_random/mean_compliance_rate_pct",
+                    "curve/unconstrained_random/std_compliance_rate_pct",
+                    "curve/unconstrained_random/mean_parse_failures",
+                    "curve/layer_matched_random/mean_compliance_rate_pct",
+                    "curve/layer_matched_random/std_compliance_rate_pct",
+                    "curve/layer_matched_random/mean_parse_failures",
+                ],
             )
-            provenance_extra["wandb"] = {
-                "project": "h-neurons",
-                "mode": os.environ.get("WANDB_MODE", "online"),
-                "tags": [f"neg_ctrl_{benchmark}"],
-            }
 
         # Load classifier zero-weight indices
         print("Loading classifier for neuron sampling...")
@@ -843,6 +1023,14 @@ def main():
         print("Building comparison summary...")
         print("=" * 60)
         summary = build_comparison_summary(all_results, alphas, benchmark=benchmark)
+        triage_status, triage_note, recommended_next_action = negative_control_triage(
+            summary
+        )
+        summary["triage"] = {
+            "status": triage_status,
+            "note": triage_note,
+            "recommended_next_action": recommended_next_action,
+        }
 
         with open(summary_path, "w") as f:
             json.dump(summary, f, indent=2)
@@ -880,15 +1068,96 @@ def main():
 
         plot_comparison(summary, alphas, plot_path, benchmark=benchmark)
 
-        if wb_run is not None and wandb_module is not None:
-            wandb_module.log({"comparison_summary": summary})
-
         provenance_extra["output_targets"] = [
             output_base,
             summary_path,
             plot_path,
             *[os.path.join(output_base, name) for name, _, _ in configs],
         ]
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
+
+        if wb_run is not None and wandb_module is not None:
+            curve_rows = build_negative_control_curve_rows(summary, alphas, benchmark)
+            strategy_rows = build_negative_control_strategy_rows(summary)
+            seed_rows = build_negative_control_seed_ranking_rows(summary)
+
+            for alpha in alphas:
+                log_payload: dict[str, Any] = {"alpha": float(alpha)}
+                baseline_row = summary["h_neuron_baseline"]
+                baseline_idx = alphas.index(alpha)
+                log_payload["curve/h_neurons/compliance_rate_pct"] = round(
+                    baseline_row["compliance_rates"][baseline_idx] * 100, 2
+                )
+
+                for strategy_key in ("unconstrained_random", "layer_matched_random"):
+                    if strategy_key not in summary:
+                        continue
+                    strategy_summary = cast(dict[str, Any], summary[strategy_key])
+                    series_prefix = f"curve/{strategy_key}"
+                    log_payload[f"{series_prefix}/mean_compliance_rate_pct"] = round(
+                        strategy_summary["mean_compliance_rates"][baseline_idx] * 100, 2
+                    )
+                    log_payload[f"{series_prefix}/std_compliance_rate_pct"] = round(
+                        strategy_summary["std_compliance_rates"][baseline_idx] * 100, 2
+                    )
+                    log_payload[f"{series_prefix}/mean_parse_failures"] = (
+                        strategy_summary["mean_parse_failures"][baseline_idx]
+                    )
+
+                wandb_module.log(log_payload)
+
+            wandb_module.log(
+                {
+                    "tables/curve_rows": _wandb_table_from_rows(
+                        wandb_module, curve_rows
+                    ),
+                    "tables/strategy_summary": _wandb_table_from_rows(
+                        wandb_module, strategy_rows
+                    ),
+                    "tables/seed_ranking": _wandb_table_from_rows(
+                        wandb_module, seed_rows
+                    ),
+                }
+            )
+
+            comparison = cast(
+                dict[str, Any] | None, summary.get("comparison_to_h_neurons")
+            )
+            wb_run.summary["run_health/status"] = "completed"
+            wb_run.summary["run_health/resumed"] = resumed_from_existing or bool(
+                args.analysis_only
+            )
+            wb_run.summary["run_health/output_path_count"] = 3 + len(configs)
+            wb_run.summary["run_health/triage_status"] = triage_status
+            wb_run.summary["run_health/triage_note"] = triage_note
+            wb_run.summary["recommended_next_action"] = recommended_next_action
+            wb_run.summary["science/h_slope_pp_per_alpha"] = summary[
+                "h_neuron_baseline"
+            ]["slope_per_alpha"]
+            if comparison is not None:
+                wb_run.summary["science/random_mean_slope_pp_per_alpha"] = comparison[
+                    "slope_random_mean_pp_per_alpha"
+                ]
+                wb_run.summary["science/h_vs_random_alpha_3_gap_pct"] = round(
+                    comparison["alpha_3_h_rate_pct"]
+                    - comparison["alpha_3_random_mean_pct"],
+                    2,
+                )
+                wb_run.summary["science/random_slope_interval_lower"] = comparison[
+                    "slope_random_percentile_interval"
+                ]["lower"]
+                wb_run.summary["science/random_slope_interval_upper"] = comparison[
+                    "slope_random_percentile_interval"
+                ]["upper"]
+            log_wandb_files_as_artifact(
+                wb_run,
+                wandb_module,
+                name=f"negative-control-{benchmark}",
+                artifact_type="negative_control_summary",
+                paths=[summary_path, plot_path, provenance_handle["path"]]
+                if provenance_handle is not None
+                else [summary_path, plot_path],
+            )
     except BaseException as exc:
         provenance_status = provenance_status_for_exception(exc)
         provenance_extra["error"] = provenance_error_message(exc)
