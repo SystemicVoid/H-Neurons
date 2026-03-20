@@ -98,18 +98,79 @@ Suggested first targets:
 
 ### Low-friction run provenance
 
-Recommendation:
+Status: adopted as the local standard for research-output scripts.
 
-- Write `config.json` to each experiment output dir
-- Record the launch command verbatim in a sibling text file when practical
-- Keep `results.json` as the compact aggregate and JSONL files as row-level evidence
+Standard:
 
-Confidence: High.
+- Keep semantic artifacts (`results.json`, `summary.json`, existing `metadata.json`) unchanged.
+- Write one adjacent provenance sidecar per producing script.
+- Use file targets for single-output scripts and directory targets for multi-artifact runs.
+- Keep W&B opt-in; provenance must still be readable locally without W&B.
 
-Why:
+Canonical sidecar naming:
 
-- This does not alter model behavior
-- It directly reduces future ambiguity in analysis and reporting
+- File output: `<target>.provenance.json`
+- Directory output: `<target>/<script_stem>.provenance.json`
+
+Canonical payload:
+
+- `schema_version`, `script`, `argv`, `command`
+- `args` with secret-like fields stripped via `sanitize_run_config()`
+- `cwd`, `hostname`, `python_version`
+- `git_sha`, `git_dirty`
+- `started_at_utc`, `completed_at_utc`, `status`
+- `output_targets`
+- `safe_env` limited to `CUDA_VISIBLE_DEVICES` and `WANDB_MODE`
+- optional `wandb` block when enabled
+
+Examples:
+
+```text
+data/gemma3_4b/pipeline/answer_tokens.jsonl
+data/gemma3_4b/pipeline/answer_tokens.jsonl.provenance.json
+```
+
+```text
+data/gemma3_4b/intervention/faitheval/experiment/
+data/gemma3_4b/intervention/faitheval/experiment/run_intervention.provenance.json
+```
+
+Local launch shape:
+
+```bash
+uv run python scripts/run_intervention.py --benchmark faitheval
+systemd-inhibit --what=sleep:idle --who="run-intervention" --why="FaithEval sweep" \
+  uv run python scripts/run_intervention.py --benchmark faitheval
+```
+
+Why this is the right level:
+
+- Boring: sidecars live next to the artifacts researchers already inspect
+- Low-friction: no new service, DB, or run registry
+- Useful: answers “what produced this?” even when shell history and W&B are unavailable
+
+### Migration Tracker
+
+| Script | Scope Status | Anchor | Notes |
+|---|---|---|---|
+| `collect_responses.py` | done | `output_path` file | Single JSONL output |
+| `extract_answer_tokens.py` | done | `output_path` file | Single JSONL output |
+| `sample_balanced_ids.py` | done | `output_path` file | Single JSON output |
+| `extract_activations.py` | done | `output_root` dir | Covers location subdirs |
+| `classifier.py` | done | `metrics_out` else `save_model` | Lists both outputs when both are written |
+| `run_intervention.py` | done | `output_dir` dir | Sidecar lives beside `results.json` and alpha JSONL files |
+| `evaluate_intervention.py` | done | `input_dir` dir | Post-hoc judge writes `results.json` in-place |
+| `run_negative_control.py` | done | `output_base` dir | Covers seed subdirs plus comparison artifacts |
+| `prepare_bioasq_eval.py` | done | `output_parquet` file | Lists parquet + summary |
+| `extract_sae_activations.py` | done | `output_root` dir | Keeps existing `metadata.json` untouched |
+| `classifier_sae.py` | done | `metrics_out` else `save_model` | Mirrors CETT classifier behavior |
+| `characterize_swing.py` | done | `output_dir` dir | Covers summary + feature table + figures dir |
+| `export_site_data.py` | deferred | site JSON outputs | Report/export helper, not primary experiment generation |
+| `plot_intervention.py` | deferred | `output` file | Visualization helper |
+| `investigate_neuron_4288.py` | deferred | `output_dir` dir | One-off analysis notebook-style script |
+| `review_batch3500.py` | deferred | `output_path` file | Review/report helper |
+| `remap_faitheval_standard_parse_failures.py` | deferred | output summary/jsonl files | Targeted remediation script |
+| `regenerate_long_false.py` | deferred | `verbosity-test-data-fixed.json` file | Dataset repair utility |
 
 ## Defer
 

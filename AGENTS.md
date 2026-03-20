@@ -18,6 +18,8 @@ Within `data/gemma3_4b/`, artifacts are grouped by pipeline stage:
 
 `data/gemma3_4b/intervention/faitheval_standard/experiment/results.json` only stores raw compliance totals. If you need parse-failure counts, parseable-subset rates, or format-sensitive site exports, derive them from the committed `alpha_*.jsonl` rows instead of assuming `results.json` is sufficient.
 
+Research-output scripts now write adjacent `*.provenance.json` sidecars. When you need to answer “what produced this artifact?”, check the sidecar next to the file or in the output directory before inferring from directory names or shell history.
+
 ## Key Workflow Notes
 
 - `scripts/utils.py` contains shared lightweight helpers (`normalize_answer`, `extract_mc_answer`). Import from there — never duplicate these functions into individual scripts.
