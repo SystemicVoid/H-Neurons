@@ -107,7 +107,7 @@
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">What got withdrawn</div>
         <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-coral);">Single-hub story</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Neuron 4288 does not survive the cross-checks needed for a unique control-node interpretation.
+          The tracked 4288 verdict is <span data-top-neuron-bind="support-count-display">0/6</span>, so it does not survive the cross-checks needed for a unique control-node interpretation.
         </div>
       </div>
     </div>
@@ -261,7 +261,7 @@
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">4</div>
         <h3>Swing samples reduce to formatting artifacts &mdash; tested, survived</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">swing characterization</a> shows that <span data-swing-bind="rc-pct-display">68.1%</span> of swing samples (<span data-swing-bind="rc-count">94</span>/<span data-intervention-summary-bind="swing-count">138</span>) exhibit genuine R&rarr;C knowledge override, not formatting drift.
+          The <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">swing characterization</a> shows that <span data-swing-bind="rc-pct-display">68.1%</span> of swing samples (<span data-swing-bind="rc-count">94</span>/<span data-intervention-summary-bind="swing-count">138</span>; <span data-swing-bind="rc-ci">[59.9, 75.3]</span>) exhibit genuine R&rarr;C knowledge override, not formatting drift.
           Surface features do not predict swing status.
           This falsification condition was tested and the claim survived: the swing population reflects real belief-following behavior.
         </p>
