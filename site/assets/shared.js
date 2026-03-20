@@ -136,6 +136,34 @@
     return `${value.toFixed(digits)}pp/\u03b1`;
   }
 
+  const TOP_NEURON_ARTIFACT_CI_STATUS_LABELS = Object.freeze({
+    no_ci_fixed_diagnostic: 'No CI: fixed held-out diagnostic checks',
+  });
+
+  const TOP_NEURON_ARTIFACT_SCOREBOARD_BINDINGS = Object.freeze([
+    ['single_neuron_auc', 'auc-display'],
+    ['distribution_separation', 'cohen-d-display'],
+    ['c_sweep_stability', 'c-sweep-display'],
+    ['largest_contribution_share', 'top-contrib-display'],
+    ['ablation_accuracy_drop', 'ablation-display'],
+    ['max_top10_correlation', 'max-r-display'],
+  ]);
+
+  function formatTopNeuronArtifactCiStatus(ciStatus) {
+    if (typeof ciStatus !== 'string' || ciStatus.length === 0) {
+      return 'CI status unavailable';
+    }
+    return TOP_NEURON_ARTIFACT_CI_STATUS_LABELS[ciStatus] ?? ciStatus.replaceAll('_', ' ');
+  }
+
+  function getRequiredTopNeuronArtifactTest(testsBySlug, slug) {
+    const test = testsBySlug[slug];
+    if (!test) {
+      throw new Error(`Missing top neuron artifact diagnostic "${slug}" in classifier summary payload.`);
+    }
+    return test;
+  }
+
   function hydrateClassifierSummary(summary) {
     const accuracy = summary.metrics.accuracy;
     const precision = summary.metrics.precision;
@@ -185,6 +213,47 @@
       'disjoint-missing-activations',
       summary.disjoint_missing_activations.toLocaleString(),
     );
+
+    hydrateTopNeuronArtifact(summary);
+  }
+
+  function hydrateTopNeuronArtifact(summary) {
+    const artifact = summary.top_neuron_artifact_summary;
+    if (!artifact) {
+      return;
+    }
+
+    const verdict = artifact.verdict;
+    const supportDisplay = `${verdict.supporting_tests}/${verdict.total_tests}`;
+    const broaderDetector = artifact.distributed_detector_context.broader_detector;
+    const testsBySlug = Object.fromEntries(artifact.tests.map((test) => [test.slug, test]));
+
+    setBoundText('data-top-neuron-bind', 'support-count-display', supportDisplay);
+    setBoundText('data-top-neuron-bind', 'diagnostic-count', verdict.total_tests.toLocaleString());
+    setBoundText(
+      'data-top-neuron-bind',
+      'ci-status',
+      formatTopNeuronArtifactCiStatus(verdict.ci_status),
+    );
+    setBoundText('data-top-neuron-bind', 'verdict-summary', verdict.summary);
+    setBoundText(
+      'data-top-neuron-bind',
+      'practical-takeaway',
+      `The ${summary.selected_h_neurons}-neuron detector is useful as a paper-faithful sparse baseline, but not as evidence that the whole mechanism collapses onto one or two superstar neurons. The broader ${broaderDetector.positive_neurons}-neuron detector at C=${broaderDetector.c_value.toFixed(1)} is the better candidate if the goal is mechanism coverage rather than paper mimicry.`,
+    );
+    setBoundText(
+      'data-top-neuron-bind',
+      'takeaway-card-text',
+      `The six-test verdict is ${supportDisplay}: L1 weight ranking overstates individual top-neuron importance, and by C=${broaderDetector.c_value.toFixed(1)} the signal is spread across ${broaderDetector.positive_neurons} positive-weight neurons.`,
+    );
+
+    TOP_NEURON_ARTIFACT_SCOREBOARD_BINDINGS.forEach(([slug, binding]) => {
+      setBoundText(
+        'data-top-neuron-bind',
+        binding,
+        getRequiredTopNeuronArtifactTest(testsBySlug, slug).display_value,
+      );
+    });
   }
 
   function hydrateInterventionSummary(summary) {

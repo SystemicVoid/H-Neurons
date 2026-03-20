@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-03-20",
+  "generated_by": "tracked_manual_summary",
+  "generation_note": "Tracked structured summary for site export. Values are sourced from Section 10 of data/gemma3_4b/pipeline/pipeline_report.md so the results page can bind the six-test 4288 verdict from JSON instead of freezing it in HTML.",
+  "source_files": [
+    "data/gemma3_4b/pipeline/pipeline_report.md",
+    "data/gemma3_4b/investigation_neuron_4288/01_single_neuron_auc.png",
+    "data/gemma3_4b/investigation_neuron_4288/02_distributions.png",
+    "data/gemma3_4b/investigation_neuron_4288/03_c_sweep.png",
+    "data/gemma3_4b/investigation_neuron_4288/04_contributions.png",
+    "data/gemma3_4b/investigation_neuron_4288/05_ablation.png",
+    "data/gemma3_4b/investigation_neuron_4288/06_correlations.png"
+  ],
+  "target_neuron": {
+    "layer": 20,
+    "neuron": 4288,
+    "label": "L20:N4288",
+    "weight": 12.169,
+    "weight_rank": 1,
+    "weight_gap_vs_runner_up": 1.65
+  },
+  "verdict": {
+    "status": "artifact",
+    "supporting_tests": 0,
+    "total_tests": 6,
+    "ci_status": "no_ci_fixed_diagnostic",
+    "summary": "Across standalone AUC, separation, C-sweep stability, top-contribution share, ablation, and correlation structure, neuron 4288 behaves like a regularization artifact rather than a uniquely causal hub."
+  },
+  "distributed_detector_context": {
+    "sparse_baseline": {
+      "c_value": 1.0,
+      "positive_neurons": 38,
+      "accuracy_pct": 76.5,
+      "target_rank": 1
+    },
+    "broader_detector": {
+      "c_value": 3.0,
+      "positive_neurons": 219,
+      "accuracy_pct": 80.5,
+      "target_rank": 5
+    },
+    "loosest_detector": {
+      "c_value": 10.0,
+      "positive_neurons": 519,
+      "accuracy_pct": 80.0,
+      "target_rank": 11
+    }
+  },
+  "notable_comparators": {
+    "best_single_neuron": {
+      "label": "L13:N833",
+      "auc": 0.703,
+      "weight": 3.451
+    },
+    "runner_up_by_weight": {
+      "label": "L14:N8547",
+      "auc": 0.666,
+      "cohen_d": 0.477,
+      "weight": 7.386
+    },
+    "strongest_correlation_partner": {
+      "label": "L26:N1359",
+      "correlation": 0.492
+    }
+  },
+  "tests": [
+    {
+      "slug": "single_neuron_auc",
+      "label": "AUC",
+      "display_value": "0.590",
+      "value": 0.59,
+      "threshold": ">0.60 = real",
+      "verdict": "artifact"
+    },
+    {
+      "slug": "distribution_separation",
+      "label": "Cohen's d",
+      "display_value": "0.326",
+      "value": 0.326,
+      "threshold": ">0.5 = real",
+      "verdict": "artifact"
+    },
+    {
+      "slug": "c_sweep_stability",
+      "label": "C-sweep",
+      "display_value": "3/9",
+      "selected_count": 3,
+      "n_total": 9,
+      "threshold": "≥5/9 = real",
+      "verdict": "artifact"
+    },
+    {
+      "slug": "largest_contribution_share",
+      "label": "Top contrib",
+      "display_value": "7.4%",
+      "value_pct": 7.4,
+      "threshold": ">30% = real",
+      "verdict": "artifact"
+    },
+    {
+      "slug": "ablation_accuracy_drop",
+      "label": "Ablation",
+      "display_value": "1.0pp",
+      "value_pp": 1.03,
+      "threshold": ">2pp = real",
+      "verdict": "artifact"
+    },
+    {
+      "slug": "max_top10_correlation",
+      "label": "Max |r|",
+      "display_value": "0.492",
+      "value": 0.492,
+      "threshold": "<0.3 = real",
+      "verdict": "artifact"
+    }
+  ]
+}

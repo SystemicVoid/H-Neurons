@@ -39,4 +39,5 @@ include = ["scripts"]
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "scalene>=2.1.4",
 ]

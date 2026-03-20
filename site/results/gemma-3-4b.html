@@ -245,42 +245,49 @@
 
 <section id="verdict" class="short">
   <div class="fade-in" style="text-align: center;">
-    <h2>Verdict: <span style="color: var(--accent-coral);">0/6</span> support a unique neuron-hub story</h2>
-    <p class="subtitle" style="margin: 0 auto 2rem;" data-source="manual">
-      Across standalone AUC, separation, C-sweep stability, top-contribution share, ablation, and correlation structure,
-      neuron 4288 behaves like a regularization artifact rather than a uniquely causal hub.
+    <h2>Verdict: <span style="color: var(--accent-coral);" data-top-neuron-bind="support-count-display">--</span> support a unique neuron-hub story</h2>
+    <p class="subtitle" style="margin: 0 auto 1.25rem;" data-top-neuron-bind="verdict-summary">
+      Loading top-neuron verdict...
     </p>
+
+    <div class="chart-meta" style="max-width: 760px; margin: 0 auto 1.75rem;">
+      <div class="chart-kicker">These six checks are fixed diagnostics from the committed 4288 investigation, not a bootstrap chart.</div>
+      <div class="chart-chip-row">
+        <span class="chart-chip"><strong>n=<span data-top-neuron-bind="diagnostic-count">--</span></strong> diagnostic checks</span>
+        <span class="chart-chip"><strong>CI status:</strong> <span data-top-neuron-bind="ci-status">Loading...</span></span>
+        <span class="chart-chip"><strong>Support:</strong> <span data-top-neuron-bind="support-count-display">--</span></span>
+      </div>
+    </div>
 
     <div class="scoreboard">
       <div class="score-item artifact">
         <div class="score-label">AUC</div>
-        <div class="score-value val-coral">0.590</div>
+        <div class="score-value val-coral" data-top-neuron-bind="auc-display">--</div>
       </div>
       <div class="score-item artifact">
         <div class="score-label">Cohen's d</div>
-        <div class="score-value val-coral">0.326</div>
+        <div class="score-value val-coral" data-top-neuron-bind="cohen-d-display">--</div>
       </div>
       <div class="score-item artifact">
         <div class="score-label">C-sweep</div>
-        <div class="score-value val-coral">3/9</div>
+        <div class="score-value val-coral" data-top-neuron-bind="c-sweep-display">--</div>
       </div>
       <div class="score-item artifact">
         <div class="score-label">Top contrib</div>
-        <div class="score-value val-coral">7.4%</div>
+        <div class="score-value val-coral" data-top-neuron-bind="top-contrib-display">--</div>
       </div>
       <div class="score-item artifact">
         <div class="score-label">Ablation</div>
-        <div class="score-value val-coral">1.0pp</div>
+        <div class="score-value val-coral" data-top-neuron-bind="ablation-display">--</div>
       </div>
       <div class="score-item artifact">
         <div class="score-label">Max |r|</div>
-        <div class="score-value val-coral">0.492</div>
+        <div class="score-value val-coral" data-top-neuron-bind="max-r-display">--</div>
       </div>
     </div>
 
     <div class="insight-box" data-status="ARTIFACT" style="text-align: left; max-width: 720px; margin: 2rem auto;">
-      <strong>Practical takeaway:</strong> the 38-neuron detector is useful as a paper-faithful sparse baseline, but not as evidence that the whole mechanism collapses onto one or two superstar neurons.
-      The broader 219-neuron detector at C=3.0 is the better candidate if the goal is mechanism coverage rather than paper mimicry.
+      <strong>Practical takeaway:</strong> <span data-top-neuron-bind="practical-takeaway">Loading top-neuron takeaway...</span>
     </div>
 
     <p style="margin-top: 0.5rem;">
@@ -517,8 +524,8 @@ Answer:</code>
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
         <h3>The sparsity story is partly an artifact story</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          L1 weight ranking overstates the importance of individual top neurons and understates distributed signal.
+        <p style="font-size: 14px; color: var(--text-secondary);" data-top-neuron-bind="takeaway-card-text">
+          Loading top-neuron takeaway...
         </p>
       </div>
       <div class="step-card">

@@ -12,6 +12,7 @@ from scripts.characterize_swing import (
     summarize_llm_enrichment,
 )
 from scripts.export_site_data import (
+    TOP_NEURON_ARTIFACT_TEST_SLUGS,
     build_classifier_site_payload,
     build_classifier_structure_summary_payload,
     build_swing_characterization_payload,
@@ -24,6 +25,69 @@ from scripts.export_site_data import (
 def write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def make_top_neuron_artifact_summary(
+    *,
+    label: str,
+    weight: float,
+    selected_h_neurons: int,
+    broader_positive_neurons: int | None = None,
+    ci_status: str = "no_ci_fixed_diagnostic",
+    test_slugs: tuple[str, ...] = TOP_NEURON_ARTIFACT_TEST_SLUGS,
+) -> dict:
+    broader_positive_neurons = broader_positive_neurons or (selected_h_neurons + 2)
+    tests = [
+        {
+            "slug": slug,
+            "label": slug.replace("_", " ").title(),
+            "display_value": f"{index / 10:.1f}",
+            "threshold": f">{(index + 1) / 10:.1f}",
+            "verdict": "artifact",
+        }
+        for index, slug in enumerate(test_slugs, start=1)
+    ]
+    return {
+        "schema_version": 1,
+        "generated_at": "2026-03-20",
+        "generated_by": "tracked_manual_summary",
+        "source_files": ["data/gemma3_4b/pipeline/pipeline_report.md"],
+        "target_neuron": {
+            "layer": 0,
+            "neuron": 0,
+            "label": label,
+            "weight": weight,
+            "weight_rank": 1,
+        },
+        "verdict": {
+            "status": "artifact",
+            "supporting_tests": 0,
+            "total_tests": len(tests),
+            "summary": "Synthetic summary",
+            "ci_status": ci_status,
+        },
+        "distributed_detector_context": {
+            "sparse_baseline": {
+                "c_value": 1.0,
+                "positive_neurons": selected_h_neurons,
+                "accuracy_pct": 80.0,
+                "target_rank": 1,
+            },
+            "broader_detector": {
+                "c_value": 3.0,
+                "positive_neurons": broader_positive_neurons,
+                "accuracy_pct": 82.0,
+                "target_rank": 2,
+            },
+            "loosest_detector": {
+                "c_value": 10.0,
+                "positive_neurons": broader_positive_neurons + 3,
+                "accuracy_pct": 81.0,
+                "target_rank": 4,
+            },
+        },
+        "tests": tests,
+    }
 
 
 def test_analyze_transitions_reports_counts_and_early_share():
@@ -180,6 +244,7 @@ def test_build_classifier_site_payload_exports_model_structure():
     payload = build_classifier_site_payload(repo_root)
 
     structure = payload["selected_h_neuron_structure"]
+    artifact = payload["top_neuron_artifact_summary"]
     top_positive = structure["top_positive_neurons"]
 
     assert payload["schema_version"] == 2
@@ -192,6 +257,17 @@ def test_build_classifier_site_payload_exports_model_structure():
     assert top_positive[0]["weight"] == 12.169
     assert top_positive[1]["label"] == "L14:N8547"
     assert top_positive[1]["weight"] == 7.386
+    assert artifact["target_neuron"]["label"] == top_positive[0]["label"]
+    assert artifact["verdict"]["supporting_tests"] == 0
+    assert artifact["verdict"]["total_tests"] == 6
+    assert [test["slug"] for test in artifact["tests"]] == list(
+        TOP_NEURON_ARTIFACT_TEST_SLUGS
+    )
+    assert (
+        artifact["distributed_detector_context"]["broader_detector"]["positive_neurons"]
+        == 219
+    )
+    assert artifact["tests"][0]["display_value"] == "0.590"
     assert [entry["weight"] for entry in top_positive] == sorted(
         (entry["weight"] for entry in top_positive),
         reverse=True,
@@ -223,6 +299,45 @@ def test_results_page_intervention_narrative_uses_live_bindings():
 
     assert "150 failures at &alpha;=3.0" not in results_html
     assert "<h2>Most samples are unaffected by scaling</h2>" not in results_html
+
+
+def test_results_page_top_neuron_verdict_uses_live_bindings():
+    repo_root = Path(__file__).resolve().parents[1]
+    results_html = (repo_root / "site/results/gemma-3-4b.html").read_text()
+    shared_js = (repo_root / "site/assets/shared.js").read_text()
+
+    bindings = [
+        "support-count-display",
+        "diagnostic-count",
+        "ci-status",
+        "verdict-summary",
+        "auc-display",
+        "cohen-d-display",
+        "c-sweep-display",
+        "top-contrib-display",
+        "ablation-display",
+        "max-r-display",
+        "practical-takeaway",
+        "takeaway-card-text",
+    ]
+
+    for binding in bindings:
+        assert f'data-top-neuron-bind="{binding}"' in results_html
+        assert f"'{binding}'" in shared_js
+
+    assert "formatTopNeuronArtifactCiStatus(verdict.ci_status)" in shared_js
+    assert (
+        "setBoundText('data-top-neuron-bind', 'ci-status', 'No CI: fixed held-out diagnostic checks');"
+        not in shared_js
+    )
+    assert (
+        "neuron 4288 behaves like a regularization artifact rather than a uniquely causal hub."
+        not in results_html
+    )
+    assert (
+        "L1 weight ranking overstates the importance of individual top neurons and understates distributed signal."
+        not in results_html
+    )
 
 
 def test_build_classifier_site_payload_uses_tracked_structure_summary(tmp_path: Path):
@@ -319,13 +434,148 @@ def test_build_classifier_site_payload_uses_tracked_structure_summary(tmp_path: 
         repo_root / "data/gemma3_4b/pipeline/classifier_structure_summary.json",
         tracked_summary,
     )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        make_top_neuron_artifact_summary(
+            label="L0:N0",
+            weight=tracked_summary["structure"]["top_positive_neurons"][0]["weight"],
+            selected_h_neurons=10,
+        ),
+    )
 
     payload = build_classifier_site_payload(repo_root)
 
     assert payload["selected_h_neuron_structure"] == tracked_summary["structure"]
-    assert payload["source_files"][-1] == (
+    assert payload["source_files"][-2] == (
         "data/gemma3_4b/pipeline/classifier_structure_summary.json"
     )
+    assert payload["source_files"][-1] == (
+        "data/gemma3_4b/pipeline/neuron_4288_summary.json"
+    )
+    assert payload["top_neuron_artifact_summary"]["target_neuron"]["label"] == "L0:N0"
+
+
+def test_build_classifier_site_payload_rejects_top_neuron_artifact_slug_drift(
+    tmp_path: Path,
+):
+    repo_root = tmp_path
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+        {
+            "model_path": "google/gemma-3-4b-it",
+            "selected_h_neurons": 10,
+            "selected_ratio_per_mille": 0.1,
+            "total_ffn_neurons": 34,
+            "evaluation": {
+                "n_examples": 10,
+                "n_positive": 5,
+                "n_negative": 5,
+                "metrics": {"accuracy": {"estimate": 0.8}},
+                "bootstrap": {},
+                "confusion_matrix": {},
+            },
+        },
+    )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
+        {
+            "evaluation": {
+                "n_examples": 12,
+                "n_positive": 6,
+                "n_negative": 6,
+                "metrics": {"accuracy": {"estimate": 0.9}},
+                "bootstrap": {},
+                "confusion_matrix": {},
+            }
+        },
+    )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+        {"group_a": ["q1", "q2", "q3"]},
+    )
+    tracked_summary = {
+        "schema_version": 1,
+        "generated_at": "2026-03-19",
+        "generated_by": "scripts/export_site_data.py",
+        "model": "google/gemma-3-4b-it",
+        "model_path": "models/gemma3_4b_classifier_disjoint.pkl",
+        "generation_script": "scripts/export_site_data.py",
+        "source_files": [
+            "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+            "models/gemma3_4b_classifier_disjoint.pkl",
+        ],
+        "selected_h_neurons": 10,
+        "total_ffn_neurons": 34,
+        "coefficient_sha256": "f" * 64,
+        "structure": {
+            "n_layers": 34,
+            "neurons_per_layer": 1,
+            "positive_counts_by_layer": [1] * 10 + [0] * 24,
+            "nonzero_layers": [{"layer": layer, "count": 1} for layer in range(10)],
+            "bands": {
+                "early": {
+                    "label": "early",
+                    "start_layer": 0,
+                    "end_layer": 10,
+                    "count": 10,
+                    "pct": 100.0,
+                },
+                "middle": {
+                    "label": "middle",
+                    "start_layer": 11,
+                    "end_layer": 20,
+                    "count": 0,
+                    "pct": 0.0,
+                },
+                "late": {
+                    "label": "late",
+                    "start_layer": 21,
+                    "end_layer": 33,
+                    "count": 0,
+                    "pct": 0.0,
+                },
+            },
+            "top_positive_neurons": [
+                {
+                    "rank": rank,
+                    "layer": rank - 1,
+                    "neuron": 0,
+                    "label": f"L{rank - 1}:N0",
+                    "weight": round(10.0 - rank * 0.1, 3),
+                }
+                for rank in range(1, 11)
+            ],
+        },
+    }
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/classifier_structure_summary.json",
+        tracked_summary,
+    )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        make_top_neuron_artifact_summary(
+            label="L0:N0",
+            weight=tracked_summary["structure"]["top_positive_neurons"][0]["weight"],
+            selected_h_neurons=10,
+            test_slugs=(
+                "single_neuron_auc",
+                "distribution_separation",
+                "c_sweep_stability",
+                "largest_contribution_share",
+                "ablation_accuracy_drop",
+                "renamed_top10_correlation",
+            ),
+        ),
+    )
+
+    try:
+        build_classifier_site_payload(repo_root)
+    except ValueError as exc:
+        assert "exact renderer slug set" in str(exc)
+        assert "max_top10_correlation" in str(exc)
+        assert "renamed_top10_correlation" in str(exc)
+    else:
+        raise AssertionError("Expected top-neuron artifact slug drift to be rejected")
 
 
 def test_build_classifier_site_payload_rejects_stale_tracked_structure_when_local_checkpoint_exists(
@@ -428,6 +678,14 @@ def test_build_classifier_site_payload_rejects_stale_tracked_structure_when_loca
             },
         },
     )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        make_top_neuron_artifact_summary(
+            label="L0:N0",
+            weight=9.0,
+            selected_h_neurons=10,
+        ),
+    )
 
     try:
         build_classifier_site_payload(repo_root)
@@ -456,6 +714,14 @@ def test_build_classifier_structure_summary_payload_and_validator_use_checkpoint
             "selected_h_neurons": 10,
             "total_ffn_neurons": 34,
         },
+    )
+    write_json(
+        repo_root / "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        make_top_neuron_artifact_summary(
+            label="L0:N0",
+            weight=9.0,
+            selected_h_neurons=10,
+        ),
     )
 
     payload = build_classifier_structure_summary_payload(repo_root)

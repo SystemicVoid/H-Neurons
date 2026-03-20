@@ -23,6 +23,10 @@ Recent completed work:
 - `site/assets/charts.js` no longer hardcodes `layerData` or `topNeurons`
 - the layer-distribution and top-neuron sections on `results/gemma-3-4b.html` now read from canonical classifier JSON
 - the intervention, evaluation-confound, and swing-population sections on `results/gemma-3-4b.html` now bind their peak parse-failure, strict-remap recovery, and frozen-vs-swing counts from canonical intervention JSON
+- `data/gemma3_4b/pipeline/neuron_4288_summary.json` now tracks the six-test neuron-4288 verdict as structured site-facing data
+- `site/data/classifier_summary.json` now includes `top_neuron_artifact_summary`
+- the 4288 verdict and takeaway blocks on `results/gemma-3-4b.html` now bind from canonical JSON instead of frozen HTML literals
+- `scripts/audit_ci_coverage.py` now validates the top-neuron verdict payload alongside the classifier-structure payload
 - `scripts/audit_ci_coverage.py` now validates the classifier-structure payload
 - `data/gemma3_4b/pipeline/classifier_structure_summary.json` is now tracked alongside the other classifier outputs
 - `scripts/export_site_data.py` now reads that tracked summary by default instead of loading the checkpoint during normal site export
@@ -31,7 +35,7 @@ Recent completed work:
 That matters because the site no longer tells two separate stories about key quantitative surfaces: one in committed JSON and another in manually maintained page literals.
 
 The main remaining weak point is no longer classifier-structure export reproducibility.
-That gap is now closed for normal site work. The remaining risk is now concentrated in the static copy that still wraps the evidence pages: especially the 4288/verdict blocks on `results/gemma-3-4b.html` and the claim-heavy synthesis on `story.html`.
+That gap is now closed for normal site work. The remaining risk is now concentrated in the static copy that still wraps the evidence pages, especially the claim-heavy synthesis on `story.html`.
 
 ## Current Snapshot
 
@@ -44,7 +48,7 @@ At the time of this review, the site has:
 | Generated site JSON | 4 files in `site/data/` |
 | Charts | 9 `<canvas>` charts |
 | Static figures | 8 `<img>` figures |
-| Manual-content markers | 24 `data-source="manual"` markers |
+| Manual-content markers | 23 `data-source="manual"` markers |
 | Provenance comments | 16 `<!-- from: ... -->` comments |
 | Broken internal refs found in this audit | 0 |
 
@@ -335,7 +339,7 @@ The current site has clear progress on provenance, but it is not finished.
 |---|---:|---:|
 | `index.html` | 3 | 5 |
 | `story.html` | 6 | 5 |
-| `results/gemma-3-4b.html` | 10 | 5 |
+| `results/gemma-3-4b.html` | 9 | 5 |
 | `methods.html` | 0 | 0 |
 | `extensions.html` | 5 | 0 |
 | `deep-dives/neuron-4288.html` | 0 | 1 |
@@ -361,7 +365,8 @@ What changed since the prior audit:
 
 - the largest quantitative JS drift source on the results page has been removed
 - the intervention page copy now reads more of its peak counts and population splits from canonical JSON
-- the remaining risk on that page is now mostly editorial framing and static appendix-style verdict text, not chart-array duplication
+- the 4288 verdict/takeaway block now reads from a tracked structured summary rather than frozen literals
+- the remaining risk on that page is now mostly editorial framing around already-bound evidence, not chart-array duplication
 
 ## What Is Good Enough Now
 
@@ -422,20 +427,20 @@ That is normal, but it matters when deciding where to invest cleanup effort.
 
 If this file is going to name priorities, they should reflect the site we actually have now.
 
-### Priority 1: finish the quantitative anti-drift pass
+### Priority 1: finish the quantitative anti-drift pass on `story.html`
 
 Highest-leverage cleanup:
 
-- continue replacing repeated literals on the results and story pages with bindings or provenance comments
-- focus the next results-page pass on the 4288/verdict/takeaway blocks rather than the intervention sections
-- then move to `story.html`, which now carries more of the remaining mixed claim/data burden
+- continue replacing repeated literals on the story page with bindings or provenance comments
+- keep tightening results-page prose where it still summarizes live evidence manually
+- treat new site-facing quantitative summaries like tracked contracts, not page-local literals
 
 This is now the most important remaining site-facing technical debt.
 
 ### Priority 2: treat `results/gemma-3-4b.html` as the main maintenance surface
 
 That page still carries the most quantitative weight.
-If results change, it is still the page most likely to go out of sync first, but the remaining risk is now concentrated in the 4288/verdict/takeaway synthesis rather than the intervention sections.
+If results change, it is still the page most likely to go out of sync first, but the remaining risk is now concentrated in the manual framing around already-bound evidence rather than frozen verdict numerics.
 
 ### Priority 3: keep archive work deferred until there is real archival content
 

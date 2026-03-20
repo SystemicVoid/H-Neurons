@@ -25,6 +25,17 @@ GEMMA_3_4B_LAYER_COUNT = 34
 CLASSIFIER_STRUCTURE_SUMMARY_PATH = Path(
     "data/gemma3_4b/pipeline/classifier_structure_summary.json"
 )
+TOP_NEURON_ARTIFACT_SUMMARY_PATH = Path(
+    "data/gemma3_4b/pipeline/neuron_4288_summary.json"
+)
+TOP_NEURON_ARTIFACT_TEST_SLUGS = (
+    "single_neuron_auc",
+    "distribution_separation",
+    "c_sweep_stability",
+    "largest_contribution_share",
+    "ablation_accuracy_drop",
+    "max_top10_correlation",
+)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -445,6 +456,132 @@ def load_classifier_structure_summary(
     return load_json(repo_root / summary_path)
 
 
+def load_top_neuron_artifact_summary(
+    repo_root: Path,
+    summary_path: Path = TOP_NEURON_ARTIFACT_SUMMARY_PATH,
+) -> dict[str, Any]:
+    return load_json(repo_root / summary_path)
+
+
+def validate_top_neuron_artifact_summary(
+    summary: dict[str, Any],
+    classifier_structure: dict[str, Any],
+    selected_h_neurons: int,
+) -> None:
+    target = summary.get("target_neuron")
+    if not isinstance(target, dict):
+        raise ValueError("Tracked top-neuron artifact summary missing target_neuron")
+
+    top_positive_neurons = classifier_structure.get("top_positive_neurons")
+    if not isinstance(top_positive_neurons, list) or not top_positive_neurons:
+        raise ValueError("Classifier structure missing top_positive_neurons")
+
+    top_neuron = top_positive_neurons[0]
+    if target.get("label") != top_neuron.get("label"):
+        raise ValueError(
+            "Tracked top-neuron artifact summary target label does not match the "
+            "classifier structure top neuron"
+        )
+    if round(float(target.get("weight", 0.0)), 3) != round(
+        float(top_neuron.get("weight", 0.0)), 3
+    ):
+        raise ValueError(
+            "Tracked top-neuron artifact summary target weight does not match the "
+            "classifier structure top neuron"
+        )
+
+    verdict = summary.get("verdict")
+    if not isinstance(verdict, dict):
+        raise ValueError("Tracked top-neuron artifact summary missing verdict")
+    supporting_tests = verdict.get("supporting_tests")
+    total_tests = verdict.get("total_tests")
+    if not isinstance(supporting_tests, int) or not isinstance(total_tests, int):
+        raise ValueError(
+            "Tracked top-neuron artifact summary verdict counts must be integers"
+        )
+    if supporting_tests < 0 or supporting_tests > total_tests:
+        raise ValueError(
+            "Tracked top-neuron artifact summary supporting_tests must be between "
+            "0 and total_tests"
+        )
+    ci_status = verdict.get("ci_status")
+    if not isinstance(ci_status, str) or not ci_status.strip():
+        raise ValueError(
+            "Tracked top-neuron artifact summary verdict missing ci_status"
+        )
+    expected_total_tests = len(TOP_NEURON_ARTIFACT_TEST_SLUGS)
+    if total_tests != expected_total_tests:
+        raise ValueError(
+            "Tracked top-neuron artifact summary verdict total_tests must match "
+            f"the renderer contract ({expected_total_tests})"
+        )
+
+    tests = summary.get("tests")
+    if not isinstance(tests, list) or len(tests) != total_tests:
+        raise ValueError(
+            "Tracked top-neuron artifact summary tests must match verdict total_tests"
+        )
+    expected_test_fields = {"slug", "label", "display_value", "threshold", "verdict"}
+    slugs: set[str] = set()
+    for test in tests:
+        if not isinstance(test, dict):
+            raise ValueError(
+                "Tracked top-neuron artifact summary tests must contain objects"
+            )
+        missing_fields = expected_test_fields - set(test)
+        if missing_fields:
+            raise ValueError(
+                "Tracked top-neuron artifact summary test missing fields: "
+                + ", ".join(sorted(missing_fields))
+            )
+        slug = test["slug"]
+        if slug in slugs:
+            raise ValueError(
+                "Tracked top-neuron artifact summary test slugs must be unique"
+            )
+        slugs.add(slug)
+    expected_slugs = set(TOP_NEURON_ARTIFACT_TEST_SLUGS)
+    if slugs != expected_slugs:
+        details: list[str] = []
+        missing_slugs = sorted(expected_slugs - slugs)
+        unexpected_slugs = sorted(slugs - expected_slugs)
+        if missing_slugs:
+            details.append("missing: " + ", ".join(missing_slugs))
+        if unexpected_slugs:
+            details.append("unexpected: " + ", ".join(unexpected_slugs))
+        raise ValueError(
+            "Tracked top-neuron artifact summary tests must use the exact "
+            "renderer slug set. " + "; ".join(details)
+        )
+
+    context = summary.get("distributed_detector_context")
+    if not isinstance(context, dict):
+        raise ValueError(
+            "Tracked top-neuron artifact summary missing distributed_detector_context"
+        )
+    sparse_baseline = context.get("sparse_baseline")
+    broader_detector = context.get("broader_detector")
+    if not isinstance(sparse_baseline, dict) or not isinstance(broader_detector, dict):
+        raise ValueError(
+            "Tracked top-neuron artifact summary missing detector context entries"
+        )
+    if sparse_baseline.get("positive_neurons") != selected_h_neurons:
+        raise ValueError(
+            "Tracked top-neuron artifact summary sparse baseline count does not "
+            "match the classifier selected_h_neurons"
+        )
+    if sparse_baseline.get("target_rank") != 1:
+        raise ValueError(
+            "Tracked top-neuron artifact summary sparse baseline must encode the "
+            "paper-faithful C=1.0 rank as 1"
+        )
+    if broader_detector.get("positive_neurons", 0) <= selected_h_neurons:
+        raise ValueError(
+            "Tracked top-neuron artifact summary broader detector must be wider "
+            "than the sparse baseline"
+        )
+
+
 def validate_classifier_structure_summary(
     repo_root: Path,
     summary_path: Path = CLASSIFIER_STRUCTURE_SUMMARY_PATH,
@@ -511,6 +648,7 @@ def validate_tracked_classifier_hash_against_local_checkpoint(
 def build_classifier_site_payload(
     repo_root: Path,
     classifier_structure_summary_path: Path = CLASSIFIER_STRUCTURE_SUMMARY_PATH,
+    top_neuron_artifact_summary_path: Path = TOP_NEURON_ARTIFACT_SUMMARY_PATH,
 ) -> dict[str, Any]:
     disjoint_summary_path = (
         repo_root / "data/gemma3_4b/pipeline/classifier_disjoint_summary.json"
@@ -531,6 +669,14 @@ def build_classifier_site_payload(
         summary,
     )
     selected_h_neuron_structure = tracked_structure_summary["structure"]
+    top_neuron_artifact_summary = load_top_neuron_artifact_summary(
+        repo_root, top_neuron_artifact_summary_path
+    )
+    validate_top_neuron_artifact_summary(
+        top_neuron_artifact_summary,
+        selected_h_neuron_structure,
+        summary["selected_h_neurons"],
+    )
     if tracked_structure_summary["selected_h_neurons"] != summary["selected_h_neurons"]:
         raise ValueError(
             "Tracked classifier structure summary selected_h_neurons does not match "
@@ -554,6 +700,7 @@ def build_classifier_site_payload(
             "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
             "data/gemma3_4b/pipeline/test_qids_disjoint.json",
             classifier_structure_summary_path.as_posix(),
+            top_neuron_artifact_summary_path.as_posix(),
         ],
         "n_examples": evaluation["n_examples"],
         "n_positive": evaluation["n_positive"],
@@ -561,6 +708,7 @@ def build_classifier_site_payload(
         "selected_h_neurons": summary["selected_h_neurons"],
         "total_ffn_neurons": summary["total_ffn_neurons"],
         "selected_h_neuron_structure": selected_h_neuron_structure,
+        "top_neuron_artifact_summary": top_neuron_artifact_summary,
         "selected_ratio_per_mille": summary["selected_ratio_per_mille"],
         "metrics": evaluation["metrics"],
         "bootstrap": evaluation["bootstrap"],

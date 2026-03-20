@@ -201,6 +201,106 @@ def audit_site_classifier_structure_consistency(
         )
 
 
+def audit_top_neuron_artifact_summary(
+    summary: Any,
+    label: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(summary, dict):
+        errors.append(f"{label} missing top-neuron artifact summary")
+        return
+
+    target = summary.get("target_neuron")
+    if not isinstance(target, dict):
+        errors.append(f"{label} missing target_neuron")
+    else:
+        for field in ("layer", "neuron", "label", "weight", "weight_rank"):
+            if field not in target:
+                errors.append(f"{label} target_neuron missing '{field}'")
+
+    verdict = summary.get("verdict")
+    if not isinstance(verdict, dict):
+        errors.append(f"{label} missing verdict")
+    else:
+        for field in (
+            "status",
+            "supporting_tests",
+            "total_tests",
+            "summary",
+            "ci_status",
+        ):
+            if field not in verdict:
+                errors.append(f"{label} verdict missing '{field}'")
+
+    tests = summary.get("tests")
+    if not isinstance(tests, list) or not tests:
+        errors.append(f"{label} missing tests")
+    else:
+        slugs: set[str] = set()
+        for idx, test in enumerate(tests):
+            if not isinstance(test, dict):
+                errors.append(f"{label} tests[{idx}] invalid")
+                continue
+            typed_test = cast(dict[str, Any], test)
+            for field in ("slug", "label", "display_value", "threshold", "verdict"):
+                if field not in typed_test:
+                    errors.append(f"{label} tests[{idx}] missing '{field}'")
+            slug = typed_test.get("slug")
+            if isinstance(slug, str):
+                if slug in slugs:
+                    errors.append(f"{label} duplicate test slug '{slug}'")
+                slugs.add(slug)
+
+    context = summary.get("distributed_detector_context")
+    if not isinstance(context, dict):
+        errors.append(f"{label} missing distributed_detector_context")
+    else:
+        for bucket in ("sparse_baseline", "broader_detector", "loosest_detector"):
+            if not isinstance(context.get(bucket), dict):
+                errors.append(f"{label} missing distributed_detector_context.{bucket}")
+
+
+def audit_tracked_top_neuron_artifact_summary(path: str, errors: list[str]) -> None:
+    data = load_json(path)
+    audit_top_neuron_artifact_summary(
+        data,
+        "tracked_top_neuron_artifact",
+        errors,
+    )
+
+
+def audit_site_top_neuron_artifact_summary(path: str, errors: list[str]) -> None:
+    data = load_json(path)
+    audit_top_neuron_artifact_summary(
+        data.get("top_neuron_artifact_summary"),
+        "site_top_neuron_artifact",
+        errors,
+    )
+
+    site_structure = data.get("selected_h_neuron_structure", {})
+    top_neurons = site_structure.get("top_positive_neurons", [])
+    artifact = data.get("top_neuron_artifact_summary", {})
+    target = artifact.get("target_neuron", {}) if isinstance(artifact, dict) else {}
+    if top_neurons and isinstance(target, dict):
+        if target.get("label") != top_neurons[0].get("label"):
+            errors.append(
+                "site_top_neuron_artifact target label does not match classifier top neuron"
+            )
+
+
+def audit_site_top_neuron_artifact_consistency(
+    tracked_path: str,
+    site_path: str,
+    errors: list[str],
+) -> None:
+    tracked = load_json(tracked_path)
+    site = load_json(site_path)
+    if tracked != site.get("top_neuron_artifact_summary"):
+        errors.append(
+            "site_top_neuron_artifact does not match tracked neuron_4288 summary"
+        )
+
+
 def audit_intervention_result(path: str, label: str, errors: list[str]) -> None:
     data = load_json(path)
     for alpha in ("0.0", "0.5", "1.0", "1.5", "2.0", "2.5", "3.0"):
@@ -453,6 +553,10 @@ def main() -> int:
             "data/gemma3_4b/pipeline/classifier_structure_summary.json",
             errors,
         )
+        audit_tracked_top_neuron_artifact_summary(
+            "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+            errors,
+        )
         audit_classifier_summary(
             "site/data/classifier_summary.json",
             "site_classifier",
@@ -461,6 +565,15 @@ def main() -> int:
         audit_site_classifier_structure("site/data/classifier_summary.json", errors)
         audit_site_classifier_structure_consistency(
             "data/gemma3_4b/pipeline/classifier_structure_summary.json",
+            "site/data/classifier_summary.json",
+            errors,
+        )
+        audit_site_top_neuron_artifact_summary(
+            "site/data/classifier_summary.json",
+            errors,
+        )
+        audit_site_top_neuron_artifact_consistency(
+            "data/gemma3_4b/pipeline/neuron_4288_summary.json",
             "site/data/classifier_summary.json",
             errors,
         )

@@ -32,6 +32,8 @@ click==8.3.1
     # via
     #   nltk
     #   wandb
+cloudpickle==3.1.2
+    # via scalene
 colorama==0.4.6 ; sys_platform == 'win32'
     # via
     #   click
@@ -115,7 +117,9 @@ iniconfig==2.3.0
 jaxtyping==0.3.5
     # via transformer-lens
 jinja2==3.1.6
-    # via torch
+    # via
+    #   scalene
+    #   torch
 joblib==1.5.3
     # via
     #   02-h-neurons
@@ -147,7 +151,7 @@ networkx==3.6.1
     # via torch
 nltk==3.9.3
     # via sae-lens
-numpy==1.26.4
+numpy==1.26.4 ; python_full_version < '3.14'
     # via
     #   accelerate
     #   contourpy
@@ -156,11 +160,27 @@ numpy==1.26.4
     #   pandas
     #   patsy
     #   plotly-express
+    #   scalene
     #   scikit-learn
     #   scipy
     #   seaborn
     #   statsmodels
     #   transformer-lens
+    #   transformers
+numpy==2.4.3 ; python_full_version >= '3.14'
+    # via
+    #   accelerate
+    #   contourpy
+    #   datasets
+    #   matplotlib
+    #   pandas
+    #   patsy
+    #   plotly-express
+    #   scalene
+    #   scikit-learn
+    #   scipy
+    #   seaborn
+    #   statsmodels
     #   transformers
 nvidia-cublas==13.0.0.19 ; sys_platform == 'linux'
     # via
@@ -189,6 +209,8 @@ nvidia-cusparse==12.6.2.49 ; sys_platform == 'linux'
     #   torch
 nvidia-cusparselt-cu13==0.8.0 ; sys_platform == 'linux'
     # via torch
+nvidia-ml-py==13.595.45 ; sys_platform != 'darwin'
+    # via scalene
 nvidia-nccl-cu13==2.27.7 ; sys_platform == 'linux'
     # via torch
 nvidia-nvjitlink==13.0.39 ; sys_platform == 'linux'
@@ -244,13 +266,17 @@ propcache==0.4.1
 protobuf==6.33.4
     # via wandb
 psutil==7.2.1
-    # via accelerate
+    # via
+    #   accelerate
+    #   scalene
 py2store==0.1.22
     # via babe
 pyarrow==23.0.0
     # via datasets
 pydantic==2.12.5
-    # via wandb
+    # via
+    #   scalene
+    #   wandb
 pydantic-core==2.41.5
     # via pydantic
 pygments==2.19.2
@@ -276,6 +302,7 @@ pyyaml==6.0.3
     #   datasets
     #   huggingface-hub
     #   sae-lens
+    #   scalene
     #   transformers
     #   wandb
 regex==2026.1.15
@@ -290,7 +317,9 @@ requests==2.32.5
     #   transformers
     #   wandb
 rich==14.2.0
-    # via transformer-lens
+    # via
+    #   scalene
+    #   transformer-lens
 sae-lens==6.39.0
     # via 02-h-neurons
 safetensors==0.7.0
@@ -298,6 +327,7 @@ safetensors==0.7.0
     #   accelerate
     #   sae-lens
     #   transformers
+scalene==2.1.4
 scikit-learn==1.8.0
     # via 02-h-neurons
 scipy==1.17.1
