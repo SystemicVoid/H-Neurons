@@ -2,7 +2,7 @@
 
 > Current implementation audit for `site/`, replacing the earlier migration plan and session handoff log.
 >
-> **Updated**: 2026-03-19
+> **Updated**: 2026-03-20
 > **Scope**: what is live now, what is actually data-driven, what is still brittle, and what the website most needs next.
 
 ## Executive Summary
@@ -26,6 +26,8 @@ Recent completed work:
 - `data/gemma3_4b/pipeline/neuron_4288_summary.json` now tracks the six-test neuron-4288 verdict as structured site-facing data
 - `site/data/classifier_summary.json` now includes `top_neuron_artifact_summary`
 - the 4288 verdict and takeaway blocks on `results/gemma-3-4b.html` now bind from canonical JSON instead of frozen HTML literals
+- `site/assets/shared.js` now hydrates classifier-structure and distributed-detector bindings for non-chart pages
+- the main early-layer and 38-vs-219 detector claims on `story.html` now read from canonical JSON instead of page-local literals
 - `scripts/audit_ci_coverage.py` now validates the top-neuron verdict payload alongside the classifier-structure payload
 - `scripts/audit_ci_coverage.py` now validates the classifier-structure payload
 - `data/gemma3_4b/pipeline/classifier_structure_summary.json` is now tracked alongside the other classifier outputs
@@ -35,7 +37,7 @@ Recent completed work:
 That matters because the site no longer tells two separate stories about key quantitative surfaces: one in committed JSON and another in manually maintained page literals.
 
 The main remaining weak point is no longer classifier-structure export reproducibility.
-That gap is now closed for normal site work. The remaining risk is now concentrated in the static copy that still wraps the evidence pages, especially the claim-heavy synthesis on `story.html`.
+That gap is now closed for normal site work. The remaining risk is now concentrated in the static copy that still wraps the evidence pages, especially the claim-heavy synthesis on `story.html` that still depends on manual framing and incomplete provenance coverage.
 
 ## Current Snapshot
 
@@ -194,7 +196,7 @@ These areas remain drift-prone:
 - Manual qualitative framing of what counts as the current story
 - Manual roadmap prioritization on `extensions.html`
 - Static appendix claims on `deep-dives/neuron-4288.html`
-- The 4288/verdict/takeaway blocks on `results/gemma-3-4b.html`, which still summarize live evidence in static prose
+- Manual synthesis prose on `results/gemma-3-4b.html` that interprets already-bound evidence
 
 ### No longer hardcoded in JS
 
@@ -427,20 +429,20 @@ That is normal, but it matters when deciding where to invest cleanup effort.
 
 If this file is going to name priorities, they should reflect the site we actually have now.
 
-### Priority 1: finish the quantitative anti-drift pass on `story.html`
+### Priority 1: finish the remaining claim-contract pass on `story.html`
 
 Highest-leverage cleanup:
 
-- continue replacing repeated literals on the story page with bindings or provenance comments
+- keep converting the remaining claim-adjacent story prose to either bindings or explicit provenance comments
+- add tracked site-facing fields when the story needs a repeated quantitative comparison that is not yet exported cleanly
 - keep tightening results-page prose where it still summarizes live evidence manually
-- treat new site-facing quantitative summaries like tracked contracts, not page-local literals
 
-This is now the most important remaining site-facing technical debt.
+This is still the most important remaining site-facing technical debt, but the easiest repeated numerics on the story page are no longer the bottleneck.
 
-### Priority 2: treat `results/gemma-3-4b.html` as the main maintenance surface
+### Priority 2: keep `results/gemma-3-4b.html` as the main ledger, but not the first cleanup target
 
 That page still carries the most quantitative weight.
-If results change, it is still the page most likely to go out of sync first, but the remaining risk is now concentrated in the manual framing around already-bound evidence rather than frozen verdict numerics.
+If results change, it is still the page most likely to go out of sync first, but the largest remaining sync risk is now manual framing around already-bound evidence rather than missing raw numerics or frozen 4288 verdict blocks.
 
 ### Priority 3: keep archive work deferred until there is real archival content
 
@@ -558,8 +560,8 @@ The major scaling step already happened: the monolith was split, the shared asse
 
 What remains is now a narrower maintenance queue, not a vague migration backlog:
 
-- finish the 4288/verdict/takeaway anti-drift pass on the results page
-- then reduce the remaining mixed claim/data burden on `story.html`
+- finish the remaining story-page claim provenance and contract pass
+- then tighten the manual framing on the results page where it interprets already-bound evidence
 - keep the results page synchronized with exporter-backed data
 - keep the story and roadmap pages manually sharp and pruned
 - avoid adding archive/build complexity before the content volume justifies it
