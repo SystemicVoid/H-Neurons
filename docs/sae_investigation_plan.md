@@ -212,7 +212,7 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 - `scripts/intervene_sae.py` (or class in `intervene_model.py`) — Phase 5
 
 **Data directories:**
-- `data/gemma3_4b/pipeline/activations_sae/` — SAE feature files (gitignored, like current activations)
+- `data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/` — current SAE feature files for the verified March 20 extraction (gitignored); use a different `activations_sae*` root for future all-layer or layer-by-layer runs
 - `data/gemma3_4b/pipeline/classifier_sae_summary.json` — probe comparison (committed)
 - `data/gemma3_4b/intervention/faitheval_sae/` — steering results (committed)
 
