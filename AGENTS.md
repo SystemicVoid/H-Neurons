@@ -25,6 +25,7 @@ Within `data/gemma3_4b/`, artifacts are grouped by pipeline stage:
 - `scripts/evaluate_intervention.py` loads the OpenAI key via `python-dotenv` from the repo-root `.env`.
 - For zero-cost runs without an OpenAI key: `--strategy synthetic-output` on `extract_answer_tokens.py` paired with `--locations output` on `extract_activations.py`.
 - `extract_activations.py` needs the same `apply_chat_template()` tensor-vs-`BatchEncoding` guard as `collect_responses.py`.
+- Local Gemma profiling with `scalene` should start with `python -m scalene run --off` and only enable profiling after model load. Profiling the load phase directly can OOM or swap-thrash even when the unprofiled run fits.
 - For BioASQ OOD probing, use the official BioASQ Task B JSON (question `body` + `type` + `exact_answer`) rather than HF mirrors like `kroshan/BioASQ`, which flatten answer/context into CSV text and do not match the original task schema.
 - `data/gemma3_4b/pipeline/test_qids_disjoint.json` contains 782 sampled IDs, but the current disjoint classifier evaluation covers 780 because two IDs are missing activation files. Use the CI-bearing summary JSON as the reporting source of truth.
 - `scripts/infra/lambda-bootstrap.sh` now supports Tailscale-first access. Pass `TAILSCALE_AUTH_KEY` to auto-enroll/tag the instance; SSH is only locked to the Tailscale address after enrollment succeeds, so a missing/bad key will not cut off the public bootstrap session.
@@ -62,7 +63,7 @@ Use `uv` for Python environment management.
 - `ruff`, `ty`, and `prek` are global tools on PATH (installed via `uv tool`). No venv activation needed to run them.
 
 ## GPU Monitoring
-`nvitop` is available on PATH (installed via `uv tool`). Use `nvitop -1` for a one-shot status check before/during long GPU jobs to verify utilization, VRAM headroom, and process state. Use `nvitop -1 --no-header -o compact` for machine-parseable output. See `nvitop --help` for full options.
+`nvitop` is available on PATH (installed via `uv tool`). Use `nvitop -1` for a one-shot status check before/during long GPU jobs to verify utilization, VRAM headroom, and process state. On this host's `nvitop 1.6.2`, the old `--no-header -o compact` form is invalid; for logging, prefer plain `nvitop -1` or check `nvitop --help` for the current CLI.
 
 ## Quantitative Reporting Standards
 Every quantitative claim in presentation materials must include uncertainty estimates. Use bootstrap 95% CIs where sample sizes allow (n > 30). For classifier metrics, report ± from stratified bootstrap over test samples. For intervention compliance rates, report ± from binomial proportion CIs. If uncertainty cannot yet be computed, flag the number explicitly as "no CI".
