@@ -142,6 +142,9 @@ class TestRunProvenance:
                 "run",
                 "python",
                 "scripts/collect_responses.py",
+                "--api_key",
+                "sk-live-secret",
+                "--sampling_api_key=sample-secret",
                 "--output_path",
                 "data/out.jsonl",
             ],
@@ -166,10 +169,22 @@ class TestRunProvenance:
         assert payload["hostname"] == "lab-host"
         assert payload["safe_env"] == {"CUDA_VISIBLE_DEVICES": "0"}
         assert payload["args"] == {"output_path": str(output_path)}
+        assert payload["argv"] == [
+            "uv",
+            "run",
+            "python",
+            "scripts/collect_responses.py",
+            "--api_key",
+            "[REDACTED]",
+            "--sampling_api_key=[REDACTED]",
+            "--output_path",
+            "data/out.jsonl",
+        ]
         assert payload["output_targets"] == [str(output_path.resolve())]
         assert (
             payload["command"]
-            == "uv run python scripts/collect_responses.py --output_path data/out.jsonl"
+            == "uv run python scripts/collect_responses.py --api_key '[REDACTED]' "
+            "'--sampling_api_key=[REDACTED]' --output_path data/out.jsonl"
         )
 
         finish_run_provenance(handle, "completed", extra={"n_rows": 12})

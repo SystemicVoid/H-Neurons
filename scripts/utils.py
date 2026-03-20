@@ -21,6 +21,7 @@ from typing import Any
 
 _SENSITIVE_ARG_SUFFIXES = ("token", "secret", "password", "auth_key", "_api_key")
 _SENSITIVE_ARG_NAMES = {"api_key", "sampling_api_key"}
+_REDACTED_ARG_VALUE = "[REDACTED]"
 
 
 def normalize_answer(s: str | None) -> str:
@@ -166,9 +167,41 @@ def _resolve_output_targets(
     return [str(Path(target).resolve()) for target in output_targets]
 
 
+def _cli_flag_name(token: str) -> str | None:
+    if not token.startswith("-"):
+        return None
+    stripped = token.lstrip("-")
+    if not stripped:
+        return None
+    name, _, _ = stripped.partition("=")
+    return name.replace("-", "_").lower()
+
+
+def _redact_argv(argv: list[str]) -> list[str]:
+    redacted: list[str] = []
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        flag_name = _cli_flag_name(token)
+        if flag_name and _is_sensitive_arg_name(flag_name):
+            if "=" in token:
+                flag, _, _ = token.partition("=")
+                redacted.append(f"{flag}={_REDACTED_ARG_VALUE}")
+            else:
+                redacted.append(token)
+                if index + 1 < len(argv):
+                    redacted.append(_REDACTED_ARG_VALUE)
+                    index += 1
+            index += 1
+            continue
+        redacted.append(token)
+        index += 1
+    return redacted
+
+
 def _build_command() -> tuple[list[str], str]:
     raw_argv = getattr(sys, "orig_argv", None) or [sys.executable, *sys.argv]
-    argv = [str(arg) for arg in raw_argv]
+    argv = _redact_argv([str(arg) for arg in raw_argv])
     return argv, shlex.join(argv)
 
 
