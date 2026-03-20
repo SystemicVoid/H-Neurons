@@ -245,6 +245,8 @@
 
 <section id="verdict" class="short">
   <div class="fade-in" style="text-align: center;">
+    <!-- from: top_neuron_supporting_tests -->
+    <!-- from: top_neuron_total_tests -->
     <h2>Verdict: <span style="color: var(--accent-coral);" data-top-neuron-bind="support-count-display">--</span> support a unique neuron-hub story</h2>
     <p class="subtitle" style="margin: 0 auto 1.25rem;" data-top-neuron-bind="verdict-summary">
       Loading top-neuron verdict...
@@ -367,6 +369,10 @@
     <span class="tag tag-amber">Evaluation confound</span>
     <h2><span data-intervention-bind="parse-alpha-zero-count">9</span> parse failures grow to <span data-intervention-bind="parse-peak-count">150</span> by <span data-intervention-bind="parse-peak-alpha">&alpha;=3.0</span></h2>
     <!-- from: standard_text_remap_alpha_3_rescored_rate -->
+    <!-- from: standard_parse_failures_alpha_0_count -->
+    <!-- from: standard_parse_failures_alpha_3_count -->
+    <!-- from: standard_text_remap_alpha_3_recovered_count -->
+    <!-- from: standard_text_remap_alpha_3_recovery_rate_within_failures -->
     <p class="subtitle" data-source="manual">
       Once you separate answer content from evaluator-visible formatting, the contradiction shrinks.
       At &alpha;=3.0 only, strict text remapping lifts the standard estimate from
@@ -375,7 +381,7 @@
       (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>) by recovering
       <span data-intervention-bind="strict-remap-recovered-count">140</span> of
       <span data-intervention-bind="strict-remap-reviewed-count">150</span> parse failures
-      (<span data-intervention-bind="strict-remap-recovery-rate">93.3%</span> of the reviewed set).
+      (<span data-intervention-bind="strict-remap-recovery-rate">93.3%</span> of the reviewed set; <span data-intervention-bind="strict-remap-recovery-ci-text">95% CI 88.2-96.3%</span>).
     </p>
 
     <div class="prompt-compare">
@@ -496,6 +502,7 @@ Answer:</code>
 
     <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
       <h3 style="color: var(--accent-coral);">Swing deep dive: <span data-swing-bind="rc-pct-display">68.1%</span> show knowledge override</h3>
+      <!-- from: anti_compliance_swing_rc_share -->
       <p style="font-size: 14px; color: var(--text-secondary);">
         Profiling the <span data-intervention-summary-bind="swing-count">138</span> swing samples reveals that most follow R&rarr;C trajectories:
         by &alpha;=3.0, <span data-intervention-bind="swing-alpha-three-compliant-count">105</span> are compliant and

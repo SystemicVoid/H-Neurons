@@ -150,8 +150,12 @@
       <div class="step-card">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">C</div>
         <h3>The top-neuron story was narrowed</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Neuron 4288 is still visually dramatic, but the six-test verdict points to a regularization artifact rather than a unique hub neuron.
+        <!-- from: top_neuron_supporting_tests -->
+        <!-- from: top_neuron_total_tests -->
+        <!-- from: top_neuron_broader_detector_positive_neurons -->
+        <!-- from: top_neuron_broader_detector_c_value -->
+        <p style="font-size: 14px; color: var(--text-secondary);" data-top-neuron-bind="takeaway-card-text">
+          The six-test verdict is 0/6: L1 weight ranking overstates individual top-neuron importance, and by C=3.0 the signal is spread across 219 positive-weight neurons.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#surprise">Open top-neuron section</a></p>
       </div>
@@ -214,8 +218,8 @@
       </div>
       <div class="metric-card">
         <div class="label">Higher-signal set</div>
-        <div class="value val-coral">219</div>
-        <div class="detail">Gemma-3-4B, C=3.0, 80.5% local accuracy</div>
+        <div class="value val-coral" data-top-neuron-bind="broader-detector-count">219</div>
+        <div class="detail">Gemma-3-4B, C=<span data-top-neuron-bind="broader-detector-c-value">3.0</span>, broader detector candidate</div>
       </div>
       <div class="metric-card">
         <div class="label">Paper Mistral-24B</div>

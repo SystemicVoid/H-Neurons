@@ -304,6 +304,11 @@
       'broader-detector-c-value',
       broaderDetector.c_value.toFixed(1),
     );
+    setBoundText(
+      'data-top-neuron-bind',
+      'broader-detector-target-rank',
+      `#${broaderDetector.target_rank}`,
+    );
 
     TOP_NEURON_ARTIFACT_SCOREBOARD_BINDINGS.forEach(([slug, binding]) => {
       setBoundText(
@@ -470,6 +475,7 @@
 
   function hydrateSwingCharacterization(summary) {
     const subtypes = summary.subtypes;
+    const population = summary.population || {};
     const rc = subtypes['R\u2192C'] || subtypes['R→C'];
     const cr = subtypes['C\u2192R'] || subtypes['C→R'];
     const nm = subtypes['non-monotonic'];
@@ -488,6 +494,11 @@
     setBoundText('data-swing-bind', 'cr-ci', `[${(cr.ci_95[0] * 100).toFixed(1)}, ${(cr.ci_95[1] * 100).toFixed(1)}]`);
     setBoundText('data-swing-bind', 'nm-count', nm.count.toLocaleString());
     setBoundText('data-swing-bind', 'nm-pct', formatPercent(nm.pct));
+    if (typeof population.total === 'number' && population.total > 0) {
+      setBoundText('data-swing-bind', 'population-total', population.total.toLocaleString());
+      setBoundText('data-swing-bind', 'rc-total-share', formatRatePercent(rc.count / population.total));
+      setBoundText('data-swing-bind', 'cr-total-share', formatRatePercent(cr.count / population.total));
+    }
     setBoundText('data-swing-bind', 'rc-mean-alpha', rcAlpha.mean.toFixed(1));
     setBoundText('data-swing-bind', 'rc-median-alpha', rcAlpha.median.toFixed(2));
     setBoundText('data-swing-bind', 'cr-mean-alpha', crAlpha.mean.toFixed(1));

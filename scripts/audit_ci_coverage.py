@@ -414,6 +414,9 @@ def audit_text_surfaces(errors: list[str]) -> None:
         "site/story.html",
         "site/results/gemma-3-4b.html",
         "site/methods.html",
+        "site/extensions.html",
+        "site/deep-dives/neuron-4288.html",
+        "site/deep-dives/swing-characterization.html",
         "data/gemma3_4b/pipeline/pipeline_report.md",
         "data/gemma3_4b/intervention_findings.md",
         "docs/bluedot-rapid-grant-2026.md",
@@ -434,6 +437,14 @@ def ensure_interval_block(errors: list[str], node: Any, label: str) -> None:
             errors.append(f"{label}: missing '{key}'")
 
 
+def ensure_interval_array(errors: list[str], node: Any, label: str) -> None:
+    if not isinstance(node, list) or len(node) != 2:
+        errors.append(f"{label}: expected 2-item interval array")
+        return
+    if not all(isinstance(value, (int, float)) for value in node):
+        errors.append(f"{label}: interval array must contain numeric values")
+
+
 def ensure_estimate_like(errors: list[str], node: Any, label: str) -> None:
     if not isinstance(node, dict):
         errors.append(f"{label}: expected object with estimate-like field")
@@ -441,6 +452,7 @@ def ensure_estimate_like(errors: list[str], node: Any, label: str) -> None:
     estimate_keys = {
         "estimate",
         "pct",
+        "proportion",
         "rate",
         "compliance_rate",
         "compliance_pct",
@@ -497,9 +509,19 @@ def audit_manifest_claims(errors: list[str]) -> None:
         if kind == "estimate_with_ci":
             ensure_estimate_like(errors, node, claim_id)
             if isinstance(node, dict):
-                ensure_interval_block(errors, node.get("ci"), f"{claim_id}::ci")
+                if "ci" in node:
+                    ensure_interval_block(errors, node.get("ci"), f"{claim_id}::ci")
+                elif "ci_95" in node:
+                    ensure_interval_array(
+                        errors, node.get("ci_95"), f"{claim_id}::ci_95"
+                    )
+                else:
+                    errors.append(f"{claim_id}: missing ci block")
         elif kind == "interval_only":
             ensure_interval_block(errors, node, claim_id)
+        elif kind == "descriptive_value":
+            if not isinstance(node, (str, int, float, bool)):
+                errors.append(f"{claim_id}: descriptive_value must resolve to a scalar")
         else:
             errors.append(f"{claim_id}: unsupported kind '{kind}'")
 

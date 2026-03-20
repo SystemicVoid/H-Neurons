@@ -602,6 +602,10 @@ function hydrateInterventionSummary(summary) {
       standardTextRemapAlphaThree.strict_recovered_rate_within_failures * 100
     )
   );
+  setInterventionText(
+    'strict-remap-recovery-ci-text',
+    `95% CI ${formatPercentInterval(standardTextRemapAlphaThree.strict_recovered_rate_summary.ci)}`
+  );
   setInterventionText('frozen-count', formatCount(frozenCount));
   setInterventionText('frozen-share-value', formatPercent(frozenPct));
   setInterventionText(

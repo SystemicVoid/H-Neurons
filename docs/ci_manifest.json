@@ -176,6 +176,68 @@
       ]
     },
     {
+      "id": "anti_compliance_swing_rc_share",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/swing_characterization.json",
+        "path": [
+          "subtypes",
+          "R→C"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/deep-dives/swing-characterization.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "anti_compliance_swing_cr_share",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/swing_characterization.json",
+        "path": [
+          "subtypes",
+          "C→R"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/deep-dives/swing-characterization.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "anti_compliance_population_total",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "site/data/swing_characterization.json",
+        "path": [
+          "population",
+          "total"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/deep-dives/swing-characterization.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
       "id": "standard_text_remap_alpha_3_rescored_rate",
       "status": "required",
       "kind": "estimate_with_ci",
@@ -208,6 +270,221 @@
         },
         {
           "file": "data/gemma3_4b/pipeline/pipeline_report.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "standard_parse_failures_alpha_0_count",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "site/data/intervention_sweep.json",
+        "path": [
+          "parse_failures",
+          "points",
+          0,
+          "count"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "standard_parse_failures_alpha_3_count",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "site/data/intervention_sweep.json",
+        "path": [
+          "parse_failures",
+          "points",
+          6,
+          "count"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "standard_text_remap_alpha_3_recovered_count",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "site/data/intervention_sweep.json",
+        "path": [
+          "series",
+          "standard_text_remap",
+          "by_alpha",
+          "3.0",
+          "strict_recovered_count"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "standard_text_remap_alpha_3_recovery_rate_within_failures",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/intervention_sweep.json",
+        "path": [
+          "series",
+          "standard_text_remap",
+          "by_alpha",
+          "3.0",
+          "strict_recovered_rate_summary"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "top_neuron_supporting_tests",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        "path": [
+          "verdict",
+          "supporting_tests"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/deep-dives/neuron-4288.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "top_neuron_total_tests",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        "path": [
+          "verdict",
+          "total_tests"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/deep-dives/neuron-4288.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "top_neuron_broader_detector_positive_neurons",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        "path": [
+          "distributed_detector_context",
+          "broader_detector",
+          "positive_neurons"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/deep-dives/neuron-4288.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "top_neuron_broader_detector_c_value",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        "path": [
+          "distributed_detector_context",
+          "broader_detector",
+          "c_value"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/deep-dives/neuron-4288.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "top_neuron_broader_detector_target_rank",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/neuron_4288_summary.json",
+        "path": [
+          "distributed_detector_context",
+          "broader_detector",
+          "target_rank"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/deep-dives/neuron-4288.html",
           "mode": "comment"
         }
       ]

@@ -281,17 +281,20 @@
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">1</div>
         <h3>Knowledge override is real but bounded</h3>
+        <!-- from: anti_compliance_swing_rc_share -->
+        <!-- from: anti_compliance_population_total -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          68% of swing samples (94/138) show genuine R&rarr;C transitions.
+          <span data-swing-bind="rc-pct-display">68.1%</span> of swing samples (<span data-swing-bind="rc-count">94</span>/<span data-intervention-summary-bind="swing-count">138</span>) show genuine R&rarr;C transitions.
           These are cases where the model had the right answer and lost it to H-neuron scaling.
-          That is a concrete safety concern, but it applies to 9.4% of the total population, not the whole benchmark.
+          That is a concrete safety concern, but it applies to <span data-swing-bind="rc-count">94</span> of <span data-swing-bind="population-total">1,000</span> total samples, not the whole benchmark.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">2</div>
         <h3>Not all scaling is harmful</h3>
+        <!-- from: anti_compliance_swing_cr_share -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          23% of swing samples (32/138) show C&rarr;R transitions where the model was initially wrong
+          <span data-swing-bind="cr-pct-display">23.2%</span> of swing samples (<span data-swing-bind="cr-count">32</span>/<span data-intervention-summary-bind="swing-count">138</span>) show C&rarr;R transitions where the model was initially wrong
           and H-neuron scaling helped it recover. This is the counterpoint: the same mechanism
           that overrides knowledge in some cases resolves uncertainty in others.
         </p>
@@ -311,7 +314,7 @@
       <strong>Bottom line:</strong> H-neuron scaling is not a clean safety dial.
       It is a mechanism that mostly overrides genuine knowledge (alarming) but sometimes resolves uncertainty (helpful),
       and it only affects a minority of samples.
-      The safety concern is real but should be stated with the appropriate scope: 94 samples out of 1,000,
+      The safety concern is real but should be stated with the appropriate scope: <span data-swing-bind="rc-count">94</span> samples out of <span data-swing-bind="population-total">1,000</span>,
       on one model, on one benchmark.
     </div>
   </div>
