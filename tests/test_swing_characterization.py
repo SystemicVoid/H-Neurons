@@ -358,20 +358,59 @@ def test_results_page_top_neuron_verdict_uses_live_bindings():
     )
 
 
-def test_results_page_jailbreak_copy_matches_exported_facts():
+def test_results_page_jailbreak_copy_uses_live_bindings():
     repo_root = Path(__file__).resolve().parents[1]
     results_html = (repo_root / "site/results/gemma-3-4b.html").read_text()
+    charts_js = (repo_root / "site/assets/charts.js").read_text()
+
+    bindings = [
+        "negative-control-value",
+        "negative-control-detail",
+        "negative-control-comparison",
+        "stochastic-generation-detail",
+        "cross-benchmark-interpretation-caveat",
+    ]
+
+    dynamic_cross_bindings = [
+        "cross-faitheval-negative-control",
+        "cross-faitheval-evaluator",
+        "cross-faitheval-generation",
+        "cross-falseqa-negative-control",
+        "cross-falseqa-evaluator",
+        "cross-falseqa-generation",
+        "cross-jailbreakbench-negative-control",
+        "cross-jailbreakbench-evaluator",
+        "cross-jailbreakbench-generation",
+    ]
+
+    for binding in bindings:
+        assert f'data-jailbreak-bind="{binding}"' in results_html
+        assert f"'{binding}'" in charts_js
+
+    for binding in dynamic_cross_bindings:
+        assert f'data-jailbreak-bind="{binding}"' in results_html
+
+    assert "`cross-${key}-negative-control`" in charts_js
+    assert "`cross-${key}-evaluator`" in charts_js
+    assert "`cross-${key}-generation`" in charts_js
+
+    stale_literals = [
+        "FaithEval and FalseQA both have negative controls, but those results do not automatically transfer to JailbreakBench.",
+        "Responses were generated with temperature=0.7. Per-item outcomes are not exactly reproducible; aggregate rates carry sampling noise above the usual alpha-sweep uncertainty.",
+        "However, JailbreakBench is still the only benchmark here without its own negative control, and it uses stochastic generation",
+        "Negative control: available</div>",
+        'data-jailbreak-bind="cross-falseqa-n">n=687</span> &middot; GPT-4o judge',
+        'data-jailbreak-bind="cross-jailbreakbench-n">n=500</span> &middot; Stochastic gen',
+        "temperature=0.6",
+        "500 JailbreakBench prompts &times; 7 alpha values &times; 5 templates",
+    ]
+
+    for literal in stale_literals:
+        assert literal not in results_html
 
     assert (
         "100 behaviors &times; 5 templates &times; 7 alpha values = 3,500 responses"
         in results_html
-    )
-    assert "temperature=0.7" in results_html
-    assert "only FaithEval has a negative control" not in results_html
-    assert "temperature=0.6" not in results_html
-    assert (
-        "500 JailbreakBench prompts &times; 7 alpha values &times; 5 templates"
-        not in results_html
     )
 
 

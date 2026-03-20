@@ -1104,6 +1104,31 @@ function setJailbreakText(binding, value) {
   });
 }
 
+function formatJailbreakStatus(status) {
+  return status.replace(/_/g, ' ');
+}
+
+function formatJailbreakStatusLabel(status) {
+  const normalized = formatJailbreakStatus(status);
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function formatJailbreakNameList(names) {
+  if (names.length === 0) {
+    return '';
+  }
+
+  if (names.length === 1) {
+    return names[0];
+  }
+
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]}`;
+  }
+
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+}
+
 function loadJailbreakData() {
   if (!jailbreakDataPromise) {
     jailbreakDataPromise = fetch(jailbreakDataUrl)
@@ -1123,6 +1148,22 @@ function hydrateJailbreakChartBindings(data) {
   const baseline = agg.points[0];
   const endpoint = agg.points[agg.points.length - 1];
   const effects = agg.effects;
+  const negativeControl = data.negative_control;
+  const crossBenchmarks = data.cross_benchmark.benchmarks;
+  const jailbreakBenchmark = crossBenchmarks.find(
+    (bench) => bench.name === 'JailbreakBench'
+  );
+  if (!jailbreakBenchmark) {
+    throw new Error('JailbreakBench missing from jailbreak cross-benchmark payload.');
+  }
+  const otherBenchmarksWithControls = crossBenchmarks
+    .filter(
+      (bench) =>
+        bench.name !== jailbreakBenchmark.name &&
+        bench.negative_control === 'available'
+    )
+    .map((bench) => bench.name);
+  const sampling = data.stochastic_generation.sampling;
 
   setJailbreakText(
     'aggregate-chart-n',
@@ -1141,6 +1182,19 @@ function hydrateJailbreakChartBindings(data) {
   setJailbreakText(
     'endpoint-detail',
     `${formatSignedPp(effects.delta_0_to_max_pp.estimate)} from \u03b1=0.0\u21923.0 \u00b7 95% CI [${effects.delta_0_to_max_pp.ci.lower.toFixed(1)}, ${effects.delta_0_to_max_pp.ci.upper.toFixed(1)}]pp`
+  );
+  setJailbreakText(
+    'negative-control-value',
+    formatJailbreakStatusLabel(negativeControl.status)
+  );
+  setJailbreakText('negative-control-detail', negativeControl.note);
+  setJailbreakText(
+    'negative-control-comparison',
+    `${formatJailbreakNameList(otherBenchmarksWithControls)} ${otherBenchmarksWithControls.length === 1 ? 'has' : 'have'} negative controls, but those checks do not automatically transfer to ${jailbreakBenchmark.name}.`
+  );
+  setJailbreakText(
+    'stochastic-generation-detail',
+    `${jailbreakBenchmark.name} responses were generated with temperature=${sampling.temperature.toFixed(1)}. ${data.stochastic_generation.caveat}`
   );
   setJailbreakText(
     'template-chart-n',
@@ -1178,7 +1232,23 @@ function hydrateJailbreakChartBindings(data) {
       `cross-${key}-n`,
       `n=${formatCount(bench.n_per_alpha)}`
     );
+    setJailbreakText(
+      `cross-${key}-negative-control`,
+      `Negative control: ${formatJailbreakStatus(bench.negative_control)}`
+    );
+    setJailbreakText(
+      `cross-${key}-evaluator`,
+      `Evaluator: ${bench.evaluator}`
+    );
+    setJailbreakText(
+      `cross-${key}-generation`,
+      `Generation: ${bench.generation}`
+    );
   });
+  setJailbreakText(
+    'cross-benchmark-interpretation-caveat',
+    `${jailbreakBenchmark.name} is still the only benchmark here without its own negative control, and it uses stochastic decoding (T=${sampling.temperature.toFixed(1)}); replication strength varies by benchmark.`
+  );
 
   renderSeriesGrid('jailbreakAggregateValueGrid', [
     {

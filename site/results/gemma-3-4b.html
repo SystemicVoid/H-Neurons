@@ -548,8 +548,8 @@ Answer:</code>
       </div>
       <div class="metric-card" data-status="ARTIFACT">
         <div class="label">Negative control</div>
-        <div class="value" style="font-size: 1rem; color: var(--text-secondary);">Not available</div>
-        <div class="detail">No random-neuron baseline has been run</div>
+        <div class="value" style="font-size: 1rem; color: var(--text-secondary);" data-jailbreak-bind="negative-control-value">Loading...</div>
+        <div class="detail" data-jailbreak-bind="negative-control-detail">Loading control provenance...</div>
       </div>
     </div>
 
@@ -557,8 +557,8 @@ Answer:</code>
       <h3 style="color: var(--accent-coral);">Interpretive caveats</h3>
       <p style="font-size: 14px; color: var(--text-secondary);">
         <strong>No negative control:</strong> Without a random-neuron baseline we cannot rule out that any 38-neuron set would produce a similar shift.
-        FaithEval and FalseQA both have negative controls, but those results do not automatically transfer to JailbreakBench.<br>
-        <strong>Stochastic generation:</strong> Responses were generated with temperature=0.7. Per-item outcomes are not exactly reproducible; aggregate rates carry sampling noise above the usual alpha-sweep uncertainty.<br>
+        <span data-jailbreak-bind="negative-control-comparison">Loading cross-benchmark control context...</span><br>
+        <strong>Stochastic generation:</strong> <span data-jailbreak-bind="stochastic-generation-detail">Loading generation provenance...</span><br>
         <strong>Threshold, not linear:</strong> The dose-response is not monotonic (Spearman &rho;=0.679, <span data-jailbreak-summary-bind="spearman-p">p=0.094</span>).
         The effect may be better characterized as a threshold shift than a linear dose-response.
       </p>
@@ -624,17 +624,17 @@ Answer:</code>
       <div class="metric-card" data-status="STABLE">
         <div class="label">FaithEval</div>
         <div class="value val-teal" data-jailbreak-bind="cross-faitheval-delta">+6.3pp</div>
-        <div class="detail"><span data-jailbreak-bind="cross-faitheval-ci">95% CI [4.2, 8.5]pp</span> &middot; <span data-jailbreak-bind="cross-faitheval-n">n=1,000</span> &middot; Negative control: available</div>
+        <div class="detail"><span data-jailbreak-bind="cross-faitheval-ci">95% CI [4.2, 8.5]pp</span> &middot; <span data-jailbreak-bind="cross-faitheval-n">n=1,000</span> &middot; <span data-jailbreak-bind="cross-faitheval-negative-control">Negative control</span> &middot; <span data-jailbreak-bind="cross-faitheval-evaluator">Evaluator</span> &middot; <span data-jailbreak-bind="cross-faitheval-generation">Generation</span></div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">FalseQA</div>
         <div class="value val-purple" data-jailbreak-bind="cross-falseqa-delta">+4.8pp</div>
-        <div class="detail"><span data-jailbreak-bind="cross-falseqa-ci">95% CI [1.9, 7.7]pp</span> &middot; <span data-jailbreak-bind="cross-falseqa-n">n=687</span> &middot; GPT-4o judge</div>
+        <div class="detail"><span data-jailbreak-bind="cross-falseqa-ci">95% CI [1.9, 7.7]pp</span> &middot; <span data-jailbreak-bind="cross-falseqa-n">n=687</span> &middot; <span data-jailbreak-bind="cross-falseqa-negative-control">Negative control</span> &middot; <span data-jailbreak-bind="cross-falseqa-evaluator">Evaluator</span> &middot; <span data-jailbreak-bind="cross-falseqa-generation">Generation</span></div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">JailbreakBench</div>
         <div class="value val-coral" data-jailbreak-bind="cross-jailbreakbench-delta">+6.2pp</div>
-        <div class="detail"><span data-jailbreak-bind="cross-jailbreakbench-ci">95% CI [2.4, 10.0]pp</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-n">n=500</span> &middot; Stochastic gen</div>
+        <div class="detail"><span data-jailbreak-bind="cross-jailbreakbench-ci">95% CI [2.4, 10.0]pp</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-n">n=500</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-negative-control">Negative control</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-evaluator">Evaluator</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-generation">Generation</span></div>
       </div>
     </div>
 
@@ -643,8 +643,7 @@ Answer:</code>
       <p style="font-size: 14px; color: var(--text-secondary);">
         The direction is consistent: scaling H-neurons shifts the model toward compliance regardless of domain.
         This supports the "general compliance circuit" interpretation over a FaithEval-specific artifact.
-        However, JailbreakBench is still the only benchmark here without its own negative control, and it uses stochastic generation &mdash;
-        replication strength varies by benchmark.
+        <span data-jailbreak-bind="cross-benchmark-interpretation-caveat">Loading replication caveat...</span>
       </p>
     </div>
   </div>
