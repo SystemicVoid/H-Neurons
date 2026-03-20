@@ -33,6 +33,11 @@ Recent completed work:
 - the `story.html` 4288 evidence card now binds the tracked top-neuron takeaway from the artifact payload instead of carrying a page-local summary of the verdict
 - the withdrawn 4288 compare-card on `story.html` now uses the live verdict count, and the swing falsification block now includes the bound R&rarr;C CI instead of a naked percentage
 - `docs/ci_manifest.json` now actually enforces `site/story.html` as a required provenance surface for `anti_compliance_delta_0_to_3`, matching the live story-page comment
+- `docs/ci_manifest.json` and `scripts/audit_ci_coverage.py` now support descriptive scalar claim contracts alongside CI-bearing claims, so tracked verdict counts and broader-detector counts can be governed without pretending they are bootstrap estimates
+- the weekly page now binds the 4288 takeaway card from canonical JSON and no longer freezes the unsupported `80.5%` broader-detector comparison into advisor-facing copy
+- `deep-dives/neuron-4288.html` now reads its hero verdict cards and scoreboard from the same tracked 4288 artifact payload as the story and results pages
+- the swing safety section on `deep-dives/swing-characterization.html` now binds the R&rarr;C / C&rarr;R headline shares and total-population scope from structured data instead of freezing those numerics in appendix prose
+- the evaluation-confound section on `results/gemma-3-4b.html` now states the `93.3%` strict-remap recovery rate with its bound CI instead of leaving that percentage bare
 - `scripts/audit_ci_coverage.py` now validates the top-neuron verdict payload alongside the classifier-structure payload
 - `scripts/audit_ci_coverage.py` now validates the classifier-structure payload
 - `data/gemma3_4b/pipeline/classifier_structure_summary.json` is now tracked alongside the other classifier outputs
@@ -44,6 +49,7 @@ That matters because the site no longer tells two separate stories about key qua
 The main remaining weak point is no longer classifier-structure export reproducibility.
 That gap is now closed for normal site work. The remaining risk is now concentrated in the static copy that still wraps the evidence pages, especially the claim-heavy synthesis on `story.html` that still depends on manual framing and incomplete provenance coverage.
 Within that story-page risk, the intervention/mechanism slice is now narrower: the headline effect size, the raw-vs-remap `&alpha;=3.0` comparison, and the 4288 takeaway are all wired, and the remaining open decisions are about whether parse-failure framing or other repeated comparisons should stay manual, bind from existing JSON, or wait for a tracked exporter field.
+One extra lesson is now clear: the maintenance model itself can drift if it tries to preserve too much session-level progress detail. This file should stay focused on current contracts and current priorities, not on an ever-growing changelog.
 
 ## Current Snapshot
 
@@ -57,7 +63,7 @@ At the time of this review, the site has:
 | Charts | 9 `<canvas>` charts |
 | Static figures | 8 `<img>` figures |
 | Manual-content markers | 23 `data-source="manual"` markers |
-| Provenance comments | 18 `<!-- from: ... -->` comments |
+| Provenance comments | 42 `<!-- from: ... -->` comments |
 | Broken internal refs found in this audit | 0 |
 
 This is a much healthier shape than the old single-page deck. The site has already crossed the important threshold from "one giant hand-edited artifact" to "a small static site with some real structure."
@@ -273,9 +279,9 @@ What is still fragile:
 
 - It still has the highest concentration of manual narrative in the site
 - It is still the page most likely to drift if results change and the prose is not updated with the data exports
-- The intervention sections are materially safer than before, but the 4288 verdict block and some concluding synthesis still remain static appendix-style text
+- The remaining risk is now concentrated in manual synthesis around already-bound evidence, especially the intervention explanation and final takeaways
 
-If one page deserves the next anti-drift pass first, it is this one.
+If one page deserves the next anti-drift pass first, it is still this one, but now for claim-governance cleanup rather than missing raw bindings.
 
 ### `methods.html`
 
@@ -319,8 +325,9 @@ What is good:
 
 What is still true:
 
-- Most numbers on the page are literals, not exporter-backed bindings
-- If the underlying 4288 investigation changes, this page would need a manual refresh
+- The forensic body copy is still mostly literal appendix prose
+- The page is safer than before because its hero verdict cards and scoreboard now bind from the tracked artifact payload
+- If the underlying 4288 investigation changes materially, the longer rationale text would still need a manual refresh
 
 For now that is acceptable because it is a forensic appendix, not a rolling dashboard.
 
@@ -345,13 +352,13 @@ The current site has clear progress on provenance, but it is not finished.
 
 | Page | Manual markers | Provenance comments |
 |---|---:|---:|
-| `index.html` | 3 | 5 |
-| `story.html` | 6 | 7 |
-| `results/gemma-3-4b.html` | 9 | 5 |
+| `index.html` | 3 | 9 |
+| `story.html` | 6 | 12 |
+| `results/gemma-3-4b.html` | 9 | 12 |
 | `methods.html` | 0 | 0 |
 | `extensions.html` | 5 | 0 |
-| `deep-dives/neuron-4288.html` | 0 | 1 |
-| `deep-dives/swing-characterization.html` | 0 | 0 |
+| `deep-dives/neuron-4288.html` | 0 | 6 |
+| `deep-dives/swing-characterization.html` | 0 | 3 |
 
 ### Reading those counts correctly
 
@@ -361,12 +368,13 @@ These counts are not a scorecard by themselves.
 - A deep-dive appendix may legitimately remain more static than a summary dashboard.
 - The real warning sign is not "manual exists"; it is "quantitative claims can drift silently."
 
-By that standard, the biggest remaining risk is still `results/gemma-3-4b.html`, followed by `story.html` and then `index.html`.
+By that standard, the biggest remaining risk is now the gap between "live binding exists" and "the claim is formally registered and audited." On page surfaces, `results/gemma-3-4b.html` still leads, followed by `story.html`, with the deep dives now close behind whenever they carry repeated headline numerics.
 
 That ordering is now much closer than before:
 
-- `results/gemma-3-4b.html` still leads because it is the densest evidence page
-- `story.html` is now a near-second because more of the easy quantitative cleanup on the results page has already been done
+- `results/gemma-3-4b.html` still leads because it is the densest evidence page and still mixes interpretation with evidence
+- `story.html` is now a near-second because most of the easy numeric cleanup is done and the remaining work is about contract completeness
+- the deep dives are no longer "free" from drift once they start carrying repeated verdict or safety numerics
 - `index.html` remains lower risk because it is intentionally a current memo, not the canonical ledger
 
 What changed since the prior audit:
@@ -404,10 +412,10 @@ Adding those prematurely would add structure without adding much signal.
 
 ## Main Remaining Weak Spots
 
-### 1. Partial anti-drift coverage
+### 1. Partial claim governance
 
-The site has the right principle but incomplete coverage.
-Some repeated metrics are nicely centralized, but the remaining static synthesis blocks still compress live evidence into prose that has to be updated by hand.
+The site now has many more live bindings than it had before, but the manifest still lags behind some already-live claim families.
+That is a deeper risk than plain hardcoding because it can create a false sense of safety: the number is live, but the claim is not formally governed.
 
 ### 2. Nav and shell duplication
 
@@ -436,29 +444,30 @@ That is normal, but it matters when deciding where to invest cleanup effort.
 
 If this file is going to name priorities, they should reflect the site we actually have now.
 
-### Priority 1: finish the remaining claim-contract pass on `story.html`
+### Priority 1: expand manifest coverage until every repeated quantitative site claim has an explicit contract
 
 Highest-leverage cleanup:
 
-- keep converting the remaining claim-adjacent story prose to either bindings or explicit provenance comments
-- add tracked site-facing fields when the story needs a repeated quantitative comparison that is not yet exported cleanly
-- keep tightening results-page prose where it still summarizes live evidence manually
+- keep converting repeated claim families from "bound but uncatalogued" into manifest-tracked surfaces
+- add tracked site-facing fields only when repeated prose cannot be expressed cleanly from the committed exports
+- keep the maintenance model itself short enough that it can be updated as a contract document, not as a session log
 
-This is still the most important remaining site-facing technical debt, but the easiest repeated numerics on the story page are no longer the bottleneck.
+This is now the most important remaining site-facing technical debt. The easiest page-local numerics are no longer the bottleneck; the bottleneck is aligning the manifest, the audit, and the visible site claims.
 
-Current intervention/mechanism decision state on `story.html`:
+Current contract decision state:
 
 - the anti-compliance `&alpha;=0.0` to `&alpha;=3.0` effect should stay a live binding from existing `site/data/intervention_sweep.json`, and that contract is now wired
 - the committed `&alpha;=3.0` strict answer-text remap rate should also stay a live binding from the existing intervention export
 - the standard raw MC-letter `&alpha;=3.0` point can also stay a live binding from the existing intervention export, and `story.html` now uses that bound comparison instead of implying it editorially
 - any explicit remap-vs-raw lift claim should wait for a tracked exporter field rather than freezing an untracked delta into prose
-- parse-failure trajectory numerics can stay on `results/gemma-3-4b.html` unless they are promoted into repeated story-page prose, at which point they should bind from the existing export rather than be restated manually
+- parse-failure endpoint counts and `&alpha;=3.0` remap-recovery rates can stay on `results/gemma-3-4b.html`, but if they are repeated elsewhere they should be promoted as tracked claims rather than copied
 - the 4288 evidence-card takeaway can stay a live binding from the tracked top-neuron artifact payload, while longer appendix-style framing can remain manual unless it becomes repeated headline prose
+- deep-dive pages may remain more static than the story or results pages, but once a verdict or safety number becomes repeated headline copy it should bind from exporter-backed JSON and be covered by the manifest
 
-### Priority 2: keep `results/gemma-3-4b.html` as the main ledger, but not the first cleanup target
+### Priority 2: keep `results/gemma-3-4b.html` as the main ledger and the main page-level cleanup target
 
 That page still carries the most quantitative weight.
-If results change, it is still the page most likely to go out of sync first, but the largest remaining sync risk is now manual framing around already-bound evidence rather than missing raw numerics or frozen 4288 verdict blocks.
+If results change, it is still the page most likely to go out of sync first, and the remaining sync risk is now manual framing around already-bound evidence rather than missing raw numerics or frozen 4288 verdict blocks.
 
 ### Priority 3: keep archive work deferred until there is real archival content
 
