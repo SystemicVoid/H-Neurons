@@ -181,6 +181,28 @@ These remain reasonable ideas, but they should not displace throughput work or e
 | `vLLM` | Defer | Reconsider only if the workload becomes batchable without custom intervention hooks |
 | `@file_cache` pattern | Defer | Reconsider only if repeated pure-function recomputation becomes a measured bottleneck |
 
+## Long-Running Jobs & System Suspend
+
+On Pop!_OS / COSMIC DE, system auto-suspend will kill tmux jobs mid-run. Always hold a `systemd-inhibit` lock for jobs longer than ~20 minutes.
+
+**At launch:**
+```bash
+systemd-inhibit --what=sleep:idle --who="<job-name>" --why="<description>" \
+    uv run python scripts/run_intervention.py ...
+```
+
+**For already-running jobs** — watcher in a tmux window named `inhibit`:
+```bash
+systemd-inhibit --what=sleep:idle --who="<job-name>" --why="<description>" \
+    bash -c 'while tmux list-windows | grep -q "<job-window-name>"; do sleep 30; done'
+```
+
+**Post-suspend recovery:** if a job is running slowly after wake, `kill -9` the python PID (`pgrep -a python | grep <script>`). The script's resume logic picks up from the last written line.
+
+## GPU Monitoring
+
+`nvitop` is available on PATH (installed via `uv tool`). Use `nvitop -1` for a one-shot status check before/during long GPU jobs to verify utilization, VRAM headroom, and process state. On this host's `nvitop 1.6.2`, the old `--no-header -o compact` form is invalid; for logging, prefer plain `nvitop -1` or check `nvitop --help` for the current CLI.
+
 ## Notable Boundaries
 
 - Do not treat profiling-only outputs as canonical experiment artifacts.
