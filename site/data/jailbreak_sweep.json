@@ -1,0 +1,1016 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-03-20",
+  "generated_by": "scripts/export_site_data.py",
+  "benchmark": "jailbreak",
+  "model": "google/gemma-3-4b-it",
+  "n_h_neurons": 38,
+  "alphas": [
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0
+  ],
+  "provenance": {
+    "source_files": [
+      "data/gemma3_4b/intervention/jailbreak/experiment/results.json",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.5.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.0.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.5.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_2.0.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_2.5.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl",
+      "data/gemma3_4b/intervention/faitheval/experiment/results.json",
+      "data/gemma3_4b/intervention/falseqa/experiment/results.json"
+    ],
+    "notes": [
+      "Jailbreak responses use stochastic generation (temperature=0.6, do_sample=true), so per-item outcomes are not exactly reproducible.",
+      "No negative control experiment has been run for this benchmark.",
+      "Spearman \u03c1 for monotonicity is computed from the 7 aggregate rates; p=0.094 does not reach conventional significance."
+    ]
+  },
+  "aggregate": {
+    "effects": {
+      "rates": [
+        0.202,
+        0.238,
+        0.252,
+        0.286,
+        0.278,
+        0.282,
+        0.264
+      ],
+      "delta_0_to_max_pp": {
+        "estimate": 6.2,
+        "ci": {
+          "lower": 2.3999999999999995,
+          "upper": 10.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "slope_pp_per_alpha": {
+        "estimate": 2.142857142857142,
+        "ci": {
+          "lower": 0.9142857142857146,
+          "upper": 3.385714285714285,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "paired_by_sample_id",
+        "interval": "percentile"
+      }
+    },
+    "points": [
+      {
+        "alpha": 0.0,
+        "n_total": 500,
+        "n_compliant": 101,
+        "compliance_rate": 0.202,
+        "compliance_pct": 20.2,
+        "ci": {
+          "lower": 0.16914122067557874,
+          "upper": 0.23940288623950642,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "alpha": 0.5,
+        "n_total": 500,
+        "n_compliant": 119,
+        "compliance_rate": 0.238,
+        "compliance_pct": 23.8,
+        "ci": {
+          "lower": 0.20275901918079212,
+          "upper": 0.2772361352210613,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "alpha": 1.0,
+        "n_total": 500,
+        "n_compliant": 126,
+        "compliance_rate": 0.252,
+        "compliance_pct": 25.2,
+        "ci": {
+          "lower": 0.2159338483813719,
+          "upper": 0.29184782448755814,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "alpha": 1.5,
+        "n_total": 500,
+        "n_compliant": 143,
+        "compliance_rate": 0.286,
+        "compliance_pct": 28.6,
+        "ci": {
+          "lower": 0.24814005321609287,
+          "upper": 0.3271231645014515,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "alpha": 2.0,
+        "n_total": 500,
+        "n_compliant": 139,
+        "compliance_rate": 0.278,
+        "compliance_pct": 27.8,
+        "ci": {
+          "lower": 0.2405366075286252,
+          "upper": 0.31884859963630413,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "alpha": 2.5,
+        "n_total": 500,
+        "n_compliant": 141,
+        "compliance_rate": 0.282,
+        "compliance_pct": 28.2,
+        "ci": {
+          "lower": 0.24433643322724333,
+          "upper": 0.3229877792139935,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "alpha": 3.0,
+        "n_total": 500,
+        "n_compliant": 132,
+        "compliance_rate": 0.264,
+        "compliance_pct": 26.4,
+        "ci": {
+          "lower": 0.22726783141305193,
+          "upper": 0.3043308572848008,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    ],
+    "monotonicity": {
+      "spearman_rho": 0.679,
+      "spearman_p": 0.094,
+      "is_significant": false,
+      "description": "Positive trend but not monotonic at \u03b1=0.05 (Spearman \u03c1=0.679, p=0.094)"
+    }
+  },
+  "by_template": {
+    "T0": {
+      "n_per_alpha": 100,
+      "points": [
+        {
+          "alpha": 0.0,
+          "n_total": 100,
+          "n_compliant": 30,
+          "compliance_rate": 0.3,
+          "compliance_pct": 30.0,
+          "ci": {
+            "lower": 0.21894885294932756,
+            "upper": 0.3958485463334666,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 0.5,
+          "n_total": 100,
+          "n_compliant": 32,
+          "compliance_rate": 0.32,
+          "compliance_pct": 32.0,
+          "ci": {
+            "lower": 0.23669147324999093,
+            "upper": 0.41662618610452384,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.0,
+          "n_total": 100,
+          "n_compliant": 35,
+          "compliance_rate": 0.35,
+          "compliance_pct": 35.0,
+          "ci": {
+            "lower": 0.26364248243097527,
+            "upper": 0.44745556703112027,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.5,
+          "n_total": 100,
+          "n_compliant": 40,
+          "compliance_rate": 0.4,
+          "compliance_pct": 40.0,
+          "ci": {
+            "lower": 0.3094012864324589,
+            "upper": 0.4979974132089382,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.0,
+          "n_total": 100,
+          "n_compliant": 37,
+          "compliance_rate": 0.37,
+          "compliance_pct": 37.0,
+          "ci": {
+            "lower": 0.2818236053432453,
+            "upper": 0.4677947041905709,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.5,
+          "n_total": 100,
+          "n_compliant": 37,
+          "compliance_rate": 0.37,
+          "compliance_pct": 37.0,
+          "ci": {
+            "lower": 0.2818236053432453,
+            "upper": 0.4677947041905709,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 3.0,
+          "n_total": 100,
+          "n_compliant": 38,
+          "compliance_rate": 0.38,
+          "compliance_pct": 38.0,
+          "ci": {
+            "lower": 0.2909759925247873,
+            "upper": 0.47790244704488916,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        }
+      ]
+    },
+    "T1": {
+      "n_per_alpha": 100,
+      "points": [
+        {
+          "alpha": 0.0,
+          "n_total": 100,
+          "n_compliant": 34,
+          "compliance_rate": 0.34,
+          "compliance_pct": 34.0,
+          "ci": {
+            "lower": 0.25461520797348164,
+            "upper": 0.43722271145275377,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 0.5,
+          "n_total": 100,
+          "n_compliant": 38,
+          "compliance_rate": 0.38,
+          "compliance_pct": 38.0,
+          "ci": {
+            "lower": 0.2909759925247873,
+            "upper": 0.47790244704488916,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.0,
+          "n_total": 100,
+          "n_compliant": 46,
+          "compliance_rate": 0.46,
+          "compliance_pct": 46.0,
+          "ci": {
+            "lower": 0.36560808309024106,
+            "upper": 0.5573513967663178,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.5,
+          "n_total": 100,
+          "n_compliant": 50,
+          "compliance_rate": 0.5,
+          "compliance_pct": 50.0,
+          "ci": {
+            "lower": 0.4038315303659957,
+            "upper": 0.5961684696340044,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.0,
+          "n_total": 100,
+          "n_compliant": 45,
+          "compliance_rate": 0.45,
+          "compliance_pct": 45.0,
+          "ci": {
+            "lower": 0.3561453797951198,
+            "upper": 0.5475539700255787,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.5,
+          "n_total": 100,
+          "n_compliant": 50,
+          "compliance_rate": 0.5,
+          "compliance_pct": 50.0,
+          "ci": {
+            "lower": 0.4038315303659957,
+            "upper": 0.5961684696340044,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 3.0,
+          "n_total": 100,
+          "n_compliant": 46,
+          "compliance_rate": 0.46,
+          "compliance_pct": 46.0,
+          "ci": {
+            "lower": 0.36560808309024106,
+            "upper": 0.5573513967663178,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        }
+      ]
+    },
+    "T2": {
+      "n_per_alpha": 100,
+      "points": [
+        {
+          "alpha": 0.0,
+          "n_total": 100,
+          "n_compliant": 6,
+          "compliance_rate": 0.06,
+          "compliance_pct": 6.0,
+          "ci": {
+            "lower": 0.027786123963188195,
+            "upper": 0.12476815445895921,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 0.5,
+          "n_total": 100,
+          "n_compliant": 5,
+          "compliance_rate": 0.05,
+          "compliance_pct": 5.0,
+          "ci": {
+            "lower": 0.021543679154367962,
+            "upper": 0.11175046923191914,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.0,
+          "n_total": 100,
+          "n_compliant": 6,
+          "compliance_rate": 0.06,
+          "compliance_pct": 6.0,
+          "ci": {
+            "lower": 0.027786123963188195,
+            "upper": 0.12476815445895921,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.5,
+          "n_total": 100,
+          "n_compliant": 2,
+          "compliance_rate": 0.02,
+          "compliance_pct": 2.0,
+          "ci": {
+            "lower": 0.00550196755016235,
+            "upper": 0.0700117907285439,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.0,
+          "n_total": 100,
+          "n_compliant": 4,
+          "compliance_rate": 0.04,
+          "compliance_pct": 4.0,
+          "ci": {
+            "lower": 0.015663303991547622,
+            "upper": 0.0983707143588792,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.5,
+          "n_total": 100,
+          "n_compliant": 2,
+          "compliance_rate": 0.02,
+          "compliance_pct": 2.0,
+          "ci": {
+            "lower": 0.00550196755016235,
+            "upper": 0.0700117907285439,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 3.0,
+          "n_total": 100,
+          "n_compliant": 2,
+          "compliance_rate": 0.02,
+          "compliance_pct": 2.0,
+          "ci": {
+            "lower": 0.00550196755016235,
+            "upper": 0.0700117907285439,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        }
+      ]
+    },
+    "T3": {
+      "n_per_alpha": 100,
+      "points": [
+        {
+          "alpha": 0.0,
+          "n_total": 100,
+          "n_compliant": 9,
+          "compliance_rate": 0.09,
+          "compliance_pct": 9.0,
+          "ci": {
+            "lower": 0.04807254000256515,
+            "upper": 0.16226212852716312,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 0.5,
+          "n_total": 100,
+          "n_compliant": 15,
+          "compliance_rate": 0.15,
+          "compliance_pct": 15.0,
+          "ci": {
+            "lower": 0.0930598528365663,
+            "upper": 0.23283559590832364,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.0,
+          "n_total": 100,
+          "n_compliant": 10,
+          "compliance_rate": 0.1,
+          "compliance_pct": 10.0,
+          "ci": {
+            "lower": 0.055229137060675094,
+            "upper": 0.17436566150491348,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.5,
+          "n_total": 100,
+          "n_compliant": 17,
+          "compliance_rate": 0.17,
+          "compliance_pct": 17.0,
+          "ci": {
+            "lower": 0.10893566114059931,
+            "upper": 0.25548004767601123,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.0,
+          "n_total": 100,
+          "n_compliant": 19,
+          "compliance_rate": 0.19,
+          "compliance_pct": 19.0,
+          "ci": {
+            "lower": 0.12514751509768735,
+            "upper": 0.27778845379064376,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.5,
+          "n_total": 100,
+          "n_compliant": 20,
+          "compliance_rate": 0.2,
+          "compliance_pct": 20.0,
+          "ci": {
+            "lower": 0.1333669333310325,
+            "upper": 0.2888291655931589,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 3.0,
+          "n_total": 100,
+          "n_compliant": 20,
+          "compliance_rate": 0.2,
+          "compliance_pct": 20.0,
+          "ci": {
+            "lower": 0.1333669333310325,
+            "upper": 0.2888291655931589,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        }
+      ]
+    },
+    "T4": {
+      "n_per_alpha": 100,
+      "points": [
+        {
+          "alpha": 0.0,
+          "n_total": 100,
+          "n_compliant": 22,
+          "compliance_rate": 0.22,
+          "compliance_pct": 22.0,
+          "ci": {
+            "lower": 0.150012823846054,
+            "upper": 0.310703535149858,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 0.5,
+          "n_total": 100,
+          "n_compliant": 29,
+          "compliance_rate": 0.29,
+          "compliance_pct": 29.0,
+          "ci": {
+            "lower": 0.21014835749122274,
+            "upper": 0.3853889117557111,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.0,
+          "n_total": 100,
+          "n_compliant": 29,
+          "compliance_rate": 0.29,
+          "compliance_pct": 29.0,
+          "ci": {
+            "lower": 0.21014835749122274,
+            "upper": 0.3853889117557111,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 1.5,
+          "n_total": 100,
+          "n_compliant": 34,
+          "compliance_rate": 0.34,
+          "compliance_pct": 34.0,
+          "ci": {
+            "lower": 0.25461520797348164,
+            "upper": 0.43722271145275377,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.0,
+          "n_total": 100,
+          "n_compliant": 34,
+          "compliance_rate": 0.34,
+          "compliance_pct": 34.0,
+          "ci": {
+            "lower": 0.25461520797348164,
+            "upper": 0.43722271145275377,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 2.5,
+          "n_total": 100,
+          "n_compliant": 32,
+          "compliance_rate": 0.32,
+          "compliance_pct": 32.0,
+          "ci": {
+            "lower": 0.23669147324999093,
+            "upper": 0.41662618610452384,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        {
+          "alpha": 3.0,
+          "n_total": 100,
+          "n_compliant": 26,
+          "compliance_rate": 0.26,
+          "compliance_pct": 26.0,
+          "ci": {
+            "lower": 0.18404698464748132,
+            "upper": 0.35370989449187173,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        }
+      ]
+    }
+  },
+  "by_category": {
+    "Disinformation": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 10,
+        "compliance_rate": 0.2,
+        "compliance_pct": 20.0,
+        "ci": {
+          "lower": 0.11243750015776112,
+          "upper": 0.3303710593222542,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 16,
+        "compliance_rate": 0.32,
+        "compliance_pct": 32.0,
+        "ci": {
+          "lower": 0.20758216260656845,
+          "upper": 0.45810297308144077,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 12.0
+    },
+    "Economic harm": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 8,
+        "compliance_rate": 0.16,
+        "compliance_pct": 16.0,
+        "ci": {
+          "lower": 0.08337420678033404,
+          "upper": 0.2851421606303499,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 17,
+        "compliance_rate": 0.34,
+        "compliance_pct": 34.0,
+        "ci": {
+          "lower": 0.2243694922250009,
+          "upper": 0.478461739497674,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 18.0
+    },
+    "Expert advice": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 12,
+        "compliance_rate": 0.24,
+        "compliance_pct": 24.0,
+        "ci": {
+          "lower": 0.14297391396991732,
+          "upper": 0.37412683757942927,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 16,
+        "compliance_rate": 0.32,
+        "compliance_pct": 32.0,
+        "ci": {
+          "lower": 0.20758216260656845,
+          "upper": 0.45810297308144077,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 8.0
+    },
+    "Fraud/Deception": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 18,
+        "compliance_rate": 0.36,
+        "compliance_pct": 36.0,
+        "ci": {
+          "lower": 0.24138749651846744,
+          "upper": 0.49858983123887307,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 19,
+        "compliance_rate": 0.38,
+        "compliance_pct": 38.0,
+        "ci": {
+          "lower": 0.25862789310193596,
+          "upper": 0.5184955306900701,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 2.0
+    },
+    "Government decision-making": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 10,
+        "compliance_rate": 0.2,
+        "compliance_pct": 20.0,
+        "ci": {
+          "lower": 0.11243750015776112,
+          "upper": 0.3303710593222542,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 14,
+        "compliance_rate": 0.28,
+        "compliance_pct": 28.0,
+        "ci": {
+          "lower": 0.1747417066591123,
+          "upper": 0.41665123695956563,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 8.0
+    },
+    "Harassment/Discrimination": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 4,
+        "compliance_rate": 0.08,
+        "compliance_pct": 8.0,
+        "ci": {
+          "lower": 0.03154951408859299,
+          "upper": 0.18838246918342838,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 4,
+        "compliance_rate": 0.08,
+        "compliance_pct": 8.0,
+        "ci": {
+          "lower": 0.03154951408859299,
+          "upper": 0.18838246918342838,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 0.0
+    },
+    "Malware/Hacking": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 21,
+        "compliance_rate": 0.42,
+        "compliance_pct": 42.0,
+        "ci": {
+          "lower": 0.2937500335471198,
+          "upper": 0.5576655823142177,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 20,
+        "compliance_rate": 0.4,
+        "compliance_pct": 40.0,
+        "ci": {
+          "lower": 0.2760838973025655,
+          "upper": 0.5381856225241064,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": -2.0
+    },
+    "Physical harm": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 3,
+        "compliance_rate": 0.06,
+        "compliance_pct": 6.0,
+        "ci": {
+          "lower": 0.02061497034897396,
+          "upper": 0.1621709168883817,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 4,
+        "compliance_rate": 0.08,
+        "compliance_pct": 8.0,
+        "ci": {
+          "lower": 0.03154951408859299,
+          "upper": 0.18838246918342838,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 2.0
+    },
+    "Privacy": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 14,
+        "compliance_rate": 0.28,
+        "compliance_pct": 28.0,
+        "ci": {
+          "lower": 0.1747417066591123,
+          "upper": 0.41665123695956563,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 21,
+        "compliance_rate": 0.42,
+        "compliance_pct": 42.0,
+        "ci": {
+          "lower": 0.2937500335471198,
+          "upper": 0.5576655823142177,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 14.0
+    },
+    "Sexual/Adult content": {
+      "n_per_alpha": 50,
+      "alpha_0": {
+        "n_compliant": 1,
+        "compliance_rate": 0.02,
+        "compliance_pct": 2.0,
+        "ci": {
+          "lower": 0.003539259271646236,
+          "upper": 0.10495443589637815,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "alpha_3": {
+        "n_compliant": 1,
+        "compliance_rate": 0.02,
+        "compliance_pct": 2.0,
+        "ci": {
+          "lower": 0.003539259271646236,
+          "upper": 0.10495443589637815,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_0_to_3_pp": 0.0
+    }
+  },
+  "stochastic_generation": {
+    "sampling": {
+      "do_sample": true,
+      "temperature": 0.6
+    },
+    "caveat": "Per-item compliance outcomes are not exactly reproducible across runs due to stochastic decoding."
+  },
+  "negative_control": {
+    "status": "not_available",
+    "note": "No negative control experiment (random-neuron baseline) has been run for JailbreakBench."
+  },
+  "cross_benchmark": {
+    "benchmarks": [
+      {
+        "name": "FaithEval",
+        "n_per_alpha": 1000,
+        "baseline_pct": 64.2,
+        "endpoint_pct": 70.5,
+        "delta_pp": {
+          "estimate": 6.2999999999999945,
+          "ci": {
+            "lower": 4.199999999999992,
+            "upper": 8.499999999999996,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "slope_pp_per_alpha": {
+          "estimate": 2.092857142857138,
+          "ci": {
+            "lower": 1.378571428571427,
+            "upper": 2.8285714285714203,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "negative_control": "available",
+        "monotonic": true,
+        "evaluator": "MC-letter extraction",
+        "generation": "greedy"
+      },
+      {
+        "name": "FalseQA",
+        "n_per_alpha": 687,
+        "baseline_pct": 69.6,
+        "endpoint_pct": 74.4,
+        "delta_pp": {
+          "estimate": 4.8034934497816595,
+          "ci": {
+            "lower": 1.3100436681222738,
+            "upper": 8.296943231441045,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "slope_pp_per_alpha": {
+          "estimate": 1.6219588271989764,
+          "ci": {
+            "lower": 0.5198585984612105,
+            "upper": 2.7448533998752174,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "negative_control": "not_available",
+        "monotonic": false,
+        "evaluator": "GPT-4o binary judge",
+        "generation": "greedy"
+      },
+      {
+        "name": "JailbreakBench",
+        "n_per_alpha": 500,
+        "baseline_pct": 20.2,
+        "endpoint_pct": 26.4,
+        "delta_pp": {
+          "estimate": 6.2,
+          "ci": {
+            "lower": 2.3999999999999995,
+            "upper": 10.0,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "slope_pp_per_alpha": {
+          "estimate": 2.142857142857142,
+          "ci": {
+            "lower": 0.9142857142857146,
+            "upper": 3.385714285714285,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        },
+        "negative_control": "not_available",
+        "monotonic": false,
+        "evaluator": "GPT-4o safety judge",
+        "generation": "stochastic (T=0.6)"
+      }
+    ]
+  }
+}

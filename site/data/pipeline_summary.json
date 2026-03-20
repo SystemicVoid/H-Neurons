@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-19",
+  "generated_at": "2026-03-20",
   "generated_by": "scripts/export_site_data.py",
   "model": "google/gemma-3-4b-it",
   "source_files": [

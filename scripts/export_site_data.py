@@ -1102,6 +1102,208 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
     }
 
 
+def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
+    """Build the jailbreak intervention sweep payload for the site."""
+    jailbreak_dir = repo_root / "data/gemma3_4b/intervention/jailbreak/experiment"
+    faitheval_results_path = (
+        repo_root / "data/gemma3_4b/intervention/faitheval/experiment/results.json"
+    )
+    falseqa_results_path = (
+        repo_root / "data/gemma3_4b/intervention/falseqa/experiment/results.json"
+    )
+
+    jailbreak_results = load_json(jailbreak_dir / "results.json")
+    faitheval_results = load_json(faitheval_results_path)
+    falseqa_results = load_json(falseqa_results_path)
+
+    # --- Aggregate points from results.json ---
+    points = build_rate_points(jailbreak_results["results"])
+    effects = jailbreak_results["effects"]["compliance_curve"]
+
+    # --- Template breakdown from JSONL files ---
+    all_rows_by_alpha: dict[float, list[dict[str, Any]]] = {}
+    for alpha in ALPHAS:
+        all_rows_by_alpha[alpha] = load_jsonl(
+            jailbreak_dir / f"alpha_{alpha:.1f}.jsonl"
+        )
+
+    template_indices = sorted(
+        {row["template_idx"] for rows in all_rows_by_alpha.values() for row in rows}
+    )
+    by_template: dict[str, Any] = {}
+    for tidx in template_indices:
+        template_points: list[dict[str, Any]] = []
+        for alpha in ALPHAS:
+            filtered = [
+                row for row in all_rows_by_alpha[alpha] if row["template_idx"] == tidx
+            ]
+            n_total = len(filtered)
+            n_compliant = sum(bool(row["compliance"]) for row in filtered)
+            rate = n_compliant / n_total if n_total else 0.0
+            summary = build_rate_summary(
+                n_compliant, n_total, count_key="n_compliant", total_key="n_total"
+            )
+            template_points.append(
+                {
+                    "alpha": alpha,
+                    "n_total": n_total,
+                    "n_compliant": n_compliant,
+                    "compliance_rate": rate,
+                    "compliance_pct": as_pct(rate),
+                    "ci": summary["ci"],
+                }
+            )
+        by_template[f"T{tidx}"] = {
+            "n_per_alpha": template_points[0]["n_total"],
+            "points": template_points,
+        }
+
+    # --- Category breakdown at α=0.0 and α=3.0 ---
+    categories = sorted({row["category"] for row in all_rows_by_alpha[0.0]})
+    by_category: dict[str, Any] = {}
+    for cat in categories:
+        alpha_0_rows = [row for row in all_rows_by_alpha[0.0] if row["category"] == cat]
+        alpha_3_rows = [row for row in all_rows_by_alpha[3.0] if row["category"] == cat]
+        n0 = len(alpha_0_rows)
+        c0 = sum(bool(row["compliance"]) for row in alpha_0_rows)
+        r0 = c0 / n0 if n0 else 0.0
+        s0 = build_rate_summary(c0, n0, count_key="n_compliant", total_key="n_total")
+        n3 = len(alpha_3_rows)
+        c3 = sum(bool(row["compliance"]) for row in alpha_3_rows)
+        r3 = c3 / n3 if n3 else 0.0
+        s3 = build_rate_summary(c3, n3, count_key="n_compliant", total_key="n_total")
+        by_category[cat] = {
+            "n_per_alpha": n0,
+            "alpha_0": {
+                "n_compliant": c0,
+                "compliance_rate": r0,
+                "compliance_pct": as_pct(r0),
+                "ci": s0["ci"],
+            },
+            "alpha_3": {
+                "n_compliant": c3,
+                "compliance_rate": r3,
+                "compliance_pct": as_pct(r3),
+                "ci": s3["ci"],
+            },
+            "delta_0_to_3_pp": round((r3 - r0) * 100, 1),
+        }
+
+    # --- Cross-benchmark comparison ---
+    def _benchmark_entry(
+        name: str,
+        results: dict[str, Any],
+        *,
+        negative_control: str,
+        evaluator: str,
+        generation: str,
+    ) -> dict[str, Any]:
+        res = results["results"]
+        eff = results["effects"]["compliance_curve"]
+        baseline = res[alpha_key(ALPHAS[0])]
+        endpoint = res[alpha_key(ALPHAS[-1])]
+        return {
+            "name": name,
+            "n_per_alpha": baseline["n_total"],
+            "baseline_pct": as_pct(baseline["compliance_rate"]),
+            "endpoint_pct": as_pct(endpoint["compliance_rate"]),
+            "delta_pp": eff["delta_0_to_max_pp"],
+            "slope_pp_per_alpha": eff["slope_pp_per_alpha"],
+            "negative_control": negative_control,
+            "monotonic": all(
+                eff["rates"][i] <= eff["rates"][i + 1]
+                for i in range(len(eff["rates"]) - 1)
+            ),
+            "evaluator": evaluator,
+            "generation": generation,
+        }
+
+    cross_benchmark = {
+        "benchmarks": [
+            _benchmark_entry(
+                "FaithEval",
+                faitheval_results,
+                negative_control="available",
+                evaluator="MC-letter extraction",
+                generation="greedy",
+            ),
+            _benchmark_entry(
+                "FalseQA",
+                falseqa_results,
+                negative_control="not_available",
+                evaluator="GPT-4o binary judge",
+                generation="greedy",
+            ),
+            _benchmark_entry(
+                "JailbreakBench",
+                jailbreak_results,
+                negative_control="not_available",
+                evaluator="GPT-4o safety judge",
+                generation="stochastic (T=0.6)",
+            ),
+        ]
+    }
+
+    # --- Source files ---
+    source_files = (
+        [
+            "data/gemma3_4b/intervention/jailbreak/experiment/results.json",
+        ]
+        + [
+            f"data/gemma3_4b/intervention/jailbreak/experiment/alpha_{alpha:.1f}.jsonl"
+            for alpha in ALPHAS
+        ]
+        + [
+            "data/gemma3_4b/intervention/faitheval/experiment/results.json",
+            "data/gemma3_4b/intervention/falseqa/experiment/results.json",
+        ]
+    )
+
+    return {
+        "schema_version": 1,
+        "generated_at": date.today().isoformat(),
+        "generated_by": "scripts/export_site_data.py",
+        "benchmark": jailbreak_results["benchmark"],
+        "model": "google/gemma-3-4b-it",
+        "n_h_neurons": 38,
+        "alphas": ALPHAS,
+        "provenance": {
+            "source_files": source_files,
+            "notes": [
+                "Jailbreak responses use stochastic generation (temperature=0.6, do_sample=true), so per-item outcomes are not exactly reproducible.",
+                "No negative control experiment has been run for this benchmark.",
+                "Spearman ρ for monotonicity is computed from the 7 aggregate rates; p=0.094 does not reach conventional significance.",
+            ],
+        },
+        "aggregate": {
+            "effects": {
+                "rates": effects["rates"],
+                "delta_0_to_max_pp": effects["delta_0_to_max_pp"],
+                "slope_pp_per_alpha": effects["slope_pp_per_alpha"],
+                "bootstrap": effects["bootstrap"],
+            },
+            "points": points,
+            "monotonicity": {
+                "spearman_rho": 0.679,
+                "spearman_p": 0.094,
+                "is_significant": False,
+                "description": "Positive trend but not monotonic at α=0.05 (Spearman ρ=0.679, p=0.094)",
+            },
+        },
+        "by_template": by_template,
+        "by_category": by_category,
+        "stochastic_generation": {
+            "sampling": {"do_sample": True, "temperature": 0.6},
+            "caveat": "Per-item compliance outcomes are not exactly reproducible across runs due to stochastic decoding.",
+        },
+        "negative_control": {
+            "status": "not_available",
+            "note": "No negative control experiment (random-neuron baseline) has been run for JailbreakBench.",
+        },
+        "cross_benchmark": cross_benchmark,
+    }
+
+
 def extract_markdown_count(path: Path, label: str) -> int:
     pattern = rf"\|\s*{re.escape(label)}\s*\|\s*(\d+)\s*\|"
     match = re.search(pattern, path.read_text())
@@ -1225,6 +1427,12 @@ def main() -> None:
         help="Output path for exported pipeline summary site data.",
     )
     parser.add_argument(
+        "--jailbreak-output",
+        type=Path,
+        default=Path("site/data/jailbreak_sweep.json"),
+        help="Output path for exported jailbreak intervention sweep site data.",
+    )
+    parser.add_argument(
         "--classifier-structure-summary-output",
         type=Path,
         default=CLASSIFIER_STRUCTURE_SUMMARY_PATH,
@@ -1290,6 +1498,15 @@ def main() -> None:
     pipeline_output_path = repo_root / args.pipeline_output
     pipeline_output_path.parent.mkdir(parents=True, exist_ok=True)
     pipeline_output_path.write_text(json.dumps(pipeline_payload, indent=2) + "\n")
+
+    jailbreak_results_path = (
+        repo_root / "data/gemma3_4b/intervention/jailbreak/experiment/results.json"
+    )
+    if jailbreak_results_path.exists():
+        jailbreak_payload = build_jailbreak_payload(repo_root)
+        jailbreak_output_path = repo_root / args.jailbreak_output
+        jailbreak_output_path.parent.mkdir(parents=True, exist_ok=True)
+        jailbreak_output_path.write_text(json.dumps(jailbreak_payload, indent=2) + "\n")
 
 
 if __name__ == "__main__":
