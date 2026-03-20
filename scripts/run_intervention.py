@@ -217,9 +217,13 @@ def load_results(output_dir: str, alphas: list) -> dict:
 
 from utils import (  # noqa: E402
     extract_mc_answer,
+    finish_run_provenance,
     get_git_sha,
     normalize_answer,
+    provenance_error_message,
+    provenance_status_for_exception,
     sanitize_run_config,
+    start_run_provenance,
 )
 
 
@@ -936,139 +940,176 @@ def main():
         args.output_dir or f"data/gemma3_4b/intervention/{args.benchmark}/experiment"
     )
     os.makedirs(output_dir, exist_ok=True)
-
-    # Load model
-    print(f"Loading model: {args.model_path}")
-    model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
-
-    # Load classifier and build neuron map
-    print(f"Loading classifier: {args.classifier_path}")
-    classifier = joblib.load(args.classifier_path)
-    neuron_map = get_h_neuron_indices(classifier, model.config)
-    total_neurons = sum(len(v) for v in neuron_map.values())
-    print(f"H-Neurons: {total_neurons} across {len(neuron_map)} layers")
-
-    # Install hooks
-    device = next(model.parameters()).device
-    scaler = HNeuronScaler(model, neuron_map, device)
-    print(f"Installed {scaler.n_hooks} hooks on {scaler.n_neurons} neurons")
-
-    # Load benchmark data
-    print(f"\nLoading benchmark: {args.benchmark}")
-    if args.benchmark == "faitheval":
-        samples = load_faitheval()
-        run_fn = run_faitheval
-    elif args.benchmark == "falseqa":
-        samples = load_falseqa(args.falseqa_path)
-        run_fn = run_falseqa
-    elif args.benchmark == "bioasq":
-        samples = load_bioasq(args.bioasq_path)
-        run_fn = run_bioasq
-    elif args.benchmark == "sycophancy_triviaqa":
-        samples = load_sycophancy_triviaqa(
-            args.sycophancy_data, max_samples=args.max_samples or 500
-        )
-        run_fn = run_sycophancy_triviaqa
-    elif args.benchmark in ("jailbreak", "jailbreak_benign"):
-        split = "benign" if args.benchmark == "jailbreak_benign" else "harmful"
-        samples = load_jailbreak(
-            source=args.jailbreak_source,
-            questions_path=args.jailbreak_path,
-            n_templates=args.n_templates,
-            split=split,
-        )
-        run_fn = run_jailbreak
-    else:
-        raise ValueError(f"Unknown benchmark: {args.benchmark}")
-
-    print(f"Loaded {len(samples)} samples")
-
-    # W&B tracking (opt-in)
-    wb_run = None
-    if args.wandb:
-        try:
-            import wandb
-        except ImportError as exc:
-            raise ImportError(
-                "--wandb requested but wandb is not installed. "
-                "Install project dependencies with `uv sync` or add it with `uv add wandb`."
-            ) from exc
-
-        config = sanitize_run_config(
-            vars(args),
-            extra={"n_h_neurons": total_neurons, "n_samples": len(samples)},
-        )
-        git_sha = get_git_sha()
-        if git_sha is None:
-            print(
-                "Warning: git metadata unavailable; omitting git_sha from W&B config.",
-                file=sys.stderr,
-            )
-        else:
-            config["git_sha"] = git_sha
-        wb_run = wandb.init(
-            project="h-neurons",
-            config=config,
-            tags=[args.benchmark, args.model_path.split("/")[-1]],
-        )
-
-    # Sweep alpha values
-    extra_kwargs = {}
-    if args.benchmark == "faitheval":
-        extra_kwargs["prompt_style"] = args.prompt_style
-        print(f"FaithEval prompt style: {args.prompt_style}")
-
-    for alpha in args.alphas:
-        print(f"\n{'=' * 60}")
-        print(f"Running α = {alpha:.1f}")
-        print(f"{'=' * 60}")
-        run_fn(
-            model,
-            tokenizer,
-            scaler,
-            samples,
-            alpha,
-            output_dir,
-            args.max_samples,
-            **extra_kwargs,
-        )
-
-    # Aggregate results
-    print(f"\n{'=' * 60}")
-    print("Results Summary")
-    print(f"{'=' * 60}")
-    aggregation = aggregate_results(output_dir, args.alphas)
-
-    # Save summary
     summary = {
         "benchmark": args.benchmark,
         "model": args.model_path,
         "classifier": args.classifier_path,
-        "n_h_neurons": total_neurons,
-        "results": aggregation["results"],
-        "effects": aggregation["effects"],
     }
-    if args.benchmark == "faitheval":
-        summary["prompt_style"] = args.prompt_style
     summary_path = os.path.join(output_dir, "results.json")
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=2)
-    print(f"\nSaved results to {summary_path}")
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=output_dir,
+        output_targets=[output_dir, summary_path],
+        primary_target_is_dir=True,
+    )
+    provenance_status = "completed"
+    provenance_extra = {}
+    scaler = None
+    wb_run = None
+    wandb_module = None
 
-    if wb_run is not None:
-        for alpha_str, alpha_result in aggregation["results"].items():
-            wandb.log(
-                {
-                    "alpha": float(alpha_str),
-                    "compliance_rate": alpha_result["compliance_rate"],
-                    "n_compliant": alpha_result["n_compliant"],
-                    "n_total": alpha_result["n_total"],
-                }
+    try:
+        # Load model
+        print(f"Loading model: {args.model_path}")
+        model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
+
+        # Load classifier and build neuron map
+        print(f"Loading classifier: {args.classifier_path}")
+        classifier = joblib.load(args.classifier_path)
+        neuron_map = get_h_neuron_indices(classifier, model.config)
+        total_neurons = sum(len(v) for v in neuron_map.values())
+        print(f"H-Neurons: {total_neurons} across {len(neuron_map)} layers")
+
+        # Install hooks
+        device = next(model.parameters()).device
+        scaler = HNeuronScaler(model, neuron_map, device)
+        print(f"Installed {scaler.n_hooks} hooks on {scaler.n_neurons} neurons")
+
+        # Load benchmark data
+        print(f"\nLoading benchmark: {args.benchmark}")
+        if args.benchmark == "faitheval":
+            samples = load_faitheval()
+            run_fn = run_faitheval
+        elif args.benchmark == "falseqa":
+            samples = load_falseqa(args.falseqa_path)
+            run_fn = run_falseqa
+        elif args.benchmark == "bioasq":
+            samples = load_bioasq(args.bioasq_path)
+            run_fn = run_bioasq
+        elif args.benchmark == "sycophancy_triviaqa":
+            samples = load_sycophancy_triviaqa(
+                args.sycophancy_data, max_samples=args.max_samples or 500
             )
-        wandb.log({"summary": summary})
-        wandb.finish()
+            run_fn = run_sycophancy_triviaqa
+        elif args.benchmark in ("jailbreak", "jailbreak_benign"):
+            split = "benign" if args.benchmark == "jailbreak_benign" else "harmful"
+            samples = load_jailbreak(
+                source=args.jailbreak_source,
+                questions_path=args.jailbreak_path,
+                n_templates=args.n_templates,
+                split=split,
+            )
+            run_fn = run_jailbreak
+        else:
+            raise ValueError(f"Unknown benchmark: {args.benchmark}")
 
-    scaler.remove()
+        print(f"Loaded {len(samples)} samples")
+
+        # W&B tracking (opt-in)
+        if args.wandb:
+            try:
+                import wandb as wandb_module
+            except ImportError as exc:
+                raise ImportError(
+                    "--wandb requested but wandb is not installed. "
+                    "Install project dependencies with `uv sync` or add it with `uv add wandb`."
+                ) from exc
+
+            config = sanitize_run_config(
+                vars(args),
+                extra={"n_h_neurons": total_neurons, "n_samples": len(samples)},
+            )
+            git_sha = get_git_sha()
+            if git_sha is None:
+                print(
+                    "Warning: git metadata unavailable; omitting git_sha from W&B config.",
+                    file=sys.stderr,
+                )
+            else:
+                config["git_sha"] = git_sha
+            wb_run = wandb_module.init(
+                project="h-neurons",
+                config=config,
+                tags=[args.benchmark, args.model_path.split("/")[-1]],
+            )
+            provenance_extra["wandb"] = {
+                "project": "h-neurons",
+                "mode": os.environ.get("WANDB_MODE", "online"),
+                "tags": [args.benchmark, args.model_path.split("/")[-1]],
+            }
+
+        # Sweep alpha values
+        extra_kwargs = {}
+        if args.benchmark == "faitheval":
+            extra_kwargs["prompt_style"] = args.prompt_style
+            print(f"FaithEval prompt style: {args.prompt_style}")
+
+        for alpha in args.alphas:
+            print(f"\n{'=' * 60}")
+            print(f"Running α = {alpha:.1f}")
+            print(f"{'=' * 60}")
+            run_fn(
+                model,
+                tokenizer,
+                scaler,
+                samples,
+                alpha,
+                output_dir,
+                args.max_samples,
+                **extra_kwargs,
+            )
+
+        # Aggregate results
+        print(f"\n{'=' * 60}")
+        print("Results Summary")
+        print(f"{'=' * 60}")
+        aggregation = aggregate_results(output_dir, args.alphas)
+
+        # Save summary
+        summary = {
+            "benchmark": args.benchmark,
+            "model": args.model_path,
+            "classifier": args.classifier_path,
+            "n_h_neurons": total_neurons,
+            "results": aggregation["results"],
+            "effects": aggregation["effects"],
+        }
+        if args.benchmark == "faitheval":
+            summary["prompt_style"] = args.prompt_style
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        print(f"\nSaved results to {summary_path}")
+
+        if wb_run is not None and wandb_module is not None:
+            for alpha_str, alpha_result in aggregation["results"].items():
+                wandb_module.log(
+                    {
+                        "alpha": float(alpha_str),
+                        "compliance_rate": alpha_result["compliance_rate"],
+                        "n_compliant": alpha_result["n_compliant"],
+                        "n_total": alpha_result["n_total"],
+                    }
+                )
+            wandb_module.log({"summary": summary})
+
+        provenance_extra["output_targets"] = [
+            output_dir,
+            summary_path,
+            *[
+                os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+                for alpha in args.alphas
+            ],
+        ]
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        if wb_run is not None and wandb_module is not None:
+            wandb_module.finish()
+        if scaler is not None:
+            scaler.remove()
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,13 @@ from tqdm import tqdm
 from openai import OpenAI
 from transformers import AutoTokenizer
 
+from utils import (
+    finish_run_provenance,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -258,5 +265,19 @@ class AnswerTokenExtractor:
 
 if __name__ == "__main__":
     args = parse_args()
-    extractor = AnswerTokenExtractor(args)
-    extractor.run()
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=args.output_path,
+        output_targets=[args.output_path],
+    )
+    provenance_status = "completed"
+    provenance_extra = {}
+    try:
+        extractor = AnswerTokenExtractor(args)
+        extractor.run()
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)

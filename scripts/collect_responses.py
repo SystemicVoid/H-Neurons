@@ -93,7 +93,15 @@ def parse_args():
 # Utilities
 # ==========================================
 
-from utils import get_git_sha, normalize_answer, sanitize_run_config  # noqa: E402
+from utils import (  # noqa: E402
+    finish_run_provenance,
+    get_git_sha,
+    normalize_answer,
+    provenance_error_message,
+    provenance_status_for_exception,
+    sanitize_run_config,
+    start_run_provenance,
+)
 
 
 def load_existing_qids(path: str) -> Set[str]:
@@ -319,34 +327,53 @@ class ConsistencySampler:
 
 if __name__ == "__main__":
     args = parse_args()
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=args.output_path,
+        output_targets=[args.output_path],
+    )
+    provenance_status = "completed"
+    provenance_extra = {}
 
-    wb_run = None
-    if args.wandb:
-        try:
-            import wandb
-        except ImportError as exc:
-            raise ImportError(
-                "--wandb requested but wandb is not installed. "
-                "Install project dependencies with `uv sync` or add it with `uv add wandb`."
-            ) from exc
+    try:
+        wb_run = None
+        if args.wandb:
+            try:
+                import wandb
+            except ImportError as exc:
+                raise ImportError(
+                    "--wandb requested but wandb is not installed. "
+                    "Install project dependencies with `uv sync` or add it with `uv add wandb`."
+                ) from exc
 
-        config = sanitize_run_config(vars(args))
-        git_sha = get_git_sha()
-        if git_sha is None:
-            print(
-                "Warning: git metadata unavailable; omitting git_sha from W&B config.",
-                file=sys.stderr,
+            config = sanitize_run_config(vars(args))
+            git_sha = get_git_sha()
+            if git_sha is None:
+                print(
+                    "Warning: git metadata unavailable; omitting git_sha from W&B config.",
+                    file=sys.stderr,
+                )
+            else:
+                config["git_sha"] = git_sha
+            wb_run = wandb.init(
+                project="h-neurons",
+                config=config,
+                tags=["collect_responses"],
             )
-        else:
-            config["git_sha"] = git_sha
-        wb_run = wandb.init(
-            project="h-neurons",
-            config=config,
-            tags=["collect_responses"],
-        )
+            provenance_extra["wandb"] = {
+                "project": "h-neurons",
+                "mode": os.environ.get("WANDB_MODE", "online"),
+                "tags": ["collect_responses"],
+            }
 
-    sampler = ConsistencySampler(args)
-    sampler.process_data()
+        sampler = ConsistencySampler(args)
+        sampler.process_data()
 
-    if wb_run is not None:
-        wandb.finish()
+        if wb_run is not None:
+            wandb.finish()
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)

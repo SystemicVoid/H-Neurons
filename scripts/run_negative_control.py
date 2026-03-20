@@ -45,7 +45,14 @@ from run_intervention import (
     load_model_and_tokenizer,
     normalize_answer,
 )
-from utils import get_git_sha, sanitize_run_config
+from utils import (
+    finish_run_provenance,
+    get_git_sha,
+    provenance_error_message,
+    provenance_status_for_exception,
+    sanitize_run_config,
+    start_run_provenance,
+)
 from uncertainty import build_rate_summary, percentile_interval
 
 # H-neuron layer distribution: {layer: count}
@@ -687,177 +694,209 @@ def main():
         ]
 
     os.makedirs(output_base, exist_ok=True)
-
-    # W&B tracking (opt-in)
+    summary_path = os.path.join(output_base, "comparison_summary.json")
+    plot_path = os.path.join(output_base, "negative_control_comparison.png")
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=output_base,
+        output_targets=[output_base, summary_path, plot_path],
+        primary_target_is_dir=True,
+    )
+    provenance_status = "completed"
+    provenance_extra = {}
     wb_run = None
-    if args.wandb:
-        try:
-            import wandb
-        except ImportError as exc:
-            raise ImportError(
-                "--wandb requested but wandb is not installed. "
-                "Install project dependencies with `uv sync` or add it with `uv add wandb`."
-            ) from exc
+    wandb_module = None
+    try:
+        # W&B tracking (opt-in)
+        if args.wandb:
+            try:
+                import wandb as wandb_module
+            except ImportError as exc:
+                raise ImportError(
+                    "--wandb requested but wandb is not installed. "
+                    "Install project dependencies with `uv sync` or add it with `uv add wandb`."
+                ) from exc
 
-        config = sanitize_run_config(
-            vars(args),
-            extra={"alphas": [float(a) for a in alphas], "n_configs": len(configs)},
-        )
-        git_sha = get_git_sha()
-        if git_sha is None:
-            print(
-                "Warning: git metadata unavailable; omitting git_sha from W&B config.",
-                file=sys.stderr,
+            config = sanitize_run_config(
+                vars(args),
+                extra={"alphas": [float(a) for a in alphas], "n_configs": len(configs)},
             )
-        else:
-            config["git_sha"] = git_sha
-        wb_run = wandb.init(
-            project="h-neurons",
-            config=config,
-            tags=[f"neg_ctrl_{benchmark}"],
-        )
-
-    # Load classifier zero-weight indices
-    print("Loading classifier for neuron sampling...")
-    zero_indices = get_zero_weight_indices(args.classifier_path)
-    print(f"  {len(zero_indices)} zero-weight neurons available for sampling")
-
-    # Pre-compute all neuron selections
-    neuron_configs = {}
-    for name, strategy, seed in configs:
-        if strategy == "unconstrained":
-            flat = sample_unconstrained(zero_indices, seed)
-        else:
-            flat = sample_layer_matched(zero_indices, seed)
-        nmap = flat_to_neuron_map(flat)
-        neuron_configs[name] = nmap
-        n_layers = len(nmap)
-        print(
-            f"  {name}: {sum(len(v) for v in nmap.values())} neurons across {n_layers} layers"
-        )
-
-    if not args.analysis_only:
-        print(f"\nLoading model: {args.model_path}")
-        model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
-
-        print(f"Loading benchmark: {benchmark}")
-        if benchmark == "faitheval":
-            samples = load_faitheval()
-        elif benchmark == "falseqa":
-            samples = load_falseqa(args.falseqa_path)
-        elif benchmark == "bioasq":
-            samples = load_bioasq(args.bioasq_path)
-        print(f"  {len(samples)} samples")
-
-        all_results = {}
-        for name, strategy, seed in configs:
-            nmap = neuron_configs[name]
-            out_dir = os.path.join(output_base, name)
-            results = run_single_config(
-                model,
-                tokenizer,
-                samples,
-                nmap,
-                alphas,
-                out_dir,
-                name,
-                benchmark=benchmark,
-            )
-            all_results[name] = results
-
-        del model, tokenizer
-        torch.cuda.empty_cache()
-    else:
-        all_results = {}
-        for name, strategy, seed in configs:
-            results_path = os.path.join(output_base, name, "results.json")
-            if os.path.exists(results_path):
-                with open(results_path) as f:
-                    data = json.load(f)
-                all_results[name] = data["results"]
-            else:
-                print(f"  WARNING: no results for {name}")
-
-    if not all_results:
-        print("No results to analyze.")
-        return
-
-    # FalseQA analysis requires GPT-4o judging first
-    if benchmark == "falseqa":
-        has_compliance = any(
-            "compliance_rate" in v.get(str(float(alphas[0])), {})
-            for v in all_results.values()
-        )
-        if not has_compliance:
-            print("\n" + "=" * 60)
-            print("Generation complete. Run GPT-4o judging before analysis:")
-            for name, _, _ in configs:
-                alpha_str = " ".join(f"{a:.1f}" for a in alphas)
+            git_sha = get_git_sha()
+            if git_sha is None:
                 print(
-                    f"  uv run python scripts/evaluate_intervention.py "
-                    f"--benchmark falseqa "
-                    f"--input_dir {output_base}/{name} "
-                    f"--alphas {alpha_str}"
+                    "Warning: git metadata unavailable; omitting git_sha from W&B config.",
+                    file=sys.stderr,
                 )
+            else:
+                config["git_sha"] = git_sha
+            wb_run = wandb_module.init(
+                project="h-neurons",
+                config=config,
+                tags=[f"neg_ctrl_{benchmark}"],
+            )
+            provenance_extra["wandb"] = {
+                "project": "h-neurons",
+                "mode": os.environ.get("WANDB_MODE", "online"),
+                "tags": [f"neg_ctrl_{benchmark}"],
+            }
+
+        # Load classifier zero-weight indices
+        print("Loading classifier for neuron sampling...")
+        zero_indices = get_zero_weight_indices(args.classifier_path)
+        print(f"  {len(zero_indices)} zero-weight neurons available for sampling")
+
+        # Pre-compute all neuron selections
+        neuron_configs = {}
+        for name, strategy, seed in configs:
+            if strategy == "unconstrained":
+                flat = sample_unconstrained(zero_indices, seed)
+            else:
+                flat = sample_layer_matched(zero_indices, seed)
+            nmap = flat_to_neuron_map(flat)
+            neuron_configs[name] = nmap
+            n_layers = len(nmap)
             print(
-                f"\nThen re-run with --analysis_only:\n"
-                f"  uv run python scripts/run_negative_control.py "
-                f"--benchmark falseqa {'--quick' if args.quick else ''} --analysis_only"
+                f"  {name}: {sum(len(v) for v in nmap.values())} neurons across {n_layers} layers"
+            )
+
+        if not args.analysis_only:
+            print(f"\nLoading model: {args.model_path}")
+            model, tokenizer = load_model_and_tokenizer(
+                args.model_path, args.device_map
+            )
+
+            print(f"Loading benchmark: {benchmark}")
+            if benchmark == "faitheval":
+                samples = load_faitheval()
+            elif benchmark == "falseqa":
+                samples = load_falseqa(args.falseqa_path)
+            elif benchmark == "bioasq":
+                samples = load_bioasq(args.bioasq_path)
+            print(f"  {len(samples)} samples")
+
+            all_results = {}
+            for name, strategy, seed in configs:
+                nmap = neuron_configs[name]
+                out_dir = os.path.join(output_base, name)
+                results = run_single_config(
+                    model,
+                    tokenizer,
+                    samples,
+                    nmap,
+                    alphas,
+                    out_dir,
+                    name,
+                    benchmark=benchmark,
+                )
+                all_results[name] = results
+
+            del model, tokenizer
+            torch.cuda.empty_cache()
+        else:
+            all_results = {}
+            for name, strategy, seed in configs:
+                results_path = os.path.join(output_base, name, "results.json")
+                if os.path.exists(results_path):
+                    with open(results_path) as f:
+                        data = json.load(f)
+                    all_results[name] = data["results"]
+                else:
+                    print(f"  WARNING: no results for {name}")
+
+        if not all_results:
+            print("No results to analyze.")
+            return
+
+        # FalseQA analysis requires GPT-4o judging first
+        if benchmark == "falseqa":
+            has_compliance = any(
+                "compliance_rate" in v.get(str(float(alphas[0])), {})
+                for v in all_results.values()
+            )
+            if not has_compliance:
+                print("\n" + "=" * 60)
+                print("Generation complete. Run GPT-4o judging before analysis:")
+                for name, _, _ in configs:
+                    alpha_str = " ".join(f"{a:.1f}" for a in alphas)
+                    print(
+                        f"  uv run python scripts/evaluate_intervention.py "
+                        f"--benchmark falseqa "
+                        f"--input_dir {output_base}/{name} "
+                        f"--alphas {alpha_str}"
+                    )
+                print(
+                    f"\nThen re-run with --analysis_only:\n"
+                    f"  uv run python scripts/run_negative_control.py "
+                    f"--benchmark falseqa {'--quick' if args.quick else ''} --analysis_only"
+                )
+                return
+
+        baseline_path = H_NEURON_BASELINES[benchmark]
+        if not os.path.exists(baseline_path):
+            print(f"\nH-neuron baseline not found at {baseline_path}")
+            print(
+                "Run the H-neuron intervention first, then re-run with --analysis_only"
             )
             return
 
-    baseline_path = H_NEURON_BASELINES[benchmark]
-    if not os.path.exists(baseline_path):
-        print(f"\nH-neuron baseline not found at {baseline_path}")
-        print("Run the H-neuron intervention first, then re-run with --analysis_only")
-        return
+        print("\n" + "=" * 60)
+        print("Building comparison summary...")
+        print("=" * 60)
+        summary = build_comparison_summary(all_results, alphas, benchmark=benchmark)
 
-    print("\n" + "=" * 60)
-    print("Building comparison summary...")
-    print("=" * 60)
-    summary = build_comparison_summary(all_results, alphas, benchmark=benchmark)
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        print(f"Saved summary to {summary_path}")
 
-    summary_path = os.path.join(output_base, "comparison_summary.json")
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=2)
-    print(f"Saved summary to {summary_path}")
+        print("\n--- KEY FINDINGS ---")
+        h = summary["h_neuron_baseline"]
+        print(f"H-neurons: slope={h['slope_per_alpha']}%/α, ρ={h['spearman_rho']}")
 
-    print("\n--- KEY FINDINGS ---")
-    h = summary["h_neuron_baseline"]
-    print(f"H-neurons: slope={h['slope_per_alpha']}%/α, ρ={h['spearman_rho']}")
+        for key in ["unconstrained_random", "layer_matched_random"]:
+            if key in summary:
+                d = summary[key]
+                print(
+                    f"{key}: mean_slope={d['mean_slope_per_alpha']}%/α, "
+                    f"mean_ρ={d['mean_spearman_rho']}, "
+                    f"any_monotonic={d['any_seed_monotonic']}"
+                )
 
-    for key in ["unconstrained_random", "layer_matched_random"]:
-        if key in summary:
-            d = summary[key]
+        if "comparison_to_h_neurons" in summary:
+            st = summary["comparison_to_h_neurons"]
             print(
-                f"{key}: mean_slope={d['mean_slope_per_alpha']}%/α, "
-                f"mean_ρ={d['mean_spearman_rho']}, "
-                f"any_monotonic={d['any_seed_monotonic']}"
+                "α=3 compliance: "
+                f"H={st['alpha_3_h_rate_pct']}%, "
+                f"random mean={st['alpha_3_random_mean_pct']}%, "
+                f"random 95% interval=[{st['alpha_3_random_percentile_interval_pct']['lower']:.2f}, "
+                f"{st['alpha_3_random_percentile_interval_pct']['upper']:.2f}]"
+            )
+            print(
+                "Slope: "
+                f"H={st['slope_h_pp_per_alpha']}pp/α, "
+                f"random mean={st['slope_random_mean_pp_per_alpha']}pp/α, "
+                f"random 95% interval=[{st['slope_random_percentile_interval']['lower']:.2f}, "
+                f"{st['slope_random_percentile_interval']['upper']:.2f}]"
             )
 
-    if "comparison_to_h_neurons" in summary:
-        st = summary["comparison_to_h_neurons"]
-        print(
-            "α=3 compliance: "
-            f"H={st['alpha_3_h_rate_pct']}%, "
-            f"random mean={st['alpha_3_random_mean_pct']}%, "
-            f"random 95% interval=[{st['alpha_3_random_percentile_interval_pct']['lower']:.2f}, "
-            f"{st['alpha_3_random_percentile_interval_pct']['upper']:.2f}]"
-        )
-        print(
-            "Slope: "
-            f"H={st['slope_h_pp_per_alpha']}pp/α, "
-            f"random mean={st['slope_random_mean_pp_per_alpha']}pp/α, "
-            f"random 95% interval=[{st['slope_random_percentile_interval']['lower']:.2f}, "
-            f"{st['slope_random_percentile_interval']['upper']:.2f}]"
-        )
+        plot_comparison(summary, alphas, plot_path, benchmark=benchmark)
 
-    plot_path = os.path.join(output_base, "negative_control_comparison.png")
-    plot_comparison(summary, alphas, plot_path, benchmark=benchmark)
+        if wb_run is not None and wandb_module is not None:
+            wandb_module.log({"comparison_summary": summary})
 
-    if wb_run is not None:
-        wandb.log({"comparison_summary": summary})
-        wandb.finish()
+        provenance_extra["output_targets"] = [
+            output_base,
+            summary_path,
+            plot_path,
+            *[os.path.join(output_base, name) for name, _, _ in configs],
+        ]
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        if wb_run is not None and wandb_module is not None:
+            wandb_module.finish()
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":

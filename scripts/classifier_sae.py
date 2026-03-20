@@ -41,6 +41,12 @@ from classifier import (
     print_metrics,
     select_candidate_score,
 )
+from utils import (
+    finish_run_provenance,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
 
 
 def parse_args():
@@ -276,228 +282,252 @@ def decode_sae_feature_indices(flat_indices, d_sae, layer_indices):
 
 def main():
     args = parse_args()
-    prefer_test = bool(args.test_ids and args.test_acts)
-    extraction_metadata = None
-    classifier_metadata = None
-
-    if (
-        args.train_mode == "3-vs-1"
-        and args.train_ans_acts
-        and not args.train_other_acts
-    ):
-        raise ValueError("train_other_acts directory required for 3-vs-1 mode.")
-
-    if args.train_ans_acts:
-        extraction_metadata = load_extraction_metadata(args.train_ans_acts)
-        validate_location_present(
-            extraction_metadata, args.train_ans_acts, "train_ans_acts"
+    output_targets = []
+    if args.metrics_out:
+        output_targets.append(args.metrics_out)
+    if not args.load_model and args.save_model:
+        output_targets.append(args.save_model)
+    primary_target = args.metrics_out or (None if args.load_model else args.save_model)
+    provenance_handle = (
+        start_run_provenance(
+            args,
+            primary_target=primary_target,
+            output_targets=output_targets,
         )
-        classifier_metadata = build_classifier_metadata(
-            extraction_metadata,
-            train_mode=args.train_mode,
-            train_answer_dir=args.train_ans_acts,
-            train_other_dir=args.train_other_acts,
-            test_dir=args.test_acts,
-        )
+        if primary_target and output_targets
+        else None
+    )
+    provenance_status = "completed"
+    provenance_extra = {}
+    try:
+        prefer_test = bool(args.test_ids and args.test_acts)
+        extraction_metadata = None
+        classifier_metadata = None
 
-        if args.train_mode == "3-vs-1":
-            other_metadata = load_extraction_metadata(args.train_other_acts)
+        if (
+            args.train_mode == "3-vs-1"
+            and args.train_ans_acts
+            and not args.train_other_acts
+        ):
+            raise ValueError("train_other_acts directory required for 3-vs-1 mode.")
+
+        if args.train_ans_acts:
+            extraction_metadata = load_extraction_metadata(args.train_ans_acts)
             validate_location_present(
-                other_metadata, args.train_other_acts, "train_other_acts"
+                extraction_metadata, args.train_ans_acts, "train_ans_acts"
             )
-            validate_metadata_pair(
-                extraction_metadata, other_metadata, "train_other_acts"
+            classifier_metadata = build_classifier_metadata(
+                extraction_metadata,
+                train_mode=args.train_mode,
+                train_answer_dir=args.train_ans_acts,
+                train_other_dir=args.train_other_acts,
+                test_dir=args.test_acts,
             )
 
+            if args.train_mode == "3-vs-1":
+                other_metadata = load_extraction_metadata(args.train_other_acts)
+                validate_location_present(
+                    other_metadata, args.train_other_acts, "train_other_acts"
+                )
+                validate_metadata_pair(
+                    extraction_metadata, other_metadata, "train_other_acts"
+                )
+
+            if prefer_test:
+                test_metadata = load_extraction_metadata(args.test_acts)
+                validate_location_present(test_metadata, args.test_acts, "test_acts")
+                validate_metadata_pair(extraction_metadata, test_metadata, "test_acts")
+        elif prefer_test:
+            extraction_metadata = load_extraction_metadata(args.test_acts)
+            validate_location_present(extraction_metadata, args.test_acts, "test_acts")
+            classifier_metadata = build_classifier_metadata(
+                extraction_metadata,
+                train_mode=args.train_mode,
+                train_answer_dir=args.test_acts,
+                test_dir=args.test_acts,
+            )
+
+        # Load test data
+        X_test = y_test = test_qids = None
         if prefer_test:
-            test_metadata = load_extraction_metadata(args.test_acts)
-            validate_location_present(test_metadata, args.test_acts, "test_acts")
-            validate_metadata_pair(extraction_metadata, test_metadata, "test_acts")
-    elif prefer_test:
-        extraction_metadata = load_extraction_metadata(args.test_acts)
-        validate_location_present(extraction_metadata, args.test_acts, "test_acts")
-        classifier_metadata = build_classifier_metadata(
-            extraction_metadata,
-            train_mode=args.train_mode,
-            train_answer_dir=args.test_acts,
-            test_dir=args.test_acts,
+            print(f"Loading held-out SAE features from {args.test_ids}...")
+            X_test, y_test, test_qids = load_sae_data(
+                args.test_ids,
+                args.test_acts,
+                mode="1-vs-1",
+                return_qids=True,
+            )
+            print(f"  Test set: {len(y_test)} samples, {X_test.shape[1]} features")
+
+        if args.load_model:
+            print(f"Loading pre-trained model: {args.load_model}")
+            model = joblib.load(args.load_model)
+            n_positive = int(np.sum(model.coef_[0] > 0))
+            n_nonzero = int(np.sum(model.coef_[0] != 0))
+            print(f"Loaded model: {n_positive} positive, {n_nonzero} nonzero features")
+
+            if prefer_test:
+                metrics = compute_metrics(model, X_test, y_test)
+                print_metrics(metrics, "Test Set")
+                evaluation = evaluate_model_with_uncertainty(
+                    model, X_test, y_test, test_qids
+                )
+            else:
+                evaluation = None
+
+            if args.metrics_out:
+                ensure_parent_dir(args.metrics_out)
+                payload = {
+                    "feature_type": "sae",
+                    "model_path": args.model_path,
+                    "loaded_model_path": args.load_model,
+                    "n_positive_features": n_positive,
+                    "n_nonzero_features": n_nonzero,
+                    "extraction_metadata": classifier_metadata,
+                    "evaluation": evaluation,
+                }
+                with open(args.metrics_out, "w", encoding="utf-8") as f:
+                    json.dump(payload, f, indent=2)
+                print(f"Saved metrics to {args.metrics_out}")
+            return
+
+        if not (args.train_ids and args.train_ans_acts):
+            print("Please provide --load_model OR (--train_ids AND --train_ans_acts)")
+            return
+
+        # Load training data
+        print(f"Training in {args.train_mode} mode...")
+        X_train, y_train = load_sae_data(
+            args.train_ids,
+            args.train_ans_acts,
+            other_acts_dir=args.train_other_acts,
+            mode=args.train_mode,
+        )
+        assert classifier_metadata is not None
+        layer_indices = classifier_metadata["layer_indices"]
+        d_sae = classifier_metadata["d_sae"]
+        total_features = get_sae_feature_info(
+            X_train,
+            n_layers=len(layer_indices),
+            d_sae=d_sae,
+        )
+        print(f"  Train set: {len(y_train)} samples, {total_features} features")
+
+        # C sweep
+        c_values = args.c_values or [args.C]
+        verbose = 1 if len(c_values) == 1 else 0
+        candidates = []
+
+        for c_value in c_values:
+            print(f"\nTraining classifier with C={c_value}")
+            model = LogisticRegression(
+                penalty=args.penalty,
+                C=c_value,
+                solver=args.solver,
+                max_iter=1000,
+                random_state=42,
+                verbose=verbose,
+            )
+            model.fit(X_train, y_train)
+            train_metrics = compute_metrics(model, X_train, y_train)
+            print_metrics(train_metrics, "Training Set")
+
+            test_metrics = None
+            if prefer_test:
+                test_metrics = compute_metrics(model, X_test, y_test)
+                print_metrics(test_metrics, "Test Set")
+
+            candidates.append(
+                {
+                    "C": float(c_value),
+                    "model": model,
+                    "train_metrics": train_metrics,
+                    "test_metrics": test_metrics,
+                }
+            )
+
+        # Select best
+        best_candidate = max(
+            candidates,
+            key=lambda c: (
+                select_candidate_score(c, args.selection_metric, prefer_test),
+                -np.sum(c["model"].coef_[0] > 0),
+            ),
         )
 
-    # Load test data
-    X_test = y_test = test_qids = None
-    if prefer_test:
-        print(f"Loading held-out SAE features from {args.test_ids}...")
-        X_test, y_test, test_qids = load_sae_data(
-            args.test_ids,
-            args.test_acts,
-            mode="1-vs-1",
-            return_qids=True,
+        best_positive = int(np.sum(best_candidate["model"].coef_[0] > 0))
+        best_nonzero = int(np.sum(best_candidate["model"].coef_[0] != 0))
+        selection_split = "test" if prefer_test else "train"
+        print(
+            f"\nSelected best C={best_candidate['C']} by {selection_split} "
+            f"{args.selection_metric}: "
+            f"{select_candidate_score(best_candidate, args.selection_metric, prefer_test):.4f}"
         )
-        print(f"  Test set: {len(y_test)} samples, {X_test.shape[1]} features")
+        print(
+            f"SAE features: {best_positive} positive, {best_nonzero} nonzero "
+            f"out of {total_features}"
+        )
 
-    if args.load_model:
-        print(f"Loading pre-trained model: {args.load_model}")
-        model = joblib.load(args.load_model)
-        n_positive = int(np.sum(model.coef_[0] > 0))
-        n_nonzero = int(np.sum(model.coef_[0] != 0))
-        print(f"Loaded model: {n_positive} positive, {n_nonzero} nonzero features")
+        # Save model
+        if args.save_model:
+            ensure_parent_dir(args.save_model)
+            joblib.dump(best_candidate["model"], args.save_model)
+            print(f"Model saved to {args.save_model}")
 
-        if prefer_test:
-            metrics = compute_metrics(model, X_test, y_test)
-            print_metrics(metrics, "Test Set")
-            evaluation = evaluate_model_with_uncertainty(
-                model, X_test, y_test, test_qids
-            )
-        else:
-            evaluation = None
-
+        # Save metrics
         if args.metrics_out:
             ensure_parent_dir(args.metrics_out)
+
+            # Identify top features
+            coef = best_candidate["model"].coef_[0]
+            top_positive_idx = np.argsort(coef)[::-1][: min(50, best_positive)]
+            top_positive_idx = top_positive_idx[coef[top_positive_idx] > 0]
+
             payload = {
                 "feature_type": "sae",
                 "model_path": args.model_path,
-                "loaded_model_path": args.load_model,
-                "n_positive_features": n_positive,
-                "n_nonzero_features": n_nonzero,
                 "extraction_metadata": classifier_metadata,
-                "evaluation": evaluation,
+                "train_mode": args.train_mode,
+                "penalty": args.penalty,
+                "solver": args.solver,
+                "selection_metric": args.selection_metric,
+                "selection_split": selection_split,
+                "total_sae_features": total_features,
+                "best": summarize_sae_candidate(
+                    best_candidate, args.selection_metric, prefer_test
+                ),
+                "top_positive_features": [
+                    {
+                        **decoded,
+                        "weight": float(coef[decoded["flat_idx"]]),
+                    }
+                    for decoded in decode_sae_feature_indices(
+                        top_positive_idx,
+                        d_sae=d_sae,
+                        layer_indices=layer_indices,
+                    )
+                ],
+                "candidates": [
+                    summarize_sae_candidate(c, args.selection_metric, prefer_test)
+                    for c in candidates
+                ],
             }
+            if prefer_test:
+                payload["evaluation"] = evaluate_model_with_uncertainty(
+                    best_candidate["model"],
+                    X_test,
+                    y_test,
+                    test_qids,
+                )
             with open(args.metrics_out, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2)
             print(f"Saved metrics to {args.metrics_out}")
-        return
-
-    if not (args.train_ids and args.train_ans_acts):
-        print("Please provide --load_model OR (--train_ids AND --train_ans_acts)")
-        return
-
-    # Load training data
-    print(f"Training in {args.train_mode} mode...")
-    X_train, y_train = load_sae_data(
-        args.train_ids,
-        args.train_ans_acts,
-        other_acts_dir=args.train_other_acts,
-        mode=args.train_mode,
-    )
-    assert classifier_metadata is not None
-    layer_indices = classifier_metadata["layer_indices"]
-    d_sae = classifier_metadata["d_sae"]
-    total_features = get_sae_feature_info(
-        X_train,
-        n_layers=len(layer_indices),
-        d_sae=d_sae,
-    )
-    print(f"  Train set: {len(y_train)} samples, {total_features} features")
-
-    # C sweep
-    c_values = args.c_values or [args.C]
-    verbose = 1 if len(c_values) == 1 else 0
-    candidates = []
-
-    for c_value in c_values:
-        print(f"\nTraining classifier with C={c_value}")
-        model = LogisticRegression(
-            penalty=args.penalty,
-            C=c_value,
-            solver=args.solver,
-            max_iter=1000,
-            random_state=42,
-            verbose=verbose,
-        )
-        model.fit(X_train, y_train)
-        train_metrics = compute_metrics(model, X_train, y_train)
-        print_metrics(train_metrics, "Training Set")
-
-        test_metrics = None
-        if prefer_test:
-            test_metrics = compute_metrics(model, X_test, y_test)
-            print_metrics(test_metrics, "Test Set")
-
-        candidates.append(
-            {
-                "C": float(c_value),
-                "model": model,
-                "train_metrics": train_metrics,
-                "test_metrics": test_metrics,
-            }
-        )
-
-    # Select best
-    best_candidate = max(
-        candidates,
-        key=lambda c: (
-            select_candidate_score(c, args.selection_metric, prefer_test),
-            -np.sum(c["model"].coef_[0] > 0),
-        ),
-    )
-
-    best_positive = int(np.sum(best_candidate["model"].coef_[0] > 0))
-    best_nonzero = int(np.sum(best_candidate["model"].coef_[0] != 0))
-    selection_split = "test" if prefer_test else "train"
-    print(
-        f"\nSelected best C={best_candidate['C']} by {selection_split} "
-        f"{args.selection_metric}: "
-        f"{select_candidate_score(best_candidate, args.selection_metric, prefer_test):.4f}"
-    )
-    print(
-        f"SAE features: {best_positive} positive, {best_nonzero} nonzero "
-        f"out of {total_features}"
-    )
-
-    # Save model
-    if args.save_model:
-        ensure_parent_dir(args.save_model)
-        joblib.dump(best_candidate["model"], args.save_model)
-        print(f"Model saved to {args.save_model}")
-
-    # Save metrics
-    if args.metrics_out:
-        ensure_parent_dir(args.metrics_out)
-
-        # Identify top features
-        coef = best_candidate["model"].coef_[0]
-        top_positive_idx = np.argsort(coef)[::-1][: min(50, best_positive)]
-        top_positive_idx = top_positive_idx[coef[top_positive_idx] > 0]
-
-        payload = {
-            "feature_type": "sae",
-            "model_path": args.model_path,
-            "extraction_metadata": classifier_metadata,
-            "train_mode": args.train_mode,
-            "penalty": args.penalty,
-            "solver": args.solver,
-            "selection_metric": args.selection_metric,
-            "selection_split": selection_split,
-            "total_sae_features": total_features,
-            "best": summarize_sae_candidate(
-                best_candidate, args.selection_metric, prefer_test
-            ),
-            "top_positive_features": [
-                {
-                    **decoded,
-                    "weight": float(coef[decoded["flat_idx"]]),
-                }
-                for decoded in decode_sae_feature_indices(
-                    top_positive_idx,
-                    d_sae=d_sae,
-                    layer_indices=layer_indices,
-                )
-            ],
-            "candidates": [
-                summarize_sae_candidate(c, args.selection_metric, prefer_test)
-                for c in candidates
-            ],
-        }
-        if prefer_test:
-            payload["evaluation"] = evaluate_model_with_uncertainty(
-                best_candidate["model"],
-                X_test,
-                y_test,
-                test_qids,
-            )
-        with open(args.metrics_out, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
-        print(f"Saved metrics to {args.metrics_out}")
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":

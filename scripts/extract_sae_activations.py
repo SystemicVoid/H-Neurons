@@ -36,6 +36,12 @@ from extract_activations import (
     select_token_activations,
     unwrap_chat_template_output,
 )
+from utils import (
+    finish_run_provenance,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
 
 
 def parse_args():
@@ -257,107 +263,127 @@ def load_saes(release, layer_indices, width, l0, device):
 
 def main():
     args = parse_args()
-    layer_indices = resolve_layer_indices(args.model_path, args.layers)
-    print(f"Extracting SAE features for layers: {layer_indices}")
-
-    with open(args.train_ids_path, "r", encoding="utf-8") as handle:
-        id_map = json.load(handle)
-        target_ids = set(id_map["t"] + id_map["f"])
-    print(f"Loaded {len(target_ids)} target IDs for extraction.")
-
-    with open(args.input_path, "r", encoding="utf-8") as handle:
-        samples = [json.loads(line) for line in handle]
-
-    for location in args.locations:
-        os.makedirs(os.path.join(args.output_root, location), exist_ok=True)
-
-    print(f"Loading model: {args.model_path}")
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model_path,
-        torch_dtype=torch.bfloat16,
-        device_map=args.device_map,
+    output_targets = [
+        args.output_root,
+        metadata_path(args.output_root),
+        *[Path(args.output_root) / location for location in args.locations],
+    ]
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=args.output_root,
+        output_targets=output_targets,
+        primary_target_is_dir=True,
     )
-    model.eval()
+    provenance_status = "completed"
+    provenance_extra = {}
+    try:
+        layer_indices = resolve_layer_indices(args.model_path, args.layers)
+        print(f"Extracting SAE features for layers: {layer_indices}")
 
-    model_device = next(model.parameters()).device
-    sae_device = str(model_device)
-    print(f"Loading SAEs on device: {sae_device}")
-    saes = load_saes(
-        args.sae_release, layer_indices, args.sae_width, args.sae_l0, sae_device
-    )
+        with open(args.train_ids_path, "r", encoding="utf-8") as handle:
+            id_map = json.load(handle)
+            target_ids = set(id_map["t"] + id_map["f"])
+        print(f"Loaded {len(target_ids)} target IDs for extraction.")
 
-    first_sae = next(iter(saes.values()))
-    first_cfg = sae_cfg_to_dict(first_sae)
-    print(
-        f"SAE dimensions: d_in={first_cfg.get('d_in')}, d_sae={first_cfg.get('d_sae')}"
-    )
-
-    metadata = build_metadata(args, layer_indices, first_cfg)
-    ensure_metadata(args.output_root, metadata)
-
-    extractor = SAEExtractor(model, saes, layer_indices)
-    print(f"Installed {len(extractor.hooks)} hooks")
-
-    skipped = {location: 0 for location in args.locations}
-    extracted = {location: 0 for location in args.locations}
-
-    for sample_dict in tqdm(samples, desc="Processing"):
-        qid = next(iter(sample_dict))
-        if qid not in target_ids:
-            continue
-
-        if all(
-            os.path.exists(os.path.join(args.output_root, loc, f"act_{qid}.npy"))
-            for loc in args.locations
-        ):
-            continue
-
-        data = sample_dict[qid]
-        extractor.clear()
-
-        msgs = [
-            {"role": "user", "content": data["question"]},
-            {"role": "assistant", "content": data["response"]},
-        ]
-        input_ids = unwrap_chat_template_output(
-            tokenizer.apply_chat_template(
-                msgs, return_tensors="pt", add_generation_prompt=False
-            )
-        ).to(model_device)
-
-        with torch.no_grad():
-            model(input_ids)
-
-        regions = get_region_indices(
-            input_ids,
-            tokenizer,
-            data["question"],
-            data["response"],
-            data["answer_tokens"],
-        )
-        sae_features = extractor.get_sae_features()
+        with open(args.input_path, "r", encoding="utf-8") as handle:
+            samples = [json.loads(line) for line in handle]
 
         for location in args.locations:
-            save_path = os.path.join(args.output_root, location, f"act_{qid}.npy")
-            if os.path.exists(save_path):
-                continue
+            os.makedirs(os.path.join(args.output_root, location), exist_ok=True)
 
-            selected = select_token_activations(sae_features, location, regions)
-            if selected is None:
-                skipped[location] += 1
-                continue
-
-            aggregated = aggregate_token_activations(selected, args.method)
-            np.save(save_path, aggregated.numpy())
-            extracted[location] += 1
-
-    print("\nDone.")
-    for location in args.locations:
-        print(
-            f"  {location}: extracted={extracted[location]}, skipped={skipped[location]}"
+        print(f"Loading model: {args.model_path}")
+        tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_path,
+            torch_dtype=torch.bfloat16,
+            device_map=args.device_map,
         )
-    extractor.remove()
+        model.eval()
+
+        model_device = next(model.parameters()).device
+        sae_device = str(model_device)
+        print(f"Loading SAEs on device: {sae_device}")
+        saes = load_saes(
+            args.sae_release, layer_indices, args.sae_width, args.sae_l0, sae_device
+        )
+
+        first_sae = next(iter(saes.values()))
+        first_cfg = sae_cfg_to_dict(first_sae)
+        print(
+            f"SAE dimensions: d_in={first_cfg.get('d_in')}, d_sae={first_cfg.get('d_sae')}"
+        )
+
+        metadata = build_metadata(args, layer_indices, first_cfg)
+        ensure_metadata(args.output_root, metadata)
+
+        extractor = SAEExtractor(model, saes, layer_indices)
+        print(f"Installed {len(extractor.hooks)} hooks")
+
+        skipped = {location: 0 for location in args.locations}
+        extracted = {location: 0 for location in args.locations}
+
+        for sample_dict in tqdm(samples, desc="Processing"):
+            qid = next(iter(sample_dict))
+            if qid not in target_ids:
+                continue
+
+            if all(
+                os.path.exists(os.path.join(args.output_root, loc, f"act_{qid}.npy"))
+                for loc in args.locations
+            ):
+                continue
+
+            data = sample_dict[qid]
+            extractor.clear()
+
+            msgs = [
+                {"role": "user", "content": data["question"]},
+                {"role": "assistant", "content": data["response"]},
+            ]
+            input_ids = unwrap_chat_template_output(
+                tokenizer.apply_chat_template(
+                    msgs, return_tensors="pt", add_generation_prompt=False
+                )
+            ).to(model_device)
+
+            with torch.no_grad():
+                model(input_ids)
+
+            regions = get_region_indices(
+                input_ids,
+                tokenizer,
+                data["question"],
+                data["response"],
+                data["answer_tokens"],
+            )
+            sae_features = extractor.get_sae_features()
+
+            for location in args.locations:
+                save_path = os.path.join(args.output_root, location, f"act_{qid}.npy")
+                if os.path.exists(save_path):
+                    continue
+
+                selected = select_token_activations(sae_features, location, regions)
+                if selected is None:
+                    skipped[location] += 1
+                    continue
+
+                aggregated = aggregate_token_activations(selected, args.method)
+                np.save(save_path, aggregated.numpy())
+                extracted[location] += 1
+
+        print("\nDone.")
+        for location in args.locations:
+            print(
+                f"  {location}: extracted={extracted[location]}, skipped={skipped[location]}"
+            )
+        extractor.remove()
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":

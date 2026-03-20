@@ -21,6 +21,13 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 
+from utils import (
+    finish_run_provenance,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
+
 load_dotenv()
 
 
@@ -312,38 +319,55 @@ def parse_args():
 
 def main():
     args = parse_args()
-    api_key = args.api_key or os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or --api_key")
-
-    client = OpenAI(api_key=api_key)
-
-    print(f"Evaluating {args.benchmark} with {args.judge_model}")
-    for alpha in args.alphas:
-        path = os.path.join(args.input_dir, f"alpha_{alpha:.1f}.jsonl")
-        if not os.path.exists(path):
-            print(f"  α={alpha:.1f}: file not found, skipping")
-            continue
-        print(f"\n  α={alpha:.1f}:")
-        records = evaluate_alpha_file(path, args.benchmark, client, args.judge_model)
-        compliant = sum(1 for r in records if r.get("compliance"))
-        total = len(records)
-        rate = compliant / total if total > 0 else 0
-        print(f"  → {rate:.1%} compliance ({compliant}/{total})")
-
-    # Save summary
-    from run_intervention import aggregate_results
-
-    aggregation = aggregate_results(args.input_dir, args.alphas)
     summary_path = os.path.join(args.input_dir, "results.json")
-    summary = {
-        "benchmark": args.benchmark,
-        "results": aggregation["results"],
-        "effects": aggregation["effects"],
-    }
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=2)
-    print(f"\nSaved to {summary_path}")
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=args.input_dir,
+        output_targets=[args.input_dir, summary_path],
+        primary_target_is_dir=True,
+    )
+    provenance_status = "completed"
+    provenance_extra = {}
+    try:
+        api_key = args.api_key or os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or --api_key")
+
+        client = OpenAI(api_key=api_key)
+
+        print(f"Evaluating {args.benchmark} with {args.judge_model}")
+        for alpha in args.alphas:
+            path = os.path.join(args.input_dir, f"alpha_{alpha:.1f}.jsonl")
+            if not os.path.exists(path):
+                print(f"  α={alpha:.1f}: file not found, skipping")
+                continue
+            print(f"\n  α={alpha:.1f}:")
+            records = evaluate_alpha_file(
+                path, args.benchmark, client, args.judge_model
+            )
+            compliant = sum(1 for r in records if r.get("compliance"))
+            total = len(records)
+            rate = compliant / total if total > 0 else 0
+            print(f"  → {rate:.1%} compliance ({compliant}/{total})")
+
+        # Save summary
+        from run_intervention import aggregate_results
+
+        aggregation = aggregate_results(args.input_dir, args.alphas)
+        summary = {
+            "benchmark": args.benchmark,
+            "results": aggregation["results"],
+            "effects": aggregation["effects"],
+        }
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        print(f"\nSaved to {summary_path}")
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":

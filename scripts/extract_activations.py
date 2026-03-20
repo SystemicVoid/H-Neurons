@@ -9,7 +9,14 @@ import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from utils import get_git_sha, sanitize_run_config
+from utils import (
+    finish_run_provenance,
+    get_git_sha,
+    provenance_error_message,
+    provenance_status_for_exception,
+    sanitize_run_config,
+    start_run_provenance,
+)
 
 
 def unwrap_chat_template_output(chat_template_output):
@@ -229,104 +236,127 @@ def aggregate_token_activations(activations: torch.Tensor, method: str) -> torch
 
 def main():
     args = parse_args()
-
-    # W&B tracking (opt-in)
-    wb_run = None
-    if args.wandb:
-        try:
-            import wandb
-        except ImportError as exc:
-            raise ImportError(
-                "--wandb requested but wandb is not installed. "
-                "Install project dependencies with `uv sync` or add it with `uv add wandb`."
-            ) from exc
-
-        config = sanitize_run_config(vars(args))
-        git_sha = get_git_sha()
-        if git_sha is None:
-            print(
-                "Warning: git metadata unavailable; omitting git_sha from W&B config.",
-                file=sys.stderr,
-            )
-        else:
-            config["git_sha"] = git_sha
-        wb_run = wandb.init(
-            project="h-neurons",
-            config=config,
-            tags=["extract_activations"],
-        )
-
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model_path,
-        torch_dtype=torch.bfloat16,
-        device_map=args.device_map,
+    output_targets = [
+        args.output_root,
+        *[os.path.join(args.output_root, loc) for loc in args.locations],
+    ]
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=args.output_root,
+        output_targets=output_targets,
+        primary_target_is_dir=True,
     )
-    cett_manager = CETTManager(model)
+    provenance_status = "completed"
+    provenance_extra = {}
 
-    with open(args.train_ids_path, "r") as f:
-        id_map = json.load(f)
-        target_ids = set(id_map["t"] + id_map["f"])
-    print(f"Loaded {len(target_ids)} target IDs for extraction.")
+    try:
+        # W&B tracking (opt-in)
+        wb_run = None
+        if args.wandb:
+            try:
+                import wandb
+            except ImportError as exc:
+                raise ImportError(
+                    "--wandb requested but wandb is not installed. "
+                    "Install project dependencies with `uv sync` or add it with `uv add wandb`."
+                ) from exc
 
-    # Prepare directories
-    for loc in args.locations:
-        os.makedirs(os.path.join(args.output_root, loc), exist_ok=True)
-
-    with open(args.input_path, "r", encoding="utf-8") as f:
-        samples = [json.loads(line) for line in f]
-
-    for sample_dict in tqdm(samples, desc="Processing"):
-        qid = list(sample_dict.keys())[0]
-        if qid not in target_ids:
-            continue
-        # Skip if all locations already extracted
-        if all(
-            os.path.exists(os.path.join(args.output_root, loc, f"act_{qid}.npy"))
-            for loc in args.locations
-        ):
-            continue
-        data = sample_dict[qid]
-        cett_manager.clear()
-
-        # Forward Pass
-        msgs = [
-            {"role": "user", "content": data["question"]},
-            {"role": "assistant", "content": data["response"]},
-        ]
-        input_ids = unwrap_chat_template_output(
-            tokenizer.apply_chat_template(
-                msgs, return_tensors="pt", add_generation_prompt=False
+            config = sanitize_run_config(vars(args))
+            git_sha = get_git_sha()
+            if git_sha is None:
+                print(
+                    "Warning: git metadata unavailable; omitting git_sha from W&B config.",
+                    file=sys.stderr,
+                )
+            else:
+                config["git_sha"] = git_sha
+            wb_run = wandb.init(
+                project="h-neurons",
+                config=config,
+                tags=["extract_activations"],
             )
-        ).to(model.device)
-        with torch.no_grad():
-            model(input_ids)
+            provenance_extra["wandb"] = {
+                "project": "h-neurons",
+                "mode": os.environ.get("WANDB_MODE", "online"),
+                "tags": ["extract_activations"],
+            }
 
-        cett_full = cett_manager.get_cett_tensor(
-            use_abs=args.use_abs, use_mag=args.use_mag
+        tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_path,
+            torch_dtype=torch.bfloat16,
+            device_map=args.device_map,
         )
-        regions = get_region_indices(
-            input_ids,
-            tokenizer,
-            data["question"],
-            data["response"],
-            data["answer_tokens"],
-        )
+        cett_manager = CETTManager(model)
+
+        with open(args.train_ids_path, "r") as f:
+            id_map = json.load(f)
+            target_ids = set(id_map["t"] + id_map["f"])
+        print(f"Loaded {len(target_ids)} target IDs for extraction.")
+
+        # Prepare directories
         for loc in args.locations:
-            save_path = os.path.join(args.output_root, loc, f"act_{qid}.npy")
-            if os.path.exists(save_path):
-                continue  # Resume support: skip already-extracted QIDs
+            os.makedirs(os.path.join(args.output_root, loc), exist_ok=True)
 
-            selected_cett = select_token_activations(cett_full, loc, regions)
-            if selected_cett is None:
+        with open(args.input_path, "r", encoding="utf-8") as f:
+            samples = [json.loads(line) for line in f]
+
+        for sample_dict in tqdm(samples, desc="Processing"):
+            qid = list(sample_dict.keys())[0]
+            if qid not in target_ids:
                 continue
+            # Skip if all locations already extracted
+            if all(
+                os.path.exists(os.path.join(args.output_root, loc, f"act_{qid}.npy"))
+                for loc in args.locations
+            ):
+                continue
+            data = sample_dict[qid]
+            cett_manager.clear()
 
-            final_act = aggregate_token_activations(selected_cett, args.method)
+            # Forward Pass
+            msgs = [
+                {"role": "user", "content": data["question"]},
+                {"role": "assistant", "content": data["response"]},
+            ]
+            input_ids = unwrap_chat_template_output(
+                tokenizer.apply_chat_template(
+                    msgs, return_tensors="pt", add_generation_prompt=False
+                )
+            ).to(model.device)
+            with torch.no_grad():
+                model(input_ids)
 
-            np.save(save_path, final_act.cpu().float().numpy())
+            cett_full = cett_manager.get_cett_tensor(
+                use_abs=args.use_abs, use_mag=args.use_mag
+            )
+            regions = get_region_indices(
+                input_ids,
+                tokenizer,
+                data["question"],
+                data["response"],
+                data["answer_tokens"],
+            )
+            for loc in args.locations:
+                save_path = os.path.join(args.output_root, loc, f"act_{qid}.npy")
+                if os.path.exists(save_path):
+                    continue  # Resume support: skip already-extracted QIDs
 
-    if wb_run is not None:
-        wandb.finish()
+                selected_cett = select_token_activations(cett_full, loc, regions)
+                if selected_cett is None:
+                    continue
+
+                final_act = aggregate_token_activations(selected_cett, args.method)
+                np.save(save_path, final_act.cpu().float().numpy())
+
+        if wb_run is not None:
+            wandb.finish()
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":

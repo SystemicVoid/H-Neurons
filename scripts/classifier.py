@@ -18,6 +18,12 @@ from uncertainty import (
     DEFAULT_BOOTSTRAP_SEED,
     stratified_bootstrap_classifier_metrics,
 )
+from utils import (
+    finish_run_provenance,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
 
 
 def parse_args():
@@ -263,156 +269,180 @@ def summarize_candidate(candidate, total_neurons, selection_metric, prefer_test)
 
 def main():
     args = parse_args()
-    total_neurons = get_total_neurons(args.model_path)
-    prefer_test = bool(args.test_ids and args.test_acts)
-
-    if args.load_model and args.c_values:
-        raise ValueError("--c_values cannot be used with --load_model.")
-
-    X_test = y_test = test_qids = None
-    if prefer_test:
-        print(f"Loading held-out evaluation data from {args.test_ids}...")
-        X_test, y_test, test_qids = load_data(
-            args.test_ids,
-            args.test_acts,
-            mode="1-vs-1",
-            return_qids=True,
+    output_targets = []
+    if args.metrics_out:
+        output_targets.append(args.metrics_out)
+    if not args.load_model and args.save_model:
+        output_targets.append(args.save_model)
+    primary_target = args.metrics_out or (None if args.load_model else args.save_model)
+    provenance_handle = (
+        start_run_provenance(
+            args,
+            primary_target=primary_target,
+            output_targets=output_targets,
         )
+        if primary_target and output_targets
+        else None
+    )
+    provenance_status = "completed"
+    provenance_extra = {}
+    try:
+        total_neurons = get_total_neurons(args.model_path)
+        prefer_test = bool(args.test_ids and args.test_acts)
 
-    if args.load_model:
-        print(f"Loading pre-trained model: {args.load_model}")
-        model = joblib.load(args.load_model)
-        selected = int(np.sum(model.coef_[0] > 0))
-        ratio_per_mille = (selected / total_neurons * 1000) if total_neurons else 0.0
-        print(
-            "Loaded model selects "
-            f"{selected} H-Neurons ({ratio_per_mille:.4f} per mille of FFN neurons)."
-        )
+        if args.load_model and args.c_values:
+            raise ValueError("--c_values cannot be used with --load_model.")
+
+        X_test = y_test = test_qids = None
         if prefer_test:
-            metrics = compute_metrics(model, X_test, y_test)
-            print_metrics(metrics, "Test Set")
-            evaluation = evaluate_model_with_uncertainty(
-                model, X_test, y_test, test_qids
+            print(f"Loading held-out evaluation data from {args.test_ids}...")
+            X_test, y_test, test_qids = load_data(
+                args.test_ids,
+                args.test_acts,
+                mode="1-vs-1",
+                return_qids=True,
             )
-        else:
-            evaluation = None
+
+        if args.load_model:
+            print(f"Loading pre-trained model: {args.load_model}")
+            model = joblib.load(args.load_model)
+            selected = int(np.sum(model.coef_[0] > 0))
+            ratio_per_mille = selected / total_neurons * 1000 if total_neurons else 0.0
+            print(
+                "Loaded model selects "
+                f"{selected} H-Neurons ({ratio_per_mille:.4f} per mille of FFN neurons)."
+            )
+            if prefer_test:
+                metrics = compute_metrics(model, X_test, y_test)
+                print_metrics(metrics, "Test Set")
+                evaluation = evaluate_model_with_uncertainty(
+                    model, X_test, y_test, test_qids
+                )
+            else:
+                evaluation = None
+            if args.metrics_out:
+                ensure_parent_dir(args.metrics_out)
+                payload = {
+                    "model_path": args.model_path,
+                    "loaded_model_path": args.load_model,
+                    "selection_split": "pretrained_load",
+                    "total_ffn_neurons": total_neurons,
+                    "selected_h_neurons": selected,
+                    "selected_ratio_per_mille": float(ratio_per_mille),
+                    "evaluation": evaluation,
+                }
+                with open(args.metrics_out, "w", encoding="utf-8") as f:
+                    json.dump(payload, f, indent=2)
+                print(f"Saved metrics to {args.metrics_out}")
+            return
+
+        if not (args.train_ids and args.train_ans_acts):
+            print("Please provide --load_model OR (--train_ids AND --train_ans_acts)")
+            return
+
+        print(f"Training in {args.train_mode} mode...")
+        X_train, y_train = load_data(
+            args.train_ids,
+            args.train_ans_acts,
+            other_acts_dir=args.train_other_acts,
+            mode=args.train_mode,
+        )
+
+        c_values = args.c_values or [args.C]
+        verbose = 1 if len(c_values) == 1 else 0
+        candidates = []
+
+        for c_value in c_values:
+            print(f"\nTraining classifier with C={c_value}")
+            model = fit_model(args, X_train, y_train, c_value, verbose)
+            train_metrics = compute_metrics(model, X_train, y_train)
+            print_metrics(train_metrics, "Training Set")
+
+            test_metrics = None
+            if prefer_test:
+                test_metrics = compute_metrics(model, X_test, y_test)
+                print_metrics(test_metrics, "Test Set")
+
+            candidates.append(
+                {
+                    "C": float(c_value),
+                    "model": model,
+                    "train_metrics": train_metrics,
+                    "test_metrics": test_metrics,
+                }
+            )
+
+        best_candidate = max(
+            candidates,
+            key=lambda candidate: (
+                select_candidate_score(candidate, args.selection_metric, prefer_test),
+                -np.sum(candidate["model"].coef_[0] > 0),
+            ),
+        )
+
+        best_selected = int(np.sum(best_candidate["model"].coef_[0] > 0))
+        best_ratio_per_mille = (
+            best_selected / total_neurons * 1000 if total_neurons else 0.0
+        )
+        selection_split = "test" if prefer_test else "train"
+        print(
+            "\nSelected best checkpoint with "
+            f"C={best_candidate['C']} by {selection_split} {args.selection_metric}: "
+            f"{select_candidate_score(best_candidate, args.selection_metric, prefer_test):.4f}"
+        )
+        print(
+            "Best model identified "
+            f"{best_selected} potential H-Neurons "
+            f"({best_ratio_per_mille:.4f} per mille of FFN neurons)."
+        )
+
+        if args.save_model:
+            ensure_parent_dir(args.save_model)
+            joblib.dump(best_candidate["model"], args.save_model)
+            print(f"Model saved to {args.save_model}")
+
         if args.metrics_out:
             ensure_parent_dir(args.metrics_out)
             payload = {
                 "model_path": args.model_path,
-                "loaded_model_path": args.load_model,
-                "selection_split": "pretrained_load",
+                "train_mode": args.train_mode,
+                "penalty": args.penalty,
+                "solver": args.solver,
+                "selection_metric": args.selection_metric,
+                "selection_split": selection_split,
                 "total_ffn_neurons": total_neurons,
-                "selected_h_neurons": selected,
-                "selected_ratio_per_mille": float(ratio_per_mille),
-                "evaluation": evaluation,
-            }
-            with open(args.metrics_out, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2)
-            print(f"Saved metrics to {args.metrics_out}")
-        return
-
-    if not (args.train_ids and args.train_ans_acts):
-        print("Please provide --load_model OR (--train_ids AND --train_ans_acts)")
-        return
-
-    print(f"Training in {args.train_mode} mode...")
-    X_train, y_train = load_data(
-        args.train_ids,
-        args.train_ans_acts,
-        other_acts_dir=args.train_other_acts,
-        mode=args.train_mode,
-    )
-
-    c_values = args.c_values or [args.C]
-    verbose = 1 if len(c_values) == 1 else 0
-    candidates = []
-
-    for c_value in c_values:
-        print(f"\nTraining classifier with C={c_value}")
-        model = fit_model(args, X_train, y_train, c_value, verbose)
-        train_metrics = compute_metrics(model, X_train, y_train)
-        print_metrics(train_metrics, "Training Set")
-
-        test_metrics = None
-        if prefer_test:
-            test_metrics = compute_metrics(model, X_test, y_test)
-            print_metrics(test_metrics, "Test Set")
-
-        candidates.append(
-            {
-                "C": float(c_value),
-                "model": model,
-                "train_metrics": train_metrics,
-                "test_metrics": test_metrics,
-            }
-        )
-
-    best_candidate = max(
-        candidates,
-        key=lambda candidate: (
-            select_candidate_score(candidate, args.selection_metric, prefer_test),
-            -np.sum(candidate["model"].coef_[0] > 0),
-        ),
-    )
-
-    best_selected = int(np.sum(best_candidate["model"].coef_[0] > 0))
-    best_ratio_per_mille = (
-        best_selected / total_neurons * 1000 if total_neurons else 0.0
-    )
-    selection_split = "test" if prefer_test else "train"
-    print(
-        "\nSelected best checkpoint with "
-        f"C={best_candidate['C']} by {selection_split} {args.selection_metric}: "
-        f"{select_candidate_score(best_candidate, args.selection_metric, prefer_test):.4f}"
-    )
-    print(
-        "Best model identified "
-        f"{best_selected} potential H-Neurons "
-        f"({best_ratio_per_mille:.4f} per mille of FFN neurons)."
-    )
-
-    if args.save_model:
-        ensure_parent_dir(args.save_model)
-        joblib.dump(best_candidate["model"], args.save_model)
-        print(f"Model saved to {args.save_model}")
-
-    if args.metrics_out:
-        ensure_parent_dir(args.metrics_out)
-        payload = {
-            "model_path": args.model_path,
-            "train_mode": args.train_mode,
-            "penalty": args.penalty,
-            "solver": args.solver,
-            "selection_metric": args.selection_metric,
-            "selection_split": selection_split,
-            "total_ffn_neurons": total_neurons,
-            "best": summarize_candidate(
-                best_candidate,
-                total_neurons,
-                args.selection_metric,
-                prefer_test,
-            ),
-            "candidates": [
-                summarize_candidate(
-                    candidate,
+                "best": summarize_candidate(
+                    best_candidate,
                     total_neurons,
                     args.selection_metric,
                     prefer_test,
+                ),
+                "candidates": [
+                    summarize_candidate(
+                        candidate,
+                        total_neurons,
+                        args.selection_metric,
+                        prefer_test,
+                    )
+                    for candidate in candidates
+                ],
+            }
+            if prefer_test:
+                payload["evaluation"] = evaluate_model_with_uncertainty(
+                    best_candidate["model"],
+                    X_test,
+                    y_test,
+                    test_qids,
                 )
-                for candidate in candidates
-            ],
-        }
-        if prefer_test:
-            payload["evaluation"] = evaluate_model_with_uncertainty(
-                best_candidate["model"],
-                X_test,
-                y_test,
-                test_qids,
-            )
-        with open(args.metrics_out, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
-        print(f"Saved metrics to {args.metrics_out}")
+            with open(args.metrics_out, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+            print(f"Saved metrics to {args.metrics_out}")
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":

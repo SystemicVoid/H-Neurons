@@ -52,6 +52,12 @@ except ModuleNotFoundError:
         build_rate_summary,
         stratified_bootstrap_classifier_metrics,
     )
+from utils import (
+    finish_run_provenance,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
 
 ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 
@@ -1792,164 +1798,197 @@ def main() -> None:
     output_dir = repo_root / args.output_dir
     figures_dir = output_dir / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)
-
-    # ── Step 1: Load data & classify populations ──────────────────────────
-    print("Step 1: Loading data & classifying populations...")
-    rows_by_alpha = load_all_alphas(anti_dir)
-    trajectories, always_ids, never_ids, swing_ids = classify_populations(rows_by_alpha)
-
-    print(f"  Always compliant: {len(always_ids)}")
-    print(f"  Never compliant:  {len(never_ids)}")
-    print(f"  Swing:            {len(swing_ids)}")
-
-    assert len(always_ids) == 600, (
-        f"Expected 600 always-compliant, got {len(always_ids)}"
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=output_dir,
+        output_targets=[
+            output_dir,
+            figures_dir,
+            output_dir / "population_ids.json",
+            output_dir / "feature_table.jsonl",
+            output_dir / "summary.json",
+        ],
+        primary_target_is_dir=True,
     )
-    assert len(never_ids) == 262, f"Expected 262 never-compliant, got {len(never_ids)}"
-    assert len(swing_ids) == 138, f"Expected 138 swing, got {len(swing_ids)}"
-
-    # Swing subtypes
-    subtypes = classify_swing_subtypes(trajectories, swing_ids)
-    subtype_counts = Counter(subtypes.values())
-    print(f"  Swing subtypes: {dict(subtype_counts)}")
-
-    # Load HuggingFace metadata
-    print("  Loading HuggingFace FaithEval metadata...")
-    hf_data = load_hf_faitheval()
-    print(f"  HF dataset: {len(hf_data)} samples")
-
-    # Build main DataFrame from α=0 rows
-    alpha0 = rows_by_alpha[0.0]
-    records = []
-    for sid in sorted(alpha0):
-        row = alpha0[sid]
-        pop = (
-            "always_compliant"
-            if sid in always_ids
-            else "never_compliant"
-            if sid in never_ids
-            else "swing"
-        )
-        records.append(
-            {
-                "id": sid,
-                "question": row["question"],
-                "response": row["response"],
-                "counterfactual_key": row["counterfactual_key"],
-                "chosen": row["chosen"],
-                "compliance_alpha0": row["compliance"],
-                "population": pop,
-                "swing_subtype": subtypes.get(sid, ""),
-                "source": extract_source(sid),
-                "topic": classify_topic(row["question"]),
-            }
-        )
-    df = pd.DataFrame(records)
-    feature_df = build_feature_table(df, hf_data, standard_dir)
-
-    # Save population IDs
-    pop_ids = {
-        "always_compliant": always_ids,
-        "never_compliant": never_ids,
-        "swing": swing_ids,
-        "swing_subtypes": {
-            "R→C": [s for s, st in subtypes.items() if st == "R→C"],
-            "C→R": [s for s, st in subtypes.items() if st == "C→R"],
-            "non-monotonic": [s for s, st in subtypes.items() if st == "non-monotonic"],
-        },
-    }
-    (output_dir / "population_ids.json").write_text(
-        json.dumps(pop_ids, indent=2) + "\n"
-    )
-    print("  Saved population_ids.json")
-    (output_dir / "feature_table.jsonl").write_text(
-        "\n".join(
-            json.dumps(record)
-            for record in feature_df.sort_values("id").to_dict(orient="records")
-        )
-        + "\n"
-    )
-    print("  Saved feature_table.jsonl")
-
-    # ── Step 2: Structural proxies ────────────────────────────────────────
-    print("\nStep 2: Analyzing structural proxies...")
-    structural = analyze_structural_proxies(feature_df)
-
-    print("\nStep 2b: Testing held-out structural predictability...")
-    structural_predictability = analyze_structural_predictability(feature_df)
-
-    # ── Step 3: Source datasets & topics ───────────────────────────────────
-    print("\nStep 3: Analyzing source datasets & topics...")
-    source_analysis = analyze_source_datasets(df)
-    topic_analysis = analyze_topics(df)
-
-    # ── Step 4: Transition dynamics ───────────────────────────────────────
-    print("\nStep 4: Analyzing transition dynamics...")
-    transition_analysis = analyze_transitions(trajectories, swing_ids, subtypes)
-
-    # ── Step 5: Word overlap ──────────────────────────────────────────────
-    print("\nStep 5: Analyzing question–context word overlap...")
-    overlap_analysis = analyze_word_overlap(feature_df)
-
-    # ── Step 6: LLM enrichment (optional) ─────────────────────────────────
-    llm_results = None
-    if args.use_llm:
-        print("\nStep 6: Running LLM enrichment...")
-        llm_results = run_llm_enrichment(
-            df, hf_data, rows_by_alpha, args.max_llm_samples, args.llm_model
+    provenance_status = "completed"
+    provenance_extra = {}
+    try:
+        # ── Step 1: Load data & classify populations ──────────────────────────
+        print("Step 1: Loading data & classifying populations...")
+        rows_by_alpha = load_all_alphas(anti_dir)
+        trajectories, always_ids, never_ids, swing_ids = classify_populations(
+            rows_by_alpha
         )
 
-    # ── Save summary ──────────────────────────────────────────────────────
-    summary: dict[str, Any] = {
-        "population_counts": {
-            "always_compliant": len(always_ids),
-            "never_compliant": len(never_ids),
-            "swing": len(swing_ids),
-            "total": len(always_ids) + len(never_ids) + len(swing_ids),
-        },
-        "structural_proxies": structural,
-        "structural_predictability": structural_predictability,
-        "source_datasets": source_analysis,
-        "topics": topic_analysis,
-        "transitions": transition_analysis,
-        "word_overlap": overlap_analysis,
-    }
-    if llm_results:
-        summary["llm_enrichment"] = llm_results
+        print(f"  Always compliant: {len(always_ids)}")
+        print(f"  Never compliant:  {len(never_ids)}")
+        print(f"  Swing:            {len(swing_ids)}")
 
-    class _NumpyEncoder(json.JSONEncoder):
-        def default(self, o: Any) -> Any:
-            if isinstance(o, (np.integer,)):
-                return int(o)
-            if isinstance(o, (np.floating,)):
-                return float(o)
-            if isinstance(o, (np.bool_,)):
-                return bool(o)
-            if isinstance(o, np.ndarray):
-                return o.tolist()
-            return super().default(o)
-
-    (output_dir / "summary.json").write_text(
-        json.dumps(summary, indent=2, cls=_NumpyEncoder) + "\n"
-    )
-    print(f"\nSaved summary.json to {output_dir}")
-
-    # ── Figures ───────────────────────────────────────────────────────────
-    if not args.skip_plots:
-        print("\nGenerating figures...")
-        plot_population_overview(
-            len(always_ids), len(never_ids), dict(subtype_counts), figures_dir
+        assert len(always_ids) == 600, (
+            f"Expected 600 always-compliant, got {len(always_ids)}"
         )
-        plot_transition_alpha(trajectories, swing_ids, subtypes, figures_dir)
-        plot_structural_proxies(feature_df, figures_dir)
-        plot_source_datasets(df, figures_dir)
-        plot_topic_by_population(df, figures_dir)
-        plot_trajectory_heatmap(trajectories, swing_ids, subtypes, figures_dir)
+        assert len(never_ids) == 262, (
+            f"Expected 262 never-compliant, got {len(never_ids)}"
+        )
+        assert len(swing_ids) == 138, f"Expected 138 swing, got {len(swing_ids)}"
 
+        # Swing subtypes
+        subtypes = classify_swing_subtypes(trajectories, swing_ids)
+        subtype_counts = Counter(subtypes.values())
+        print(f"  Swing subtypes: {dict(subtype_counts)}")
+
+        # Load HuggingFace metadata
+        print("  Loading HuggingFace FaithEval metadata...")
+        hf_data = load_hf_faitheval()
+        print(f"  HF dataset: {len(hf_data)} samples")
+
+        # Build main DataFrame from α=0 rows
+        alpha0 = rows_by_alpha[0.0]
+        records = []
+        for sid in sorted(alpha0):
+            row = alpha0[sid]
+            pop = (
+                "always_compliant"
+                if sid in always_ids
+                else "never_compliant"
+                if sid in never_ids
+                else "swing"
+            )
+            records.append(
+                {
+                    "id": sid,
+                    "question": row["question"],
+                    "response": row["response"],
+                    "counterfactual_key": row["counterfactual_key"],
+                    "chosen": row["chosen"],
+                    "compliance_alpha0": row["compliance"],
+                    "population": pop,
+                    "swing_subtype": subtypes.get(sid, ""),
+                    "source": extract_source(sid),
+                    "topic": classify_topic(row["question"]),
+                }
+            )
+        df = pd.DataFrame(records)
+        feature_df = build_feature_table(df, hf_data, standard_dir)
+
+        # Save population IDs
+        pop_ids = {
+            "always_compliant": always_ids,
+            "never_compliant": never_ids,
+            "swing": swing_ids,
+            "swing_subtypes": {
+                "R→C": [s for s, st in subtypes.items() if st == "R→C"],
+                "C→R": [s for s, st in subtypes.items() if st == "C→R"],
+                "non-monotonic": [
+                    s for s, st in subtypes.items() if st == "non-monotonic"
+                ],
+            },
+        }
+        (output_dir / "population_ids.json").write_text(
+            json.dumps(pop_ids, indent=2) + "\n"
+        )
+        print("  Saved population_ids.json")
+        (output_dir / "feature_table.jsonl").write_text(
+            "\n".join(
+                json.dumps(record)
+                for record in feature_df.sort_values("id").to_dict(orient="records")
+            )
+            + "\n"
+        )
+        print("  Saved feature_table.jsonl")
+
+        # ── Step 2: Structural proxies ────────────────────────────────────────
+        print("\nStep 2: Analyzing structural proxies...")
+        structural = analyze_structural_proxies(feature_df)
+
+        print("\nStep 2b: Testing held-out structural predictability...")
+        structural_predictability = analyze_structural_predictability(feature_df)
+
+        # ── Step 3: Source datasets & topics ───────────────────────────────────
+        print("\nStep 3: Analyzing source datasets & topics...")
+        source_analysis = analyze_source_datasets(df)
+        topic_analysis = analyze_topics(df)
+
+        # ── Step 4: Transition dynamics ───────────────────────────────────────
+        print("\nStep 4: Analyzing transition dynamics...")
+        transition_analysis = analyze_transitions(trajectories, swing_ids, subtypes)
+
+        # ── Step 5: Word overlap ──────────────────────────────────────────────
+        print("\nStep 5: Analyzing question–context word overlap...")
+        overlap_analysis = analyze_word_overlap(feature_df)
+
+        # ── Step 6: LLM enrichment (optional) ─────────────────────────────────
+        llm_results = None
+        if args.use_llm:
+            print("\nStep 6: Running LLM enrichment...")
+            llm_results = run_llm_enrichment(
+                df, hf_data, rows_by_alpha, args.max_llm_samples, args.llm_model
+            )
+
+        # ── Save summary ──────────────────────────────────────────────────────
+        summary: dict[str, Any] = {
+            "population_counts": {
+                "always_compliant": len(always_ids),
+                "never_compliant": len(never_ids),
+                "swing": len(swing_ids),
+                "total": len(always_ids) + len(never_ids) + len(swing_ids),
+            },
+            "structural_proxies": structural,
+            "structural_predictability": structural_predictability,
+            "source_datasets": source_analysis,
+            "topics": topic_analysis,
+            "transitions": transition_analysis,
+            "word_overlap": overlap_analysis,
+        }
         if llm_results:
-            plot_knowledge_classification(llm_results, figures_dir)
+            summary["llm_enrichment"] = llm_results
 
-    print("\nDone!")
+        class _NumpyEncoder(json.JSONEncoder):
+            def default(self, o: Any) -> Any:
+                if isinstance(o, (np.integer,)):
+                    return int(o)
+                if isinstance(o, (np.floating,)):
+                    return float(o)
+                if isinstance(o, (np.bool_,)):
+                    return bool(o)
+                if isinstance(o, np.ndarray):
+                    return o.tolist()
+                return super().default(o)
+
+        (output_dir / "summary.json").write_text(
+            json.dumps(summary, indent=2, cls=_NumpyEncoder) + "\n"
+        )
+        print(f"\nSaved summary.json to {output_dir}")
+
+        # ── Figures ───────────────────────────────────────────────────────────
+        if not args.skip_plots:
+            print("\nGenerating figures...")
+            plot_population_overview(
+                len(always_ids), len(never_ids), dict(subtype_counts), figures_dir
+            )
+            plot_transition_alpha(trajectories, swing_ids, subtypes, figures_dir)
+            plot_structural_proxies(feature_df, figures_dir)
+            plot_source_datasets(df, figures_dir)
+            plot_topic_by_population(df, figures_dir)
+            plot_trajectory_heatmap(trajectories, swing_ids, subtypes, figures_dir)
+
+            if llm_results:
+                plot_knowledge_classification(llm_results, figures_dir)
+
+        provenance_extra["output_targets"] = [
+            output_dir,
+            figures_dir,
+            output_dir / "population_ids.json",
+            output_dir / "feature_table.jsonl",
+            output_dir / "summary.json",
+        ]
+        print("\nDone!")
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":

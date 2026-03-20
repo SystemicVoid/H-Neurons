@@ -6,6 +6,13 @@ from pathlib import Path
 
 from datasets import Dataset
 
+from utils import (
+    finish_run_provenance,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -193,32 +200,47 @@ def summarize(records: list[dict], source_questions: list[dict], args) -> dict:
 def main():
     args = parse_args()
     summary_out = args.summary_out or args.output_parquet.with_suffix(".summary.json")
-
-    questions = load_questions(args.input_json)
-    records = []
-
-    for question in questions:
-        passed, metadata = question_passes_filters(question, args)
-        if not passed:
-            continue
-        records.append(
-            build_record(question, metadata["question_year"], metadata["aliases"])
-        )
-
-    args.output_parquet.parent.mkdir(parents=True, exist_ok=True)
-    summary_out.parent.mkdir(parents=True, exist_ok=True)
-
-    dataset = Dataset.from_list(records)
-    dataset.to_parquet(str(args.output_parquet))
-
-    summary = summarize(records, questions, args)
-    with summary_out.open("w", encoding="utf-8") as handle:
-        json.dump(summary, handle, indent=2, ensure_ascii=False)
-
-    print(
-        f"Wrote {len(records)} questions to {args.output_parquet} "
-        f"and summary to {summary_out}"
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=args.output_parquet,
+        output_targets=[args.output_parquet, summary_out],
     )
+    provenance_status = "completed"
+    provenance_extra = {}
+
+    try:
+        questions = load_questions(args.input_json)
+        records = []
+
+        for question in questions:
+            passed, metadata = question_passes_filters(question, args)
+            if not passed:
+                continue
+            records.append(
+                build_record(question, metadata["question_year"], metadata["aliases"])
+            )
+
+        args.output_parquet.parent.mkdir(parents=True, exist_ok=True)
+        summary_out.parent.mkdir(parents=True, exist_ok=True)
+
+        dataset = Dataset.from_list(records)
+        dataset.to_parquet(str(args.output_parquet))
+
+        summary = summarize(records, questions, args)
+        with summary_out.open("w", encoding="utf-8") as handle:
+            json.dump(summary, handle, indent=2, ensure_ascii=False)
+
+        provenance_extra["selected_question_count"] = len(records)
+        print(
+            f"Wrote {len(records)} questions to {args.output_parquet} "
+            f"and summary to {summary_out}"
+        )
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 if __name__ == "__main__":
