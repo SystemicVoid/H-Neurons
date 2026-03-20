@@ -28,6 +28,8 @@ Recent completed work:
 - the 4288 verdict and takeaway blocks on `results/gemma-3-4b.html` now bind from canonical JSON instead of frozen HTML literals
 - `site/assets/shared.js` now hydrates classifier-structure and distributed-detector bindings for non-chart pages
 - the main early-layer and 38-vs-219 detector claims on `story.html` now read from canonical JSON instead of page-local literals
+- the intervention trend copy on `story.html` now binds the anti-compliance `&alpha;=0.0` to `&alpha;=3.0` effect from canonical intervention JSON instead of freezing "monotonic rise" prose in HTML
+- `docs/ci_manifest.json` now treats `site/story.html` as a required provenance surface for `anti_compliance_delta_0_to_3`
 - `scripts/audit_ci_coverage.py` now validates the top-neuron verdict payload alongside the classifier-structure payload
 - `scripts/audit_ci_coverage.py` now validates the classifier-structure payload
 - `data/gemma3_4b/pipeline/classifier_structure_summary.json` is now tracked alongside the other classifier outputs
@@ -38,6 +40,7 @@ That matters because the site no longer tells two separate stories about key qua
 
 The main remaining weak point is no longer classifier-structure export reproducibility.
 That gap is now closed for normal site work. The remaining risk is now concentrated in the static copy that still wraps the evidence pages, especially the claim-heavy synthesis on `story.html` that still depends on manual framing and incomplete provenance coverage.
+Within that story-page risk, the intervention/mechanism slice is now narrower: the headline effect size is wired, but the remaining open decisions are about whether specific comparisons should stay manual, bind from existing JSON, or wait for a tracked exporter field.
 
 ## Current Snapshot
 
@@ -51,7 +54,7 @@ At the time of this review, the site has:
 | Charts | 9 `<canvas>` charts |
 | Static figures | 8 `<img>` figures |
 | Manual-content markers | 23 `data-source="manual"` markers |
-| Provenance comments | 16 `<!-- from: ... -->` comments |
+| Provenance comments | 18 `<!-- from: ... -->` comments |
 | Broken internal refs found in this audit | 0 |
 
 This is a much healthier shape than the old single-page deck. The site has already crossed the important threshold from "one giant hand-edited artifact" to "a small static site with some real structure."
@@ -340,7 +343,7 @@ The current site has clear progress on provenance, but it is not finished.
 | Page | Manual markers | Provenance comments |
 |---|---:|---:|
 | `index.html` | 3 | 5 |
-| `story.html` | 6 | 5 |
+| `story.html` | 6 | 7 |
 | `results/gemma-3-4b.html` | 9 | 5 |
 | `methods.html` | 0 | 0 |
 | `extensions.html` | 5 | 0 |
@@ -367,6 +370,7 @@ What changed since the prior audit:
 
 - the largest quantitative JS drift source on the results page has been removed
 - the intervention page copy now reads more of its peak counts and population splits from canonical JSON
+- the story page now treats the anti-compliance intervention delta as a bound, provenance-tracked claim rather than manual trend prose
 - the 4288 verdict/takeaway block now reads from a tracked structured summary rather than frozen literals
 - the remaining risk on that page is now mostly editorial framing around already-bound evidence, not chart-array duplication
 
@@ -438,6 +442,13 @@ Highest-leverage cleanup:
 - keep tightening results-page prose where it still summarizes live evidence manually
 
 This is still the most important remaining site-facing technical debt, but the easiest repeated numerics on the story page are no longer the bottleneck.
+
+Current intervention/mechanism decision state on `story.html`:
+
+- the anti-compliance `&alpha;=0.0` to `&alpha;=3.0` effect should stay a live binding from existing `site/data/intervention_sweep.json`, and that contract is now wired
+- the committed `&alpha;=3.0` strict answer-text remap rate should also stay a live binding from the existing intervention export
+- any explicit remap-vs-raw lift claim should wait for a tracked exporter field rather than freezing an untracked delta into prose
+- the "six-test 4288" wording can remain manual appendix framing for now, but if it becomes a repeated headline metric it should bind from the tracked top-neuron artifact payload
 
 ### Priority 2: keep `results/gemma-3-4b.html` as the main ledger, but not the first cleanup target
 
