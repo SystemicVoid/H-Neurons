@@ -15,7 +15,7 @@
     <div class="nav-primary">
       <a class="logo" href="index.html">H<span>-</span>Neurons</a>
       <div class="nav-page-links">
-        <a href="index.html">This Week</a>
+        <a href="index.html">Overview</a>
         <a href="story.html">Core Story</a>
         <a href="results/gemma-3-4b.html">Results</a>
         <a class="active" href="methods.html">Methods</a>
@@ -33,9 +33,8 @@
     <span class="tag tag-purple">Methods</span>
     <h1>Pipeline, prompts,<br>and evaluation contract</h1>
     <p class="subtitle">
-      This page holds the background material that was crowding the weekly landing page:
-      how the Gemma detector was built, what gets filtered out before the classifier sees anything,
-      and where prompt wording and evaluator assumptions can quietly distort the headline.
+      This page documents how the Gemma detector was built, what gets filtered out before the classifier sees anything,
+      and where prompt wording or evaluator assumptions can distort the headline results.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
@@ -153,7 +152,7 @@
 </section>
 
 <div class="reflection">
-  <div class="ref-label">Process note</div>
+  <div class="ref-label">Dataset scope</div>
   <p class="ref-text">
     The funnel is a reminder that data preparation is part of the hypothesis, not just housekeeping.
     The <span data-pipeline-bind="consistent-rate">89%</span> consistency filter and the <span data-pipeline-bind="extraction-failures">118</span> answer-extraction failures both tilt the final dataset toward cleaner surface forms and stabler answers.
@@ -245,7 +244,7 @@ Answer:</code>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
         <h3 style="color: var(--accent-coral);">Current limitation</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The main classifier and intervention exports now carry confidence intervals; any remaining naked point estimate should be treated as blocked data, not as silently settled evidence.
+          The main classifier and intervention exports now carry confidence intervals; any remaining point estimate without uncertainty should be treated as descriptive rather than headline evidence.
         </p>
       </div>
     </div>
@@ -262,7 +261,7 @@ Answer:</code>
 
 <footer>
   H-Neurons Methods &mdash; Gemma 3 4B &mdash; March 2026<br>
-  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a> &middot; Follow-on roadmap: <a href="extensions.html">Extensions</a>
+  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a> &middot; Future directions: <a href="extensions.html">Extensions</a>
 </footer>
 
 <script src="assets/shared.js"></script>
