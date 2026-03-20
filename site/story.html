@@ -144,8 +144,11 @@
         <!-- from: standard_text_remap_alpha_3_rescored_rate -->
         <p style="font-size: 14px; color: var(--text-secondary);">
           On anti-compliance FaithEval prompts, the sparse-detector intervention still produces a <span data-intervention-summary-bind="anti-delta-value">6.3pp</span> shift from &alpha;=0.0 to &alpha;=3.0
-          (<span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span>), and the standard-prompt contradiction weakens once the committed &alpha;=3.0 answer-text remap scores the full population at
-          <span data-intervention-summary-bind="remap-value">72.1%</span> (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>) instead of relying only on MC-letter recoverability.
+          (<span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span>), and the standard-prompt contradiction weakens once the same &alpha;=3.0 point is read as
+          <span data-intervention-summary-bind="raw-alpha-three-value">63.6%</span> under raw MC-letter scoring
+          (<span data-intervention-summary-bind="raw-alpha-three-ci-text">95% CI 60.6-66.5%</span>) and
+          <span data-intervention-summary-bind="remap-value">72.1%</span> after strict answer-text remap on the full population
+          (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>).
         </p>
         <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#intervention">Open intervention evidence</a></p>
       </div>

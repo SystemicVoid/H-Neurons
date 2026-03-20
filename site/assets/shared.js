@@ -316,6 +316,9 @@
 
   function hydrateInterventionSummary(summary) {
     const antiEffects = summary.series.anti_compliance.effects;
+    const standardRawAlphaThree = summary.series.standard_raw.points.find(
+      (point) => point.alpha === 3.0,
+    );
     const swing = summary.population.anti_compliance.swing;
     const remap = summary.series.standard_text_remap.by_alpha['3.0'];
     const negativeControl = summary.negative_control.comparison_to_h_neurons;
@@ -381,6 +384,13 @@
       'raw-alpha-three-value',
       formatPercent(remap.raw_compliance_pct),
     );
+    if (standardRawAlphaThree?.ci) {
+      setBoundText(
+        'data-intervention-summary-bind',
+        'raw-alpha-three-ci-text',
+        formatRateCiText(standardRawAlphaThree.ci),
+      );
+    }
     setBoundText(
       'data-intervention-summary-bind',
       'negative-control-h-slope-value',
