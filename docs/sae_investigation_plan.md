@@ -5,11 +5,20 @@
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 0: Write plan | **DONE** | This file |
-| Phase 1: Feasibility spike | **CPU REVALIDATED, GPU HOOK FIXED** | `scripts/spike_sae_feasibility.py` now uses the pinned `sae-lens` API and validates `post_feedforward_layernorm`, not `down_proj`. |
-| Phase 2: SAE feature extraction | **SCRIPT READY** | `scripts/extract_sae_activations.py` mirrors CETT `--locations`, writes `output_root/<location>/act_<qid>.npy`, and stores root `metadata.json`. |
-| Phase 3: SAE probe training | **SCRIPT READY** | `scripts/classifier_sae.py` now validates extraction metadata before training/evaluation and records it in the summary JSON. |
+| Phase 1: Feasibility spike | **DONE (CPU + GPU PASS)** | On March 20, 2026, `scripts/spike_sae_feasibility.py --gpu` passed on the live model: hook point matched `d_in=2560`, SAE encode/decode succeeded on real activations, and extraction was cleared to start. |
+| Phase 2: SAE feature extraction | **DONE (VERIFIED)** | March 20, 2026 run completed for layers `0, 5, 6, 7, 13, 14, 15, 16, 17, 20`; both `answer_tokens` and `all_except_answer_tokens` contain 2782 verified `.npy` files under `data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/`. |
+| Phase 3: SAE probe training | **READY** | Extraction outputs and `metadata.json` are now in place; `scripts/classifier_sae.py` can train/evaluate against the verified 10-layer basis. |
 | Phase 4: Interpretability analysis | PENDING | Blocked on Phase 3 |
-| Phase 5: SAE-based steering | **HELPER READY** | `scripts/intervene_sae.py` now preserves the exact activation at `alpha=1.0`; benchmark runs remain gated on Phase 3 results. |
+| Phase 5: SAE-based steering | **HELPER READY, RUNNER INTEGRATION PENDING** | `scripts/intervene_sae.py` preserves the exact activation at `alpha=1.0`, but `scripts/run_intervention.py` is not wired for SAE end-to-end runs yet. |
+
+### Current Execution Checkpoint (2026-03-20)
+- **GPU feasibility rerun passed.** The live hook test captured `post_feedforward_layernorm` with shape `[1, 16, 2560]`, matched SAE `d_in=2560`, and completed encode/decode with relative L2 reconstruction error `0.1557`.
+- **10-layer SAE extraction completed and passed spot checks.** Train pass produced 2000 samples per location and test pass produced 782 per location, for 2782 total `.npy` files in each of `answer_tokens` and `all_except_answer_tokens`. Verified outputs have shape `[10, 16384]` and sampled files contain only finite values.
+- **Jailbreak raw sweep finished, analysis deferred.** `data/gemma3_4b/intervention/jailbreak/experiment/alpha_{0.0..3.0}.jsonl` each contain the full 500-row generation sweep, but `results.json` only summarizes alpha 3.0. Treat jailbreak judging/curve analysis as a separate session from SAE work.
+- **Immediate GPU scope is intentionally narrow.** The next run generates SAE features only for layers `0, 5, 6, 7, 13, 14, 15, 16, 17, 20`, locations `answer_tokens` and `all_except_answer_tokens`, width `16k`, `l0_small`, mean aggregation.
+- **Use a dedicated extraction root.** The initial run writes to `data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/` so a later all-layers extraction can use a separate `metadata.json` without collisions.
+- **Train/test extraction are separate passes.** `scripts/extract_sae_activations.py` accepts one qid map per invocation, so `train_qids.json` and `test_qids_disjoint.json` must be extracted in separate resumable runs into the same output root.
+- **Analysis is explicitly deferred.** Do not mix in Phase 3 classifier work, jailbreak judging, or Phase 5 steering during this GPU data-generation block.
 
 ### Phase 1 Findings (CPU spike)
 - **Revalidated on 2026-03-19:** CPU smoke run succeeded against the real Gemma Scope artifact after the API/hook fixes.
@@ -45,7 +54,7 @@ External feedback proposes Sparse Autoencoder (SAE) feature decomposition as the
 6. **Doesn't distinguish CETT features from raw activations.** The L1 classifier trains on normalized contribution scores, not raw neuron activations. SAE features are a different representation entirely — not a drop-in replacement.
 
 ### Critical technical gap the feedback didn't mention
-The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate activation z_t) and only the NORM of the output (||h_t||). For SAE projection, we need the full `down_proj` output tensor h_t. This requires modifying the extraction pipeline.
+The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate activation z_t) and only the NORM of the output (||h_t||). For SAE projection, we need the full `post_feedforward_layernorm` tensor, not CETT-normalized scores. That gap is now handled by `scripts/extract_sae_activations.py`, but it is why SAE extraction must run as its own data pass.
 
 ---
 
@@ -78,7 +87,7 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 
 ### Phase 2: SAE Feature Extraction (GPU, ~2-4 hours)
 
-**Goal:** Extract SAE features for the same TriviaQA train/test samples used for the CETT classifier.
+**Goal:** Extract SAE features for the same TriviaQA train/test samples used for the CETT classifier, starting with the 10 H-neuron-heavy layers only.
 
 **Steps:**
 
@@ -87,18 +96,19 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
    - Hooks at `post_feedforward_layernorm` output (where Gemma Scope SAEs are trained)
    - Projects through SAE encoder: `f = SAE.encode(h_t)` → sparse feature vector per token
    - Aggregate over requested token locations: mean across token positions by default (same as CETT pipeline)
-   - Save per-sample `.npy` files under `data/gemma3_4b/pipeline/activations_sae/<location>/`
+   - Save per-sample `.npy` files under `data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/<location>/`
    - Shape per file: `[num_sae_layers, sae_width]` (e.g., `[34, 16384]` for 16k SAE at all layers, or just key layers)
    - Write `metadata.json` at the extraction root so classifier training and steering validation can verify the exact SAE basis used
 
-2. **Layer selection strategy:**
-   - Start with layers where H-neurons concentrate: 0, 5, 6, 7, 13, 14, 15, 16, 17, 20
-   - If feasible, extract all 34 layers
-   - If VRAM constrained: extract layer-by-layer (load one SAE at a time, still ~130 MB per SAE)
+2. **Layer selection strategy (current default):**
+   - First pass uses layers where H-neurons concentrate: 0, 5, 6, 7, 13, 14, 15, 16, 17, 20
+   - Defer all-34-layer extraction until the 10-layer SAE probe says the extra GPU time is justified
+   - If VRAM constrained even for the 10-layer run: extract layer-by-layer into a different root rather than mutating this run's `metadata.json`
 
 3. **Use the same sample IDs** as the CETT classifier: `data/gemma3_4b/pipeline/train_qids.json` + `data/gemma3_4b/pipeline/test_qids_disjoint.json`
+   - Run these as two separate extraction invocations against the same output root because the script only accepts one qid map at a time
 
-**Output:** SAE feature `.npy` files for all train + test samples. Directory: `data/gemma3_4b/pipeline/activations_sae/`
+**Output:** SAE feature `.npy` files for all train + test samples. Directory: `data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/`
 
 ### Phase 3: SAE Probe Training (CPU, ~1 hour)
 
@@ -154,7 +164,7 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 
 **Goal:** Test whether SAE-based steering produces the same compliance effect with fewer side effects.
 
-**Only proceed if Phase 3 shows the SAE probe has comparable or better AUROC.**
+**Only proceed if Phase 3 shows the SAE probe has comparable or better AUROC and the main intervention runner has been wired for SAE mode.**
 
 **Steps:**
 
