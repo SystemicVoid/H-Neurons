@@ -112,6 +112,10 @@
           "mode": "comment"
         },
         {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
           "file": "site/results/gemma-3-4b.html",
           "mode": "comment"
         },
