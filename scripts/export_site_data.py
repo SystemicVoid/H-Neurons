@@ -36,6 +36,9 @@ TOP_NEURON_ARTIFACT_TEST_SLUGS = (
     "ablation_accuracy_drop",
     "max_top10_correlation",
 )
+FALSEQA_NEGATIVE_CONTROL_STATUS = "available"
+JAILBREAK_DECODING_TEMPERATURE = 0.7
+JAILBREAK_GENERATION_LABEL = f"stochastic (T={JAILBREAK_DECODING_TEMPERATURE:.1f})"
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -1230,7 +1233,7 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
             _benchmark_entry(
                 "FalseQA",
                 falseqa_results,
-                negative_control="not_available",
+                negative_control=FALSEQA_NEGATIVE_CONTROL_STATUS,
                 evaluator="GPT-4o binary judge",
                 generation="greedy",
             ),
@@ -1239,7 +1242,7 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
                 jailbreak_results,
                 negative_control="not_available",
                 evaluator="GPT-4o safety judge",
-                generation="stochastic (T=0.6)",
+                generation=JAILBREAK_GENERATION_LABEL,
             ),
         ]
     }
@@ -1270,7 +1273,7 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
         "provenance": {
             "source_files": source_files,
             "notes": [
-                "Jailbreak responses use stochastic generation (temperature=0.6, do_sample=true), so per-item outcomes are not exactly reproducible.",
+                f"Jailbreak responses use stochastic generation (temperature={JAILBREAK_DECODING_TEMPERATURE:.1f}, do_sample=true), so per-item outcomes are not exactly reproducible.",
                 "No negative control experiment has been run for this benchmark.",
                 "Spearman ρ for monotonicity is computed from the 7 aggregate rates; p=0.094 does not reach conventional significance.",
             ],
@@ -1293,7 +1296,10 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
         "by_template": by_template,
         "by_category": by_category,
         "stochastic_generation": {
-            "sampling": {"do_sample": True, "temperature": 0.6},
+            "sampling": {
+                "do_sample": True,
+                "temperature": JAILBREAK_DECODING_TEMPERATURE,
+            },
             "caveat": "Per-item compliance outcomes are not exactly reproducible across runs due to stochastic decoding.",
         },
         "negative_control": {

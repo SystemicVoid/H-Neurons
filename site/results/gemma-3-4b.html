@@ -526,7 +526,7 @@ Answer:</code>
     <span class="tag tag-coral">Jailbreak safety</span>
     <h2>H-neuron scaling shifts jailbreak compliance by <span data-jailbreak-summary-bind="delta-value">+6.2pp</span></h2>
     <p class="subtitle" data-source="manual">
-      500 JailbreakBench prompts &times; 7 alpha values &times; 5 templates = 3,500 responses scored by GPT-4o.
+      100 behaviors &times; 5 templates &times; 7 alpha values = 3,500 responses scored by GPT-4o.
       The same H-neurons that shift FaithEval context-override behavior also increase compliance with adversarial safety prompts.
     </p>
 
@@ -557,8 +557,8 @@ Answer:</code>
       <h3 style="color: var(--accent-coral);">Interpretive caveats</h3>
       <p style="font-size: 14px; color: var(--text-secondary);">
         <strong>No negative control:</strong> Without a random-neuron baseline we cannot rule out that any 38-neuron set would produce a similar shift.
-        The FaithEval negative control passed, but that result does not automatically transfer.<br>
-        <strong>Stochastic generation:</strong> Responses were generated with temperature=0.6. Per-item outcomes are not exactly reproducible; aggregate rates carry sampling noise above the usual alpha-sweep uncertainty.<br>
+        FaithEval and FalseQA both have negative controls, but those results do not automatically transfer to JailbreakBench.<br>
+        <strong>Stochastic generation:</strong> Responses were generated with temperature=0.7. Per-item outcomes are not exactly reproducible; aggregate rates carry sampling noise above the usual alpha-sweep uncertainty.<br>
         <strong>Threshold, not linear:</strong> The dose-response is not monotonic (Spearman &rho;=0.679, <span data-jailbreak-summary-bind="spearman-p">p=0.094</span>).
         The effect may be better characterized as a threshold shift than a linear dose-response.
       </p>
@@ -643,7 +643,7 @@ Answer:</code>
       <p style="font-size: 14px; color: var(--text-secondary);">
         The direction is consistent: scaling H-neurons shifts the model toward compliance regardless of domain.
         This supports the "general compliance circuit" interpretation over a FaithEval-specific artifact.
-        However, only FaithEval has a negative control, and the JailbreakBench result uses stochastic generation &mdash;
+        However, JailbreakBench is still the only benchmark here without its own negative control, and it uses stochastic generation &mdash;
         replication strength varies by benchmark.
       </p>
     </div>

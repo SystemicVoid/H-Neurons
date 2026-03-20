@@ -15,6 +15,7 @@ from scripts.export_site_data import (
     TOP_NEURON_ARTIFACT_TEST_SLUGS,
     build_classifier_site_payload,
     build_classifier_structure_summary_payload,
+    build_jailbreak_payload,
     build_swing_characterization_payload,
     coefficient_sha256,
     compact_llm_enrichment,
@@ -274,6 +275,23 @@ def test_build_classifier_site_payload_exports_model_structure():
     )
 
 
+def test_build_jailbreak_payload_exports_current_provenance_and_controls():
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = build_jailbreak_payload(repo_root)
+
+    assert payload["stochastic_generation"]["sampling"] == {
+        "do_sample": True,
+        "temperature": 0.7,
+    }
+    assert "temperature=0.7, do_sample=true" in payload["provenance"]["notes"][0]
+
+    cross_benchmark = {
+        entry["name"]: entry for entry in payload["cross_benchmark"]["benchmarks"]
+    }
+    assert cross_benchmark["FalseQA"]["negative_control"] == "available"
+    assert cross_benchmark["JailbreakBench"]["generation"] == "stochastic (T=0.7)"
+
+
 def test_results_page_intervention_narrative_uses_live_bindings():
     repo_root = Path(__file__).resolve().parents[1]
     results_html = (repo_root / "site/results/gemma-3-4b.html").read_text()
@@ -336,6 +354,23 @@ def test_results_page_top_neuron_verdict_uses_live_bindings():
     )
     assert (
         "L1 weight ranking overstates the importance of individual top neurons and understates distributed signal."
+        not in results_html
+    )
+
+
+def test_results_page_jailbreak_copy_matches_exported_facts():
+    repo_root = Path(__file__).resolve().parents[1]
+    results_html = (repo_root / "site/results/gemma-3-4b.html").read_text()
+
+    assert (
+        "100 behaviors &times; 5 templates &times; 7 alpha values = 3,500 responses"
+        in results_html
+    )
+    assert "temperature=0.7" in results_html
+    assert "only FaithEval has a negative control" not in results_html
+    assert "temperature=0.6" not in results_html
+    assert (
+        "500 JailbreakBench prompts &times; 7 alpha values &times; 5 templates"
         not in results_html
     )
 

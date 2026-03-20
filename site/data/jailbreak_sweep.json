@@ -28,7 +28,7 @@
       "data/gemma3_4b/intervention/falseqa/experiment/results.json"
     ],
     "notes": [
-      "Jailbreak responses use stochastic generation (temperature=0.6, do_sample=true), so per-item outcomes are not exactly reproducible.",
+      "Jailbreak responses use stochastic generation (temperature=0.7, do_sample=true), so per-item outcomes are not exactly reproducible.",
       "No negative control experiment has been run for this benchmark.",
       "Spearman \u03c1 for monotonicity is computed from the 7 aggregate rates; p=0.094 does not reach conventional significance."
     ]
@@ -917,7 +917,7 @@
   "stochastic_generation": {
     "sampling": {
       "do_sample": true,
-      "temperature": 0.6
+      "temperature": 0.7
     },
     "caveat": "Per-item compliance outcomes are not exactly reproducible across runs due to stochastic decoding."
   },
@@ -978,7 +978,7 @@
             "method": "bootstrap_percentile_paired"
           }
         },
-        "negative_control": "not_available",
+        "negative_control": "available",
         "monotonic": false,
         "evaluator": "GPT-4o binary judge",
         "generation": "greedy"
@@ -1009,7 +1009,7 @@
         "negative_control": "not_available",
         "monotonic": false,
         "evaluator": "GPT-4o safety judge",
-        "generation": "stochastic (T=0.6)"
+        "generation": "stochastic (T=0.7)"
       }
     ]
   }
