@@ -35,7 +35,7 @@
     <h1>Gemma 3 4B<br>Results Ledger</h1>
     <p class="subtitle" data-source="manual">
       This page summarizes the current Gemma findings: detector quality, neuron distribution, the top-neuron artifact verdict,
-      and the FaithEval intervention results.
+      FaithEval intervention results, jailbreak safety impact, and cross-benchmark consistency.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
@@ -72,6 +72,9 @@
       <a class="section-link" href="#distribution">Layer distribution</a>
       <a class="section-link" href="#surprise">Top-neuron verdict</a>
       <a class="section-link" href="#intervention">Intervention</a>
+      <a class="section-link" href="#jailbreak">Jailbreak</a>
+      <a class="section-link" href="#jailbreak-templates">Templates</a>
+      <a class="section-link" href="#cross-benchmark">Cross-benchmark</a>
       <a class="section-link" href="#takeaways">Takeaways</a>
     </div>
   </div>
@@ -515,10 +518,142 @@ Answer:</code>
   </div>
 </section>
 
+<!-- from: jailbreak_compliance_delta_0_to_3 -->
+<!-- from: jailbreak_compliance_slope -->
+<!-- from: falseqa_delta_0_to_3 -->
+<section id="jailbreak">
+  <div class="fade-in">
+    <span class="tag tag-coral">Jailbreak safety</span>
+    <h2>H-neuron scaling shifts jailbreak compliance by <span data-jailbreak-summary-bind="delta-value">+6.2pp</span></h2>
+    <p class="subtitle" data-source="manual">
+      500 JailbreakBench prompts &times; 7 alpha values &times; 5 templates = 3,500 responses scored by GPT-4o.
+      The same H-neurons that shift FaithEval context-override behavior also increase compliance with adversarial safety prompts.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 1.5rem;">
+      <div class="metric-card" data-status="STABLE">
+        <div class="label">Benchmark</div>
+        <div class="value" style="font-size: 1.1rem;">JailbreakBench</div>
+        <div class="detail">500 prompts &middot; GPT-4o judge</div>
+      </div>
+      <div class="metric-card" data-status="STABLE">
+        <div class="label">Baseline (&alpha;=0.0)</div>
+        <div class="value val-coral" data-jailbreak-bind="baseline-value">20.2%</div>
+        <div class="detail" data-jailbreak-bind="baseline-detail">&alpha;=0.0 compliance</div>
+      </div>
+      <div class="metric-card" data-status="STABLE">
+        <div class="label">Endpoint effect</div>
+        <div class="value val-coral" data-jailbreak-bind="endpoint-value">26.4%</div>
+        <div class="detail" data-jailbreak-bind="endpoint-detail">+6.2pp from &alpha;=0.0&rarr;3.0</div>
+      </div>
+      <div class="metric-card" data-status="ARTIFACT">
+        <div class="label">Negative control</div>
+        <div class="value" style="font-size: 1rem; color: var(--text-secondary);">Not available</div>
+        <div class="detail">No random-neuron baseline has been run</div>
+      </div>
+    </div>
+
+    <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
+      <h3 style="color: var(--accent-coral);">Interpretive caveats</h3>
+      <p style="font-size: 14px; color: var(--text-secondary);">
+        <strong>No negative control:</strong> Without a random-neuron baseline we cannot rule out that any 38-neuron set would produce a similar shift.
+        The FaithEval negative control passed, but that result does not automatically transfer.<br>
+        <strong>Stochastic generation:</strong> Responses were generated with temperature=0.6. Per-item outcomes are not exactly reproducible; aggregate rates carry sampling noise above the usual alpha-sweep uncertainty.<br>
+        <strong>Threshold, not linear:</strong> The dose-response is not monotonic (Spearman &rho;=0.679, <span data-jailbreak-summary-bind="spearman-p">p=0.094</span>).
+        The effect may be better characterized as a threshold shift than a linear dose-response.
+      </p>
+    </div>
+
+    <div class="chart-container" style="margin-top: 2rem;">
+      <canvas id="jailbreakAggregateChart"></canvas>
+    </div>
+    <div class="chart-chip-row" style="margin-top: 0.5rem;">
+      <span class="chart-chip" data-jailbreak-bind="aggregate-chart-n">n=500 prompts per &alpha;</span>
+      <span class="chart-chip" data-jailbreak-bind="aggregate-chart-ci">Effect: +6.2pp (95% CI [2.4, 10.0]pp)</span>
+    </div>
+    <div id="jailbreakAggregateValueGrid" class="chart-series-grid" style="margin-top: 0.75rem;"></div>
+  </div>
+</section>
+
+<section id="jailbreak-templates">
+  <div class="fade-in">
+    <span class="tag tag-amber">Template &amp; category detail</span>
+    <h2>Template wording creates a 10&times; range in baseline compliance</h2>
+    <p class="subtitle" data-source="manual">
+      The five JailbreakBench prompt templates produce wildly different baseline compliance rates,
+      from near-zero (T2) to &gt;40% (T1). Category sensitivity is also visible but noisier at n=50 per cell.
+    </p>
+
+    <div class="chart-container" style="margin-top: 2rem;">
+      <canvas id="templateChart"></canvas>
+    </div>
+    <div class="chart-chip-row" style="margin-top: 0.5rem;">
+      <span class="chart-chip" data-jailbreak-bind="template-chart-n">n=100 prompts per template per &alpha;</span>
+      <span class="chart-chip" data-jailbreak-bind="template-chart-ci">Wilson CIs on per-template rates</span>
+    </div>
+    <div id="templateValueGrid" class="chart-series-grid" style="margin-top: 0.75rem;"></div>
+
+    <div class="chart-container" style="margin-top: 2.5rem;">
+      <canvas id="categoryChart"></canvas>
+    </div>
+    <div class="chart-chip-row" style="margin-top: 0.5rem;">
+      <span class="chart-chip" data-jailbreak-bind="category-chart-n">n=50 prompts per category per &alpha;</span>
+      <span class="chart-chip" data-jailbreak-bind="category-chart-ci">Wilson CIs at n=50 are wide &mdash; interpret rankings with caution</span>
+    </div>
+    <div id="categoryValueGrid" class="chart-series-grid" style="margin-top: 0.75rem;"></div>
+  </div>
+</section>
+
+<section id="cross-benchmark">
+  <div class="fade-in">
+    <span class="tag tag-teal">Cross-benchmark</span>
+    <h2>The effect replicates across three benchmarks at +4.8 to +6.3pp</h2>
+    <p class="subtitle" data-source="manual">
+      FaithEval (context override), FalseQA (false premises), and JailbreakBench (adversarial safety) all show
+      positive endpoint effects with bootstrap 95% CIs excluding zero.
+    </p>
+
+    <div class="chart-container" style="margin-top: 2rem;">
+      <canvas id="crossBenchmarkChart"></canvas>
+    </div>
+    <div class="chart-chip-row" style="margin-top: 0.5rem;">
+      <span class="chart-chip">Floating bars = 95% CI range &middot; dots = point estimates</span>
+    </div>
+
+    <div class="metrics-grid" style="margin-top: 1.5rem;">
+      <div class="metric-card" data-status="STABLE">
+        <div class="label">FaithEval</div>
+        <div class="value val-teal" data-jailbreak-bind="cross-faitheval-delta">+6.3pp</div>
+        <div class="detail"><span data-jailbreak-bind="cross-faitheval-ci">95% CI [4.2, 8.5]pp</span> &middot; <span data-jailbreak-bind="cross-faitheval-n">n=1,000</span> &middot; Negative control: available</div>
+      </div>
+      <div class="metric-card" data-status="STABLE">
+        <div class="label">FalseQA</div>
+        <div class="value val-purple" data-jailbreak-bind="cross-falseqa-delta">+4.8pp</div>
+        <div class="detail"><span data-jailbreak-bind="cross-falseqa-ci">95% CI [1.9, 7.7]pp</span> &middot; <span data-jailbreak-bind="cross-falseqa-n">n=687</span> &middot; GPT-4o judge</div>
+      </div>
+      <div class="metric-card" data-status="STABLE">
+        <div class="label">JailbreakBench</div>
+        <div class="value val-coral" data-jailbreak-bind="cross-jailbreakbench-delta">+6.2pp</div>
+        <div class="detail"><span data-jailbreak-bind="cross-jailbreakbench-ci">95% CI [2.4, 10.0]pp</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-n">n=500</span> &middot; Stochastic gen</div>
+      </div>
+    </div>
+
+    <div class="step-card" style="border-left: 3px solid var(--accent-teal); margin-top: 1.5rem;">
+      <h3 style="color: var(--accent-teal);">Interpretation</h3>
+      <p style="font-size: 14px; color: var(--text-secondary);">
+        The direction is consistent: scaling H-neurons shifts the model toward compliance regardless of domain.
+        This supports the "general compliance circuit" interpretation over a FaithEval-specific artifact.
+        However, only FaithEval has a negative control, and the JailbreakBench result uses stochastic generation &mdash;
+        replication strength varies by benchmark.
+      </p>
+    </div>
+  </div>
+</section>
+
 <section id="takeaways">
   <div class="fade-in">
     <span class="tag tag-amber">Takeaways</span>
-    <h2>Four stable conclusions from the Gemma pass</h2>
+    <h2>Five stable conclusions from the Gemma pass</h2>
 
     <div class="next-steps" style="margin-top: 1.5rem;">
       <div class="step-card">
@@ -548,6 +683,16 @@ Answer:</code>
         <p style="font-size: 14px; color: var(--text-secondary);">
           The open question is no longer whether there is an effect, but whether the effect is context credulity,
           answer-text bias, or generic surface-form degradation.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">5</div>
+        <h3>Jailbreak results extend the picture &mdash; with caveats</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The same H-neurons shift JailbreakBench compliance by <span data-jailbreak-summary-bind="delta-value">+6.2pp</span>
+          (<span data-jailbreak-summary-bind="delta-ci-text">95% CI 2.4-10.0pp</span>),
+          and all three benchmarks show CIs excluding zero. But stochastic generation, no negative control,
+          and a non-monotonic dose-response mean this is supporting evidence, not a standalone proof.
         </p>
       </div>
     </div>

@@ -182,6 +182,18 @@
         <div class="detail"><span data-intervention-summary-bind="swing-share-value">13.8%</span> swing share <span data-intervention-summary-bind="swing-share-ci-bracket">[11.8, 16.1]</span></div>
       </div>
     </div>
+
+    <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
+      <h3 style="color: var(--accent-coral);">Cross-benchmark consistency</h3>
+      <p style="font-size: 14px; color: var(--text-secondary);">
+        The same H-neurons shift compliance on FaithEval (context override), FalseQA (false premises),
+        and JailbreakBench (adversarial safety) &mdash; all three show endpoint effects of +4.8 to +6.3pp
+        with bootstrap CIs excluding zero. This supports a general compliance circuit rather than a
+        benchmark-specific artifact, though the JailbreakBench result carries extra caveats
+        (stochastic generation, no negative control).
+      </p>
+      <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#cross-benchmark">Open the cross-benchmark comparison</a></p>
+    </div>
   </div>
 </section>
 

@@ -1094,6 +1094,490 @@ async function initInterventionCharts() {
   }
 }
 
+// --- Jailbreak intervention charts ---
+const jailbreakDataUrl = new URL('../data/jailbreak_sweep.json', import.meta.url);
+let jailbreakDataPromise = null;
+
+function setJailbreakText(binding, value) {
+  document.querySelectorAll(`[data-jailbreak-bind="${binding}"]`).forEach((node) => {
+    node.textContent = value;
+  });
+}
+
+function loadJailbreakData() {
+  if (!jailbreakDataPromise) {
+    jailbreakDataPromise = fetch(jailbreakDataUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load jailbreak sweep data: ${response.status}`);
+        }
+        return response.json();
+      });
+  }
+
+  return jailbreakDataPromise;
+}
+
+function hydrateJailbreakChartBindings(data) {
+  const agg = data.aggregate;
+  const baseline = agg.points[0];
+  const endpoint = agg.points[agg.points.length - 1];
+  const effects = agg.effects;
+
+  setJailbreakText(
+    'aggregate-chart-n',
+    `n=${formatCount(baseline.n_total)} prompts per \u03b1`
+  );
+  setJailbreakText(
+    'aggregate-chart-ci',
+    `Effect: ${formatSignedPp(effects.delta_0_to_max_pp.estimate)} (95% CI [${effects.delta_0_to_max_pp.ci.lower.toFixed(1)}, ${effects.delta_0_to_max_pp.ci.upper.toFixed(1)}]pp)`
+  );
+  setJailbreakText('baseline-value', formatPercent(baseline.compliance_pct));
+  setJailbreakText(
+    'baseline-detail',
+    `\u03b1=0.0 compliance \u00b7 95% CI ${formatPercentInterval(baseline.ci)}`
+  );
+  setJailbreakText('endpoint-value', formatPercent(endpoint.compliance_pct));
+  setJailbreakText(
+    'endpoint-detail',
+    `${formatSignedPp(effects.delta_0_to_max_pp.estimate)} from \u03b1=0.0\u21923.0 \u00b7 95% CI [${effects.delta_0_to_max_pp.ci.lower.toFixed(1)}, ${effects.delta_0_to_max_pp.ci.upper.toFixed(1)}]pp`
+  );
+  setJailbreakText(
+    'template-chart-n',
+    `n=${formatCount(baseline.n_total / Object.keys(data.by_template).length)} prompts per template per \u03b1`
+  );
+  setJailbreakText(
+    'template-chart-ci',
+    'Wilson CIs on per-template rates; small n (100/template) yields wide intervals'
+  );
+  setJailbreakText(
+    'category-chart-n',
+    `n=${formatCount(baseline.n_total / Object.keys(data.by_category).length)} prompts per category per \u03b1`
+  );
+  setJailbreakText(
+    'category-chart-ci',
+    'Wilson CIs at n=50 are \u00b113\u201315pp, wider than most deltas — interpret rankings with caution'
+  );
+
+  // Cross-benchmark bindings
+  data.cross_benchmark.benchmarks.forEach((bench) => {
+    const key = bench.name.toLowerCase().replace(/[^a-z]/g, '');
+    setJailbreakText(
+      `cross-${key}-delta`,
+      formatSignedPp(bench.delta_pp.estimate)
+    );
+    setJailbreakText(
+      `cross-${key}-ci`,
+      `95% CI [${bench.delta_pp.ci.lower.toFixed(1)}, ${bench.delta_pp.ci.upper.toFixed(1)}]pp`
+    );
+    setJailbreakText(
+      `cross-${key}-slope`,
+      `${bench.slope_pp_per_alpha.estimate.toFixed(1)}pp/\u03b1`
+    );
+    setJailbreakText(
+      `cross-${key}-n`,
+      `n=${formatCount(bench.n_per_alpha)}`
+    );
+  });
+
+  renderSeriesGrid('jailbreakAggregateValueGrid', [
+    {
+      title: 'JailbreakBench aggregate',
+      tone: 'coral',
+      chips: [
+        alphaChip(baseline.alpha, formatPercent(baseline.compliance_pct)),
+        alphaChip(endpoint.alpha, formatPercent(endpoint.compliance_pct)),
+        `<span class="chart-chip"><strong>Slope</strong> ${effects.slope_pp_per_alpha.estimate.toFixed(1)}pp/\u03b1</span>`,
+      ],
+    },
+  ]);
+  renderSeriesGrid('templateValueGrid', [
+    {
+      title: 'Per-template range',
+      tone: 'amber',
+      chips: Object.entries(data.by_template).map(([label, tpl]) => {
+        const tBaseline = tpl.points[0];
+        const tEndpoint = tpl.points[tpl.points.length - 1];
+        return `<span class="chart-chip"><strong>${label}</strong> ${formatPercent(tBaseline.compliance_pct)}\u2192${formatPercent(tEndpoint.compliance_pct)}</span>`;
+      }),
+    },
+  ]);
+  const sortedCategories = Object.entries(data.by_category)
+    .sort(([, a], [, b]) => b.delta_0_to_3_pp - a.delta_0_to_3_pp);
+  renderSeriesGrid('categoryValueGrid', [
+    {
+      title: 'Category endpoint effects (\u03b1=0\u21923)',
+      tone: 'coral',
+      chips: sortedCategories.slice(0, 5).map(([name, cat]) =>
+        `<span class="chart-chip"><strong>${name}</strong> ${formatSignedPp(cat.delta_0_to_3_pp)}</span>`
+      ),
+    },
+  ]);
+}
+
+async function initJailbreakCharts() {
+  const jailbreakAggregateCanvas = document.getElementById('jailbreakAggregateChart');
+  const templateCanvas = document.getElementById('templateChart');
+  const categoryCanvas = document.getElementById('categoryChart');
+  const crossBenchmarkCanvas = document.getElementById('crossBenchmarkChart');
+  const hasJailbreakBindings = document.querySelector('[data-jailbreak-bind]');
+
+  if (
+    !jailbreakAggregateCanvas &&
+    !templateCanvas &&
+    !categoryCanvas &&
+    !crossBenchmarkCanvas &&
+    !hasJailbreakBindings
+  ) {
+    return;
+  }
+
+  const data = await loadJailbreakData();
+  const alphaLabels = data.alphas.map(formatAlphaLabel);
+
+  hydrateJailbreakChartBindings(data);
+
+  // --- Chart A: Jailbreak Aggregate Curve ---
+  if (jailbreakAggregateCanvas) {
+    setChartContainerHeight(jailbreakAggregateCanvas, 340, 260);
+
+    new Chart(jailbreakAggregateCanvas, {
+      type: 'line',
+      data: {
+        labels: alphaLabels,
+        datasets: [
+          {
+            label: 'Jailbreak compliance',
+            data: compliancePercentages(data.aggregate.points),
+            borderColor: '#E63946',
+            backgroundColor: 'rgba(230, 57, 70, 0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: '#E63946',
+            pointBorderColor: '#E63946',
+            pointBorderWidth: 2,
+            borderWidth: 2.5,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          valueLabels: {
+            formatter: (value) => value.toFixed(1) + '%',
+          },
+          tooltip: {
+            callbacks: {
+              title: (items) => items[0].label,
+              label: (ctx) => 'Compliance: ' + ctx.parsed.y.toFixed(1) + '%'
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
+          },
+          y: {
+            min: 16, max: 32,
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
+            ticks: {
+              callback: (value) => value + '%',
+              font: { size: 12 }
+            },
+            border: { display: false },
+            title: {
+              display: true,
+              text: 'Compliance rate (%)',
+              font: { size: 12 },
+              color: '#a09b91'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // --- Chart B: Template Multi-Line ---
+  if (templateCanvas) {
+    setChartContainerHeight(templateCanvas, 380, 280);
+
+    const templateColors = {
+      T0: { border: '#7EC8A0', bg: 'transparent' },
+      T1: { border: '#E63946', bg: 'transparent' },
+      T2: { border: 'rgba(160,155,145,0.6)', bg: 'transparent', dash: [6, 3] },
+      T3: { border: '#7B8CDE', bg: 'transparent' },
+      T4: { border: '#D4A574', bg: 'transparent' },
+    };
+    const templateDatasets = Object.entries(data.by_template).map(([label, tpl]) => {
+      const color = templateColors[label] || { border: '#a09b91', bg: 'transparent' };
+      return {
+        label: label,
+        data: compliancePercentages(tpl.points),
+        borderColor: color.border,
+        backgroundColor: color.bg,
+        tension: 0.3,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        pointBackgroundColor: color.border,
+        pointBorderColor: color.border,
+        pointBorderWidth: 2,
+        borderWidth: 2,
+        borderDash: color.dash || [],
+      };
+    });
+
+    new Chart(templateCanvas, {
+      type: 'line',
+      data: {
+        labels: alphaLabels,
+        datasets: templateDatasets,
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'line',
+              padding: 16,
+              font: { size: 12 }
+            }
+          },
+          valueLabels: { disabled: true },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 12, family: "'IBM Plex Mono', monospace" } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
+          },
+          y: {
+            min: 0, max: 55,
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
+            ticks: {
+              callback: (value) => value + '%',
+              font: { size: 12 }
+            },
+            border: { display: false },
+            title: {
+              display: true,
+              text: 'Compliance rate (%)',
+              font: { size: 12 },
+              color: '#a09b91'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // --- Chart C: Category Endpoint Effects ---
+  if (categoryCanvas) {
+    setChartContainerHeight(categoryCanvas, 380, 320);
+
+    const sortedCats = Object.entries(data.by_category)
+      .sort(([, a], [, b]) => b.delta_0_to_3_pp - a.delta_0_to_3_pp);
+    const catLabels = sortedCats.map(([name]) => name);
+    const catDeltas = sortedCats.map(([, cat]) => cat.delta_0_to_3_pp);
+
+    new Chart(categoryCanvas, {
+      type: 'bar',
+      data: {
+        labels: catLabels,
+        datasets: [{
+          label: 'Change in compliance (pp)',
+          data: catDeltas,
+          backgroundColor: catDeltas.map((d) =>
+            d > 0 ? 'rgba(230, 57, 70, 0.6)' : 'rgba(160, 155, 145, 0.35)'
+          ),
+          borderRadius: 4,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          valueLabels: {
+            formatter: (value) => formatSignedPp(value),
+            offset: 6,
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => formatSignedPp(ctx.parsed.x)
+            }
+          }
+        },
+        scales: {
+          x: {
+            min: -5, max: 20,
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
+            ticks: {
+              callback: (value) => formatSignedPp(value),
+              font: { size: 11 }
+            },
+            border: { display: false },
+            title: {
+              display: true,
+              text: 'Change in compliance (pp)',
+              font: { size: 12 },
+              color: '#a09b91'
+            }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: { size: 11 } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
+          }
+        }
+      }
+    });
+  }
+
+  // --- Chart D: Cross-Benchmark Comparison ---
+  if (crossBenchmarkCanvas) {
+    setChartContainerHeight(crossBenchmarkCanvas, 240, 200);
+
+    const benchmarks = data.cross_benchmark.benchmarks;
+    const benchLabels = benchmarks.map((b) => b.name);
+    const benchColors = {
+      FaithEval: '#7EC8A0',
+      FalseQA: '#7B8CDE',
+      JailbreakBench: '#E63946',
+    };
+
+    // Floating bar for CI range + scatter overlay for point estimate
+    const ciData = benchmarks.map((b) => [b.delta_pp.ci.lower, b.delta_pp.ci.upper]);
+    const pointData = benchmarks.map((b) => b.delta_pp.estimate);
+
+    new Chart(crossBenchmarkCanvas, {
+      type: 'bar',
+      data: {
+        labels: benchLabels,
+        datasets: [
+          {
+            label: '95% CI range',
+            data: ciData,
+            backgroundColor: benchmarks.map((b) => {
+              const c = benchColors[b.name] || '#a09b91';
+              return c + '40';
+            }),
+            borderColor: benchmarks.map((b) => benchColors[b.name] || '#a09b91'),
+            borderWidth: 1.5,
+            borderRadius: 3,
+            borderSkipped: false,
+          },
+          {
+            label: 'Point estimate',
+            data: pointData,
+            type: 'scatter',
+            backgroundColor: benchmarks.map((b) => benchColors[b.name] || '#a09b91'),
+            borderColor: '#1a1816',
+            borderWidth: 1.5,
+            pointRadius: 7,
+            pointStyle: 'circle',
+            xAxisID: 'x',
+            // scatter on horizontal bar needs parsing:
+            parsing: {
+              xAxisKey: null,
+              yAxisKey: null,
+            },
+          }
+        ]
+      },
+      // For horizontal bars with scatter overlay, we transform scatter data manually
+      plugins: [{
+        id: 'crossBenchmarkScatter',
+        afterDatasetsDraw(chart) {
+          const meta = chart.getDatasetMeta(0); // bar dataset
+          const ctx = chart.ctx;
+          ctx.save();
+          benchmarks.forEach((b, i) => {
+            const bar = meta.data[i];
+            if (!bar) return;
+            const xPixel = chart.scales.x.getPixelForValue(b.delta_pp.estimate);
+            const yPixel = bar.y;
+            ctx.beginPath();
+            ctx.arc(xPixel, yPixel, 6, 0, Math.PI * 2);
+            ctx.fillStyle = benchColors[b.name] || '#a09b91';
+            ctx.fill();
+            ctx.strokeStyle = '#1a1816';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          });
+          ctx.restore();
+        }
+      }],
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          valueLabels: { disabled: true },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                if (ctx.datasetIndex === 0) {
+                  const b = benchmarks[ctx.dataIndex];
+                  return `${b.name}: ${formatSignedPp(b.delta_pp.estimate)} [${b.delta_pp.ci.lower.toFixed(1)}, ${b.delta_pp.ci.upper.toFixed(1)}]pp`;
+                }
+                return '';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            min: 0, max: 12,
+            grid: { color: 'rgba(160, 155, 145, 0.08)' },
+            ticks: {
+              callback: (value) => value + 'pp',
+              font: { size: 11 }
+            },
+            border: { display: false },
+            title: {
+              display: true,
+              text: 'Endpoint effect (pp)',
+              font: { size: 12 },
+              color: '#a09b91'
+            }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: { size: 12 } },
+            border: { color: 'rgba(160, 155, 145, 0.12)' }
+          }
+        },
+        // Hide the scatter dataset from default rendering
+        datasets: {
+          scatter: { showLine: false }
+        }
+      }
+    });
+  }
+}
+
+initJailbreakCharts().catch((error) => {
+  console.error('Failed to initialize jailbreak charts from site data.', error);
+});
+
 // --- Swing characterization charts ---
 const swingDataUrl = new URL('../data/swing_characterization.json', import.meta.url);
 let swingDataPromise = null;

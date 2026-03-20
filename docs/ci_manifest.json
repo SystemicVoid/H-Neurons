@@ -509,6 +509,10 @@
         {
           "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
         }
       ]
     },
@@ -591,6 +595,10 @@
         {
           "file": "data/gemma3_4b/intervention_findings.md",
           "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
         }
       ]
     },
@@ -606,7 +614,12 @@
           "slope_pp_per_alpha"
         ]
       },
-      "surfaces": []
+      "surfaces": [
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        }
+      ]
     },
     {
       "id": "sycophancy_benchmark",

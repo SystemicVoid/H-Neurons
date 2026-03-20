@@ -428,6 +428,26 @@
     );
   }
 
+  function hydrateJailbreakSummary(summary) {
+    const agg = summary.aggregate;
+    const baseline = agg.points[0];
+    const endpoint = agg.points[agg.points.length - 1];
+    const effects = agg.effects;
+    const mono = agg.monotonicity;
+
+    setBoundText('data-jailbreak-summary-bind', 'baseline-value', formatPercent(baseline.compliance_pct));
+    setBoundText('data-jailbreak-summary-bind', 'baseline-ci-text', formatRateCiText(baseline.ci));
+    setBoundText('data-jailbreak-summary-bind', 'endpoint-value', formatPercent(endpoint.compliance_pct));
+    setBoundText('data-jailbreak-summary-bind', 'delta-value', formatPp(effects.delta_0_to_max_pp.estimate));
+    setBoundText('data-jailbreak-summary-bind', 'delta-ci-text', formatPpCiText(effects.delta_0_to_max_pp.ci));
+    setBoundText(
+      'data-jailbreak-summary-bind',
+      'slope-value',
+      formatPpPerAlpha(effects.slope_pp_per_alpha.estimate),
+    );
+    setBoundText('data-jailbreak-summary-bind', 'spearman-p', `p=${mono.spearman_p.toFixed(3)}`);
+  }
+
   function hydratePipelineSummary(summary) {
     const counts = summary.counts;
     const ratios = summary.ratios;
@@ -623,8 +643,9 @@
     const interventionNeeded = hasBinding('data-intervention-summary-bind');
     const swingNeeded = hasBinding('data-swing-bind');
     const pipelineNeeded = hasBinding('data-pipeline-bind');
+    const jailbreakNeeded = hasBinding('data-jailbreak-summary-bind');
 
-    if (!classifierNeeded && !interventionNeeded && !swingNeeded && !pipelineNeeded) {
+    if (!classifierNeeded && !interventionNeeded && !swingNeeded && !pipelineNeeded && !jailbreakNeeded) {
       return;
     }
 
@@ -679,6 +700,19 @@
             return response.json();
           })
           .then((summary) => hydratePipelineSummary(summary)),
+      );
+    }
+
+    if (jailbreakNeeded) {
+      requests.push(
+        fetch(new URL('../data/jailbreak_sweep.json', sharedScriptUrl))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to load jailbreak sweep data: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((summary) => hydrateJailbreakSummary(summary)),
       );
     }
 
