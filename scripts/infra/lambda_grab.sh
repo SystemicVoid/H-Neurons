@@ -82,6 +82,8 @@ print(' '.join(regions))
             log ">>> CAPACITY FOUND: $ITYPE in $REGION (attempt #$ATTEMPT)"
             log "Launching..."
 
+            log "Image: Lambda Stack 24.04 (family selector)"
+
             LAUNCH_PAYLOAD=$(python3 -c "
 import json
 print(json.dumps({
@@ -89,7 +91,8 @@ print(json.dumps({
     'instance_type_name': '$ITYPE',
     'ssh_key_names': ['$SSH_KEY_NAME'],
     'name': '$INSTANCE_NAME',
-    'quantity': 1
+    'quantity': 1,
+    'image': {'family': 'lambda-stack-24-04'}
 }))
 ")
 
