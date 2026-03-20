@@ -136,6 +136,10 @@
     return `${value.toFixed(digits)}pp/\u03b1`;
   }
 
+  function formatRoundedPercent(pct) {
+    return `${Math.round(pct)}%`;
+  }
+
   const TOP_NEURON_ARTIFACT_CI_STATUS_LABELS = Object.freeze({
     no_ci_fixed_diagnostic: 'No CI: fixed held-out diagnostic checks',
   });
@@ -214,7 +218,51 @@
       summary.disjoint_missing_activations.toLocaleString(),
     );
 
+    hydrateClassifierStructure(summary);
     hydrateTopNeuronArtifact(summary);
+  }
+
+  function hydrateClassifierStructure(summary) {
+    const structure = summary.selected_h_neuron_structure;
+    const bands = structure?.bands;
+    const topPositiveNeurons = structure?.top_positive_neurons;
+    const topOne = topPositiveNeurons?.[0];
+    const topTwo = topPositiveNeurons?.[1];
+
+    if (!bands) {
+      return;
+    }
+
+    setBoundText('data-classifier-structure-bind', 'early-pct', formatRoundedPercent(bands.early.pct));
+    setBoundText('data-classifier-structure-bind', 'early-count', bands.early.count.toLocaleString());
+    setBoundText(
+      'data-classifier-structure-bind',
+      'middle-pct',
+      formatRoundedPercent(bands.middle.pct),
+    );
+    setBoundText(
+      'data-classifier-structure-bind',
+      'middle-count',
+      bands.middle.count.toLocaleString(),
+    );
+    setBoundText('data-classifier-structure-bind', 'late-pct', formatRoundedPercent(bands.late.pct));
+    setBoundText('data-classifier-structure-bind', 'late-count', bands.late.count.toLocaleString());
+
+    if (topOne) {
+      setBoundText('data-classifier-structure-bind', 'top-1-label', topOne.label);
+      setBoundText('data-classifier-structure-bind', 'top-1-weight', topOne.weight.toFixed(2));
+    }
+    if (topTwo) {
+      setBoundText('data-classifier-structure-bind', 'top-2-label', topTwo.label);
+      setBoundText('data-classifier-structure-bind', 'top-2-weight', topTwo.weight.toFixed(2));
+    }
+    if (topOne && topTwo) {
+      setBoundText(
+        'data-classifier-structure-bind',
+        'top-gap-ratio',
+        `${(topOne.weight / topTwo.weight).toFixed(2)}×`,
+      );
+    }
   }
 
   function hydrateTopNeuronArtifact(summary) {
@@ -245,6 +293,16 @@
       'data-top-neuron-bind',
       'takeaway-card-text',
       `The six-test verdict is ${supportDisplay}: L1 weight ranking overstates individual top-neuron importance, and by C=${broaderDetector.c_value.toFixed(1)} the signal is spread across ${broaderDetector.positive_neurons} positive-weight neurons.`,
+    );
+    setBoundText(
+      'data-top-neuron-bind',
+      'broader-detector-count',
+      broaderDetector.positive_neurons.toLocaleString(),
+    );
+    setBoundText(
+      'data-top-neuron-bind',
+      'broader-detector-c-value',
+      broaderDetector.c_value.toFixed(1),
     );
 
     TOP_NEURON_ARTIFACT_SCOREBOARD_BINDINGS.forEach(([slug, binding]) => {
@@ -537,7 +595,10 @@
   }
 
   async function hydrateSiteSummaryBindings() {
-    const classifierNeeded = hasBinding('data-classifier-bind');
+    const classifierNeeded =
+      hasBinding('data-classifier-bind') ||
+      hasBinding('data-classifier-structure-bind') ||
+      hasBinding('data-top-neuron-bind');
     const interventionNeeded = hasBinding('data-intervention-summary-bind');
     const swingNeeded = hasBinding('data-swing-bind');
     const pipelineNeeded = hasBinding('data-pipeline-bind');

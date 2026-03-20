@@ -53,7 +53,7 @@
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Current object</div>
         <div class="value val-teal" style="font-size: 1.35rem;">Distributed detector</div>
-        <div class="detail">38-neuron sparse baseline, broader 219-neuron mechanism candidate</div>
+        <div class="detail"><span data-classifier-bind="selected-count">38</span>-neuron sparse baseline, broader <span data-top-neuron-bind="broader-detector-count">219</span>-neuron mechanism candidate</div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">Strongest signal</div>
@@ -155,8 +155,8 @@
     <div class="metrics-grid" style="margin-top: 1.5rem;">
       <div class="metric-card" data-status="STABLE">
         <div class="label">Early-layer concentration</div>
-        <div class="value val-coral">47%</div>
-        <div class="detail">18 of 38 H-Neurons appear in layers 0-10</div>
+        <div class="value val-coral" data-classifier-structure-bind="early-pct">47%</div>
+        <div class="detail"><span data-classifier-structure-bind="early-count">18</span> of <span data-classifier-bind="selected-count">38</span> H-Neurons appear in layers 0-10</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Corrected standard point</div>
@@ -273,16 +273,16 @@
     <div class="comparison" style="margin-top: 2rem;">
       <div class="compare-card" style="text-align: left; border-color: var(--accent-amber);">
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Option A</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);">38-neuron sparse baseline</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);"><span data-classifier-bind="selected-count">38</span>-neuron sparse baseline</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
           Best if the paper wants the cleanest one-line replication of Gao et al. and a compact intervention object, even though the top-neuron story had to be narrowed.
         </div>
       </div>
       <div class="compare-card highlight" style="text-align: left;">
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Option B</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">219-neuron distributed detector</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);"><span data-top-neuron-bind="broader-detector-count">219</span>-neuron distributed detector</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Best if the paper wants the most defensible mechanistic object, because it captures more signal and weakens the risk of mistaking sparse bookkeeping for causal centrality.
+          Best if the paper wants the most defensible mechanistic object, because by C=<span data-top-neuron-bind="broader-detector-c-value">3.0</span> the signal is spread across a broader detector and is less vulnerable to mistaking sparse bookkeeping for causal centrality.
         </div>
       </div>
     </div>
