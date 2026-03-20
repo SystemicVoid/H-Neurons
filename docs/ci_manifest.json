@@ -295,9 +295,37 @@
       "reason": "no_committed_per_example_predictions_for_bootstrap"
     },
     {
-      "id": "jailbreak_benchmark",
-      "status": "blocked_data",
-      "reason": "pipeline_ready_awaiting_first_run"
+      "id": "jailbreak_compliance_delta_0_to_3",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/jailbreak/experiment/results.json",
+        "path": [
+          "effects",
+          "compliance_curve",
+          "delta_0_to_max_pp"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "jailbreak_compliance_slope",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/jailbreak/experiment/results.json",
+        "path": [
+          "effects",
+          "compliance_curve",
+          "slope_pp_per_alpha"
+        ]
+      },
+      "surfaces": []
     },
     {
       "id": "sycophancy_benchmark",
