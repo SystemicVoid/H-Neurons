@@ -2,10 +2,10 @@
 
 **Date:** 2026-03-16
 **Model:** `google/gemma-3-4b-it`
-**Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC 0.843, 95% CI [0.815, 0.870] on the disjoint evaluated test set, n=780)
+**Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC 0.843, 95% CI [0.815, 0.870] on disjoint held-out answer-token evaluation, n=780; detection interpretation is partially confounded by response-form/length correlations — see Finding 7)
 **Reference:** Gao et al., "H-Neurons" (arXiv:2512.01797v2), Section 3 replication
 
-**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md), [sae_pipeline_audit.md](intervention/faitheval_sae/sae_pipeline_audit.md)
+**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md), [sae_pipeline_audit.md](intervention/faitheval_sae/sae_pipeline_audit.md), [verbosity_confound_audit.md](intervention/verbosity_confound/verbosity_confound_audit.md)
 
 ---
 
@@ -269,6 +269,29 @@ Delta-only H-feature slope: **0.12 pp/α**. Delta-only random slope: **-0.09 pp/
 
 **Interpretation:** This is **Outcome B** (H ≈ random ≈ 0) from the pre-registered interpretation table. The reconstruction error was a nuisance (causing parse failures and incoherent responses in full-replacement mode) but was not the cause of the null SAE steering result. SAE features genuinely cannot steer compliance regardless of steering architecture. The SAE steering line of investigation is definitively closed.
 
+### 1.11 Verbosity Confound Test (n=100 items × 4 conditions)
+
+**Data:** `data/gemma3_4b/intervention/verbosity_confound/`
+**Script:** `scripts/run_verbosity_confound.py`
+**Full audit:** [verbosity_confound_audit.md](intervention/verbosity_confound/verbosity_confound_audit.md)
+
+Tests whether full-response readout of the 38 H-neuron CETT activations is more sensitive to truth status or response length. 2×2 within-subject factorial design: 100 factual questions, each with 4 pre-written responses (short_true ~10.7 tokens, long_true ~112.3 tokens, short_false ~10.6 tokens, long_false ~110.7 tokens). No generation — responses fed as assistant content. CETT activations extracted from response token span only.
+
+**Pipeline fixes applied before this run:**
+- **P1 (resp_end):** `get_response_end` now tokenizes user+generation_prompt for `resp_start`, then encodes only the response text for exact span. Avoids trailer tokens (`<end_of_turn>\n`).
+- **P2 (OOD classifier):** Classifier scoring removed entirely. The classifier was trained on answer-token activations; scoring full-response means would be out-of-distribution.
+
+| Aggregation | Truth d | Truth p | Length d | Length p | Ratio |length|/|truth| | Verdict |
+|-------------|---------|---------|----------|---------|----------------------:|---------|
+| Mean | -0.502 | 1.4e-05 | -1.864 | <1e-16 | 3.71 | A_verbosity |
+| Max | -0.265 | 0.018 | +4.277 | <1e-16 | 16.14 | A_verbosity |
+
+Per-neuron dominance (mean agg): **36/38 length-dominant**, 2/38 truth-dominant. After Bonferroni correction: 29/38 neurons have significant length effects, 13/38 have significant truth effects.
+
+**Interaction (truth × length):** The truth signal concentrates in short responses (paired diff = -0.0023) and vanishes in long ones (diff = -0.0001). Interaction is significant (Wilcoxon p = 0.0002). This means the classifier's training domain (answer-token spans, typically short) preserves more truth information than the full-response window tested here.
+
+**Direction note:** Mean aggregation truth d = -0.50 means false conditions have *lower* mean CETT than true — the H-neurons activate slightly more on true responses. Mean and max aggregations show *opposite* length-effect signs (-1.86 vs +4.28) due to dilution vs peak-opportunity mechanics.
+
 ---
 
 ## 2. Findings
@@ -302,14 +325,14 @@ This means the standard-prompt curve as currently scored is an evaluator artifac
 
 Two independently evaluated benchmarks (FaithEval anti-compliance and FalseQA) both show compliance increasing with α, while negative controls on both benchmarks are flat. The tasks are qualitatively different — one tests susceptibility to misleading context in a retrieval QA format, the other tests acceptance of false premises in open-ended generation. Both use different evaluation methods (regex letter matching vs. GPT-4o judging). Both have independently confirmed H-neuron specificity via random-neuron controls (§1.4–1.5 for FaithEval, §1.6–1.7 for FalseQA).
 
-The fact that 38 neurons (0.011% of the network) shift behavior on both tasks in the same direction is evidence that these neurons participate in a general compliance-related circuit, not a task-specific one.
+The fact that the same 38 neurons (0.011% of the network) shift behavior on both tasks in the same direction supports a shared causal role across these tested compliance benchmarks, rather than a purely task-specific effect. The paper's 6-model × 4-task replication (Section 3, Figure 3) provides broader evidence for a general compliance-related circuit, but our local data covers only two benchmarks with negative controls.
 
 ### Finding 5: H-neuron scaling increases jailbreak compliance with a plateau
 
 <!-- from: jailbreak_compliance_delta_0_to_3 -->
 On JailbreakBench (100 adversarial behaviors × 5 templates), H-neuron amplification increases GPT-4o-judged harmful compliance from **20.2%** at α=0.0 to **28.6%** at α=1.5, yielding an endpoint effect of **+6.2 pp** [2.4, 10.0] and a slope of **+2.14 pp/α** [0.91, 3.39]. The CI excludes zero, confirming a real effect.
 
-This extends the over-compliance mechanism (Findings 1–2) to an adversarial safety setting: the same 38 neurons that increase susceptibility to misleading context (FaithEval) and false premises (FalseQA) also weaken resistance to jailbreak attempts. The three-benchmark pattern strengthens the case for a general compliance circuit.
+This shows a same-direction jailbreak effect consistent with the over-compliance story: the same 38 neurons that increase susceptibility to misleading context (FaithEval) and false premises (FalseQA) also appear to weaken resistance to jailbreak attempts. However, because jailbreak lacks a negative control, uses stochastic generation, and plateaus rather than showing monotonic dose-response, this should be treated as supporting evidence rather than independent robust proof of the mechanism.
 
 **Important caveats:** (1) The curve plateaus at α=1.5 and slightly reverses, unlike the monotonic FaithEval curve; the Spearman test for monotonicity is non-significant (p=0.094). (2) Template heterogeneity is extreme — Template T1 accounts for ~40% of all harmful responses, while Template T2 is immune (2-6% compliance across all alphas is indistinguishable from sampling noise at n=100). (3) **No negative control confirms H-neuron specificity for jailbreak.** The effect could in principle result from scaling any neurons. (4) Stochastic generation (`do_sample=True, temp=0.7`) invalidates per-item flip analysis and cross-benchmark flip comparisons; see [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md) §3. (5) **No judge test-retest reliability measurement exists for jailbreak.** FalseQA established 0.4% nondeterminism, but the jailbreak rubric is more complex and responses are longer — judge noise could be higher.
 
@@ -325,9 +348,23 @@ SAE feature-space steering produces null compliance slopes under both tested arc
 
 The delta-only architecture (`h + decode(f_modified) - decode(f_original)`) cancels SAE reconstruction error exactly, isolating the feature-specific perturbation. It eliminates the parse failures and the ~8-9pp reconstruction-noise compliance shift seen in full-replacement mode. But the steering slope remains indistinguishable from zero (0.12 pp/α for H-features, -0.09 pp/α for random). This rules out reconstruction error as the explanation for the SAE steering failure.
 
-This is a **detection-steering dissociation**: the SAE probe detects hallucination comparably to the CETT probe (AUROC 0.848 vs 0.843), but the same features fail to steer the behavior when manipulated in either steering architecture. Features that correlate with a behavior in static activations do not necessarily causally control it.
+This is a **detection-steering dissociation**: the SAE probe matches the CETT probe on answer-token classification (AUROC 0.848 vs 0.843), but the same features fail to steer the behavior when manipulated in either steering architecture. Features that correlate with a behavior in static activations do not necessarily causally control it.
 
 **Remaining confounds (lower priority, unlikely to change the conclusion):** The 10-layer SAE extraction misses 47.4% of CETT H-neurons (31.4% of weight, including 5 of the top-10); the 16k-width SAE has not been compared to the 262k-width variant; and the 266-feature probe (detection-optimal) may not be steering-optimal -- the sparser C=0.001 probe (62 features) was not tested for steering. The layer 20 over-concentration (93/266 features, 35%) parallels the neuron 4288 regularization artifact pattern. These confounds remain open but are deprioritized: the delta-only test was the cheapest decisive falsification, and it confirmed the null.
+
+### Finding 7: H-neuron CETT activations encode response length in full-response readout; intervention claims unaffected
+
+The verbosity confound test (§1.11) shows that when H-neuron activations are read out across full response spans, length effects dominate truth effects by **3.7:1** (mean aggregation, Cohen's d: |1.86| vs |0.50|) and **16:1** (max aggregation, |4.28| vs |0.27|). At the per-neuron level, **36 of 38** neurons are length-dominant under mean aggregation.
+
+**This does not threaten the intervention causal claims (Findings 1–5), for three independent reasons:**
+
+1. **The primary benchmark's scoring is immune to raw length confounding.** FaithEval anti-compliance evaluates via single-letter extraction (A/B/C/D) — the metric only cares which letter was chosen, so response length is invisible to the scorer. However, verbosity/style could still mediate the causal path indirectly: if scaling H-neurons changes hesitation, hedging, or decisiveness, that could in turn change the chosen letter. The negative controls (point 2) are what rule out this indirect channel.
+2. **Negative controls rule out any response-characteristic channel.** Random neurons also encode verbosity (as most neurons do), but produce zero compliance shift (slope 0.02 pp/α, interval [-0.106, 0.164]). If the effect were mediated by verbosity, random-neuron scaling should show some compliance change. It does not.
+3. **The paper replicates across 6 models × 4 tasks.** Gao et al. show the same compliance-scaling pattern on FalseQA, FaithEval, Sycophancy, and Jailbreak across Mistral-7B, Mistral-Small-24B, Gemma-3-4B, Gemma-3-27B, Llama-3.1-8B, and Llama-3.3-70B. For verbosity mediation to hold, it would require that verbosity-encoding neurons are coincidentally selected in 6 architectures, that verbosity changes produce compliance shifts in 4 qualitatively different tasks, and that this occurs only for H-neurons — a chain of coincidences that is not credible.
+
+The FalseQA response shortening (-9%, §1.7) is a *consequence* of the compliance change (more confident false-premise acceptance = less hedging), not evidence of a verbosity-mediated cause.
+
+**Proper scope of this finding:** The confound test measures passive activation encoding (readout), not causal downstream effects (intervention). Its implications are narrowly scoped to the detection side: anyone building a hallucination detector on full-response CETT activations should control for response length, and the classifier's AUROC partly reflects length correlations. The truth signal concentrates in short responses (interaction p=0.0002), which aligns with the classifier's answer-token training domain. Two individual neurons — L14:N8547 (truth d=1.10, length d=-1.31) and L10:N2536 (truth d=0.62, length d=-0.66) — show roughly balanced truth and length sensitivity. See [verbosity_confound_audit.md](intervention/verbosity_confound/verbosity_confound_audit.md) for full analysis.
 
 ---
 
@@ -356,6 +393,7 @@ The intervention story is now quantified instead of implied. FaithEval anti-comp
 - **No judge test-retest reliability for jailbreak.** FalseQA measured 0.4% GPT-4o nondeterminism at α=1.0. No equivalent measurement exists for jailbreak, where the rubric is more complex (structured rubric + 6 few-shot examples vs simple ACCEPTED/REFUSED) and responses are longer (~1300 vs ~900 chars). The judge's contribution to apparent alpha-to-alpha variation is unknown.
 - **SAE steering failure is confirmed across two architectures.** Both full-replacement (encode-scale-decode) and delta-only (add decoded delta to original) produce null H-feature slopes. The delta-only test (§1.10) ruled out reconstruction error as the cause, establishing that SAE features genuinely cannot steer compliance. Remaining confounds (SAE width, feature count, layer coverage) are lower priority.
 - **SAE layer coverage is partial.** The SAE probe and steering experiments use 10 of 34 layers. While this is sufficient for detection (AUROC 0.848), 47.4% of CETT H-neurons reside in uncovered layers. This cannot explain why H-features perform worse than or equal to random features within the same 10 layers.
+- **Verbosity confound in full-response CETT readout (Finding 7).** Under full-response aggregation, H-neuron activations are dominated by response length (3.7–16× larger effect sizes than truth). This chips at the detection tier of evidence — the classifier's AUROC of 0.843 may partly reflect response-form/length correlations — but does not reach the intervention tier. The causal intervention claims are robust because (a) FaithEval letter-extraction scoring is immune to raw length confounding, (b) negative controls rule out indirect response-characteristic channels, and (c) the paper replicates across 6 models × 4 tasks. An answer-token-level confound test (matching the classifier's training domain) remains useful for characterising what the classifier actually discriminates.
 
 ### Classifier selection caveat
 
@@ -383,8 +421,12 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 | SAE random features (3 seeds) | +0.59 pp / α mean | [0.54, 0.64] pp / α | No | Regex letter match | Lossy encode/decode; feature-independent baseline |
 | SAE delta-only H-features | +0.12 pp / α | — | — | Regex letter match | Reconstruction error cancelled; slope ≈ 0 |
 | SAE delta-only random (1 seed) | -0.09 pp / α | — | — | Regex letter match | Reconstruction error cancelled; slope ≈ 0 |
+| Verbosity confound (mean agg) | truth d=-0.50, length d=-1.86 | — | — | CETT activation readout | Length dominates truth 3.7:1; A_verbosity verdict |
+| Verbosity confound (max agg) | truth d=-0.27, length d=+4.28 | — | — | CETT activation readout | Length dominates truth 16:1; A_verbosity verdict |
 
-The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact) on the two benchmarks with negative controls (FaithEval and FalseQA). The effect generalises across three distinct compliance-test benchmarks — FaithEval (context override), FalseQA (false premise acceptance), and Jailbreak (adversarial safety) — though jailbreak specificity awaits its own negative control. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal. SAE feature-space steering does not replicate the neuron-level effect under either full-replacement or delta-only architectures; the failure is fundamental feature-space misalignment, not reconstruction noise (Finding 6).
+The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact) on the two benchmarks with negative controls (FaithEval and FalseQA). The robust local evidence covers FaithEval (letter-extraction scoring immune to raw length confounding, plus negative controls ruling out indirect response-style channels) and FalseQA (with independent negative control). Jailbreak shows a same-direction effect but remains provisional pending a benchmark-specific negative control. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal. SAE feature-space steering does not replicate the neuron-level effect under either full-replacement or delta-only architectures; the failure is fundamental feature-space misalignment, not reconstruction noise (Finding 6).
+
+The evidence forms a hierarchy. The **top tier** — causal intervention with letter-extraction evaluation and negative controls — is robust. The **middle tier** — the paper's 6-model × 4-task replication — is independent and intact. The **bottom tier** — local classifier/detection results (AUROC 0.843) — is partially confounded by response-form/length correlations. The **foundation** — passive full-response readout — is dominated by response length (Finding 7). Claims about what these neurons *causally do when scaled* are well-supported; claims about what they *passively encode* require the full-response verbosity caveat.
 
 ---
 

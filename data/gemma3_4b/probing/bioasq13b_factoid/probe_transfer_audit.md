@@ -7,7 +7,7 @@
 - **This BioASQ result is trustworthy enough to cite internally as an approximate OOD transfer result, not as an exact paper-faithful replication.** The recovery run on `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json` gives **accuracy 0.6982** and **AUROC 0.8219** over **1,090** scored examples, with bootstrap 95% CIs **[0.6688, 0.7257]** and **[0.7976, 0.8459]** from the saved local activations and `models/gemma3_4b_classifier_disjoint.pkl`.
 - **The main conclusion is stable under the recovery patch.** Coverage improved materially while metrics stayed nearly flat: answer-token rows **1542 -> 1561**, activation coverage **1060/1078 -> 1090/1092**, accuracy **0.7019 -> 0.6982**, AUROC **0.8294 -> 0.8219** (`data/gemma3_4b/probing/bioasq13b_factoid/report.json`, `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`).
 - **BioASQ is materially harder than local TriviaQA disjoint eval for this detector, but the gap is modest and mostly accuracy-side.** Reproducing the local TriviaQA disjoint eval from `data/gemma3_4b/test_qids_disjoint.json` and `data/gemma3_4b/activations/answer_tokens/` gives **accuracy 0.7654** and **AUROC 0.8429**, versus BioASQ recovery **0.6982** and **0.8219**.
-- **The detector’s clearest BioASQ weakness is overcalling verbose faithful biomedical answers as hallucinations.** It is much better at catching long/list-like false answers than at sparing long/list-like true answers. This is a true detector weakness, distinct from the earlier extraction/span data-loss issue.
+- **The detector’s clearest BioASQ weakness is overcalling verbose faithful biomedical answers as hallucination-positive, consistent with the detector-side verbosity confound documented in the verbosity confound audit.** It is much better at catching long/list-like false answers than at sparing long/list-like true answers. This is a true detector weakness, distinct from the earlier extraction/span data-loss issue.
 
 ## What was run
 
@@ -167,9 +167,10 @@
   among judge-false answers, longer false answers are actually **easier** for the detector, not harder.
   Detection rate is **92.9%** for false answers longer than 2 words versus **85.2%** for 1-2 word false answers (exploratory, no CI).
 - So the most defensible reading is:
-  the detector does track some hallucination-associated activation signal,
+  the classifier tracks an activation signal correlated with false-vs-true answer-token labels,
   but on BioASQ it also overweights verbosity / explanatory form enough to punish faithful long answers,
   and it undercatches compact wrong biomedical substitutions.
+  This pattern is consistent with the verbosity confound finding (intervention_findings.md Finding 7).
 
 ## Recommended headline result
 
@@ -185,13 +186,13 @@
 
 ### High-confidence
 
-- The Gemma-3-4B BioASQ OOD detector result is **about 70% accuracy** and **0.82 AUROC** on the recovery run, specifically **0.6982** accuracy and **0.8219** AUROC on **1090** scored examples from `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`, close to the paper’s BioASQ accuracy of **71.0** in `original-paper-markdown-converted.md`.
+- The Gemma-3-4B BioASQ OOD answer-token classifier result is **about 70% accuracy** and **0.82 AUROC** on the recovery run, specifically **0.6982** accuracy and **0.8219** AUROC on **1090** scored examples from `data/gemma3_4b/probing/bioasq13b_factoid/report_recovery.json`, close to the paper’s BioASQ accuracy of **71.0** in `original-paper-markdown-converted.md`. Note: the detection interpretation is partially confounded by response-form/length correlations (see `data/gemma3_4b/intervention/verbosity_confound/verbosity_confound_audit.md`).
 - The recovery patch in `c41ee28` materially improved pipeline fidelity without materially changing the conclusion: answer-token rows **+19**, activation misses **18 -> 2**, accuracy **0.7019 -> 0.6982**, AUROC **0.8294 -> 0.8219**.
 - BioASQ transfer is worse than the local TriviaQA disjoint eval for this detector: **0.6982 vs 0.7654** accuracy and **0.8219 vs 0.8429** AUROC, using `data/gemma3_4b/probing/bioasq13b_factoid/eval_qids.json` and `data/gemma3_4b/test_qids_disjoint.json`.
 
 ### Medium-confidence
 
-- BioASQ appears harder mainly because the model hallucinates a lot in this single-response biomedical setting and because the detector overcalls verbose faithful answers. Evidence: raw BioASQ false rate **65.0%**, plus very high FP rates on long/list-like true answers.
+- BioASQ appears harder mainly because the model hallucinates a lot in this single-response biomedical setting and because the detector overcalls verbose faithful answers — an effect consistent with the detector-side verbosity confound (see `data/gemma3_4b/intervention/verbosity_confound/verbosity_confound_audit.md`). Evidence: raw BioASQ false rate **65.0%**, plus very high FP rates on long/list-like true answers.
 - The recovery patch mostly restored formatting-heavy biomedical answers rather than “easy” generic cases. Evidence: recovered rows are longer and enriched for apostrophes, hyphens, parentheses, abbreviations, and list-like formatting.
 - Some of the measured detector error on BioASQ is label-path-sensitive, because the GPT-4o judge accepts semantically broad faithful paraphrases that strict alias matching would miss. But the later representative audit indicates this is a minority effect, not the main driver of the detector’s BioASQ error profile.
 

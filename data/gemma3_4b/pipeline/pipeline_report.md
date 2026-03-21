@@ -24,7 +24,7 @@
 | Test set size | — | 1,993 evaluated | **780 evaluated** (782 sampled, 2 missing activations) |
 
 <!-- from: classifier_disjoint_accuracy -->
-The disjoint test set (0% overlap with training data) yields **76.5% accuracy [73.6, 79.5]**, which is actually closer to the paper's 76.9% than the inflated overlapping score of 77.7% [75.9, 79.5]. The ~1.1 percentage point drop from overlapping→disjoint confirms mild leakage, but the signal is clearly real — it holds on fully held-out data.
+The disjoint test set (0% overlap with training data) yields **76.5% accuracy [73.6, 79.5]**, which is actually closer to the paper's 76.9% than the inflated overlapping score of 77.7% [75.9, 79.5]. The ~1.1 percentage point drop from overlapping→disjoint confirms mild leakage, and the classifier captures a real held-out discrimination signal. However, a verbosity confound audit (see `verbosity_confound_test.md`) found that full-response CETT readout encodes response length 3.7–16× more strongly than truthfulness. Detection performance at the answer-token level may therefore partly reflect response-form/length correlations rather than a pure hallucination signal. This does not invalidate the classifier — it discriminates on held-out data — but detection claims should be kept distinct from the stronger causal intervention evidence (Section 11, [intervention_findings.md](intervention_findings.md)).
 
 The classifier identifies 38 H-Neurons out of 348,160 total neuron positions (34 layers × 10,240 intermediate neurons), achieving 99.978% weight sparsity. The same 38 neurons were selected regardless of test set composition (training is identical).
 
@@ -142,7 +142,7 @@ The 38 identified H-Neurons are distributed across 23 of 34 layers, with a conce
 | 9 | 10 | 4996 | 1.705 |
 | 10 | 0 | 1819 | 1.693 |
 
-The single most influential H-Neuron (Layer 20, Neuron 4288) has a weight 1.65× larger than the second-ranked, suggesting it plays a disproportionately strong role in hallucination prediction. The classifier also identified 38 negative-weight neurons (suppressive of hallucination), but these are not classified as H-Neurons per the paper's definition.
+The single most influential H-Neuron (Layer 20, Neuron 4288) has a weight 1.65× larger than the second-ranked, suggesting it plays a disproportionately strong role in the answer-token classifier's positive-class score. The classifier also identified 38 negative-weight neurons (negative-weight in the classifier), but these are not classified as H-Neurons per the paper's definition.
 
 ---
 
@@ -290,7 +290,7 @@ The pipeline is dominated by Step 1 (response collection), which requires the mo
 ## 8. Critical Assessment
 
 ### What the replication confirms
-- The core claim holds: an extremely sparse set of neurons (~0.01%) in a 4B-parameter model carries a detectable hallucination signal. Our 38 H-Neurons at 77.7% accuracy closely match the paper's ~35 at 76.9%.
+- The core claim holds at the answer-token classification level: an extremely sparse set of neurons (~0.01%) in a 4B-parameter model carries a detectable false-answer discrimination signal. Our 38 H-Neurons at 77.7% accuracy closely match the paper's ~35 at 76.9%. However, this is a classifier result; the detection interpretation is partially confounded by response-form/length correlations (verbosity confound audit found full-response readout encodes length 3.7–16× more than truthfulness) and should be kept distinct from the stronger causal intervention evidence (Section 11, [intervention_findings.md](intervention_findings.md) Finding 7).
 - The CETT metric (activation × weight norm / output norm) is an effective neuron-level feature — a simple L1 logistic regression over 348,160 features achieves strong classification from this representation alone.
 - The pipeline is reproducible with consumer hardware and minimal API cost (<$5 total).
 
@@ -301,7 +301,7 @@ The pipeline is dominated by Step 1 (response collection), which requires the mo
 
 ### Observations worth discussing
 1. ~~**Layer 20 dominance**: Neuron (20, 4288) has weight 12.17, 1.65× the runner-up. This is unusually dominant for a sparse classifier — it suggests a single neuron contributes disproportionately to hallucination detection. Is this a real "hallucination hub" or an artifact of L1's tendency to concentrate weight?~~ **RESOLVED — L1 artifact.** See Section 10 below.
-2. **Early-layer concentration**: 47% of H-Neurons are in layers 0–10. The paper doesn't break down layer distribution for Gemma 3 specifically. Early-layer hallucination features are surprising — they suggest the model "commits" to hallucinating before deep processing, not as a late-stage failure.
+2. **Early-layer concentration**: 47% of H-Neurons are in layers 0–10. The paper doesn't break down layer distribution for Gemma 3 specifically. The layer location of classifier-selected features shows where the answer-token discrimination signal is available in the network, but does not establish when the model causally commits to a false answer — that would require causal or patching experiments at specific layers.
 3. **Asymmetry with suppressive neurons**: The classifier also found 38 negative-weight neurons (hallucination-suppressing). The paper defines H-Neurons as positive-weight only. Are the suppressive neurons equally stable and transferable? This is unexplored territory.
 4. **The 118 apostrophe-biased failures**: Losing entries containing O'Neill, O'Brien, possessives, etc. systematically removes a content category (Irish names, possessive constructions). If these happen to be disproportionately hallucinated or faithful, the training data has a subtle demographic bias.
 
@@ -328,7 +328,7 @@ The pipeline is dominated by Step 1 (response collection), which requires the mo
 
 **Script:** `scripts/investigate_neuron_4288.py`
 **Plots:** `data/gemma3_4b/investigation_neuron_4288/`
-**Verdict: No — the dominance is an L1 regularization artifact (0/6 analyses support real signal).**
+**Verdict: No — the dominance is an L1 regularization artifact (0/6 analyses support real signal).** Note: the "hallucination signal" language below refers to the answer-token classifier's false-answer discrimination signal, which is partially confounded by response-form/length correlations (see verbosity confound audit).
 
 The paper identifies H-Neurons by their positive weight in an L1-penalized logistic regression. Neuron (20, 4288) received weight 12.169 — 1.65× the runner-up. L1 regularization is known to arbitrarily concentrate weight among correlated features: when two neurons carry similar information, L1 tends to pick one and zero-out the other, rather than splitting the weight evenly (as L2 would). We ran six independent analyses to test whether 4288's dominance reflects genuine unique informativeness or this L1 concentration effect.
 
@@ -338,7 +338,7 @@ The paper identifies H-Neurons by their positive weight in an L1-penalized logis
 
 **What it shows:** Each bar is the test-set AUC when using *only* that one neuron's CETT activation as a univariate hallucination classifier. Blue bars are the top-10 H-Neurons (by L1 weight), red is neuron 4288, gray bars are random zero-weight neurons as controls.
 
-**Why we ran it:** If a neuron is genuinely the most important hallucination indicator, it should also be the best standalone predictor — regardless of what L1 does. This analysis is completely independent of the regularization procedure.
+**Why we ran it:** If a neuron is genuinely the most important false-answer discrimination indicator, it should also be the best standalone predictor — regardless of what L1 does. This analysis is completely independent of the regularization procedure.
 
 **Result:** Neuron 4288 (AUC=0.590) is *not* the best single predictor. That distinction goes to **L13:N833** (AUC=0.703), which ranks only 3rd by classifier weight (3.45). The runner-up L14:N8547 (AUC=0.666) also outperforms 4288. Even L10:N4996 (weight 1.70, rank 9) achieves AUC=0.645 — better than 4288 despite having 7× less classifier weight. All H-Neurons outperform the random controls (mean AUC=0.526), confirming the ensemble signal is real even though individual neuron rankings don't match L1 weights.
 
@@ -350,7 +350,7 @@ The paper identifies H-Neurons by their positive weight in an L1-penalized logis
 
 **What it shows:** Overlapping histograms of raw CETT activation values for true (green, no hallucination) vs false (red, hallucination) test examples. Three panels compare neuron 4288, the runner-up (L14:N8547), and a random zero-weight neuron. Cohen's d quantifies effect size; Mann-Whitney p tests whether the two distributions differ significantly.
 
-**Why we ran it:** A genuine hallucination hub should show clean separation between true and false activations in the raw data, before any classifier processing.
+**Why we ran it:** A genuine "hub" neuron should show clean separation between true and false activations in the raw data, before any classifier processing.
 
 **Result:** Neuron 4288 shows a small-to-medium effect (Cohen's d=0.326, p=1.3e-5) — statistically significant but modest. The runner-up L14:N8547 has *better* separation (d=0.477, p=8.6e-16). The random neuron shows no meaningful separation (d=0.096, p=0.098). Both 4288 and 8547 share a right-skewed distribution where hallucinating examples have a heavier tail of high activations, but the overlap between the two classes is substantial for both.
 
@@ -362,7 +362,7 @@ The paper identifies H-Neurons by their positive weight in an L1-penalized logis
 
 **What it shows:** Left panel: the weight of the top positive neurons as the regularization parameter C varies from 0.001 (strongest L1 penalty, fewest neurons) to 10.0 (weakest penalty, most neurons). Red line is neuron 4288. Right panel: test accuracy and AUC across the same C range.
 
-**Why we ran it:** This is the definitive L1-artifact diagnostic. If neuron 4288 is genuinely the most important hallucination neuron, it should be among the *first* neurons selected as L1 loosens (low C → high C), and it should remain dominant across the range. If it's an artifact, it will appear late and be replaced as more features enter the model.
+**Why we ran it:** This is the definitive L1-artifact diagnostic. If neuron 4288 is genuinely the most important false-answer discrimination neuron, it should be among the *first* neurons selected as L1 loosens (low C → high C), and it should remain dominant across the range. If it's an artifact, it will appear late and be replaced as more features enter the model.
 
 **Result:** This is the most striking finding of the investigation.
 
@@ -427,7 +427,7 @@ A revealing complementary test: keeping *only* neuron 4288 (plus all 38 negative
 | Ablation accuracy drop | >2pp = real | 1.03pp | Artifact |
 | Max correlation with top-10 | <0.3 = real | 0.492 | Artifact |
 
-**All six analyses point to L1 artifact.** Neuron 4288 does carry real hallucination signal (AUC=0.590, well above the 0.526 random baseline), but it is not uniquely or disproportionately important. Its extreme weight is a consequence of L1's winner-take-all behavior among correlated features at the specific regularization strength C=1.0.
+**All six analyses point to L1 artifact.** Neuron 4288 does carry a real false-answer discrimination signal (AUC=0.590, well above the 0.526 random baseline), but it is not uniquely or disproportionately important. Its extreme weight is a consequence of L1's winner-take-all behavior among correlated features at the specific regularization strength C=1.0.
 
 This raises a broader methodological concern about the H-Neurons paper: **L1 weight magnitude is used throughout as a proxy for neuron importance, but our analysis shows this conflates signal strength with regularization artifacts.** The most informative single neuron (L13:N833, AUC=0.703) has only 28% of 4288's weight. A more robust neuron-ranking method — such as single-neuron AUC, stability across C values, or Shapley values — would produce a substantially different "top H-Neuron" list.
 
