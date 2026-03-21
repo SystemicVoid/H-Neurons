@@ -1,0 +1,1825 @@
+{
+  "classifier_summary_path": "data/gemma3_4b/pipeline/classifier_sae_summary.json",
+  "extraction_dir": "data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/answer_tokens",
+  "ids_path": "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+  "n_samples": 782,
+  "n_false": 391,
+  "n_true": 391,
+  "n_positive_features_analyzed": 50,
+  "n_verbosity_confounds": 0,
+  "confound_threshold": 0.3,
+  "feature_analyses": [
+    {
+      "layer": 17,
+      "feature": 677,
+      "flat_idx": 131749,
+      "weight": 0.021595059109335464,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0509,
+          "p": 0.15533
+        },
+        "response_char_length": {
+          "r": -0.0493,
+          "p": 0.168749
+        },
+        "question_char_length": {
+          "r": 0.0479,
+          "p": 0.180915
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 3.7623,
+        "true_mean": 3.4784,
+        "false_std": 13.4776,
+        "true_std": 15.0965,
+        "separation": 0.2839
+      }
+    },
+    {
+      "layer": 13,
+      "feature": 341,
+      "flat_idx": 65877,
+      "weight": 0.01285907345003104,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0294,
+          "p": 0.411011
+        },
+        "response_char_length": {
+          "r": -0.0106,
+          "p": 0.766269
+        },
+        "question_char_length": {
+          "r": 0.0475,
+          "p": 0.1845
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 5.4738,
+        "true_mean": 0.7871,
+        "false_std": 27.6161,
+        "true_std": 6.5362,
+        "separation": 4.6867
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 6023,
+      "flat_idx": 120711,
+      "weight": 0.010887505666443345,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0811,
+          "p": 0.023379
+        },
+        "response_char_length": {
+          "r": -0.0372,
+          "p": 0.299372
+        },
+        "question_char_length": {
+          "r": 0.0688,
+          "p": 0.054552
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 11.1366,
+        "true_mean": 8.9838,
+        "false_std": 21.1166,
+        "true_std": 20.1538,
+        "separation": 2.1527
+      }
+    },
+    {
+      "layer": 13,
+      "feature": 119,
+      "flat_idx": 65655,
+      "weight": 0.01080011301608585,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.1685,
+          "p": 2e-06
+        },
+        "response_char_length": {
+          "r": -0.0861,
+          "p": 0.016036
+        },
+        "question_char_length": {
+          "r": 0.0373,
+          "p": 0.297788
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 15.0911,
+        "true_mean": 11.595,
+        "false_std": 28.4205,
+        "true_std": 21.7802,
+        "separation": 3.4961
+      }
+    },
+    {
+      "layer": 17,
+      "feature": 79,
+      "flat_idx": 131151,
+      "weight": 0.010777416858035613,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.1229,
+          "p": 0.00057
+        },
+        "response_char_length": {
+          "r": 0.0478,
+          "p": 0.181668
+        },
+        "question_char_length": {
+          "r": -0.0711,
+          "p": 0.04674
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 1.3824,
+        "true_mean": 3.1245,
+        "false_std": 7.649,
+        "true_std": 13.9012,
+        "separation": -1.7422
+      }
+    },
+    {
+      "layer": 14,
+      "feature": 123,
+      "flat_idx": 82043,
+      "weight": 0.010010876972983135,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0012,
+          "p": 0.972618
+        },
+        "response_char_length": {
+          "r": 0.0761,
+          "p": 0.033305
+        },
+        "question_char_length": {
+          "r": 0.0758,
+          "p": 0.034007
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 12.4254,
+        "true_mean": 1.3877,
+        "false_std": 28.7751,
+        "true_std": 7.9738,
+        "separation": 11.0377
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 2714,
+      "flat_idx": 117402,
+      "weight": 0.009963049299430194,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0252,
+          "p": 0.48097
+        },
+        "response_char_length": {
+          "r": 0.0961,
+          "p": 0.007155
+        },
+        "question_char_length": {
+          "r": -0.0032,
+          "p": 0.929439
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 0.988,
+        "true_mean": 1.3423,
+        "false_std": 5.5442,
+        "true_std": 8.3966,
+        "separation": -0.3543
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 529,
+      "flat_idx": 115217,
+      "weight": 0.009688981548623556,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0435,
+          "p": 0.224634
+        },
+        "response_char_length": {
+          "r": -0.0291,
+          "p": 0.417075
+        },
+        "question_char_length": {
+          "r": 0.0986,
+          "p": 0.005763
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 5.4336,
+        "true_mean": 0.7495,
+        "false_std": 17.3435,
+        "true_std": 6.3568,
+        "separation": 4.6841
+      }
+    },
+    {
+      "layer": 7,
+      "feature": 550,
+      "flat_idx": 49702,
+      "weight": 0.009357350453328021,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0831,
+          "p": 0.020129
+        },
+        "response_char_length": {
+          "r": -0.0738,
+          "p": 0.039128
+        },
+        "question_char_length": {
+          "r": 0.0107,
+          "p": 0.764309
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 2.8104,
+        "true_mean": 4.0277,
+        "false_std": 13.0028,
+        "true_std": 19.9058,
+        "separation": -1.2172
+      }
+    },
+    {
+      "layer": 13,
+      "feature": 940,
+      "flat_idx": 66476,
+      "weight": 0.009212988747852084,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0598,
+          "p": 0.094594
+        },
+        "response_char_length": {
+          "r": 0.1279,
+          "p": 0.000337
+        },
+        "question_char_length": {
+          "r": 0.0779,
+          "p": 0.029425
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 8.8474,
+        "true_mean": 10.685,
+        "false_std": 23.0399,
+        "true_std": 24.1878,
+        "separation": -1.8377
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 7465,
+      "flat_idx": 122153,
+      "weight": 0.00907298531795074,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0892,
+          "p": 0.012628
+        },
+        "response_char_length": {
+          "r": -0.0125,
+          "p": 0.726218
+        },
+        "question_char_length": {
+          "r": 0.0065,
+          "p": 0.85513
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 3.8534,
+        "true_mean": 4.3845,
+        "false_std": 13.4149,
+        "true_std": 15.2016,
+        "separation": -0.5311
+      }
+    },
+    {
+      "layer": 14,
+      "feature": 290,
+      "flat_idx": 82210,
+      "weight": 0.008681361721325187,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0382,
+          "p": 0.286506
+        },
+        "response_char_length": {
+          "r": 0.0007,
+          "p": 0.98346
+        },
+        "question_char_length": {
+          "r": -0.0072,
+          "p": 0.840278
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 0.6278,
+        "true_mean": 1.5102,
+        "false_std": 4.8193,
+        "true_std": 17.3252,
+        "separation": -0.8825
+      }
+    },
+    {
+      "layer": 15,
+      "feature": 4949,
+      "flat_idx": 103253,
+      "weight": 0.008544133993155676,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0064,
+          "p": 0.857832
+        },
+        "response_char_length": {
+          "r": -0.0193,
+          "p": 0.590681
+        },
+        "question_char_length": {
+          "r": 0.0965,
+          "p": 0.006936
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 4.0244,
+        "true_mean": 0.0249,
+        "false_std": 24.8208,
+        "true_std": 0.4927,
+        "separation": 3.9995
+      }
+    },
+    {
+      "layer": 6,
+      "feature": 159,
+      "flat_idx": 32927,
+      "weight": 0.008335796966905814,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.1656,
+          "p": 3e-06
+        },
+        "response_char_length": {
+          "r": -0.091,
+          "p": 0.010933
+        },
+        "question_char_length": {
+          "r": -0.0755,
+          "p": 0.034868
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 5.9895,
+        "true_mean": 4.7518,
+        "false_std": 23.9061,
+        "true_std": 20.3697,
+        "separation": 1.2377
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 2861,
+      "flat_idx": 117549,
+      "weight": 0.008328115833183589,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0007,
+          "p": 0.984379
+        },
+        "response_char_length": {
+          "r": 0.0251,
+          "p": 0.4834
+        },
+        "question_char_length": {
+          "r": 0.0948,
+          "p": 0.007984
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 10.3555,
+        "true_mean": 3.4576,
+        "false_std": 19.1529,
+        "true_std": 10.044,
+        "separation": 6.8979
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 19,
+      "flat_idx": 114707,
+      "weight": 0.007994640894626858,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0936,
+          "p": 0.008798
+        },
+        "response_char_length": {
+          "r": -0.056,
+          "p": 0.117703
+        },
+        "question_char_length": {
+          "r": 0.0519,
+          "p": 0.147252
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 2.9682,
+        "true_mean": 1.8856,
+        "false_std": 17.2482,
+        "true_std": 11.7574,
+        "separation": 1.0826
+      }
+    },
+    {
+      "layer": 14,
+      "feature": 7,
+      "flat_idx": 81927,
+      "weight": 0.007804831870571345,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.1615,
+          "p": 6e-06
+        },
+        "response_char_length": {
+          "r": 0.1966,
+          "p": 0.0
+        },
+        "question_char_length": {
+          "r": -0.0376,
+          "p": 0.293357
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 1.6243,
+        "true_mean": 0.7774,
+        "false_std": 9.5521,
+        "true_std": 7.7264,
+        "separation": 0.847
+      }
+    },
+    {
+      "layer": 17,
+      "feature": 609,
+      "flat_idx": 131681,
+      "weight": 0.0077007069728593225,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0032,
+          "p": 0.928892
+        },
+        "response_char_length": {
+          "r": 0.0203,
+          "p": 0.570179
+        },
+        "question_char_length": {
+          "r": 0.0038,
+          "p": 0.914841
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 1.0377,
+        "true_mean": 1.488,
+        "false_std": 8.6427,
+        "true_std": 13.561,
+        "separation": -0.4503
+      }
+    },
+    {
+      "layer": 13,
+      "feature": 490,
+      "flat_idx": 66026,
+      "weight": 0.007673567918840545,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0156,
+          "p": 0.663232
+        },
+        "response_char_length": {
+          "r": 0.028,
+          "p": 0.434122
+        },
+        "question_char_length": {
+          "r": 0.0681,
+          "p": 0.057009
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 22.9663,
+        "true_mean": 1.7967,
+        "false_std": 61.7308,
+        "true_std": 10.1059,
+        "separation": 21.1696
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 430,
+      "flat_idx": 147886,
+      "weight": 0.007512994787427705,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0852,
+          "p": 0.017138
+        },
+        "response_char_length": {
+          "r": 0.2031,
+          "p": 0.0
+        },
+        "question_char_length": {
+          "r": 0.0675,
+          "p": 0.059373
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 10.3148,
+        "true_mean": 5.6638,
+        "false_std": 31.4701,
+        "true_std": 19.7489,
+        "separation": 4.651
+      }
+    },
+    {
+      "layer": 13,
+      "feature": 217,
+      "flat_idx": 65753,
+      "weight": 0.007300381275126802,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.1698,
+          "p": 2e-06
+        },
+        "response_char_length": {
+          "r": 0.096,
+          "p": 0.007196
+        },
+        "question_char_length": {
+          "r": -0.0194,
+          "p": 0.58759
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 1.7022,
+        "true_mean": 1.1095,
+        "false_std": 19.7748,
+        "true_std": 9.4225,
+        "separation": 0.5927
+      }
+    },
+    {
+      "layer": 15,
+      "feature": 528,
+      "flat_idx": 98832,
+      "weight": 0.00689501493519129,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.1023,
+          "p": 0.004183
+        },
+        "response_char_length": {
+          "r": -0.0622,
+          "p": 0.082251
+        },
+        "question_char_length": {
+          "r": 0.0733,
+          "p": 0.040533
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 25.1951,
+        "true_mean": 13.1723,
+        "false_std": 45.1148,
+        "true_std": 33.2998,
+        "separation": 12.0227
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 346,
+      "flat_idx": 115034,
+      "weight": 0.006818089070960571,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.1001,
+          "p": 0.005091
+        },
+        "response_char_length": {
+          "r": 0.0756,
+          "p": 0.034599
+        },
+        "question_char_length": {
+          "r": 0.0855,
+          "p": 0.016739
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 3.2455,
+        "true_mean": 3.9001,
+        "false_std": 11.1427,
+        "true_std": 12.9248,
+        "separation": -0.6547
+      }
+    },
+    {
+      "layer": 7,
+      "feature": 139,
+      "flat_idx": 49291,
+      "weight": 0.006597195461867366,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0831,
+          "p": 0.020168
+        },
+        "response_char_length": {
+          "r": -0.2848,
+          "p": 0.0
+        },
+        "question_char_length": {
+          "r": -0.0203,
+          "p": 0.570967
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 12.3235,
+        "true_mean": 10.1862,
+        "false_std": 30.3538,
+        "true_std": 30.7355,
+        "separation": 2.1373
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 3821,
+      "flat_idx": 118509,
+      "weight": 0.006452351889994597,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0152,
+          "p": 0.670732
+        },
+        "response_char_length": {
+          "r": -0.0124,
+          "p": 0.728409
+        },
+        "question_char_length": {
+          "r": 0.0698,
+          "p": 0.051117
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 10.2995,
+        "true_mean": 3.6998,
+        "false_std": 21.9745,
+        "true_std": 11.8979,
+        "separation": 6.5997
+      }
+    },
+    {
+      "layer": 14,
+      "feature": 779,
+      "flat_idx": 82699,
+      "weight": 0.006238436630115894,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0184,
+          "p": 0.608127
+        },
+        "response_char_length": {
+          "r": 0.0773,
+          "p": 0.030715
+        },
+        "question_char_length": {
+          "r": 0.1652,
+          "p": 3e-06
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 21.3981,
+        "true_mean": 7.7486,
+        "false_std": 32.8932,
+        "true_std": 20.6035,
+        "separation": 13.6495
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 3054,
+      "flat_idx": 117742,
+      "weight": 0.005781684783977689,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0662,
+          "p": 0.06445
+        },
+        "response_char_length": {
+          "r": -0.0492,
+          "p": 0.169217
+        },
+        "question_char_length": {
+          "r": -0.0608,
+          "p": 0.089499
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 3.2768,
+        "true_mean": 2.8685,
+        "false_std": 17.1324,
+        "true_std": 14.2389,
+        "separation": 0.4083
+      }
+    },
+    {
+      "layer": 0,
+      "feature": 883,
+      "flat_idx": 883,
+      "weight": 0.005734229551190871,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0447,
+          "p": 0.212279
+        },
+        "response_char_length": {
+          "r": 0.1387,
+          "p": 0.0001
+        },
+        "question_char_length": {
+          "r": 0.0805,
+          "p": 0.024383
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 12.6903,
+        "true_mean": 8.7135,
+        "false_std": 24.5738,
+        "true_std": 19.6824,
+        "separation": 3.9768
+      }
+    },
+    {
+      "layer": 7,
+      "feature": 382,
+      "flat_idx": 49534,
+      "weight": 0.005682732463088232,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0839,
+          "p": 0.018963
+        },
+        "response_char_length": {
+          "r": -0.047,
+          "p": 0.188847
+        },
+        "question_char_length": {
+          "r": -0.0278,
+          "p": 0.437962
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 3.0157,
+        "true_mean": 4.101,
+        "false_std": 9.7674,
+        "true_std": 14.391,
+        "separation": -1.0852
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 2867,
+      "flat_idx": 150323,
+      "weight": 0.0056349272863759495,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0128,
+          "p": 0.721355
+        },
+        "response_char_length": {
+          "r": -0.0139,
+          "p": 0.697869
+        },
+        "question_char_length": {
+          "r": 0.0442,
+          "p": 0.216845
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 1.2026,
+        "true_mean": 1.4599,
+        "false_std": 20.8065,
+        "true_std": 14.2426,
+        "separation": -0.2573
+      }
+    },
+    {
+      "layer": 13,
+      "feature": 847,
+      "flat_idx": 66383,
+      "weight": 0.005618433437992149,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0548,
+          "p": 0.125932
+        },
+        "response_char_length": {
+          "r": 0.0109,
+          "p": 0.759968
+        },
+        "question_char_length": {
+          "r": 0.0081,
+          "p": 0.822011
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 14.271,
+        "true_mean": 4.3733,
+        "false_std": 37.596,
+        "true_std": 18.1814,
+        "separation": 9.8978
+      }
+    },
+    {
+      "layer": 14,
+      "feature": 861,
+      "flat_idx": 82781,
+      "weight": 0.00536379496971136,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0158,
+          "p": 0.658682
+        },
+        "response_char_length": {
+          "r": -0.1098,
+          "p": 0.002096
+        },
+        "question_char_length": {
+          "r": -0.0363,
+          "p": 0.311184
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 7.1263,
+        "true_mean": 1.5457,
+        "false_std": 35.0786,
+        "true_std": 12.2206,
+        "separation": 5.5805
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 10730,
+      "flat_idx": 158186,
+      "weight": 0.005339752985238726,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0112,
+          "p": 0.754698
+        },
+        "response_char_length": {
+          "r": -0.0193,
+          "p": 0.5897
+        },
+        "question_char_length": {
+          "r": 0.0356,
+          "p": 0.320224
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 1.7031,
+        "true_mean": 2.176,
+        "false_std": 22.3064,
+        "true_std": 25.5767,
+        "separation": -0.473
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 7993,
+      "flat_idx": 155449,
+      "weight": 0.005234602895115179,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.1795,
+          "p": 0.0
+        },
+        "response_char_length": {
+          "r": 0.2877,
+          "p": 0.0
+        },
+        "question_char_length": {
+          "r": -0.0036,
+          "p": 0.919834
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 2.221,
+        "true_mean": 1.0522,
+        "false_std": 13.8659,
+        "true_std": 10.2828,
+        "separation": 1.1688
+      }
+    },
+    {
+      "layer": 0,
+      "feature": 420,
+      "flat_idx": 420,
+      "weight": 0.005222470985285105,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0089,
+          "p": 0.804451
+        },
+        "response_char_length": {
+          "r": -0.1034,
+          "p": 0.003796
+        },
+        "question_char_length": {
+          "r": 0.018,
+          "p": 0.615205
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 4.9097,
+        "true_mean": 2.9931,
+        "false_std": 31.0907,
+        "true_std": 19.1417,
+        "separation": 1.9166
+      }
+    },
+    {
+      "layer": 13,
+      "feature": 3317,
+      "flat_idx": 68853,
+      "weight": 0.0051386439501354825,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0898,
+          "p": 0.012039
+        },
+        "response_char_length": {
+          "r": -0.0092,
+          "p": 0.797402
+        },
+        "question_char_length": {
+          "r": 0.0096,
+          "p": 0.788222
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 3.3934,
+        "true_mean": 1.9149,
+        "false_std": 12.7513,
+        "true_std": 8.6775,
+        "separation": 1.4785
+      }
+    },
+    {
+      "layer": 16,
+      "feature": 471,
+      "flat_idx": 115159,
+      "weight": 0.0050655110086927045,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.153,
+          "p": 1.7e-05
+        },
+        "response_char_length": {
+          "r": 0.2235,
+          "p": 0.0
+        },
+        "question_char_length": {
+          "r": 0.0485,
+          "p": 0.175296
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 4.8521,
+        "true_mean": 10.4686,
+        "false_std": 16.3034,
+        "true_std": 27.4219,
+        "separation": -5.6165
+      }
+    },
+    {
+      "layer": 17,
+      "feature": 454,
+      "flat_idx": 131526,
+      "weight": 0.004962644486974807,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.142,
+          "p": 6.8e-05
+        },
+        "response_char_length": {
+          "r": 0.1583,
+          "p": 9e-06
+        },
+        "question_char_length": {
+          "r": -0.0382,
+          "p": 0.28649
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 4.759,
+        "true_mean": 2.2268,
+        "false_std": 24.6554,
+        "true_std": 17.1547,
+        "separation": 2.5323
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 8970,
+      "flat_idx": 156426,
+      "weight": 0.004940452386489378,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.028,
+          "p": 0.434928
+        },
+        "response_char_length": {
+          "r": 0.0095,
+          "p": 0.791575
+        },
+        "question_char_length": {
+          "r": 0.1309,
+          "p": 0.000242
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 6.4325,
+        "true_mean": 1.2575,
+        "false_std": 28.8176,
+        "true_std": 11.2232,
+        "separation": 5.175
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 9301,
+      "flat_idx": 156757,
+      "weight": 0.00476102358386765,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.1169,
+          "p": 0.001052
+        },
+        "response_char_length": {
+          "r": 0.1137,
+          "p": 0.00145
+        },
+        "question_char_length": {
+          "r": -0.0115,
+          "p": 0.748183
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 0.493,
+        "true_mean": 0.6254,
+        "false_std": 8.4376,
+        "true_std": 9.1197,
+        "separation": -0.1325
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 15575,
+      "flat_idx": 163031,
+      "weight": 0.004727333692359769,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0217,
+          "p": 0.544051
+        },
+        "response_char_length": {
+          "r": 0.0009,
+          "p": 0.979894
+        },
+        "question_char_length": {
+          "r": -0.0262,
+          "p": 0.463966
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 0.0,
+        "true_mean": 0.6479,
+        "false_std": 0.0,
+        "true_std": 8.0659,
+        "separation": -0.6479
+      }
+    },
+    {
+      "layer": 14,
+      "feature": 1571,
+      "flat_idx": 83491,
+      "weight": 0.004713737854824368,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0787,
+          "p": 0.027853
+        },
+        "response_char_length": {
+          "r": -0.0237,
+          "p": 0.507737
+        },
+        "question_char_length": {
+          "r": 0.1166,
+          "p": 0.001083
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 18.2414,
+        "true_mean": 20.0461,
+        "false_std": 29.6973,
+        "true_std": 33.3531,
+        "separation": -1.8047
+      }
+    },
+    {
+      "layer": 14,
+      "feature": 565,
+      "flat_idx": 82485,
+      "weight": 0.0045262264970726135,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0079,
+          "p": 0.825068
+        },
+        "response_char_length": {
+          "r": -0.0682,
+          "p": 0.05643
+        },
+        "question_char_length": {
+          "r": 0.1316,
+          "p": 0.000223
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 64.3488,
+        "true_mean": 41.4902,
+        "false_std": 75.6254,
+        "true_std": 55.4147,
+        "separation": 22.8586
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 4558,
+      "flat_idx": 152014,
+      "weight": 0.004524005015513876,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.1258,
+          "p": 0.000423
+        },
+        "response_char_length": {
+          "r": -0.1509,
+          "p": 2.3e-05
+        },
+        "question_char_length": {
+          "r": -0.0473,
+          "p": 0.186694
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 3.6903,
+        "true_mean": 3.4677,
+        "false_std": 20.8418,
+        "true_std": 20.3666,
+        "separation": 0.2227
+      }
+    },
+    {
+      "layer": 0,
+      "feature": 467,
+      "flat_idx": 467,
+      "weight": 0.004487837437375634,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.042,
+          "p": 0.240568
+        },
+        "response_char_length": {
+          "r": -0.0265,
+          "p": 0.459761
+        },
+        "question_char_length": {
+          "r": -0.0007,
+          "p": 0.983665
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 1.4734,
+        "true_mean": 1.5883,
+        "false_std": 22.0116,
+        "true_std": 22.1968,
+        "separation": -0.1148
+      }
+    },
+    {
+      "layer": 0,
+      "feature": 64,
+      "flat_idx": 64,
+      "weight": 0.004464702813743691,
+      "correlations": {
+        "response_token_count": {
+          "r": 0.0419,
+          "p": 0.241969
+        },
+        "response_char_length": {
+          "r": -0.1025,
+          "p": 0.004101
+        },
+        "question_char_length": {
+          "r": -0.036,
+          "p": 0.314254
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 2.0253,
+        "true_mean": 3.0053,
+        "false_std": 16.7327,
+        "true_std": 16.2497,
+        "separation": -0.98
+      }
+    },
+    {
+      "layer": 0,
+      "feature": 26,
+      "flat_idx": 26,
+      "weight": 0.004397955442154255,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0928,
+          "p": 0.009428
+        },
+        "response_char_length": {
+          "r": -0.0171,
+          "p": 0.6324
+        },
+        "question_char_length": {
+          "r": 0.0392,
+          "p": 0.273565
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 4.3747,
+        "true_mean": 4.4768,
+        "false_std": 13.6306,
+        "true_std": 14.9992,
+        "separation": -0.1021
+      }
+    },
+    {
+      "layer": 17,
+      "feature": 921,
+      "flat_idx": 131993,
+      "weight": 0.0043792944498911275,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0609,
+          "p": 0.08883
+        },
+        "response_char_length": {
+          "r": -0.0695,
+          "p": 0.052141
+        },
+        "question_char_length": {
+          "r": -0.0311,
+          "p": 0.385313
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 2.5522,
+        "true_mean": 2.3296,
+        "false_std": 13.7707,
+        "true_std": 13.5401,
+        "separation": 0.2226
+      }
+    },
+    {
+      "layer": 20,
+      "feature": 1268,
+      "flat_idx": 148724,
+      "weight": 0.004368034892469152,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0325,
+          "p": 0.364547
+        },
+        "response_char_length": {
+          "r": 0.0032,
+          "p": 0.928793
+        },
+        "question_char_length": {
+          "r": -0.0047,
+          "p": 0.896645
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 0.3641,
+        "true_mean": 1.6428,
+        "false_std": 4.5281,
+        "true_std": 11.3283,
+        "separation": -1.2786
+      }
+    },
+    {
+      "layer": 15,
+      "feature": 4349,
+      "flat_idx": 102653,
+      "weight": 0.004320185420441523,
+      "correlations": {
+        "response_token_count": {
+          "r": -0.0319,
+          "p": 0.373106
+        },
+        "response_char_length": {
+          "r": -0.0186,
+          "p": 0.603485
+        },
+        "question_char_length": {
+          "r": -0.1014,
+          "p": 0.00453
+        }
+      },
+      "is_verbosity_confound": false,
+      "activation_stats": {
+        "false_mean": 2.1426,
+        "true_mean": 4.1068,
+        "false_std": 8.7604,
+        "true_std": 12.7878,
+        "separation": -1.9642
+      }
+    }
+  ],
+  "max_activating_samples": {
+    "L17:F677": [
+      {
+        "qid": "qz_1240",
+        "activation": 167.1192,
+        "question": "What was the name of the robot dog that became a regular companion for Doctor Who? Respond with the answer only, without any explanation.",
+        "response": "K-9",
+        "judge": "true",
+        "n_answer_tokens": 3
+      },
+      {
+        "qid": "tc_1770",
+        "activation": 149.7454,
+        "question": "What letter appears on the computer screen when you are using Microsoft Internet Explorer? Respond with the answer only, without any explanation.",
+        "response": "E",
+        "judge": "true",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_1494",
+        "activation": 92.0732,
+        "question": "How was Walker Smith Robinson better known? Respond with the answer only, without any explanation.",
+        "response": "WSR Architects",
+        "judge": "false",
+        "n_answer_tokens": 3
+      },
+      {
+        "qid": "qz_1702",
+        "activation": 91.321,
+        "question": "What was the nickname of Jimmy Nail's character in Auf Wiedersehen, Pet? Respond with the answer only, without any explanation.",
+        "response": "Nails",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_722",
+        "activation": 84.8558,
+        "question": "What are the international registration letters for a vehicle form Jordan? Respond with the answer only, without any explanation.",
+        "response": "JORD",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "qz_469",
+        "activation": 67.8212,
+        "question": "Which company is responsible for Mates condoms? Respond with the answer only, without any explanation.",
+        "response": "Mates",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_2909",
+        "activation": 67.5193,
+        "question": "What tube connects the kidney to the bladder? Respond with the answer only, without any explanation.",
+        "response": "Ureter",
+        "judge": "true",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_1062",
+        "activation": 67.2664,
+        "question": "Which element is named after Pierre and Marie Curie? Respond with the answer only, without any explanation.",
+        "response": "Radium",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_402",
+        "activation": 65.8162,
+        "question": "What was the maiden name of Blondie Bumstead, the comic-strip wife of hapless Dagwood Bumstead? Respond with the answer only, without any explanation.",
+        "response": "Fletcher",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "qz_271",
+        "activation": 63.2406,
+        "question": "Richard Starkey is the real name of which famous musician? Respond with the answer only, without any explanation.",
+        "response": "Ringo Starr",
+        "judge": "true",
+        "n_answer_tokens": 3
+      }
+    ],
+    "L13:F341": [
+      {
+        "qid": "tc_3137",
+        "activation": 247.0662,
+        "question": "What is brighter than a hundred million suns? Respond with the answer only, without any explanation.",
+        "response": "Love.",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_2204",
+        "activation": 227.0342,
+        "question": "What was the profession of Burt Reynolds' father? Respond with the answer only, without any explanation.",
+        "response": "Truck driver",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "qz_2348",
+        "activation": 212.5684,
+        "question": "Which sport or pastime would you be playing if you tried to sell a dummy to a hooker? Respond with the answer only, without any explanation.",
+        "response": "Poker",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_448",
+        "activation": 201.2134,
+        "question": "\"In the Bible, for what \"\"price\"\" did Esau sell his birthright to his younger twin brother, Jacob?\" Respond with the answer only, without any explanation.",
+        "response": "A bowl of lentil stew.",
+        "judge": "false",
+        "n_answer_tokens": 6
+      },
+      {
+        "qid": "qz_25",
+        "activation": 157.4566,
+        "question": "What is Hypnophobia the fear of? Respond with the answer only, without any explanation.",
+        "response": "Blankets.",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "qz_1293",
+        "activation": 121.5909,
+        "question": "In September 2003, Fathers 4 Justice campaigner Jason Hatch caused an embarrassing security breach at Buckingham Palace dressed as who? Respond with the answer only, without any explanation.",
+        "response": "Paddington Bear",
+        "judge": "false",
+        "n_answer_tokens": 3
+      },
+      {
+        "qid": "qz_929",
+        "activation": 118.6999,
+        "question": "The word love as used in the scoring of tennis is thought to have originated from the French word for what type of food? Respond with the answer only, without any explanation.",
+        "response": "Loaf",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_1566",
+        "activation": 109.5723,
+        "question": "John and Mary Evans of Alaska grew the world's biggest what? Respond with the answer only, without any explanation.",
+        "response": "Pumpkin",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "qz_1660",
+        "activation": 101.2979,
+        "question": "What two word phrase is Sweeney Todd Cockney rhyming slang for? Respond with the answer only, without any explanation.",
+        "response": "Toothpaste",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "qz_2604",
+        "activation": 99.3958,
+        "question": "The Bottle Inn at Marshwood in Dorset has what annual eye watering and tongue numbing item on the menu? Respond with the answer only, without any explanation.",
+        "response": "Worms in beer",
+        "judge": "false",
+        "n_answer_tokens": 4
+      }
+    ],
+    "L16:F6023": [
+      {
+        "qid": "tc_198",
+        "activation": 165.0853,
+        "question": "Italy leads the world in pasta consumption with 61.7 pounds eaten per person per year. What country is second? Respond with the answer only, without any explanation.",
+        "response": "Greece",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "qz_1236",
+        "activation": 117.8982,
+        "question": "What comes next in the following sequence... Red, Blue, White, Black, Orange, __? Respond with the answer only, without any explanation.",
+        "response": "Purple",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "qz_1919",
+        "activation": 115.0886,
+        "question": "The Ballearics are made up of three major islands. Majorca and Minorca are two, but what is the other one? Respond with the answer only, without any explanation.",
+        "response": "Ibiza",
+        "judge": "true",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "qz_2935",
+        "activation": 114.016,
+        "question": "If the US states that border Canada from west to east are Washington, Idaho, Montana, and North Dakota, what comes next? Respond with the answer only, without any explanation.",
+        "response": "Minnesota",
+        "judge": "true",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_2047",
+        "activation": 100.9931,
+        "question": "Which European cou8ntry was first this century to give women the vote? Respond with the answer only, without any explanation.",
+        "response": "Finland",
+        "judge": "true",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_2050",
+        "activation": 84.4535,
+        "question": "How many independent 'Baltic states' are there? Respond with the answer only, without any explanation.",
+        "response": "Three",
+        "judge": "true",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "qz_2421",
+        "activation": 83.7869,
+        "question": "Glenis the Guinea Pig is which rodent superstar's girlfriend? Respond with the answer only, without any explanation.",
+        "response": "Hammy",
+        "judge": "false",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_1935",
+        "activation": 83.753,
+        "question": "Salvador Allende was elected president of which country in 1970? Respond with the answer only, without any explanation.",
+        "response": "Chile",
+        "judge": "true",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "qz_2358",
+        "activation": 82.8489,
+        "question": "Which is the most southerly of The Channel Islands ? Respond with the answer only, without any explanation.",
+        "response": "Jersey",
+        "judge": "true",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_114",
+        "activation": 81.2901,
+        "question": "In which country was Ursula Andrews born? Respond with the answer only, without any explanation.",
+        "response": "England",
+        "judge": "false",
+        "n_answer_tokens": 1
+      }
+    ],
+    "L13:F119": [
+      {
+        "qid": "qz_2278",
+        "activation": 170.2832,
+        "question": "Author Wilbur Smith was born and lived most of his life in which country? Respond with the answer only, without any explanation.",
+        "response": "England",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_114",
+        "activation": 167.6086,
+        "question": "In which country was Ursula Andrews born? Respond with the answer only, without any explanation.",
+        "response": "England",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_1566",
+        "activation": 147.7292,
+        "question": "John and Mary Evans of Alaska grew the world's biggest what? Respond with the answer only, without any explanation.",
+        "response": "Pumpkin",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_78",
+        "activation": 146.6603,
+        "question": "The US signed a treaty with which country to allow the construction of the Panama Canal? Respond with the answer only, without any explanation.",
+        "response": "Colombia",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "qz_2553",
+        "activation": 145.2971,
+        "question": "In which country did David Beckham marry Victoria Adams? Respond with the answer only, without any explanation.",
+        "response": "Italy",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_738",
+        "activation": 127.9639,
+        "question": "Which country does the airline Sansa come from? Respond with the answer only, without any explanation.",
+        "response": "Finland",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_726",
+        "activation": 126.7029,
+        "question": "In which country was Julie Christie born? Respond with the answer only, without any explanation.",
+        "response": "Jamaica",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_965",
+        "activation": 121.0228,
+        "question": "Bill Cosby had a professional trial in which sport? Respond with the answer only, without any explanation.",
+        "response": "Basketball",
+        "judge": "false",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_776",
+        "activation": 120.9648,
+        "question": "Which country does the airline Ansett come from? Respond with the answer only, without any explanation.",
+        "response": "Australia",
+        "judge": "true",
+        "n_answer_tokens": 1
+      },
+      {
+        "qid": "tc_2773",
+        "activation": 117.4056,
+        "question": "What is described as an ionized gas with approximately equal numbers of positive and negative charges? Respond with the answer only, without any explanation.",
+        "response": "Plasma",
+        "judge": "true",
+        "n_answer_tokens": 1
+      }
+    ],
+    "L17:F79": [
+      {
+        "qid": "tc_2688",
+        "activation": 152.9408,
+        "question": "What nationality was the spy Mata Hari? Respond with the answer only, without any explanation.",
+        "response": "Dutch-Indonesian",
+        "judge": "true",
+        "n_answer_tokens": 4
+      },
+      {
+        "qid": "tc_2617",
+        "activation": 116.5416,
+        "question": "In which country did Pol Pot lead the feared Khmer Rouge? Respond with the answer only, without any explanation.",
+        "response": "Cambodia",
+        "judge": "true",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_2705",
+        "activation": 88.9249,
+        "question": "Which religious grou0p migrated westward to the Great Salt Lake, Utah, in 1847? Respond with the answer only, without any explanation.",
+        "response": "Mormons",
+        "judge": "true",
+        "n_answer_tokens": 3
+      },
+      {
+        "qid": "tc_1021",
+        "activation": 72.8636,
+        "question": "Who had and 80s NO 1 with The Tide is High? Respond with the answer only, without any explanation.",
+        "response": "Teenage\u0627\u06a9\u06cc",
+        "judge": "false",
+        "n_answer_tokens": 3
+      },
+      {
+        "qid": "qz_2364",
+        "activation": 60.0245,
+        "question": "What is the longest river in Scandinavia ? Respond with the answer only, without any explanation.",
+        "response": "G\u00f6ta \u00e4lva",
+        "judge": "false",
+        "n_answer_tokens": 4
+      },
+      {
+        "qid": "tc_2504",
+        "activation": 58.5212,
+        "question": "On which river does Prague stand? Respond with the answer only, without any explanation.",
+        "response": "Vltava",
+        "judge": "true",
+        "n_answer_tokens": 3
+      },
+      {
+        "qid": "tc_2171",
+        "activation": 54.6689,
+        "question": "Which mountains stretch from West Virginia to Georgia? Respond with the answer only, without any explanation.",
+        "response": "Appalachian Mountains",
+        "judge": "false",
+        "n_answer_tokens": 4
+      },
+      {
+        "qid": "qz_312",
+        "activation": 53.6845,
+        "question": "What sign of the zodiac would you be if you were born on St. Valentine's Day? Respond with the answer only, without any explanation.",
+        "response": "Aquarius",
+        "judge": "true",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_1512",
+        "activation": 52.8597,
+        "question": "Which was Hideo Nomo's first US baseball team? Respond with the answer only, without any explanation.",
+        "response": "Dodgers",
+        "judge": "true",
+        "n_answer_tokens": 2
+      },
+      {
+        "qid": "tc_2082",
+        "activation": 50.6399,
+        "question": "Who was Geena Davis's husband when they made the loss-maker Cutthroat Island? Respond with the answer only, without any explanation.",
+        "response": "Richard Dreyfuss",
+        "judge": "false",
+        "n_answer_tokens": 3
+      }
+    ]
+  }
+}
