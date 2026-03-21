@@ -65,6 +65,7 @@ costs/
 
 # code2prompt output
 prompt.txt
+prompts/mentor_research_directions_context.txt
 
 # Personal scratch notes
 initial-setup-opus-notes.md
@@ -89,3 +90,4 @@ docs/write-up-bits.md
 
 # Archived docs (completed/closed investigation plans)
 docs/archive/
+nextsteps.md
