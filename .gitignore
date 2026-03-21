@@ -56,6 +56,9 @@ scripts/infra/cron_gh200_wakeup.sh
 .herenow/
 .ob1/
 
+# W&B local run data (synced to server)
+wandb/
+
 # Costs log for grant reporting
 costs/
 
