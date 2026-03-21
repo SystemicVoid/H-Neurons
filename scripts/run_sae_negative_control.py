@@ -519,8 +519,8 @@ def main():
 
             # Load all needed SAE layers (union of H-feature + random layers)
             all_layers = set(h_features.keys())
-            for fmap in random_configs.values():
-                all_layers.update(fmap.keys())
+            for cfg in random_configs.values():
+                all_layers.update(cfg["feature_map"].keys())
             all_layers_sorted = sorted(all_layers)
             print(f"Loading SAEs for layers: {all_layers_sorted}")
             saes = load_saes(

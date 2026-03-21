@@ -1,0 +1,127 @@
+{
+  "config": "seed_0_random",
+  "benchmark": "faitheval",
+  "n_sae_features": 266,
+  "results": {
+    "0.0": {
+      "compliance_rate": 0.749,
+      "n_compliant": 749,
+      "n_total": 1000,
+      "parse_failures": 18,
+      "compliance": {
+        "estimate": 0.749,
+        "n_compliant": 749,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7212080850643917,
+          "upper": 0.7748861892098019,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "0.5": {
+      "compliance_rate": 0.753,
+      "n_compliant": 753,
+      "n_total": 1000,
+      "parse_failures": 17,
+      "compliance": {
+        "estimate": 0.753,
+        "n_compliant": 753,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7253357631562045,
+          "upper": 0.7787278970501047,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "1.0": {
+      "compliance_rate": 0.66,
+      "n_compliant": 660,
+      "n_total": 1000,
+      "parse_failures": 0,
+      "compliance": {
+        "estimate": 0.66,
+        "n_compliant": 660,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.6300773195897643,
+          "upper": 0.6886981176948581,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "1.5": {
+      "compliance_rate": 0.75,
+      "n_compliant": 750,
+      "n_total": 1000,
+      "parse_failures": 17,
+      "compliance": {
+        "estimate": 0.75,
+        "n_compliant": 750,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7222397197409138,
+          "upper": 0.7758469010163086,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "2.0": {
+      "compliance_rate": 0.75,
+      "n_compliant": 750,
+      "n_total": 1000,
+      "parse_failures": 19,
+      "compliance": {
+        "estimate": 0.75,
+        "n_compliant": 750,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7222397197409138,
+          "upper": 0.7758469010163086,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "2.5": {
+      "compliance_rate": 0.75,
+      "n_compliant": 750,
+      "n_total": 1000,
+      "parse_failures": 16,
+      "compliance": {
+        "estimate": 0.75,
+        "n_compliant": 750,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7222397197409138,
+          "upper": 0.7758469010163086,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "3.0": {
+      "compliance_rate": 0.751,
+      "n_compliant": 751,
+      "n_total": 1000,
+      "parse_failures": 17,
+      "compliance": {
+        "estimate": 0.751,
+        "n_compliant": 751,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7232715438085464,
+          "upper": 0.776807423431705,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    }
+  },
+  "feature_pool": "zero_weight_only"
+}

@@ -1,0 +1,426 @@
+{
+  "h_sae_features": {
+    "compliance_rates": [
+      0.723,
+      0.747,
+      0.66,
+      0.75,
+      0.751,
+      0.749,
+      0.699
+    ],
+    "slope_per_alpha": 0.16,
+    "spearman_rho": 0.1786,
+    "compliance_ci_by_alpha": [
+      {
+        "estimate": 0.723,
+        "n_compliant": 723,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.6944497560637553,
+          "upper": 0.7498435096516871,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "estimate": 0.747,
+        "n_compliant": 747,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7191453808937037,
+          "upper": 0.7729642004144321,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "estimate": 0.66,
+        "n_compliant": 660,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.6300773195897643,
+          "upper": 0.6886981176948581,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "estimate": 0.75,
+        "n_compliant": 750,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7222397197409138,
+          "upper": 0.7758469010163086,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "estimate": 0.751,
+        "n_compliant": 751,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7232715438085464,
+          "upper": 0.776807423431705,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "estimate": 0.749,
+        "n_compliant": 749,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.7212080850643917,
+          "upper": 0.7748861892098019,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "estimate": 0.699,
+        "n_compliant": 699,
+        "n_total": 1000,
+        "ci": {
+          "lower": 0.6698531605689392,
+          "upper": 0.7266237895538098,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    ]
+  },
+  "random_sae_features": {
+    "mean_compliance_rates": [
+      0.749,
+      0.748,
+      0.66,
+      0.7503,
+      0.7487,
+      0.7487,
+      0.7463
+    ],
+    "std_compliance_rates": [
+      0.0041,
+      0.0036,
+      0.0,
+      0.0021,
+      0.0009,
+      0.0012,
+      0.0052
+    ],
+    "per_seed": {
+      "seed_0_random": {
+        "compliance_rates": [
+          0.749,
+          0.753,
+          0.66,
+          0.75,
+          0.75,
+          0.75,
+          0.751
+        ],
+        "slope_per_alpha": 0.64,
+        "spearman_rho": 0.3336,
+        "compliance_ci_by_alpha": [
+          {
+            "estimate": 0.749,
+            "n_compliant": 749,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7212080850643917,
+              "upper": 0.7748861892098019,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.753,
+            "n_compliant": 753,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7253357631562045,
+              "upper": 0.7787278970501047,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.66,
+            "n_compliant": 660,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.6300773195897643,
+              "upper": 0.6886981176948581,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.75,
+            "n_compliant": 750,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7222397197409138,
+              "upper": 0.7758469010163086,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.75,
+            "n_compliant": 750,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7222397197409138,
+              "upper": 0.7758469010163086,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.75,
+            "n_compliant": 750,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7222397197409138,
+              "upper": 0.7758469010163086,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.751,
+            "n_compliant": 751,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7232715438085464,
+              "upper": 0.776807423431705,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        ],
+        "feature_pool": "zero_weight_only"
+      },
+      "seed_1_random": {
+        "compliance_rates": [
+          0.744,
+          0.745,
+          0.66,
+          0.748,
+          0.748,
+          0.749,
+          0.739
+        ],
+        "slope_per_alpha": 0.58,
+        "spearman_rho": 0.2703,
+        "compliance_ci_by_alpha": [
+          {
+            "estimate": 0.744,
+            "n_compliant": 744,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7160527265828487,
+              "upper": 0.7700798152762004,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.745,
+            "n_compliant": 745,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7170834253930005,
+              "upper": 0.7710414629490775,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.66,
+            "n_compliant": 660,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.6300773195897643,
+              "upper": 0.6886981176948581,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.748,
+            "n_compliant": 748,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.720176639029259,
+              "upper": 0.7739252887619057,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.748,
+            "n_compliant": 748,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.720176639029259,
+              "upper": 0.7739252887619057,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.749,
+            "n_compliant": 749,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7212080850643917,
+              "upper": 0.7748861892098019,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.739,
+            "n_compliant": 739,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.710901993706077,
+              "upper": 0.7652688157378277,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        ],
+        "feature_pool": "zero_weight_only"
+      },
+      "seed_2_random": {
+        "compliance_rates": [
+          0.754,
+          0.746,
+          0.66,
+          0.753,
+          0.748,
+          0.747,
+          0.749
+        ],
+        "slope_per_alpha": 0.54,
+        "spearman_rho": -0.0357,
+        "compliance_ci_by_alpha": [
+          {
+            "estimate": 0.754,
+            "n_compliant": 754,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7263681599761741,
+              "upper": 0.7796878467131639,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.746,
+            "n_compliant": 746,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7181143099237187,
+              "upper": 0.7720029249013881,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.66,
+            "n_compliant": 660,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.6300773195897643,
+              "upper": 0.6886981176948581,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.753,
+            "n_compliant": 753,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7253357631562045,
+              "upper": 0.7787278970501047,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.748,
+            "n_compliant": 748,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.720176639029259,
+              "upper": 0.7739252887619057,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.747,
+            "n_compliant": 747,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7191453808937037,
+              "upper": 0.7729642004144321,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.749,
+            "n_compliant": 749,
+            "n_total": 1000,
+            "ci": {
+              "lower": 0.7212080850643917,
+              "upper": 0.7748861892098019,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        ],
+        "feature_pool": "zero_weight_only"
+      }
+    },
+    "mean_slope_per_alpha": 0.59,
+    "slope_percentile_interval": {
+      "lower": 0.542,
+      "upper": 0.637,
+      "level": 0.95,
+      "method": "empirical_random_set_percentile"
+    }
+  },
+  "comparison_to_h_features": {
+    "slope_h_pp_per_alpha": 0.16,
+    "slope_random_mean_pp_per_alpha": 0.59,
+    "slope_random_percentile_interval": {
+      "lower": 0.542,
+      "upper": 0.637,
+      "level": 0.95,
+      "method": "empirical_random_set_percentile"
+    },
+    "alpha_3_h_rate_pct": 69.9,
+    "alpha_3_random_mean_pct": 74.6
+  },
+  "neuron_baseline": {
+    "compliance_rates": [
+      0.642,
+      0.654,
+      0.66,
+      0.67,
+      0.682,
+      0.695,
+      0.705
+    ],
+    "slope_per_alpha": 2.09
+  }
+}
