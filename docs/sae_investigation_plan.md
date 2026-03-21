@@ -7,9 +7,9 @@
 | Phase 0: Write plan | **DONE** | This file |
 | Phase 1: Feasibility spike | **DONE (CPU + GPU PASS)** | On March 20, 2026, `scripts/spike_sae_feasibility.py --gpu` passed on the live model: hook point matched `d_in=2560`, SAE encode/decode succeeded on real activations, and extraction was cleared to start. |
 | Phase 2: SAE feature extraction | **DONE (VERIFIED)** | March 20, 2026 run completed for layers `0, 5, 6, 7, 13, 14, 15, 16, 17, 20`; both `answer_tokens` and `all_except_answer_tokens` contain 2782 verified `.npy` files under `data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/`. |
-| Phase 3: SAE probe training | **READY** | Extraction outputs and `metadata.json` are now in place; `scripts/classifier_sae.py` can train/evaluate against the verified 10-layer basis. |
-| Phase 4: Interpretability analysis | PENDING | Blocked on Phase 3 |
-| Phase 5: SAE-based steering | **HELPER READY, RUNNER INTEGRATION PENDING** | `scripts/intervene_sae.py` preserves the exact activation at `alpha=1.0`, but `scripts/run_intervention.py` is not wired for SAE end-to-end runs yet. |
+| Phase 3: SAE probe training | **DONE** | 3-vs-1 AUROC 0.848 [0.820, 0.874] with 266 features (C=0.005); 1-vs-1 AUROC 0.849. Both exceed CETT baseline 0.843. Go/no-go gate: PASS. |
+| Phase 4: Interpretability analysis | **DONE** | 0/50 top features flagged as verbosity confounds (|r| > 0.3). Top feature L17:F677; strongest separation L13:F341 (mean diff 4.69). |
+| Phase 5: SAE-based steering | **INTEGRATION DONE, GPU RUNS PENDING** | `run_intervention.py --intervention_mode sae` wired; `run_sae_negative_control.py` created. FaithEval SAE sweep and negative control await GPU execution. |
 
 ### Current Execution Checkpoint (2026-03-20)
 - **GPU feasibility rerun passed.** The live hook test captured `post_feedforward_layernorm` with shape `[1, 16, 2560]`, matched SAE `d_in=2560`, and completed encode/decode with relative L2 reconstruction error `0.1557`.
