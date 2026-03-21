@@ -9,7 +9,7 @@
 | Phase 2: SAE feature extraction | **DONE (VERIFIED)** | March 20, 2026 run completed for layers `0, 5, 6, 7, 13, 14, 15, 16, 17, 20`; both `answer_tokens` and `all_except_answer_tokens` contain 2782 verified `.npy` files under `data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/`. |
 | Phase 3: SAE probe training | **DONE** | 3-vs-1 AUROC 0.848 [0.820, 0.874] with 266 features (C=0.005); 1-vs-1 AUROC 0.849. Both exceed CETT baseline 0.843. Go/no-go gate: PASS. |
 | Phase 4: Interpretability analysis | **DONE (REVISED 2026-03-21)** | 6/266 positive classifier-weight SAE features are flagged as verbosity confounds (|r| > 0.3). Analysis now loads the full classifier coefficient vector rather than the summary JSON's truncated top-50 list. Top feature L17:F677; strongest separation L13:F341 (mean diff 4.69). |
-| Phase 5: SAE-based steering | **INTEGRATION DONE, GPU RUNS PENDING** | `run_intervention.py --intervention_mode sae` wired; `run_sae_negative_control.py` now samples random controls from the zero-weight SAE pool only. FaithEval SAE sweep and SAE negative control still await GPU execution. |
+| Phase 5: SAE-based steering | **INTEGRATION DONE, GPU RUNS PENDING** | `run_intervention.py --intervention_mode sae` wired; `run_sae_negative_control.py` samples random controls from the zero-weight SAE pool, falling back to non-positive weights for dense classifiers. FaithEval SAE sweep and SAE negative control still await GPU execution. |
 
 ### Current Execution Checkpoint (2026-03-20)
 - **GPU feasibility rerun passed.** The live hook test captured `post_feedforward_layernorm` with shape `[1, 16, 2560]`, matched SAE `d_in=2560`, and completed encode/decode with relative L2 reconstruction error `0.1557`.
@@ -24,7 +24,7 @@
 - **Phase 4 analysis was rerun against the full classifier support.** `data/gemma3_4b/pipeline/sae_feature_analysis.json` now analyzes all 266 positive SAE weights from `models/sae_detector.pkl`, not just the 50 serialized convenience entries in `classifier_sae_summary.json`.
 - **Verbosity-confound count increased from 0/50 to 6/266.** The earlier top-50-only analysis understated how many selected SAE features correlate with response length.
 - **Phase 3 summary now records the classifier artifact path.** `data/gemma3_4b/pipeline/classifier_sae_summary.json` includes `classifier_path`, so downstream analysis can recover the full coefficient vector without an extra manual argument.
-- **SAE negative controls now use a clean baseline pool.** Random feature sets are sampled from `coef == 0` only, excluding both positive and negative classifier-selected SAE features.
+- **SAE negative controls now use a clean baseline pool.** Random feature sets are sampled from `coef == 0` features by default, falling back to `coef <= 0` (non-positive) for dense classifiers where too few zero-weight features exist.
 
 ### Phase 1 Findings (CPU spike)
 - **Revalidated on 2026-03-19:** CPU smoke run succeeded against the real Gemma Scope artifact after the API/hook fixes.
