@@ -32,7 +32,7 @@ Use the official BioASQ Task B JSON (question `body` + `type` + `exact_answer`) 
 
 ## SAE Investigation
 
-Full plan, status tracker, and technical details (hook points, dimensions, release names): `docs/sae_investigation_plan.md`.
+Full plan, status tracker, and technical details (hook points, dimensions, release names): `docs/archive/sae_investigation_plan.md`.
 
 SAE scripts: `extract_sae_activations.py`, `classifier_sae.py`, `intervene_sae.py`, `spike_sae_feasibility.py`.
 

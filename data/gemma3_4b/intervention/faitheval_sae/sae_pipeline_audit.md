@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-21
 **Model:** `google/gemma-3-4b-it`
-**Related reports:** [intervention_findings.md](../../intervention_findings.md), [sae_investigation_plan.md](../../../../docs/sae_investigation_plan.md), [pipeline_report.md](../../pipeline/pipeline_report.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md)
+**Related reports:** [intervention_findings.md](../../intervention_findings.md), [sae_investigation_plan.md](../../../../docs/archive/sae_investigation_plan.md), [pipeline_report.md](../../pipeline/pipeline_report.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md)
 
 ---
 
