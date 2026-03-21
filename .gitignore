@@ -21,6 +21,7 @@ htmlcov/
 
 # Ephemeral logs
 data/*_log.txt
+data/logs/
 logs/
 
 # GH200 orchestration utilities (local ops)

@@ -5,7 +5,7 @@
   "model": "google/gemma-3-4b-it",
   "source_files": [
     "data/gemma3_4b/pipeline/consistency_samples.jsonl",
-    "data/batch3500_review.md",
+    "data/reviews/batch3500_review.md",
     "data/gemma3_4b/pipeline/answer_tokens.jsonl",
     "data/gemma3_4b/pipeline/train_qids.json",
     "data/gemma3_4b/pipeline/test_qids_disjoint.json",

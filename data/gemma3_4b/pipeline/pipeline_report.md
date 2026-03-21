@@ -47,7 +47,7 @@ The classifier identifies 38 H-Neurons out of 348,160 total neuron positions (34
 | Uncertain/error | 0 |
 | **Passing consistency filter** | **3,115** |
 
-The batch review (see `data/batch3500_review.md`) identified 96 all-correct entries where the rule judge matched via substring rather than clean short-answer correctness. These were kept to match the paper's methodology, which does not apply additional filtering beyond consistency.
+The batch review (see `data/reviews/batch3500_review.md`) identified 96 all-correct entries where the rule judge matched via substring rather than clean short-answer correctness. These were kept to match the paper's methodology, which does not apply additional filtering beyond consistency.
 
 ### Stage 2: Answer Token Extraction
 

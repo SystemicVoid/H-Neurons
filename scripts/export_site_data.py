@@ -1345,7 +1345,7 @@ def build_pipeline_site_payload(repo_root: Path) -> dict[str, Any]:
     consistency_samples_path = (
         repo_root / "data/gemma3_4b/pipeline/consistency_samples.jsonl"
     )
-    batch_review_path = repo_root / "data/batch3500_review.md"
+    batch_review_path = repo_root / "data/reviews/batch3500_review.md"
     answer_tokens_path = repo_root / "data/gemma3_4b/pipeline/answer_tokens.jsonl"
     train_qids_path = repo_root / "data/gemma3_4b/pipeline/train_qids.json"
     test_qids_path = repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json"
@@ -1371,7 +1371,7 @@ def build_pipeline_site_payload(repo_root: Path) -> dict[str, Any]:
         "model": "google/gemma-3-4b-it",
         "source_files": [
             "data/gemma3_4b/pipeline/consistency_samples.jsonl",
-            "data/batch3500_review.md",
+            "data/reviews/batch3500_review.md",
             "data/gemma3_4b/pipeline/answer_tokens.jsonl",
             "data/gemma3_4b/pipeline/train_qids.json",
             "data/gemma3_4b/pipeline/test_qids_disjoint.json",
