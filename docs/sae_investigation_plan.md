@@ -9,7 +9,7 @@
 | Phase 2: SAE feature extraction | **DONE (VERIFIED)** | March 20, 2026 run completed for layers `0, 5, 6, 7, 13, 14, 15, 16, 17, 20`; both `answer_tokens` and `all_except_answer_tokens` contain 2782 verified `.npy` files under `data/gemma3_4b/pipeline/activations_sae_hlayers_16k_small/`. |
 | Phase 3: SAE probe training | **DONE** | 3-vs-1 AUROC 0.848 [0.820, 0.874] with 266 features (C=0.005); 1-vs-1 AUROC 0.849. Both exceed CETT baseline 0.843. Go/no-go gate: PASS. |
 | Phase 4: Interpretability analysis | **DONE (REVISED 2026-03-21)** | 6/266 positive classifier-weight SAE features are flagged as verbosity confounds (|r| > 0.3). Analysis now loads the full classifier coefficient vector rather than the summary JSON's truncated top-50 list. Top feature L17:F677; strongest separation L13:F341 (mean diff 4.69). |
-| Phase 5: SAE-based steering | **INTEGRATION DONE, GPU RUNS PENDING** | `run_intervention.py --intervention_mode sae` wired; `run_sae_negative_control.py` samples random controls from the zero-weight SAE pool, falling back to non-positive weights for dense classifiers. FaithEval SAE sweep and SAE negative control still await GPU execution. |
+| Phase 5: SAE-based steering | **DONE (2026-03-21)** | SAE steering slope 0.16 pp/α CI [-0.51, 0.84] — indistinguishable from random features (0.59 pp/α). Neuron baseline slope 2.09 pp/α is ~13× stronger with clean monotonic dose-response. Gate 3: FAIL — SAE encode/decode reconstruction error dominates over targeted feature manipulation. |
 
 ### Current Execution Checkpoint (2026-03-20)
 - **GPU feasibility rerun passed.** The live hook test captured `post_feedforward_layernorm` with shape `[1, 16, 2560]`, matched SAE `d_in=2560`, and completed encode/decode with relative L2 reconstruction error `0.1557`.
@@ -25,6 +25,34 @@
 - **Verbosity-confound count increased from 0/50 to 6/266.** The earlier top-50-only analysis understated how many selected SAE features correlate with response length.
 - **Phase 3 summary now records the classifier artifact path.** `data/gemma3_4b/pipeline/classifier_sae_summary.json` includes `classifier_path`, so downstream analysis can recover the full coefficient vector without an extra manual argument.
 - **SAE negative controls now use a clean baseline pool.** Random feature sets are sampled from `coef == 0` features by default, falling back to `coef <= 0` (non-positive) for dense classifiers where too few zero-weight features exist.
+
+### Phase 5 Results (2026-03-21)
+
+**FaithEval SAE steering sweep** (1000 samples × 7 alphas × 4 configs = 28,000 generations):
+
+| Metric | Neuron baseline | SAE H-features (266) | SAE random (3 seeds, 266 each) |
+|--------|----------------|----------------------|-------------------------------|
+| Compliance slope (pp/α) | **2.09** | 0.16 [-0.51, 0.84] | 0.59 [0.54, 0.64] |
+| Baseline compliance (α=0) | 64.2% | 72.3% [69.4, 75.0] | 74.9% mean |
+| α=1.0 compliance (SAE no-op) | 66.0% | 66.0% [63.0, 68.9] | 66.0% (identical all configs) |
+| Max compliance (α=3) | 70.5% | 69.9% [67.0, 72.7] | 74.6% mean |
+| Parse failures (typical) | 0 | 1.4–2.3% | 1.4–1.9% |
+| Monotonic trend? | Yes | No | No |
+
+**Key findings:**
+
+1. **α=1.0 is the true SAE no-op.** All 4 configs (H-features + 3 random seeds) produce exactly 66.0% compliance at α=1.0. The encode/decode cycle itself creates the baseline, independent of which features are targeted.
+2. **H-feature slope (0.16 pp/α) is LOWER than random features (0.59 pp/α)** — the opposite of what specific steering would produce. The H-feature slope CI [-0.51, 0.84] contains 0.
+3. **The SAE encode/decode cycle dominates.** Outside of α=1.0, compliance is flat at ~74–75% regardless of feature selection. The compliance variation is driven by the lossy SAE reconstruction (L2 error = 0.1557), not by targeted feature manipulation.
+4. **Neuron steering is ~13× stronger** with a clean monotonic dose-response curve (64.2% → 70.5% over α=0–3).
+5. **Parse failures at ~1.5–2% for all non-trivial SAE interventions** (vs 0% for neuron steering) — an additional side effect of the lossy encode/decode.
+
+**Gate 3 outcome: FAIL.** SAE steering adds complexity without benefit. The compliance signal that H-neurons carry at the individual neuron level gets diluted across 16k SAE features, and the lossy encode/decode cycle destroys the fine-grained control that direct neuron scaling achieves. This matches Phase 5 outcome row 3: "SAE steering weaker than neuron slope — SAE loses signal in encode/decode — neuron level is better for this task."
+
+**Artifacts:**
+- `data/gemma3_4b/intervention/faitheval_sae/experiment/results.json` — H-feature sweep with bootstrap CIs
+- `data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json` — full negative control comparison
+- `data/gemma3_4b/intervention/faitheval_sae/control/sae_negative_control_comparison.png` — comparison plot
 
 ### Phase 1 Findings (CPU spike)
 - **Revalidated on 2026-03-19:** CPU smoke run succeeded against the real Gemma Scope artifact after the API/hook fixes.
@@ -243,6 +271,7 @@ The current `CETTManager` hooks capture `input[0]` to `down_proj` (intermediate 
 **Gate 3 (end of Phase 5):** Does SAE steering improve over neuron steering?
 - Compare compliance slopes AND side effects (length, parse failures)
 - Document either outcome as a finding — both are publishable
+- **OUTCOME (2026-03-21): FAIL.** SAE H-feature steering slope 0.16 pp/α (CI contains 0) vs neuron 2.09 pp/α. SAE H-features are indistinguishable from random SAE features (0.59 pp/α). SAE also introduces ~1.5–2% parse failures that neuron steering does not. Neuron-level remains the superior intervention for compliance steering.
 
 ---
 
