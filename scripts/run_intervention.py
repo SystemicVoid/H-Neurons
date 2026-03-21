@@ -26,6 +26,7 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from intervene_model import get_h_neuron_indices
+from intervene_sae import SAEFeatureScaler, load_target_features_from_classifier
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
@@ -926,6 +927,29 @@ def parse_args():
         choices=range(1, 6),
         help="Number of jailbreak templates to use (1-5)",
     )
+    # SAE intervention mode
+    p.add_argument(
+        "--intervention_mode",
+        type=str,
+        default="neuron",
+        choices=["neuron", "sae"],
+        help="Intervention mode: 'neuron' (H-neuron scaling) or 'sae' (SAE feature scaling)",
+    )
+    p.add_argument(
+        "--sae_classifier_path",
+        type=str,
+        help="Path to SAE classifier .pkl (required for --intervention_mode sae)",
+    )
+    p.add_argument(
+        "--sae_classifier_summary",
+        type=str,
+        help="Path to SAE classifier summary JSON (required for --intervention_mode sae)",
+    )
+    p.add_argument(
+        "--extraction_dir",
+        type=str,
+        help="SAE extraction directory for metadata validation (required for --intervention_mode sae)",
+    )
     p.add_argument(
         "--wandb",
         action="store_true",
@@ -936,9 +960,12 @@ def parse_args():
 
 def main():
     args = parse_args()
-    output_dir = (
-        args.output_dir or f"data/gemma3_4b/intervention/{args.benchmark}/experiment"
-    )
+    if args.output_dir:
+        output_dir = args.output_dir
+    elif args.intervention_mode == "sae":
+        output_dir = f"data/gemma3_4b/intervention/{args.benchmark}_sae/experiment"
+    else:
+        output_dir = f"data/gemma3_4b/intervention/{args.benchmark}/experiment"
     os.makedirs(output_dir, exist_ok=True)
     summary = {
         "benchmark": args.benchmark,
@@ -963,17 +990,60 @@ def main():
         print(f"Loading model: {args.model_path}")
         model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
 
-        # Load classifier and build neuron map
-        print(f"Loading classifier: {args.classifier_path}")
-        classifier = joblib.load(args.classifier_path)
-        neuron_map = get_h_neuron_indices(classifier, model.config)
-        total_neurons = sum(len(v) for v in neuron_map.values())
-        print(f"H-Neurons: {total_neurons} across {len(neuron_map)} layers")
-
-        # Install hooks
+        # Build scaler based on intervention mode
         device = next(model.parameters()).device
-        scaler = HNeuronScaler(model, neuron_map, device)
-        print(f"Installed {scaler.n_hooks} hooks on {scaler.n_neurons} neurons")
+
+        if args.intervention_mode == "sae":
+            if not (
+                args.sae_classifier_path
+                and args.sae_classifier_summary
+                and args.extraction_dir
+            ):
+                raise ValueError(
+                    "--intervention_mode sae requires --sae_classifier_path, "
+                    "--sae_classifier_summary, and --extraction_dir"
+                )
+            print(f"Loading SAE classifier: {args.sae_classifier_path}")
+            target_features = load_target_features_from_classifier(
+                args.sae_classifier_path,
+                classifier_summary_path=args.sae_classifier_summary,
+                extraction_dir=args.extraction_dir,
+            )
+            total_features = sum(len(v) for v in target_features.values())
+            print(
+                f"SAE features: {total_features} across {len(target_features)} layers"
+            )
+
+            # Load SAEs only for layers with positive features
+            from extract_sae_activations import load_saes
+
+            with open(args.sae_classifier_summary, "r", encoding="utf-8") as f:
+                cls_summary = json.load(f)
+            meta = cls_summary["extraction_metadata"]
+            sae_layers = sorted(target_features.keys())
+            print(f"Loading SAEs for layers: {sae_layers}")
+            saes = load_saes(
+                meta["sae_release"],
+                sae_layers,
+                meta["sae_width"],
+                meta["sae_l0"],
+                str(device),
+            )
+
+            scaler = SAEFeatureScaler(model, saes, target_features, device)
+            print(
+                f"Installed {scaler.n_hooks} SAE hooks on {scaler.n_features} features"
+            )
+            total_neurons = total_features  # for summary metadata
+        else:
+            print(f"Loading classifier: {args.classifier_path}")
+            classifier = joblib.load(args.classifier_path)
+            neuron_map = get_h_neuron_indices(classifier, model.config)
+            total_neurons = sum(len(v) for v in neuron_map.values())
+            print(f"H-Neurons: {total_neurons} across {len(neuron_map)} layers")
+
+            scaler = HNeuronScaler(model, neuron_map, device)
+            print(f"Installed {scaler.n_hooks} hooks on {scaler.n_neurons} neurons")
 
         # Load benchmark data
         print(f"\nLoading benchmark: {args.benchmark}")
@@ -1017,7 +1087,12 @@ def main():
 
             config = sanitize_run_config(
                 vars(args),
-                extra={"n_h_neurons": total_neurons, "n_samples": len(samples)},
+                extra={
+                    "n_h_neurons": total_neurons,
+                    "n_samples": len(samples),
+                    "intervention_mode": args.intervention_mode,
+                    "n_features": total_neurons,
+                },
             )
             git_sha = get_git_sha()
             if git_sha is None:
@@ -1069,11 +1144,16 @@ def main():
         summary = {
             "benchmark": args.benchmark,
             "model": args.model_path,
-            "classifier": args.classifier_path,
+            "intervention_mode": args.intervention_mode,
             "n_h_neurons": total_neurons,
             "results": aggregation["results"],
             "effects": aggregation["effects"],
         }
+        if args.intervention_mode == "sae":
+            summary["sae_classifier"] = args.sae_classifier_path
+            summary["n_sae_features"] = total_neurons
+        else:
+            summary["classifier"] = args.classifier_path
         if args.benchmark == "faitheval":
             summary["prompt_style"] = args.prompt_style
         with open(summary_path, "w") as f:
