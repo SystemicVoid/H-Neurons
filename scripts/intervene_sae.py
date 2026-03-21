@@ -158,6 +158,84 @@ def _validate_classifier_metadata(classifier_summary_path: str, extraction_dir: 
     return classifier_metadata
 
 
+def decode_sae_feature_indices(flat_indices, *, layer_indices, d_sae):
+    """Map flat SAE indices back to layer/feature coordinates."""
+    decoded = []
+    for flat_idx in flat_indices:
+        layer_pos = int(flat_idx // d_sae)
+        if layer_pos >= len(layer_indices):
+            continue
+        decoded.append(
+            {
+                "layer": int(layer_indices[layer_pos]),
+                "feature": int(flat_idx % d_sae),
+                "flat_idx": int(flat_idx),
+            }
+        )
+    return decoded
+
+
+def build_sae_feature_map(flat_indices, *, layer_indices, d_sae):
+    """Convert flat SAE indices into {layer_idx: [feature_idx, ...]}."""
+    feature_map = {}
+    for decoded in decode_sae_feature_indices(
+        flat_indices, layer_indices=layer_indices, d_sae=d_sae
+    ):
+        feature_map.setdefault(decoded["layer"], []).append(decoded["feature"])
+    return feature_map
+
+
+def load_sae_classifier_coefficients(classifier_path):
+    """Load the flattened SAE classifier coefficient vector."""
+    model = joblib.load(classifier_path)
+    return np.asarray(model.coef_[0], dtype=float)
+
+
+def get_positive_sae_features_from_classifier(classifier_path, *, layer_indices, d_sae):
+    """Load and decode all positive-weight SAE classifier features."""
+    coef = load_sae_classifier_coefficients(classifier_path)
+    decoded = decode_sae_feature_indices(
+        np.flatnonzero(coef > 0),
+        layer_indices=layer_indices,
+        d_sae=d_sae,
+    )
+    for feature in decoded:
+        feature["weight"] = float(coef[feature["flat_idx"]])
+    decoded.sort(key=lambda feature: (-feature["weight"], feature["flat_idx"]))
+    return decoded
+
+
+def get_zero_weight_sae_feature_indices(classifier_path):
+    """Return flat indices whose classifier weight is exactly zero."""
+    coef = load_sae_classifier_coefficients(classifier_path)
+    return np.flatnonzero(coef == 0)
+
+
+def get_control_sae_feature_indices(classifier_path, *, min_features):
+    """Return the cleanest available control pool for random SAE features.
+
+    Prefer exact zero-weight features to avoid contaminating the control pool
+    with classifier-selected directions. If the classifier is dense or only
+    weakly sparse, fall back to the non-positive pool so the experiment still
+    runs for valid `classifier_sae.py` configurations such as L2 probes.
+    """
+    coef = load_sae_classifier_coefficients(classifier_path)
+
+    zero_weight = np.flatnonzero(coef == 0)
+    if len(zero_weight) >= min_features:
+        return zero_weight, "zero_weight_only"
+
+    non_positive = np.flatnonzero(coef <= 0)
+    if len(non_positive) >= min_features:
+        return non_positive, "non_positive_weights"
+
+    raise ValueError(
+        f"Need {min_features} control SAE features but found only "
+        f"{len(zero_weight)} zero-weight and {len(non_positive)} non-positive "
+        "classifier coefficients."
+    )
+
+
 def load_target_features_from_classifier(
     classifier_path,
     *,
@@ -195,19 +273,13 @@ def load_target_features_from_classifier(
             "layer_indices + d_sae."
         )
 
-    model = joblib.load(classifier_path)
-    coef = model.coef_[0]
-    positive_flat = np.where(coef > 0)[0]
-
-    feature_map = {}
-    for flat_idx in positive_flat:
-        layer_pos = int(flat_idx // d_sae)
-        feature_idx = int(flat_idx % d_sae)
-        if layer_pos >= len(layer_indices):
-            continue
-        layer_id = layer_indices[layer_pos]
-        if layer_id not in feature_map:
-            feature_map[layer_id] = []
-        feature_map[layer_id].append(feature_idx)
-
-    return feature_map
+    positive_features = get_positive_sae_features_from_classifier(
+        classifier_path,
+        layer_indices=layer_indices,
+        d_sae=d_sae,
+    )
+    return build_sae_feature_map(
+        [feature["flat_idx"] for feature in positive_features],
+        layer_indices=layer_indices,
+        d_sae=d_sae,
+    )

@@ -19,7 +19,6 @@ import argparse
 import json
 import os
 import sys
-import joblib
 import matplotlib
 
 matplotlib.use("Agg")
@@ -30,7 +29,12 @@ from scipy import stats
 
 sys.path.insert(0, os.path.dirname(__file__))
 from extract_sae_activations import load_saes
-from intervene_sae import SAEFeatureScaler, load_target_features_from_classifier
+from intervene_sae import (
+    SAEFeatureScaler,
+    build_sae_feature_map,
+    get_control_sae_feature_indices,
+    load_target_features_from_classifier,
+)
 from run_intervention import (
     _faitheval_prompt,
     extract_mc_answer,
@@ -76,30 +80,24 @@ def sample_random_sae_features(
     n_features,
     seed,
 ):
-    """Sample random SAE features, excluding those with positive classifier weight."""
-    clf = joblib.load(classifier_path)
-    coef = clf.coef_[0]
-    positive_set = set(np.where(coef > 0)[0].tolist())
-
+    """Sample random SAE features from the cleanest available control pool."""
     layer_indices = meta["layer_indices"]
     d_sae = meta["d_sae"]
-    total = len(layer_indices) * d_sae
-
-    # Eligible: all features except positive-weight ones
-    eligible = [i for i in range(total) if i not in positive_set]
+    eligible, feature_pool = get_control_sae_feature_indices(
+        classifier_path,
+        min_features=n_features,
+    )
 
     rng = np.random.RandomState(seed)
     chosen_flat = rng.choice(eligible, size=n_features, replace=False)
-
-    feature_map = {}
-    for flat_idx in sorted(chosen_flat):
-        layer_pos = int(flat_idx // d_sae)
-        feature_idx = int(flat_idx % d_sae)
-        if layer_pos < len(layer_indices):
-            layer_id = layer_indices[layer_pos]
-            feature_map.setdefault(layer_id, []).append(feature_idx)
-
-    return feature_map
+    return (
+        build_sae_feature_map(
+            np.sort(chosen_flat),
+            layer_indices=layer_indices,
+            d_sae=d_sae,
+        ),
+        feature_pool,
+    )
 
 
 def _count_compliance_and_pf(path):
@@ -131,6 +129,7 @@ def run_single_sae_config(
     output_dir,
     config_name,
     device,
+    feature_pool=None,
 ):
     """Run a benchmark for one SAE feature set across all alphas."""
     os.makedirs(output_dir, exist_ok=True)
@@ -205,6 +204,8 @@ def run_single_sae_config(
         "n_sae_features": n_features,
         "results": results,
     }
+    if feature_pool is not None:
+        summary["feature_pool"] = feature_pool
     with open(os.path.join(output_dir, "results.json"), "w") as f:
         json.dump(summary, f, indent=2)
 
@@ -213,7 +214,7 @@ def run_single_sae_config(
 
 
 def build_sae_comparison_summary(
-    h_results, all_random_results, alphas, h_baseline_path=None
+    h_results, all_random_runs, alphas, h_baseline_path=None
 ):
     """Build comparison summary between H-features and random SAE features."""
     summary: dict[str, object] = {}
@@ -244,7 +245,8 @@ def build_sae_comparison_summary(
     # Random feature results
     per_seed = {}
     all_rates_list = []
-    for name, res in sorted(all_random_results.items()):
+    for name, run in sorted(all_random_runs.items()):
+        res = run["results"]
         rates = [res[str(float(a))]["compliance_rate"] for a in alphas]
         all_rates_list.append(rates)
         r_arr = np.array(rates)
@@ -265,6 +267,8 @@ def build_sae_comparison_summary(
                 for a in alphas
             ],
         }
+        if run.get("feature_pool") is not None:
+            per_seed[name]["feature_pool"] = run["feature_pool"]
 
     if per_seed:
         rates_matrix = np.array(all_rates_list)
@@ -472,12 +476,18 @@ def main():
         random_configs = {}
         for seed in range(args.n_seeds):
             name = f"seed_{seed}_random"
-            fmap = sample_random_sae_features(
+            fmap, feature_pool = sample_random_sae_features(
                 args.sae_classifier_path, meta, n_h_features, seed
             )
-            random_configs[name] = fmap
+            random_configs[name] = {
+                "feature_map": fmap,
+                "feature_pool": feature_pool,
+            }
             n = sum(len(v) for v in fmap.values())
-            print(f"  {name}: {n} features across {len(fmap)} layers")
+            print(
+                f"  {name}: {n} features across {len(fmap)} layers "
+                f"(pool={feature_pool})"
+            )
 
         if args.wandb:
             try:
@@ -540,21 +550,25 @@ def main():
             )
 
             # Run random feature sweeps
-            all_random_results = {}
-            for name, fmap in random_configs.items():
+            all_random_runs = {}
+            for name, config in random_configs.items():
                 out_dir = os.path.join(output_base, name)
                 results = run_single_sae_config(
                     model,
                     tokenizer,
                     samples,
                     saes,
-                    fmap,
+                    config["feature_map"],
                     alphas,
                     out_dir,
                     name,
                     device,
+                    feature_pool=config["feature_pool"],
                 )
-                all_random_results[name] = results
+                all_random_runs[name] = {
+                    "results": results,
+                    "feature_pool": config["feature_pool"],
+                }
 
             del model, tokenizer
             torch.cuda.empty_cache()
@@ -568,12 +582,16 @@ def main():
                 print("No H-feature results found.")
                 return
 
-            all_random_results = {}
+            all_random_runs = {}
             for name in random_configs:
                 rpath = os.path.join(output_base, name, "results.json")
                 if os.path.exists(rpath):
                     with open(rpath) as f:
-                        all_random_results[name] = json.load(f)["results"]
+                        payload = json.load(f)
+                    all_random_runs[name] = {
+                        "results": payload["results"],
+                        "feature_pool": payload.get("feature_pool"),
+                    }
                 else:
                     print(f"  WARNING: no results for {name}")
 
@@ -584,7 +602,7 @@ def main():
         print("\nBuilding comparison summary...")
         comparison = build_sae_comparison_summary(
             h_results,
-            all_random_results,
+            all_random_runs,
             alphas,
             h_baseline_path=neuron_baseline_path,
         )

@@ -4,15 +4,25 @@ from __future__ import annotations
 
 import sys
 import types
+from types import SimpleNamespace
 from pathlib import Path
 
+import joblib
+import numpy as np
 import torch
 
 # scripts/ uses flat sibling imports; add it to sys.path for test discovery.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from extract_activations import select_token_activations
-from intervene_sae import SAEFeatureScaler
+from analyze_sae_features import resolve_classifier_path
+from intervene_sae import (
+    SAEFeatureScaler,
+    build_sae_feature_map,
+    get_control_sae_feature_indices,
+    get_positive_sae_features_from_classifier,
+    get_zero_weight_sae_feature_indices,
+)
 from spike_sae_feasibility import inspect_sae
 
 
@@ -170,3 +180,66 @@ class TestSpikeSaeFeasibility:
         assert isinstance(sae, FakePretrainedSAE)
         assert cfg["d_in"] == 4
         assert cfg["d_sae"] == 6
+
+
+class TestClassifierFeatureSelection:
+    def test_resolve_classifier_path_is_summary_relative(self, tmp_path):
+        model_path = tmp_path / "models" / "sae_detector.pkl"
+        model_path.parent.mkdir()
+        joblib.dump(SimpleNamespace(coef_=np.array([[0.5, 0.0]])), model_path)
+
+        summary_path = tmp_path / "artifacts" / "pipeline" / "summary.json"
+        summary_path.parent.mkdir(parents=True)
+
+        resolved = resolve_classifier_path(
+            None,
+            {"classifier_path": "../../models/sae_detector.pkl"},
+            str(summary_path),
+        )
+
+        assert Path(resolved) == model_path.resolve()
+
+    def test_positive_sae_features_uses_all_positive_coefficients(self, tmp_path):
+        classifier_path = tmp_path / "sae_detector.pkl"
+        model = SimpleNamespace(coef_=np.array([[0.9, -0.4, 0.3, 0.0, 0.6]]))
+        joblib.dump(model, classifier_path)
+
+        features = get_positive_sae_features_from_classifier(
+            classifier_path,
+            layer_indices=[13, 17],
+            d_sae=3,
+        )
+
+        assert [feature["flat_idx"] for feature in features] == [0, 4, 2]
+        assert [feature["layer"] for feature in features] == [13, 17, 13]
+        assert [feature["feature"] for feature in features] == [0, 1, 2]
+
+    def test_zero_weight_control_pool_excludes_negative_coefficients(self, tmp_path):
+        classifier_path = tmp_path / "sae_detector.pkl"
+        model = SimpleNamespace(coef_=np.array([[0.5, 0.0, -0.2, 0.0, -0.7, 0.1]]))
+        joblib.dump(model, classifier_path)
+
+        zero_weight = get_zero_weight_sae_feature_indices(classifier_path)
+        feature_map = build_sae_feature_map(
+            zero_weight,
+            layer_indices=[5, 6],
+            d_sae=3,
+        )
+
+        assert zero_weight.tolist() == [1, 3]
+        assert feature_map == {5: [1], 6: [0]}
+
+    def test_control_pool_falls_back_to_non_positive_for_dense_classifier(
+        self, tmp_path
+    ):
+        classifier_path = tmp_path / "sae_detector.pkl"
+        model = SimpleNamespace(coef_=np.array([[0.5, -0.2, -0.7, 0.1]]))
+        joblib.dump(model, classifier_path)
+
+        control_indices, feature_pool = get_control_sae_feature_indices(
+            classifier_path,
+            min_features=2,
+        )
+
+        assert feature_pool == "non_positive_weights"
+        assert control_indices.tolist() == [1, 2]

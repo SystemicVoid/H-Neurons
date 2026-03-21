@@ -49,6 +49,19 @@ from utils import (
 )
 
 
+def serialize_artifact_path(path: str | None, *, anchor_path: str | None) -> str | None:
+    """Serialize an artifact path relative to the summary when possible."""
+    if path is None:
+        return None
+
+    artifact_path = Path(path).expanduser().resolve()
+    if anchor_path is None:
+        return str(artifact_path)
+
+    anchor_dir = Path(anchor_path).expanduser().resolve().parent
+    return os.path.relpath(artifact_path, start=anchor_dir)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Train/evaluate a hallucination detector on SAE features."
@@ -380,6 +393,10 @@ def main():
                 payload = {
                     "feature_type": "sae",
                     "model_path": args.model_path,
+                    "classifier_path": serialize_artifact_path(
+                        args.load_model,
+                        anchor_path=args.metrics_out,
+                    ),
                     "loaded_model_path": args.load_model,
                     "n_positive_features": n_positive,
                     "n_nonzero_features": n_nonzero,
@@ -486,6 +503,10 @@ def main():
             payload = {
                 "feature_type": "sae",
                 "model_path": args.model_path,
+                "classifier_path": serialize_artifact_path(
+                    args.save_model or args.load_model,
+                    anchor_path=args.metrics_out,
+                ),
                 "extraction_metadata": classifier_metadata,
                 "train_mode": args.train_mode,
                 "penalty": args.penalty,

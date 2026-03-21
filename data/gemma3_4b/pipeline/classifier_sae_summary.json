@@ -1,6 +1,7 @@
 {
   "feature_type": "sae",
   "model_path": "google/gemma-3-4b-it",
+  "classifier_path": "../../../models/sae_detector.pkl",
   "extraction_metadata": {
     "hook_point": "post_feedforward_layernorm",
     "sae_release": "gemma-scope-2-4b-it-mlp-all",
