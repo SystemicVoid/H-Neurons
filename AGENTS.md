@@ -1,6 +1,8 @@
 # Repository Guidelines
 
-Specific technical reference docs live in `docs/`. This file is for behavioral nudges only.
+Specific technical reference docs live in `docs/`. 
+**Great research taste is mostly the ability to identify the bottleneck assumption and attack it with the cheapest decisive test. Always do the components in order from most informative per unit time to least informative per unit time.** 
+
 
 ## Build, Test, and Development Commands
 
