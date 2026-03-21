@@ -1,0 +1,942 @@
+{
+  "mean_aggregation": {
+    "aggregation": "mean",
+    "condition_means": {
+      "short_true": {
+        "estimate": 0.10327588021755219,
+        "ci_lower": 0.1024477431550622,
+        "ci_upper": 0.1040715653449297
+      },
+      "long_true": {
+        "estimate": 0.09515582025051117,
+        "ci_lower": 0.09460201822221279,
+        "ci_upper": 0.09572901520878077
+      },
+      "short_false": {
+        "estimate": 0.10093364864587784,
+        "ci_lower": 0.09988648500293493,
+        "ci_upper": 0.1019438348710537
+      },
+      "long_false": {
+        "estimate": 0.09505626559257507,
+        "ci_lower": 0.0945035208016634,
+        "ci_upper": 0.0955925602465868
+      }
+    },
+    "truth_effect": {
+      "cohens_d": -0.502,
+      "p_value": 1.4e-05,
+      "mean_diff": -0.001221,
+      "ci": {
+        "estimate": -0.0012208967236801982,
+        "ci_lower": -0.0016981140535790471,
+        "ci_upper": -0.0007548609224613762
+      }
+    },
+    "length_effect": {
+      "cohens_d": -1.8644,
+      "p_value": 0.0,
+      "mean_diff": -0.006999,
+      "ci": {
+        "estimate": -0.006998721975833178,
+        "ci_lower": -0.007719682645983994,
+        "ci_upper": -0.006253979762550444
+      }
+    },
+    "verdict": "A_verbosity",
+    "verdict_detail": "Length effect (1.86) dominates truth effect (0.50) by >2:1 ratio.",
+    "per_neuron": [
+      {
+        "label": "L0:N1819",
+        "truth_effect_d": -0.4754,
+        "truth_effect_p": 0.0,
+        "length_effect_d": 1.5043,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.014571,
+        "mean_long_true": 0.031683,
+        "mean_short_false": 0.013861,
+        "mean_long_false": 0.026419
+      },
+      {
+        "label": "L0:N3088",
+        "truth_effect_d": -0.1845,
+        "truth_effect_p": 0.594068,
+        "length_effect_d": -0.0465,
+        "length_effect_p": 0.979427,
+        "mean_short_true": 0.007496,
+        "mean_long_true": 0.007313,
+        "mean_short_false": 0.006934,
+        "mean_long_false": 0.006838
+      },
+      {
+        "label": "L2:N2965",
+        "truth_effect_d": -0.0396,
+        "truth_effect_p": 0.26984,
+        "length_effect_d": 0.8274,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.199619,
+        "mean_long_true": 0.214707,
+        "mean_short_false": 0.200635,
+        "mean_long_false": 0.213203
+      },
+      {
+        "label": "L4:N5545",
+        "truth_effect_d": -0.1883,
+        "truth_effect_p": 0.05108,
+        "length_effect_d": -0.2477,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.003158,
+        "mean_long_true": 0.002184,
+        "mean_short_false": 0.003006,
+        "mean_long_false": 0.00203
+      },
+      {
+        "label": "L4:N5627",
+        "truth_effect_d": -0.1119,
+        "truth_effect_p": 0.235497,
+        "length_effect_d": 0.3855,
+        "length_effect_p": 0.000542,
+        "mean_short_true": 0.214961,
+        "mean_long_true": 0.221455,
+        "mean_short_false": 0.214424,
+        "mean_long_false": 0.220459
+      },
+      {
+        "label": "L4:N6575",
+        "truth_effect_d": 0.0,
+        "truth_effect_p": 0.27801,
+        "length_effect_d": -0.281,
+        "length_effect_p": 0.001607,
+        "mean_short_true": 0.001963,
+        "mean_long_true": 0.000854,
+        "mean_short_false": 0.001962,
+        "mean_long_false": 0.000856
+      },
+      {
+        "label": "L5:N1174",
+        "truth_effect_d": 0.1684,
+        "truth_effect_p": 0.405354,
+        "length_effect_d": -0.2406,
+        "length_effect_p": 0.005437,
+        "mean_short_true": 0.003764,
+        "mean_long_true": 0.002943,
+        "mean_short_false": 0.004209,
+        "mean_long_false": 0.003111
+      },
+      {
+        "label": "L5:N5227",
+        "truth_effect_d": -0.1674,
+        "truth_effect_p": 0.15212,
+        "length_effect_d": -0.5147,
+        "length_effect_p": 3e-06,
+        "mean_short_true": 0.001736,
+        "mean_long_true": 0.001525,
+        "mean_short_false": 0.001773,
+        "mean_long_false": 0.001379
+      },
+      {
+        "label": "L5:N7219",
+        "truth_effect_d": 0.028,
+        "truth_effect_p": 0.135621,
+        "length_effect_d": -0.2348,
+        "length_effect_p": 0.194288,
+        "mean_short_true": 0.006556,
+        "mean_long_true": 0.004529,
+        "mean_short_false": 0.006716,
+        "mean_long_false": 0.004524
+      },
+      {
+        "label": "L5:N10000",
+        "truth_effect_d": -0.0856,
+        "truth_effect_p": 0.325427,
+        "length_effect_d": -0.1587,
+        "length_effect_p": 0.84193,
+        "mean_short_true": 0.003256,
+        "mean_long_true": 0.00261,
+        "mean_short_false": 0.003294,
+        "mean_long_false": 0.002349
+      },
+      {
+        "label": "L6:N6213",
+        "truth_effect_d": 0.0507,
+        "truth_effect_p": 0.604826,
+        "length_effect_d": -0.1949,
+        "length_effect_p": 0.529208,
+        "mean_short_true": 0.001295,
+        "mean_long_true": 0.001139,
+        "mean_short_false": 0.001304,
+        "mean_long_false": 0.001173
+      },
+      {
+        "label": "L6:N9182",
+        "truth_effect_d": 0.1738,
+        "truth_effect_p": 0.176205,
+        "length_effect_d": -0.3055,
+        "length_effect_p": 0.010165,
+        "mean_short_true": 0.002972,
+        "mean_long_true": 0.002606,
+        "mean_short_false": 0.003112,
+        "mean_long_false": 0.002688
+      },
+      {
+        "label": "L7:N1207",
+        "truth_effect_d": 0.1366,
+        "truth_effect_p": 0.221326,
+        "length_effect_d": -1.4767,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.13876,
+        "mean_long_true": 0.123652,
+        "mean_short_false": 0.140293,
+        "mean_long_false": 0.123145
+      },
+      {
+        "label": "L7:N3944",
+        "truth_effect_d": 0.049,
+        "truth_effect_p": 0.918147,
+        "length_effect_d": -1.0871,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.008839,
+        "mean_long_true": 0.005018,
+        "mean_short_false": 0.008942,
+        "mean_long_false": 0.005001
+      },
+      {
+        "label": "L7:N8186",
+        "truth_effect_d": 0.063,
+        "truth_effect_p": 0.946543,
+        "length_effect_d": -1.4381,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.010191,
+        "mean_long_true": 0.004202,
+        "mean_short_false": 0.010421,
+        "mean_long_false": 0.004119
+      },
+      {
+        "label": "L9:N5580",
+        "truth_effect_d": 0.3431,
+        "truth_effect_p": 0.00105,
+        "length_effect_d": -0.9869,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.006065,
+        "mean_long_true": 0.004237,
+        "mean_short_false": 0.006961,
+        "mean_long_false": 0.004204
+      },
+      {
+        "label": "L10:N2536",
+        "truth_effect_d": 0.6186,
+        "truth_effect_p": 0.0,
+        "length_effect_d": -0.6616,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.004541,
+        "mean_long_true": 0.003638,
+        "mean_short_false": 0.006195,
+        "mean_long_false": 0.003656
+      },
+      {
+        "label": "L10:N4996",
+        "truth_effect_d": -0.1164,
+        "truth_effect_p": 0.166899,
+        "length_effect_d": -0.5444,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.005379,
+        "mean_long_true": 0.004444,
+        "mean_short_false": 0.005279,
+        "mean_long_false": 0.004332
+      },
+      {
+        "label": "L12:N5105",
+        "truth_effect_d": 0.3245,
+        "truth_effect_p": 0.000962,
+        "length_effect_d": 3.6034,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.280068,
+        "mean_long_true": 0.347344,
+        "mean_short_false": 0.283574,
+        "mean_long_false": 0.349473
+      },
+      {
+        "label": "L13:N833",
+        "truth_effect_d": 0.3073,
+        "truth_effect_p": 0.004835,
+        "length_effect_d": -1.0369,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.006585,
+        "mean_long_true": 0.005059,
+        "mean_short_false": 0.007086,
+        "mean_long_false": 0.00509
+      },
+      {
+        "label": "L13:N9099",
+        "truth_effect_d": -0.5558,
+        "truth_effect_p": 1e-06,
+        "length_effect_d": 3.6455,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.350059,
+        "mean_long_true": 0.424219,
+        "mean_short_false": 0.338965,
+        "mean_long_false": 0.419922
+      },
+      {
+        "label": "L14:N1027",
+        "truth_effect_d": 0.0145,
+        "truth_effect_p": 0.564527,
+        "length_effect_d": 2.6291,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.409727,
+        "mean_long_true": 0.471172,
+        "mean_short_false": 0.407031,
+        "mean_long_false": 0.474238
+      },
+      {
+        "label": "L14:N8547",
+        "truth_effect_d": 1.0978,
+        "truth_effect_p": 0.0,
+        "length_effect_d": -1.3142,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.004699,
+        "mean_long_true": 0.003221,
+        "mean_short_false": 0.012223,
+        "mean_long_false": 0.004409
+      },
+      {
+        "label": "L15:N2243",
+        "truth_effect_d": -0.0599,
+        "truth_effect_p": 0.841927,
+        "length_effect_d": 0.1842,
+        "length_effect_p": 0.046881,
+        "mean_short_true": 0.006555,
+        "mean_long_true": 0.007379,
+        "mean_short_false": 0.006782,
+        "mean_long_false": 0.006834
+      },
+      {
+        "label": "L15:N4790",
+        "truth_effect_d": 0.2632,
+        "truth_effect_p": 0.009624,
+        "length_effect_d": -1.2527,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.01147,
+        "mean_long_true": 0.003459,
+        "mean_short_false": 0.01291,
+        "mean_long_false": 0.003651
+      },
+      {
+        "label": "L16:N1830",
+        "truth_effect_d": 0.2456,
+        "truth_effect_p": 0.04626,
+        "length_effect_d": -0.797,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.008384,
+        "mean_long_true": 0.006066,
+        "mean_short_false": 0.009019,
+        "mean_long_false": 0.006284
+      },
+      {
+        "label": "L16:N4146",
+        "truth_effect_d": 0.4098,
+        "truth_effect_p": 0.000332,
+        "length_effect_d": -0.2448,
+        "length_effect_p": 0.022775,
+        "mean_short_true": 0.332363,
+        "mean_long_true": 0.320762,
+        "mean_short_false": 0.33292,
+        "mean_long_false": 0.332773
+      },
+      {
+        "label": "L20:N4288",
+        "truth_effect_d": 0.0637,
+        "truth_effect_p": 0.564662,
+        "length_effect_d": -0.4331,
+        "length_effect_p": 0.000261,
+        "mean_short_true": 0.004161,
+        "mean_long_true": 0.003572,
+        "mean_short_false": 0.004234,
+        "mean_long_false": 0.003652
+      },
+      {
+        "label": "L23:N5577",
+        "truth_effect_d": -0.7194,
+        "truth_effect_p": 0.0,
+        "length_effect_d": -2.1006,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.196523,
+        "mean_long_true": 0.129297,
+        "mean_short_false": 0.172314,
+        "mean_long_false": 0.123403
+      },
+      {
+        "label": "L24:N7995",
+        "truth_effect_d": -0.0004,
+        "truth_effect_p": 0.661104,
+        "length_effect_d": -0.5619,
+        "length_effect_p": 3e-06,
+        "mean_short_true": 0.017648,
+        "mean_long_true": 0.011192,
+        "mean_short_false": 0.018034,
+        "mean_long_false": 0.010802
+      },
+      {
+        "label": "L25:N3877",
+        "truth_effect_d": -0.6343,
+        "truth_effect_p": 0.0,
+        "length_effect_d": -3.1984,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.319658,
+        "mean_long_true": 0.213203,
+        "mean_short_false": 0.295195,
+        "mean_long_false": 0.212832
+      },
+      {
+        "label": "L26:N1359",
+        "truth_effect_d": -0.2454,
+        "truth_effect_p": 0.000482,
+        "length_effect_d": -0.3534,
+        "length_effect_p": 0.00038,
+        "mean_short_true": 0.005491,
+        "mean_long_true": 0.004393,
+        "mean_short_false": 0.004992,
+        "mean_long_false": 0.004285
+      },
+      {
+        "label": "L27:N8282",
+        "truth_effect_d": -0.1439,
+        "truth_effect_p": 0.272084,
+        "length_effect_d": -3.0777,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.447969,
+        "mean_long_true": 0.346152,
+        "mean_short_false": 0.433555,
+        "mean_long_false": 0.356074
+      },
+      {
+        "label": "L28:N1943",
+        "truth_effect_d": -0.8137,
+        "truth_effect_p": 0.0,
+        "length_effect_d": -2.8039,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.286074,
+        "mean_long_true": 0.217988,
+        "mean_short_false": 0.269375,
+        "mean_long_false": 0.21334
+      },
+      {
+        "label": "L30:N6666",
+        "truth_effect_d": 0.1905,
+        "truth_effect_p": 0.073122,
+        "length_effect_d": -1.6031,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.348311,
+        "mean_long_true": 0.30543,
+        "mean_short_false": 0.352383,
+        "mean_long_false": 0.305293
+      },
+      {
+        "label": "L31:N2761",
+        "truth_effect_d": -0.5832,
+        "truth_effect_p": 0.0,
+        "length_effect_d": -2.4553,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.181665,
+        "mean_long_true": 0.114668,
+        "mean_short_false": 0.167856,
+        "mean_long_false": 0.112822
+      },
+      {
+        "label": "L31:N5732",
+        "truth_effect_d": -0.5035,
+        "truth_effect_p": 1e-06,
+        "length_effect_d": -0.961,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.014944,
+        "mean_long_true": 0.005255,
+        "mean_short_false": 0.011283,
+        "mean_long_false": 0.003831
+      },
+      {
+        "label": "L33:N8011",
+        "truth_effect_d": -0.3528,
+        "truth_effect_p": 0.007244,
+        "length_effect_d": -1.8504,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.057007,
+        "mean_long_true": 0.03735,
+        "mean_short_false": 0.056425,
+        "mean_long_false": 0.033643
+      }
+    ]
+  },
+  "max_aggregation": {
+    "aggregation": "max",
+    "condition_means": {
+      "short_true": {
+        "estimate": 0.14793628454208374,
+        "ci_lower": 0.14592472426593303,
+        "ci_upper": 0.14996066726744176
+      },
+      "long_true": {
+        "estimate": 0.19205991923809052,
+        "ci_lower": 0.18950003683567046,
+        "ci_upper": 0.1946701481938362
+      },
+      "short_false": {
+        "estimate": 0.1468300074338913,
+        "ci_lower": 0.1446844894438982,
+        "ci_upper": 0.1489976618438959
+      },
+      "long_false": {
+        "estimate": 0.18996424973011017,
+        "ci_lower": 0.18746985234320163,
+        "ci_upper": 0.1924771424382925
+      }
+    },
+    "truth_effect": {
+      "cohens_d": -0.2646,
+      "p_value": 0.017507,
+      "mean_diff": -0.001601,
+      "ci": {
+        "estimate": -0.001600960735231638,
+        "ci_lower": -0.0027937876002397384,
+        "ci_upper": -0.0004091633723874111
+      }
+    },
+    "length_effect": {
+      "cohens_d": 4.2766,
+      "p_value": 0.0,
+      "mean_diff": 0.043629,
+      "ci": {
+        "estimate": 0.04362894222140312,
+        "ci_lower": 0.041665340680629014,
+        "ci_upper": 0.0456387679092586
+      }
+    },
+    "verdict": "A_verbosity",
+    "verdict_detail": "Length effect (4.28) dominates truth effect (0.26) by >2:1 ratio.",
+    "per_neuron": [
+      {
+        "label": "L0:N1819",
+        "truth_effect_d": -0.2899,
+        "truth_effect_p": 0.025955,
+        "length_effect_d": 3.9363,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.044417,
+        "mean_long_true": 0.523694,
+        "mean_short_false": 0.041011,
+        "mean_long_false": 0.481626
+      },
+      {
+        "label": "L0:N3088",
+        "truth_effect_d": -0.148,
+        "truth_effect_p": 0.481862,
+        "length_effect_d": 0.6873,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.030597,
+        "mean_long_true": 0.09438,
+        "mean_short_false": 0.023613,
+        "mean_long_false": 0.072999
+      },
+      {
+        "label": "L2:N2965",
+        "truth_effect_d": 0.082,
+        "truth_effect_p": 0.320663,
+        "length_effect_d": 1.781,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.322246,
+        "mean_long_true": 0.373242,
+        "mean_short_false": 0.320566,
+        "mean_long_false": 0.378945
+      },
+      {
+        "label": "L4:N5545",
+        "truth_effect_d": -0.1656,
+        "truth_effect_p": 0.537866,
+        "length_effect_d": 0.2695,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.012198,
+        "mean_long_true": 0.019007,
+        "mean_short_false": 0.010766,
+        "mean_long_false": 0.014235
+      },
+      {
+        "label": "L4:N5627",
+        "truth_effect_d": -0.0612,
+        "truth_effect_p": 0.270376,
+        "length_effect_d": 1.6248,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.283936,
+        "mean_long_true": 0.346387,
+        "mean_short_false": 0.284365,
+        "mean_long_false": 0.341387
+      },
+      {
+        "label": "L4:N6575",
+        "truth_effect_d": 0.0692,
+        "truth_effect_p": 0.752375,
+        "length_effect_d": 0.2775,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.00984,
+        "mean_long_true": 0.015236,
+        "mean_short_false": 0.012113,
+        "mean_long_false": 0.016477
+      },
+      {
+        "label": "L5:N1174",
+        "truth_effect_d": 0.1388,
+        "truth_effect_p": 0.716609,
+        "length_effect_d": 0.3479,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.01203,
+        "mean_long_true": 0.019458,
+        "mean_short_false": 0.013506,
+        "mean_long_false": 0.020381
+      },
+      {
+        "label": "L5:N5227",
+        "truth_effect_d": -0.097,
+        "truth_effect_p": 0.989512,
+        "length_effect_d": 0.5371,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.007345,
+        "mean_long_true": 0.014607,
+        "mean_short_false": 0.007519,
+        "mean_long_false": 0.013625
+      },
+      {
+        "label": "L5:N7219",
+        "truth_effect_d": 0.0063,
+        "truth_effect_p": 0.382387,
+        "length_effect_d": 0.4574,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.028761,
+        "mean_long_true": 0.060349,
+        "mean_short_false": 0.030625,
+        "mean_long_false": 0.059039
+      },
+      {
+        "label": "L5:N10000",
+        "truth_effect_d": -0.2053,
+        "truth_effect_p": 0.133847,
+        "length_effect_d": 0.3857,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.014987,
+        "mean_long_true": 0.050895,
+        "mean_short_false": 0.014447,
+        "mean_long_false": 0.031292
+      },
+      {
+        "label": "L6:N6213",
+        "truth_effect_d": -0.0648,
+        "truth_effect_p": 0.480897,
+        "length_effect_d": 0.5636,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.004649,
+        "mean_long_true": 0.011496,
+        "mean_short_false": 0.004775,
+        "mean_long_false": 0.009982
+      },
+      {
+        "label": "L6:N9182",
+        "truth_effect_d": 0.0542,
+        "truth_effect_p": 0.885175,
+        "length_effect_d": 0.6337,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.008319,
+        "mean_long_true": 0.017047,
+        "mean_short_false": 0.00942,
+        "mean_long_false": 0.017355
+      },
+      {
+        "label": "L7:N1207",
+        "truth_effect_d": 0.3383,
+        "truth_effect_p": 0.000645,
+        "length_effect_d": 1.1737,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.184731,
+        "mean_long_true": 0.20748,
+        "mean_short_false": 0.19001,
+        "mean_long_false": 0.212178
+      },
+      {
+        "label": "L7:N3944",
+        "truth_effect_d": 0.1141,
+        "truth_effect_p": 0.673753,
+        "length_effect_d": 0.287,
+        "length_effect_p": 0.003452,
+        "mean_short_true": 0.033762,
+        "mean_long_true": 0.043321,
+        "mean_short_false": 0.034489,
+        "mean_long_false": 0.044281
+      },
+      {
+        "label": "L7:N8186",
+        "truth_effect_d": 0.0877,
+        "truth_effect_p": 0.157546,
+        "length_effect_d": 0.3195,
+        "length_effect_p": 0.00096,
+        "mean_short_true": 0.04761,
+        "mean_long_true": 0.0576,
+        "mean_short_false": 0.048977,
+        "mean_long_false": 0.057361
+      },
+      {
+        "label": "L9:N5580",
+        "truth_effect_d": 0.3768,
+        "truth_effect_p": 6.1e-05,
+        "length_effect_d": 0.6276,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.020589,
+        "mean_long_true": 0.029102,
+        "mean_short_false": 0.026341,
+        "mean_long_false": 0.031868
+      },
+      {
+        "label": "L10:N2536",
+        "truth_effect_d": 0.4429,
+        "truth_effect_p": 7e-06,
+        "length_effect_d": -0.2679,
+        "length_effect_p": 0.015061,
+        "mean_short_true": 0.019363,
+        "mean_long_true": 0.018214,
+        "mean_short_false": 0.026745,
+        "mean_long_false": 0.020767
+      },
+      {
+        "label": "L10:N4996",
+        "truth_effect_d": 0.0281,
+        "truth_effect_p": 0.763047,
+        "length_effect_d": 0.887,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.017169,
+        "mean_long_true": 0.031348,
+        "mean_short_false": 0.016852,
+        "mean_long_false": 0.032436
+      },
+      {
+        "label": "L12:N5105",
+        "truth_effect_d": 0.163,
+        "truth_effect_p": 0.113372,
+        "length_effect_d": 3.5833,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.350117,
+        "mean_long_true": 0.477383,
+        "mean_short_false": 0.352617,
+        "mean_long_false": 0.48166
+      },
+      {
+        "label": "L13:N833",
+        "truth_effect_d": 0.1592,
+        "truth_effect_p": 0.140337,
+        "length_effect_d": 0.9209,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.017007,
+        "mean_long_true": 0.025283,
+        "mean_short_false": 0.019237,
+        "mean_long_false": 0.025809
+      },
+      {
+        "label": "L13:N9099",
+        "truth_effect_d": -0.0514,
+        "truth_effect_p": 0.648137,
+        "length_effect_d": 3.0572,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.437227,
+        "mean_long_true": 0.568828,
+        "mean_short_false": 0.434727,
+        "mean_long_false": 0.568418
+      },
+      {
+        "label": "L14:N1027",
+        "truth_effect_d": 0.1721,
+        "truth_effect_p": 0.137993,
+        "length_effect_d": 2.0804,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.522949,
+        "mean_long_true": 0.623516,
+        "mean_short_false": 0.528945,
+        "mean_long_false": 0.626172
+      },
+      {
+        "label": "L14:N8547",
+        "truth_effect_d": 1.1076,
+        "truth_effect_p": 0.0,
+        "length_effect_d": 0.2951,
+        "length_effect_p": 0.00323,
+        "mean_short_true": 0.013993,
+        "mean_long_true": 0.021805,
+        "mean_short_false": 0.044922,
+        "mean_long_false": 0.04548
+      },
+      {
+        "label": "L15:N2243",
+        "truth_effect_d": -0.0769,
+        "truth_effect_p": 0.69199,
+        "length_effect_d": 0.6671,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.016347,
+        "mean_long_true": 0.025997,
+        "mean_short_false": 0.016218,
+        "mean_long_false": 0.025275
+      },
+      {
+        "label": "L15:N4790",
+        "truth_effect_d": 0.3017,
+        "truth_effect_p": 0.000821,
+        "length_effect_d": -0.5637,
+        "length_effect_p": 1e-06,
+        "mean_short_true": 0.046763,
+        "mean_long_true": 0.032025,
+        "mean_short_false": 0.051949,
+        "mean_long_false": 0.040038
+      },
+      {
+        "label": "L16:N1830",
+        "truth_effect_d": 0.0557,
+        "truth_effect_p": 0.200828,
+        "length_effect_d": 0.5126,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.016241,
+        "mean_long_true": 0.029124,
+        "mean_short_false": 0.019076,
+        "mean_long_false": 0.028145
+      },
+      {
+        "label": "L16:N4146",
+        "truth_effect_d": 0.2821,
+        "truth_effect_p": 0.006225,
+        "length_effect_d": 1.4842,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.419414,
+        "mean_long_true": 0.468379,
+        "mean_short_false": 0.425293,
+        "mean_long_false": 0.479043
+      },
+      {
+        "label": "L20:N4288",
+        "truth_effect_d": 0.3327,
+        "truth_effect_p": 0.000671,
+        "length_effect_d": 0.8338,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.013187,
+        "mean_long_true": 0.020444,
+        "mean_short_false": 0.016674,
+        "mean_long_false": 0.024667
+      },
+      {
+        "label": "L23:N5577",
+        "truth_effect_d": -0.1585,
+        "truth_effect_p": 0.071222,
+        "length_effect_d": 1.4392,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.301064,
+        "mean_long_true": 0.382314,
+        "mean_short_false": 0.286035,
+        "mean_long_false": 0.383408
+      },
+      {
+        "label": "L24:N7995",
+        "truth_effect_d": 0.0395,
+        "truth_effect_p": 0.717633,
+        "length_effect_d": 1.1455,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.081994,
+        "mean_long_true": 0.140267,
+        "mean_short_false": 0.085151,
+        "mean_long_false": 0.139679
+      },
+      {
+        "label": "L25:N3877",
+        "truth_effect_d": -0.1713,
+        "truth_effect_p": 0.005093,
+        "length_effect_d": 1.2111,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.425195,
+        "mean_long_true": 0.481934,
+        "mean_short_false": 0.405352,
+        "mean_long_false": 0.483887
+      },
+      {
+        "label": "L26:N1359",
+        "truth_effect_d": 0.1039,
+        "truth_effect_p": 0.809687,
+        "length_effect_d": 1.817,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.017475,
+        "mean_long_true": 0.061871,
+        "mean_short_false": 0.015975,
+        "mean_long_false": 0.066339
+      },
+      {
+        "label": "L27:N8282",
+        "truth_effect_d": 0.0356,
+        "truth_effect_p": 0.499537,
+        "length_effect_d": 1.2766,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.546562,
+        "mean_long_true": 0.585137,
+        "mean_short_false": 0.539453,
+        "mean_long_false": 0.594219
+      },
+      {
+        "label": "L28:N1943",
+        "truth_effect_d": -0.3625,
+        "truth_effect_p": 0.000903,
+        "length_effect_d": 0.7984,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.375293,
+        "mean_long_true": 0.401777,
+        "mean_short_false": 0.360469,
+        "mean_long_false": 0.396074
+      },
+      {
+        "label": "L30:N6666",
+        "truth_effect_d": -0.0348,
+        "truth_effect_p": 0.667381,
+        "length_effect_d": 1.1903,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.425547,
+        "mean_long_true": 0.465645,
+        "mean_short_false": 0.428242,
+        "mean_long_false": 0.461973
+      },
+      {
+        "label": "L31:N2761",
+        "truth_effect_d": -0.8287,
+        "truth_effect_p": 0.0,
+        "length_effect_d": 0.1581,
+        "length_effect_p": 0.070576,
+        "mean_short_true": 0.288848,
+        "mean_long_true": 0.290039,
+        "mean_short_false": 0.25999,
+        "mean_long_false": 0.266133
+      },
+      {
+        "label": "L31:N5732",
+        "truth_effect_d": -0.6798,
+        "truth_effect_p": 0.0,
+        "length_effect_d": 0.3988,
+        "length_effect_p": 0.00018,
+        "mean_short_true": 0.107628,
+        "mean_long_true": 0.14248,
+        "mean_short_false": 0.076689,
+        "mean_long_false": 0.105176
+      },
+      {
+        "label": "L33:N8011",
+        "truth_effect_d": -0.0054,
+        "truth_effect_p": 0.650077,
+        "length_effect_d": 1.4304,
+        "length_effect_p": 0.0,
+        "mean_short_true": 0.096179,
+        "mean_long_true": 0.121167,
+        "mean_short_false": 0.096384,
+        "mean_long_false": 0.120815
+      }
+    ]
+  },
+  "response_token_count_means": {
+    "short_true": 10.7,
+    "long_true": 112.3,
+    "short_false": 10.6,
+    "long_false": 110.7
+  }
+}
