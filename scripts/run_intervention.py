@@ -951,6 +951,14 @@ def parse_args():
         help="SAE extraction directory for metadata validation (required for --intervention_mode sae)",
     )
     p.add_argument(
+        "--sae_steering_mode",
+        type=str,
+        default="full_replacement",
+        choices=["full_replacement", "delta_only"],
+        help="SAE steering architecture: 'full_replacement' (encode-scale-decode) "
+        "or 'delta_only' (add decoded delta to original activation)",
+    )
+    p.add_argument(
         "--wandb",
         action="store_true",
         help="Enable Weights & Biases run tracking",
@@ -1030,9 +1038,16 @@ def main():
                 str(device),
             )
 
-            scaler = SAEFeatureScaler(model, saes, target_features, device)
+            scaler = SAEFeatureScaler(
+                model,
+                saes,
+                target_features,
+                device,
+                mode=args.sae_steering_mode,
+            )
             print(
                 f"Installed {scaler.n_hooks} SAE hooks on {scaler.n_features} features"
+                f" (mode={args.sae_steering_mode})"
             )
             total_neurons = total_features  # for summary metadata
         else:
@@ -1151,6 +1166,7 @@ def main():
         }
         if args.intervention_mode == "sae":
             summary["sae_classifier"] = args.sae_classifier_path
+            summary["sae_steering_mode"] = args.sae_steering_mode
             summary["n_sae_features"] = total_neurons
         else:
             summary["classifier"] = args.classifier_path

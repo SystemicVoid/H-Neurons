@@ -140,6 +140,11 @@ H-neuron specificity confirmed. Full audit: [`data/gemma3_4b/intervention/falseq
 ### BioASQ Pipeline Audit — done
 
 Completed. Full audit: [`data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md`](data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md). Integrated into `intervention_findings.md` as a linked side report rather than a new headline causal benchmark.
+
+### SAE Decomposition Investigation — done (negative result, definitively closed)
+
+All 5 phases completed (feasibility, extraction, probe training, interpretability, steering). Gate 3 outcome: **FAIL**. Full-replacement SAE steering slope 0.16 pp/α (CI contains zero) vs neuron baseline 2.09 pp/α. Delta-only falsification test (2026-03-21) confirmed the failure is fundamental feature-space misalignment, not reconstruction noise: delta-only H-feature slope 0.12 pp/α, random -0.09 pp/α — both indistinguishable from zero while the neuron baseline on the same alphas is 2.12 pp/α. SAE detection (AUROC 0.848) marginally matches CETT (0.843) but uses 7× more features and does not translate to causal control under either steering architecture. Full plan: [`docs/sae_investigation_plan.md`](docs/sae_investigation_plan.md). Pipeline audit: [`data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md`](data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md). Integrated into `intervention_findings.md` §1.9–1.10 and Finding 6.
+
 ---
 
 Infrastructure improvements deferred for future consideration.

@@ -130,6 +130,7 @@ def run_single_sae_config(
     config_name,
     device,
     feature_pool=None,
+    sae_steering_mode="full_replacement",
 ):
     """Run a benchmark for one SAE feature set across all alphas."""
     os.makedirs(output_dir, exist_ok=True)
@@ -139,10 +140,11 @@ def run_single_sae_config(
     with open(indices_path, "w") as f:
         json.dump({str(k): v for k, v in feature_map.items()}, f, indent=2)
 
-    scaler = SAEFeatureScaler(model, saes, feature_map, device)
+    scaler = SAEFeatureScaler(model, saes, feature_map, device, mode=sae_steering_mode)
     n_features = scaler.n_features
     print(
         f"\n[{config_name}] Installed {scaler.n_hooks} SAE hooks on {n_features} features"
+        f" (mode={sae_steering_mode})"
     )
 
     results = {}
@@ -201,6 +203,7 @@ def run_single_sae_config(
     summary = {
         "config": config_name,
         "benchmark": "faitheval",
+        "sae_steering_mode": sae_steering_mode,
         "n_sae_features": n_features,
         "results": results,
     }
@@ -430,6 +433,13 @@ def parse_args():
         default=ALL_ALPHAS,
     )
     p.add_argument(
+        "--sae_steering_mode",
+        type=str,
+        default="full_replacement",
+        choices=["full_replacement", "delta_only"],
+        help="SAE steering architecture: 'full_replacement' or 'delta_only'",
+    )
+    p.add_argument(
         "--analysis_only",
         action="store_true",
         help="Skip generation, only run analysis on existing data",
@@ -446,7 +456,10 @@ def main():
     args = parse_args()
     benchmark = args.benchmark
     alphas = args.alphas
-    output_base = f"data/gemma3_4b/intervention/{benchmark}_sae/control"
+    if args.sae_steering_mode == "delta_only":
+        output_base = f"data/gemma3_4b/intervention/{benchmark}_sae_delta/control"
+    else:
+        output_base = f"data/gemma3_4b/intervention/{benchmark}_sae/control"
     os.makedirs(output_base, exist_ok=True)
 
     summary_path = os.path.join(output_base, "comparison_summary.json")
@@ -547,6 +560,7 @@ def main():
                 h_out_dir,
                 "h_features",
                 device,
+                sae_steering_mode=args.sae_steering_mode,
             )
 
             # Run random feature sweeps
@@ -564,6 +578,7 @@ def main():
                     name,
                     device,
                     feature_pool=config["feature_pool"],
+                    sae_steering_mode=args.sae_steering_mode,
                 )
                 all_random_runs[name] = {
                     "results": results,

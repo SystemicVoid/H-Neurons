@@ -20,28 +20,41 @@ import numpy as np
 import torch
 
 
+VALID_SAE_STEERING_MODES = ("full_replacement", "delta_only")
+
+
 class SAEFeatureScaler:
     """Hook-based SAE feature scaler for intervention experiments.
 
     Registers forward hooks on post_feedforward_layernorm modules.
-    At each hooked layer:
-      1. Encodes the activation through the SAE encoder
-      2. Scales target SAE features by alpha
-      3. Decodes back through the SAE decoder
-      4. Replaces the original activation with the modified one
+
+    Supports two steering modes:
+      - ``full_replacement`` (default): encode -> scale -> decode, replacing the
+        original activation entirely.  Subject to SAE reconstruction error.
+      - ``delta_only``: compute the decoded *difference* from scaling and add it
+        to the original activation, cancelling reconstruction error exactly.
 
     This operates in SAE feature space rather than neuron space.
     """
 
-    def __init__(self, model, saes, target_features, device):
+    def __init__(
+        self, model, saes, target_features, device, *, mode="full_replacement"
+    ):
         """
         Args:
             model: HuggingFace model.
             saes: dict mapping layer_idx -> loaded SAE object.
             target_features: dict mapping layer_idx -> list of SAE feature indices.
             device: torch device.
+            mode: ``"full_replacement"`` or ``"delta_only"``.
         """
+        if mode not in VALID_SAE_STEERING_MODES:
+            raise ValueError(
+                f"Invalid SAE steering mode {mode!r}; "
+                f"expected one of {VALID_SAE_STEERING_MODES}"
+            )
         self._alpha = 1.0
+        self.mode = mode
         self.hooks = []
         self.saes = saes
         self.target_features = target_features
@@ -60,29 +73,31 @@ class SAEFeatureScaler:
                 self.target_features[layer_idx], dtype=torch.long, device=device
             )
 
-            def make_hook(sae_ref, idx):
+            def make_hook(sae_ref, idx, steering_mode):
                 def hook_fn(module, input, output):
                     if self._alpha == 1.0:
                         return output
 
-                    # output shape: [batch, seq, hidden_size]
                     original_dtype = output.dtype
                     h = output.float().to(sae_ref.device)
 
-                    # Encode through SAE
                     features = sae_ref.encode(h)
+                    f_modified = features.clone()
+                    f_modified[:, :, idx] = f_modified[:, :, idx] * self._alpha
 
-                    # Scale target features
-                    features[:, :, idx] = features[:, :, idx] * self._alpha
+                    if steering_mode == "delta_only":
+                        delta = sae_ref.decode(f_modified) - sae_ref.decode(features)
+                        h_out = h + delta
+                    else:
+                        h_out = sae_ref.decode(f_modified)
 
-                    # Decode back
-                    h_modified = sae_ref.decode(features)
-
-                    return h_modified.to(original_dtype)
+                    return h_out.to(original_dtype)
 
                 return hook_fn
 
-            self.hooks.append(module.register_forward_hook(make_hook(sae, indices)))
+            self.hooks.append(
+                module.register_forward_hook(make_hook(sae, indices, self.mode))
+            )
 
     @staticmethod
     def _extract_layer_idx(name):

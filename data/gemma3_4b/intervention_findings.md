@@ -5,7 +5,7 @@
 **Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC 0.843, 95% CI [0.815, 0.870] on the disjoint evaluated test set, n=780)
 **Reference:** Gao et al., "H-Neurons" (arXiv:2512.01797v2), Section 3 replication
 
-**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md)
+**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md), [sae_pipeline_audit.md](intervention/faitheval_sae/sae_pipeline_audit.md)
 
 ---
 
@@ -221,6 +221,54 @@ Templates T1 and T3 drive the aggregate effect; Template T2 is immune to H-neuro
 
 **Stochastic generation caveat:** Unlike FaithEval and FalseQA (greedy decoding), jailbreak uses `do_sample=True, temperature=0.7`. This means per-item behavioral flips between adjacent alphas conflate H-neuron effects with sampling noise — the audit reports 92% bidirectional churn among swing items, consistent with noise dominating per-item transitions. Cross-benchmark comparisons of per-item flip patterns (e.g., disjoint-subpopulation structure) are not valid between greedy and stochastic benchmarks. Aggregate endpoint effects remain valid because they average over sampling noise. See [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md) for full analysis.
 
+### 1.9 SAE Feature-Space Steering — FaithEval (n=1,000)
+
+**Data:** `data/gemma3_4b/intervention/faitheval_sae/`
+**Scripts:** `scripts/run_intervention.py --intervention_mode sae`, `scripts/run_sae_negative_control.py`
+**Full audit:** [sae_pipeline_audit.md](intervention/faitheval_sae/sae_pipeline_audit.md)
+
+Tests whether steering in SAE feature space (encode, scale target features, decode) replicates or improves the neuron-level compliance effect. Uses 266 positive-weight SAE features from an L1 probe on Gemma Scope 2 16k-width features (10 layers, AUROC 0.848). Negative control: 3 random SAE feature sets of equal size drawn from zero-weight classifier positions.
+
+**Critical design detail:** At α=1.0, the SAE hook returns the original activation unchanged (early return before encode/decode). At all other α values, the full encode/scale/decode cycle is applied. This means α=1.0 is the true no-op.
+
+| α | Neuron baseline | SAE H-features | SAE random mean |
+|---|----------------|----------------|-----------------|
+| 0.0 | 64.2% | 72.3% [69.4, 75.0] | 74.9% |
+| 0.5 | 65.4% | 74.7% [71.9, 77.3] | 74.8% |
+| 1.0 | 66.0% | **66.0%** [63.0, 68.9] | **66.0%** |
+| 1.5 | 67.0% | 75.0% [72.2, 77.6] | 75.0% |
+| 2.0 | 68.2% | 75.1% [72.3, 77.7] | 74.9% |
+| 2.5 | 69.5% | 74.9% [72.1, 77.5] | 74.9% |
+| 3.0 | 70.5% | 69.9% [67.0, 72.7] | 74.6% |
+
+SAE H-feature slope: **0.16 pp/α** (bootstrap 95% CI **[-0.51, 0.84]**). SAE random mean slope: **0.59 pp/α**. Neuron baseline slope: **2.09 pp/α**.
+
+At α=1.0, all 5 configurations (experiment + 3 random seeds + redundant H-feature control) produce exactly 660/1,000 = 66.0% compliance with byte-identical responses. At α≠1.0, where the SAE encode/decode cycle is applied, compliance jumps to ~72-75% regardless of which features are targeted. This ~8-9pp shift is driven by the lossy SAE reconstruction (relative L2 error = 0.1557), not by targeted feature manipulation.
+
+H-features perform **worse** than random features at α=3.0 (69.9% vs 74.6%, -4.7pp). The H-feature slope (0.16 pp/α) is lower than the random slope (0.59 pp/α) — the opposite of what feature-specific steering would produce. Parse failures: 1.4-2.3% at α≠1.0 for all SAE configs, versus zero for neuron baseline at all α.
+
+### 1.10 Delta-Only SAE Steering — FaithEval (n=1,000)
+
+**Data:** `data/gemma3_4b/intervention/faitheval_sae_delta/`
+**Script:** `scripts/run_sae_negative_control.py --sae_steering_mode delta_only`
+
+Tests whether the SAE steering failure (§1.9) was caused by lossy reconstruction noise or by fundamental feature-space misalignment. The delta-only hook computes `h_corrected = h_original + (SAE.decode(f_modified) - SAE.decode(f_original))`, which cancels reconstruction error exactly: at α=1.0, `f_modified == f_original`, so `delta == 0` and `h_corrected == h_original`. Quick-mode sweep (α ∈ {0.0, 1.0, 3.0}), H-features (266) + 1 random seed (266 zero-weight features).
+
+| α | Neuron baseline | Delta-only H-features | Delta-only random |
+|---|----------------|----------------------|-------------------|
+| 0.0 | 64.2% | 65.7% [62.7, 68.6] | 66.3% [63.3, 69.2] |
+| 1.0 | 66.0% | **66.0%** [63.0, 68.9] | **66.0%** [63.0, 68.9] |
+| 3.0 | 70.5% | 66.1% [63.1, 69.0] | 66.0% [63.0, 68.9] |
+
+Delta-only H-feature slope: **0.12 pp/α**. Delta-only random slope: **-0.09 pp/α**. Neuron baseline slope: **2.12 pp/α** (3-point OLS on same alphas).
+
+**Validation checks:**
+- **α=1.0 identity:** Both configs produce exactly 660/1,000 (66.0%), matching the existing unperturbed baseline. No-op is byte-preserved.
+- **Parse failures:** Zero across all configs and alphas (vs 1.4–2.3% for full-replacement SAE steering). Confirms reconstruction noise caused the parse failures in §1.9.
+- **Slope magnitude:** Both H-feature and random slopes are indistinguishable from zero and from each other. The neuron baseline slope is ~18× larger.
+
+**Interpretation:** This is **Outcome B** (H ≈ random ≈ 0) from the pre-registered interpretation table. The reconstruction error was a nuisance (causing parse failures and incoherent responses in full-replacement mode) but was not the cause of the null SAE steering result. SAE features genuinely cannot steer compliance regardless of steering architecture. The SAE steering line of investigation is definitively closed.
+
 ---
 
 ## 2. Findings
@@ -265,6 +313,22 @@ This extends the over-compliance mechanism (Findings 1–2) to an adversarial sa
 
 **Important caveats:** (1) The curve plateaus at α=1.5 and slightly reverses, unlike the monotonic FaithEval curve; the Spearman test for monotonicity is non-significant (p=0.094). (2) Template heterogeneity is extreme — Template T1 accounts for ~40% of all harmful responses, while Template T2 is immune (2-6% compliance across all alphas is indistinguishable from sampling noise at n=100). (3) **No negative control confirms H-neuron specificity for jailbreak.** The effect could in principle result from scaling any neurons. (4) Stochastic generation (`do_sample=True, temp=0.7`) invalidates per-item flip analysis and cross-benchmark flip comparisons; see [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md) §3. (5) **No judge test-retest reliability measurement exists for jailbreak.** FalseQA established 0.4% nondeterminism, but the jailbreak rubric is more complex and responses are longer — judge noise could be higher.
 
+### Finding 6: SAE features cannot steer compliance regardless of steering architecture
+
+SAE feature-space steering produces null compliance slopes under both tested architectures:
+
+| Architecture | H-feature slope (pp/α) | Random slope (pp/α) | Parse failures |
+|-------------|----------------------|--------------------|----|
+| Full replacement (encode-scale-decode) | 0.16 [-0.51, 0.84] | 0.59 mean | 1.4–2.3% at α≠1 |
+| **Delta-only** (add decoded delta to original) | **0.12** | **-0.09** | **0** |
+| Neuron baseline | 2.09 [1.38, 2.83] | — | 0 |
+
+The delta-only architecture (`h + decode(f_modified) - decode(f_original)`) cancels SAE reconstruction error exactly, isolating the feature-specific perturbation. It eliminates the parse failures and the ~8-9pp reconstruction-noise compliance shift seen in full-replacement mode. But the steering slope remains indistinguishable from zero (0.12 pp/α for H-features, -0.09 pp/α for random). This rules out reconstruction error as the explanation for the SAE steering failure.
+
+This is a **detection-steering dissociation**: the SAE probe detects hallucination comparably to the CETT probe (AUROC 0.848 vs 0.843), but the same features fail to steer the behavior when manipulated in either steering architecture. Features that correlate with a behavior in static activations do not necessarily causally control it.
+
+**Remaining confounds (lower priority, unlikely to change the conclusion):** The 10-layer SAE extraction misses 47.4% of CETT H-neurons (31.4% of weight, including 5 of the top-10); the 16k-width SAE has not been compared to the 262k-width variant; and the 266-feature probe (detection-optimal) may not be steering-optimal -- the sparser C=0.001 probe (62 features) was not tested for steering. The layer 20 over-concentration (93/266 features, 35%) parallels the neuron 4288 regularization artifact pattern. These confounds remain open but are deprioritized: the delta-only test was the cheapest decisive falsification, and it confirmed the null.
+
 ---
 
 ## 3. Uncertainties and Limitations
@@ -290,6 +354,8 @@ The intervention story is now quantified instead of implied. FaithEval anti-comp
 - **No jailbreak negative control.** The jailbreak compliance increase (+6.2pp) has not been tested against random-neuron baselines. This is the highest-priority missing control. Estimated cost: ~4h GPU + ~$19 API for quick mode.
 - **Stochastic generation in jailbreak.** Unlike FaithEval/FalseQA (greedy decoding), jailbreak uses `do_sample=True, temperature=0.7`. This adds per-item sampling noise, contributing to non-monotonicity and high per-item churn (15.2% swing items at α=1→3, net +1.2%).
 - **No judge test-retest reliability for jailbreak.** FalseQA measured 0.4% GPT-4o nondeterminism at α=1.0. No equivalent measurement exists for jailbreak, where the rubric is more complex (structured rubric + 6 few-shot examples vs simple ACCEPTED/REFUSED) and responses are longer (~1300 vs ~900 chars). The judge's contribution to apparent alpha-to-alpha variation is unknown.
+- **SAE steering failure is confirmed across two architectures.** Both full-replacement (encode-scale-decode) and delta-only (add decoded delta to original) produce null H-feature slopes. The delta-only test (§1.10) ruled out reconstruction error as the cause, establishing that SAE features genuinely cannot steer compliance. Remaining confounds (SAE width, feature count, layer coverage) are lower priority.
+- **SAE layer coverage is partial.** The SAE probe and steering experiments use 10 of 34 layers. While this is sufficient for detection (AUROC 0.848), 47.4% of CETT H-neurons reside in uncovered layers. This cannot explain why H-features perform worse than or equal to random features within the same 10 layers.
 
 ### Classifier selection caveat
 
@@ -313,8 +379,12 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 | NC FaithEval layer-matched (3 seeds) | +0.17 pp / α mean | [0.151, 0.208] pp / α | No | Regex letter match | Small seed count; descriptive only |
 | Jailbreak | +6.2 pp | [2.4, 10.0] pp | No (ρ=0.679) | GPT-4o judge | No negative control; stochastic generation; template heterogeneity |
 | NC FalseQA unconstrained (3 seeds) | +0.00 pp / α mean | [-0.40, 0.38] pp / α | No | GPT-4o judge | Quick mode; 3-seed interval |
+| SAE H-features (FaithEval) | -2.4 pp | [-4.9, 0.1] pp | No (ρ=0.18) | Regex letter match | Lossy encode/decode dominates; slope CI contains zero |
+| SAE random features (3 seeds) | +0.59 pp / α mean | [0.54, 0.64] pp / α | No | Regex letter match | Lossy encode/decode; feature-independent baseline |
+| SAE delta-only H-features | +0.12 pp / α | — | — | Regex letter match | Reconstruction error cancelled; slope ≈ 0 |
+| SAE delta-only random (1 seed) | -0.09 pp / α | — | — | Regex letter match | Reconstruction error cancelled; slope ≈ 0 |
 
-The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact) on the two benchmarks with negative controls (FaithEval and FalseQA). The effect generalises across three distinct compliance-test benchmarks — FaithEval (context override), FalseQA (false premise acceptance), and Jailbreak (adversarial safety) — though jailbreak specificity awaits its own negative control. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal.
+The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact) on the two benchmarks with negative controls (FaithEval and FalseQA). The effect generalises across three distinct compliance-test benchmarks — FaithEval (context override), FalseQA (false premise acceptance), and Jailbreak (adversarial safety) — though jailbreak specificity awaits its own negative control. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal. SAE feature-space steering does not replicate the neuron-level effect under either full-replacement or delta-only architectures; the failure is fundamental feature-space misalignment, not reconstruction noise (Finding 6).
 
 ---
 
