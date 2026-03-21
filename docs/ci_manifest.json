@@ -625,6 +625,48 @@
       "id": "sycophancy_benchmark",
       "status": "blocked_data",
       "reason": "no_committed_result_artifact"
+    },
+    {
+      "id": "classifier_sae_auroc",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/classifier_sae_summary.json",
+        "path": [
+          "evaluation",
+          "metrics",
+          "auroc"
+        ]
+      },
+      "surfaces": []
+    },
+    {
+      "id": "classifier_sae_accuracy",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/classifier_sae_summary.json",
+        "path": [
+          "evaluation",
+          "metrics",
+          "accuracy"
+        ]
+      },
+      "surfaces": []
+    },
+    {
+      "id": "classifier_sae_1v1_auroc",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/classifier_sae_1v1_summary.json",
+        "path": [
+          "evaluation",
+          "metrics",
+          "auroc"
+        ]
+      },
+      "surfaces": []
     }
   ]
 }
