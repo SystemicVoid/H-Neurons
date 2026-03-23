@@ -710,7 +710,14 @@ def load_jailbreak(
 
 
 def run_jailbreak(
-    model, tokenizer, scaler, samples, alpha, output_dir, max_samples=None
+    model,
+    tokenizer,
+    scaler,
+    samples,
+    alpha,
+    output_dir,
+    max_samples=None,
+    max_new_tokens=256,
 ):
     """Run Jailbreak for a single alpha. Saves responses; GPT-4o judging is separate."""
     out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
@@ -735,7 +742,7 @@ def run_jailbreak(
                 temperature=0.7,
                 top_k=20,
                 top_p=0.8,
-                max_new_tokens=256,
+                max_new_tokens=max_new_tokens,
             )
 
             record = {
@@ -959,6 +966,13 @@ def parse_args():
         "or 'delta_only' (add decoded delta to original activation)",
     )
     p.add_argument(
+        "--max_new_tokens",
+        type=int,
+        default=None,
+        help="Override max_new_tokens for generation (default: benchmark-specific). "
+        "Recommended: 1024 for jailbreak to avoid truncation bias.",
+    )
+    p.add_argument(
         "--wandb",
         action="store_true",
         help="Enable Weights & Biases run tracking",
@@ -1133,6 +1147,12 @@ def main():
         if args.benchmark == "faitheval":
             extra_kwargs["prompt_style"] = args.prompt_style
             print(f"FaithEval prompt style: {args.prompt_style}")
+        if args.max_new_tokens is not None and args.benchmark in (
+            "jailbreak",
+            "jailbreak_benign",
+        ):
+            extra_kwargs["max_new_tokens"] = args.max_new_tokens
+            print(f"Jailbreak max_new_tokens override: {args.max_new_tokens}")
 
         for alpha in args.alphas:
             print(f"\n{'=' * 60}")
