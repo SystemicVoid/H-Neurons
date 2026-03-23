@@ -51,54 +51,15 @@ WANDB_MODE=offline uv run python scripts/run_intervention.py --benchmark faithev
 wandb sync runs/<run-dir>
 ```
 
-### Experiment-folder convention
+### ~~Experiment-folder convention~~ — superseded
 
-Still worth doing. The repo has many lightweight experiment runs whose provenance would be easier to review if config and outputs were co-located.
+~~Recommended `data/<model>/runs/YYYY-MM-DD_<description>/` with `config.json`.~~ Superseded: the semantic layout (`data/<model>/intervention/<benchmark>/experiment/`) stays. Provenance sidecars handle config capture, and `AGENTS.md` now has an archive convention (`experiment_YYYY-MM-DD_<reason>/`) for re-runs that would overwrite analysed data.
 
-Recommended lightweight shape:
+## ~~Add~~ Done
 
-```text
-data/<model>/runs/
-  YYYY-MM-DD_<description>/
-    config.json
-    alpha_0.0.jsonl
-    alpha_1.0.jsonl
-    results.json
-```
+### Low-friction run provenance — adopted
 
-Minimal config capture to add near run start:
-
-```python
-import datetime
-import json
-import subprocess
-import sys
-
-config = {
-    "args": vars(args),
-    "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip(),
-    "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-    "python_version": sys.version,
-    "torch_version": torch.__version__,
-}
-```
-
-Why this is still high ROI:
-
-- Makes runs reproducible without asking “what exact command produced this?”
-- Low engineering cost
-- Helps later paper, site, and rebuttal cleanup
-
-Suggested first targets:
-
-- `scripts/run_intervention.py`
-- `scripts/run_negative_control.py`
-
-## Add
-
-### Low-friction run provenance
-
-Status: adopted as the local standard for research-output scripts.
+Status: adopted as the local standard for research-output scripts. All primary experiment scripts are migrated (see tracker below).
 
 Standard:
 
