@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-**Great research taste is mostly the ability to identify the bottleneck assumption and attack it with the cheapest decisive test. Always do the components in order from most informative per unit time to least informative per unit time. Before proposing a new experiment, name the specific claim it would upgrade or falsify. If you cannot, it is probably garnish.** 
+**Treat research as search under uncertainty, not pipeline completion. Always identify the key claim you are trying to upgrade or falsify, then find the bottleneck assumption that most limits belief in that claim. Attack that assumption with the cheapest test that would actually change what you do next. Prioritize steps by information gained per unit time, not by ease, elegance, or pipeline order. De-risk before scaling: use tiny pilots, manual audits, baselines, ceilings, brute-force checks, simulations, and counterexamples. After every result, ask what was learned, what branch of the search tree was ruled out, and whether the failure was conceptual, methodological, or merely implementation-level. Never run an experiment unless you can name the decision it informs.**
 
 
 ## Build, Test, and Development Commands
