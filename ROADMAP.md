@@ -5,6 +5,7 @@
 ### Measurement Hardening — highest ROI next
 
 The main sprint risk is not "we cannot run enough evals." It is "we may believe the wrong eval." The repo has already surfaced real evaluator artifacts and bookkeeping edge cases, so the highest-return work is calibration and invariant-checking around the existing harness before expanding benchmark/tooling scope.
+This is the highest information-per-hour move because it de-risks *every* subsequent result. Concretely: sentinel sets, cross-evaluator audits, frozen manifests, per-example outputs, and judge regression tests. Your roadmap is explicit that these should outrank adding surface area, because the bottleneck is evaluator trustworthiness, not missing runner features.    
 
 #### 1. Hand-labeled sentinel sets for evaluator regression
 
@@ -28,6 +29,17 @@ Evidence:
 Analogy:
 
 - This is the calibration-weight set for the scale. You trust the evaluator because it still gets the fixed hard cases right, not because it looks tidy.
+
+
+NOT done :
+ Full remap-sweep across all FaithEval standard alphas (separate work)
+   •  Rewriting evaluate_intervention.py (no changes to existing evaluation pipeline)
+   •  Metamorphic formatting checks (roadmap item #5 territory)
+
+   Next step for you: Review the FalseQA and jailbreak candidate files and fill in human_label fields. The validation
+   script will skip cases with null labels until you do.
+
+
 
 #### 2. First-class cross-evaluator audits for headline claims
 
