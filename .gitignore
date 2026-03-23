@@ -65,7 +65,7 @@ costs/
 
 # code2prompt output
 prompt.txt
-prompts/mentor_research_directions_context.txt
+prompts/
 
 # Personal scratch notes
 initial-setup-opus-notes.md
