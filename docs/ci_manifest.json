@@ -584,7 +584,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/intervention/jailbreak/experiment/results.json",
+        "file": "data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json",
         "path": [
           "effects",
           "compliance_curve",
@@ -607,7 +607,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/intervention/jailbreak/experiment/results.json",
+        "file": "data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json",
         "path": [
           "effects",
           "compliance_curve",
