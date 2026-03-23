@@ -145,6 +145,29 @@ Working rule:
 
 - If a task reduces the chance that a subtle evaluator or bookkeeping bug survives into a claim, it should usually beat a task that merely makes it easier to run one more benchmark.
 
+### Jailbreak Long-Budget Audit — in progress
+
+The existing jailbreak sweep uses `max_new_tokens=256` (paper-matched), which truncates responses inside the disclaimer preamble. Evidence: 4/4 gold-label samples flipped SAFE→HARMFUL at 1024 tokens; ~30–34% of SAFE responses contain compliance-suggesting language near truncation point.
+
+**Goal**: Determine whether the truncation bias changes the compliance *curve* (α ordering, monotonicity, effect size), not just the intercept.
+
+**Design**:
+- Same dataset (JailbreakBench 100×5), same judge, same sampling params
+- `max_new_tokens=1024`
+- α grid: {0.0, 1.0, 2.0, 3.0} (4 points, sufficient for curve shape)
+- Per-response diagnostics: judge verdict, output length, truncation flag, mid-word ending
+
+**Decision rule**:
+- Stable α ordering with upward shift → report 256-tok as paper-style, 1024-tok as corrected. No full rerun.
+- Material change in α ordering or monotonicity → current curve untrustworthy, full 7-alpha rerun at 1024 tokens.
+
+**Legacy data**: archived at `data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/`
+
+Evidence:
+- `docs/replication-notes.md` §Truncation bias
+- `scripts/AGENTS.md` §Jailbreak response truncation bias
+- `tests/gold_labels/jailbreak_regen.jsonl`
+
 ### FalseQA Negative Control — done
 
 H-neuron specificity confirmed. Full audit: [`data/gemma3_4b/intervention/falseqa/falseqa_negative_control_audit.md`](data/gemma3_4b/intervention/falseqa/falseqa_negative_control_audit.md). Integrated into `intervention_findings.md` §1.6–1.7.
