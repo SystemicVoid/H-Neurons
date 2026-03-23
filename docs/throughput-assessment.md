@@ -1,6 +1,7 @@
 # Throughput Assessment — Local H-Neuron Intervention Runs
 
 _Created 2026-03-20 by splitting performance analysis out of `docs/tooling-assessment.md`._
+_Updated 2026-03-23 with deeper workload characterisation and concrete intervention alternatives._
 
 ## Scope
 
@@ -28,39 +29,35 @@ Source files inspected for the current recommendations:
 - `AGENTS.md`
 - `docs/tooling-assessment.md`
 
-## Executive Read
+## Executive Summary
 
-The real jailbreak path is a **mixed CPU + GPU workload**.
+**The GPU is doing real work, and one CPU core is doing suspicious amounts of paperwork.**
 
-What we know with good confidence:
+`max_new_tokens=1024` is now the dominant unavoidable cost; hook overhead is still the dominant avoidable cost. The reason hook overhead still matters is brutal and simple: you now pay it on ~4× more decode steps.
+
+The real jailbreak path is a **mixed CPU + GPU workload**:
 
 - The unprofiled real-path baseline kept the GPU busy: mean GPU util `91.05%`, mean GPU power `95.26W`, mean GPU memory `9427.8 MiB`.
 - The near-real profiled run preserved that picture only in the early steady-state window: mean GPU util `81.5%`, hot worker CPU mean `98.16%`, about `+14.9%` slowdown by sample `64`.
 - Late in the profiled run, Scalene stopped being a useful observer and became part of the problem: by sample `70` slowdown was `+191.9%`, GPU util had collapsed, and the host entered memory/swap thrash.
 
-So the practical decision is:
+Practical decision:
 
 - **Do not spend more time debugging Scalene for full runs.**
 - **Do optimize the real path directly.**
 
-Scalene was useful like a short stress test on a race car: enough to show where the engine and transmission both matter, but not trustworthy as something to leave bolted on for the whole race.
+GPU is continuously busy, but not expensively busy — single-stream long decode with too much host-side fuss around it.
 
 ## What the Evidence Says
 
 ### Real-path baseline
 
-Command and exact setup:
-
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/commands.txt`
+Command and exact setup: `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/commands.txt`
 
 Observed on the real CLI path in repo env:
 
 - `scripts/run_intervention.py`
-- `--benchmark jailbreak`
-- `--jailbreak_source jailbreakbench`
-- `--n_templates 5`
-- `--alphas 3.0`
-- `--max_samples 100`
+- `--benchmark jailbreak --jailbreak_source jailbreakbench --n_templates 5 --alphas 3.0 --max_samples 100`
 
 Measured baseline:
 
@@ -71,22 +68,14 @@ Measured baseline:
 - mean GPU power `95.26W`
 - mean GPU memory `9427.8 MiB`
 
-Evidence:
-
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/baseline/run.log`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/baseline/time.txt`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/baseline/baseline-nvitop.log`
-
 Interpretation:
 
-- The real path is not “GPU mostly waiting around.”
+- The real path is not "GPU mostly waiting around."
 - There is VRAM headroom on a `16 GB` card.
 
 Confidence: High.
 
 ### Near-real profiling result
-
-Early steady-state window:
 
 - profiled sample `64` elapsed `532s` vs baseline `463s`
 - slowdown `+14.9%`
@@ -95,29 +84,10 @@ Early steady-state window:
 - mean GPU memory `9393.9 MiB`
 - hot worker CPU mean `98.16%`
 
-Late distortion window:
-
-- profiled sample `69` elapsed `706s` vs baseline `498s`
-- profiled sample `70` elapsed `1474s` vs baseline `505s`
-- slowdown `+191.9%`
-- late GPU util `5.44%`
-- late GPU power `24.37W`
-- hot worker CPU mean `51.06%`
-- repeated `D<l` states in thread logs
-- host memory and swap pegged in `nvitop`
-
-Evidence:
-
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/profiled/run.log`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/profiled/profiled-cpu-summary.log`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/profiled/profiled-cpu-threads.log`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/profiled/profiled-nvitop.log`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/analysis-metrics.txt`
-
 Interpretation:
 
 - Scalene is usable only for a short post-load window on this path.
-- The closer-to-real run overturns the earlier “GPU clearly not the limiter” stance.
+- The closer-to-real run overturns the earlier "GPU clearly not the limiter" stance.
 - The run is mixed enough that both a hot CPU core and a heavily used GPU matter.
 
 Confidence: High for the workload classification. Medium for any finer Scalene attribution claims.
@@ -137,287 +107,208 @@ The intervention is implemented with Python forward pre-hooks in `HNeuronScaler`
 
 Why this matters:
 
-- It is a plausible explanation for the “one hot core” symptom.
+- The hook fires **once per hooked layer per forward** — that is **23 Python callbacks per decode step**, plus prefill.
+- This is exactly the kind of "death by a thousand tiny Python paper cuts" that keeps one host thread pinned while the GPU remains mostly busy.
 - It is also a plausible source of CPU-side gaps and orchestration tax between GPU kernels.
-
-Evidence:
-
-- `scripts/run_intervention.py`
 
 Confidence: Medium-high. This is a reasoned code-path inference, not a direct timing breakdown.
 
+### W&B GPU monitoring observations
+
+Periodic dips in SM clock + memory-access % are visible in the W&B jailbreak long-responses run. These dips are worth correlating with sample boundaries:
+
+- If roughly once per sample → evidence of host-side orchestration gaps (end of generation → decode → postprocess/write → next prompt prep → next prefill launch).
+- If many times within a sample → decode-phase variability, termination checks, allocator/scheduler behaviour, or hook-related per-step fragmentation.
+
+Worth correlating against: sample completion timestamps, generated token counts, prompt lengths, time in `model.generate()`, time outside `model.generate()`.
+
+## Estimated Impact
+
+| Optimisation | Expected gain | Confidence |
+|---|---|---|
+| Hook-path cleanup | 10–25% | Medium |
+| Tokenization caching | Low single-digit % | High |
+| `inference_mode()` | 0–3% | Medium-high |
+| Batching (size 2–4) | Potentially larger than all above | Medium (risky for sampled jailbreak) |
+
+More than 30% from hook cleanup alone would be surprising. The 4× longer decode (`max_new_tokens=1024`) is the floor — you are optimising the tax, not the floor.
+
 ## Ranked Throughput Paths
 
-Ranked by expected throughput upside on the current local jailbreak path, not by implementation ease.
+### Speed only (current jailbreak run)
 
-### 1. Reduce Python hook overhead by redesigning the intervention path
+1. Redesign/remove the Python intervention path
+2. Try small-batch generation
+3. Cache tokenization/chat-template outputs
+4. `inference_mode()`
+5. Everything else
 
-Potential throughput upside: High.
+### Speed × scientific cleanliness (canonical jailbreak run)
 
-Scientific safety: Medium-high if the numerical operation stays identical.
+1. Intervention-path cleanup
+2. Tokenization caching
+3. `inference_mode()`
+4. Batching — only after validation
 
-Why it ranks first:
+## Intervention Architecture Alternatives
 
-- The current intervention happens through Python forward pre-hooks across `23` layers and `38` neurons in the real run.
-- That is exactly the sort of repeated Python callback cost that can pin one core while also fragmenting GPU work submission.
-- Unlike tokenization, this overhead happens during generation itself, so it can matter every decode step.
+### A. Wrapped `down_proj` forward — best cleanliness-first option
 
-Evidence:
+Replace the `down_proj` modules with a small wrapper that stores target indices or a precomputed scale vector. On forward: if `alpha == 1.0`, call through; otherwise scale the **input activation** before `F.linear`.
 
-- `scripts/run_intervention.py`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/profiled/profiled-cpu-summary.log`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/analysis-metrics.txt`
+A particularly clean version: precompute a full `scale_vector` of ones, set target dims to `alpha`, do `x = x * scale_vector`. This avoids fancy indexed assign/gather/scatter inside the hot path.
 
-Uncertainty:
+The current line `x[:, :, idx] = x[:, :, idx] * self._alpha` likely creates extra indexed gather/scatter work. A dense multiply by a prebuilt scale vector is often cleaner and may actually be faster, even though it touches more elements.
 
-- We have not yet measured how much of the hot-core cost is hook callback overhead versus tokenization, decode, or HF generate orchestration.
+Why this ranks highest for conservative use:
 
-Confidence: Medium.
+- Preserves **activation-side** intervention semantics
+- Removes `register_forward_pre_hook` callback overhead
+- Keeps the code auditable
+- Should be much closer to current numerical behaviour than weight scaling
+- Works with the existing "scaler has `.alpha`" interface pattern
 
-How to ground it:
+### B. Direct weight-column scaling — highest upside, validate carefully
 
-- Add low-overhead timers around hookless vs hooked runs on a fixed 10-20 sample slice.
-- Compare three variants:
-  - current pre-hook implementation
-  - no-op hook scaffold
-  - semantically equivalent module-wrapper or in-forward implementation
-- Use wall time plus CUDA events around `model.generate()`.
+Because `down_proj` is linear, scaling selected input neurons is mathematically equivalent to scaling the corresponding weight columns. For a fixed alpha over a whole run: restore original target columns, multiply target columns by `alpha`, then restore originals after the run.
 
-### 2. Batch multiple samples per `model.generate()` call, within one alpha value
+This removes per-token intervention overhead almost entirely.
 
-Potential throughput upside: High.
+**Catch:** mathematically equivalent, but not guaranteed bitwise identical in `bf16`. Scaling the activation and scaling the weight are equivalent in exact arithmetic, but not necessarily numerically identical in `bfloat16` because the rounding happens on a different operand.
 
-Scientific safety: Medium.
+This does not mean it is bad. It means: **validate before calling it canonical**.
 
-Why it ranks second:
+- **Best fast path:** weight-column scaling
+- **Best conservative path:** wrapped forward with activation-side scaling
 
-- Real GPU memory stayed around `9.4 GB`, leaving real headroom on a `16 GB` card.
-- One-at-a-time generation is the current structure in `run_jailbreak()`.
-- Batching can amortize host overhead and keep the GPU fed more efficiently.
+### C. "Fused single hook" — not worth it
 
-Evidence:
+The current design already has one hook per affected module, not one per neuron. The big cost is the hook mechanism firing across layers every step, not the number of closures.
 
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/baseline/baseline-nvitop.log`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/analysis-metrics.txt`
-- `scripts/run_intervention.py`
+### D. Custom C++ / Triton / autograd-free op — overkill
 
-Why not rank it first:
+That is sports-car nonsense when the bicycle has a flat tire.
 
-- Sampled generation plus variable prompt lengths make batching less “free” than it sounds.
-- Padding and decode divergence can reduce gains.
-- It is a bigger behavior-shape change than caching tokenization.
+## Batching Feasibility for `run_jailbreak()`
 
-Confidence: Medium-high that some gain exists. Medium on magnitude.
+### Technically feasible?
 
-How to ground it:
+Yes.
 
-- Benchmark batch sizes `2`, `4`, `8` on a fixed 20-sample slice for one alpha.
-- Bucket prompts by length or template to reduce padding waste.
-- Compare:
-  - samples/sec
-  - mean GPU util
-  - VRAM
-  - response-format parity checks on a held-out sample set
+### Safe in the strictest scientific sense?
 
-### 3. Pre-tokenize prompts and cache chat-template outputs across alpha sweeps
+Not for exact equivalence. That is the key distinction.
 
-Potential throughput upside: Medium.
+### Main risks
 
-Scientific safety: High.
+**Left padding / position handling:** For batched decoder-only generation, you need left padding (`tokenizer.padding_side = "left"` with a valid `pad_token_id`). Usually fine, but validate for Gemma chat formatting.
 
-Why it ranks third:
+**Variable output lengths:** With `max_new_tokens=1024`, one long sample can drag shorter batch-mates around. Gains depend on both prompt-length spread and generated-length spread. Jailbreak responses are exactly the kind of thing that diverge a lot.
 
-- Jailbreak prompts are deterministic and reused across alphas.
-- Current code tokenizes in every `generate_response()` call.
-- This is behavior-preserving: same text in, same token IDs out.
+**Sampling non-equivalence:** With `do_sample=True`, batching changes RNG consumption and sometimes kernel shape / floating-point order. Even if logits are "basically the same," sampled continuations will not be exact serial replicas. Batched sampled generation is **not** a pure implementation refactor — it is a slightly different experimental environment.
 
-Evidence:
+**Hooks + batching:** The intervention itself is row-wise fine (`x[:, :, idx] *= alpha` applies independently per batch row). The intervention math does not break under batching. The **sampling trajectory** is what changes.
 
-- `scripts/run_intervention.py`
-- `/tmp/hneurons-scalene/jb-realcli-20260320T112747Z/profiled/profiled-cpu-summary.log`
+### Recommendation
 
-Why not higher:
+For **canonical jailbreak runs**: do not make batching your first move.
 
-- The GPU is already heavily used, so tokenization alone is unlikely to be the whole answer.
-- Hook overhead may dominate the hot-core symptom.
+For **deterministic benchmarks** (`do_sample=False`): batching is much cleaner — test it earlier. Batch `faitheval`, `falseqa`, `bioasq` first as they are much easier to validate.
 
-Confidence: High that it is safe. Medium that the payoff is material.
+For jailbreak, only adopt batching after defining success as **statistically indistinguishable judged outcomes**, not exact response equivalence. On a 16 GB card with 1024-token decode: test **batch size 2** first, maybe **4** if VRAM allows, **8** feels optimistic with KV cache growth.
 
-How to ground it:
+## Tokenization Caching Across Alphas
 
-- Time prompt preparation separately from `model.generate()`.
-- Compare cached-token vs uncached-token runs on identical prompts for one alpha and for a multi-alpha sweep.
-- Record share of wall time saved.
+Safe: yes. Jailbreak prompts are deterministic and reused across all alphas. Caching chat-template output, tokenized `input_ids`, and prompt length is scientifically clean.
 
-### 4. Length-bucketed batching
+Expected payoff: low single-digit % overall. Generation at ~28 s/sample dominates. Still worth doing — the implementation cost is tiny and you reuse the same 500 prompts across 4 alphas.
 
-Potential throughput upside: Medium.
+Best version: cache CPU-side tensors once per sample, then move to device per call. No need to keep all cached prompts on GPU.
 
-Scientific safety: Medium.
+## `torch.inference_mode()` vs `torch.no_grad()`
 
-Why it is distinct from plain batching:
+Probably safe, but smoke-test it. The hooks do in-place mutation of inference tensors, which is usually okay inside `inference_mode()`, but because you are mutating tensors in hooks, do not flip this blind on a long run without a short parity test.
 
-- Plain batching can lose efficiency if one long sequence drags shorter ones with it.
-- Grouping similar prompt lengths is a standard way to recover batch efficiency without changing semantics much.
+Expected speedup: tiny, maybe 0–3%, maybe nothing measurable. Good hygiene, not salvation.
 
-Evidence:
+## What the Original Assessment Missed
 
-- `scripts/run_intervention.py`
-- the workload uses variable prompt lengths across jailbreak templates and goals
+### 1. `alpha=1.0` should bypass the intervention path entirely
 
-Confidence: Medium.
+In `SAEFeatureScaler`, there is already a short-circuit: `if self._alpha == 1.0: return output`. In `HNeuronScaler`, there is not. So right now the `alpha=1.0` run still pays full hook + indexed-write overhead while doing a mathematical no-op.
 
-How to ground it:
+For neuron mode: either add a fast-path branch in the hook, or better, for `alpha == 1.0` run with **no intervention installed at all**. This alone speeds up **25% of a 4-alpha sweep**.
 
-- Compute token-length histogram for the 500 jailbreak prompts.
-- Compare naive batch order vs length-bucketed batch order on the same slice.
+### 2. Verify stop behaviour under 1024
 
-### 5. Use `torch.inference_mode()` in generation
+After increasing the cap, check the output-length histogram. If too many jailbreak responses land exactly at 1024, either the model genuinely wants to ramble forever, or the stop configuration is not doing what you think. Fixing a stop-token/config issue is a **scientifically clean** throughput win.
 
-Potential throughput upside: Low to medium.
+### 3. Current indexed assignment is a bad micro-kernel choice
 
-Scientific safety: High.
+`x[:, :, idx] = x[:, :, idx] * self._alpha` probably involves indexed gather → multiply → indexed scatter/writeback. A precomputed dense scale vector (`x = x * scale_vector`) gives the runtime a much simpler memory access pattern.
 
-Why it is worth noting:
-
-- The current code uses `torch.no_grad()`.
-- `torch.inference_mode()` can remove some autograd bookkeeping more aggressively.
-
-Evidence:
-
-- `scripts/run_intervention.py`
-
-Uncertainty:
-
-- The real gain may be small relative to decode and hook overhead.
-
-Confidence: Medium-high that it is safe. Low-medium on payoff.
-
-How to ground it:
-
-- A/B benchmark on the same 20-sample slice with everything else fixed.
-
-### 6. Overlap CPU prep for sample `n+1` with GPU generation for sample `n`
-
-Potential throughput upside: Low to medium.
-
-Scientific safety: Medium-high.
-
-Why it is interesting:
-
-- The system appears mixed rather than purely GPU-bound.
-- If tokenization and prompt prep remain material after hook cleanup, overlap can hide some host cost.
-
-Why it ranks lower:
-
-- It adds complexity.
-- The current code is very simple and serial.
-- It may not help much if the main tax is already inside `model.generate()` due to hooks.
-
-Confidence: Low-medium.
-
-How to ground it:
-
-- First measure prompt-prep cost directly.
-- Only prototype this if prompt prep is still a meaningful wall-time share after simpler changes.
-
-### 7. Lower `max_new_tokens`, but only for short-answer benchmarks
-
-Potential throughput upside: Benchmark-specific medium; for jailbreak low or invalid.
-
-Scientific safety: High for `faitheval_standard`, low for jailbreak.
-
-Why the ranking is low for the current question:
-
-- On jailbreak, this would change the task rather than optimize the same task.
-- The response-length audit already shows jailbreak and falseqa regularly hit the `256` cap.
-
-Evidence:
-
-- previous audit captured in the old tooling note split from this file
-
-Confidence: High.
-
-How to ground it:
-
-- Keep a benchmark-specific token-length audit artifact.
-- Only lower caps where the empirical max is comfortably below the proposed new cap.
-
-### 8. `torch.compile()`
-
-Potential throughput upside: Very uncertain, possibly medium.
-
-Scientific safety: Medium-low until validated.
-
-Why it is not a first move:
-
-- Dynamic generation plus Python hooks is an awkward target for compiler wins.
-- If hooks stay as Python callbacks, compile may buy little or create instability.
-
-Confidence: Low.
-
-How to ground it:
-
-- Revisit only after hook-path cleanup.
-- Run a small equivalence suite and timing suite on a bounded slice.
-
-### 9. Quantization
-
-Potential throughput upside: Medium in some setups, but uncertain here.
-
-Scientific safety: Low for canonical comparability.
-
-Why it ranks last:
-
-- You are not currently starved for VRAM.
-- Quantization changes the numerical regime of the activations you are explicitly intervening on.
-
-Confidence: Medium that it can help speed in general. High that it weakens comparability.
-
-How to ground it:
-
-- Treat it as exploratory only.
-- Compare bf16 vs quantized on a small slice and inspect both throughput and intervention-behavior drift.
-
-## Measurement Plan That Is Worth Doing
+## Measurement Plan
 
 If the goal is faster research throughput, spend engineering time on this instead of more Scalene debugging:
 
-1. Add in-process timers to the real path.
-2. Time these segments separately:
-   - prompt construction
-   - chat templating / tokenization
-   - host-to-device transfer
-   - `model.generate()`
-   - decode
-   - file write
-3. Add a flag to benchmark a fixed slice cleanly, such as 20 samples on one alpha.
-4. Run targeted A/B tests for:
-   - hook implementation variants
-   - cached tokenization
-   - batch size and length bucketing
-   - `inference_mode()`
+### Per-sample instrumentation
 
-This is the highest-signal next measurement loop because it measures the real pipeline without letting the profiler become the workload.
+- prompt token count
+- generated token count
+- time in `model.generate()`
+- time outside `model.generate()`
+
+### Per-alpha instrumentation
+
+- average generated length
+- tokens/sec
+- samples/sec
+
+### Targeted A/B comparisons (20–50 sample slice)
+
+- current hook path
+- no-op / `alpha=1.0` with hooks bypassed
+- refactored non-hook intervention (wrapped forward or weight scaling)
+- cached tokenization
+- `inference_mode()`
+
+## Minimal Validation Plan
+
+Before trusting any intervention refactor:
+
+1. **Deterministic parity check:** one prompt, one forward/generate step. Compare logits between current hooks, wrapped forward, and weight scaling.
+2. **Short deterministic benchmark check:** `do_sample=False`, exact output match rate.
+3. **Short jailbreak check:** 50–100 samples, same seed policy. Compare judged compliance rates. Require CI on the difference to be near zero before promoting.
+
+Don't assume the fast thing is faithful — force it to earn the right.
 
 ## What Not to Chase First
 
 - More full-run Scalene debugging
-- Disk I/O optimization
-- Data-loading optimization
+- Disk I/O optimisation
+- Data-loading optimisation
 - Quantization for canonical runs
 - Blanket lowering of `max_new_tokens`
+- `torch.compile()` before hook-path cleanup
+- Custom C++/Triton kernels
 
-## Current Recommendation
+## Concrete Recommendation
 
-The current recommendation holds in spirit, but it should be sharpened.
+### Tier 1 — do immediately
 
-Old framing:
+1. **Bypass intervention completely for `alpha=1.0`**
+2. **Add cheap timers** around: chat templating/tokenization, H2D copy, `model.generate()`, decode
+3. **Cache tokenized prompts across alphas**
 
-- “Look for CPU/setup gaps and maybe batch.”
+### Tier 2 — highest-value real optimisation
 
-Better framing now:
+4. Replace hook-based neuron intervention with either:
+   - **wrapped `down_proj` forward + activation-side scale vector** if you want the cleanest parity story
+   - **weight-column scaling** if you want max speed and are willing to validate "statistically indistinguishable" rather than assume exactness
 
-- “Optimize a mixed workload where the most suspicious avoidable tax is Python-side intervention overhead, then batch to amortize the remaining host cost.”
+### Tier 3 — only after that
 
-That is the highest-confidence path to faster local research throughput while keeping the experiment scientifically recognizable.
+5. Try **batch size 2** on a fixed jailbreak slice
+6. Keep batching off the canonical run unless judged outcomes look stable
+
+**Bottom line:** the bottleneck is not "the GPU is too small." The bottleneck is that the experiment is paying a Python tax on every token, every layer, for a transformation that is structurally much simpler than the machinery used to express it. Fix the representation of the intervention first; then revisit batching.
