@@ -612,43 +612,21 @@ In short: the site no longer needs a scaling plan.
 It needs a maintenance model.
 
 
-Location: /home/hugo/.factory/specs/2026-03-24-progress-page-week-2-implementation-plan.md
+Goal: Find world-class progressive disclosure UX/UI pattern that allows zooming in on evidence without breaking the flow of navigation
 
-1. Add Progress only as a stable hub, not a weekly slug in nav.
-Your nav is duplicated across pages, and the maintenance doc already flags that as an editing tax as page count grows. So the nav should point to a stable progress/index.html, never directly to week-02-claims-airtight.html. Otherwise you’ll be hand-editing every nav every week like a medieval monk updating a train schedule.
+A: 
+Click “Show evidence”
+expands in place with metrics, table, CI, provenance, maybe a mini chart
 
-2. Keep Results as the canonical quantitative source.
-This is strongly confirmed by both the maintenance doc and the actual results page. results/gemma-3-4b.html is explicitly the main evidence ledger and already binds a lot of repeated metrics from JSON. So the Progress page should mostly summarize and link, not become another results ledger with duplicated evidence blocks.
 
-3. Use existing bindings first; only add new exporter fields for genuinely new repeated claims.
-This matches your preference exactly, and it is also the site’s stated priority: keep expanding manifest-tracked live claims, but only add tracked site-facing fields when repeated prose cannot be expressed cleanly from existing exports. In other words: don’t hardcode, but also don’t mint a new JSON schema every time a paragraph wants to feel important.
 
-That point lets me infirm one part of the original plan: the proposed progress_summary.json is probably too big in scope. If you do create it, I’d make it tiny and editorial, containing things like week slug, title, date range, milestone labels, theme order, and section links. I would not duplicate scientific numbers there if they already live in canonical exports. The maintenance model is pretty explicit that existing exports and bindings are already the right spine.
+Option B — best long-term polished version
 
-There’s also a more concrete win here: the plan’s proposed new FalseQA hydration may be unnecessary. Your results page already exposes cross-benchmark values for FaithEval, FalseQA, and JailbreakBench through existing bindings in the cross-benchmark section, including the FalseQA delta/CI surfaces. So for a progress page that just needs the headline cross-benchmark numbers, you can likely reuse those instead of inventing a separate data-falseqa-summary-bind.
+Right-side evidence drawer
 
-Another thing I’d now recommend more strongly: simplify the top nav if Progress is added.
-Right now the primary nav includes Neuron 4288 and Swing alongside the top-level pages. But your own maintenance model classifies those as appendix / forensic-detail pages, not primary document types. Once you add Progress, the top nav risks becoming a junk drawer. I’d seriously consider making the top nav:
+click “Inspect”
+a side panel opens with the deeper table / diagnostic breakdown
+main page stays visible underneath
+ideal if you want “mentor mode” without leaving the flow
 
-Overview / Core Story / Results / Methods / Extensions / Progress
-
-…and moving Neuron 4288 and Swing under a Deep Dives hub or leaving them as contextual links from Results/Story. That would make the nav match the site’s information architecture instead of letting appendix pages sit at the same rank as the main docs.
-
-On the anti-duplication front, the current pages already support the strategy you want. The maintenance audit explicitly says repeated numbers are increasingly data-driven, and highlights methods.html as one of the cleanest pages because it uses bindings and keeps the evaluator-contract explanation in one place. That is a good precedent: Progress should point to Methods for prompt/evaluator mismatch instead of re-explaining it in full. Same for 4288 and swing: link out instead of restating the appendix.
-
-So my revised recommendation is:
-
-Keep the page-role split exactly as it is.
-Make Progress a stable hub URL, not a weekly slug.
-Use Progress for dated synthesis/history, not for current-state duplication.
-Keep Results as the only real quantitative ledger.
-Reuse existing bindings aggressively.
-Promote a metric into new exporter/manifest coverage only when it becomes repeated headline copy across pages.
-Strongly consider demoting the two deep dives out of the primary nav if Progress is added. (DO IT)
-
-If you want the cleanest implementation shape, I’d proceed like this:
-
-Phase A: add progress/index.html and progress/week-02-claims-airtight.html, with progress/index.html simply listing “Latest update” plus archive slots.
-Phase B: add the stable Progress nav entry everywhere.
-Phase C: keep week 02 mostly hand-authored structurally, but pull all benchmark figures from existing bindings.
-Phase D: only after week 03 exists, decide whether a richer progress metadata export is actually justified.
+C: ? 
