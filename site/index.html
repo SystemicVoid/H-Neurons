@@ -29,116 +29,12 @@
 
 <section id="hero">
   <div class="fade-in">
-    <h1>Gemma 3 4B:<br>Findings,<br>Open Questions</h1>
+    <h1>H-Neurons &mdash; Gemma 3 4B</h1>
     <p class="subtitle" data-source="manual">
-      This page summarizes the current state of the Gemma 3 4B replication:
-      stable findings, completed experiments, and the active research frontier.
+      Replication, methodological critique, and safety extensions on one model.
     </p>
 
-    <!-- from: classifier_disjoint_accuracy -->
-    <!-- from: anti_compliance_delta_0_to_3 -->
-    <!-- from: anti_compliance_swing_share -->
-    <div class="metrics-grid" style="margin-top: 2.5rem;">
-      <div class="metric-card" data-status="STABLE">
-        <div class="label">H-Neurons found</div>
-        <div class="value val-coral" data-classifier-bind="selected-count">38</div>
-        <div class="detail"><span data-classifier-bind="selected-ratio">0.011%</span> of <span data-classifier-bind="total-neurons">348,160</span> MLP neurons</div>
-      </div>
-      <div class="metric-card" data-status="STABLE">
-        <div class="label">Clean detector</div>
-        <div class="value val-teal" data-classifier-bind="accuracy-value">76.5%</div>
-        <div class="detail">Disjoint test accuracy <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></div>
-      </div>
-      <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Compliance slope</div>
-        <div class="value val-amber" data-intervention-summary-bind="anti-slope-value">2.1pp/&alpha;</div>
-        <div class="detail"><span data-intervention-summary-bind="anti-slope-ci-text">95% CI 1.4-2.8pp/&alpha;</span></div>
-      </div>
-      <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Swing population</div>
-        <div class="value val-purple" data-intervention-summary-bind="swing-share-value">13.8%</div>
-        <div class="detail"><span data-intervention-summary-bind="swing-count">138</span> of 1,000 samples &alpha;-sensitive <span data-intervention-summary-bind="swing-share-ci-bracket">[11.8, 16.1]</span></div>
-      </div>
-    </div>
-
-    <div class="section-links" style="margin-top: 2rem;">
-      <a class="section-link" href="#snapshot">Stable findings</a>
-      <a class="section-link" href="story.html">Core story</a>
-      <a class="section-link" href="#status">Current status</a>
-      <a class="section-link" href="extensions.html">Extensions</a>
-    </div>
-  </div>
-</section>
-
-
-
-<section id="snapshot">
-  <div class="fade-in">
-    <span class="tag tag-purple">Stable findings</span>
-    <h2>Key replicated findings</h2>
-    <p class="subtitle">
-      Each card below links to the corresponding result section with the underlying evidence and quantitative detail.
-    </p>
-
-    <div class="next-steps">
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">A</div>
-        <h3>Classifier signal survives the clean split</h3>
-        <!-- from: classifier_overlap_accuracy -->
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          The disjoint <span data-classifier-bind="accuracy-value">76.5%</span> result still anchors the replication claim.
-          The clean split sits only <span data-classifier-bind="accuracy-drop-value">1.1pp</span> below the overlap estimate.
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Open classifier section</a></p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">B</div>
-        <h3>Layer distribution is early-heavy</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Nearly half of the selected neurons sit in layers 0&ndash;10, which keeps the interpretation pointed at early confidence or familiarity cues.
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#distribution">Open distribution section</a></p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">C</div>
-        <h3>The top-neuron story was narrowed</h3>
-        <!-- from: top_neuron_supporting_tests -->
-        <!-- from: top_neuron_total_tests -->
-        <!-- from: top_neuron_broader_detector_positive_neurons -->
-        <!-- from: top_neuron_broader_detector_c_value -->
-        <p style="font-size: 14px; color: var(--text-secondary);" data-top-neuron-bind="takeaway-card-text">
-          The six-test verdict is 0/6: L1 weight ranking overstates individual top-neuron importance, and by C=3.0 the signal is spread across 219 positive-weight neurons.
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#surprise">Open top-neuron section</a></p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">D</div>
-        <h3>The intervention story is now cleaner</h3>
-        <!-- from: standard_text_remap_alpha_3_rescored_rate -->
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          The apparent standard-prompt decline is mostly an evaluator-format mismatch. The current best corrected point is
-          <span data-intervention-summary-bind="remap-value">72.1%</span> at &alpha;=3.0, with
-          <span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>.
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#intervention">Open intervention section</a></p>
-      </div>
-    </div>
-
-    <div class="insight-box" data-status="NEW">
-      <strong>Current read:</strong> the replicated picture is coherent but narrower than the original sparse-neuron headline.
-      Predictive signal survives the clean split, the single-neuron claim does not, and the intervention evidence depends on resolving the remaining measurement mismatch.
-    </div>
-  </div>
-</section>
-
-
-
-<section id="status" class="short">
-  <div class="fade-in">
-    <span class="tag tag-teal">Current status</span>
-    <h2>What is done, what is active, and what remains</h2>
-
-    <div class="next-steps">
+    <div class="next-steps" style="margin-top: 2.5rem;">
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <h3 style="color: var(--accent-teal);">Completed</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
@@ -146,7 +42,7 @@
           <strong>FaithEval intervention + negative control:</strong> 2.1 pp/&alpha; slope, H-neuron specificity confirmed (8 random seeds flat).<br>
           <strong>FalseQA intervention + negative control:</strong> +4.8 pp endpoint, H-neuron specificity confirmed (3 random seeds flat).<br>
           <strong>Top-neuron investigation:</strong> neuron 4288 is an L1 artifact (0/6 tests).<br>
-          <strong>SAE steering:</strong> closed &mdash; null result under both full-replacement and delta-only architectures. Detection-steering dissociation confirmed.<br>
+          <strong>SAE steering:</strong> closed, null result under both full-replacement and delta-only architectures.<br>
           <strong>Swing characterization:</strong> 68.1% knowledge override in the &alpha;-sensitive subpopulation.
         </p>
       </div>
@@ -158,18 +54,130 @@
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <h3 style="color: var(--accent-purple);">Remaining measurement work</h3>
+        <h3 style="color: var(--accent-purple);">Remaining planned work</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           <strong>All-&alpha; text rescoring:</strong> extend the &alpha;=3.0 strict answer-text remap across the full standard-prompt sweep.<br>
-          <strong>Sycophancy:</strong> scaffolded in the intervention pipeline but not yet run.
+          <strong>Capability-degradation assay:</strong> fluency/accuracy baseline under perturbation, required before strong causal claims.<br>
+          <strong>Sycophancy intervention:</strong> scaffolded in the pipeline but not yet run.<br>
+          <strong>Measurement hardening:</strong> sentinel sets, cross-evaluator audits, judge regression tests.
         </p>
       </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-rose);">
+        <h3 style="color: var(--accent-rose);">Research frontiers</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          <strong>Suppressive neuron investigation:</strong> the paper ignores the 38 negative-weight neurons. Are they stable across C values? Can amplifying them reduce hallucination?<br>
+          <strong>Swing sample deep characterization:</strong> what makes the 14% sensitive population swing? Weak-knowledge vs strong-knowledge override has direct safety implications.<br>
+          <strong>Attribution patching / GCM:</strong> rank neurons by actual causal contribution instead of L1 weight. Bypasses the regularization artifact entirely.<br>
+          <strong>Safety-neuron overlap (alignment tax):</strong> do H-neurons share circuitry with refusal neurons? If suppressing hallucination weakens safety, any intervention is a trade-off.
+        </p>
+      </div>
+    </div>
+
+    <div class="section-links" style="margin-top: 2rem;">
+      <a class="section-link section-link-cta" href="progress/week-02-claims-airtight.html">Latest weekly report</a>
+      <a class="section-link" href="#snapshot">Key findings</a>
+      <a class="section-link" href="story.html">Core story</a>
+      <a class="section-link" href="extensions.html">Extensions</a>
     </div>
   </div>
 </section>
 
+
+
+<section id="snapshot">
+  <div class="fade-in">
+    <h2>Key findings</h2>
+
+    <div class="next-steps">
+
+      <!-- from: anti_compliance_swing_share -->
+      <div class="step-card" data-status="OUR WORK">
+        <h3>86% of the population is frozen. The real effect is 10x larger than the headline.</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The paper reports a 6.3pp compliance swing. But 60% of samples always comply and 26% never do
+          regardless of scaling. The entire effect is driven by 138 swing samples (13.8%), where H-neuron
+          amplification overrides prior knowledge in 68.1% of cases. The headline number
+          is diluted by frozen populations the paper does not separate.
+        </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#population">Population breakdown</a></p>
+      </div>
+
+      <!-- from: top_neuron_total_tests -->
+      <!-- from: top_neuron_broader_detector_c_value -->
+      <div class="step-card" data-status="OUR WORK">
+        <h3>The paper's #1 neuron is an L1 regularization artifact</h3>
+        <!-- from: top_neuron_supporting_tests -->
+        <!-- from: top_neuron_broader_detector_positive_neurons -->
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Neuron (20, 4288) has 1.65x the classifier weight of the runner-up but scores 0/6
+          on independent importance tests. The real best single predictor is L13:N833
+          (AUC 0.703 vs 0.590). At C=3.0 the signal spreads across 219 neurons and accuracy
+          rises to 80.5%. L1 weight is not a reliable proxy for neuron importance.
+        </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#surprise">Six-test investigation</a></p>
+      </div>
+
+      <!-- from: negative_control_random_slope_interval -->
+      <div class="step-card" data-status="OUR WORK">
+        <h3>H-neuron specificity confirmed with per-alpha negative controls the paper never ran</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The original paper compares H-neuron vs random-neuron <em>detection</em> classifiers
+          but runs no random-neuron control on the <em>intervention</em> experiments.
+          We ran 8 random-neuron sets (38 neurons each) across every alpha on FaithEval and 3 on FalseQA.
+          Random slopes: [-0.11, 0.16] pp/&alpha;. H-neuron slope: 2.09 pp/&alpha;.
+          The effect is specific to these neurons, not a generic perturbation artifact.
+        </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#cross-benchmark">Negative control data</a></p>
+      </div>
+
+      <!-- from: standard_text_remap_alpha_3_rescored_rate -->
+      <div class="step-card" data-status="OUR WORK">
+        <h3>SAE features detect hallucination but cannot steer it</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          An SAE probe matches neuron-level detection (AUROC 0.848 vs 0.843), but both
+          full-replacement and delta-only steering produce zero compliance slope (0.16 and 0.12 pp/&alpha;).
+          Features that correlate with a behavior in static activations do not necessarily
+          causally control it. This detection-steering dissociation is novel.
+        </p>
+        <p style="margin-top: 1rem;"><a class="button-link secondary" href="extensions.html#workstreams">SAE closed-out details</a></p>
+      </div>
+
+      <div class="step-card" data-status="REPLICATION">
+        <h3>Same 38 neurons shift behavior across 3 different benchmarks</h3>
+        <!-- from: anti_compliance_delta_0_to_3 -->
+        <!-- from: falseqa_delta_0_to_3 -->
+        <!-- from: jailbreak_compliance_delta_0_to_3 -->
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          FaithEval (+6.3pp), FalseQA (+4.8pp), and jailbreak (+6.2pp) all show compliance
+          increasing with H-neuron scaling. Two of three have independent negative controls
+          confirming specificity. 0.011% of the network, consistent causal role across
+          qualitatively different tasks and evaluators.
+        </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#cross-benchmark">Cross-benchmark results</a></p>
+      </div>
+
+      <!-- from: classifier_overlap_accuracy -->
+      <div class="step-card" data-status="OUR WORK">
+        <h3>Detection signal survives a truly disjoint test</h3>
+        <!-- from: classifier_disjoint_accuracy -->
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The paper's TriviaQA evaluation had 66.3% train/test overlap (independently
+          sampled splits from small pools). We built a 0%-overlap disjoint test set.
+          Accuracy: <span data-classifier-bind="accuracy-value">76.5%</span> [73.6, 79.5],
+          actually closer to the paper's 76.9% than the inflated 77.7% from the overlapping split.
+          The signal is real, not leakage.
+        </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Classifier results</a></p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+
 <footer>
-  H-Neurons Overview &mdash; Gemma 3 4B &mdash; March 2026<br>
+  H-Neurons Overview | Gemma 3 4B | March 2026<br>
   Stable findings: <a href="results/gemma-3-4b.html">Gemma 3 4B Results</a> &middot; Future directions: <a href="extensions.html">Extensions</a>
 </footer>
 
