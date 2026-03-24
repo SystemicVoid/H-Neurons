@@ -217,13 +217,11 @@ For **deterministic benchmarks** (`do_sample=False`): batching is much cleaner �
 
 For jailbreak, only adopt batching after defining success as **statistically indistinguishable judged outcomes**, not exact response equivalence. On a 16 GB card with 1024-token decode: test **batch size 2** first, maybe **4** if VRAM allows, **8** feels optimistic with KV cache growth.
 
-## Tokenization Caching Across Alphas
+## Tokenization Caching Across Alphas — ✅ Done
 
-Safe: yes. Jailbreak prompts are deterministic and reused across all alphas. Caching chat-template output, tokenized `input_ids`, and prompt length is scientifically clean.
-
-Expected payoff: low single-digit % overall. Generation at ~28 s/sample dominates. Still worth doing — the implementation cost is tiny and you reuse the same 500 prompts across 4 alphas.
-
-Best version: cache CPU-side tensors once per sample, then move to device per call. No need to keep all cached prompts on GPU.
+Implemented in `65dd1bd`. CPU-side tensors cached once per sample before the alpha
+sweep, passed via `prompt_cache` dict. Sycophancy caches turn 1 only (turn 2 depends
+on model response).
 
 ## `torch.inference_mode()` vs `torch.no_grad()`
 
@@ -233,11 +231,11 @@ Expected speedup: tiny, maybe 0–3%, maybe nothing measurable. Good hygiene, no
 
 ## What the Original Assessment Missed
 
-### 1. `alpha=1.0` should bypass the intervention path entirely
+### 1. `alpha=1.0` bypass — ✅ Partial
 
-In `SAEFeatureScaler`, there is already a short-circuit: `if self._alpha == 1.0: return output`. In `HNeuronScaler`, there is not. So right now the `alpha=1.0` run still pays full hook + indexed-write overhead while doing a mathematical no-op.
-
-For neuron mode: either add a fast-path branch in the hook, or better, for `alpha == 1.0` run with **no intervention installed at all**. This alone speeds up **25% of a 4-alpha sweep**.
+`HNeuronScaler` hook now short-circuits with `if self._alpha == 1.0: return args`
+(avoids indexed write). Full hook removal for `alpha=1.0` runs is still an open
+improvement — the hooks still fire 23× per decode step, just returning early.
 
 ### 2. Verify stop behaviour under 1024
 
@@ -251,12 +249,11 @@ After increasing the cap, check the output-length histogram. If too many jailbre
 
 If the goal is faster research throughput, spend engineering time on this instead of more Scalene debugging:
 
-### Per-sample instrumentation
+### Per-sample instrumentation — ✅ Done
 
-- prompt token count
-- generated token count
-- time in `model.generate()`
-- time outside `model.generate()`
+`generate_response()` returns a `timings` dict per sample: `template_s`, `h2d_s`,
+`generate_s`, `decode_s`, `total_s`, `prompt_tokens`, `generated_tokens`,
+`hit_token_cap`. Implemented in `65dd1bd`.
 
 ### Per-alpha instrumentation
 
@@ -267,9 +264,9 @@ If the goal is faster research throughput, spend engineering time on this instea
 ### Targeted A/B comparisons (20–50 sample slice)
 
 - current hook path
-- no-op / `alpha=1.0` with hooks bypassed
+- no-op / `alpha=1.0` with hooks fully removed
 - refactored non-hook intervention (wrapped forward or weight scaling)
-- cached tokenization
+- ~~cached tokenization~~ ✅ done
 - `inference_mode()`
 
 ## Minimal Validation Plan
@@ -294,11 +291,11 @@ Don't assume the fast thing is faithful — force it to earn the right.
 
 ## Concrete Recommendation
 
-### Tier 1 — do immediately
+### Tier 1 — ✅ Done
 
-1. **Bypass intervention completely for `alpha=1.0`**
-2. **Add cheap timers** around: chat templating/tokenization, H2D copy, `model.generate()`, decode
-3. **Cache tokenized prompts across alphas**
+1. ~~**Bypass intervention completely for `alpha=1.0`**~~ — partial: hook short-circuits but still fires ([see §1 above](#1-alpha10-bypass--✅-partial))
+2. ~~**Add cheap timers**~~ — `generate_response()` returns per-sample timings dict (`65dd1bd`)
+3. ~~**Cache tokenized prompts across alphas**~~ — CPU-side cache, passed via `prompt_cache` (`65dd1bd`)
 
 ### Tier 2 — highest-value real optimisation
 
@@ -312,3 +309,36 @@ Don't assume the fast thing is faithful — force it to earn the right.
 6. Keep batching off the canonical run unless judged outcomes look stable
 
 **Bottom line:** the bottleneck is not "the GPU is too small." The bottleneck is that the experiment is paying a Python tax on every token, every layer, for a transformation that is structurally much simpler than the machinery used to express it. Fix the representation of the intervention first; then revisit batching.
+
+
+##
+
+The periodic dips in SM clock + memory-access % are worth correlating with sample boundaries
+
+This is the one thing I’d inspect next.
+
+If those dips happen roughly once per sample, they likely correspond to:
+
+end of one generation
+decode → postprocess / write
+next prompt prep
+next prefill launch
+
+If so, they are more evidence of host-side orchestration gaps.
+
+If instead they occur many times within a sample, then they may reflect:
+
+decode-phase variability
+termination checks
+periodic allocator / scheduler behavior
+hook-related per-step fragmentation
+
+So I’d correlate those dips against:
+
+sample completion timestamps
+generated token counts
+prompt lengths
+time in model.generate()
+time outside model.generate()
+
+That could tell you whether the periodicity is “between examples” or “inside the decode loop.” Big difference.
