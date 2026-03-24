@@ -263,30 +263,36 @@
       </div>
     </div>
 
-    <div class="scoreboard">
-      <div class="score-item artifact">
-        <div class="score-label">AUC</div>
-        <div class="score-value val-coral" data-top-neuron-bind="auc-display">--</div>
+    <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); max-width: 760px; margin: 0 auto;">
+      <div class="metric-card" data-status="ARTIFACT">
+        <div class="label">AUC</div>
+        <div class="value val-coral" data-top-neuron-bind="auc-display">--</div>
+        <div class="detail">Best single: <span data-top-neuron-bind="best-single-auc">--</span></div>
       </div>
-      <div class="score-item artifact">
-        <div class="score-label">Cohen's d</div>
-        <div class="score-value val-coral" data-top-neuron-bind="cohen-d-display">--</div>
+      <div class="metric-card" data-status="ARTIFACT">
+        <div class="label">Cohen&rsquo;s d</div>
+        <div class="value val-coral" data-top-neuron-bind="cohen-d-display">--</div>
+        <div class="detail">Runner-up: <span data-top-neuron-bind="runner-up-cohen-d">--</span></div>
       </div>
-      <div class="score-item artifact">
-        <div class="score-label">C-sweep</div>
-        <div class="score-value val-coral" data-top-neuron-bind="c-sweep-display">--</div>
+      <div class="metric-card" data-status="ARTIFACT">
+        <div class="label">C-sweep</div>
+        <div class="value val-coral" data-top-neuron-bind="c-sweep-display">--</div>
+        <div class="detail">Present in only 3 of 9 C values</div>
       </div>
-      <div class="score-item artifact">
-        <div class="score-label">Top contrib</div>
-        <div class="score-value val-coral" data-top-neuron-bind="top-contrib-display">--</div>
+      <div class="metric-card" data-status="ARTIFACT">
+        <div class="label">Top contrib</div>
+        <div class="value val-coral" data-top-neuron-bind="top-contrib-display">--</div>
+        <div class="detail">Largest contributor share</div>
       </div>
-      <div class="score-item artifact">
-        <div class="score-label">Ablation</div>
-        <div class="score-value val-coral" data-top-neuron-bind="ablation-display">--</div>
+      <div class="metric-card" data-status="ARTIFACT">
+        <div class="label">Ablation</div>
+        <div class="value val-coral" data-top-neuron-bind="ablation-display">--</div>
+        <div class="detail">Below 2pp threshold</div>
       </div>
-      <div class="score-item artifact">
-        <div class="score-label">Max |r|</div>
-        <div class="score-value val-coral" data-top-neuron-bind="max-r-display">--</div>
+      <div class="metric-card" data-status="ARTIFACT">
+        <div class="label">Max |r|</div>
+        <div class="value val-coral" data-top-neuron-bind="max-r-display">--</div>
+        <div class="detail">L1 concentration signal</div>
       </div>
     </div>
 
