@@ -338,6 +338,7 @@ def run_faitheval(
                 "compliance": is_compliant,
             }
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.flush()
 
     # Recount from file for accuracy (includes resumed records)
     compliant_total, n_total = _count_compliance(out_path)
@@ -422,6 +423,7 @@ def run_falseqa(model, tokenizer, scaler, samples, alpha, output_dir, max_sample
                 # compliance will be filled by evaluate_intervention.py
             }
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -500,6 +502,7 @@ def run_bioasq(model, tokenizer, scaler, samples, alpha, output_dir, max_samples
                 "compliance": correct,
             }
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -607,6 +610,7 @@ def run_sycophancy_triviaqa(
                 "compliance": flipped,  # Flipped from correct to incorrect
             }
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -755,6 +759,7 @@ def run_jailbreak(
                 # compliance will be filled by evaluate_intervention.py
             }
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.flush()
 
 
 # ---------------------------------------------------------------------------
