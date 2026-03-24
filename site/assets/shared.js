@@ -635,6 +635,25 @@
     }
   }
 
+  function hydrateCrossBenchmarkBindings(summary) {
+    const benchmarks = summary.cross_benchmark?.benchmarks;
+    if (!benchmarks) {
+      return;
+    }
+    const byName = Object.fromEntries(benchmarks.map((b) => [b.name.toLowerCase(), b]));
+
+    const falseqa = byName['falseqa'];
+    if (falseqa) {
+      setBoundText('data-cross-benchmark-bind', 'falseqa-delta-value', formatPp(falseqa.delta_pp.estimate));
+      setBoundText('data-cross-benchmark-bind', 'falseqa-delta-ci-text', formatPpCiText(falseqa.delta_pp.ci));
+      setBoundText(
+        'data-cross-benchmark-bind',
+        'falseqa-slope-value',
+        formatPpPerAlpha(falseqa.slope_pp_per_alpha.estimate),
+      );
+    }
+  }
+
   async function hydrateSiteSummaryBindings() {
     const classifierNeeded =
       hasBinding('data-classifier-bind') ||
@@ -643,7 +662,8 @@
     const interventionNeeded = hasBinding('data-intervention-summary-bind');
     const swingNeeded = hasBinding('data-swing-bind');
     const pipelineNeeded = hasBinding('data-pipeline-bind');
-    const jailbreakNeeded = hasBinding('data-jailbreak-summary-bind');
+    const jailbreakNeeded =
+      hasBinding('data-jailbreak-summary-bind') || hasBinding('data-cross-benchmark-bind');
 
     if (!classifierNeeded && !interventionNeeded && !swingNeeded && !pipelineNeeded && !jailbreakNeeded) {
       return;
@@ -712,7 +732,14 @@
             }
             return response.json();
           })
-          .then((summary) => hydrateJailbreakSummary(summary)),
+          .then((summary) => {
+            if (hasBinding('data-jailbreak-summary-bind')) {
+              hydrateJailbreakSummary(summary);
+            }
+            if (hasBinding('data-cross-benchmark-bind')) {
+              hydrateCrossBenchmarkBindings(summary);
+            }
+          }),
       );
     }
 

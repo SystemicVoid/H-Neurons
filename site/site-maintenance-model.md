@@ -2,7 +2,7 @@
 
 > Current implementation audit for `site/`, replacing the earlier migration plan and session handoff log.
 >
-> **Updated**: 2026-03-20
+> **Updated**: 2026-03-24
 > **Scope**: what is live now, what is actually data-driven, what is still brittle, and what the website most needs next.
 
 ## Executive Summary
@@ -57,9 +57,9 @@ At the time of this review, the site has:
 
 | Area | Current state |
 |---|---|
-| HTML pages | 7 live pages |
+| HTML pages | 9 live pages |
 | Shared assets | `assets/shared.css`, `assets/shared.js`, `assets/charts.js` |
-| Generated site JSON | 4 files in `site/data/` |
+| Generated site JSON | 5 files in `site/data/` |
 | Charts | 9 `<canvas>` charts |
 | Static figures | 8 `<img>` figures |
 | Manual-content markers | 23 `data-source="manual"` markers |
@@ -81,6 +81,8 @@ This is a much healthier shape than the old single-page deck. The site has alrea
 | `extensions.html` | Forward roadmap | Live, but inherently freshness-sensitive |
 | `deep-dives/neuron-4288.html` | Artifact appendix for top-neuron story | Live and intentionally static |
 | `deep-dives/swing-characterization.html` | Appendix for swing-population analysis | Live and more data-connected than the 4288 page |
+| `progress/index.html` | Stable hub for weekly progress reports | Live; links to latest weekly page |
+| `progress/week-02-claims-airtight.html` | Week 2 progress report (March 16-24) | Live; hybrid thematic + timeline structure |
 
 ### Not live
 
@@ -423,11 +425,15 @@ The nav markup is duplicated across the HTML files.
 At the current size this is tolerable.
 If page count grows further, it will become an editing tax.
 
-### 3. No historical weekly trail
+As of 2026-03-24, the primary nav has been restructured:
 
-`index.html` currently behaves like "the current memo," not like a true weekly archive system.
-That is fine, but it should be described honestly.
-The site does not yet preserve meeting history as a first-class feature.
+- **Primary nav order**: Overview | Core Story | Results | Methods | Extensions | Progress
+- **Demoted from primary nav**: Neuron 4288 and Swing deep dives are no longer in the top nav. They remain accessible as contextual links from story.html and results pages, matching their actual role as appendix/forensic-detail pages.
+- **Progress link**: points to the stable hub URL `progress/index.html`, never to a weekly slug. This avoids editing every nav link each week.
+
+### 3. Historical weekly trail (partially addressed)
+
+`index.html` still behaves like "the current memo." The new `progress/` section now provides a place for dated weekly synthesis pages, with a stable hub that can grow into an archive. The first weekly page (`week-02-claims-airtight.html`) covers March 16-24. This is a start, not a complete archive system — it becomes a real trail once a second weekly page exists.
 
 ### 4. Mixed page maturity
 
@@ -496,9 +502,20 @@ The site is easiest to maintain if each page class is treated like a different d
 | `methods.html` | Measurement contract |
 | `extensions.html` | Roadmap |
 | `deep-dives/*.html` | Appendix / forensic detail |
+| `progress/index.html` | Stable hub for weekly progress reports |
+| `progress/week-*.html` | Dated weekly synthesis with thematic + timeline structure |
 
 That mental model is already visible in the current implementation.
 The best next work is to reinforce it, not redesign it.
+
+### Progress page architecture
+
+The progress section follows a hub-and-spoke pattern:
+
+- **Hub** (`progress/index.html`): stable URL linked from the nav. Lists weekly reports with "Latest" badge. Never changes slug.
+- **Weekly pages** (`progress/week-NN-*.html`): dated synthesis pages. Each covers a week's work using a hybrid thematic arc + timeline structure. They summarize and link to Results, not duplicate it.
+- **Data bindings**: weekly pages reuse existing JSON bindings (`data-intervention-summary-bind`, `data-cross-benchmark-bind`, `data-jailbreak-summary-bind`, `data-classifier-bind`, `data-top-neuron-bind`) rather than maintaining a separate progress JSON. A `progress_summary.json` for editorial metadata should only be created if a second weekly page proves it would reduce real duplication.
+- **Cross-benchmark binding**: `shared.js` includes `hydrateCrossBenchmarkBindings()` which extracts FalseQA delta/slope from `jailbreak_sweep.json → cross_benchmark.benchmarks`. This is exposed via `data-cross-benchmark-bind` attributes.
 
 ## Export Reliability Note
 
@@ -593,3 +610,45 @@ What remains is now a narrower maintenance queue, not a vague migration backlog:
 
 In short: the site no longer needs a scaling plan.
 It needs a maintenance model.
+
+
+Location: /home/hugo/.factory/specs/2026-03-24-progress-page-week-2-implementation-plan.md
+
+1. Add Progress only as a stable hub, not a weekly slug in nav.
+Your nav is duplicated across pages, and the maintenance doc already flags that as an editing tax as page count grows. So the nav should point to a stable progress/index.html, never directly to week-02-claims-airtight.html. Otherwise you’ll be hand-editing every nav every week like a medieval monk updating a train schedule.
+
+2. Keep Results as the canonical quantitative source.
+This is strongly confirmed by both the maintenance doc and the actual results page. results/gemma-3-4b.html is explicitly the main evidence ledger and already binds a lot of repeated metrics from JSON. So the Progress page should mostly summarize and link, not become another results ledger with duplicated evidence blocks.
+
+3. Use existing bindings first; only add new exporter fields for genuinely new repeated claims.
+This matches your preference exactly, and it is also the site’s stated priority: keep expanding manifest-tracked live claims, but only add tracked site-facing fields when repeated prose cannot be expressed cleanly from existing exports. In other words: don’t hardcode, but also don’t mint a new JSON schema every time a paragraph wants to feel important.
+
+That point lets me infirm one part of the original plan: the proposed progress_summary.json is probably too big in scope. If you do create it, I’d make it tiny and editorial, containing things like week slug, title, date range, milestone labels, theme order, and section links. I would not duplicate scientific numbers there if they already live in canonical exports. The maintenance model is pretty explicit that existing exports and bindings are already the right spine.
+
+There’s also a more concrete win here: the plan’s proposed new FalseQA hydration may be unnecessary. Your results page already exposes cross-benchmark values for FaithEval, FalseQA, and JailbreakBench through existing bindings in the cross-benchmark section, including the FalseQA delta/CI surfaces. So for a progress page that just needs the headline cross-benchmark numbers, you can likely reuse those instead of inventing a separate data-falseqa-summary-bind.
+
+Another thing I’d now recommend more strongly: simplify the top nav if Progress is added.
+Right now the primary nav includes Neuron 4288 and Swing alongside the top-level pages. But your own maintenance model classifies those as appendix / forensic-detail pages, not primary document types. Once you add Progress, the top nav risks becoming a junk drawer. I’d seriously consider making the top nav:
+
+Overview / Core Story / Results / Methods / Extensions / Progress
+
+…and moving Neuron 4288 and Swing under a Deep Dives hub or leaving them as contextual links from Results/Story. That would make the nav match the site’s information architecture instead of letting appendix pages sit at the same rank as the main docs.
+
+On the anti-duplication front, the current pages already support the strategy you want. The maintenance audit explicitly says repeated numbers are increasingly data-driven, and highlights methods.html as one of the cleanest pages because it uses bindings and keeps the evaluator-contract explanation in one place. That is a good precedent: Progress should point to Methods for prompt/evaluator mismatch instead of re-explaining it in full. Same for 4288 and swing: link out instead of restating the appendix.
+
+So my revised recommendation is:
+
+Keep the page-role split exactly as it is.
+Make Progress a stable hub URL, not a weekly slug.
+Use Progress for dated synthesis/history, not for current-state duplication.
+Keep Results as the only real quantitative ledger.
+Reuse existing bindings aggressively.
+Promote a metric into new exporter/manifest coverage only when it becomes repeated headline copy across pages.
+Strongly consider demoting the two deep dives out of the primary nav if Progress is added. (DO IT)
+
+If you want the cleanest implementation shape, I’d proceed like this:
+
+Phase A: add progress/index.html and progress/week-02-claims-airtight.html, with progress/index.html simply listing “Latest update” plus archive slots.
+Phase B: add the stable Progress nav entry everywhere.
+Phase C: keep week 02 mostly hand-authored structurally, but pull all benchmark figures from existing bindings.
+Phase D: only after week 03 exists, decide whether a richer progress metadata export is actually justified.

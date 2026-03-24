@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 2: Making Claims Airtight | H-Neurons</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital,wght@0,400;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="../index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="../index.html">Overview</a>
+        <a href="../story.html">Core Story</a>
+        <a href="../results/gemma-3-4b.html">Results</a>
+        <a href="../methods.html">Methods</a>
+        <a href="../extensions.html">Extensions</a>
+        <a class="active" href="index.html">Progress</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ═══════════════════════════════════════════════════════════ HERO -->
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-purple">Progress &mdash; March 16&ndash;24</span>
+    <h1>Week 2:<br>Making Claims<br>Airtight</h1>
+    <!-- from: anti_compliance_delta_0_to_3 -->
+    <!-- from: falseqa_delta_0_to_3 -->
+    <!-- from: jailbreak_compliance_delta_0_to_3 -->
+    <p class="subtitle" data-source="manual">
+      Gao&nbsp;et&nbsp;al. claim fewer than 0.1% of MLP neurons predict and causally drive hallucination-linked over-compliance.
+      We replicated on Gemma&nbsp;3&nbsp;4B.
+      This week: from one benchmark and no controls to three benchmarks, two negative controls,
+      two closed dead ends, and a four-tier evidence hierarchy.
+    </p>
+
+    <div class="progress-scorestrip">
+      <div class="scorestrip-item" style="--accent: var(--accent-teal);">
+        <div class="scorestrip-num">3</div>
+        <div class="scorestrip-label">Benchmarks<br>with causal evidence</div>
+      </div>
+      <div class="scorestrip-item" style="--accent: var(--accent-purple);">
+        <div class="scorestrip-num">2</div>
+        <div class="scorestrip-label">Negative controls<br>confirming specificity</div>
+      </div>
+      <div class="scorestrip-item" style="--accent: var(--accent-coral);">
+        <div class="scorestrip-num">2</div>
+        <div class="scorestrip-label">Lines of inquiry<br>definitively closed</div>
+      </div>
+      <div class="scorestrip-item" style="--accent: var(--accent-amber);">
+        <div class="scorestrip-num">4</div>
+        <div class="scorestrip-label">Evidence tiers<br>now separated</div>
+      </div>
+    </div>
+
+    <div class="section-links">
+      <a class="section-link" href="#causation">Cross-benchmark</a>
+      <a class="section-link" href="#specificity">Specificity</a>
+      <a class="section-link" href="#ruled-out">Dead ends</a>
+      <a class="section-link" href="#measurement">Measurement</a>
+      <a class="section-link" href="#timeline">Timeline</a>
+      <a class="section-link" href="#status">Status board</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ CAUSATION -->
+<!-- from: anti_compliance_delta_0_to_3 -->
+<!-- from: anti_compliance_slope -->
+<!-- from: falseqa_delta_0_to_3 -->
+<!-- from: jailbreak_compliance_delta_0_to_3 -->
+<section id="causation">
+  <div class="fade-in">
+    <span class="tag tag-teal">1. Cross-benchmark causal evidence</span>
+    <h2>Three benchmarks, same direction, same 38 neurons</h2>
+    <p class="subtitle" data-source="manual">
+      Before this week, the causal story rested on one benchmark (FaithEval anti-compliance).
+      Now three independent tasks &mdash; context override, false-premise acceptance, and adversarial safety &mdash;
+      all show positive endpoint effects with bootstrap CIs excluding zero.
+      Different evaluators, different task types, same neurons, same direction.
+    </p>
+
+    <div class="benchmark-triptych">
+      <div class="bench-card" style="--bench-accent: var(--accent-teal);">
+        <div class="bench-header">
+          <span class="bench-name">FaithEval</span>
+          <span class="bench-type">Context override</span>
+        </div>
+        <div class="bench-delta">
+          <!-- from: anti_compliance_delta_0_to_3 -->
+          <span class="bench-delta-value" data-intervention-summary-bind="anti-delta-value">+6.3pp</span>
+          <span class="bench-delta-ci" data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span>
+        </div>
+        <div class="bench-meta">
+          <span>n=1,000</span>
+          <span>MC-letter regex</span>
+          <span class="bench-control bench-control-yes">NC: 8 seeds</span>
+        </div>
+        <div class="bench-mono">Monotonic &rho;=1.0</div>
+      </div>
+
+      <div class="bench-card" style="--bench-accent: var(--accent-purple);">
+        <div class="bench-header">
+          <span class="bench-name">FalseQA</span>
+          <span class="bench-type">False premises</span>
+        </div>
+        <div class="bench-delta">
+          <!-- from: falseqa_delta_0_to_3 -->
+          <span class="bench-delta-value" data-cross-benchmark-bind="falseqa-delta-value">+4.8pp</span>
+          <span class="bench-delta-ci" data-cross-benchmark-bind="falseqa-delta-ci-text">95% CI 1.3-8.3pp</span>
+        </div>
+        <div class="bench-meta">
+          <span>n=687</span>
+          <span>GPT-4o judge</span>
+          <span class="bench-control bench-control-yes">NC: 3 seeds</span>
+        </div>
+        <div class="bench-mono">Non-monotonic</div>
+      </div>
+
+      <div class="bench-card" style="--bench-accent: var(--accent-coral);">
+        <div class="bench-header">
+          <span class="bench-name">JailbreakBench</span>
+          <span class="bench-type">Adversarial safety</span>
+        </div>
+        <div class="bench-delta">
+          <!-- from: jailbreak_compliance_delta_0_to_3 -->
+          <span class="bench-delta-value" data-jailbreak-summary-bind="delta-value">+6.2pp</span>
+          <span class="bench-delta-ci" data-jailbreak-summary-bind="delta-ci-text">95% CI 2.4-10.0pp</span>
+        </div>
+        <div class="bench-meta">
+          <span>n=500</span>
+          <span>GPT-4o safety judge</span>
+          <span class="bench-control bench-control-no">No NC</span>
+        </div>
+        <div class="bench-mono">Plateau at &alpha;=1.5</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>Why this matters:</strong> a single benchmark can always be a measurement accident.
+      Three tasks with two evaluator families and two that have independent negative controls
+      makes "coincidence" a harder sell.
+      <a href="../results/gemma-3-4b.html#cross-benchmark" style="color: var(--accent-teal);">Open the cross-benchmark comparison &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ SPECIFICITY -->
+<!-- from: negative_control_random_slope_interval -->
+<section id="specificity">
+  <div class="fade-in">
+    <span class="tag tag-purple">2. H-neuron specificity confirmed</span>
+    <h2>Random neurons do nothing</h2>
+    <p class="subtitle" data-source="manual">
+      This is the most important result of the week.
+      Without it, every causal claim could be explained by generic perturbation &mdash;
+      scaling any 38 neurons might produce the same shift.
+      It does not.
+    </p>
+
+    <div class="specificity-face-off">
+      <div class="face-off-side face-off-h">
+        <div class="face-off-label">H-neurons (38)</div>
+        <div class="face-off-slope">
+          <span class="face-off-value" data-intervention-summary-bind="negative-control-h-slope-value">2.09pp/&alpha;</span>
+        </div>
+        <div class="face-off-detail">
+          <span data-intervention-summary-bind="anti-slope-ci-text">95% CI 1.38-2.83pp/&alpha;</span>
+        </div>
+        <div class="face-off-endpoint">
+          &alpha;=3.0: <span data-intervention-summary-bind="negative-control-h-alpha-three-value">70.5%</span>
+        </div>
+      </div>
+      <div class="face-off-vs">vs</div>
+      <div class="face-off-side face-off-random">
+        <div class="face-off-label">Random sets (8 seeds)</div>
+        <div class="face-off-slope">
+          <span class="face-off-value" data-intervention-summary-bind="negative-control-random-slope-value">0.02pp/&alpha;</span>
+        </div>
+        <div class="face-off-detail">
+          <span data-intervention-summary-bind="negative-control-random-slope-ci-text">95% interval -0.11-0.16pp/&alpha;</span>
+        </div>
+        <div class="face-off-endpoint">
+          &alpha;=3.0: <span data-intervention-summary-bind="negative-control-random-alpha-three-value">66.1%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card" style="border-left: 3px solid var(--accent-purple); margin-top: 1.5rem;">
+      <h3 style="color: var(--accent-purple);">Two-sided specificity</h3>
+      <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+        The result is two-sided: ablating H-neurons (&alpha;=0.0) drops compliance to 64.2%
+        while ablating random neurons leaves it at ~66.0%.
+        Amplifying H-neurons (&alpha;=3.0) pushes compliance to 70.5%
+        while amplifying random neurons stays at ~66.1%.
+        These neurons matter in both directions.
+      </p>
+    </div>
+
+    <div class="insight-box" style="border-left-color: var(--accent-purple);">
+      <strong>Scenarios ruled out:</strong>
+      generic perturbation (any neurons work equally) &mdash; definitively falsified;
+      partial specificity (~2-3pp generic component) &mdash; not supported, random drift &lt;0.5pp;
+      random format degradation &mdash; zero parse failures across all 56,000 random-set generations.
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">Research principle</div>
+  <p class="ref-text">
+    A causal claim without a negative control is an <strong>observation</strong>.
+    A causal claim with a negative control that falsifies the generic alternative is an <strong>argument</strong>.
+    The week's most important result was not the new benchmarks &mdash; it was filling in the control column.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ RULED OUT -->
+<section id="ruled-out">
+  <div class="fade-in">
+    <span class="tag tag-coral">3. Negative results that strengthen the story</span>
+    <h2>What we killed, and why it helps</h2>
+    <p class="subtitle" data-source="manual">
+      Two lines of investigation were definitively closed this week.
+      Both failures narrow the space of possible explanations,
+      replacing vague possibility with concrete exclusion.
+    </p>
+
+    <div class="ruled-out-grid">
+      <div class="ruled-out-card">
+        <div class="ruled-out-header">
+          <span class="ruled-out-icon">&times;</span>
+          <div>
+            <h3>SAE feature-space steering</h3>
+            <span class="status-pill status-blocked">Closed</span>
+          </div>
+        </div>
+        <div class="ruled-out-body">
+          <p data-source="manual">
+            SAE features that detect hallucination at AUROC 0.848 cannot steer compliance
+            when manipulated. Tested under two architectures:
+          </p>
+          <div class="ruled-out-evidence">
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">Full replacement</span>
+              <span class="ruled-out-result">H-feature slope: 0.16pp/&alpha;</span>
+              <span class="ruled-out-verdict verdict-null">Null</span>
+            </div>
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">Delta-only</span>
+              <span class="ruled-out-result">H-feature slope: 0.12pp/&alpha;</span>
+              <span class="ruled-out-verdict verdict-null">Null</span>
+            </div>
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">Neuron baseline</span>
+              <span class="ruled-out-result">H-neuron slope: 2.09pp/&alpha;</span>
+              <span class="ruled-out-verdict verdict-real">Causal</span>
+            </div>
+          </div>
+          <p style="margin-top: 0.75rem; font-size: 13px; color: var(--text-muted);" data-source="manual">
+            Delta-only cancels reconstruction error exactly &rarr; the failure is feature-space misalignment, not noise.
+            This is a <strong style="color: var(--text-primary);">detection-steering dissociation</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div class="ruled-out-card">
+        <div class="ruled-out-header">
+          <span class="ruled-out-icon">&times;</span>
+          <div>
+            <h3>Neuron 4288 as a unique hub</h3>
+            <span class="status-pill status-blocked">Closed</span>
+          </div>
+        </div>
+        <div class="ruled-out-body">
+          <p data-source="manual">
+            The top-weighted neuron (L20:N4288, weight 12.17 &mdash; 1.65&times; the runner-up) looked like a hallucination hub.
+            Six independent diagnostic tests all say otherwise:
+          </p>
+          <div class="ruled-out-evidence">
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">Standalone AUC</span>
+              <span class="ruled-out-result">0.590 (best: L13:N833 at 0.703)</span>
+              <span class="ruled-out-verdict verdict-null">Artifact</span>
+            </div>
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">Cohen&rsquo;s d</span>
+              <span class="ruled-out-result">0.326 (runner-up: 0.477)</span>
+              <span class="ruled-out-verdict verdict-null">Artifact</span>
+            </div>
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">C-sweep stability</span>
+              <span class="ruled-out-result">Absent at C&le;0.3 (69.5% accuracy without it)</span>
+              <span class="ruled-out-verdict verdict-null">Artifact</span>
+            </div>
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">Top contribution</span>
+              <span class="ruled-out-result">Largest contributor for only 7.4% of examples</span>
+              <span class="ruled-out-verdict verdict-null">Artifact</span>
+            </div>
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">Ablation drop</span>
+              <span class="ruled-out-result">1.0pp (below 2pp threshold)</span>
+              <span class="ruled-out-verdict verdict-null">Artifact</span>
+            </div>
+            <div class="ruled-out-row">
+              <span class="ruled-out-arch">Max correlation</span>
+              <span class="ruled-out-result">0.492 with L26:N1359 (L1 concentration)</span>
+              <span class="ruled-out-verdict verdict-null">Artifact</span>
+            </div>
+          </div>
+          <p style="margin-top: 0.75rem; font-size: 13px; color: var(--text-muted);">
+            Verdict: <span data-top-neuron-bind="support-count-display">0/6</span>.
+            <a href="../deep-dives/neuron-4288.html" style="color: var(--accent-coral);">Full forensic deep dive &rarr;</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight-box" style="border-left-color: var(--accent-coral);">
+      <strong>Why negative results are load-bearing:</strong>
+      they narrow the explanation space from &ldquo;maybe one neuron controls everything via SAE features&rdquo;
+      to &ldquo;a distributed direction exists, its causal effect is neuron-specific, and it does not decompose
+      into independently steerable SAE features.&rdquo;
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ MEASUREMENT -->
+<section id="measurement">
+  <div class="fade-in">
+    <span class="tag tag-amber">4. Measurement discipline</span>
+    <h2>Sharpening the ruler before trusting the reading</h2>
+    <p class="subtitle" data-source="manual">
+      Three measurement findings this week change what we can claim
+      and at what confidence level.
+    </p>
+
+    <div class="next-steps" style="margin-top: 1.5rem;">
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Verbosity confound scopes detection claims</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          Full-response CETT readout encodes response length 3.7&ndash;16&times; more strongly than truthfulness.
+          36 of 38 neurons are length-dominant.
+          This does <em>not</em> threaten the causal intervention claims &mdash;
+          FaithEval scoring is immune to raw length, and negative controls rule out indirect channels &mdash;
+          but it scopes the detection-tier evidence.
+          The classifier&rsquo;s AUROC of <span data-classifier-bind="auc-value">0.843</span>
+          partly reflects response-form correlations.
+        </p>
+      </div>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Evaluator artifact resolved at &alpha;=3.0</h3>
+        <!-- from: standard_text_remap_alpha_3_rescored_rate -->
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          Standard-prompt raw score drops to
+          <span data-intervention-summary-bind="raw-alpha-three-value">63.6%</span>
+          (<span data-intervention-summary-bind="raw-alpha-three-ci-text">95% CI 60.6-66.5%</span>)
+          at &alpha;=3.0. That looked like a contradiction.
+          Strict answer-text remapping recovers 93.3% of parse failures,
+          lifting the population estimate to
+          <span data-intervention-summary-bind="remap-value">72.1%</span>
+          (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>) &mdash;
+          above baseline.
+          The model did not get worse; the ruler could not read answer-text outputs.
+        </p>
+      </div>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Gold-label sentinel sets started</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          Human labels for FalseQA and jailbreak edge cases are now tracked.
+          Judge regression tests ensure future evaluator changes do not silently shift results.
+          This is calibration infrastructure: you trust the evaluator because it still gets the fixed hard cases right.
+        </p>
+      </div>
+    </div>
+
+    <div class="evidence-hierarchy">
+      <div class="eh-label">Evidence hierarchy (established this week)</div>
+      <div class="eh-tiers">
+        <div class="eh-tier" style="--tier-accent: var(--accent-teal); --tier-width: 100%;">
+          <span class="eh-tier-rank">1</span>
+          <div class="eh-tier-content">
+            <strong>Causal intervention + negative controls</strong>
+            <span>FaithEval &amp; FalseQA with random-neuron baselines</span>
+          </div>
+        </div>
+        <div class="eh-tier" style="--tier-accent: var(--accent-purple); --tier-width: 78%;">
+          <span class="eh-tier-rank">2</span>
+          <div class="eh-tier-content">
+            <strong>Paper replication (6 models &times; 4 tasks)</strong>
+            <span>Independent, intact, but not locally controlled</span>
+          </div>
+        </div>
+        <div class="eh-tier" style="--tier-accent: var(--accent-amber); --tier-width: 56%;">
+          <span class="eh-tier-rank">3</span>
+          <div class="eh-tier-content">
+            <strong>Detection (classifier AUROC <span data-classifier-bind="auc-value">0.843</span>)</strong>
+            <span>Partially confounded by response-form/length</span>
+          </div>
+        </div>
+        <div class="eh-tier" style="--tier-accent: var(--accent-coral); --tier-width: 34%;">
+          <span class="eh-tier-rank">4</span>
+          <div class="eh-tier-content">
+            <strong>Passive readout (full-response CETT)</strong>
+            <span>Dominated by length &mdash; verbosity confound</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">Narrative discipline</div>
+  <p class="ref-text">
+    The story improves when claims are sorted by the weight they can bear.
+    A clean intervention with negative controls is <strong>structural steel</strong>.
+    A classifier AUROC is <span class="highlight">useful scaffolding</span>.
+    A full-response readout is a <strong>sketch on a napkin</strong>.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ TIMELINE -->
+<section id="timeline" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Timeline</span>
+    <h2>March 16&ndash;24 at a glance</h2>
+
+    <div class="week-timeline">
+      <div class="tl-item" data-theme="coral">
+        <div class="tl-date">Mar 16</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">Neuron 4288 verdict: 0/6 artifact</div>
+          <div class="tl-detail">Six diagnostic tests converge on L1 regularization artifact</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="amber">
+        <div class="tl-date">Mar 16</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">Standard prompt evaluator artifact resolved</div>
+          <div class="tl-detail">93.3% of &alpha;=3.0 parse failures recovered via strict text remap</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="teal">
+        <div class="tl-date">Mar 17</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">FalseQA cross-benchmark replication</div>
+          <div class="tl-detail">+4.8pp endpoint effect on false-premise acceptance (n=687)</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="purple">
+        <div class="tl-date">Mar 17</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">FaithEval negative control: 8 seeds</div>
+          <div class="tl-detail">Random slope [-0.11, 0.16] vs H-neuron 2.09pp/&alpha;</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="purple">
+        <div class="tl-date">Mar 18</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">FalseQA negative control: 3 seeds</div>
+          <div class="tl-detail">Random slope [-0.40, 0.38] vs H-neuron 1.55pp/&alpha;</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="coral">
+        <div class="tl-date">Mar 18</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">SAE steering definitively closed</div>
+          <div class="tl-detail">Both full-replacement and delta-only architectures produce null slopes</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="teal">
+        <div class="tl-date">Mar 19</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">Jailbreak safety benchmark</div>
+          <div class="tl-detail">+6.2pp harmful compliance, plateau at &alpha;=1.5 (n=500)</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="amber">
+        <div class="tl-date">Mar 19</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">Verbosity confound scopes detection tier</div>
+          <div class="tl-detail">Length dominates truth 3.7&ndash;16&times; in full-response readout</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="amber">
+        <div class="tl-date">Mar 20</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">Evidence hierarchy formalized</div>
+          <div class="tl-detail">4-tier structure: intervention &gt; paper replication &gt; detection &gt; passive readout</div>
+        </div>
+      </div>
+      <div class="tl-item" data-theme="amber">
+        <div class="tl-date">Mar 22</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <div class="tl-title">Gold-label sentinel sets started</div>
+          <div class="tl-detail">Human labels for FalseQA and jailbreak evaluator regression testing</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ STATUS -->
+<section id="status">
+  <div class="fade-in">
+    <span class="tag tag-teal">Status board</span>
+    <h2>Where things stand</h2>
+
+    <div class="status-board">
+      <div class="status-col">
+        <div class="status-col-header status-col-done">Done</div>
+        <ul class="status-list">
+          <li>Full pipeline replication (TriviaQA &rarr; 38 H-neurons)</li>
+          <li>FaithEval intervention (anti + standard prompts)</li>
+          <li>FalseQA intervention + negative control</li>
+          <li>Jailbreak intervention (500 prompts &times; 7&alpha;)</li>
+          <li>8-seed FaithEval negative control</li>
+          <li>SAE steering closed (2 architectures)</li>
+          <li>Neuron 4288 artifact verdict (0/6)</li>
+          <li>Verbosity confound audit</li>
+          <li>Evidence hierarchy established</li>
+          <li>Swing characterization deep dive</li>
+        </ul>
+      </div>
+      <div class="status-col">
+        <div class="status-col-header status-col-open">Open</div>
+        <ul class="status-list">
+          <li>Full-&alpha; text remap for standard FaithEval</li>
+          <li>Jailbreak negative control (~4h GPU)</li>
+          <li>Second model (Mistral-24B or Llama-70B)</li>
+          <li>Out-of-distribution evaluation (NQ-Open, BioASQ, NonExist)</li>
+          <li>Jailbreak judge test-retest reliability</li>
+        </ul>
+      </div>
+      <div class="status-col">
+        <div class="status-col-header status-col-decided">Decided</div>
+        <ul class="status-list">
+          <li>Evidence hierarchy: intervention &gt; replication &gt; detection &gt; readout</li>
+          <li>Distributed detector &gt; single hub neuron</li>
+          <li>SAE line: closed, not worth further investment</li>
+          <li>Detection claims carry verbosity caveat</li>
+        </ul>
+      </div>
+      <div class="status-col">
+        <div class="status-col-header status-col-undecided">Undecided</div>
+        <ul class="status-list">
+          <li>Paper anchor: <span data-classifier-bind="selected-count">38</span>-neuron sparse vs <span data-top-neuron-bind="broader-detector-count">219</span>-neuron distributed</li>
+          <li>Next model priority: engineering continuity vs external validity</li>
+          <li>Standard prompt: full remap first or move to next model?</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Week 2 Progress &mdash; H-Neurons &mdash; March 16&ndash;24, 2026<br>
+  Evidence ledger: <a href="../results/gemma-3-4b.html">Results</a> &middot;
+  Narrative: <a href="../story.html">Core Story</a> &middot;
+  <a href="index.html">All progress reports</a>
+</footer>
+
+<script src="../assets/shared.js"></script>
+
+</body>
+</html>
