@@ -367,7 +367,7 @@
     setBoundText(
       'data-intervention-summary-bind',
       'anti-delta-value',
-      formatPp(antiEffects.delta_0_to_max_pp.estimate),
+      formatSignedPp(antiEffects.delta_0_to_max_pp.estimate),
     );
     setBoundText(
       'data-intervention-summary-bind',
@@ -463,7 +463,7 @@
     setBoundText('data-jailbreak-summary-bind', 'baseline-value', formatPercent(baseline.compliance_pct));
     setBoundText('data-jailbreak-summary-bind', 'baseline-ci-text', formatRateCiText(baseline.ci));
     setBoundText('data-jailbreak-summary-bind', 'endpoint-value', formatPercent(endpoint.compliance_pct));
-    setBoundText('data-jailbreak-summary-bind', 'delta-value', formatPp(effects.delta_0_to_max_pp.estimate));
+    setBoundText('data-jailbreak-summary-bind', 'delta-value', formatSignedPp(effects.delta_0_to_max_pp.estimate));
     setBoundText('data-jailbreak-summary-bind', 'delta-ci-text', formatPpCiText(effects.delta_0_to_max_pp.ci));
     setBoundText(
       'data-jailbreak-summary-bind',
