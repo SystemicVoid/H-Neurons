@@ -32,17 +32,7 @@
     <h1>Gemma 3 4B:<br>Findings,<br>Open Questions</h1>
     <p class="subtitle" data-source="manual">
       This page summarizes the current state of the Gemma 3 4B replication:
-      the main findings, the key interpretive decisions, and the highest-priority follow-up experiments.
-    </p>
-
-    <p class="subtitle" style="margin-top: 1rem;" data-source="manual">
-      The main framing question is whether to present the paper-faithful 38-neuron sparse baseline as the headline object,
-      or foreground the broader distributed detector now that the top-neuron interpretation has narrowed.
-    </p>
-
-    <p class="subtitle" style="margin-top: 1.25rem;" data-source="manual">
-      The main unresolved measurement issue is standard-prompt scoring across the full &alpha; sweep.
-      Until that series is rescored, the strongest intervention evidence remains the anti-compliance curve and the strict &alpha;=3.0 remap.
+      stable findings, completed experiments, and the active research frontier.
     </p>
 
     <!-- from: classifier_disjoint_accuracy -->
@@ -72,52 +62,15 @@
     </div>
 
     <div class="section-links" style="margin-top: 2rem;">
-      <a class="section-link" href="#agenda">Agenda</a>
-      <a class="section-link" href="story.html">Core story</a>
       <a class="section-link" href="#snapshot">Stable findings</a>
+      <a class="section-link" href="story.html">Core story</a>
+      <a class="section-link" href="#status">Current status</a>
       <a class="section-link" href="extensions.html">Extensions</a>
-      <a class="section-link" href="#research-decisions">Decisions</a>
-      <a class="section-link" href="#nextsteps">Next runs</a>
     </div>
   </div>
 </section>
 
-<section class="short" id="agenda" style="min-height: auto; padding: 2rem 2rem;">
-  <div class="fade-in">
-    <span class="tag tag-amber">Research priorities</span>
-    <h2>Current priorities for the next phase</h2>
-    <div class="next-steps">
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
-        <h3>Quick recap of stable results</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          The results page contains the current evidence base for detector quality, layer distribution, the top-neuron verdict, and intervention behavior.
-        </p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
-        <h3>Decide the main detector object</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Resolve whether the paper-faithful sparse set or the broader C=3.0 detector should anchor the main story.
-        </p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
-        <h3>Pick the next model family</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Choose between Mistral-Small-24B for engineering continuity and Llama-3.3-70B for stronger external-validity pressure.
-        </p>
-      </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">4</div>
-        <h3>Confirm run order</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Sequence the fastest disambiguating runs first: all-&alpha; text scoring, negative control, then prompt disentangling.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
+
 
 <section id="snapshot">
   <div class="fade-in">
@@ -178,90 +131,40 @@
   </div>
 </section>
 
-<section id="research-decisions" class="short">
+
+
+<section id="status" class="short">
   <div class="fade-in">
-    <span class="tag tag-coral">Research decisions</span>
-    <h2>Two strategy decisions before the next wave of runs</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">
-      These choices determine which detector anchors the main interpretation and which second model offers the strongest generalization test.
-    </p>
+    <span class="tag tag-teal">Current status</span>
+    <h2>What is done, what is active, and what remains</h2>
 
     <div class="next-steps">
-      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">1. Which neuron set should define the main story?</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Should the project stay anchored to the <strong>38 neurons at C=1.0</strong> because that is closest to the paper's sparse-intervention framing, or pivot to the <strong>219 positive neurons at C=3.0</strong> because that detector appears to capture more of the real Gemma signal?
-        </p>
-        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;">
-          The tradeoff is straightforward: C=1.0 buys paper faithfulness and a clean replication headline, while C=3.0 buys better predictive performance and a story less vulnerable to the 4288 artifact.
-        </p>
-      </div>
-
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">2. Which second model adds the most value?</h3>
+        <h3 style="color: var(--accent-teal);">Completed</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          If the replication extends beyond Gemma-3-4B, should the next target be <strong>Mistral-Small-24B</strong> or <strong>Llama-3.3-70B</strong>?
+          <strong>Detection replication:</strong> 38 H-neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy.<br>
+          <strong>FaithEval intervention + negative control:</strong> 2.1 pp/&alpha; slope, H-neuron specificity confirmed (8 random seeds flat).<br>
+          <strong>FalseQA intervention + negative control:</strong> +4.8 pp endpoint, H-neuron specificity confirmed (3 random seeds flat).<br>
+          <strong>Top-neuron investigation:</strong> neuron 4288 is an L1 artifact (0/6 tests).<br>
+          <strong>SAE steering:</strong> closed &mdash; null result under both full-replacement and delta-only architectures. Detection-steering dissociation confirmed.<br>
+          <strong>Swing characterization:</strong> 68.1% knowledge override in the &alpha;-sensitive subpopulation.
         </p>
-        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;">
-          Mistral is the cleaner engineering continuation and sits close to the paper's best-behaving family. Llama is the stronger external-validity test, but it asks for a much more expensive deployment story.
-        </p>
       </div>
-    </div>
-
-    <div class="metrics-grid" style="margin-top: 1.5rem;">
-      <div class="metric-card">
-        <div class="label">Paper-faithful sparse set</div>
-        <div class="value val-amber" data-classifier-bind="selected-count">38</div>
-        <div class="detail">Gemma-3-4B, C=1.0, <span data-classifier-bind="accuracy-value">76.5%</span> local disjoint accuracy <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Higher-signal set</div>
-        <div class="value val-coral" data-top-neuron-bind="broader-detector-count">219</div>
-        <div class="detail">Gemma-3-4B, C=<span data-top-neuron-bind="broader-detector-c-value">3.0</span>, broader detector candidate</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Paper Mistral-24B</div>
-        <div class="value val-teal">81.0%</div>
-        <div class="detail">TriviaQA detection headline from Gao et al.</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Paper Llama-70B</div>
-        <div class="value val-purple">82.7%</div>
-        <div class="detail">Stronger headline, heavier deployment burden</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="nextsteps" class="short">
-  <div class="fade-in">
-    <span class="tag tag-teal">Planned experiments</span>
-    <h2>Three highest-priority follow-ups</h2>
-    <p class="subtitle" style="margin-bottom: 1.5rem;">
-      The first closes the evaluator gap across the full sweep. The other two test whether the effect is specific and what mechanism is actually moving.
-    </p>
-
-    <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Extend text-based scoring (~30&ndash;60 min, $0)</h3>
+        <h3 style="color: var(--accent-amber);">Active</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Build the missing all-&alpha; answer-text scorer beyond the committed &alpha;=3.0 remap, then recompute the standard curve and population split from that corrected series.
+          <strong>Jailbreak canonical rerun:</strong> 5000-token budget on JailbreakBench with structured GPT-4o judge and gold-label calibration. In progress.<br>
+          <strong>Jailbreak negative control:</strong> highest-priority missing piece for the safety benchmark.
         </p>
       </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">Negative control (~1 h, $0)</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
+        <h3 style="color: var(--accent-purple);">Remaining measurement work</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Scale 38 random non-H-neurons by the same &alpha; values. This is the cleanest test of whether the observed behavior change is specific or just generic activation damage.
-        </p>
-      </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Prompt disentangling (~1&ndash;2 h, $0)</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Run a no-context standard prompt and an aligned-format prompt so answer selection, answer rendering, and generic degradation can be separated more cleanly.
+          <strong>All-&alpha; text rescoring:</strong> extend the &alpha;=3.0 strict answer-text remap across the full standard-prompt sweep.<br>
+          <strong>Sycophancy:</strong> scaffolded in the intervention pipeline but not yet run.
         </p>
       </div>
     </div>
-
   </div>
 </section>
 

@@ -40,21 +40,21 @@
       <div class="metric-card" data-status="STABLE">
         <div class="label">Tracked workstreams</div>
         <div class="value val-teal">4</div>
-        <div class="detail">Only the near-term branches worth carrying right now</div>
+        <div class="detail">1 active, 1 pending, 1 complete, 1 closed</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Fastest falsifier</div>
-        <div class="value val-amber">10 min</div>
-        <div class="detail">Negative-weight C-sweep stability on CPU</div>
-      </div>
-      <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Best next bet</div>
-        <div class="value val-purple" style="font-size: 1.3rem;">Layer-13 SAE</div>
-        <div class="detail">Main mechanism sprint on the existing Gemma artifacts</div>
+        <div class="label">Active frontier</div>
+        <div class="value val-amber" style="font-size: 1.3rem;">Jailbreak</div>
+        <div class="detail">Canonical 5000-token rerun + judge calibration in progress</div>
       </div>
       <div class="metric-card" data-status="STABLE">
-        <div class="label">Zero-GPU branch</div>
-        <div class="value val-teal" style="font-size: 1.3rem;">Swing done</div>
+        <div class="label">SAE steering</div>
+        <div class="value val-coral" style="font-size: 1.3rem;">Closed</div>
+        <div class="detail">Null result confirmed under both steering architectures</div>
+      </div>
+      <div class="metric-card" data-status="STABLE">
+        <div class="label">Swing analysis</div>
+        <div class="value val-teal" style="font-size: 1.3rem;">Complete</div>
         <div class="detail"><span data-swing-bind="rc-pct-display">68.1%</span> knowledge override &middot; <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">deep dive</a></div>
       </div>
     </div>
@@ -71,9 +71,9 @@
 <section id="roadmap">
   <div class="fade-in">
     <span class="tag tag-teal">Roadmap table</span>
-    <h2>Four follow-on directions currently have the clearest scientific hook</h2>
+    <h2>Current extension directions and their status</h2>
     <p class="subtitle" data-source="manual">
-      Each tracked direction already has a sharp hypothesis, an affordable falsifier, and a direct connection to the Gemma replication story.
+      One active extension, one pending falsifier, one completed analysis, one closed null result, and one planned future direction.
     </p>
 
     <div class="roadmap-table-shell">
@@ -83,46 +83,47 @@
             <th>Workstream</th>
             <th>Status</th>
             <th>Why it matters</th>
-            <th>Cheap falsifier</th>
-            <th>Main dependency</th>
+            <th>Current state / next step</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>SAE feature decomposition</strong></td>
-            <td><span class="status-pill status-active">Primary bet</span></td>
-            <td>Test whether the 38 H-neurons are only a coarse shortlist and whether a compact set of SAE features is the real mechanism handle.</td>
-            <td>Load the layer-13 MLP-output SAE, project the existing hallucination/truthful activation pairs, train the same L1 logistic regression on 16k SAE features instead of 348k neuron CETT values, and compare AUROC. Cheap falsifier: 1-2 hours GPU.</td>
-            <td>Existing activation pairs plus Gemma Scope SAEs for `gemma-3-4b-it`; full pass is still only 2-3 days.</td>
+            <td><strong>Jailbreak methodology extension</strong></td>
+            <td><span class="status-pill status-active">Active</span></td>
+            <td>The original paper uses Shen et al. templates with a 256-token cap. Our extension uses JailbreakBench (Chao et al., NeurIPS 2024) with a 5000-token budget, structured GPT-4o judge, and gold-label calibration &mdash; a methodologically stronger evaluation of the same H-neuron safety claim.</td>
+            <td>Canonical 5000-token rerun in progress. Gold-label review prepared for &alpha;=1.5 and &alpha;=3.0. Preliminary 256-token sweep showed +6.2pp [2.4, 10.0]. Highest-priority gap: jailbreak negative control.</td>
           </tr>
           <tr>
             <td><strong>Suppressive neuron investigation</strong></td>
-            <td><span class="status-pill status-ready">Quick falsifier</span></td>
+            <td><span class="status-pill status-ready">Pending</span></td>
             <td>The ignored negative-weight set may be a natural truthfulness circuit, which is a cleaner safety narrative than merely suppressing bad behavior.</td>
-            <td>Check whether the 38 negative-weight neurons remain stable across C in {0.3, 1.0, 3.0, 10.0}. If a core subset survives, run the inverse intervention by amplifying them and measuring whether compliance decreases. Cheap falsifier: 10 min CPU + 3-4 hours GPU.</td>
-            <td>Classifier artifacts already exist; the only real dependency is finding a stable core worth intervening on.</td>
+            <td>Check whether the 38 negative-weight neurons remain stable across C in {0.3, 1.0, 3.0, 10.0}. If a core subset survives, run the inverse intervention. Cheap falsifier: 10 min CPU + 3-4 hours GPU.</td>
           </tr>
           <tr>
             <td><strong>Swing sample characterization</strong></td>
             <td><span class="status-pill status-complete">Complete</span></td>
             <td><span data-swing-bind="rc-pct-display">68.1%</span> of swing samples (<span data-swing-bind="rc-count">94</span>/<span data-intervention-summary-bind="swing-count">138</span>) show R&rarr;C knowledge override; <span data-swing-bind="cr-pct-display">23.2%</span> show the beneficial C&rarr;R pattern. Surface features do not predict swing status.</td>
-            <td>Structural proxies, topic analysis, LLM-enriched knowledge classification, independent verification, and persuasiveness rating. <a href="deep-dives/swing-characterization.html">See the deep dive.</a></td>
-            <td>Complete. Results integrated into the site.</td>
+            <td>Complete. Results integrated into the site. <a href="deep-dives/swing-characterization.html">See the deep dive.</a></td>
           </tr>
           <tr>
-            <td><strong>Safety/refusal overlap pilot</strong></td>
-            <td><span class="status-pill status-pilot">Safety pilot</span></td>
-            <td>Directly tests whether factual compliance and harmful-request refusal share circuitry, which is the alignment-tax question in its smallest runnable form.</td>
-            <td>Run 20 manually written harmful prompts at α=0.0 and α=1.0. If suppressing H-neurons makes the model more willing to comply, the overlap is real; if refusal is unchanged, the circuits look separable.</td>
-            <td>A small harmful-prompt set and a disciplined readout; no large new benchmark stack needed for the pilot.</td>
+            <td><strong>SAE feature-space steering</strong></td>
+            <td><span class="status-pill" style="background: var(--accent-coral-dim); color: var(--accent-coral);">Closed</span></td>
+            <td>Tested whether SAE feature-space steering could replicate or improve on neuron-level compliance effects. <strong>Null result:</strong> H-feature slope 0.16 pp/&alpha; (CI contains zero), delta-only slope 0.12 pp/&alpha;. The failure is fundamental feature-space misalignment, not reconstruction noise.</td>
+            <td>Definitively closed. Both full-replacement and delta-only architectures produce null slopes. Detection-steering dissociation confirmed (AUROC 0.848 detection, zero steering). <a href="results/gemma-3-4b.html">See results.</a></td>
+          </tr>
+          <tr>
+            <td><strong>Deceptive behavior exploration</strong></td>
+            <td><span class="status-pill" style="background: var(--surface-2); color: var(--text-secondary);">Planned</span></td>
+            <td>Extends beyond the paper's over-compliance framing to test whether H-neurons correlate with deceptive model behaviors &mdash; a stronger and more novel safety claim than compliance alone.</td>
+            <td>Not started. Depends on completing jailbreak extension and establishing the methodology for deception-specific evaluation.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="insight-box">
-      <strong>Why these four:</strong> they each have a different payoff surface.
-      SAE decomposition is the strongest main sprint, suppressive neurons are the fastest causal falsifier, swing-sample analysis is the cheapest interpretive clarification, and the refusal-overlap pilot is the most direct safety check.
+      <strong>Note on scope:</strong> Jailbreak and Sycophancy are not extensions of the original paper &mdash; Gao et al. already include both as 2 of their 4 intervention benchmarks.
+      What is an extension is our choice of JailbreakBench (different benchmark, longer budget, structured judge) and the planned deceptive-behavior exploration.
     </div>
   </div>
 </section>
@@ -130,33 +131,32 @@
 <section id="priority" class="short">
   <div class="fade-in">
     <span class="tag tag-purple">Execution order</span>
-    <h2>The order should separate cheap filters from the main sprint</h2>
+    <h2>Current priority order reflects what is actually in flight</h2>
     <p class="subtitle" data-source="manual">
-      These four directions differ in both cost and evidential payoff.
-      Two are fast filters, one is the main mechanism bet, and one is the first focused safety pilot.
+      The active work is measurement hardening on the safety benchmark.
+      The pending work is the cheapest causal falsifier on the suppressive-neuron side.
     </p>
 
     <div class="next-steps">
-      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">1</div>
-        <h3>Near-free filters (swing done, suppressive pending)</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">1</div>
+        <h3>Complete jailbreak canonical rerun + negative control</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Swing characterization is <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">complete</a>: <span data-swing-bind="rc-pct-display">68.1%</span> knowledge override confirmed.
-          Negative-weight stability check remains pending.
+          The 5000-token JailbreakBench rerun is in progress. Once complete, the jailbreak negative control is the highest-priority missing control across all benchmarks.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">2</div>
+        <h3>Suppressive neuron stability check</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Check whether the 38 negative-weight neurons remain stable across C values. If a core subset survives, it becomes the cheapest route to an inverse-intervention story. 10 min CPU.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">2</div>
-        <h3>Use SAE decomposition as the main sprint</h3>
+        <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
+        <h3>Deceptive behavior exploration (future)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          If the SAE probe matches or beats the neuron probe, the project upgrades from sparse-neuron bookkeeping to a feature-level mechanism story on the same model.
-        </p>
-      </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">3</div>
-        <h3>Use refusal overlap as the targeted safety check</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          This is the smallest experiment that can tell you whether the same circuitry may be doing double duty for factual compliance and safety refusal.
+          Extending beyond over-compliance to deception-correlated circuits is the next novel direction, once the current safety benchmark is solid.
         </p>
       </div>
     </div>
@@ -164,32 +164,36 @@
 </section>
 
 <div class="reflection">
-  <div class="ref-label">Selection principle</div>
+  <div class="ref-label">What changed</div>
   <p class="ref-text">
-    These directions are not interchangeable.
-    The strongest program is one main mechanism extension supported by smaller falsifiers that either sharpen or constrain the central claim.
+    SAE feature-space steering was previously the main sprint. It produced a null result under both tested architectures and is now closed.
+    The active frontier shifted to measurement hardening on the safety benchmark (jailbreak) and future deceptive-behavior exploration.
   </p>
 </div>
 
 <section id="workstreams">
   <div class="fade-in">
-    <span class="tag tag-coral">Top workstreams</span>
-    <h2>The four branches each answer a different failure mode in the current story</h2>
+    <span class="tag tag-coral">Workstream details</span>
+    <h2>Each branch addresses a different gap in the current evidence</h2>
     <p class="subtitle" data-source="manual">
-      Together they ask four concrete questions: is the neuron level too coarse, is there an inverse truthfulness handle, what exactly moves in the swing subset, and does any of this touch refusal circuitry?
+      The active work hardens the safety benchmark measurement. The pending work tests whether there is an inverse truthfulness handle. The closed SAE line produced a scientifically valuable null result.
     </p>
 
     <div class="next-steps">
-      <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <h3 style="color: var(--accent-purple);">SAE feature decomposition</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Jailbreak methodology extension (active)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Strongest extension because either outcome is publishable. If SAE features work better, the neuron level is too coarse. If they do not, the H-neurons are unusually monosemantic and that is itself surprising.
+          The original paper uses Shen et al. templates with a 256-token cap. Our extension uses JailbreakBench (Chao et al., NeurIPS 2024) with a 5000-token budget, structured GPT-4o judge with few-shot rubric, and gold-label calibration.
+          The preliminary 256-token sweep showed +6.2pp [2.4, 10.0] with a plateau at &alpha;=1.5.
+          The canonical 5000-token rerun addresses truncation bias identified in the preliminary data.
+          No negative control yet &mdash; this is the highest-priority missing control.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">Suppressive neuron investigation</h3>
+        <h3 style="color: var(--accent-coral);">Suppressive neuron investigation (pending)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           Best route to turning the story from "suppress bad behavior" into "amplify a native truthfulness circuit," if the negative-weight set proves stable and causal.
+          Cheapest falsifier: C-sweep stability check (10 min CPU).
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
@@ -200,27 +204,39 @@
           <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">See the deep dive.</a>
         </p>
       </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Safety/refusal overlap pilot</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral); opacity: 0.7;">
+        <h3 style="color: var(--accent-coral);">SAE feature-space steering (closed &mdash; null result)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Best route to a direct alignment-tax claim. If refusal moves when H-neurons are suppressed, the project stops being only about hallucination and starts touching refusal geometry.
+          Tested whether SAE feature-space steering could replicate neuron-level compliance effects.
+          H-feature slope: 0.16 pp/&alpha; (CI [-0.51, 0.84], contains zero). Delta-only: 0.12 pp/&alpha;.
+          Neuron baseline: 2.09 pp/&alpha;.
+          The failure is fundamental feature-space misalignment, not reconstruction noise.
+          SAE detection matches neuron detection (AUROC 0.848 vs 0.843), confirming a detection-steering dissociation.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
+        <h3 style="color: var(--accent-purple);">Deceptive behavior exploration (planned)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Extends beyond the paper's over-compliance framing to test whether H-neurons correlate with deceptive model behaviors.
+          This is a stronger and more novel safety claim than compliance alone, but depends on completing the jailbreak extension first and establishing deception-specific evaluation methodology.
+          Not yet underway.
         </p>
       </div>
     </div>
 
     <div class="comparison" style="margin-top: 2rem;">
-      <div class="compare-card" style="text-align: left; border-color: var(--accent-purple);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Strongest paper extension</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-purple);">SAE feature decomposition</div>
+      <div class="compare-card highlight" style="text-align: left;">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Active extension</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);">Jailbreak methodology</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          This is the cleanest bridge from the current replication to the dominant feature-based interpretability paradigm, while staying on the same model and within local hardware.
+          Different benchmark choice (JailbreakBench), longer token budget, structured judge, gold-label calibration &mdash; a methodologically stronger evaluation of the paper's safety claim.
         </div>
       </div>
-      <div class="compare-card highlight" style="text-align: left;">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Fastest direct safety signal</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Refusal-overlap pilot</div>
+      <div class="compare-card" style="text-align: left; border-color: var(--accent-purple);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Next novel direction</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-purple);">Deceptive behaviors</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          This is the quickest way to learn whether the same local circuitry may be shared between hallucination compliance and harmful-request refusal.
+          Moving from over-compliance to deception is the strongest remaining extension for a novel safety contribution.
         </div>
       </div>
     </div>
@@ -230,32 +246,32 @@
 <section id="decision" class="short">
   <div class="fade-in">
     <span class="tag tag-teal">Decision points</span>
-    <h2>The strongest near-term program combines one main sprint with targeted falsifiers</h2>
+    <h2>The next decision depends on the jailbreak rerun outcome</h2>
     <p class="subtitle" data-source="manual">
-      The recommended balance is one main sprint and three smaller falsifiers around it.
-      That structure gives the central mechanism bet room to breathe while the side experiments sharpen what the main result would mean.
+      Once the canonical 5000-token jailbreak sweep and its negative control are complete, the project will have three benchmarks with confirmed H-neuron specificity (FaithEval, FalseQA, Jailbreak) or will need to explain why jailbreak differs.
     </p>
 
     <div class="comparison" style="margin-top: 2rem;">
-      <div class="compare-card" style="text-align: left; border-color: var(--accent-purple);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Main sprint</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-purple);">Layer-13 SAE first</div>
+      <div class="compare-card highlight" style="text-align: left;">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">If jailbreak negative control confirms specificity</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Strongest cross-benchmark story</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Preferred because it is the strongest extension with the best "interesting either way" structure and still fits the current hardware and artifact base.
+          Three independent benchmarks (FaithEval, FalseQA, Jailbreak) all showing H-neuron-specific compliance effects. The suppressive-neuron investigation and deceptive-behavior exploration become the next frontier.
         </div>
       </div>
-      <div class="compare-card" style="text-align: left; border-color: var(--accent-amber);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Cheap sidecars</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);">Swing + anti-H first pass</div>
+      <div class="compare-card" style="text-align: left; border-color: var(--accent-coral);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">If jailbreak negative control shows generic perturbation</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-coral);">Narrower safety claim</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Preferred around the main sprint because both are fast, leverage existing data, and determine whether the safety reading becomes narrower or stronger.
+          The H-neuron compliance story would hold for factual over-compliance (FaithEval, FalseQA) but not extend to safety refusal. Still publishable, but a weaker cross-benchmark narrative.
         </div>
       </div>
     </div>
 
     <div class="insight-box" data-status="NEW">
-      <strong>Current recommendation:</strong> keep the extensions page focused on these four only for now.
-      SAE decomposition is the main sprint. The suppressive-neuron check, swing-sample audit, and refusal-overlap pilot are the short side experiments that make the eventual story harder to fool.
+      <strong>Lesson from SAE:</strong> the SAE steering line was previously the main sprint.
+      It produced a scientifically valuable null result &mdash; features that detect hallucination do not causally control it in SAE space.
+      This detection-steering dissociation is itself a finding worth reporting, and it redirected the project toward measurement hardening rather than mechanism decomposition.
     </div>
   </div>
 </section>
