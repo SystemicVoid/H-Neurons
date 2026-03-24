@@ -244,6 +244,8 @@ h3 {
 .tag-purple::before { background: var(--accent-purple); }
 .tag-amber { background: var(--accent-amber-dim); color: var(--accent-amber); }
 .tag-amber::before { background: var(--accent-amber); }
+.tag-rose { background: var(--accent-rose-dim); color: var(--accent-rose); }
+.tag-rose::before { background: var(--accent-rose); }
 
 .section-links {
   display: flex;
@@ -1609,3 +1611,60 @@ footer a { color: var(--accent-teal); text-decoration: none; }
   border-bottom: 1px solid rgba(160, 155, 145, 0.06);
 }
 .status-list li:last-child { border-bottom: none; }
+
+/* ── Findings grid (3-col, 2-row) ── */
+.findings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+.finding-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.25rem 1rem;
+  transition: border-color 0.2s;
+}
+.finding-card:hover { border-color: var(--accent-rose); }
+.finding-card .finding-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.finding-card h3 {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.6rem;
+  line-height: 1.3;
+}
+.finding-card .finding-body {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.finding-card .finding-body strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.finding-card .finding-stat {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--accent-rose);
+}
+.finding-card .finding-gap {
+  color: var(--accent-coral);
+}
+@media (max-width: 900px) {
+  .findings-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .findings-grid { grid-template-columns: 1fr; }
+}
