@@ -162,7 +162,7 @@ def run_single_sae_config(
 
                 prompt = _faitheval_prompt(sample, "anti_compliance")
                 messages = [{"role": "user", "content": prompt}]
-                response = generate_response(
+                response, _ = generate_response(
                     model,
                     tokenizer,
                     messages,

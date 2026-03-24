@@ -221,34 +221,34 @@ def _run_faitheval_alphas(
         scaler.alpha = alpha
         total = 0
 
-        with open(out_path, "a") as f:
-            for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
-                if sample["id"] in existing_ids:
-                    total += 1
-                    continue
-
-                prompt = _faitheval_prompt(sample, "anti_compliance")
-                messages = [{"role": "user", "content": prompt}]
-                response = generate_response(
-                    model,
-                    tokenizer,
-                    messages,
-                    do_sample=False,
-                    max_new_tokens=256,
-                )
-
-                chosen = extract_mc_answer(response, sample["valid_letters"])
+        for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
+            if sample["id"] in existing_ids:
                 total += 1
-                record = {
-                    "id": sample["id"],
-                    "alpha": alpha,
-                    "question": sample["question"],
-                    "counterfactual_key": sample["counterfactual_key"],
-                    "chosen": chosen,
-                    "response": response,
-                    "compliance": chosen == sample["counterfactual_key"],
-                    "parse_failure": chosen is None,
-                }
+                continue
+
+            prompt = _faitheval_prompt(sample, "anti_compliance")
+            messages = [{"role": "user", "content": prompt}]
+            response, _ = generate_response(
+                model,
+                tokenizer,
+                messages,
+                do_sample=False,
+                max_new_tokens=256,
+            )
+
+            chosen = extract_mc_answer(response, sample["valid_letters"])
+            total += 1
+            record = {
+                "id": sample["id"],
+                "alpha": alpha,
+                "question": sample["question"],
+                "counterfactual_key": sample["counterfactual_key"],
+                "chosen": chosen,
+                "response": response,
+                "compliance": chosen == sample["counterfactual_key"],
+                "parse_failure": chosen is None,
+            }
+            with open(out_path, "a") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
         comp_total, n_total, pf_total = _count_compliance_and_pf(out_path)
@@ -290,27 +290,27 @@ def _run_falseqa_alphas(
         scaler.alpha = alpha
         total = 0
 
-        with open(out_path, "a") as f:
-            for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
-                if sample["id"] in existing_ids:
-                    total += 1
-                    continue
-
-                messages = [{"role": "user", "content": sample["question"]}]
-                response = generate_response(
-                    model,
-                    tokenizer,
-                    messages,
-                    do_sample=False,
-                    max_new_tokens=256,
-                )
+        for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
+            if sample["id"] in existing_ids:
                 total += 1
-                record = {
-                    "id": sample["id"],
-                    "alpha": alpha,
-                    "question": sample["question"],
-                    "response": response,
-                }
+                continue
+
+            messages = [{"role": "user", "content": sample["question"]}]
+            response, _ = generate_response(
+                model,
+                tokenizer,
+                messages,
+                do_sample=False,
+                max_new_tokens=256,
+            )
+            total += 1
+            record = {
+                "id": sample["id"],
+                "alpha": alpha,
+                "question": sample["question"],
+                "response": response,
+            }
+            with open(out_path, "a") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
         n_total = _count_lines(out_path)
@@ -332,35 +332,35 @@ def _run_bioasq_alphas(
         scaler.alpha = alpha
         total = 0
 
-        with open(out_path, "a") as f:
-            for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
-                if sample["id"] in existing_ids:
-                    total += 1
-                    continue
-
-                prompt = _bioasq_prompt(sample)
-                messages = [{"role": "user", "content": prompt}]
-                response = generate_response(
-                    model,
-                    tokenizer,
-                    messages,
-                    do_sample=False,
-                    max_new_tokens=128,
-                )
-
-                norm_gts = [normalize_answer(gt) for gt in sample["ground_truth"]]
-                norm_resp = normalize_answer(response)
-                correct = any(gt in norm_resp for gt in norm_gts if gt)
+        for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
+            if sample["id"] in existing_ids:
                 total += 1
+                continue
 
-                record = {
-                    "id": sample["id"],
-                    "alpha": alpha,
-                    "question": sample["question"],
-                    "response": response,
-                    "ground_truth": sample["ground_truth"],
-                    "compliance": correct,
-                }
+            prompt = _bioasq_prompt(sample)
+            messages = [{"role": "user", "content": prompt}]
+            response, _ = generate_response(
+                model,
+                tokenizer,
+                messages,
+                do_sample=False,
+                max_new_tokens=128,
+            )
+
+            norm_gts = [normalize_answer(gt) for gt in sample["ground_truth"]]
+            norm_resp = normalize_answer(response)
+            correct = any(gt in norm_resp for gt in norm_gts if gt)
+            total += 1
+
+            record = {
+                "id": sample["id"],
+                "alpha": alpha,
+                "question": sample["question"],
+                "response": response,
+                "ground_truth": sample["ground_truth"],
+                "compliance": correct,
+            }
+            with open(out_path, "a") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
         comp_total, n_total, pf_total = _count_compliance_and_pf(out_path)
