@@ -256,11 +256,14 @@
           If the corrected standard curve stays flat or turns noisy after full answer-text rescoring, the current "causal shift plus measurement confound" reading loses much of its force.
         </p>
       </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
-        <h3>Random-neuron controls reproduce the slope</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">2</div>
+        <h3>Random-neuron controls reproduce the slope &mdash; tested, survived</h3>
+        <!-- from: negative_control_random_slope_interval -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          If generic activation damage gives the same FaithEval movement, then H-Neurons are not doing special causal work. They would just be one way to perturb the model.
+          Eight random-neuron seeds (5 unconstrained + 3 layer-matched) on FaithEval anti-compliance produce a pooled slope interval of [-0.11, 0.16] pp/&alpha;, well separated from the H-neuron slope of 2.09 pp/&alpha; [1.38, 2.83].
+          Three additional seeds on FalseQA confirm the same pattern (random slope 0.00 pp/&alpha;).
+          H-neuron specificity is confirmed on both benchmarks.
         </p>
       </div>
       <div class="step-card">
