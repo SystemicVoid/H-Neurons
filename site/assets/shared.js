@@ -124,6 +124,11 @@
     return `${value.toFixed(digits)}pp`;
   }
 
+  function formatSignedPp(value, digits = 1) {
+    const sign = value >= 0 ? '+' : '';
+    return `${sign}${value.toFixed(digits)}pp`;
+  }
+
   function formatPpCiText(ci, digits = 1) {
     return `95% CI ${ci.lower.toFixed(digits)}-${ci.upper.toFixed(digits)}pp`;
   }
@@ -317,6 +322,26 @@
         getRequiredTopNeuronArtifactTest(testsBySlug, slug).display_value,
       );
     });
+
+    const comparators = artifact.notable_comparators;
+    if (comparators) {
+      if (comparators.best_single_neuron) {
+        setBoundText('data-top-neuron-bind', 'best-single-label', comparators.best_single_neuron.label);
+        setBoundText('data-top-neuron-bind', 'best-single-auc', comparators.best_single_neuron.auc.toFixed(3));
+      }
+      if (comparators.runner_up_by_weight) {
+        setBoundText('data-top-neuron-bind', 'runner-up-cohen-d', comparators.runner_up_by_weight.cohen_d.toFixed(3));
+      }
+      if (comparators.strongest_correlation_partner) {
+        setBoundText('data-top-neuron-bind', 'correlation-partner-label', comparators.strongest_correlation_partner.label);
+      }
+    }
+
+    const target = artifact.target_neuron;
+    if (target) {
+      setBoundText('data-top-neuron-bind', 'target-weight', target.weight.toFixed(2));
+      setBoundText('data-top-neuron-bind', 'target-weight-gap', `${target.weight_gap_vs_runner_up.toFixed(2)}\u00d7`);
+    }
   }
 
   function hydrateInterventionSummary(summary) {
@@ -640,16 +665,29 @@
     if (!benchmarks) {
       return;
     }
-    const byName = Object.fromEntries(benchmarks.map((b) => [b.name.toLowerCase(), b]));
 
-    const falseqa = byName['falseqa'];
-    if (falseqa) {
-      setBoundText('data-cross-benchmark-bind', 'falseqa-delta-value', formatPp(falseqa.delta_pp.estimate));
-      setBoundText('data-cross-benchmark-bind', 'falseqa-delta-ci-text', formatPpCiText(falseqa.delta_pp.ci));
+    benchmarks.forEach((bench) => {
+      const key = bench.name.toLowerCase().replace(/[^a-z]/g, '');
+      setBoundText('data-cross-benchmark-bind', `${key}-delta`, formatSignedPp(bench.delta_pp.estimate));
+      setBoundText('data-cross-benchmark-bind', `${key}-ci`, formatPpCiText(bench.delta_pp.ci));
+      setBoundText('data-cross-benchmark-bind', `${key}-slope`, formatPpPerAlpha(bench.slope_pp_per_alpha.estimate));
+      setBoundText('data-cross-benchmark-bind', `${key}-n`, `n=${bench.n_per_alpha.toLocaleString()}`);
       setBoundText(
         'data-cross-benchmark-bind',
-        'falseqa-slope-value',
-        formatPpPerAlpha(falseqa.slope_pp_per_alpha.estimate),
+        `${key}-negative-control`,
+        `Negative control: ${bench.negative_control.replace(/_/g, ' ')}`,
+      );
+      setBoundText('data-cross-benchmark-bind', `${key}-evaluator`, `Evaluator: ${bench.evaluator}`);
+      setBoundText('data-cross-benchmark-bind', `${key}-generation`, `Generation: ${bench.generation}`);
+    });
+
+    const jailbreakBench = benchmarks.find((b) => b.name === 'JailbreakBench');
+    const sampling = summary.stochastic_generation?.sampling;
+    if (jailbreakBench && sampling) {
+      setBoundText(
+        'data-cross-benchmark-bind',
+        'interpretation-caveat',
+        `${jailbreakBench.name} is still the only benchmark here without its own negative control, and it uses stochastic decoding (T=${sampling.temperature.toFixed(1)}); replication strength varies by benchmark.`,
       );
     }
   }

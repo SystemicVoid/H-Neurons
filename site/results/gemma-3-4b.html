@@ -622,18 +622,18 @@ Answer:</code>
     <div class="metrics-grid" style="margin-top: 1.5rem;">
       <div class="metric-card" data-status="STABLE">
         <div class="label">FaithEval</div>
-        <div class="value val-teal" data-jailbreak-bind="cross-faitheval-delta">+6.3pp</div>
-        <div class="detail"><span data-jailbreak-bind="cross-faitheval-ci">95% CI [4.2, 8.5]pp</span> &middot; <span data-jailbreak-bind="cross-faitheval-n">n=1,000</span> &middot; <span data-jailbreak-bind="cross-faitheval-negative-control">Negative control</span> &middot; <span data-jailbreak-bind="cross-faitheval-evaluator">Evaluator</span> &middot; <span data-jailbreak-bind="cross-faitheval-generation">Generation</span></div>
+        <div class="value val-teal" data-cross-benchmark-bind="faitheval-delta">+6.3pp</div>
+        <div class="detail"><span data-cross-benchmark-bind="faitheval-ci">95% CI 4.2-8.5pp</span> &middot; <span data-cross-benchmark-bind="faitheval-n">n=1,000</span> &middot; <span data-cross-benchmark-bind="faitheval-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="faitheval-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="faitheval-generation">Generation</span></div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">FalseQA</div>
-        <div class="value val-purple" data-jailbreak-bind="cross-falseqa-delta">+4.8pp</div>
-        <div class="detail"><span data-jailbreak-bind="cross-falseqa-ci">95% CI [1.9, 7.7]pp</span> &middot; <span data-jailbreak-bind="cross-falseqa-n">n=687</span> &middot; <span data-jailbreak-bind="cross-falseqa-negative-control">Negative control</span> &middot; <span data-jailbreak-bind="cross-falseqa-evaluator">Evaluator</span> &middot; <span data-jailbreak-bind="cross-falseqa-generation">Generation</span></div>
+        <div class="value val-purple" data-cross-benchmark-bind="falseqa-delta">+4.8pp</div>
+        <div class="detail"><span data-cross-benchmark-bind="falseqa-ci">95% CI 1.3-8.3pp</span> &middot; <span data-cross-benchmark-bind="falseqa-n">n=687</span> &middot; <span data-cross-benchmark-bind="falseqa-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="falseqa-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="falseqa-generation">Generation</span></div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">JailbreakBench</div>
-        <div class="value val-coral" data-jailbreak-bind="cross-jailbreakbench-delta">+6.2pp</div>
-        <div class="detail"><span data-jailbreak-bind="cross-jailbreakbench-ci">95% CI [2.4, 10.0]pp</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-n">n=500</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-negative-control">Negative control</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-evaluator">Evaluator</span> &middot; <span data-jailbreak-bind="cross-jailbreakbench-generation">Generation</span></div>
+        <div class="value val-coral" data-cross-benchmark-bind="jailbreakbench-delta">+6.2pp</div>
+        <div class="detail"><span data-cross-benchmark-bind="jailbreakbench-ci">95% CI 2.4-10.0pp</span> &middot; <span data-cross-benchmark-bind="jailbreakbench-n">n=500</span> &middot; <span data-cross-benchmark-bind="jailbreakbench-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="jailbreakbench-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="jailbreakbench-generation">Generation</span></div>
       </div>
     </div>
 
@@ -642,7 +642,7 @@ Answer:</code>
       <p style="font-size: 14px; color: var(--text-secondary);">
         The direction is consistent: scaling H-neurons shifts the model toward compliance regardless of domain.
         This supports the "general compliance circuit" interpretation over a FaithEval-specific artifact.
-        <span data-jailbreak-bind="cross-benchmark-interpretation-caveat">Loading replication caveat...</span>
+        <span data-cross-benchmark-bind="interpretation-caveat">Loading replication caveat...</span>
       </p>
     </div>
   </div>

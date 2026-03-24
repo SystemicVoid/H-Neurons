@@ -367,37 +367,39 @@ def test_results_page_jailbreak_copy_uses_live_bindings():
     repo_root = Path(__file__).resolve().parents[1]
     results_html = (repo_root / "site/results/gemma-3-4b.html").read_text()
     charts_js = (repo_root / "site/assets/charts.js").read_text()
+    shared_js = (repo_root / "site/assets/shared.js").read_text()
 
-    bindings = [
+    jailbreak_bindings = [
         "negative-control-value",
         "negative-control-detail",
         "negative-control-comparison",
         "stochastic-generation-detail",
-        "cross-benchmark-interpretation-caveat",
     ]
 
-    dynamic_cross_bindings = [
-        "cross-faitheval-negative-control",
-        "cross-faitheval-evaluator",
-        "cross-faitheval-generation",
-        "cross-falseqa-negative-control",
-        "cross-falseqa-evaluator",
-        "cross-falseqa-generation",
-        "cross-jailbreakbench-negative-control",
-        "cross-jailbreakbench-evaluator",
-        "cross-jailbreakbench-generation",
-    ]
-
-    for binding in bindings:
+    for binding in jailbreak_bindings:
         assert f'data-jailbreak-bind="{binding}"' in results_html
         assert f"'{binding}'" in charts_js
 
-    for binding in dynamic_cross_bindings:
-        assert f'data-jailbreak-bind="{binding}"' in results_html
+    cross_benchmark_bindings = [
+        "faitheval-negative-control",
+        "faitheval-evaluator",
+        "faitheval-generation",
+        "falseqa-negative-control",
+        "falseqa-evaluator",
+        "falseqa-generation",
+        "jailbreakbench-negative-control",
+        "jailbreakbench-evaluator",
+        "jailbreakbench-generation",
+        "interpretation-caveat",
+    ]
 
-    assert "`cross-${key}-negative-control`" in charts_js
-    assert "`cross-${key}-evaluator`" in charts_js
-    assert "`cross-${key}-generation`" in charts_js
+    for binding in cross_benchmark_bindings:
+        assert f'data-cross-benchmark-bind="{binding}"' in results_html
+
+    assert "hydrateCrossBenchmarkBindings" in shared_js
+    assert "`${key}-negative-control`" in shared_js
+    assert "`${key}-evaluator`" in shared_js
+    assert "`${key}-generation`" in shared_js
 
     stale_literals = [
         "FaithEval and FalseQA both have negative controls, but those results do not automatically transfer to JailbreakBench.",

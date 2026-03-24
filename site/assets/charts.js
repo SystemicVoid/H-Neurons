@@ -1213,42 +1213,8 @@ function hydrateJailbreakChartBindings(data) {
     'Wilson CIs at n=50 are \u00b113\u201315pp, wider than most deltas — interpret rankings with caution'
   );
 
-  // Cross-benchmark bindings
-  data.cross_benchmark.benchmarks.forEach((bench) => {
-    const key = bench.name.toLowerCase().replace(/[^a-z]/g, '');
-    setJailbreakText(
-      `cross-${key}-delta`,
-      formatSignedPp(bench.delta_pp.estimate)
-    );
-    setJailbreakText(
-      `cross-${key}-ci`,
-      `95% CI [${bench.delta_pp.ci.lower.toFixed(1)}, ${bench.delta_pp.ci.upper.toFixed(1)}]pp`
-    );
-    setJailbreakText(
-      `cross-${key}-slope`,
-      `${bench.slope_pp_per_alpha.estimate.toFixed(1)}pp/\u03b1`
-    );
-    setJailbreakText(
-      `cross-${key}-n`,
-      `n=${formatCount(bench.n_per_alpha)}`
-    );
-    setJailbreakText(
-      `cross-${key}-negative-control`,
-      `Negative control: ${formatJailbreakStatus(bench.negative_control)}`
-    );
-    setJailbreakText(
-      `cross-${key}-evaluator`,
-      `Evaluator: ${bench.evaluator}`
-    );
-    setJailbreakText(
-      `cross-${key}-generation`,
-      `Generation: ${bench.generation}`
-    );
-  });
-  setJailbreakText(
-    'cross-benchmark-interpretation-caveat',
-    `${jailbreakBenchmark.name} is still the only benchmark here without its own negative control, and it uses stochastic decoding (T=${sampling.temperature.toFixed(1)}); replication strength varies by benchmark.`
-  );
+  // Cross-benchmark text bindings are now handled by shared.js hydrateCrossBenchmarkBindings()
+  // via data-cross-benchmark-bind attributes. Charts.js only handles chart rendering.
 
   renderSeriesGrid('jailbreakAggregateValueGrid', [
     {
