@@ -156,12 +156,20 @@ def resolve_provenance_path(
     primary_target: str | os.PathLike[str],
     script_stem: str,
     is_dir: bool,
+    run_ts: str | None = None,
 ) -> Path:
-    """Return the canonical sidecar path for a run provenance file."""
+    """Return the canonical sidecar path for a run provenance file.
+
+    Each run gets a unique timestamped filename so reruns do not overwrite
+    the previous record.  ``run_ts`` should be a compact UTC timestamp string
+    (e.g. ``"20260324_012100"``); if omitted one is generated from the current
+    time.
+    """
+    ts = run_ts or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     target_path = Path(primary_target)
     if is_dir:
-        return target_path / f"{script_stem}.provenance.json"
-    return Path(f"{target_path}.provenance.json")
+        return target_path / f"{script_stem}.provenance.{ts}.json"
+    return Path(f"{target_path}.provenance.{ts}.json")
 
 
 def _write_provenance_file(path: Path, payload: dict[str, Any]) -> None:
@@ -328,19 +336,21 @@ def start_run_provenance(
     extra: dict[str, Any] | None = None,
     *,
     primary_target_is_dir: bool = False,
+    run_ts: str | None = None,
 ) -> dict[str, Any] | None:
     """Write initial run provenance sidecar and return a mutable handle."""
+    run_ts = run_ts or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     script_stem = Path(sys.argv[0]).stem or "run"
     sidecar_path = resolve_provenance_path(
         primary_target,
         script_stem=script_stem,
         is_dir=primary_target_is_dir,
+        run_ts=run_ts,
     )
     if primary_target_is_dir:
         Path(primary_target).mkdir(parents=True, exist_ok=True)
     else:
         sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-
     argv, command = _build_command()
     args_dict = vars(args) if hasattr(args, "__dict__") else dict(args)
     payload = {
@@ -365,7 +375,12 @@ def start_run_provenance(
             {key: value for key, value in extra.items() if value is not None}
         )
 
-    handle = {"path": sidecar_path, "payload": payload, "finalized": False}
+    handle = {
+        "path": sidecar_path,
+        "payload": payload,
+        "finalized": False,
+        "run_ts": run_ts,
+    }
     try:
         _write_provenance_file(sidecar_path, payload)
     except Exception as exc:
