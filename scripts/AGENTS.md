@@ -30,27 +30,45 @@ increases (higher-alpha responses tend to be shorter and more directly compliant
 1024. Greedy decoding (`do_sample=False`) is also preferable for gold-label
 generation so responses are reproducible.
 
-## CRITICAL: Never touch output directories while a GPU run is writing
+## JSONL writes: reopen file per record
 
 <important>
-**Do not create, delete, move, rename, or `git checkout`/`git rm` any file inside an
-active run's output directory while the run is in progress.** This includes commits
-that "clear old experiment data" or archive directories.
+All JSONL writers in eval scripts **must** open the file per record, not hold one
+file descriptor for the entire sample loop.
 
-**Why this kills data:** On Linux, deleting a file that a process has open via `fd`
-unlinks the directory entry but the kernel keeps the inode alive until the last `fd`
-closes. The process continues writing successfully (no error, no signal), but the
-data lands on an orphaned inode with no path. When the `fd` closes, the kernel frees
-the inode and all written data is irrecoverably lost. `f.flush()` and `fsync()` do
-not help — the writes reach the kernel but the inode has no directory entry.
+```python
+# CORRECT — resilient to path unlinking between writes
+for sample in samples:
+    ...
+    with open(out_path, "a") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-**Incident:** On 2026-03-23, commits 082a82f et al. were made at 20:21–20:24 UTC
-while `run_intervention.py` was actively writing `alpha_0.0.jsonl` (started 20:17).
-The commit cleared the experiment directory, unlinking the file. The run completed
-all 500 samples over ~4 hours with no errors, but the data was written to a dead
-inode. Result: 5 hours of GPU time lost, entire alpha=0.0 pass destroyed.
+# WRONG — if anything unlinks the path during the run, all subsequent
+# writes land on an orphaned inode and are silently lost
+with open(out_path, "a") as f:
+    for sample in samples:
+        ...
+        f.write(...)
+        f.flush()
+```
 
-**Rules for agents:**
+**Why:** On Linux, unlinking a file while a process holds an open fd (e.g. via
+`git rm`, `rm`, or directory restructuring) keeps the inode alive but removes the
+directory entry. The process writes succeed silently, but the data is irrecoverably
+lost when the fd closes. Reopening per record means the next `open()` creates a
+fresh file if the path was removed — you lose at most one record instead of the
+entire run. The syscall overhead is negligible vs. 20–30s/sample GPU inference.
+
+**Incident:** On 2025-03-23 a concurrent `git commit` unlinked a jailbreak JSONL
+mid-run, destroying 500 samples (~5 hours of GPU time) with zero errors reported.
+</important>
+
+## Never touch output directories while a GPU run is writing
+
+<important>
+The per-record reopen pattern above limits blast radius, but **do not rely on it as
+the sole safeguard.** Unlinking a path mid-run still loses the in-flight record and
+forces a resume. The rules below remain in effect:
 
 1. Before any `git add`, `git rm`, `git checkout`, `mv`, `rm`, or directory
    restructuring, check whether a GPU job is running that writes to the affected
@@ -59,7 +77,27 @@ inode. Result: 5 hours of GPU time lost, entire alpha=0.0 pass destroyed.
    in the path. Wait for the run to finish.
 3. If you need to archive or restructure data, do it **before** launching the run
    or **after** the run completes and the process has exited.
-4. The provenance sidecar (`run_intervention.provenance.json`) in the output
-   directory has `"status": "running"` while the job is active. Check it.
+4. The provenance sidecar (`*.provenance.json`) in the output directory has
+   `"status": "running"` while the job is active. Check it.
 5. This applies to **all** benchmark output directories, not just jailbreak.
 </important>
+
+## Future: isolate runs by directory
+
+The per-record reopen and the operational rules above are mitigations, not a root
+fix. Every run still writes to a shared mutable path (`experiment/alpha_0.0.jsonl`)
+which remains a collision surface for concurrent agents, interrupted reruns, and
+accidental overwrites. The structurally robust solution:
+
+- **Write into a run-scoped directory** (e.g. `experiment/runs/<run_ts>/alpha_0.0.jsonl`)
+  so no two runs ever share a file path.
+- **Maintain a `latest` symlink or manifest** pointing at the most recent completed
+  run, so downstream scripts (evaluate, export) don't need path changes.
+- **Optionally `fsync` every N records** for crash/power-loss durability (distinct
+  from unlink safety — `close()` flushes userspace buffers but doesn't guarantee
+  on-disk persistence).
+
+This would eliminate the entire class of "something touched my output file" failures
+rather than limiting their blast radius. Not urgent — the current mitigations are
+adequate — but worth doing if the run matrix grows or multi-agent concurrency
+increases.
