@@ -236,8 +236,12 @@ class TestRunProvenance:
             "data/run/experiment", "run_intervention", is_dir=True
         )
 
-        assert file_path == Path("data/run/results.json.provenance.json")
-        assert dir_path == Path("data/run/experiment/run_intervention.provenance.json")
+        assert file_path.parent == Path("data/run")
+        assert file_path.name.startswith("results.json.provenance.")
+        assert file_path.name.endswith(".json")
+        assert dir_path.parent == Path("data/run/experiment")
+        assert dir_path.name.startswith("run_intervention.provenance.")
+        assert dir_path.name.endswith(".json")
 
     def test_start_and_finish_run_provenance_for_file_target(
         self, monkeypatch, tmp_path
@@ -276,7 +280,7 @@ class TestRunProvenance:
         )
         assert handle is not None
 
-        provenance_path = output_path.with_name("out.jsonl.provenance.json")
+        provenance_path = handle["path"]
         payload = json.loads(provenance_path.read_text())
         assert payload["status"] == "running"
         assert payload["git_sha"] == "abc123"
@@ -342,7 +346,7 @@ class TestRunProvenance:
         )
         assert handle is not None
 
-        provenance_path = output_dir / "run_intervention.provenance.json"
+        provenance_path = handle["path"]
         payload = json.loads(provenance_path.read_text())
         assert payload["status"] == "running"
         assert payload["git_sha"] is None
@@ -401,9 +405,7 @@ class TestRunProvenance:
         )
         assert handle is not None
 
-        payload = json.loads(
-            output_path.with_name("out.parquet.provenance.json").read_text()
-        )
+        payload = json.loads(handle["path"].read_text())
         assert payload["args"] == {
             "input_json": str(input_path),
             "output_parquet": str(output_path),
@@ -447,8 +449,9 @@ class TestRunProvenance:
         )
         finish_run_provenance(second, "completed")
 
-        assert (output_dir / "run_intervention.provenance.json").exists()
-        assert (output_dir / "evaluate_intervention.provenance.json").exists()
+        assert first["path"].exists()
+        assert second["path"].exists()
+        assert first["path"] != second["path"]
 
     def test_finish_run_provenance_is_noop_for_missing_handle(self):
         finish_run_provenance(None, "completed")
@@ -475,7 +478,7 @@ class TestRunProvenance:
         )
         assert handle is not None
 
-        provenance_path = output_dir / "run_negative_control.provenance.json"
+        provenance_path = handle["path"]
         finish_run_provenance(
             handle,
             "completed",

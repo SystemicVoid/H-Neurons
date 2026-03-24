@@ -45,6 +45,26 @@ def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text())
 
 
+def find_results_json(experiment_dir: Path) -> Path:
+    """Return the results JSON for an experiment directory.
+
+    Prefers the legacy ``results.json`` name for backwards compatibility with
+    committed experiment directories.  Falls back to the newest timestamped
+    ``results.YYYYMMDD_HHMMSS.json`` produced by the current naming scheme.
+    Raises ``FileNotFoundError`` if neither is found.
+    """
+    legacy = experiment_dir / "results.json"
+    if legacy.exists():
+        return legacy
+    candidates = sorted(experiment_dir.glob("results.*.json"))
+    if candidates:
+        return candidates[-1]
+    raise FileNotFoundError(
+        f"No results JSON found in {experiment_dir}. "
+        "Expected results.json or results.YYYYMMDD_HHMMSS.json."
+    )
+
+
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
@@ -933,8 +953,8 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
         repo_root
         / "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"
     )
-    anti_results = load_json(anti_dir / "results.json")
-    standard_results = load_json(standard_dir / "results.json")
+    anti_results = load_json(find_results_json(anti_dir))
+    standard_results = load_json(find_results_json(standard_dir))
     negative_control_summary = load_json(negative_control_summary_path)
     remap_summary = load_json(
         standard_dir / "alpha_3.0_parse_failure_remap_summary.json"
@@ -1108,16 +1128,12 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
 def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
     """Build the jailbreak intervention sweep payload for the site."""
     jailbreak_dir = repo_root / "data/gemma3_4b/intervention/jailbreak/experiment"
-    faitheval_results_path = (
-        repo_root / "data/gemma3_4b/intervention/faitheval/experiment/results.json"
-    )
-    falseqa_results_path = (
-        repo_root / "data/gemma3_4b/intervention/falseqa/experiment/results.json"
-    )
+    faitheval_dir = repo_root / "data/gemma3_4b/intervention/faitheval/experiment"
+    falseqa_dir = repo_root / "data/gemma3_4b/intervention/falseqa/experiment"
 
-    jailbreak_results = load_json(jailbreak_dir / "results.json")
-    faitheval_results = load_json(faitheval_results_path)
-    falseqa_results = load_json(falseqa_results_path)
+    jailbreak_results = load_json(find_results_json(jailbreak_dir))
+    faitheval_results = load_json(find_results_json(faitheval_dir))
+    falseqa_results = load_json(find_results_json(falseqa_dir))
 
     # --- Aggregate points from results.json ---
     points = build_rate_points(jailbreak_results["results"])
@@ -1505,10 +1521,8 @@ def main() -> None:
     pipeline_output_path.parent.mkdir(parents=True, exist_ok=True)
     pipeline_output_path.write_text(json.dumps(pipeline_payload, indent=2) + "\n")
 
-    jailbreak_results_path = (
-        repo_root / "data/gemma3_4b/intervention/jailbreak/experiment/results.json"
-    )
-    if jailbreak_results_path.exists():
+    jailbreak_exp_dir = repo_root / "data/gemma3_4b/intervention/jailbreak/experiment"
+    if any(jailbreak_exp_dir.glob("results*.json")):
         jailbreak_payload = build_jailbreak_payload(repo_root)
         jailbreak_output_path = repo_root / args.jailbreak_output
         jailbreak_output_path.parent.mkdir(parents=True, exist_ok=True)
