@@ -37,39 +37,31 @@
     <div class="next-steps" style="margin-top: 2.5rem;">
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <h3 style="color: var(--accent-teal);">Completed</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          <strong>Detection replication:</strong> 38 H-neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy.<br>
-          <strong>FaithEval intervention + negative control:</strong> 2.1 pp/&alpha; slope, H-neuron specificity confirmed (8 random seeds flat).<br>
-          <strong>FalseQA intervention + negative control:</strong> +4.8 pp endpoint, H-neuron specificity confirmed (3 random seeds flat).<br>
-          <strong>Top-neuron investigation:</strong> neuron 4288 is an L1 artifact (0/6 tests).<br>
-          <strong>SAE steering:</strong> closed, null result under both full-replacement and delta-only architectures.<br>
-          <strong>Swing characterization:</strong> 68.1% knowledge override in the &alpha;-sensitive subpopulation.
-        </p>
+        <p class="card-item"><strong>Detection replication:</strong> 38 H-neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy.</p>
+        <p class="card-item"><strong>FaithEval intervention + negative control:</strong> 2.1 pp/&alpha; slope, H-neuron specificity confirmed (8 random seeds flat).</p>
+        <p class="card-item"><strong>FalseQA intervention + negative control:</strong> +4.8 pp endpoint, H-neuron specificity confirmed (3 random seeds flat).</p>
+        <p class="card-item"><strong>Top-neuron investigation:</strong> neuron 4288 is an L1 artifact (0/6 tests).</p>
+        <p class="card-item"><strong>SAE steering:</strong> closed, null result under both full-replacement and delta-only architectures.</p>
+        <p class="card-item"><strong>Swing characterization:</strong> 68.1% knowledge override in the &alpha;-sensitive subpopulation.</p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
         <h3 style="color: var(--accent-amber);">Active</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          <strong>Jailbreak canonical rerun:</strong> 5000-token budget on JailbreakBench with structured GPT-4o judge and gold-label calibration. In progress.<br>
-          <strong>Jailbreak negative control:</strong> highest-priority missing piece for the safety benchmark.
-        </p>
+        <p class="card-item"><strong>Jailbreak canonical rerun:</strong> 5000-token budget on JailbreakBench with structured GPT-4o judge and gold-label calibration. In progress.</p>
+        <p class="card-item"><strong>Jailbreak negative control:</strong> highest-priority missing piece for the safety benchmark.</p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
         <h3 style="color: var(--accent-purple);">Remaining planned work</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          <strong>All-&alpha; text rescoring:</strong> extend the &alpha;=3.0 strict answer-text remap across the full standard-prompt sweep.<br>
-          <strong>Capability-degradation assay:</strong> fluency/accuracy baseline under perturbation, required before strong causal claims.<br>
-          <strong>Sycophancy intervention:</strong> scaffolded in the pipeline but not yet run.<br>
-          <strong>Measurement hardening:</strong> sentinel sets, cross-evaluator audits, judge regression tests.
-        </p>
+        <p class="card-item"><strong>All-&alpha; text rescoring:</strong> extend the &alpha;=3.0 strict answer-text remap across the full standard-prompt sweep.</p>
+        <p class="card-item"><strong>Capability-degradation assay:</strong> fluency/accuracy baseline under perturbation, required before strong causal claims.</p>
+        <p class="card-item"><strong>Sycophancy intervention:</strong> scaffolded in the pipeline but not yet run.</p>
+        <p class="card-item"><strong>Measurement hardening:</strong> sentinel sets, cross-evaluator audits, judge regression tests.</p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-rose);">
         <h3 style="color: var(--accent-rose);">Research frontiers</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          <strong>Suppressive neuron investigation:</strong> the paper ignores the 38 negative-weight neurons. Are they stable across C values? Can amplifying them reduce hallucination?<br>
-          <strong>Swing sample deep characterization:</strong> what makes the 14% sensitive population swing? Weak-knowledge vs strong-knowledge override has direct safety implications.<br>
-          <strong>Attribution patching / GCM:</strong> rank neurons by actual causal contribution instead of L1 weight. Bypasses the regularization artifact entirely.<br>
-          <strong>Safety-neuron overlap (alignment tax):</strong> do H-neurons share circuitry with refusal neurons? If suppressing hallucination weakens safety, any intervention is a trade-off.
-        </p>
+        <p class="card-item"><strong>Suppressive neuron investigation:</strong> the paper ignores the 38 negative-weight neurons. Are they stable across C values? Can amplifying them reduce hallucination?</p>
+        <p class="card-item"><strong>Swing sample deep characterization:</strong> what makes the 14% sensitive population swing? Weak-knowledge vs strong-knowledge override has direct safety implications.</p>
+        <p class="card-item"><strong>Attribution patching / GCM:</strong> rank neurons by actual causal contribution instead of L1 weight. Bypasses the regularization artifact entirely.</p>
+        <p class="card-item"><strong>Safety-neuron overlap (alignment tax):</strong> do H-neurons share circuitry with refusal neurons? If suppressing hallucination weakens safety, any intervention is a trade-off.</p>
       </div>
     </div>
 

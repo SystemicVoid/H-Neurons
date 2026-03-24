@@ -784,8 +784,17 @@ h3 {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 2px 12px 12px 12px;
-  padding: 1.5rem;
+  padding: 1.75rem;
   transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.step-card .card-item {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin-top: 0.6rem;
+}
+.step-card .card-item:first-of-type {
+  margin-top: 0.25rem;
 }
 .step-card:hover {
   border-color: var(--border-accent);
