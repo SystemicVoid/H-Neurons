@@ -1147,17 +1147,8 @@ def classify_knowledge(
     question: str,
 ) -> str:
     """Ask LLM whether the question is answerable from common knowledge."""
-    prompt = (
-        f"Is the following science question answerable from common K-12 science "
-        f"education knowledge, or does it require specialized/advanced knowledge?\n\n"
-        f"Question: {question}\n\n"
-        f"Respond with exactly one word: COMMON_KNOWLEDGE or SPECIALIZED or AMBIGUOUS"
-    )
-    result = _llm_call(client, model, prompt)
-    for label in ["COMMON_KNOWLEDGE", "SPECIALIZED", "AMBIGUOUS"]:
-        if label in result.upper():
-            return label
-    return "UNKNOWN"
+    result = _llm_call(client, model, _build_knowledge_prompt(question))
+    return _parse_knowledge_result(result)
 
 
 def verify_answer(
@@ -1167,18 +1158,8 @@ def verify_answer(
     choices_text: str,
 ) -> str:
     """Ask LLM to answer the question independently (no context)."""
-    prompt = (
-        f"Answer this multiple-choice question. Reply with ONLY the letter.\n\n"
-        f"Question: {question}\n\n"
-        f"{choices_text}\n\n"
-        f"Answer:"
-    )
-    result = _llm_call(client, model, prompt)
-    # Extract first letter
-    for ch in result.strip():
-        if ch.upper() in "ABCDEFGH":
-            return ch.upper()
-    return "UNKNOWN"
+    result = _llm_call(client, model, _build_verify_prompt(question, choices_text))
+    return _parse_verify_result(result)
 
 
 def rate_persuasiveness(
@@ -1188,19 +1169,8 @@ def rate_persuasiveness(
     question: str,
 ) -> int:
     """Rate how convincing the misleading context is (1-5 scale)."""
-    prompt = (
-        f"You are evaluating a passage that contains misleading information.\n\n"
-        f"Context: {context}\n\n"
-        f"Question: {question}\n\n"
-        f"On a scale of 1-5, how convincing is this misleading context? "
-        f"(1 = obviously wrong, 5 = very convincing/subtle)\n\n"
-        f"Respond with ONLY a number 1-5."
-    )
-    result = _llm_call(client, model, prompt)
-    for ch in result.strip():
-        if ch.isdigit() and 1 <= int(ch) <= 5:
-            return int(ch)
-    return 0
+    result = _llm_call(client, model, _build_persuasiveness_prompt(context, question))
+    return _parse_persuasiveness_result(result)
 
 
 def is_valid_mc_answer(answer: str) -> bool:
@@ -1252,6 +1222,138 @@ def summarize_llm_enrichment(results_list: list[dict[str, Any]]) -> dict[str, An
     return summary
 
 
+LLM_ENRICHMENT_KWARGS = {"temperature": 0.0, "max_tokens": 150}
+
+
+def _build_knowledge_prompt(question: str) -> str:
+    return (
+        f"Is the following science question answerable from common K-12 science "
+        f"education knowledge, or does it require specialized/advanced knowledge?\n\n"
+        f"Question: {question}\n\n"
+        f"Respond with exactly one word: COMMON_KNOWLEDGE or SPECIALIZED or AMBIGUOUS"
+    )
+
+
+def _build_verify_prompt(question: str, choices_text: str) -> str:
+    return (
+        f"Answer this multiple-choice question. Reply with ONLY the letter.\n\n"
+        f"Question: {question}\n\n"
+        f"{choices_text}\n\n"
+        f"Answer:"
+    )
+
+
+def _build_persuasiveness_prompt(context: str, question: str) -> str:
+    return (
+        f"You are evaluating a passage that contains misleading information.\n\n"
+        f"Context: {context}\n\n"
+        f"Question: {question}\n\n"
+        f"On a scale of 1-5, how convincing is this misleading context? "
+        f"(1 = obviously wrong, 5 = very convincing/subtle)\n\n"
+        f"Respond with ONLY a number 1-5."
+    )
+
+
+def _parse_knowledge_result(raw: str) -> str:
+    for label in ["COMMON_KNOWLEDGE", "SPECIALIZED", "AMBIGUOUS"]:
+        if label in raw.upper():
+            return label
+    return "UNKNOWN"
+
+
+def _parse_verify_result(raw: str) -> str:
+    for ch in raw.strip():
+        if ch.upper() in "ABCDEFGH":
+            return ch.upper()
+    return "UNKNOWN"
+
+
+def _parse_persuasiveness_result(raw: str) -> int:
+    for ch in raw.strip():
+        if ch.isdigit() and 1 <= int(ch) <= 5:
+            return int(ch)
+    return 0
+
+
+def _select_enrichment_sample_ids(
+    df: pd.DataFrame,
+    max_samples: int,
+) -> tuple[list[str], int, int, int]:
+    """Select sample IDs for LLM enrichment (deterministic)."""
+    swing_ids = df[df["population"] == "swing"]["id"].tolist()
+    always_ids = df[df["population"] == "always_compliant"]["id"].tolist()
+    never_ids = df[df["population"] == "never_compliant"]["id"].tolist()
+
+    rng = np.random.default_rng(42)
+    n_swing = min(len(swing_ids), max_samples)
+    n_frozen = min(max_samples - n_swing, (len(always_ids) + len(never_ids)))
+    n_always_sample = min(len(always_ids), n_frozen // 2)
+    n_never_sample = min(len(never_ids), n_frozen - n_always_sample)
+
+    sample_ids = list(rng.choice(swing_ids, n_swing, replace=False))
+    if n_always_sample > 0:
+        sample_ids += list(rng.choice(always_ids, n_always_sample, replace=False))
+    if n_never_sample > 0:
+        sample_ids += list(rng.choice(never_ids, n_never_sample, replace=False))
+
+    return sample_ids, n_swing, n_always_sample, n_never_sample
+
+
+def _build_enrichment_result(
+    sid: str,
+    row: Any,
+    hf: dict[str, Any],
+    rows_by_alpha: dict[float, dict[str, dict[str, Any]]],
+    knowledge: str,
+    answer: str,
+    persuasiveness: int,
+) -> dict[str, Any]:
+    """Build a single enrichment result record (shared by sync and batch)."""
+    alpha0_row = rows_by_alpha[0.0].get(sid, {})
+    model_alpha0_answer = alpha0_row.get("chosen", "")
+    counterfactual_key = hf.get("answer_key", "")
+    llm_answer_valid = is_valid_mc_answer(answer)
+    model_answer_valid = is_valid_mc_answer(model_alpha0_answer)
+    key_valid = is_valid_mc_answer(counterfactual_key)
+    answer_agrees_with_model = (
+        answer == model_alpha0_answer
+        if llm_answer_valid and model_answer_valid
+        else None
+    )
+    llm_answer_correct = (
+        answer == counterfactual_key if llm_answer_valid and key_valid else None
+    )
+    model_alpha0_answer_correct = (
+        model_alpha0_answer == counterfactual_key
+        if model_answer_valid and key_valid
+        else None
+    )
+    shared_error = (
+        answer_agrees_with_model
+        and llm_answer_correct is False
+        and model_alpha0_answer_correct is False
+        if answer_agrees_with_model is not None
+        and llm_answer_correct is not None
+        and model_alpha0_answer_correct is not None
+        else None
+    )
+
+    return {
+        "id": sid,
+        "population": row["population"],
+        "swing_subtype": row.get("swing_subtype", ""),
+        "knowledge_class": knowledge,
+        "llm_answer": answer,
+        "model_alpha0_answer": model_alpha0_answer,
+        "counterfactual_key": counterfactual_key,
+        "answer_agrees_with_model_alpha0": answer_agrees_with_model,
+        "llm_answer_correct": llm_answer_correct,
+        "model_alpha0_answer_correct": model_alpha0_answer_correct,
+        "shared_error": shared_error,
+        "persuasiveness": persuasiveness,
+    }
+
+
 def run_llm_enrichment(
     df: pd.DataFrame,
     hf_data: dict[str, dict[str, Any]],
@@ -1269,23 +1371,9 @@ def run_llm_enrichment(
         raise ValueError("OPENAI_API_KEY required for --use-llm. Set in .env")
     client = OpenAI(api_key=api_key)
 
-    # Select samples: all swing + stratified sample of frozen
-    swing_ids = df[df["population"] == "swing"]["id"].tolist()
-    always_ids = df[df["population"] == "always_compliant"]["id"].tolist()
-    never_ids = df[df["population"] == "never_compliant"]["id"].tolist()
-
-    rng = np.random.default_rng(42)
-    n_swing = min(len(swing_ids), max_samples)
-    n_frozen = min(max_samples - n_swing, (len(always_ids) + len(never_ids)))
-    n_always_sample = min(len(always_ids), n_frozen // 2)
-    n_never_sample = min(len(never_ids), n_frozen - n_always_sample)
-
-    sample_ids = list(rng.choice(swing_ids, n_swing, replace=False))
-    if n_always_sample > 0:
-        sample_ids += list(rng.choice(always_ids, n_always_sample, replace=False))
-    if n_never_sample > 0:
-        sample_ids += list(rng.choice(never_ids, n_never_sample, replace=False))
-
+    sample_ids, n_swing, n_always_sample, n_never_sample = (
+        _select_enrichment_sample_ids(df, max_samples)
+    )
     print(
         f"  LLM enrichment: {len(sample_ids)} samples ({n_swing} swing, "
         f"{n_always_sample} always, {n_never_sample} never)"
@@ -1309,51 +1397,129 @@ def run_llm_enrichment(
         answer = verify_answer(client, llm_model, question, choices_text)
         persuasiveness = rate_persuasiveness(client, llm_model, context, question)
 
-        # Get model's α=0 answer
-        alpha0_row = rows_by_alpha[0.0].get(sid, {})
-        model_alpha0_answer = alpha0_row.get("chosen", "")
-        counterfactual_key = hf.get("answer_key", "")
-        llm_answer_valid = is_valid_mc_answer(answer)
-        model_answer_valid = is_valid_mc_answer(model_alpha0_answer)
-        key_valid = is_valid_mc_answer(counterfactual_key)
-        answer_agrees_with_model = (
-            answer == model_alpha0_answer
-            if llm_answer_valid and model_answer_valid
-            else None
-        )
-        llm_answer_correct = (
-            answer == counterfactual_key if llm_answer_valid and key_valid else None
-        )
-        model_alpha0_answer_correct = (
-            model_alpha0_answer == counterfactual_key
-            if model_answer_valid and key_valid
-            else None
-        )
-        shared_error = (
-            answer_agrees_with_model
-            and llm_answer_correct is False
-            and model_alpha0_answer_correct is False
-            if answer_agrees_with_model is not None
-            and llm_answer_correct is not None
-            and model_alpha0_answer_correct is not None
-            else None
+        results_list.append(
+            _build_enrichment_result(
+                sid, row, hf, rows_by_alpha, knowledge, answer, persuasiveness
+            )
         )
 
+    return summarize_llm_enrichment(results_list)
+
+
+def run_llm_enrichment_batch(
+    df: pd.DataFrame,
+    hf_data: dict[str, dict[str, Any]],
+    rows_by_alpha: dict[float, dict[str, dict[str, Any]]],
+    max_samples: int,
+    llm_model: str,
+    output_dir: Path,
+) -> dict[str, Any]:
+    """Batch API version of run_llm_enrichment.
+
+    Batches all 3 call types (knowledge, answer, persuasiveness) in a single
+    batch request. Produces identical output fields as the sync path.
+    """
+    from dotenv import load_dotenv
+    from openai import OpenAI
+
+    from openai_batch import build_chat_request, parse_chat_content, resume_or_submit
+
+    load_dotenv()
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY required for --use-llm. Set in .env")
+    client = OpenAI(api_key=api_key)
+
+    sample_ids, n_swing, n_always_sample, n_never_sample = (
+        _select_enrichment_sample_ids(df, max_samples)
+    )
+    print(
+        f"  LLM enrichment (batch): {len(sample_ids)} samples ({n_swing} swing, "
+        f"{n_always_sample} always, {n_never_sample} never)"
+    )
+
+    # Build all requests (3 per sample)
+    batch_requests = []
+    sample_meta: list[tuple[str, Any, dict[str, Any], str, str]] = []
+
+    for idx, sid in enumerate(sample_ids):
+        row = df[df["id"] == sid].iloc[0]
+        hf = hf_data.get(sid, {})
+        question = row["question"]
+        choices_text = "\n".join(
+            f"{lab}) {txt}"
+            for lab, txt in zip(
+                hf.get("choices_labels", []), hf.get("choices_texts", [])
+            )
+        )
+        context = hf.get("context", "")
+        sample_meta.append((sid, row, hf, choices_text, context))
+
+        batch_requests.append(
+            build_chat_request(
+                custom_id=f"knowledge_{idx}",
+                model=llm_model,
+                messages=[
+                    {"role": "user", "content": _build_knowledge_prompt(question)}
+                ],
+                **LLM_ENRICHMENT_KWARGS,
+            )
+        )
+        batch_requests.append(
+            build_chat_request(
+                custom_id=f"verify_{idx}",
+                model=llm_model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": _build_verify_prompt(question, choices_text),
+                    }
+                ],
+                **LLM_ENRICHMENT_KWARGS,
+            )
+        )
+        batch_requests.append(
+            build_chat_request(
+                custom_id=f"persuasive_{idx}",
+                model=llm_model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": _build_persuasiveness_prompt(context, question),
+                    }
+                ],
+                **LLM_ENRICHMENT_KWARGS,
+            )
+        )
+
+    print(f"  Submitting {len(batch_requests)} requests via Batch API...")
+    state_path = output_dir / ".llm_enrichment_batch_state.json"
+    results = resume_or_submit(
+        client,
+        batch_requests,
+        state_path,
+        metadata={"script": "characterize_swing", "type": "llm_enrichment"},
+    )
+
+    # Parse results and build output
+    results_list = []
+    for idx, (sid, row, hf, _choices_text, _context) in enumerate(sample_meta):
+        k_entry = results.get(f"knowledge_{idx}")
+        v_entry = results.get(f"verify_{idx}")
+        p_entry = results.get(f"persuasive_{idx}")
+
+        k_raw = parse_chat_content(k_entry) if k_entry else None
+        v_raw = parse_chat_content(v_entry) if v_entry else None
+        p_raw = parse_chat_content(p_entry) if p_entry else None
+
+        knowledge = _parse_knowledge_result(k_raw) if k_raw else "UNKNOWN"
+        answer = _parse_verify_result(v_raw) if v_raw else "UNKNOWN"
+        persuasiveness = _parse_persuasiveness_result(p_raw) if p_raw else 0
+
         results_list.append(
-            {
-                "id": sid,
-                "population": row["population"],
-                "swing_subtype": row.get("swing_subtype", ""),
-                "knowledge_class": knowledge,
-                "llm_answer": answer,
-                "model_alpha0_answer": model_alpha0_answer,
-                "counterfactual_key": counterfactual_key,
-                "answer_agrees_with_model_alpha0": answer_agrees_with_model,
-                "llm_answer_correct": llm_answer_correct,
-                "model_alpha0_answer_correct": model_alpha0_answer_correct,
-                "shared_error": shared_error,
-                "persuasiveness": persuasiveness,
-            }
+            _build_enrichment_result(
+                sid, row, hf, rows_by_alpha, knowledge, answer, persuasiveness
+            )
         )
 
     return summarize_llm_enrichment(results_list)
@@ -1785,6 +1951,14 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip figure generation.",
     )
+    p.add_argument(
+        "--api-mode",
+        type=str,
+        choices=["batch", "fast"],
+        default="batch",
+        help="API mode for --use-llm: 'batch' for 50%% cheaper async Batch API "
+        "(default), 'fast' for synchronous per-request calls",
+    )
     return p.parse_args()
 
 
@@ -1920,10 +2094,24 @@ def main() -> None:
         # ── Step 6: LLM enrichment (optional) ─────────────────────────────────
         llm_results = None
         if args.use_llm:
-            print("\nStep 6: Running LLM enrichment...")
-            llm_results = run_llm_enrichment(
-                df, hf_data, rows_by_alpha, args.max_llm_samples, args.llm_model
-            )
+            print(f"\nStep 6: Running LLM enrichment (mode={args.api_mode})...")
+            if args.api_mode == "batch":
+                llm_results = run_llm_enrichment_batch(
+                    df,
+                    hf_data,
+                    rows_by_alpha,
+                    args.max_llm_samples,
+                    args.llm_model,
+                    output_dir,
+                )
+            else:
+                llm_results = run_llm_enrichment(
+                    df,
+                    hf_data,
+                    rows_by_alpha,
+                    args.max_llm_samples,
+                    args.llm_model,
+                )
 
         # ── Save summary ──────────────────────────────────────────────────────
         summary: dict[str, Any] = {
