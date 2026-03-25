@@ -1,0 +1,37 @@
+{
+  "args": {
+    "alphas": [
+      3.0
+    ],
+    "api_mode": "batch",
+    "benchmark": "jailbreak",
+    "input_dir": "data/gemma3_4b/intervention/jailbreak/experiment",
+    "judge_model": "gpt-4o"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_intervention.py",
+    "--benchmark",
+    "jailbreak",
+    "--input_dir",
+    "data/gemma3_4b/intervention/jailbreak/experiment",
+    "--alphas",
+    "3.0"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_intervention.py --benchmark jailbreak --input_dir data/gemma3_4b/intervention/jailbreak/experiment --alphas 3.0",
+  "completed_at_utc": "2026-03-25T14:33:15.607808+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "e8497a226fd6d708c1052e4ff1cef6e281c3ee8f",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/experiment",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/experiment/results.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_intervention.py",
+  "started_at_utc": "2026-03-25T13:54:36.938492+00:00",
+  "status": "completed"
+}
