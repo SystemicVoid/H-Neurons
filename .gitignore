@@ -66,6 +66,9 @@ costs/
 # Related work - papers
 papers/
 
+# Good practices notes
+good-practices/
+
 # code2prompt output
 prompt.txt
 prompts/

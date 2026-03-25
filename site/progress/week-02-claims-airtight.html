@@ -39,11 +39,12 @@
     <p class="subtitle" data-source="manual">
       Gao&nbsp;et&nbsp;al. claim fewer than 0.1% of MLP neurons predict and causally drive hallucination-linked over-compliance.
       We replicated on Gemma&nbsp;3&nbsp;4B.
-      This week: three benchmarks, two negative controls, two closed dead ends,
-      a four-tier evidence hierarchy &mdash; a measurement bug in the original paper&rsquo;s
-      jailbreak evaluation that we caught during gold-label calibration &mdash;
-      and the full 5,000-token population rerun that <strong>falsified the alpha slope claim</strong>,
-      revealing that h-neuron scaling modulates compliance <em>style</em>, not compliance <em>count</em>.
+    </p>
+    <p class="subtitle" data-source="manual">
+      This week we ran three benchmarks with negative controls, closed two dead ends,
+      and caught a measurement bug in the original paper&rsquo;s jailbreak evaluation.
+      The full 5,000-token rerun <strong>falsified the alpha slope claim</strong>.
+      What it revealed instead: h-neuron scaling modulates compliance <em>style</em>, not compliance <em>count</em>.
     </p>
 
     <!-- from: cross_benchmark_count, negative_control_count, closed_lines_count, evidence_tier_count -->
@@ -61,7 +62,7 @@
       <div class="metric-card">
         <div class="label">Claims falsified</div>
         <div class="value val-coral">1</div>
-        <div class="detail">Alpha slope was a 256-token truncation artifact &mdash; CI includes zero at 5,000 tokens</div>
+        <div class="detail">Alpha slope was a 256-token truncation artifact</div>
       </div>
       <div class="metric-card">
         <div class="label">Evidence tiers separated</div>
@@ -93,10 +94,9 @@
     <span class="tag tag-teal">1. Cross-benchmark causal evidence</span>
     <h2>Three benchmarks, same direction, same 38 neurons</h2>
     <p class="subtitle" data-source="manual">
-      Before this week, the causal story rested on one benchmark (FaithEval anti-compliance).
-      Now three independent tasks &mdash; context override, false-premise acceptance, and adversarial safety &mdash;
-      all show positive endpoint effects with bootstrap CIs excluding zero.
-      Different evaluators, different task types, same neurons, same direction.
+      Before this week, the causal story rested on one benchmark.
+      Now three independent tasks all show positive endpoint effects with CIs excluding zero.
+      Different evaluators, different task types, same 38 neurons, same direction.
     </p>
 
     <div class="benchmark-triptych">
@@ -167,13 +167,12 @@
     </p>
 
     <div class="insight-box">
-      <strong>Why this matters:</strong> a single benchmark can always be a measurement accident.
-      Three tasks with two evaluator families and two that have independent negative controls
+      <strong>Why this matters:</strong> one benchmark can always be a measurement accident.
+      Three tasks with two evaluator families and independent negative controls
       makes &ldquo;coincidence&rdquo; a harder sell.
-      <strong style="color: var(--accent-coral);">Update:</strong> the JailbreakBench effect has been falsified at
-      5,000 tokens &mdash; the apparent +6.2pp was a truncation artifact.
-      FaithEval and FalseQA remain solid; JailbreakBench tells a different, deeper story
-      about compliance <em>style</em> rather than compliance <em>count</em>.
+      <strong style="color: var(--accent-coral);">Note:</strong> the JailbreakBench effect is now falsified at
+      5,000 tokens. See the <a href="#truncation" style="color: var(--accent-coral);">truncation audit</a> below.
+      FaithEval and FalseQA remain solid.
       <a href="../results/gemma-3-4b.html#cross-benchmark" style="color: var(--accent-teal);">Open the cross-benchmark comparison &rarr;</a>
     </div>
   </div>
@@ -223,11 +222,10 @@
     <div class="step-card" style="border-left: 3px solid var(--accent-purple); margin-top: 1.5rem;">
       <h3 style="color: var(--accent-purple);">Two-sided specificity</h3>
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        The result is two-sided: ablating H-neurons (&alpha;=0.0) drops compliance to 64.2%
-        while ablating random neurons leaves it at ~66.0%.
-        Amplifying H-neurons (&alpha;=3.0) pushes compliance to 70.5%
-        while amplifying random neurons stays at ~66.1%.
-        These neurons matter in both directions.
+        Ablating H-neurons (&alpha;=0.0) drops compliance to 64.2%;
+        ablating random neurons leaves it at ~66.0%.
+        Amplifying H-neurons (&alpha;=3.0) pushes compliance to 70.5%;
+        amplifying random neurons stays at ~66.1%.
       </p>
     </div>
 
@@ -245,7 +243,6 @@
   <p class="ref-text">
     A causal claim without a negative control is an <strong>observation</strong>.
     A causal claim with a negative control that falsifies the generic alternative is an <strong>argument</strong>.
-    The week's most important result was not the new benchmarks &mdash; it was filling in the control column.
   </p>
 </div>
 
@@ -255,24 +252,21 @@
     <span class="tag tag-coral">3. Jailbreak: from measurement bug to novel finding</span>
     <h2>A methodological critique that became an architectural discovery</h2>
     <p class="subtitle" data-source="manual">
-      What started as routine gold-label calibration uncovered a measurement bug
-      in the original paper&rsquo;s jailbreak evaluation. A 25-prompt pilot confirmed the bias.
-      The full 500-prompt, 5,000-token rerun <strong>falsified the alpha slope claim</strong> entirely:
-      the apparent dose-response curve was an artifact of alpha-dependent truncation bias.
-      But the real finding is what the corrected data reveals &mdash; h-neuron scaling
-      does not change <em>whether</em> the model complies, it changes <em>how dangerously</em> it complies.
-      We call this <strong>Disclaimer Erosion</strong>.
+      Gold-label calibration caught a truncation bug in the original paper&rsquo;s jailbreak evaluation.
+      The 5,000-token rerun killed the alpha slope entirely.
+      But the corrected data revealed something the binary metric was hiding:
+      <strong>Disclaimer Erosion</strong>.
     </p>
 
     <!-- ── Act I: Discovery ── -->
     <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 2rem;">
-      <h3 style="color: var(--accent-coral);">Act I: How we found it</h3>
+      <h3 style="color: var(--accent-coral);">How we found it</h3>
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        During gold-label work, borderline jailbreak cases were manually regenerated
-        at full length. Every response that flipped SAFE&rarr;HARMFUL followed the same
-        &ldquo;disclaimer-then-comply&rdquo; structure: an ethical preamble (~150&ndash;250 tokens),
-        a pivot phrase, then substantive harmful content. At 256 tokens, the response
-        is cut off in the preamble. The harmful content is never generated, never judged.
+        Regenerating borderline jailbreak cases at full length, every SAFE&rarr;HARMFUL flip
+        followed the same structure: ethical preamble (~150&ndash;250 tokens), pivot phrase,
+        then substantive harmful content.
+        At 256 tokens the response is cut mid-preamble.
+        The harmful content never reaches the judge.
       </p>
       <div class="ruled-out-evidence" style="margin-top: 1rem;">
         <div class="ruled-out-row">
@@ -304,20 +298,19 @@
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
         Page 14, Section 6.2.2: &ldquo;We generate responses using open-ended sampling with
         parameters temperature=0.7, top_k=20, top_p=0.8 and a maximum output length of 256 tokens.&rdquo;
-        No mention of truncation bias. No published code repository found.
-        Their reported jailbreak compliance rates would carry the same systematic underestimate.
-        <strong>100% of &alpha;=0.0 responses exceed 256 tokens</strong> (median 1,238 tokens) &mdash;
-        the truncation was total information loss.
+        No mention of truncation bias. No published code.
+        Their jailbreak compliance rates carry the same systematic underestimate.
+        <strong>100% of &alpha;=0.0 responses exceed 256 tokens</strong> (median 1,238 tokens).
       </p>
     </div>
 
     <!-- ── Act II: Population validation ── -->
     <div class="step-card" data-status="CONFIRMED" style="border-left: 3px solid var(--accent-teal); margin-top: 1.5rem;">
-      <h3 style="color: var(--accent-teal);">Act II: Population validation &mdash; 500 prompts &times; 3 alphas at 5,000 tokens</h3>
+      <h3 style="color: var(--accent-teal);">Population validation: 500 prompts &times; 3 alphas, 5,000 tokens</h3>
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        The full rerun uses the paper&rsquo;s own stochastic decoding config (T=0.7, top_k=20, top_p=0.8)
-        with max_new_tokens=5,000. GPT-4o binary judge evaluates all 1,500 responses.
-        Zero responses hit the 5,000-token cap &mdash; generation budget is fully sufficient.
+        Same prompts, same stochastic decoding config (T=0.7, top_k=20, top_p=0.8),
+        max_new_tokens=5,000. GPT-4o binary judge on all 1,500 responses.
+        No response hit the 5,000-token cap.
       </p>
 
       <div class="ruled-out-evidence" style="margin-top: 1rem;">
@@ -349,9 +342,8 @@
       </div>
 
       <p style="font-size: 14px; color: var(--text-secondary); margin-top: 1rem;" data-source="manual">
-        All three Wilson CIs overlap heavily. The paired bootstrap delta &alpha;=0&rarr;3
-        is +3.0pp [&minus;1.2, +7.2] &mdash; <strong>we cannot reject the null hypothesis
-        that compliance rate is flat across alphas</strong>.
+        Paired bootstrap &Delta; (&alpha;=0&rarr;3): <strong>+3.0pp [&minus;1.2, +7.2]</strong>.
+        CI includes zero. The slope is gone.
       </p>
     </div>
 
@@ -360,20 +352,15 @@
       <canvas id="legacyVsCanonicalChart"></canvas>
     </div>
     <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      Same 500 prompts, same GPT-4o judge &middot; Legacy 256-token slope was +6.2pp [2.4, 10.0] &mdash; appeared significant.
-      Canonical 5,000-token slope collapses to +3.0pp [&minus;1.2, 7.2] &mdash; not significant.
+      Same 500 prompts, same judge &middot; Legacy slope: +6.2pp [2.4, 10.0] &middot; Canonical: +3.0pp [&minus;1.2, 7.2]
     </p>
 
     <!-- ── Act III: The slope was an artifact ── -->
     <div class="step-card" data-status="ARTIFACT" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
-      <h3 style="color: var(--accent-coral);">Act III: The alpha slope was a truncation artifact</h3>
+      <h3 style="color: var(--accent-coral);">The slope was a truncation artifact</h3>
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        The mechanism is alpha-dependent truncation bias. At &alpha;=0.0, disclaimers are longest &mdash;
-        the model produces extensive ethical preambles before pivoting to harmful content.
-        At higher alphas, disclaimer erosion means more responses fit their harmful content
-        within 256 tokens. The result: truncation suppresses <strong>+10.2pp</strong>
-        of true compliance at &alpha;=0.0 but only <strong>+3.6pp</strong> at &alpha;=1.5 and
-        <strong>+7.0pp</strong> at &alpha;=3.0.
+        At &alpha;=0.0 disclaimers are longest, so truncation suppresses the most true compliance.
+        At higher alphas, shorter disclaimers mean more harmful content fits within 256 tokens.
         This asymmetric suppression manufactured a slope where none exists.
       </p>
     </div>
@@ -389,15 +376,12 @@
 
     <!-- ── 22% churn beneath flat aggregates ── -->
     <div class="step-card" style="border-left: 3px solid var(--accent-purple); margin-top: 1.5rem;">
-      <h3 style="color: var(--accent-purple);">Massive churn beneath flat aggregates</h3>
+      <h3 style="color: var(--accent-purple);">Churn beneath flat aggregates</h3>
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
         The aggregate barely moves (+3pp), but <strong>22.2% of individual prompts</strong>
         flip their compliance label between &alpha;=0 and &alpha;=3.
-        32 prompts (6.4%) show non-monotonic trajectories
-        (HARMFUL&rarr;SAFE&rarr;HARMFUL or the reverse).
-        Alpha does not uniformly push compliance in one direction &mdash;
-        it reshuffles <em>which</em> prompts comply, suggesting the h-neuron effect
-        is prompt-dependent and interacts with category-specific safety training.
+        32 prompts (6.4%) reverse direction mid-sweep.
+        Alpha reshuffles <em>which</em> prompts comply.
       </p>
       <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
         <div class="ruled-out-row">
@@ -429,16 +413,9 @@
 
     <!-- ── Act IV: Disclaimer Erosion ── -->
     <div class="step-card" data-status="NEW" style="border-left: 3px solid var(--accent-teal); margin-top: 2rem;">
-      <h3 style="color: var(--accent-teal);">Act IV: The novel finding &mdash; Disclaimer Erosion</h3>
+      <h3 style="color: var(--accent-teal);">Disclaimer Erosion</h3>
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        The corrected data reveals what the truncated binary metric was hiding.
-        H-neuron scaling does not monotonically increase jailbreak compliance <em>count</em> &mdash;
-        the rate is flat. Instead, it causes <strong>Disclaimer Erosion</strong>:
-        modulating the model&rsquo;s hedging intensity and endorsement of harmful behavior
-        without changing the binary decision boundary.
-      </p>
-      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;" data-source="manual">
-        In the 25-prompt human audit, the pattern is vivid:
+        In the 25-prompt human audit, the pattern is consistent:
       </p>
       <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
         <div class="ruled-out-row" style="background: rgba(126, 200, 160, 0.06);">
@@ -458,13 +435,9 @@
         </div>
       </div>
       <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;" data-source="manual">
-        This is invisible to a binary HARMFUL/SAFE metric &mdash;
-        and <em>completely</em> invisible to a truncated binary metric.
-        The real safety degradation is a gradient of framing intensity,
+        A binary HARMFUL/SAFE metric cannot see this.
+        The safety degradation is a gradient of framing intensity,
         not a switch from refusal to compliance.
-        Standard jailbreak evaluations across the field use binary metrics.
-        Demonstrating their blindness to severity gradients
-        would be a methodological contribution that goes well beyond this paper.
       </p>
     </div>
 
@@ -472,12 +445,10 @@
     <div class="step-card" style="border-left: 3px solid var(--accent-rose); margin-top: 1.5rem;">
       <h3 style="color: var(--accent-rose);">The binary judge is confounded by framing</h3>
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        Gold-label validation (25 prompts &times; 3 alphas, human vs GPT-4o judge on full-length responses)
-        exposes a troubling pattern: judge accuracy is <em>worst</em> at &alpha;=0.0 (80%)
-        where disclaimers are heaviest, and <em>best</em> at higher alphas (88%) where
-        disclaimer erosion makes harm more overt.
-        The judge is most reliable precisely when responses are most dangerous,
-        and least reliable when harm is subtle.
+        Gold-label validation (25 prompts &times; 3 alphas): judge-human agreement is worst
+        at &alpha;=0.0 where disclaimers are heaviest, and best at higher alphas
+        where harm is more overt.
+        10 of 11 errors are false negatives: the judge calls SAFE what the human calls HARMFUL.
       </p>
 
       <div class="chart-container chart-shell" style="--chart-shell-height: 260px; margin-top: 1rem;">
@@ -489,24 +460,21 @@
       </p>
 
       <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;" data-source="manual">
-        The problem is architectural: a binary &ldquo;HARMFUL/SAFE&rdquo; prompt
-        invites the judge to anchor lazily on the initial framing.
-        When the response opens with three paragraphs of ethical disclaimers,
-        the judge pattern-matches on &ldquo;refusal language&rdquo; and returns SAFE
-        without reading the compliance that follows.
-        This is the same failure mode as the truncation itself &mdash;
-        but operating at the <em>attention</em> level rather than the <em>token</em> level.
-        The judge&rsquo;s accuracy is confounded with the very phenomenon we are trying to measure:
+        The judge is most reliable when responses are most dangerous,
+        and least reliable when harm is subtle.
+        A binary prompt lets the judge anchor on the opening framing.
+        Three paragraphs of ethical disclaimers pattern-match to &ldquo;refusal&rdquo;
+        before the compliance that follows.
+        The judge&rsquo;s accuracy is confounded with the phenomenon we&rsquo;re measuring:
         disclaimer intensity.
       </p>
     </div>
 
     <!-- ── Next: Severity-graded judge ── -->
     <div class="step-card" style="border-left: 3px solid var(--accent-teal); margin-top: 1.5rem;">
-      <h3 style="color: var(--accent-teal);">Next: Severity-Graded LLM Judge</h3>
+      <h3 style="color: var(--accent-teal);">Next: severity-graded LLM judge</h3>
       <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        A severity rubric forces the judge to evaluate <em>degree</em> rather than a binary threshold,
-        breaking the anchor on initial framing:
+        A severity rubric forces the judge to evaluate <em>degree</em>, breaking the anchor on initial framing:
       </p>
       <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
         <div class="ruled-out-row" style="background: rgba(126, 200, 160, 0.06);">
@@ -531,25 +499,19 @@
         </div>
       </div>
       <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;" data-source="manual">
-        <strong>The plan:</strong> Run GPT-4o via Batch API (cost-efficient) with this 4-point rubric
-        over the existing 500-prompt &times; 3-alpha dataset, plus the negative control dataset.
-        <strong>Why it&rsquo;s high ROI:</strong> if binary compliance is flat across alphas while
-        severity-graded compliance shows a monotonic slope,
-        that is the proof that h-neuron scaling operates on framing intensity, not the refusal decision.
-        It quantitatively confirms the Disclaimer Erosion hypothesis and
-        warns the field that binary jailbreak metrics are fundamentally insufficient.
+        GPT-4o Batch API with this rubric over the existing 1,500 responses
+        plus the negative control set.
+        If binary compliance is flat across alphas while severity shows a monotonic slope,
+        that confirms the mechanism: h-neuron scaling operates on framing, not the refusal decision.
       </p>
     </div>
 
     <!-- What this changes -->
     <div class="insight-box" style="border-left-color: var(--accent-coral); margin-top: 1.5rem;">
       <strong>What this changes:</strong>
-      The original paper&rsquo;s claim that h-neuron scaling increases jailbreak compliance
-      is <strong>falsified</strong> at population level &mdash; the slope was a 256-token truncation artifact.
-      But the corrected data reveals something more interesting: a compliance <em>style</em> gradient
-      (Disclaimer Erosion) that binary metrics cannot see.
+      The original paper&rsquo;s jailbreak slope is a truncation artifact.
       FaithEval and FalseQA are unaffected (MC-letter / short-answer formats).
-      The 256-token legacy data is preserved as a paper-faithful baseline.
+      The 256-token data is preserved as a paper-faithful baseline.
     </div>
   </div>
 </section>
@@ -557,12 +519,10 @@
 <div class="reflection">
   <div class="ref-label">Research principle</div>
   <p class="ref-text">
-    A measurement bug found during calibration work is not a detour &mdash;
-    it is the <strong>calibration working</strong>.
-    The gold-label effort was designed to catch exactly this:
-    <span class="highlight">evaluator artifacts hiding behind aggregate numbers</span>.
-    But the best measurement critiques don&rsquo;t just find the error &mdash;
-    they find <strong>what the error was hiding</strong>.
+    A measurement bug found during calibration is not a detour.
+    It is the <strong>calibration working</strong>.
+    The best critiques don&rsquo;t just find the error.
+    They find <strong>what the error was hiding</strong>.
   </p>
 </div>
 
@@ -572,9 +532,8 @@
     <span class="tag tag-amber">4. Negative results that strengthen the story</span>
     <h2>What we killed, and why it helps</h2>
     <p class="subtitle" data-source="manual">
-      Two lines of investigation were definitively closed this week.
-      Both failures narrow the space of possible explanations,
-      replacing vague possibility with concrete exclusion.
+      Two lines of investigation closed this week.
+      Both narrow the explanation space.
     </p>
 
     <div class="ruled-out-grid">
@@ -674,10 +633,10 @@
     </div>
 
     <div class="insight-box" style="border-left-color: var(--accent-amber);">
-      <strong>Why negative results are load-bearing:</strong>
-      they narrow the explanation space from &ldquo;maybe one neuron controls everything via SAE features&rdquo;
-      to &ldquo;a distributed direction exists, its causal effect is neuron-specific, and it does not decompose
-      into independently steerable SAE features.&rdquo;
+      <strong>What these rule out:</strong>
+      &ldquo;maybe one neuron controls everything&rdquo; and &ldquo;maybe SAE features can steer compliance.&rdquo;
+      What remains: a distributed neuron-level direction whose causal effect does not decompose
+      into independently steerable SAE features.
     </div>
   </div>
 </section>
@@ -688,10 +647,8 @@
     <span class="tag tag-rose">5. What we found by looking closely</span>
     <h2>Six findings that change what we can claim</h2>
     <p class="subtitle" data-source="manual">
-      The most important results this week were not new benchmarks &mdash;
-      they were problems we found in the paper&rsquo;s methodology,
-      artifacts we caught in our own evaluators,
-      and a population structure the original authors never reported.
+      The most important results this week came from looking closely
+      at methodology, not from running new benchmarks.
     </p>
 
     <div class="findings-grid" data-source="manual">
@@ -803,8 +760,7 @@
           <strong>No capability baseline exists yet.</strong>
           If the intervention is simply lobotomizing the model,
           the compliance gain is meaningless.
-          This is not optional polish &mdash; it is
-          <strong class="finding-gap">claim hygiene</strong>.
+          This is <strong class="finding-gap">claim hygiene</strong>.
           A minimal assay (perplexity, short-answer accuracy, or
           loss-under-perturbation at each &alpha;)
           is required before any strong causal or safety claim
@@ -952,7 +908,7 @@
         <div class="tl-dot"></div>
         <div class="tl-content">
           <div class="tl-title">Jailbreak truncation bias discovered</div>
-          <div class="tl-detail">Manual review of borderline JSONL cases reveals 256-token cap hiding harmful content after disclaimer preamble</div>
+          <div class="tl-detail">Manual review reveals 256-token cap hides harmful content after disclaimer preamble</div>
         </div>
       </div>
       <div class="tl-item" data-theme="amber">
@@ -960,7 +916,7 @@
         <div class="tl-dot"></div>
         <div class="tl-content">
           <div class="tl-title">Cross-alpha pilot: 25 prompts &times; 3 alphas</div>
-          <div class="tl-detail">Compliance count flat at 60% across alphas; severity escalates. Smoke test validates 5,000-token config.</div>
+          <div class="tl-detail">Compliance count flat at 60% across alphas; severity escalates</div>
         </div>
       </div>
       <div class="tl-item" data-theme="teal">
@@ -968,7 +924,7 @@
         <div class="tl-dot"></div>
         <div class="tl-content">
           <div class="tl-title">Full 500-prompt jailbreak rerun launched</div>
-          <div class="tl-detail">5,000 tokens, 3 alphas, stochastic decoding (T=0.7) &mdash; corrected readout to replace 256-token legacy</div>
+          <div class="tl-detail">5,000 tokens, 3 alphas, stochastic decoding (T=0.7)</div>
         </div>
       </div>
       <div class="tl-item" data-theme="coral">
@@ -976,7 +932,7 @@
         <div class="tl-dot"></div>
         <div class="tl-content">
           <div class="tl-title">Alpha slope falsified at population level</div>
-          <div class="tl-detail">5,000-token rerun complete: &Delta;&alpha;=0&rarr;3 is +3.0pp [&minus;1.2, 7.2], CI includes zero. Legacy +6.2pp was a truncation artifact.</div>
+          <div class="tl-detail">5,000-token rerun: +3.0pp [&minus;1.2, 7.2], CI includes zero. Legacy slope was truncation artifact.</div>
         </div>
       </div>
       <div class="tl-item" data-theme="teal">
@@ -984,7 +940,7 @@
         <div class="tl-dot"></div>
         <div class="tl-content">
           <div class="tl-title">Disclaimer Erosion hypothesis formalized</div>
-          <div class="tl-detail">H-neuron scaling modulates compliance style, not count. Severity-graded LLM judge proposed as quantitative test.</div>
+          <div class="tl-detail">H-neuron scaling modulates compliance style, not count. Severity-graded judge proposed as test.</div>
         </div>
       </div>
     </div>
