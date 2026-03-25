@@ -2,6 +2,7 @@
 
 _Created 2026-03-20 by splitting performance analysis out of `docs/tooling-assessment.md`._
 _Updated 2026-03-23 with deeper workload characterisation and concrete intervention alternatives._
+_Updated 2026-03-24 with empirical results from canonical 5000-token run and sensor gap analysis._
 
 ## Scope
 
@@ -311,34 +312,177 @@ Don't assume the fast thing is faithful — force it to earn the right.
 **Bottom line:** the bottleneck is not "the GPU is too small." The bottleneck is that the experiment is paying a Python tax on every token, every layer, for a transformation that is structurally much simpler than the machinery used to express it. Fix the representation of the intervention first; then revisit batching.
 
 
-##
+## Empirical Results — Canonical 5000-Token Run (2026-03-24)
 
-The periodic dips in SM clock + memory-access % are worth correlating with sample boundaries
+Data source: `data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl` (327/500 samples at time of analysis, run still in progress).
 
-This is the one thing I’d inspect next.
+Run config: `--benchmark jailbreak --alphas 0.0 1.5 3.0 --max_new_tokens 5000 --seed 42 --wandb`
 
-If those dips happen roughly once per sample, they likely correspond to:
+### Per-sample timing (alpha=0.0, n=327)
 
-end of one generation
-decode → postprocess / write
-next prompt prep
-next prefill launch
+| Metric | Value |
+|---|---|
+| `generate_s` mean | 36.0 s |
+| `generate_s` median | 37.2 s |
+| `generate_s` min / max | 11.4 s / 48.8 s |
+| `generate_s` stdev | 6.1 s |
+| `generate_s` p10 / p90 | 27.7 s / 42.2 s |
+| `generated_tokens` mean | 1226 |
+| `generated_tokens` median | 1265 |
+| `generated_tokens` min / max | 410 / 1618 |
+| `prompt_tokens` mean | 58 |
+| `hit_token_cap` | **0 / 327 (0%)** |
 
-If so, they are more evidence of host-side orchestration gaps.
+### Token length distribution
 
-If instead they occur many times within a sample, then they may reflect:
+```
+[   0,  500):   1  ( 0.3%)
+[ 500,  800):  11  ( 3.3%)
+[ 800, 1000):  31  ( 9.4%)
+[1000, 1200):  70  (21.3%)
+[1200, 1400): 177  (53.8%)   <- majority
+[1400, 1600):  37  (11.2%)
+[1600, 2000):   2  ( 0.6%)
+[2000, 5000):   0  ( 0.0%)
+```
 
-decode-phase variability
-termination checks
-periodic allocator / scheduler behavior
-hook-related per-step fragmentation
+**The 5000-token cap has ~3x headroom over actual usage.** No samples are being truncated. A cap of 2000-2500 would be safe for future runs without changing any results, though it does not save wall time since the model stops naturally.
 
-So I’d correlate those dips against:
+Contrast with the 1024-cap smoke test: **70-80% truncation** across all alphas. The earlier runs were systematically underestimating natural response length.
 
-sample completion timestamps
-generated token counts
-prompt lengths
-time in model.generate()
-time outside model.generate()
+### Throughput stability
 
-That could tell you whether the periodicity is “between examples” or “inside the decode loop.” Big difference.
+| Window | tok/s mean | tok/s stdev |
+|---|---|---|
+| First 50 samples | 34.0 | 0.78 |
+| Last 50 samples | 34.1 | 0.73 |
+| Drift | **+0.04** | -- |
+
+**Zero drift** over 327 samples. No thermal throttling, no memory fragmentation, no progressive slowdown. The system is in steady state.
+
+### Time breakdown
+
+| Component | Total across 327 samples |
+|---|---|
+| `generate_s` | 11,776 s (100.00%) |
+| `template_s` | 0.000 s |
+| `h2d_s` | 0.031 s |
+| `decode_s` | 0.165 s |
+
+`model.generate()` is the entire cost. The host-side orchestration gaps the earlier Scalene analysis worried about are **invisible in practice** after the tokenization caching fix. The overhead is not zero -- it just rounds to zero compared to 36 s of generation per sample.
+
+### Correlation: token count vs wall time
+
+Pearson r = **0.9953**. Time is almost perfectly linear in generated tokens.
+
+Implied cost: **29.4 ms/token**.
+
+| Quartile | mean generate_s | mean tokens | tok/s |
+|---|---|---|---|
+| Shortest 25% responses | 27.5 s | 965 | 35.2 |
+| Longest 25% responses | 42.4 s | 1419 | 33.5 |
+
+The ~5% slowdown on long sequences is consistent with attention cost scaling with KV cache length. Hook overhead, if significant, would show as a constant per-token tax, not a length-dependent one.
+
+### Projection
+
+- Average per sample: 36.0 s
+- **Estimated total for 3 alphas x 500 samples: ~15 hours**
+
+### Smoke test cross-reference (1024-token cap, n=10 per alpha)
+
+| Alpha | hit_cap | mean gen_tok | tok/s |
+|---|---|---|---|
+| 0.0 | 70% | 994 | 34.9 |
+| 1.0 | 80% | 954 | 35.1 |
+| 2.0 | 70% | 949 | 35.1 |
+| 3.0 | 70% | 888 | 35.1 |
+
+tok/s is consistent across caps and alphas -- the decode engine runs at the same rate regardless of intervention strength. This is expected: the hooks do negligible work per step relative to the GPU decode kernel.
+
+### What the live data overturns
+
+1. **"Hook overhead is the dominant avoidable cost"** -- still plausible in theory, but the per-sample data shows `model.generate()` accounts for 100% of measured time. The hook overhead is buried inside `generate_s` and is not separable with current sensors. It may be real but it is not large enough to create visible inter-sample gaps.
+
+2. **"The GPU is not the limiter"** -- the Scalene-era conclusion was always shaky. The live data is more consistent with "GPU is the limiter, the rest rounds to zero." This does not mean hooks are free -- just that they are not the thing to chase before measuring them properly.
+
+3. **"Tokenization/orchestration overhead matters"** -- after the caching fix, it does not. `template_s` is literally zero for cached prompts.
+
+## Sensor Gap Analysis
+
+### What we measure well (per-sample, stored in JSONL)
+
+- `template_s`, `h2d_s`, `generate_s`, `decode_s`, `total_s`
+- `prompt_tokens`, `generated_tokens`, `hit_token_cap`
+
+### What we cannot measure and need
+
+| Gap | Why it matters | Fix cost |
+|---|---|---|
+| **Inter-sample wall-clock gap** | Time between sample N finishing and sample N+1's `generate()` starting -- includes JSONL write, tqdm update, W&B overhead, GC, any allocator work. Currently invisible because `total_s` only covers inside `generate_response()`. | Cheap: add `time.time()` at loop iteration start/end, store as `wall_start_ts` / `wall_end_ts`. |
+| **Per-alpha aggregate timing** | No per-alpha wall clock, tokens/sec, or samples/sec is computed or logged. The doc called for this but it was never implemented. | Cheap: accumulate in the alpha loop, log to W&B and summary. |
+| **Real-time W&B streaming** | Per-sample timings go to JSONL but not to W&B during the run. Cannot monitor throughput live except by parsing JSONL externally. | Cheap: `wandb.log()` per sample with `generate_s`, `generated_tokens`, tok/s. |
+| **Hook overhead per decode step** | The doc identifies 23 Python callbacks per decode step as the main avoidable cost, but there is no measurement. Cannot separate hook time from pure GPU decode time inside `generate_s`. | Medium: add cumulative timer inside `HNeuronScaler.__call__`, report total hook time per sample. |
+| **GPU utilization per sample** | Only available from external `nvitop` snapshots, not correlated with individual samples. | Medium: `pynvml` query at sample boundaries, or correlate nvitop log timestamps with sample timestamps (requires wall-clock timestamps above). |
+| **Memory allocator behaviour** | No visibility into CUDA allocator fragmentation, cache flushes, or GC pauses over time. | Low priority given zero drift observed. |
+
+### Measurement status vs. the original plan
+
+| Planned sensor | Status |
+|---|---|
+| Per-sample prompt token count | Done -- in JSONL |
+| Per-sample generated token count | Done -- in JSONL |
+| Per-sample time in `model.generate()` | Done -- `generate_s` |
+| Per-sample time outside `model.generate()` | **Missing** -- need wall-clock timestamps |
+| Per-alpha average generated length | **Missing** -- not computed |
+| Per-alpha tokens/sec | **Missing** -- not computed |
+| Per-alpha samples/sec | **Missing** -- not computed |
+| A/B: current hooks vs no-op | **Not run** |
+| A/B: current hooks vs refactored intervention | **Not run** |
+
+## Revised Estimated Impact (post-empirical)
+
+| Optimisation | Expected gain | Confidence | Notes |
+|---|---|---|---|
+| Hook-path cleanup | **Unknown -- need measurement first** | Low (was Medium) | Cannot attribute any portion of `generate_s` to hooks without per-step timing. |
+| ~~Tokenization caching~~ | ~~Done~~ | -- | Measured effect: `template_s` went from nonzero to 0. |
+| `inference_mode()` | 0-3% | Medium-high | Still untested. |
+| Batching (size 2-4) | Potentially 30-80% for deterministic benchmarks | Medium | Jailbreak risk unchanged. |
+| **Lower `max_new_tokens` to 2000-2500** | **0% wall-time gain** | High | Model stops naturally at ~1200-1600. Cap is not the bottleneck. |
+| **Add missing sensors** | **0% direct gain, unblocks all other decisions** | High | Cannot prioritise any optimisation without measuring it first. |
+
+## Revised Ranked Next Steps (by ROI)
+
+### Tier 1 -- Instrument before optimising
+
+These cost minutes of engineering and unblock every decision below.
+
+1. **Add wall-clock timestamps per sample** -- `time.time()` at loop iteration start/end, stored alongside `timings`. Makes inter-sample gaps and per-alpha aggregates computable. Unblocks correlation with W&B GPU dips.
+
+2. **Add per-alpha summary** -- after each alpha completes, compute and log: wall time, samples/sec, mean tok/s, mean generated tokens. Stream to W&B if `--wandb`.
+
+3. **Stream per-sample metrics to W&B** -- `wandb.log()` with `generate_s`, `generated_tokens`, tok/s per sample. Enables live monitoring and post-hoc correlation with GPU traces.
+
+### Tier 2 -- Measure the hook tax
+
+Cannot justify Tier 3 without this data.
+
+4. **Add cumulative hook timer in `HNeuronScaler`** -- `time.perf_counter()` around the hook body, accumulate total, report per sample. This finally answers "how much of `generate_s` is Python hook overhead?"
+
+5. **Run the A/B comparison** -- 50-sample slice, same seed: (a) current hooks, (b) hooks fully removed (`alpha=1.0`, no hooks installed), (c) wrapped `down_proj` forward. Compare tok/s. This is the decisive experiment for whether hook-path cleanup is worth doing.
+
+### Tier 3 -- Optimise based on data
+
+6. **If hook tax > 5%**: implement wrapped `down_proj` forward with precomputed scale vector (activation-side, cleanest parity story).
+
+7. **If hook tax < 5%**: skip intervention refactor entirely; move to batching on deterministic benchmarks (`faitheval`, `falseqa`, `bioasq`).
+
+8. **Batching on jailbreak**: only after deterministic benchmarks validate it and only if statistically indistinguishable judged outcomes are demonstrated.
+
+### Do not chase
+
+- More Scalene debugging
+- Lowering `max_new_tokens` (model stops naturally, cap is inert)
+- Disk I/O, data loading, quantization
+- `torch.compile()` before hook measurement
+- Custom C++/Triton kernels
