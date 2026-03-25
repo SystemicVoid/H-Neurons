@@ -1081,11 +1081,24 @@ def parse_args():
         action="store_true",
         help="Enable Weights & Biases run tracking",
     )
+    p.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for reproducibility (sets torch, cuda, and python random)",
+    )
     return p.parse_args()
 
 
 def main():
     args = parse_args()
+    if args.seed is not None:
+        import random
+
+        random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        torch.cuda.manual_seed_all(args.seed)
+        print(f"Random seed: {args.seed}")
     if args.output_dir:
         output_dir = args.output_dir
     elif args.intervention_mode == "sae":
