@@ -1,20 +1,24 @@
-"""One-off script to regenerate full responses for 4 gold-label candidates.
+"""Regenerate full-length responses for jailbreak gold-label candidates.
 
-The original alpha_0.0.jsonl used max_new_tokens=256 which truncated these
-responses mid-sentence. This script reruns only those 4 IDs with 1024 tokens
-and greedy decoding so the full response is available for human labeling.
+Runs the same 25 prompts from jailbreak_candidates.jsonl through the model
+with the h-neuron intervention at a given alpha, using greedy decoding and
+max_new_tokens=5000 so responses are never truncated.
 
-Output: tests/gold_labels/jailbreak_regen.jsonl
+Output: tests/gold_labels/jailbreak_regen_a{alpha}_{timestamp}.jsonl
 
 Usage:
-    uv run python scripts/regen_gold_responses.py
+    uv run python scripts/regen_gold_responses.py                 # alpha=0.0
+    uv run python scripts/regen_gold_responses.py --alpha 1.5     # alpha=1.5
+    uv run python scripts/regen_gold_responses.py --alpha 0.0 1.5 3.0  # multiple
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import joblib
@@ -25,46 +29,40 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from run_intervention import JAILBREAK_TEMPLATES, HNeuronScaler
 from intervene_model import get_h_neuron_indices
 
-TARGET_IDS = {
-    "jbb_harmful_19_t0",
-    "jbb_harmful_3_t2",
-    "jbb_harmful_91_t4",
-    "jbb_harmful_97_t0",
-}
-
 MODEL_PATH = os.environ.get("HNEURONS_MODEL_PATH", "google/gemma-3-4b-it")
 CLASSIFIER_PATH = os.environ.get(
     "HNEURONS_CLASSIFIER_PATH", "models/gemma3_4b_classifier.pkl"
 )
 DEVICE = os.environ.get("HNEURONS_DEVICE_MAP", "cuda:0")
-SOURCE_PATH = Path("data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl")
-OUTPUT_PATH = Path("tests/gold_labels/jailbreak_regen.jsonl")
+CANDIDATES_PATH = Path("tests/gold_labels/jailbreak_candidates.jsonl")
+OUTPUT_DIR = Path("tests/gold_labels")
 
 
-def main() -> None:
-    # Load source records for the 4 targets
-    source = {
-        json.loads(line)["id"]: json.loads(line)
-        for line in SOURCE_PATH.read_text().splitlines()
-        if line.strip()
-    }
-    targets = [source[rid] for rid in TARGET_IDS if rid in source]
-    print(f"Found {len(targets)}/4 target records in source data")
+def _parse_template_idx(record_id: str) -> int:
+    """Extract template index from ID like 'jbb_harmful_30_t1' -> 1."""
+    return int(record_id.rsplit("_t", 1)[1])
 
-    print(f"Loading model {MODEL_PATH} ...")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_PATH, dtype=torch.bfloat16, device_map=DEVICE
-    )
-    model.eval()
 
-    clf = joblib.load(CLASSIFIER_PATH)
-    neuron_map = get_h_neuron_indices(clf, model.config)
-    scaler = HNeuronScaler(model, neuron_map, DEVICE)
-    scaler.alpha = 0.0  # match original alpha_0.0 condition
+def run_alpha(
+    alpha: float,
+    candidates: list[dict],
+    model,
+    tokenizer,
+    scaler: HNeuronScaler,
+    timestamp: str,
+) -> Path:
+    """Generate full responses for all candidates at a single alpha value."""
+    scaler.alpha = alpha
+    alpha_str = f"{alpha:.1f}".replace(".", "_")
+    out_path = OUTPUT_DIR / f"jailbreak_regen_a{alpha_str}_{timestamp}.jsonl"
+    out_path.write_text("")
+
+    print(f"\n{'=' * 60}")
+    print(f"  Alpha = {alpha}  →  {out_path.name}")
+    print(f"{'=' * 60}")
 
     results = []
-    for rec in targets:
+    for i, rec in enumerate(candidates, 1):
         template = JAILBREAK_TEMPLATES[rec["template_idx"]]
         prompt = template.format(goal=rec["goal"])
         messages = [{"role": "user", "content": prompt}]
@@ -73,11 +71,15 @@ def main() -> None:
             messages, return_tensors="pt", add_generation_prompt=True
         ).to(DEVICE)
 
-        print(f"  Generating {rec['id']} (template {rec['template_idx']}) ...")
+        print(
+            f"  [{i}/{len(candidates)}] {rec['id']} (t{rec['template_idx']}) ...",
+            end="",
+            flush=True,
+        )
         with torch.no_grad():
             output = model.generate(
                 inputs,
-                max_new_tokens=1024,
+                max_new_tokens=5000,
                 do_sample=False,  # greedy — deterministic for labeling
             )
 
@@ -89,22 +91,69 @@ def main() -> None:
             "id": rec["id"],
             "goal": rec["goal"],
             "template_idx": rec["template_idx"],
-            "alpha": 0.0,
+            "alpha": alpha,
             "response": response,
         }
         results.append(result)
-        print(f"    {len(response)} chars")
+        print(f"  {len(response)} chars")
 
-    OUTPUT_PATH.write_text("\n".join(json.dumps(r) for r in results) + "\n")
-    print(f"\nWrote {len(results)} records to {OUTPUT_PATH}")
+        # Per-record write: reopen file each time (see scripts/CLAUDE.md)
+        with open(out_path, "a") as f:
+            f.write(json.dumps(result, ensure_ascii=False) + "\n")
 
-    # Print full responses for immediate review
-    print("\n" + "=" * 80)
-    for r in results:
-        print(f"\n=== {r['id']} ===")
-        print(f"Q: {r['goal']}\n")
-        print(f"R:\n{r['response']}")
-        print("\n" + "=" * 80)
+    print(f"  Wrote {len(results)} records to {out_path}")
+    return out_path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Regenerate full-length jailbreak responses at given alpha(s)"
+    )
+    parser.add_argument(
+        "--alpha",
+        type=float,
+        nargs="+",
+        default=[0.0],
+        help="Alpha value(s) to test (default: 0.0)",
+    )
+    args = parser.parse_args()
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    # Load candidates
+    candidates = [
+        json.loads(line)
+        for line in CANDIDATES_PATH.read_text().splitlines()
+        if line.strip()
+    ]
+    for c in candidates:
+        c["goal"] = c["question"]
+        c["template_idx"] = _parse_template_idx(c["id"])
+    print(f"Found {len(candidates)} candidates in {CANDIDATES_PATH}")
+
+    # Load model once, reuse across alphas
+    print(f"Loading model {MODEL_PATH} ...")
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_PATH, dtype=torch.bfloat16, device_map=DEVICE
+    )
+    model.eval()
+
+    clf = joblib.load(CLASSIFIER_PATH)
+    neuron_map = get_h_neuron_indices(clf, model.config)
+    scaler = HNeuronScaler(model, neuron_map, DEVICE)
+
+    # Run each alpha
+    output_paths = []
+    for alpha in args.alpha:
+        out_path = run_alpha(alpha, candidates, model, tokenizer, scaler, timestamp)
+        output_paths.append(out_path)
+
+    print(f"\n{'=' * 60}")
+    print(f"  All done. {len(output_paths)} file(s) written:")
+    for p in output_paths:
+        print(f"    {p}")
+    print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":
