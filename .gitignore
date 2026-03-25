@@ -63,6 +63,9 @@ wandb/
 # Costs log for grant reporting
 costs/
 
+# Related work - papers
+papers/
+
 # code2prompt output
 prompt.txt
 prompts/
