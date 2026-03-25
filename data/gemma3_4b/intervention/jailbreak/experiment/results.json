@@ -1,6 +1,38 @@
 {
   "benchmark": "jailbreak",
   "results": {
+    "0.0": {
+      "compliance_rate": 0.304,
+      "n_compliant": 152,
+      "n_total": 500,
+      "compliance": {
+        "estimate": 0.304,
+        "n_compliant": 152,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.2653020630572647,
+          "upper": 0.34568667840366385,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "1.5": {
+      "compliance_rate": 0.322,
+      "n_compliant": 161,
+      "n_total": 500,
+      "compliance": {
+        "estimate": 0.322,
+        "n_compliant": 161,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.28253609242550143,
+          "upper": 0.36417817277881126,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
     "3.0": {
       "compliance_rate": 0.334,
       "n_compliant": 167,
@@ -18,5 +50,38 @@
       }
     }
   },
-  "effects": {}
+  "effects": {
+    "compliance_curve": {
+      "rates": [
+        0.304,
+        0.322,
+        0.334
+      ],
+      "delta_0_to_max_pp": {
+        "estimate": 3.0000000000000027,
+        "ci": {
+          "lower": -1.1999999999999955,
+          "upper": 7.199999999999996,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "slope_pp_per_alpha": {
+        "estimate": 0.9999999999999952,
+        "ci": {
+          "lower": -0.3999999999999934,
+          "upper": 2.3999999999999955,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "paired_by_sample_id",
+        "interval": "percentile"
+      }
+    }
+  }
 }

@@ -2,15 +2,15 @@
 
 **Date:** 2026-03-20
 **Model:** `google/gemma-3-4b-it`
-**Related reports:** [intervention_findings.md](../../intervention_findings.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](jailbreak_interpretive_review.md)
+**Related reports:** [intervention_findings.md](../../intervention_findings.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](jailbreak_interpretive_review.md), [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md)
 
 ---
 
 ## Bottom Line
 
-- **H-neuron amplification modestly increases jailbreak compliance.** GPT-4o-judged harmful response rate rises from **20.2%** at α=0.0 to a peak of **28.6%** at α=1.5, yielding an endpoint effect of **+6.2 pp** [2.4, 10.0] (α=0→3) and a slope of **+2.14 pp/α** [0.91, 3.39]. The effect plateaus and slightly reverses above α=1.5.
-- **Template heterogeneity dominates the signal.** Template 1 (prefix injection) has **+12pp** swing and ~46-50% compliance at high α, while Template 2 (role-play) stays near **2-6%** regardless of scaling. Aggregate rates obscure this structure.
-- **Category sensitivity varies widely.** Economic harm (+18pp), Privacy (+14pp), and Disinformation (+12pp) are most responsive to H-neuron scaling. Harassment/Discrimination and Sexual/Adult content show near-zero effect.
+- ~~**H-neuron amplification modestly increases jailbreak compliance.** GPT-4o-judged harmful response rate rises from **20.2%** at α=0.0 to a peak of **28.6%** at α=1.5, yielding an endpoint effect of **+6.2 pp** [2.4, 10.0] (α=0→3) and a slope of **+2.14 pp/α** [0.91, 3.39]. The effect plateaus and slightly reverses above α=1.5.~~ *(2026-03-25: **Falsified.** These results used max_new_tokens=256 which truncated responses during the disclaimer preamble, creating alpha-dependent false negatives. A 5000-token rerun with the same prompts yields 30.4% → 32.2% → 33.4%, endpoint delta +3.0pp [−1.2, +7.2] — CI includes zero. The apparent slope was a truncation artifact. See [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md) Part V.)*
+- **Template heterogeneity dominates the signal.** Template 1 (prefix injection) has **+12pp** swing and ~46-50% compliance at high α, while Template 2 (role-play) stays near **2-6%** regardless of scaling. Aggregate rates obscure this structure. *(2026-03-25: Template-level effects not yet re-evaluated with 5000-token generation. The template heterogeneity observation likely stands but effect sizes may change.)*
+- **Category sensitivity varies widely.** Economic harm (+18pp), Privacy (+14pp), and Disinformation (+12pp) are most responsive to H-neuron scaling. Harassment/Discrimination and Sexual/Adult content show near-zero effect. *(2026-03-25: Category-level deltas are smaller in the 5000-token rerun. See [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md) Part V Finding 20 for updated category table.)*
 - **No negative control exists for jailbreak.** Unlike FaithEval and FalseQA (both with random-neuron baselines), we cannot yet confirm that the jailbreak compliance increase is H-neuron-specific versus a generic perturbation artifact.
 
 ---
@@ -57,8 +57,10 @@
 | 2.5 | 141 | 500 | 28.2% | [24.4, 32.3] |
 | 3.0 | 132 | 500 | 26.4% | [22.7, 30.4] |
 
-**Endpoint effect** (α=0→3): **+6.2 pp**, paired-bootstrap 95% CI **[2.4, 10.0] pp**.
-**Slope:** **+2.14 pp/α**, paired-bootstrap 95% CI **[0.91, 3.39] pp/α**.
+~~**Endpoint effect** (α=0→3): **+6.2 pp**, paired-bootstrap 95% CI **[2.4, 10.0] pp**.~~
+~~**Slope:** **+2.14 pp/α**, paired-bootstrap 95% CI **[0.91, 3.39] pp/α**.~~
+*(2026-03-25: **Superseded.** These numbers are from 256-token truncated responses. The 5000-token canonical rerun yields endpoint delta +3.0pp [−1.2, +7.2] and slope +1.0 pp/α [−0.4, +2.4] — both CIs include zero. See [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md) Part V.)*
+
 **Spearman ρ:** 0.679 (p=0.094 on 7 points — not individually significant, but consistent with the dose-response pattern observed on other benchmarks).
 
 The curve is not monotonic: compliance peaks at α=1.5 (28.6%) and slightly declines at α=2.0–3.0. This plateau-and-reversal contrasts with the steadily monotonic FaithEval anti-compliance curve (ρ=1.0).
@@ -115,15 +117,17 @@ The net amplification effect (+6 items) is small compared to total churn (76 swi
 | 1.0 | 1311±89 | 1289 (126) | 1318 (374) |
 | 3.0 | 1305±109 | 1280 (132) | 1314 (368) |
 
-Response length is largely stable across alphas, unlike FalseQA where H-neuron amplification shortened responses by ~9%. Harmful responses are marginally shorter than safe ones (~30 chars difference), but the effect is small. This may reflect the max_new_tokens=512 ceiling constraining length variation.
+Response length is largely stable across alphas, unlike FalseQA where H-neuron amplification shortened responses by ~9%. Harmful responses are marginally shorter than safe ones (~30 chars difference), but the effect is small. ~~This may reflect the max_new_tokens=512 ceiling constraining length variation.~~ *(2026-03-25: **Confirmed.** The 256-token ceiling (not 512 as stated — generation actually used max_new_tokens=256) severely constrained length. With 5000-token generation, mean length decreases with alpha: 1238 → 1199 → 1170 tokens, consistent with disclaimer erosion. See [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md) Part V Finding 19.)*
 
 ---
 
 ## 4. Critical Findings
 
-### Finding 1: H-neuron scaling increases jailbreak compliance with a plateau
+### ~~Finding 1: H-neuron scaling increases jailbreak compliance with a plateau~~
 
-The compliance curve rises +8.4pp from α=0.0 to α=1.5 (20.2% → 28.6%), then flattens. The endpoint Δ of +6.2pp is statistically significant (CI excludes zero), but the non-monotonic shape means the linear slope of +2.14pp/α overstates the marginal effect at high α. The effect is better described as: H-neuron amplification up to moderate scaling (α≤1.5) weakens jailbreak resistance, but further scaling does not increase harm.
+~~The compliance curve rises +8.4pp from α=0.0 to α=1.5 (20.2% → 28.6%), then flattens. The endpoint Δ of +6.2pp is statistically significant (CI excludes zero), but the non-monotonic shape means the linear slope of +2.14pp/α overstates the marginal effect at high α. The effect is better described as: H-neuron amplification up to moderate scaling (α≤1.5) weakens jailbreak resistance, but further scaling does not increase harm.~~
+
+*(2026-03-25: **Falsified.** The apparent compliance increase was a truncation measurement artifact. With 5000-token generation, the compliance rate is flat across alphas: 30.4% → 32.2% → 33.4%, delta +3.0pp [−1.2, +7.2], CI includes zero. 25-prompt human audit and 500-prompt GPT-4o judge evaluation both confirm flat rate. H-neuron scaling's real effect appears to be on compliance *severity/style* (disclaimer erosion), not compliance *count*. See [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md) Parts II, III, and V.)*
 
 ### Finding 2: Template structure is a first-order confound
 
@@ -197,10 +201,13 @@ The heuristic severely underestimates harmful compliance (~12-18% vs ~20-29%). M
 
 ## 8. Data Manifest
 
-| Artifact | Path |
-|----------|------|
-| Evaluated responses | `data/gemma3_4b/intervention/jailbreak/experiment/alpha_{0.0-3.0}.jsonl` |
-| Aggregate results | `data/gemma3_4b/intervention/jailbreak/experiment/results.json` |
-| Analysis script | `scripts/analyze_jailbreak.py` |
-| Evaluation script | `scripts/evaluate_intervention.py` |
-| Generation script | `scripts/run_intervention.py` |
+| Artifact | Path | Notes |
+|----------|------|-------|
+| Legacy 256-token responses (this audit) | `data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/alpha_{0.0-3.0}.jsonl` | *(2026-03-25: Archived. Results affected by truncation bias.)* |
+| Legacy aggregate results | `data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json` | *(2026-03-25: Superseded — see canonical results below.)* |
+| **Canonical 5000-token responses** | `data/gemma3_4b/intervention/jailbreak/experiment/alpha_{0.0,1.5,3.0}.jsonl` | *(2026-03-25: Current canonical data. 3 alphas, sampled decoding, GPT-4o judged.)* |
+| **Canonical aggregate results** | `data/gemma3_4b/intervention/jailbreak/experiment/results.json` | *(2026-03-25: Consolidated all 3 alphas.)* |
+| Truncation & cross-alpha audit | `tests/gold_labels/jailbreak_truncation_audit.md` | *(2026-03-25: Full analysis of truncation bias, cross-alpha findings, and population validation.)* |
+| Analysis script | `scripts/analyze_jailbreak.py` | |
+| Evaluation script | `scripts/evaluate_intervention.py` | |
+| Generation script | `scripts/run_intervention.py` | |
