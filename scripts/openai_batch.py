@@ -18,6 +18,8 @@ import json
 import sys
 import tempfile
 import time
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +37,74 @@ DEFAULT_MAX_ENQUEUED_TOKENS = 80_000
 
 
 # ---------------------------------------------------------------------------
+# Prompt cache statistics
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CacheStats:
+    """Accumulator for OpenAI prompt cache hit statistics."""
+
+    total_prompt_tokens: int = field(default=0)
+    cached_tokens: int = field(default=0)
+    requests: int = field(default=0)
+
+    def record(self, usage: Any) -> None:
+        """Record usage from a synchronous completion response."""
+        if usage is None:
+            return
+        self.requests += 1
+        self.total_prompt_tokens += getattr(usage, "prompt_tokens", 0) or 0
+        details = getattr(usage, "prompt_tokens_details", None)
+        if details:
+            self.cached_tokens += getattr(details, "cached_tokens", 0) or 0
+
+    def record_batch_entry(self, entry: dict[str, Any]) -> None:
+        """Record usage from a batch result entry."""
+        response = entry.get("response")
+        if not isinstance(response, dict):
+            return
+        body = response.get("body")
+        if not isinstance(body, dict):
+            return
+        status_code = response.get("status_code", 200)
+        if status_code != 200:
+            return
+        usage = body.get("usage", {})
+        if not isinstance(usage, dict):
+            return
+        self.requests += 1
+        self.total_prompt_tokens += usage.get("prompt_tokens", 0)
+        details = usage.get("prompt_tokens_details") or {}
+        self.cached_tokens += details.get("cached_tokens", 0)
+
+    @property
+    def cache_rate(self) -> float:
+        if self.total_prompt_tokens == 0:
+            return 0.0
+        return self.cached_tokens / self.total_prompt_tokens
+
+    def summary(self) -> str:
+        if self.requests == 0:
+            return "  Cache stats: no requests recorded"
+        return (
+            f"  Cache stats: {self.cached_tokens:,}/{self.total_prompt_tokens:,} "
+            f"prompt tokens cached ({self.cache_rate:.1%}) "
+            f"across {self.requests} requests"
+        )
+
+
+def extract_batch_cache_stats(
+    results: dict[str, dict[str, Any]],
+) -> CacheStats:
+    """Extract prompt cache statistics from batch results."""
+    stats = CacheStats()
+    for entry in results.values():
+        stats.record_batch_entry(entry)
+    return stats
+
+
+# ---------------------------------------------------------------------------
 # Request builder
 # ---------------------------------------------------------------------------
 
@@ -42,11 +112,11 @@ DEFAULT_MAX_ENQUEUED_TOKENS = 80_000
 def build_chat_request(
     custom_id: str,
     model: str,
-    messages: list[dict[str, Any]],
+    messages: Sequence[Mapping[str, object]],
     **kwargs: Any,
 ) -> dict[str, Any]:
     """Build a single Batch API request line for /v1/chat/completions."""
-    body: dict[str, Any] = {"model": model, "messages": messages, **kwargs}
+    body: dict[str, Any] = {"model": model, "messages": list(messages), **kwargs}
     return {
         "custom_id": custom_id,
         "method": "POST",
@@ -400,6 +470,7 @@ def submit_and_poll(
     )
     n_err = len(results) - n_ok
     print(f"  Batch complete: {n_ok} succeeded, {n_err} failed")
+    print(extract_batch_cache_stats(results).summary())
 
     return results
 
@@ -504,5 +575,6 @@ def resume_or_submit(
         )
         n_err = len(all_results) - n_ok
         print(f"  All chunks complete: {n_ok} succeeded, {n_err} failed")
+        print(extract_batch_cache_stats(all_results).summary())
 
     return all_results

@@ -8,9 +8,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from openai_batch import (
+    CacheStats,
     _chunk_requests,
     _estimate_request_tokens,
     build_chat_request,
+    extract_batch_cache_stats,
     parse_chat_content,
 )
 
@@ -87,6 +89,145 @@ class TestNokCounting:
             "b": {"response": None, "error": {"code": "batch_expired"}},
         }
         assert self._count_ok(results) == 0
+
+
+class TestCacheStats:
+    """Tests for prompt cache statistics collection."""
+
+    def test_record_batch_entry_with_cache(self):
+        stats = CacheStats()
+        entry = {
+            "custom_id": "r1",
+            "response": {
+                "status_code": 200,
+                "body": {
+                    "usage": {
+                        "prompt_tokens": 2000,
+                        "completion_tokens": 100,
+                        "total_tokens": 2100,
+                        "prompt_tokens_details": {"cached_tokens": 1500},
+                    }
+                },
+            },
+        }
+        stats.record_batch_entry(entry)
+        assert stats.requests == 1
+        assert stats.total_prompt_tokens == 2000
+        assert stats.cached_tokens == 1500
+        assert stats.cache_rate == 1500 / 2000
+
+    def test_record_batch_entry_no_cache(self):
+        stats = CacheStats()
+        entry = {
+            "custom_id": "r1",
+            "response": {
+                "status_code": 200,
+                "body": {
+                    "usage": {
+                        "prompt_tokens": 500,
+                        "completion_tokens": 50,
+                        "prompt_tokens_details": {"cached_tokens": 0},
+                    }
+                },
+            },
+        }
+        stats.record_batch_entry(entry)
+        assert stats.cached_tokens == 0
+        assert stats.cache_rate == 0.0
+
+    def test_record_batch_entry_null_response(self):
+        stats = CacheStats()
+        stats.record_batch_entry({"custom_id": "r1", "response": None})
+        assert stats.requests == 0
+
+    def test_record_batch_entry_missing_details(self):
+        stats = CacheStats()
+        entry = {
+            "custom_id": "r1",
+            "response": {
+                "status_code": 200,
+                "body": {"usage": {"prompt_tokens": 1000, "completion_tokens": 50}},
+            },
+        }
+        stats.record_batch_entry(entry)
+        assert stats.requests == 1
+        assert stats.total_prompt_tokens == 1000
+        assert stats.cached_tokens == 0
+
+    def test_extract_batch_cache_stats_multiple(self):
+        results = {
+            "r1": {
+                "response": {
+                    "status_code": 200,
+                    "body": {
+                        "usage": {
+                            "prompt_tokens": 2000,
+                            "prompt_tokens_details": {"cached_tokens": 1500},
+                        }
+                    },
+                }
+            },
+            "r2": {
+                "response": {
+                    "status_code": 200,
+                    "body": {
+                        "usage": {
+                            "prompt_tokens": 2000,
+                            "prompt_tokens_details": {"cached_tokens": 1800},
+                        }
+                    },
+                }
+            },
+            "r3": {"response": None},
+        }
+        stats = extract_batch_cache_stats(results)
+        assert stats.requests == 2
+        assert stats.total_prompt_tokens == 4000
+        assert stats.cached_tokens == 3300
+        assert abs(stats.cache_rate - 3300 / 4000) < 1e-9
+
+    def test_summary_no_requests(self):
+        stats = CacheStats()
+        assert "no requests" in stats.summary()
+
+    def test_summary_with_data(self):
+        stats = CacheStats(total_prompt_tokens=4000, cached_tokens=3000, requests=2)
+        s = stats.summary()
+        assert "3,000" in s
+        assert "4,000" in s
+        assert "75.0%" in s
+
+    def test_record_sync_usage(self):
+        """Test recording from a sync completion usage object."""
+
+        class MockDetails:
+            cached_tokens = 800
+
+        class MockUsage:
+            prompt_tokens = 1200
+            prompt_tokens_details = MockDetails()
+
+        stats = CacheStats()
+        stats.record(MockUsage())
+        assert stats.requests == 1
+        assert stats.total_prompt_tokens == 1200
+        assert stats.cached_tokens == 800
+
+    def test_record_sync_usage_no_details(self):
+        class MockUsage:
+            prompt_tokens = 500
+            prompt_tokens_details = None
+
+        stats = CacheStats()
+        stats.record(MockUsage())
+        assert stats.requests == 1
+        assert stats.total_prompt_tokens == 500
+        assert stats.cached_tokens == 0
+
+    def test_record_none_usage(self):
+        stats = CacheStats()
+        stats.record(None)
+        assert stats.requests == 0
 
 
 class TestTokenEstimationAndChunking:

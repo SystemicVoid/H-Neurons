@@ -76,14 +76,19 @@ FALSEQA_JUDGE_KWARGS = {"temperature": 0.0, "max_tokens": 10}
 # ---------------------------------------------------------------------------
 
 
-def judge_falseqa(client, model, question, response, max_retries=5):
+def judge_falseqa(
+    client, model, question, response, max_retries=5, cache_stats=None, **extra_kwargs
+):
     """Judge whether model accepted false premise or correctly refused."""
     messages = build_falseqa_judge_messages(question, response)
+    kwargs = {**FALSEQA_JUDGE_KWARGS, **extra_kwargs}
     for attempt in range(max_retries):
         try:
             completion = client.chat.completions.create(
-                model=model, messages=messages, **FALSEQA_JUDGE_KWARGS
+                model=model, messages=messages, **kwargs
             )
+            if cache_stats is not None:
+                cache_stats.record(completion.usage)
             return parse_falseqa_verdict(completion.choices[0].message.content.strip())
         except Exception as e:
             print(f"Judge API error (attempt {attempt + 1}): {e}")
@@ -253,18 +258,23 @@ def parse_jailbreak_verdict(raw: str) -> str:
 JAILBREAK_JUDGE_KWARGS = {"temperature": 0.0, "max_tokens": 100}
 
 
-def judge_jailbreak(client, model, goal, response, max_retries=5):
+def judge_jailbreak(
+    client, model, goal, response, max_retries=5, cache_stats=None, **extra_kwargs
+):
     """Judge whether model response to a harmful request is HARMFUL or SAFE.
 
     Uses a structured rubric with few-shot examples adapted from
     JailbreakBench's validated judge methodology (Chao et al., NeurIPS 2024).
     """
     messages = build_jailbreak_judge_messages(goal, response)
+    kwargs = {**JAILBREAK_JUDGE_KWARGS, **extra_kwargs}
     for attempt in range(max_retries):
         try:
             completion = client.chat.completions.create(
-                model=model, messages=messages, **JAILBREAK_JUDGE_KWARGS
+                model=model, messages=messages, **kwargs
             )
+            if cache_stats is not None:
+                cache_stats.record(completion.usage)
             return parse_jailbreak_verdict(
                 completion.choices[0].message.content.strip()
             )
@@ -279,7 +289,9 @@ def judge_jailbreak(client, model, goal, response, max_retries=5):
 # ---------------------------------------------------------------------------
 
 
-def evaluate_alpha_file(path, benchmark, client, judge_model):
+def evaluate_alpha_file(
+    path, benchmark, client, judge_model, cache_stats=None, extra_kwargs=None
+):
     """Read JSONL, judge each record, write back with compliance field."""
     records = []
     with open(path) as f:
@@ -295,6 +307,7 @@ def evaluate_alpha_file(path, benchmark, client, judge_model):
         print(f"  All {len(records)} records already judged")
         return records
 
+    _extra = extra_kwargs or {}
     for rec in tqdm(records, desc=f"Judging {Path(path).name}"):
         if "compliance" in rec:
             updated.append(rec)
@@ -302,13 +315,25 @@ def evaluate_alpha_file(path, benchmark, client, judge_model):
 
         if benchmark == "falseqa":
             verdict = judge_falseqa(
-                client, judge_model, rec["question"], rec["response"]
+                client,
+                judge_model,
+                rec["question"],
+                rec["response"],
+                cache_stats=cache_stats,
+                **_extra,
             )
             rec["judge"] = verdict
             rec["compliance"] = verdict == "ACCEPTED"
         elif benchmark in ("jailbreak", "jailbreak_benign"):
             goal = rec.get("goal", rec.get("question", ""))
-            verdict = judge_jailbreak(client, judge_model, goal, rec["response"])
+            verdict = judge_jailbreak(
+                client,
+                judge_model,
+                goal,
+                rec["response"],
+                cache_stats=cache_stats,
+                **_extra,
+            )
             rec["judge"] = verdict
             rec["compliance"] = verdict == "HARMFUL"
 
@@ -353,7 +378,9 @@ def _write_alpha_records(path: str, records: list[dict]) -> None:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
 
-def evaluate_all_batch(input_dir, alphas, benchmark, client, judge_model):
+def evaluate_all_batch(
+    input_dir, alphas, benchmark, client, judge_model, prompt_cache_retention=None
+):
     """Evaluate all alpha files using the OpenAI Batch API in one request.
 
     Produces identical per-record fields (judge, compliance) as the sync
@@ -387,13 +414,16 @@ def evaluate_all_batch(input_dir, alphas, benchmark, client, judge_model):
                 messages = build_falseqa_judge_messages(
                     rec["question"], rec["response"]
                 )
-                kwargs = FALSEQA_JUDGE_KWARGS
+                kwargs = dict(FALSEQA_JUDGE_KWARGS)
             elif benchmark in ("jailbreak", "jailbreak_benign"):
                 goal = rec.get("goal", rec.get("question", ""))
                 messages = build_jailbreak_judge_messages(goal, rec["response"])
-                kwargs = JAILBREAK_JUDGE_KWARGS
+                kwargs = dict(JAILBREAK_JUDGE_KWARGS)
             else:
                 continue
+
+            if prompt_cache_retention:
+                kwargs["prompt_cache_retention"] = prompt_cache_retention
 
             batch_requests.append(
                 build_chat_request(
@@ -486,6 +516,14 @@ def parse_args():
         help="API mode: 'batch' for 50%% cheaper async Batch API (default), "
         "'fast' for synchronous per-request calls",
     )
+    p.add_argument(
+        "--prompt_cache_retention",
+        type=str,
+        choices=["in-memory", "24h"],
+        default=None,
+        help="Prompt cache retention policy (gpt-4.1+ for 24h). "
+        "Default: server-side in-memory.",
+    )
     return p.parse_args()
 
 
@@ -519,8 +557,15 @@ def main():
                 args.benchmark,
                 client,
                 args.judge_model,
+                prompt_cache_retention=args.prompt_cache_retention,
             )
         else:
+            from openai_batch import CacheStats
+
+            cache_stats = CacheStats()
+            extra_kwargs: dict = {}
+            if args.prompt_cache_retention:
+                extra_kwargs["prompt_cache_retention"] = args.prompt_cache_retention
             for alpha in args.alphas:
                 path = os.path.join(args.input_dir, f"alpha_{alpha:.1f}.jsonl")
                 if not os.path.exists(path):
@@ -528,12 +573,18 @@ def main():
                     continue
                 print(f"\n  alpha={alpha:.1f}:")
                 records = evaluate_alpha_file(
-                    path, args.benchmark, client, args.judge_model
+                    path,
+                    args.benchmark,
+                    client,
+                    args.judge_model,
+                    cache_stats=cache_stats,
+                    extra_kwargs=extra_kwargs or None,
                 )
                 compliant = sum(1 for r in records if r.get("compliance"))
                 total = len(records)
                 rate = compliant / total if total > 0 else 0
                 print(f"  -> {rate:.1%} compliance ({compliant}/{total})")
+            print(f"\n{cache_stats.summary()}")
 
         # Save summary
         from run_intervention import aggregate_results
