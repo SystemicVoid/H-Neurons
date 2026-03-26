@@ -26,6 +26,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -1825,7 +1826,7 @@ def plot_trajectory_heatmap(
     )
 
     fig, ax = plt.subplots(figsize=(6, max(8, len(sorted_ids) * 0.06)))
-    cmap = plt.cm.colors.ListedColormap([COLORS["coral"], COLORS["teal"]])  # type: ignore[attr-defined]
+    cmap = ListedColormap([COLORS["coral"], COLORS["teal"]])
     ax.imshow(matrix, aspect="auto", cmap=cmap, interpolation="nearest")
 
     # Subtype boundaries

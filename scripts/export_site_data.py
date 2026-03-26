@@ -138,7 +138,10 @@ def parse_failure_summary_from_record(record: dict[str, Any]) -> dict[str, Any]:
 def build_rate_points(results: dict[str, Any]) -> list[dict[str, Any]]:
     points: list[dict[str, Any]] = []
     for alpha in ALPHAS:
-        record = results[alpha_key(alpha)]
+        key = alpha_key(alpha)
+        if key not in results:
+            continue
+        record = results[key]
         compliance = compliance_summary_from_record(record)
         points.append(
             {
@@ -1142,9 +1145,10 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
     # --- Template breakdown from JSONL files ---
     all_rows_by_alpha: dict[float, list[dict[str, Any]]] = {}
     for alpha in ALPHAS:
-        all_rows_by_alpha[alpha] = load_jsonl(
-            jailbreak_dir / f"alpha_{alpha:.1f}.jsonl"
-        )
+        jsonl_path = jailbreak_dir / f"alpha_{alpha:.1f}.jsonl"
+        if not jsonl_path.exists():
+            continue
+        all_rows_by_alpha[alpha] = load_jsonl(jsonl_path)
 
     template_indices = sorted(
         {row["template_idx"] for rows in all_rows_by_alpha.values() for row in rows}
@@ -1152,7 +1156,7 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
     by_template: dict[str, Any] = {}
     for tidx in template_indices:
         template_points: list[dict[str, Any]] = []
-        for alpha in ALPHAS:
+        for alpha in all_rows_by_alpha:
             filtered = [
                 row for row in all_rows_by_alpha[alpha] if row["template_idx"] == tidx
             ]
