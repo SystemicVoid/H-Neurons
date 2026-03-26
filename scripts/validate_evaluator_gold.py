@@ -19,6 +19,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -78,6 +79,8 @@ def validate_benchmark(
     judge_model: str,
     threshold: float,
     output_dir: Path | None = None,
+    extra_judge_kwargs: dict | None = None,
+    request_delay: float = 0.0,
 ) -> tuple[bool, list[dict]]:
     config = BENCHMARK_CONFIG[benchmark]
     records = load_gold(config["fixture"])
@@ -119,16 +122,19 @@ def validate_benchmark(
     disagreements: list[dict] = []
     results: list[dict] = []
 
-    for rec in evaluable:
+    for i, rec in enumerate(evaluable):
         human = rec[config["label_field"]]
+        if i > 0 and request_delay > 0:
+            time.sleep(request_delay)
 
+        _extra = extra_judge_kwargs or {}
         if config["judge_fn"] == "falseqa":
             verdict = judge_falseqa(
-                client, judge_model, rec["question"], rec["response"]
+                client, judge_model, rec["question"], rec["response"], **_extra
             )
         elif config["judge_fn"] == "jailbreak":
             verdict = judge_jailbreak(
-                client, judge_model, rec["question"], rec["response"]
+                client, judge_model, rec["question"], rec["response"], **_extra
             )
         else:
             print(f"  ERROR: unknown judge_fn {config['judge_fn']!r}")
@@ -211,6 +217,8 @@ def validate_benchmark_batch(
     judge_model: str,
     threshold: float,
     output_dir: Path | None = None,
+    extra_judge_kwargs: dict | None = None,
+    request_delay: float = 0.0,
 ) -> tuple[bool, list[dict]]:
     """Batch API version of validate_benchmark.
 
@@ -472,6 +480,11 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--api_key", default=None)
     p.add_argument(
+        "--base_url",
+        default=None,
+        help="Override OpenAI base URL (e.g. https://api.deepinfra.com/v1/openai)",
+    )
+    p.add_argument(
         "--output_dir",
         type=Path,
         default=None,
@@ -490,18 +503,39 @@ def parse_args() -> argparse.Namespace:
         help="API mode: 'batch' for 50%% cheaper async Batch API (default), "
         "'fast' for synchronous per-request calls",
     )
+    p.add_argument(
+        "--judge_max_tokens",
+        type=int,
+        default=None,
+        help="Override max_tokens for judge calls (useful for reasoning models)",
+    )
+    p.add_argument(
+        "--request_delay",
+        type=float,
+        default=0.0,
+        help="Seconds to sleep between requests (rate-limit headroom)",
+    )
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
 
-    api_key = args.api_key or os.environ.get("OPENAI_API_KEY")
+    base_url = args.base_url
+    if base_url:
+        api_key = args.api_key or os.environ.get("DEEPINFRA_API_KEY")
+    else:
+        api_key = args.api_key or os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        print("ERROR: OpenAI API key required. Set OPENAI_API_KEY or --api_key")
+        print(
+            "ERROR: API key required. Set OPENAI_API_KEY (or DEEPINFRA_API_KEY with --base_url)"
+        )
         sys.exit(1)
 
-    client = OpenAI(api_key=api_key)
+    client_kwargs: dict = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    client = OpenAI(**client_kwargs)
 
     benchmarks = (
         list(BENCHMARK_CONFIG.keys()) if args.benchmark == "all" else [args.benchmark]
@@ -512,10 +546,20 @@ def main() -> None:
     )
     print(f"API mode: {args.api_mode}")
 
+    extra_judge_kwargs: dict = {}
+    if args.judge_max_tokens is not None:
+        extra_judge_kwargs["max_tokens"] = args.judge_max_tokens
+
     all_passed = True
     for bench in benchmarks:
         passed, results = validate_fn(
-            bench, client, args.judge_model, args.threshold, args.output_dir
+            bench,
+            client,
+            args.judge_model,
+            args.threshold,
+            args.output_dir,
+            extra_judge_kwargs=extra_judge_kwargs,
+            request_delay=args.request_delay,
         )
         if not passed:
             all_passed = False
