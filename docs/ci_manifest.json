@@ -38,10 +38,6 @@
         {
           "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
-        },
-        {
-          "file": "docs/bluedot-rapid-grant-2026.md",
-          "mode": "comment"
         }
       ]
     },
@@ -72,10 +68,6 @@
         },
         {
           "file": "data/gemma3_4b/pipeline/pipeline_report.md",
-          "mode": "comment"
-        },
-        {
-          "file": "docs/bluedot-rapid-grant-2026.md",
           "mode": "comment"
         }
       ]

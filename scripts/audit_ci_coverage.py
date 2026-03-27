@@ -419,7 +419,6 @@ def audit_text_surfaces(errors: list[str]) -> None:
         "site/deep-dives/swing-characterization.html",
         "data/gemma3_4b/pipeline/pipeline_report.md",
         "data/gemma3_4b/intervention_findings.md",
-        "docs/bluedot-rapid-grant-2026.md",
     )
     for file_path in files:
         text = (ROOT / file_path).read_text()
