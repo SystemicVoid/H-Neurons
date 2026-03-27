@@ -82,6 +82,51 @@ forces a resume. The rules below remain in effect:
 5. This applies to **all** benchmark output directories, not just jailbreak.
 </important>
 
+## OpenAI evaluation: batch mode is mandatory, fast mode is forbidden
+
+<important>
+All OpenAI API evaluation scripts (`evaluate_intervention.py`, `evaluate_csv2.py`)
+**must** use `--api-mode batch` (or `--api_mode batch`). Never use `--api-mode fast`
+(synchronous per-request mode).
+
+**Why batch mode is mandatory:**
+1. **Crash-safe.** The batch path saves a `.eval_batch_state.json` /
+   `.csv2_batch_state.json` state file per chunk. If the process dies, hits a quota
+   limit, or the machine reboots, re-running the same command resumes from where it
+   left off via `resume_or_submit()`. Zero work is lost.
+2. **50% cheaper.** OpenAI batch API is half-price vs synchronous.
+3. **No rate-limit cascade.** Batch requests are queued server-side and execute
+   within the quota window. Synchronous mode hammers the API and triggers 429s
+   that compound with exponential backoff, wasting wall-clock time.
+
+**Why fast mode is forbidden:**
+1. **All-or-nothing writes.** `evaluate_alpha_file()` reads the entire JSONL,
+   judges every record in memory, and writes the file only on completion. If the
+   process dies at record 190/500 (quota, OOM, Ctrl-C), all 190 judged results are
+   discarded. There is no incremental persistence.
+2. **Non-resumable.** There is no state file. A retry re-judges every record from
+   scratch, doubling the API cost.
+
+**Incident (2026-03-27):** Alpha=1.0 binary judge evaluation was run in fast mode.
+OpenAI quota was exhausted at ~190/500 records. All in-memory results were lost.
+The batch that was submitted earlier (31 requests) was also stuck at 0/31 completed
+due to the same quota issue. Total waste: ~190 judge calls ($) and ~30 minutes of
+wall-clock time, plus the need to re-run the entire 500-record evaluation.
+
+**In pipeline scripts**, always use batch mode:
+```bash
+# evaluate_intervention.py uses a hyphen:
+uv run python scripts/evaluate_intervention.py --api-mode batch ...
+
+# evaluate_csv2.py uses an underscore:
+uv run python scripts/evaluate_csv2.py --api_mode batch ...
+```
+
+Note the flag inconsistency between the two scripts (`--api-mode` vs `--api_mode`).
+Both default to batch, so omitting the flag is also acceptable. But if you spell it
+out, get the punctuation right — a wrong flag silently fails with an argparse error.
+</important>
+
 ## Future: isolate runs by directory
 
 The per-record reopen and the operational rules above are mitigations, not a root

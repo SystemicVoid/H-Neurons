@@ -4,6 +4,8 @@
 **Model:** `google/gemma-3-4b-it`
 **Related reports:** [intervention_findings.md](../../intervention_findings.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](jailbreak_interpretive_review.md), [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md)
 
+> **2026-03-27 Status**: This report covers the original 256-token/7-alpha runs, now superseded. The truncation audit is the active comprehensive document. Alpha=1.0 (identity baseline) has been added to the 5000-token experiment (500 records generated, binary judge + CSV-v2 evaluation pending API quota). See truncation audit Parts V-VI and Finding 29.
+
 ---
 
 ## Bottom Line

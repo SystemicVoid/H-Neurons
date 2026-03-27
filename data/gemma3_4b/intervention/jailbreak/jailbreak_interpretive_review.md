@@ -2,7 +2,9 @@
 
 **Date:** 2026-03-20
 **Model:** `google/gemma-3-4b-it`
-**Related reports:** [intervention_findings.md](../../intervention_findings.md), [jailbreak_pipeline_audit.md](jailbreak_pipeline_audit.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md)
+**Related reports:** [intervention_findings.md](../../intervention_findings.md), [jailbreak_pipeline_audit.md](jailbreak_pipeline_audit.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md), [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md)
+
+> **2026-03-27 Status**: This review covers the original 256-token/7-alpha analysis, now superseded. The stochastic-generation confound critique (Section 3) remains valid. The endpoint effect was falsified by 5000-token reruns then recovered by CSV-v2 graded evaluation (+7.6pp [+3.6, +11.6]). Alpha=1.0 identity baseline added; see truncation audit Finding 29.
 
 ---
 
