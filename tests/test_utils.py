@@ -230,6 +230,101 @@ class TestThroughputHelpers:
         assert "hook_mean_s" not in summary
         assert "hook_frac_of_generate" not in summary
 
+    def test_build_alpha_throughput_summary_ignores_cross_session_downtime(self):
+        records = [
+            {
+                "id": "run-1-a",
+                "timings": {
+                    "wall_start_ts": 10.0,
+                    "wall_end_ts": 11.0,
+                    "wall_total_s": 1.0,
+                    "generate_s": 0.5,
+                    "prompt_tokens": 4,
+                    "generated_tokens": 8,
+                    "throughput_session_id": "session-a",
+                },
+            },
+            {
+                "id": "run-1-b",
+                "timings": {
+                    "wall_start_ts": 13.0,
+                    "wall_end_ts": 14.0,
+                    "wall_total_s": 1.0,
+                    "generate_s": 0.5,
+                    "prompt_tokens": 4,
+                    "generated_tokens": 8,
+                    "throughput_session_id": "session-a",
+                },
+            },
+            {
+                "id": "run-2-a",
+                "timings": {
+                    "wall_start_ts": 100.0,
+                    "wall_end_ts": 101.0,
+                    "wall_total_s": 1.0,
+                    "generate_s": 0.5,
+                    "prompt_tokens": 4,
+                    "generated_tokens": 8,
+                    "throughput_session_id": "session-b",
+                },
+            },
+            {
+                "id": "run-2-b",
+                "timings": {
+                    "wall_start_ts": 103.0,
+                    "wall_end_ts": 104.0,
+                    "wall_total_s": 1.0,
+                    "generate_s": 0.5,
+                    "prompt_tokens": 4,
+                    "generated_tokens": 8,
+                    "throughput_session_id": "session-b",
+                },
+            },
+        ]
+
+        summary = build_alpha_throughput_summary(records)
+
+        assert summary["wall_measured_s"] == pytest.approx(4.0, abs=1e-4)
+        assert summary["wall_total_s"] == pytest.approx(8.0, abs=1e-4)
+        assert summary["samples_per_s_wall"] == pytest.approx(0.5, abs=1e-4)
+        assert summary["tokens_per_s_wall"] == pytest.approx(4.0, abs=1e-4)
+        assert summary["inter_sample_gap_count"] == 2
+        assert summary["inter_sample_gap_mean_s"] == pytest.approx(2.0, abs=1e-6)
+        assert summary["inter_sample_gap_p50_s"] == pytest.approx(2.0, abs=1e-6)
+        assert summary["inter_sample_gap_p95_s"] == pytest.approx(2.0, abs=1e-6)
+
+    def test_build_alpha_throughput_summary_uses_caller_wall_total_override(self):
+        records = [
+            {
+                "id": "s1",
+                "timings": {
+                    "wall_start_ts": 10.0,
+                    "wall_end_ts": 11.0,
+                    "wall_total_s": 1.0,
+                    "generate_s": 0.6,
+                    "prompt_tokens": 5,
+                    "generated_tokens": 10,
+                },
+            },
+            {
+                "id": "s2",
+                "timings": {
+                    "wall_start_ts": 13.0,
+                    "wall_end_ts": 14.0,
+                    "wall_total_s": 1.0,
+                    "generate_s": 0.6,
+                    "prompt_tokens": 5,
+                    "generated_tokens": 10,
+                },
+            },
+        ]
+
+        summary = build_alpha_throughput_summary(records, alpha_wall_total_s=10.0)
+
+        assert summary["wall_total_s"] == pytest.approx(10.0, abs=1e-4)
+        assert summary["samples_per_s_wall"] == pytest.approx(0.2, abs=1e-4)
+        assert summary["tokens_per_s_wall"] == pytest.approx(2.0, abs=1e-4)
+
     def test_build_sample_throughput_payload(self):
         payload = build_sample_throughput_payload(
             benchmark="jailbreak",

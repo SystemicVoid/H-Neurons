@@ -290,11 +290,14 @@ def finalize_sample_timings(
     wall_start_ts: float,
     wall_end_ts: float,
     hook_stats: dict[str, float | int] | None,
+    throughput_session_id: str | None = None,
 ) -> dict[str, Any]:
     final_timings = dict(timings)
     final_timings["wall_start_ts"] = round(wall_start_ts, 6)
     final_timings["wall_end_ts"] = round(wall_end_ts, 6)
     final_timings["wall_total_s"] = round(wall_end_ts - wall_start_ts, 4)
+    if throughput_session_id is not None:
+        final_timings["throughput_session_id"] = throughput_session_id
     if hook_stats is not None:
         final_timings["hook_s"] = round(float(hook_stats.get("hook_s", 0.0)), 6)
         final_timings["hook_calls"] = int(hook_stats.get("hook_calls", 0))
@@ -381,6 +384,49 @@ def _instrumented_timings(records: list[dict[str, Any]]) -> list[dict[str, Any]]
     ]
 
 
+def _timing_session_id(timing: dict[str, Any]) -> str:
+    session_id = timing.get("throughput_session_id")
+    return str(session_id) if session_id is not None else "__legacy__"
+
+
+def _session_aware_inter_sample_gaps(timings: list[dict[str, Any]]) -> list[float]:
+    gaps = []
+    for cur_t, next_t in zip(timings, timings[1:]):
+        if _timing_session_id(cur_t) != _timing_session_id(next_t):
+            continue
+        gaps.append(
+            max(0.0, float(next_t["wall_start_ts"]) - float(cur_t["wall_end_ts"]))
+        )
+    return gaps
+
+
+def _infer_wall_total_s_from_timings(timings: list[dict[str, Any]]) -> float:
+    if not timings:
+        return 0.0
+    wall_measured_s = sum(float(timing.get("wall_total_s", 0.0)) for timing in timings)
+    return round(wall_measured_s + sum(_session_aware_inter_sample_gaps(timings)), 4)
+
+
+def _build_alpha_wall_total_override(
+    records: list[dict[str, Any]],
+    *,
+    current_session_id: str,
+    current_session_wall_total_s: float,
+) -> float:
+    timings = sorted(
+        _instrumented_timings(records), key=lambda item: item["wall_start_ts"]
+    )
+    if not any(_timing_session_id(timing) == current_session_id for timing in timings):
+        return _infer_wall_total_s_from_timings(timings)
+    prior_timings = [
+        timing for timing in timings if _timing_session_id(timing) != current_session_id
+    ]
+    return round(
+        _infer_wall_total_s_from_timings(prior_timings) + current_session_wall_total_s,
+        4,
+    )
+
+
 def build_alpha_throughput_summary(
     records: list[dict[str, Any]],
     *,
@@ -401,11 +447,8 @@ def build_alpha_throughput_summary(
     prompt_tokens_total = sum(int(t.get("prompt_tokens", 0)) for t in timings)
     generate_total_s = round(sum(float(t.get("generate_s", 0.0)) for t in timings), 4)
     wall_measured_s = round(sum(float(t.get("wall_total_s", 0.0)) for t in timings), 4)
-    gaps = [
-        max(0.0, float(next_t["wall_start_ts"]) - float(cur_t["wall_end_ts"]))
-        for cur_t, next_t in zip(timings, timings[1:])
-    ]
-    inferred_wall_total_s = round(wall_measured_s + sum(gaps), 4)
+    gaps = _session_aware_inter_sample_gaps(timings)
+    inferred_wall_total_s = _infer_wall_total_s_from_timings(timings)
     wall_total_s = (
         round(alpha_wall_total_s, 4)
         if alpha_wall_total_s is not None
@@ -550,6 +593,7 @@ def finalize_record(
     alpha_idx: int,
     wandb_module=None,
     throughput_state: dict[str, int] | None = None,
+    throughput_session_id: str | None = None,
 ) -> dict[str, Any]:
     wall_end_ts = time.time()
     final_timings = finalize_sample_timings(
@@ -557,6 +601,7 @@ def finalize_record(
         wall_start_ts=wall_start_ts,
         wall_end_ts=wall_end_ts,
         hook_stats=_consume_scaler_sample_stats(scaler),
+        throughput_session_id=throughput_session_id,
     )
     record["timings"] = final_timings
     with open(out_path, "a") as f:
@@ -699,6 +744,7 @@ def run_faitheval(
     alpha_idx=0,
     throughput_state=None,
     benchmark_name="faitheval",
+    throughput_session_id: str | None = None,
 ):
     """Run FaithEval for a single alpha value. Returns compliance count."""
     out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
@@ -760,6 +806,7 @@ def run_faitheval(
             alpha_idx=alpha_idx,
             wandb_module=wandb_module,
             throughput_state=throughput_state,
+            throughput_session_id=throughput_session_id,
         )
 
     # Recount from file for accuracy (includes resumed records)
@@ -830,6 +877,7 @@ def run_falseqa(
     alpha_idx=0,
     throughput_state=None,
     benchmark_name="falseqa",
+    throughput_session_id: str | None = None,
 ):
     """Run FalseQA for a single alpha value. Saves responses; judging is separate."""
     out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
@@ -878,6 +926,7 @@ def run_falseqa(
             alpha_idx=alpha_idx,
             wandb_module=wandb_module,
             throughput_state=throughput_state,
+            throughput_session_id=throughput_session_id,
         )
 
 
@@ -931,6 +980,7 @@ def run_bioasq(
     alpha_idx=0,
     throughput_state=None,
     benchmark_name="bioasq",
+    throughput_session_id: str | None = None,
 ):
     """Run BioASQ factoid QA for a single alpha value.
 
@@ -990,6 +1040,7 @@ def run_bioasq(
             alpha_idx=alpha_idx,
             wandb_module=wandb_module,
             throughput_state=throughput_state,
+            throughput_session_id=throughput_session_id,
         )
 
 
@@ -1041,6 +1092,7 @@ def run_sycophancy_triviaqa(
     alpha_idx=0,
     throughput_state=None,
     benchmark_name="sycophancy_triviaqa",
+    throughput_session_id: str | None = None,
 ):
     """Two-turn sycophancy: ask → challenge → check if model flips."""
     out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
@@ -1122,6 +1174,7 @@ def run_sycophancy_triviaqa(
             alpha_idx=alpha_idx,
             wandb_module=wandb_module,
             throughput_state=throughput_state,
+            throughput_session_id=throughput_session_id,
         )
 
 
@@ -1239,6 +1292,7 @@ def run_jailbreak(
     alpha_idx=0,
     throughput_state=None,
     benchmark_name="jailbreak",
+    throughput_session_id: str | None = None,
 ):
     """Run Jailbreak for a single alpha. Saves responses; GPT-4o judging is separate."""
     out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
@@ -1292,6 +1346,7 @@ def run_jailbreak(
             alpha_idx=alpha_idx,
             wandb_module=wandb_module,
             throughput_state=throughput_state,
+            throughput_session_id=throughput_session_id,
         )
 
 
@@ -1548,6 +1603,7 @@ def main():
         "classifier": args.classifier_path,
     }
     run_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    throughput_session_id = f"run_intervention:{run_ts}"
     summary_path = os.path.join(output_dir, f"results.{run_ts}.json")
     provenance_handle = start_run_provenance(
         args,
@@ -1746,6 +1802,7 @@ def main():
             print(f"\n{'=' * 60}")
             print(f"Running α = {alpha:.1f}")
             print(f"{'=' * 60}")
+            alpha_wall_t0 = time.perf_counter()
             run_fn(
                 model,
                 tokenizer,
@@ -1758,12 +1815,21 @@ def main():
                 alpha_idx=alpha_idx,
                 throughput_state=throughput_state,
                 benchmark_name=args.benchmark,
+                throughput_session_id=throughput_session_id,
                 **extra_kwargs,
             )
+            alpha_wall_total_s = round(time.perf_counter() - alpha_wall_t0, 4)
             alpha_records = _load_records(
                 os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
             )
-            alpha_summary = build_alpha_throughput_summary(alpha_records)
+            alpha_summary = build_alpha_throughput_summary(
+                alpha_records,
+                alpha_wall_total_s=_build_alpha_wall_total_override(
+                    alpha_records,
+                    current_session_id=throughput_session_id,
+                    current_session_wall_total_s=alpha_wall_total_s,
+                ),
+            )
             alpha_throughput[str(alpha)] = alpha_summary
             if wb_run is not None and wandb_module is not None:
                 wandb_module.log(
