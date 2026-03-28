@@ -785,7 +785,6 @@ The α=1.0 identity baseline enables a clean decomposition of the total H-neuron
 1. H-neurons have a **two-sided causal role**: suppressing them reduces harmful compliance (ablation), amplifying them escalates severity (amplification).
 2. The count effect and severity effect have different dose-response curves: count saturates quickly (most effect below α=1.0), severity escalates linearly through α=3.0.
 3. A binary metric would see only a weak effect (the count component), missing the severity component entirely. CSV-v2's continuous axes (V, S, payload share) are necessary to detect the full intervention signal.
-4. The **negative control gap** is now more urgent: both the count and severity effects need H-neuron specificity confirmation. A random-neuron CSV-v2 evaluation would be the decisive experiment.
 
 ---
 
