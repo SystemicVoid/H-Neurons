@@ -23,6 +23,10 @@ from extract_activations import (  # noqa: E402
     load_existing_activation_summary,
     scan_existing_activation_norms,
 )
+from run_intervention import (  # noqa: E402
+    build_alpha_throughput_payload,
+    define_run_intervention_wandb_metrics,
+)
 from utils import (  # noqa: E402
     define_wandb_metrics,
     finish_run_provenance,
@@ -213,6 +217,127 @@ class TestWandbHelpers:
         assert fake_wandb.run.artifacts[0].files == [
             (str(summary_path), summary_path.name)
         ]
+
+    def test_run_intervention_defines_sample_and_alpha_metrics(self):
+        fake_wandb = self.FakeWandb()
+
+        define_run_intervention_wandb_metrics(fake_wandb)
+
+        assert fake_wandb.defined_metrics == [
+            ("throughput/sample_idx", {}),
+            (
+                "throughput/sample/generate_s",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/wall_total_s",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/generated_tokens",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/prompt_tokens",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/tokens_per_s_generate",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/tokens_per_s_wall",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/hook_s",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/hook_calls",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/hook_frac_of_generate",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            (
+                "throughput/sample/hit_token_cap",
+                {"step_metric": "throughput/sample_idx"},
+            ),
+            ("throughput/alpha_idx", {}),
+            (
+                "throughput/alpha/value",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/samples_completed",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/wall_total_s",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/samples_per_s_wall",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/tokens_per_s_wall",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/tokens_per_s_generate",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/mean_generated_tokens",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/inter_sample_gap_mean_s",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/hook_frac_of_generate",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+            (
+                "throughput/alpha/instrumented_coverage",
+                {"step_metric": "throughput/alpha_idx"},
+            ),
+        ]
+
+    def test_build_alpha_throughput_payload_is_scalar_only(self):
+        payload = build_alpha_throughput_payload(
+            alpha=3.0,
+            alpha_idx=4,
+            throughput_summary={
+                "samples_completed": 12,
+                "wall_total_s": 30.5,
+                "samples_per_s_wall": 0.3934,
+                "tokens_per_s_wall": 18.2,
+                "tokens_per_s_generate": 19.7,
+                "mean_generated_tokens": 555.0,
+                "inter_sample_gap_mean_s": 0.021,
+                "hook_frac_of_generate": 0.031,
+                "instrumented_coverage": 1.0,
+            },
+        )
+
+        assert payload == {
+            "throughput/alpha_idx": 4,
+            "throughput/alpha/value": 3.0,
+            "throughput/alpha/samples_completed": 12,
+            "throughput/alpha/wall_total_s": 30.5,
+            "throughput/alpha/samples_per_s_wall": 0.3934,
+            "throughput/alpha/tokens_per_s_wall": 18.2,
+            "throughput/alpha/tokens_per_s_generate": 19.7,
+            "throughput/alpha/mean_generated_tokens": 555.0,
+            "throughput/alpha/inter_sample_gap_mean_s": 0.021,
+            "throughput/alpha/hook_frac_of_generate": 0.031,
+            "throughput/alpha/instrumented_coverage": 1.0,
+        }
 
     def test_summarize_numeric_values_handles_empty_and_non_empty(self):
         assert summarize_numeric_values([])["count"] == 0
