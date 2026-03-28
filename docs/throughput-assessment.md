@@ -419,10 +419,10 @@ tok/s is consistent across caps and alphas -- the decode engine runs at the same
 
 | Gap | Why it matters | Fix cost |
 |---|---|---|
-| **Inter-sample wall-clock gap** | Time between sample N finishing and sample N+1's `generate()` starting -- includes JSONL write, tqdm update, W&B overhead, GC, any allocator work. Currently invisible because `total_s` only covers inside `generate_response()`. | Cheap: add `time.time()` at loop iteration start/end, store as `wall_start_ts` / `wall_end_ts`. |
-| **Per-alpha aggregate timing** | No per-alpha wall clock, tokens/sec, or samples/sec is computed or logged. The doc called for this but it was never implemented. | Cheap: accumulate in the alpha loop, log to W&B and summary. |
-| **Real-time W&B streaming** | Per-sample timings go to JSONL but not to W&B during the run. Cannot monitor throughput live except by parsing JSONL externally. | Cheap: `wandb.log()` per sample with `generate_s`, `generated_tokens`, tok/s. |
-| **Hook overhead per decode step** | The doc identifies 23 Python callbacks per decode step as the main avoidable cost, but there is no measurement. Cannot separate hook time from pure GPU decode time inside `generate_s`. | Medium: add cumulative timer inside `HNeuronScaler.__call__`, report total hook time per sample. |
+| **Inter-sample wall-clock gap** | Now measurable from `wall_start_ts` / `wall_end_ts` in JSONL. Gap is computed as sample N+1 `wall_start_ts` minus sample N `wall_end_ts`, so it captures JSONL write, tqdm refresh, W&B logging, GC, and similar host-side bookkeeping. | Implemented |
+| **Per-alpha aggregate timing** | Now computed into the run summary and streamable to W&B: wall time, samples/sec, mean tok/s, mean generated tokens, gap stats, hook share. | Implemented |
+| **Real-time W&B streaming** | Per-sample throughput is now streamable during the run via `wandb.log()`. | Implemented |
+| **Hook overhead per decode step** | `HNeuronScaler` now accumulates Python callback time and hook call count per sample. This isolates callback tax, not the full GPU-side cost of the intervention. | Implemented |
 | **GPU utilization per sample** | Only available from external `nvitop` snapshots, not correlated with individual samples. | Medium: `pynvml` query at sample boundaries, or correlate nvitop log timestamps with sample timestamps (requires wall-clock timestamps above). |
 | **Memory allocator behaviour** | No visibility into CUDA allocator fragmentation, cache flushes, or GC pauses over time. | Low priority given zero drift observed. |
 
@@ -433,10 +433,10 @@ tok/s is consistent across caps and alphas -- the decode engine runs at the same
 | Per-sample prompt token count | Done -- in JSONL |
 | Per-sample generated token count | Done -- in JSONL |
 | Per-sample time in `model.generate()` | Done -- `generate_s` |
-| Per-sample time outside `model.generate()` | **Missing** -- need wall-clock timestamps |
-| Per-alpha average generated length | **Missing** -- not computed |
-| Per-alpha tokens/sec | **Missing** -- not computed |
-| Per-alpha samples/sec | **Missing** -- not computed |
+| Per-sample time outside `model.generate()` | Done -- `wall_start_ts`, `wall_end_ts`, and derived inter-sample gap |
+| Per-alpha average generated length | Done -- in summary throughput block |
+| Per-alpha tokens/sec | Done -- in summary throughput block and W&B |
+| Per-alpha samples/sec | Done -- in summary throughput block and W&B |
 | A/B: current hooks vs no-op | **Not run** |
 | A/B: current hooks vs refactored intervention | **Not run** |
 
@@ -455,19 +455,19 @@ tok/s is consistent across caps and alphas -- the decode engine runs at the same
 
 ### Tier 1 -- Instrument before optimising
 
-These cost minutes of engineering and unblock every decision below.
+These are now implemented in `scripts/run_intervention.py`.
 
-1. **Add wall-clock timestamps per sample** -- `time.time()` at loop iteration start/end, stored alongside `timings`. Makes inter-sample gaps and per-alpha aggregates computable. Unblocks correlation with W&B GPU dips.
+1. **Add wall-clock timestamps per sample** -- done. Inter-sample gaps are now derivable from persisted timestamps.
 
-2. **Add per-alpha summary** -- after each alpha completes, compute and log: wall time, samples/sec, mean tok/s, mean generated tokens. Stream to W&B if `--wandb`.
+2. **Add per-alpha summary** -- done. Throughput aggregates now land in the summary JSON and W&B.
 
-3. **Stream per-sample metrics to W&B** -- `wandb.log()` with `generate_s`, `generated_tokens`, tok/s per sample. Enables live monitoring and post-hoc correlation with GPU traces.
+3. **Stream per-sample metrics to W&B** -- done. Live throughput metrics no longer require external JSONL parsing.
 
 ### Tier 2 -- Measure the hook tax
 
 Cannot justify Tier 3 without this data.
 
-4. **Add cumulative hook timer in `HNeuronScaler`** -- `time.perf_counter()` around the hook body, accumulate total, report per sample. This finally answers "how much of `generate_s` is Python hook overhead?"
+4. **Add cumulative hook timer in `HNeuronScaler`** -- done. Next step is to run the A/B experiment and see whether the measured hook share is large enough to justify refactoring the intervention path.
 
 5. **Run the A/B comparison** -- 50-sample slice, same seed: (a) current hooks, (b) hooks fully removed (`alpha=1.0`, no hooks installed), (c) wrapped `down_proj` forward. Compare tok/s. This is the decisive experiment for whether hook-path cleanup is worth doing.
 
