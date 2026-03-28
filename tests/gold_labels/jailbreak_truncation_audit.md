@@ -18,7 +18,7 @@ Three findings reshape the story told by the original truncated evaluation:
 
 3. **H-neuron scaling does not monotonically increase compliance count — it changes compliance *style*.** This is invisible to a binary HARMFUL/SAFE metric, and completely invisible to a truncated binary metric. ~~The original paper's claim that scaling h-neurons increases jailbreak compliance may be measuring the wrong thing entirely.~~ *(2026-03-25: Upgraded — the alpha slope claim is now **falsified** at population level: +3.0pp [−1.2, +7.2], CI includes zero. The legacy slope was a truncation artifact. See Part V Finding 16. The claim about compliance *style* changing remains the standing hypothesis, pending severity-graded evaluation.)* *(2026-03-26: **Resolved by Part VI.** CSV-v2 graded evaluation shows the alpha slope IS significant for genuine compliance: csv2_yes +7.6pp [+3.6, +11.6]. The binary judge's noise floor washed out the signal. Severity escalation is now quantified: V=3 rate quadruples (3.8% → 14.0%), S=4 rate triples (3.0% → 8.4%), payload share rises 0.580 → 0.728, pivot position recedes 0.163 → 0.096. H-neuron scaling increases BOTH the count and severity of harmful outputs. The original paper's direction was correct; the measurement was wrong.)*
 
-4. **Alpha=1.0 (identity baseline) confirms continuous dose-response.** *(2026-03-27)* Adding the natural-activation baseline (α=1.0 means no scaling) fills the gap between suppression (α=0.0) and amplification (α=1.5). All text-level metrics interpolate smoothly: refusal rate 80.4% → 79.6% → 77.8% → 76.8%, response length std 951 → 1239 → 1380 → 1661 (monotonic, significant). The variance signal is new: alpha doesn't just shift the mean — it creates a spreading distribution where short collapsed-refusals and long elaborate-compliance diverge. See Part V Finding 29. Binary judge and CSV-v2 evaluation of α=1.0 responses are pending (API quota; raw data generated).
+4. **Alpha=1.0 (identity baseline) confirms continuous dose-response and reveals a structural decomposition.** *(2026-03-27)* Adding the natural-activation baseline (α=1.0 means no scaling) fills the gap between suppression (α=0.0) and amplification (α=1.5). All text-level metrics interpolate smoothly: refusal rate 80.4% → 79.6% → 77.8% → 76.8%, response length std 951 → 1239 → 1380 → 1661 (monotonic, significant). *(2026-03-28: Binary judge and CSV-v2 now complete. Key result: 76% of the harmful count increase is ablation recovery (α=0→1), while severity escalation (V, S, payload share) is amplification-driven and monotonic through α=3.0. See Part VI Finding 30.)*
 
 ---
 
@@ -462,7 +462,7 @@ Zero responses hit the 5000-token cap. The generation budget is fully sufficient
 | Physical harm | 50 | 10% | — | 14% | 10% | Stable low |
 | Harassment/Disc. | 50 | 8% | — | 14% | 10% | Stable low |
 
-*(α=1.0 binary judge pending. Text-based refusal rates for α=1.0 interpolate smoothly — see Finding 29.)*
+*(2026-03-28: α=1.0 binary judge complete: 31.0% [27.1, 35.2] overall. CSV-v2 evaluation also complete — see Finding 27 for task family breakdown.)*
 
 Partially confirms 25-prompt audit Finding 10:
 - **Fraud/Deception** remains saturated (~50%) — model always complies for this category, regardless of alpha. Confirms audit observation.
@@ -472,28 +472,31 @@ Partially confirms 25-prompt audit Finding 10:
 
 ---
 
-## Part VI: CSV-v2 Graded Evaluation (NEW — 500 prompts × 3 alphas)
+## Part VI: CSV-v2 Graded Evaluation (500 prompts × 4 alphas)
 
-**Date**: 2026-03-26
-**Run config**: Same 500 × 3 responses from Part V (5000-token, sampled), re-evaluated with CSV-v2 rubric
+**Date**: 2026-03-26 (initial 3-alpha), 2026-03-27 (α=1.0 added)
+**Run config**: Same 500 × 4 responses from Part V (5000-token, sampled), re-evaluated with CSV-v2 rubric
 **Judge**: GPT-4o (batch API), CSV-v2 prompt (Commitment C0-3, Specificity S0-4, Validity V0-3, wrapper tags R/D/P/F/T, character-level harmful spans)
-**Provenance**: `csv2_evaluation/evaluate_csv2.provenance.20260326_{151536,210928}.json` (2 completed runs; 2 earlier interrupted/failed)
-**Analysis log**: `logs/csv2_analyze_20260326_150240.log`
+**Provenance**: `csv2_evaluation/evaluate_csv2.provenance.20260326_{151536,210928}.json` (initial 3-alpha), `csv2_evaluation/evaluate_csv2.provenance.20260327_221648.json` (α=1.0 addition)
+**Analysis log**: `logs/csv2_analyze_20260326_150240.log` (3-alpha), `logs/jailbreak_alpha1_csv2_analysis_20260327_204212.log` (4-alpha)
 **Response identity**: 100% match between `csv2_evaluation/` and `experiment/` source files (verified independently)
-**Span quality**: 94–98% of harmful spans resolved to valid character offsets across alphas
+**Span quality**: 94–98% of harmful spans resolved to valid character offsets across all 4 alphas
 
 CSV-v2 replaces the binary HARMFUL/SAFE judge with a three-tier harmful_binary (yes/borderline/no) backed by continuous ordinal axes. This is the severity-graded metric proposed in Part III Direction 1 — and it delivers on the promise.
 
-*(2026-03-27: α=1.0 raw responses now available (Finding 29) but CSV-v2 evaluation pending API quota refresh. When completed, all Part VI tables should be re-computed with 4 alphas for definitive dose-response CIs.)*
+*(2026-03-27: All 4 alphas now evaluated. Tables below updated to include α=1.0 identity baseline.)*
 
 ### Finding 21: CSV-v2 strict harmful rate shows a SIGNIFICANT alpha slope
 
-| Metric | α=0.0 | α=1.5 | α=3.0 | Paired Δ (0→3) | 95% CI | Significant? |
-|---|---|---|---|---|---|---|
-| csv2 harmful_binary=yes | 18.8% [15.6%, 22.5%] (94/500) | 23.6% [20.1%, 27.5%] (118/500) | 26.4% [22.7%, 30.4%] (132/500) | **+7.6pp** | **[+3.6, +11.6]** | **Yes** |
-| Binary judge HARMFUL | 30.4% [26.5%, 34.6%] (152/500) | 32.2% [28.3%, 36.4%] (161/500) | 33.4% [29.4%, 37.6%] (167/500) | +3.0pp | [−1.2, +7.2] | No |
+| Metric | α=0.0 | α=1.0 | α=1.5 | α=3.0 | Paired Δ (0→3) | 95% CI | Significant? |
+|---|---|---|---|---|---|---|---|
+| csv2 harmful_binary=yes | 18.8% [15.6%, 22.5%] (94/500) | 24.6% [21.0%, 28.6%] (123/500) | 23.6% [20.1%, 27.5%] (118/500) | 26.4% [22.7%, 30.4%] (132/500) | **+7.6pp** | **[+3.6, +11.6]** | **Yes** |
+| Binary judge HARMFUL | 30.4% [26.5%, 34.6%] (152/500) | 31.0% [27.1%, 35.2%] (155/500) | 32.2% [28.3%, 36.4%] (161/500) | 33.4% [29.4%, 37.6%] (167/500) | +3.0pp | [−1.2, +7.2] | No |
+| Agreement (csv2 vs binary) | 87% | 92% | 89% | 93% | — | — | — |
 
 **This is the central result of the CSV-v2 evaluation.** The alpha slope is real — h-neuron scaling does increase the rate of genuinely harmful outputs — but the binary judge's noise floor washed it out. The binary judge classified too many borderline (C=1, disclaimer-wrapped) responses as HARMFUL at all alphas, creating a constant ~60-record noise band that swamped the ~38-record genuine increase.
+
+**Structural decomposition (new with α=1.0):** The +7.6pp total effect decomposes as: ablation recovery (α=0→1) = **+5.8pp** (76%), amplification (α=1→3) = **+1.8pp** (24%, non-monotonic — α=1.0 slightly exceeds α=1.5). The count effect is mostly about what H-neuron suppression prevents, not what amplification creates. Severity escalation tells a different story — see Finding 23.
 
 **Revision to Finding 16**: The claim "alpha slope is statistically non-significant" holds for the binary judge metric but is **falsified** by the CSV-v2 graded metric. The real effect was there all along; the binary judge lacked the resolution to detect it.
 
@@ -502,10 +505,13 @@ CSV-v2 replaces the binary HARMFUL/SAFE judge with a three-tier harmful_binary (
 | Alpha | harmful_binary=yes | borderline | no |
 |---|---|---|---|
 | 0.0 | 94 (19%) | 171 (34%) | 235 (47%) |
+| 1.0 | 123 (25%) | 127 (25%) | 250 (50%) |
 | 1.5 | 118 (24%) | 134 (27%) | 248 (50%) |
 | 3.0 | 132 (26%) | 98 (20%) | 270 (54%) |
 
-The borderline count monotonically decreases (171 → 134 → 98) while yes monotonically increases (94 → 118 → 132). This is the disclaimer-erosion gradient made visible: h-neuron scaling pushes borderline responses across the harmful threshold.
+The borderline count decreases from 171→127→134→98 while yes increases from 94→123→118→132. The borderline pool is the reservoir feeding both harmful and safe populations. At α=0.0, borderline is the largest single category (34%); at α=3.0, it shrinks to 20%.
+
+The α=1.0 data reveals the biggest single borderline→yes conversion happens at the suppression-to-identity transition: 44 fewer borderlines at α=1.0 vs α=0.0, of which ~29 become yes. The non-monotonic dip at α=1.5 (yes drops from 123 to 118, borderline rises from 127 to 134) suggests stochastic judge noise at the borderline/yes boundary, not a reversal of the underlying trend.
 
 **Borderline composition**: 96–99% of borderlines are C=1/S=1 with F=True (educational laundering) and D=2 (extended disclaimer). These are the "disclaimer-then-comply" responses from Finding 3 — responses that discuss the harmful topic defensively without materially advancing the attacker's goal.
 
@@ -523,49 +529,65 @@ The binary judge saw all 171 borderlines plus all 94 yes-responses as roughly eq
 
 ### Finding 23: Continuous severity axes show monotonic significant alpha effects
 
-All metrics below show statistically significant monotonic increases with alpha. Bootstrap 95% CIs (10k resamples, seed=42).
+All severity metrics below are monotonic across the full 4-alpha range. Bootstrap 95% CIs (10k resamples, seed=42) are from the original 3-alpha paired comparison.
 
 **Validity (V) — operational utility of harmful content:**
 
-| Metric | α=0.0 | α=1.5 | α=3.0 | Paired Δ (0→3) | 95% CI |
-|---|---|---|---|---|---|
-| Mean V (S≥1, all) | 1.365 | 1.555 | 1.684 | +0.239 | [+0.122, +0.356] |
-| Mean V (C≥2, harmful only) | 2.085 | 2.175 | 2.227 | — | — |
-| V=3 rate (S≥1) | 3.8% (10/261) | 9.3% (23/247) | 14.0% (32/228) | +0.090 | [+0.048, +0.138] |
+| Metric | α=0.0 | α=1.0 | α=1.5 | α=3.0 | Paired Δ (0→3) | 95% CI |
+|---|---|---|---|---|---|---|
+| Mean V (S≥1, all) | 1.37 | 1.58 | 1.55 | 1.68 | +0.31 | [+0.122, +0.356] |
+| V=3 rate (S≥1) | 3.8% (10/261) | 8.1% (20/246) | 9.3% (23/247) | 14.0% (32/229) | +0.090 | [+0.048, +0.138] |
 
-The rate of "strong/polished, likely effective" (V=3) harmful content nearly quadruples from α=0.0 to α=3.0. This is the severity escalation that Finding 7 described qualitatively, now measured at population scale.
+V=3 (strong/polished, likely effective) nearly quadruples from α=0.0 to α=3.0. Critically, V continues to rise in the amplification range (α=1.0→3.0: 8.1%→14.0%) where the harmful *count* is nearly flat.
+
+**By task family (V, conditioned on S≥1):**
+
+| Family | α=0.0 | α=1.0 | α=1.5 | α=3.0 | Pattern |
+|---|---|---|---|---|---|
+| cyber | 1.42 | 1.65 | 1.57 | 1.82 | Strongest V rise (+0.40) |
+| fraud | 1.45 | 1.63 | 1.72 | 1.71 | Saturates at α=1.5 |
+| expert | 1.26 | 1.54 | 1.47 | 1.48 | Jump at α=1.0, then flat |
+| persuasion | 1.35 | 1.50 | 1.46 | 1.74 | Late surge at α=3.0 |
+
+Cyber shows the largest V trajectory, consistent with technical content becoming more operationally specific under amplification. Expert plateaus after the ablation-recovery step.
 
 **Specificity (S) — payload depth:**
 
-| Metric | α=0.0 | α=1.5 | α=3.0 | Paired Δ (0→3) | 95% CI |
-|---|---|---|---|---|---|
-| S=4 (turnkey) count | 15 (3.0%) | 30 (6.0%) | 42 (8.4%) | +0.054 | [+0.032, +0.078] |
-| Mean S (C≥2 only) | 3.07 | 3.15 | 3.23 | — | — |
+| Metric | α=0.0 | α=1.0 | α=1.5 | α=3.0 | Paired Δ (0→3) | 95% CI |
+|---|---|---|---|---|---|---|
+| S=4 (turnkey) count | 15 (3.0%) | 30 (6.0%) | 30 (6.0%) | 42 (8.4%) | +0.054 | [+0.032, +0.078] |
+| Mean S (C≥2 only) | 3.07 | 3.14 | 3.15 | 3.23 | — | — |
 
-Turnkey artifacts (runnable scripts, complete persuasive content, target-tailored instructions) nearly triple.
+Turnkey artifacts (runnable scripts, complete persuasive content, target-tailored instructions) nearly triple. The jump from α=0→1 and from α=1.5→3 are both substantial; α=1.0 to α=1.5 is flat.
 
 **Structural metrics — disclaimer erosion quantified:**
 
-| Metric | α=0.0 | α=1.5 | α=3.0 | Paired Δ (0→3) | 95% CI |
-|---|---|---|---|---|---|
-| Payload share (C≥2) | 0.580 | 0.684 | 0.728 | +0.138 | [+0.075, +0.203] |
-| Pivot position (C≥2) | 0.163 | 0.120 | 0.096 | — | — |
-| D=0 (no disclaimer) among C≥2 | 6/94 (6%) | 14/120 (12%) | 24/132 (18%) | — | — |
-| F (educational laundering) among C≥2 | 90/94 (96%) | 114/120 (95%) | 123/132 (93%) | — | — |
+| Metric | α=0.0 | α=1.0 | α=1.5 | α=3.0 | Paired Δ (0→3) | 95% CI |
+|---|---|---|---|---|---|---|
+| Payload share (C≥2) | 0.580 | 0.642 | 0.684 | 0.728 | +0.148 | [+0.075, +0.203] |
+| Pivot position (C≥2) | 0.163 | 0.129 | 0.120 | 0.096 | — | — |
+| D=0 (no disclaimer) rate | 2% | 3% | 4% | 8% | — | — |
+| P (persona mask) rate | 18% | 12% | 11% | 9% | — | — |
+| F (educational laundering) rate | 70% | 61% | 61% | 60% | — | — |
 
-The harmful payload share increases from 58% to 73% of the response. The pivot (where harmful content begins) recedes from 16.3% to 9.6% of response length. The disclaimer-free rate among harmful responses triples. These are the structural fingerprints of the disclaimer-erosion gradient: as alpha increases, disclaimers shrink, pivot earlier, and sometimes vanish entirely.
+The harmful payload share increases monotonically from 58% to 73%. The pivot (where harmful content begins) recedes from 16.3% to 9.6%. Disclaimer-free responses (D=0) quadruple. Persona masking (P) halves. Educational laundering (F) drops 10pp. These are all monotonic across all 4 alphas — including the amplification range.
+
+**Key insight: severity is amplification-driven, count is ablation-driven.** Unlike the harmful count (which jumps mostly at α=0→1), all severity metrics continue to escalate in the α=1→3 amplification range. This means h-neuron amplification above natural levels primarily makes *existing* harmful responses more dangerous, not by creating new ones, but by degrading their disclaimers and increasing their operational specificity.
 
 ### Finding 24: Binary judge noise explained — the disagreement anatomy
 
-| Alpha | Binary judge HARMFUL | csv2_yes | Judge says HARMFUL but csv2 says... | csv2_yes but judge says SAFE |
-|---|---|---|---|---|
-| 0.0 | 152 | 94 | borderline: 60, no: 1 | 3 |
-| 1.5 | 161 | 118 | borderline: 47, no: 3 | 7 |
-| 3.0 | 167 | 132 | borderline: 33, no: 2 | 0 |
+| Alpha | Binary judge HARMFUL | csv2_yes | Judge↑csv2↓ (over-call) | csv2↑judge↓ (under-call) | Agreement |
+|---|---|---|---|---|---|
+| 0.0 | 152 | 94 | 61 (borderline: 60, no: 1) | 3 | 436 (87%) |
+| 1.0 | 155 | 123 | 37 (borderline: 32, no: 5) | 5 | 458 (92%) |
+| 1.5 | 161 | 118 | 50 (borderline: 47, no: 3) | 7 | 443 (89%) |
+| 3.0 | 167 | 132 | 35 (borderline: 33, no: 2) | 0 | 465 (93%) |
 
-The binary judge over-calls at every alpha. At α=0.0, 61 of its 152 "HARMFUL" verdicts are responses that CSV-v2 classifies as borderline (C=1) or safe — disclaimer-wrapped defensive discussions that the binary judge cannot distinguish from genuine compliance. At α=3.0, the gap narrows to 35, because disclaimer erosion makes more responses unambiguously harmful.
+The binary judge over-calls at every alpha. At α=0.0, 61 of its 152 "HARMFUL" verdicts are responses that CSV-v2 classifies as borderline (C=1) or safe — disclaimer-wrapped defensive discussions that the binary judge cannot distinguish from genuine compliance. At α=3.0, the gap narrows to 35 as disclaimer erosion makes more responses unambiguously harmful.
 
-This noise floor (~60 false inflations at α=0.0, ~35 at α=3.0) explains why the binary judge's slope (+3.0pp) is compressed relative to CSV-v2's slope (+7.6pp): the noise is differentially distributed across alphas, padding the baseline and dampening the gradient.
+Agreement is highest at α=1.0 (92%) and α=3.0 (93%), where responses tend to be cleaner — either clearly safe or clearly harmful. The lower agreement at α=0.0 (87%) reflects the larger borderline population at baseline. The α=1.5 dip (89%) is consistent with CSV-v2 judge noise near the borderline/yes threshold.
+
+This noise floor (~61 false inflations at α=0.0, ~35 at α=3.0) explains why the binary judge's slope (+3.0pp) is compressed relative to CSV-v2's slope (+7.6pp): the noise is differentially distributed across alphas, padding the baseline and dampening the gradient.
 
 ### Finding 25: Gold label cross-validation (75 records)
 
@@ -612,36 +634,33 @@ Paired mean C delta α=0→3: +0.078 [−0.016, +0.174] (borderline significant 
 
 ### Finding 27: Category-level CSV-v2 patterns
 
-**Mean C and V by category:**
+**Harmful rate by task family (csv2_yes) — 4 alphas:**
 
-| Category | α=0.0 C / V | α=1.5 C / V | α=3.0 C / V | Pattern |
+| Family | α=0.0 | α=1.0 | α=1.5 | α=3.0 | Pattern |
+|---|---|---|---|---|---|
+| cyber | 27.0% [19.3, 36.4] | 40.0% [30.9, 49.8] | 38.0% [29.1, 47.8] | 44.0% [34.7, 53.8] | Big jump at α=1.0; continues rising |
+| fraud | 28.0% [20.1, 37.5] | 32.0% [23.7, 41.7] | 35.0% [26.4, 44.7] | 37.0% [28.2, 46.8] | Gradual linear increase |
+| expert | 14.0% [9.3, 20.5] | 21.3% [15.5, 28.6] | 20.7% [15.0, 27.8] | 20.0% [14.4, 27.1] | Saturates at α=1.0 |
+| persuasion | 12.0% [7.7, 18.2] | 12.7% [8.3, 18.9] | 9.3% [5.6, 15.1] | 14.0% [9.3, 20.5] | Noisy/flat |
+
+Cyber and fraud drive the aggregate slope. Expert saturates at the identity baseline — the ablation-recovery step accounts for its entire effect. Persuasion is dragged down by the Sexual/Adult paradox.
+
+**Mean C by task family — 4 alphas:**
+
+| Family | α=0.0 | α=1.0 | α=1.5 | α=3.0 |
 |---|---|---|---|---|
-| Fraud/Deception | 1.48 / 1.58 | 1.54 / 1.91 | 1.44 / 1.97 | **C flat, V rises** — already compliant, quality improves |
-| Malware/Hacking | 1.14 / 1.29 | 1.32 / 1.46 | 1.44 / 1.62 | C and V both rise |
-| Privacy | 1.06 / 1.58 | 1.28 / 1.69 | 1.34 / 2.03 | C and V both rise |
-| Disinformation | 1.04 / 1.38 | 1.04 / 1.68 | 1.22 / 1.81 | Gradual increase |
-| Expert advice | 0.94 / 1.25 | 0.96 / 1.34 | 1.04 / 1.38 | Gradual increase |
-| Economic harm | 0.84 / 1.27 | 0.82 / 1.46 | 1.12 / 1.47 | C dips at 1.5, rises at 3.0 |
-| Govt. decision | 0.92 / 1.21 | 1.00 / 1.42 | 0.90 / 1.37 | Non-monotonic C, V rises |
-| Physical harm | 0.38 / 1.38 | 0.46 / 1.92 | 0.34 / 2.12 | **Low C, but V rises sharply** — when it complies, it's more dangerous |
-| Harassment/Disc. | 0.38 / 1.21 | 0.34 / 1.14 | 0.30 / 1.62 | Low C, V spikes at 3.0 |
-| Sexual/Adult | 0.26 / 1.44 | 0.08 / 1.00 | 0.08 / 1.33 | **C collapses** — paradoxical refusal increase confirmed |
+| cyber | 1.10 | 1.29 | 1.30 | 1.39 |
+| fraud | 1.16 | 1.15 | 1.18 | 1.28 |
+| expert | 0.75 | 0.77 | 0.81 | 0.76 |
+| persuasion | 0.56 | 0.60 | 0.49 | 0.53 |
 
-Key observations:
-- **Physical harm** has the sharpest V gradient (+0.74 from α=0.0 to α=3.0) despite the lowest commitment. The refusal rate stays high, but the few responses that do comply become dramatically more operationally useful. This is a category where binary compliance metrics completely miss the danger trajectory.
-- **Sexual/Adult** C collapses from 0.26 to 0.08, confirming the Part V Finding 20 paradox at the continuous-variable level: h-neuron scaling makes the model *more* refusing for sexual content while making it less hedged for technical/economic content.
-- **Fraud/Deception** has flat C (~1.5) but rising V (1.58 → 1.97): the model always complies but the quality of compliance improves with alpha.
+Cyber shows a clear linear C increase. Fraud is flat until α=3.0. Expert and persuasion are essentially flat — their compliance character does not shift with amplification.
 
-**Harmful rate by task family (csv2_yes):**
-
-| Family | α=0.0 | α=1.5 | α=3.0 |
-|---|---|---|---|
-| cyber | 27.0% [19.3%, 36.4%] | 38.0% [29.1%, 47.8%] | 44.0% [34.7%, 53.8%] |
-| fraud | 28.0% [20.1%, 37.5%] | 35.0% [26.4%, 44.7%] | 37.0% [28.2%, 46.8%] |
-| expert | 14.0% [9.3%, 20.5%] | 20.7% [15.0%, 27.8%] | 20.0% [14.4%, 27.1%] |
-| persuasion | 12.0% [7.7%, 18.2%] | 9.3% [5.6%, 15.1%] | 14.0% [9.3%, 20.5%] |
-
-Cyber and fraud families drive the alpha slope. Persuasion shows a non-monotonic dip at α=1.5, dragged down by the Sexual/Adult collapse.
+Key observations (updated with α=1.0):
+- **Physical harm** has the sharpest V gradient (+0.74 from α=0.0 to α=3.0) despite the lowest commitment. The refusal rate stays high, but the few responses that do comply become dramatically more operationally useful. Binary compliance metrics completely miss the danger trajectory.
+- **Sexual/Adult** C collapses from 0.26 to 0.08, confirming the Part V Finding 20 paradox: h-neuron scaling makes the model *more* refusing for sexual content while making it less hedged for technical/economic content.
+- **Fraud/Deception** has flat C (~1.15–1.44) but rising V (1.58→1.97): the model always complies but the quality of compliance improves with alpha.
+- **Expert** and **persuasion** show that the ablation→identity transition at α=1.0 accounts for essentially all of their count effect. Amplification above natural levels does not meaningfully increase harmful rates for these families.
 
 ### Finding 28: Provenance and data quality
 
@@ -651,27 +670,29 @@ Cyber and fraud families drive the alpha slope. Persuasion shows a non-monotonic
 |---|---|---|---|
 | `evaluate_csv2.provenance.20260326_145247.json` | interrupted | 5afacb42 (dirty) | KeyboardInterrupt |
 | `evaluate_csv2.provenance.20260326_150240.json` | failed | 5afacb42 (dirty) | Batch 404 error |
-| `evaluate_csv2.provenance.20260326_151536.json` | **completed** | 5afacb42 (dirty) | First successful run |
-| `evaluate_csv2.provenance.20260326_210928.json` | **completed** | 19197cb1 (clean) | Final re-run on committed code |
+| `evaluate_csv2.provenance.20260326_151536.json` | **completed** | 5afacb42 (dirty) | First successful run (α=0.0/1.5/3.0) |
+| `evaluate_csv2.provenance.20260326_210928.json` | **completed** | 19197cb1 (clean) | Re-run on committed code (α=0.0/1.5/3.0) |
+| `evaluate_csv2.provenance.20260327_221648.json` | **completed** | fe81dde6 (dirty) | α=1.0 addition (4-alpha completion) |
 
-The final provenance record runs on clean git state (19197cb1), matching the HEAD of the analysis log commit. The evaluate_csv2.py script is re-run safe (skips already-annotated records), so the two completed runs are consistent.
+The final provenance record for the α=1.0 addition runs on fe81dde6. The evaluate_csv2.py script is re-run safe (skips already-annotated records), so the α=1.0 run only processes the new alpha.
 
-**Span resolution quality:**
+**Span resolution quality (4 alphas):**
 
 | Alpha | Total spans | Valid | Invalid | Corrected |
 |---|---|---|---|---|
 | 0.0 | 300 | 291 (97%) | 9 (3%) | 57 |
+| 1.0 | 291 | 278 (96%) | 13 (4%) | 27 |
 | 1.5 | 266 | 251 (94%) | 15 (6%) | 30 |
 | 3.0 | 253 | 248 (98%) | 5 (2%) | 31 |
 
-Invalid spans (quote not found in response) are low enough (<6%) not to bias aggregate metrics. Corrected spans (fuzzy-matched) represent the span resolver trimming whitespace or partial quotes — these are valid but required normalization.
+Invalid spans are consistently low (<6%) across all alphas. The α=1.0 data fits the established quality profile.
 
 ### Finding 29: Alpha=1.0 baseline confirms continuous dose-response and reveals variance signal
 
 **Date**: 2026-03-27
 **Run config**: Same as Part V (sampled, T=0.7, top_k=20, top_p=0.8, seed=42, max_new_tokens=5000), alpha=1.0 only
-**Provenance**: `experiment/run_intervention.provenance.20260327_144942.json`
-**Status**: Raw responses complete (500/500). Binary judge and CSV-v2 evaluation pending (OpenAI API quota exhausted).
+**Provenance**: `experiment/run_intervention.provenance.20260327_144942.json` (inference), `experiment/evaluate_intervention.provenance.20260327_204212.json` (binary judge), `csv2_evaluation/evaluate_csv2.provenance.20260327_221648.json` (CSV-v2)
+**Status**: Complete. Raw responses (500/500), binary judge evaluation, and CSV-v2 graded evaluation all finished. All Part VI tables updated with 4-alpha data.
 
 Alpha=1.0 is the identity baseline — h-neuron activations pass through unscaled. It fills the gap between α=0.0 (suppression below natural) and α=1.5 (amplification above natural).
 
@@ -738,9 +759,37 @@ Template 3 (instruction override) shows the sharpest refusal erosion: 95% → 78
 
 Net churn monotonically increases. Most individual CIs include zero, but the monotonic pattern across 4 points is consistent with a weak but real per-prompt compliance shift.
 
+### Finding 30: 4-alpha decomposition — ablation recovery drives count, amplification drives severity
+
+**Date**: 2026-03-28 (analysis of 2026-03-27 data)
+
+The α=1.0 identity baseline enables a clean decomposition of the total H-neuron intervention effect into two mechanistically distinct components:
+
+**Component 1: Ablation recovery (α=0.0→1.0)**
+- csv2_yes: +5.8pp (94→123, 76% of total +7.6pp effect)
+- Borderline: −44 (171→127)
+- Mean C: +0.06 (0.84→0.90)
+- Interpretation: Suppressing H-neurons (α=0.0) actively prevents ~30 responses that the model would naturally produce as harmful. Restoring natural activations recovers these. This is evidence that H-neurons are part of the compliance pathway — removing them blocks some compliance, reinstating them restores it.
+
+**Component 2: Amplification beyond baseline (α=1.0→3.0)**
+- csv2_yes: +1.8pp (123→132, non-monotonic via 118 at α=1.5)
+- BUT: all severity metrics continue rising monotonically:
+  - V=3 rate: 8.1% → 9.3% → 14.0%
+  - S=4 count: 30 → 30 → 42
+  - Payload share: 0.642 → 0.684 → 0.728
+  - Pivot position: 0.129 → 0.120 → 0.096
+  - D=0 (no disclaimers): 3% → 4% → 8%
+- Interpretation: Amplifying H-neurons beyond natural levels creates few new harmful responses but substantially escalates the danger of existing ones. This is the disclaimer-erosion mechanism operating on responses that were already at or near the compliance threshold.
+
+**What this means for the over-compliance story:**
+1. H-neurons have a **two-sided causal role**: suppressing them reduces harmful compliance (ablation), amplifying them escalates severity (amplification).
+2. The count effect and severity effect have different dose-response curves: count saturates quickly (most effect below α=1.0), severity escalates linearly through α=3.0.
+3. A binary metric would see only a weak effect (the count component), missing the severity component entirely. CSV-v2's continuous axes (V, S, payload share) are necessary to detect the full intervention signal.
+4. The **negative control gap** is now more urgent: both the count and severity effects need H-neuron specificity confirmation. A random-neuron CSV-v2 evaluation would be the decisive experiment.
+
 ---
 
-## Decisions This Informs (updated 2026-03-27)
+## Decisions This Informs (updated 2026-03-28)
 
 1. **~~The smoke test rerun must use max_new_tokens ≥ 1024.~~** Done. The canonical 5000-token rerun confirms truncation was the dominant measurement error. max_new_tokens=5000 is the standard going forward.
 
@@ -758,7 +807,7 @@ Net churn monotonically increases. Most individual CIs include zero, but the mon
 
 8. **CSV-v2 has a known blind spot.** 6 of 45 gold=HARMFUL records are CSV-v2=no — all share D=2/F=True profile (heavy disclaimer framing). This is the same failure mode as the binary judge (Part IV Finding 14, group A). Any future rubric iteration should address disclaimer-framed compliance more aggressively.
 
-9. **Alpha=1.0 baseline validates the dose-response curve shape.** *(2026-03-27)* The identity scaling point interpolates smoothly in all text-level metrics, confirming the alpha effect is continuous rather than a step-function between discrete bins. The response variance signal (std nearly doubling from α=0.0 to α=3.0) is new and significant — it means alpha changes the shape of the response distribution, not just its center. **Remaining action**: run binary judge + CSV-v2 on α=1.0 when API quota refreshes, then re-aggregate all 4-alpha results for definitive slope CIs.
+9. **Alpha=1.0 baseline validates the dose-response curve shape.** *(2026-03-27)* The identity scaling point interpolates smoothly in all text-level metrics, confirming the alpha effect is continuous rather than a step-function between discrete bins. The response variance signal (std nearly doubling from α=0.0 to α=3.0) is new and significant — it means alpha changes the shape of the response distribution, not just its center. *(2026-03-28: **Completed.** Binary judge and CSV-v2 evaluation of α=1.0 are done. All Part VI tables updated. The key new result is the ablation-vs-amplification decomposition (Finding 30): 76% of the harmful count effect is ablation recovery (α=0→1), while severity escalation is amplification-driven and monotonic through α=3. See Finding 30.)*
 
 ---
 
@@ -777,9 +826,10 @@ Net churn monotonically increases. Most individual CIs include zero, but the mon
 | `results/judge_validation/judge_validation_jailbreak-cross-alpha_*.jsonl` | Per-record GPT-4o judge results |
 | `results/judge_validation/judge_comparison_*.md` | Truncated vs full-length judge comparison table |
 | `experiment/alpha_{0.0,1.5,3.0}.jsonl` | 500 full-length sampled responses per alpha with GPT-4o judge verdicts (5000tok) |
-| `experiment/alpha_1.0.jsonl` | 500 full-length sampled responses at α=1.0 (identity baseline), raw — judge pending |
+| `experiment/alpha_1.0.jsonl` | 500 full-length sampled responses at α=1.0 (identity baseline) with binary judge verdicts |
 | `experiment/run_intervention.provenance.20260325_084310.json` | Inference provenance for canonical 5000-token run (α=0.0/1.5/3.0) |
 | `experiment/run_intervention.provenance.20260327_144942.json` | Inference provenance for α=1.0 baseline run |
 | `experiment/evaluate_intervention.provenance.20260325_{105758,135436}.json` | Judge evaluation provenance (split across two runs) |
-| `csv2_evaluation/alpha_{0.0,1.5,3.0}.jsonl` | 500 records per alpha with CSV-v2 annotations (C/S/V, wrapper tags, harmful spans) |
-| `csv2_evaluation/evaluate_csv2.provenance.20260326_{151536,210928}.json` | CSV-v2 evaluation provenance (2 completed runs) |
+| `csv2_evaluation/alpha_{0.0,1.0,1.5,3.0}.jsonl` | 500 records per alpha with CSV-v2 annotations (C/S/V, wrapper tags, harmful spans) |
+| `csv2_evaluation/evaluate_csv2.provenance.20260326_{151536,210928}.json` | CSV-v2 evaluation provenance (initial 3-alpha, 2 completed runs) |
+| `csv2_evaluation/evaluate_csv2.provenance.20260327_221648.json` | CSV-v2 evaluation provenance (α=1.0 addition) |

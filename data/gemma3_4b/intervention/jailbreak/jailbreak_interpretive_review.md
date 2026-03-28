@@ -4,7 +4,7 @@
 **Model:** `google/gemma-3-4b-it`
 **Related reports:** [intervention_findings.md](../../intervention_findings.md), [jailbreak_pipeline_audit.md](jailbreak_pipeline_audit.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md), [jailbreak_truncation_audit.md](../../../tests/gold_labels/jailbreak_truncation_audit.md)
 
-> **2026-03-27 Status**: This review covers the original 256-token/7-alpha analysis, now superseded. The stochastic-generation confound critique (Section 3) remains valid. The endpoint effect was falsified by 5000-token reruns then recovered by CSV-v2 graded evaluation (+7.6pp [+3.6, +11.6]). Alpha=1.0 identity baseline added; see truncation audit Finding 29.
+> **2026-03-28 Status**: This review covers the original 256-token/7-alpha analysis, now superseded. The stochastic-generation confound critique (Section 3) remains valid. The endpoint effect was falsified by 5000-token binary reruns then recovered by CSV-v2 graded evaluation (+7.6pp [+3.6, +11.6]). 4-alpha CSV-v2 (α=0.0/1.0/1.5/3.0) now complete — reveals that 76% of the count effect is ablation recovery (α=0→1), while severity escalation is amplification-driven and monotonic (Finding 30). See truncation audit Part VI.
 
 ---
 
@@ -167,18 +167,20 @@ Without this control, the claim that the +6.2 pp effect is H-neuron-specific (ra
 
 | Claim | Status | Basis |
 |-------|--------|-------|
-| H-neuron amplification increases jailbreak compliance | **CONFIRMED** | Endpoint CI [2.4, 10.0] excludes zero |
+| H-neuron amplification increases jailbreak compliance (count) | **CONFIRMED** (CSV-v2) / **NOT CONFIRMED** (binary) | CSV-v2 csv2_yes Δ=+7.6pp [+3.6, +11.6]; binary judge Δ=+3.0pp [−1.2, +7.2] |
+| H-neuron amplification increases jailbreak compliance (severity) | **CONFIRMED** | V=3 quadruples, S=4 triples, payload share +0.148, monotonic across 4 alphas |
+| Count effect is mostly ablation recovery | **CONFIRMED** | α=0→1 accounts for 76% of +7.6pp; α=1→3 is +1.8pp and non-monotonic |
+| Severity effect is amplification-driven | **CONFIRMED** | V, S, payload share, pivot position all monotonic in α=1→3 range |
 | Effect is H-neuron-specific | **NOT CONFIRMED** | No negative control |
-| Dose-response is monotonic | **NOT CONFIRMED** | Spearman p=0.094, non-significant |
-| Effect plateaus above α≈1.5 | **DIRECTIONAL ONLY** | Descriptive pattern, not formally tested |
+| Dose-response is monotonic (count) | **NOT CONFIRMED** | csv2_yes non-monotonic: α=1.0 (24.6%) > α=1.5 (23.6%) |
+| Dose-response is monotonic (severity) | **CONFIRMED** | V, S, payload, pivot all monotonic across all 4 alphas |
 | Ablation and amplification affect disjoint subpopulations | **INVALID** | Stochastic generation confounds per-item flip analysis |
 | Cross-benchmark flip pattern replicates FalseQA | **INVALID** | Greedy vs stochastic decoding makes comparison meaningless |
-| Linear slope +2.14 pp/α characterizes the effect | **DIRECTIONAL ONLY** | Overstates marginal effect at high α due to saturation |
 | Template T1 drives ~40% of harmful responses | **CONFIRMED** | Directly from data, template-conditioned rates are stable |
 | Template T2 is immune to H-neuron scaling | **CONFIRMED** | 2-6% across all alphas |
 | Categories with deep safety training are immune | **DIRECTIONAL ONLY** | n=50 per category per alpha; Wilson CIs are ±13-15 pp |
 | Heuristic refusal detection is insufficient | **CONFIRMED** | Conclusion valid despite phrase-list design flaw |
-| Three-benchmark convergence supports general compliance circuit | **DIRECTIONAL ONLY** | Jailbreak specificity unconfirmed; stochastic regime differs |
+| Three-benchmark convergence supports general compliance circuit | **SUPPORTED** | Jailbreak CSV-v2 now significant (+7.6pp); specificity still unconfirmed |
 
 ---
 

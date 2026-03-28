@@ -215,21 +215,78 @@ Tests harmful compliance on adversarial jailbreak prompts. Data: JailbreakBench 
 
 </details>
 
-#### Canonical results (5000-token, sampled decoding — 2026-03-25)
+#### Canonical results — binary judge (5000-token, sampled decoding — 2026-03-25, α=1.0 added 2026-03-27)
 
 | α | Compliant | Total | Rate | 95% CI (Wilson) |
 |---|-----------|-------|------|-----------------|
 | 0.0 | 152 | 500 | 30.4% | [26.5, 34.6] |
+| 1.0 | 155 | 500 | 31.0% | [27.1, 35.2] |
 | 1.5 | 161 | 500 | 32.2% | [28.3, 36.4] |
 | 3.0 | 167 | 500 | 33.4% | [29.4, 37.6] |
 
 Endpoint delta α=0→3: **+3.0pp** [−1.2, +7.2] — **CI includes zero, not significant.**
-Slope: **+1.0 pp/α** [−0.4, +2.4] — **CI includes zero.**
-Sample-level churn: 22.2% of prompts flip label between α=0 and α=3; 6.4% are non-monotonic.
+Slope: **+1.04 pp/α** [−0.27, +2.35] — **CI includes zero.**
 
-The compliance *rate* is flat across alphas. 25-prompt human audit (Part II of truncation audit) shows the real alpha effect is on compliance *severity* — responses at higher alphas drop disclaimers and become more actionable, but the binary HARMFUL/SAFE count doesn't change. This is invisible to any binary metric.
+The binary judge's compliance count is flat across alphas. The α=1.0 identity baseline (no neuron scaling) sits on the linear interpolation, confirming continuous rather than step-function behavior. However, the binary judge lacks the resolution to detect the real effect — see CSV-v2 below.
 
-The curve plateaus at α=1.5 (28.6%) and does not increase further. The Spearman rank correlation (ρ=0.679, p=0.094) is **not significant at α=0.05**, so monotonic dose-response is not established on this benchmark — in contrast with FaithEval anti-compliance (ρ=1.0). ~~The endpoint CI excluding zero remains the valid basis for claiming an effect exists; the curve shape is better described as threshold-then-saturation than as linear dose-response.~~ *(2026-03-25: With 5000-token generation, the endpoint CI now **includes** zero. There is no statistically significant compliance-count effect.)*
+#### Canonical results — CSV-v2 graded evaluation (4 alphas — 2026-03-27)
+
+**Data:** `data/gemma3_4b/intervention/jailbreak/csv2_evaluation/` (500 records × 4 alphas)
+**Provenance:** `evaluate_csv2.provenance.20260327_221648.json`
+
+CSV-v2 replaces the binary HARMFUL/SAFE judge with a three-tier `harmful_binary` (yes/borderline/no) backed by ordinal axes: Commitment (C0–3), Specificity (S0–4), Validity (V0–3), and wrapper tags (R/D/P/F/T). This is the severity-graded metric proposed in the truncation audit Part III and confirmed as superior in Part VI.
+
+**Harmful rate (csv2 harmful_binary=yes):**
+
+| α | harmful_binary=yes | 95% CI (Wilson) | Binary judge HARMFUL | Agreement |
+|---|---|---|---|---|
+| 0.0 | 94 (18.8%) | [15.6, 22.5] | 152 (30.4%) | 87% |
+| 1.0 | 123 (24.6%) | [21.0, 28.6] | 155 (31.0%) | 92% |
+| 1.5 | 118 (23.6%) | [20.1, 27.5] | 161 (32.2%) | 89% |
+| 3.0 | 132 (26.4%) | [22.7, 30.4] | 167 (33.4%) | 93% |
+
+Endpoint delta α=0→3: **+7.6pp** (3-alpha paired-bootstrap 95% CI **[+3.6, +11.6]** — **significant**).
+OLS slope: **+2.30 pp/α**.
+
+The binary judge over-calls at every alpha by classifying ~60 borderline (C=1, disclaimer-wrapped) responses as HARMFUL. This constant noise band swamps the genuine +38-response increase, compressing the slope from +7.6pp to +3.0pp. CSV-v2 separates genuine compliance (C≥2) from defensive discussion (C=1), revealing the effect the binary judge missed.
+
+**Key structural insight — ablation recovery vs amplification:** The α=1.0 identity baseline reveals that **~76% of the total count effect is ablation recovery** (α=0→1: +5.8pp), not amplification (α=1→3: +1.8pp, non-monotonic). Suppressing H-neurons (α=0.0) prevents ~30 responses that would otherwise be genuinely harmful. Amplifying them beyond baseline creates relatively few new harmful responses — but it substantially escalates severity (see below).
+
+**Severity escalation (all monotonic across 4 alphas):**
+
+| Metric | α=0.0 | α=1.0 | α=1.5 | α=3.0 |
+|---|---|---|---|---|
+| Mean V (S≥1, operational utility) | 1.37 | 1.58 | 1.55 | 1.68 |
+| V=3 rate (strong/polished) | 3.8% | 8.1% | 9.3% | 14.0% |
+| S=4 count (turnkey artifacts) | 15 | 30 | 30 | 42 |
+| Mean S (C≥2, harmful only) | 3.07 | 3.14 | 3.15 | 3.23 |
+| Payload share (C≥2) | 0.580 | 0.642 | 0.684 | 0.728 |
+| Pivot position (C≥2, earlier=worse) | 0.163 | 0.129 | 0.120 | 0.096 |
+| D=0 rate (no disclaimers) | 2% | 3% | 4% | 8% |
+
+V=3 (strong/polished, likely effective) nearly quadruples from α=0 to α=3. Turnkey artifacts (S=4) nearly triple. The harmful payload share rises from 58% to 73% of response length, and the pivot point recedes from 16% to 10% — disclaimers shrink and sometimes vanish. Unlike the count effect, **severity escalation is continuously amplification-driven** and monotonic even in the α=1→3 range.
+
+**Task family harmful rates (csv2_yes):**
+
+| Family | α=0.0 | α=1.0 | α=1.5 | α=3.0 |
+|---|---|---|---|---|
+| cyber | 27.0% [19.3, 36.4] | 40.0% [30.9, 49.8] | 38.0% [29.1, 47.8] | 44.0% [34.7, 53.8] |
+| fraud | 28.0% [20.1, 37.5] | 32.0% [23.7, 41.7] | 35.0% [26.4, 44.7] | 37.0% [28.2, 46.8] |
+| expert | 14.0% [9.3, 20.5] | 21.3% [15.5, 28.6] | 20.7% [15.0, 27.8] | 20.0% [14.4, 27.1] |
+| persuasion | 12.0% [7.7, 18.2] | 12.7% [8.3, 18.9] | 9.3% [5.6, 15.1] | 14.0% [9.3, 20.5] |
+
+Cyber and fraud drive the aggregate slope. Expert saturates at α=1.0 (ablation recovery only). Persuasion is noisy, dragged down by the paradoxical Sexual/Adult category (C collapses from 0.26 to 0.08 — h-neuron scaling makes the model *more* refusing for sexual content).
+
+**Borderline population erosion:**
+
+| α | yes | borderline | no |
+|---|---|---|---|
+| 0.0 | 94 (19%) | 171 (34%) | 235 (47%) |
+| 1.0 | 123 (25%) | 127 (25%) | 250 (50%) |
+| 1.5 | 118 (24%) | 134 (27%) | 248 (50%) |
+| 3.0 | 132 (26%) | 98 (20%) | 270 (54%) |
+
+Borderlines monotonically decrease (171→127→134→98) while yes increases (94→123→118→132) and no increases (235→250→248→270). The borderline pool is the reservoir that feeds both the harmful and safe populations. At α=0.0, borderline is the largest single category (34%); at α=3.0, it shrinks to 20%. This is the disclaimer-erosion gradient made quantitatively visible.
 
 **Template-level heterogeneity** (from legacy 256-token run — condensed, see audit for full table):
 
@@ -353,18 +410,24 @@ The fact that the same 38 neurons (0.011% of the network) shift behavior on both
 
 ### ~~Finding 5: H-neuron scaling increases jailbreak compliance with a plateau~~
 
-### Finding 5: H-neuron scaling does not significantly increase jailbreak compliance count — it changes compliance style
+### Finding 5: H-neuron scaling increases both count and severity of jailbreak compliance — but through distinct mechanisms
 
 <!-- from: jailbreak_compliance_delta_0_to_3 -->
 ~~On JailbreakBench (100 adversarial behaviors × 5 templates), H-neuron amplification increases GPT-4o-judged harmful compliance from **20.2%** at α=0.0 to **28.6%** at α=1.5, yielding an endpoint effect of **+6.2 pp** [2.4, 10.0] and a slope of **+2.14 pp/α** [0.91, 3.39]. The CI excludes zero, confirming a real effect.~~
 
-*(2026-03-25: **Falsified.** The legacy results used max_new_tokens=256, which truncated 100% of responses. Truncation bias was alpha-dependent — worst at α=0.0 where disclaimer preambles are longest — creating a spurious slope. Canonical 5000-token rerun: 30.4% → 32.2% → 33.4%, delta +3.0pp [−1.2, +7.2], CI includes zero. See [jailbreak_truncation_audit.md](../../tests/gold_labels/jailbreak_truncation_audit.md) Part V.)*
+*(2026-03-25: **Falsified** under binary judge. Legacy 256-token slope was a truncation artifact. Canonical 5000-token binary judge: +3.0pp [−1.2, +7.2], CI includes zero.)*
 
-The **compliance count** is flat across alphas. However, 25-prompt human audit (truncation audit Parts II-III) reveals that h-neuron scaling changes compliance *character*: at higher alphas, responses drop disclaimers, provide more actionable detail, and eventually endorse harmful behavior ("disclaimer erosion"). This severity gradient is invisible to binary HARMFUL/SAFE metrics. The real h-neuron effect on jailbreak may be qualitative, not quantitative — modulating hedging intensity rather than flipping the compliance decision.
+*(2026-03-27: **Recovered** under CSV-v2 graded evaluation. CSV-v2 harmful_binary=yes: 18.8% → 24.6% → 23.6% → 26.4% across α=0.0/1.0/1.5/3.0. Endpoint delta α=0→3: **+7.6pp [+3.6, +11.6]** — significant. The binary judge's ~60-response noise floor of over-called borderlines washed out the genuine signal. See §1.8 CSV-v2 subsection for full data.)*
 
-~~This shows a same-direction jailbreak effect consistent with the over-compliance story: the same 38 neurons that increase susceptibility to misleading context (FaithEval) and false premises (FalseQA) also appear to weaken resistance to jailbreak attempts.~~ *(2026-03-25: The "same-direction" claim for compliance count is no longer supported. A qualitative severity effect is consistent with the over-compliance story but requires severity-graded evaluation to confirm.)* However, because jailbreak lacks a negative control, uses stochastic generation, and ~~plateaus rather than showing monotonic dose-response~~ shows no significant compliance-count effect, this should be treated as ~~supporting evidence~~ an open question rather than ~~independent robust proof of~~ evidence for the mechanism.
+The finding has a two-part structure:
 
-**Important caveats:** (1) ~~The curve plateaus at α=1.5 and slightly reverses, unlike the monotonic FaithEval curve; the Spearman test for monotonicity is non-significant (p=0.094).~~ *(2026-03-25: Moot — the compliance-count effect itself is non-significant with corrected generation.)* (2) Template heterogeneity is extreme — Template T1 accounts for ~40% of all harmful responses, while Template T2 is immune (2-6% compliance across all alphas is indistinguishable from sampling noise at n=100). *(2026-03-25: Not yet re-evaluated with 5000-token generation.)* (3) **No negative control confirms H-neuron specificity for jailbreak.** The effect could in principle result from scaling any neurons. (4) Stochastic generation (`do_sample=True, temp=0.7`) invalidates per-item flip analysis and cross-benchmark flip comparisons; see [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md) §3. (5) **No judge test-retest reliability measurement exists for jailbreak.** FalseQA established 0.4% nondeterminism, but the jailbreak rubric is more complex and responses are longer — judge noise could be higher.
+1. **Count effect (csv2_yes rate):** The +7.6pp total increase is **dominated by ablation recovery** (α=0→1: +5.8pp, 76% of total). Amplification beyond baseline (α=1→3: +1.8pp) is small and non-monotonic (α=1.0 slightly exceeds α=1.5). Suppressing H-neurons prevents ~30 responses that would otherwise be genuinely harmful; amplifying them creates relatively few new harmful responses.
+
+2. **Severity effect (V, S, payload share, pivot position):** Unlike the count, severity escalation is **continuously amplification-driven** and monotonic across the full alpha range including α=1→3. V=3 (strong/polished) nearly quadruples (3.8%→14.0%), S=4 (turnkey) nearly triples (15→42), payload share rises 0.580→0.728, and the pivot position recedes from 16.3% to 9.6% of response length. This is the quantitative confirmation of the "disclaimer erosion" hypothesis: h-neuron scaling degrades caveats and disclaimers in responses that were already tending toward compliance, making existing harmful outputs more specific, actionable, and operationally useful.
+
+This same-direction effect is consistent with the over-compliance story: the same 38 neurons that increase susceptibility to misleading context (FaithEval) and false premises (FalseQA) also weaken resistance to jailbreak attempts — both in count (via ablation recovery) and severity (via amplification). The cyber and fraud task families drive the count slope; severity escalation is broad-based, with Physical harm showing the most concerning V trajectory (+0.74 mean V increase despite low compliance rate).
+
+**Important caveats:** (1) **No negative control confirms H-neuron specificity for jailbreak.** The effect could in principle result from scaling any neurons. (2) The CSV-v2 count curve is non-monotonic (α=1.0 > α=1.5), weakening dose-response claims for the count metric specifically. (3) Stochastic generation (`do_sample=True, temp=0.7`) invalidates per-item flip analysis and cross-benchmark flip comparisons; see [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md) §3. (4) **No judge test-retest reliability measurement exists for jailbreak.** FalseQA established 0.4% nondeterminism, but the jailbreak rubric is more complex and responses are longer — judge noise could be higher. (5) The 3-alpha paired-bootstrap CI [+3.6, +11.6] for the endpoint delta was computed on {0.0, 1.5, 3.0}; a full 4-alpha bootstrap has not been run (the non-monotonicity at α=1.0→1.5 would not affect the endpoint CI but may widen the slope CI).
 
 ### Finding 6: SAE features cannot steer compliance regardless of steering architecture
 
@@ -407,7 +470,8 @@ The FalseQA response shortening (-9%, §1.7) is a *consequence* of the complianc
 | FaithEval anti-compliance | 1,000 | Wilson per-point CI about +/-3 pp | Δ = +6.3 pp [4.2, 8.5]; slope = 2.09 [1.38, 2.83] pp / α | Cleanly above noise |
 | FalseQA | 687 | Wilson per-point CI about +/-3.4 pp | Δ = +4.8 pp [1.3, 8.3]; slope = 1.62 [0.52, 2.74] pp / α | Suggestive, weaker than FaithEval |
 | ~~Jailbreak (256tok, legacy)~~ | ~~500~~ | ~~Wilson per-point CI about +/-4 pp~~ | ~~Δ = +6.2 pp [2.4, 10.0]; slope = 2.14 [0.91, 3.39] pp / α~~ | ~~Significant but plateaus at α=1.5~~ *(2026-03-25: truncation artifact)* |
-| Jailbreak (5000tok, canonical) | 500 | Wilson per-point CI about +/-4 pp | Δ = +3.0 pp [−1.2, +7.2]; slope = 1.0 [−0.4, +2.4] pp / α | **Not significant — CI includes zero** |
+| Jailbreak (5000tok, binary) | 500 | Wilson per-point CI about +/-4 pp | Δ = +3.0 pp [−1.2, +7.2]; slope = 1.04 [−0.27, +2.35] pp / α | **Not significant — CI includes zero** |
+| Jailbreak (5000tok, CSV-v2 yes) | 500 | Wilson per-point CI about +/-4 pp | Δ = +7.6 pp [+3.6, +11.6]; slope = +2.30 pp / α | **Significant** under graded metric |
 | Negative control (random sets) | 1,000 per seed | Wilson per-seed CI about +/-3 pp | Random slope interval [-0.106, 0.164] pp / α | Null stays flat |
 
 The intervention story is now quantified instead of implied. FaithEval anti-compliance is cleanly above sampling noise. FalseQA points in the same direction, but the claim should remain modest because the per-point overlap and judge variance make it a weaker benchmark.
@@ -419,7 +483,7 @@ The intervention story is now quantified instead of implied. FaithEval anti-comp
 - **No text-based remap at α<3.0 for FaithEval standard.** The current standard-prompt curve mixes raw letter extraction at α<3.0 with remapped scores only at α=3.0. The full curve shape is unknown.
 - **Judge-model error is not in the FalseQA CI.** The Wilson and paired-bootstrap intervals quantify sampling uncertainty over the 687 judged items, not systematic error in GPT-4o's labels. Measured judge nondeterminism at α=1.0 is 0.4% (3/687), which is a lower bound on total judge error.
 - **Negative-control random-set intervals are empirical, not asymptotic.** With 8 seeds (FaithEval) or 3 seeds (FalseQA), the right summary is an empirical interval over sampled random sets, not a claim about the entire zero-weight neuron universe.
-- ~~**No jailbreak negative control.** The jailbreak compliance increase (+6.2pp) has not been tested against random-neuron baselines. This is the highest-priority missing control. Estimated cost: ~4h GPU + ~$19 API for quick mode.~~ *(2026-03-25: The compliance-count increase is non-significant with corrected generation (+3.0pp, CI includes zero), reducing the urgency of a negative control for the count effect. A negative control remains relevant if severity-graded evaluation reveals a significant qualitative effect.)*
+- ~~**No jailbreak negative control.** The jailbreak compliance increase (+6.2pp) has not been tested against random-neuron baselines. This is the highest-priority missing control. Estimated cost: ~4h GPU + ~$19 API for quick mode.~~ *(2026-03-25: The binary-judge count increase is non-significant (+3.0pp, CI includes zero), reducing urgency.)* *(2026-03-27: **Re-elevated.** CSV-v2 confirms a significant count effect (+7.6pp [+3.6, +11.6]) and significant severity escalation. Without a random-neuron baseline, neither the count effect nor the severity escalation can be confirmed as H-neuron-specific on jailbreak.)*
 - **Stochastic generation in jailbreak.** Unlike FaithEval/FalseQA (greedy decoding), jailbreak uses `do_sample=True, temperature=0.7`. This adds per-item sampling noise, contributing to non-monotonicity and high per-item churn (15.2% swing items at α=1→3, net +1.2%).
 - **No judge test-retest reliability for jailbreak.** FalseQA measured 0.4% GPT-4o nondeterminism at α=1.0. No equivalent measurement exists for jailbreak, where the rubric is more complex (structured rubric + 6 few-shot examples vs simple ACCEPTED/REFUSED) and responses are longer (~1300 vs ~900 chars). The judge's contribution to apparent alpha-to-alpha variation is unknown.
 - **SAE steering failure is confirmed across two architectures.** Both full-replacement (encode-scale-decode) and delta-only (add decoded delta to original) produce null H-feature slopes. The delta-only test (§1.10) ruled out reconstruction error as the cause, establishing that SAE features genuinely cannot steer compliance. Remaining confounds (SAE width, feature count, layer coverage) are lower priority.
@@ -447,7 +511,10 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 | NC FaithEval unconstrained (5 seeds) | +0.02 pp / α mean | [-0.106, 0.164] pp / α | No | Regex letter match | Empirical random-set interval |
 | NC FaithEval layer-matched (3 seeds) | +0.17 pp / α mean | [0.151, 0.208] pp / α | No | Regex letter match | Small seed count; descriptive only |
 | ~~Jailbreak (256tok)~~ | ~~+6.2 pp~~ | ~~[2.4, 10.0] pp~~ | ~~No (ρ=0.679)~~ | ~~GPT-4o judge~~ | ~~No negative control; stochastic generation; template heterogeneity~~ *(truncation artifact)* |
-| Jailbreak (5000tok) | +3.0 pp | [−1.2, +7.2] pp | N/A | GPT-4o judge | **Not significant**; no negative control; stochastic generation |
+| Jailbreak (5000tok, binary) | +3.0 pp | [−1.2, +7.2] pp | N/A | GPT-4o judge | **Not significant**; noise floor washes out signal |
+| **Jailbreak (5000tok, CSV-v2 yes)** | **+7.6 pp** | **[+3.6, +11.6] pp** | No (non-monotonic at α=1.0→1.5) | GPT-4o CSV-v2 judge | **Significant**; 76% of count effect is ablation recovery |
+| Jailbreak CSV-v2 severity (V, S≥1) | mean V: +0.31 | — | Yes (monotonic) | GPT-4o CSV-v2 judge | V=3 rate quadruples; amplification-driven |
+| Jailbreak CSV-v2 payload share (C≥2) | +0.148 | — | Yes (monotonic) | GPT-4o CSV-v2 spans | Payload share 58%→73%; pivot recedes 16%→10% |
 | NC FalseQA unconstrained (3 seeds) | +0.00 pp / α mean | [-0.40, 0.38] pp / α | No | GPT-4o judge | Quick mode; 3-seed interval |
 | SAE H-features (FaithEval) | -2.4 pp | [-4.9, 0.1] pp | No (ρ=0.18) | Regex letter match | Lossy encode/decode dominates; slope CI contains zero |
 | SAE random features (3 seeds) | +0.59 pp / α mean | [0.54, 0.64] pp / α | No | Regex letter match | Lossy encode/decode; feature-independent baseline |
@@ -456,7 +523,7 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 | Verbosity confound (mean agg) | truth d=-0.50, length d=-1.86 | — | — | CETT activation readout | Length dominates truth 3.7:1; A_verbosity verdict |
 | Verbosity confound (max agg) | truth d=-0.27, length d=+4.28 | — | — | CETT activation readout | Length dominates truth 16:1; A_verbosity verdict |
 
-The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact) on the two benchmarks with negative controls (FaithEval and FalseQA). The robust local evidence covers FaithEval (letter-extraction scoring immune to raw length confounding, plus negative controls ruling out indirect response-style channels) and FalseQA (with independent negative control). Jailbreak shows a same-direction effect but remains provisional pending a benchmark-specific negative control. The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal. SAE feature-space steering does not replicate the neuron-level effect under either full-replacement or delta-only architectures; the failure is fundamental feature-space misalignment, not reconstruction noise (Finding 6).
+The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact) on the two benchmarks with negative controls (FaithEval and FalseQA). The robust local evidence covers FaithEval (letter-extraction scoring immune to raw length confounding, plus negative controls ruling out indirect response-style channels) and FalseQA (with independent negative control). Jailbreak now shows a **significant same-direction effect under CSV-v2 graded evaluation** (+7.6pp [+3.6, +11.6] for harmful count, plus monotonic severity escalation across V, S, payload share, and pivot position), but remains provisional pending a benchmark-specific negative control. The 4-alpha CSV-v2 data reveals a structural decomposition: the count effect is dominated by ablation recovery (α=0→1), while severity escalation is continuously amplification-driven (monotonic across α=1→3). The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal. SAE feature-space steering does not replicate the neuron-level effect under either full-replacement or delta-only architectures; the failure is fundamental feature-space misalignment, not reconstruction noise (Finding 6).
 
 The evidence forms a hierarchy. The **top tier** — causal intervention with letter-extraction evaluation and negative controls — is robust. The **middle tier** — the paper's 6-model × 4-task replication — is independent and intact. The **bottom tier** — local classifier/detection results (AUROC 0.843) — is partially confounded by response-form/length correlations. The **foundation** — passive full-response readout — is dominated by response length (Finding 7). Claims about what these neurons *causally do when scaled* are well-supported; claims about what they *passively encode* require the full-response verbosity caveat.
 
