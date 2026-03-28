@@ -1,0 +1,47 @@
+{
+  "commit": "9d852fae1a9121c78b29142de733cb1340770cc3",
+  "download_mode": "pinned_raw_files",
+  "notes": {
+    "official_pipeline_sampling": "pipeline/run_pipeline.py seeds Python random with 42, then samples 128 harmful train, 128 harmless train, 32 harmful val, 32 harmless val, and later 100 harmless test examples from these published pools.",
+    "why_not_submodule": "Use a pinned raw snapshot rather than a git submodule so the dataset stays lightweight, reviewable, and stable at a specific upstream commit."
+  },
+  "repo": "andyrdt/refusal_direction",
+  "split_files": {
+    "harmful_test": {
+      "path": "dataset/splits/harmful_test.json",
+      "record_count": 572,
+      "sha256": "5e12ae102c3791dee083a69ab6269a78e033411c629bc3f66f75d2fde196d9ef",
+      "url": "https://raw.githubusercontent.com/andyrdt/refusal_direction/9d852fae1a9121c78b29142de733cb1340770cc3/dataset/splits/harmful_test.json"
+    },
+    "harmful_train": {
+      "path": "dataset/splits/harmful_train.json",
+      "record_count": 260,
+      "sha256": "8f5c0eac0efd2a7f99084bbe8d0de2c465e31b1997184783c917969d9de9ece1",
+      "url": "https://raw.githubusercontent.com/andyrdt/refusal_direction/9d852fae1a9121c78b29142de733cb1340770cc3/dataset/splits/harmful_train.json"
+    },
+    "harmful_val": {
+      "path": "dataset/splits/harmful_val.json",
+      "record_count": 39,
+      "sha256": "305f1d1e6dfa6c50a32d24a18ef815f42b5441eb83e6d7767d242107162fd9f4",
+      "url": "https://raw.githubusercontent.com/andyrdt/refusal_direction/9d852fae1a9121c78b29142de733cb1340770cc3/dataset/splits/harmful_val.json"
+    },
+    "harmless_test": {
+      "path": "dataset/splits/harmless_test.json",
+      "record_count": 6266,
+      "sha256": "1b5930ce5e855ada758b3116ce7c4aaea9b9d05f8cdd77b385511d4c84173b19",
+      "url": "https://raw.githubusercontent.com/andyrdt/refusal_direction/9d852fae1a9121c78b29142de733cb1340770cc3/dataset/splits/harmless_test.json"
+    },
+    "harmless_train": {
+      "path": "dataset/splits/harmless_train.json",
+      "record_count": 18793,
+      "sha256": "86623b1f8a25aa35df153fc97a556dbcebb6a7c881538ae43ee479ca17f2e002",
+      "url": "https://raw.githubusercontent.com/andyrdt/refusal_direction/9d852fae1a9121c78b29142de733cb1340770cc3/dataset/splits/harmless_train.json"
+    },
+    "harmless_val": {
+      "path": "dataset/splits/harmless_val.json",
+      "record_count": 6264,
+      "sha256": "772010758e7d771ef4c7e5e4acdfd7598dcece1a6f383f20d382f640913a2a4d",
+      "url": "https://raw.githubusercontent.com/andyrdt/refusal_direction/9d852fae1a9121c78b29142de733cb1340770cc3/dataset/splits/harmless_val.json"
+    }
+  }
+}

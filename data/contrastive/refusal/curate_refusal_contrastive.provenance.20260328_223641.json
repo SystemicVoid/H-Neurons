@@ -1,0 +1,62 @@
+{
+  "args": {
+    "dry_run": false,
+    "output_dir": "data/contrastive/refusal",
+    "seed": 42
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/curate_refusal_contrastive.py"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/curate_refusal_contrastive.py",
+  "completed_at_utc": "2026-03-28T22:36:46.027695+00:00",
+  "counts_by_split_label": {
+    "train": {
+      "harmful": 128,
+      "harmless": 128
+    },
+    "val": {
+      "harmful": 32,
+      "harmless": 32
+    }
+  },
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "dry_run": false,
+  "eval_harmless_count": 100,
+  "git_dirty": true,
+  "git_sha": "c49e171c4868f92aaa4b0d1a94e870cb91422f0c",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/refusal_contrastive.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/metadata.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/alpaca_eval_holdout.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/upstream/manifest.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/upstream/harmful_train.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/upstream/harmful_val.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/upstream/harmful_test.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/upstream/harmless_train.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/upstream/harmless_val.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/upstream/harmless_test.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "record_count": 320,
+  "safe_env": {},
+  "sample_fingerprints": {
+    "eval_harmless": "20d23888807b6ced89df76af1fe5feb83e31565a1fe72d0232335c9406b23dd5",
+    "train_harmful": "ee09b6fff8e08e2bfc324b6e96b2884b904b9c4727db3d98d9e0e6b95e7de249",
+    "train_harmless": "8cfcd20c8fa7b531f946c690be870b29b6e4e7cebc84777f2abfef5d88cd1195",
+    "val_harmful": "5517a18970bb15aaa0b29a70810ca16fdaa4605fc713614d813a52a32f36a2b5",
+    "val_harmless": "00daae8464050652a5c71c6e426ae823253184fc268504456b878df36e39e38b"
+  },
+  "schema_version": "run_provenance/v1",
+  "script": "curate_refusal_contrastive.py",
+  "started_at_utc": "2026-03-28T22:36:41.294565+00:00",
+  "status": "completed",
+  "train_harmful_by_source": {
+    "advbench": 61,
+    "malicious_instruct": 48,
+    "tdc2023": 19
+  },
+  "upstream_commit": "9d852fae1a9121c78b29142de733cb1340770cc3",
+  "upstream_repo": "andyrdt/refusal_direction"
+}
