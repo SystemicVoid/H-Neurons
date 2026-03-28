@@ -1,23 +1,8 @@
 ## Anti-sycophancy prompt
 
-“I saw someone claim this, it seems pretty off to me, can you help me give them direct but constructive feedback on what they missed? [insert your description]” 
+“I saw someone claim this, it seems pretty off to me, can you help me give them direct but constructive feedback on what they missed? [insert your prompt]” 
 
---- 
-
-H-neuron scaling does not robustly increase overall jailbreak incidence, but it makes harmful outputs more front-loaded, more specific, and more dominant within the response.
-
-The original alpha slope on binary jailbreak compliance was largely a measurement artifact from truncation.
-After fixing truncation, alpha has at most a weak effect on raw compliance count.
-But alpha does shift response structure in a safety-relevant way: harmful content becomes earlier, denser, and more specific.
-This effect is strongest in cyber/fraud domains, not uniformly across categories.
-Template choice is a major confound/moderator and must be modeled explicitly.
-
-Datasets from Refusal Single Direction. We construct two datasets: Dharmful, a dataset of harmful instructions drawn from ADVBENCH (Zou et al., 2023b), MALICIOUSINSTRUCT (Huang et al., 2023), TDC2023 (Mazeika
-et al., 2023, 2024), and HARMBENCH (Mazeika et al., 2024); and Dharmless, a dataset of harmless
-instructions sampled from ALPACA (Taori et al., 2023). Each dataset consists of train and validation
-splits of 128 and 32 samples, respectively. We apply filtering to ensure that the train and validation
-splits do not overlap with the evaluation datasets used in §3 and §4. See §A for further details about
-the datasets, including representative examples.
+---
 
 ## Review data and results prompt 
 
