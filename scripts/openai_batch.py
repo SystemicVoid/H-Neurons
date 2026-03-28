@@ -15,6 +15,7 @@ Features:
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import time
@@ -33,7 +34,32 @@ MAX_UPLOAD_RETRIES = 5
 UPLOAD_RETRY_BACKOFF = 2
 CHARS_PER_TOKEN = 4
 TOKENS_PER_MESSAGE_OVERHEAD = 4
-DEFAULT_MAX_ENQUEUED_TOKENS = 80_000
+DEFAULT_BATCH_QUEUE_SAFETY_MARGIN = 0.9
+MAX_ENQUEUED_TOKENS_FALLBACK = 80_000
+MAX_ENQUEUED_TOKENS_ENV = "OPENAI_BATCH_MAX_ENQUEUED_TOKENS"
+BATCH_QUEUE_SAFETY_MARGIN_ENV = "OPENAI_BATCH_QUEUE_SAFETY_MARGIN"
+
+# Tier-2 Batch queue limits verified against current OpenAI model pages on
+# 2026-03-28. Keep this table local and update it when the docs change.
+TIER2_BATCH_QUEUE_LIMITS = {
+    "gpt-4o": 1_350_000,
+    "gpt-4o-mini": 20_000_000,
+    "gpt-4.1": 1_350_000,
+    "gpt-5": 3_000_000,
+    "gpt-5-mini": 20_000_000,
+    "o3": 1_350_000,
+    "o4-mini": 2_000_000,
+}
+
+MODEL_LIMIT_PREFIXES = (
+    "gpt-5-mini",
+    "gpt-4o-mini",
+    "gpt-4.1",
+    "gpt-4o",
+    "gpt-5",
+    "o4-mini",
+    "o3",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +154,126 @@ def build_chat_request(
 # ---------------------------------------------------------------------------
 # Token estimation & auto-chunking
 # ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class MaxEnqueuedTokensResolution:
+    """Resolved chunking cap and how it was chosen."""
+
+    value: int
+    source: str
+    models: tuple[str, ...] = ()
+    queue_limit: int | None = None
+    safety_margin: float | None = None
+
+    def summary(self) -> str:
+        if self.source == "explicit":
+            return f"  Using explicit batch token cap {self.value:,}"
+        if self.source == "env":
+            return (
+                f"  Using {MAX_ENQUEUED_TOKENS_ENV}={self.value:,} for batch token cap"
+            )
+        if self.source == "model":
+            models = ", ".join(self.models) if self.models else "unknown"
+            return (
+                f"  Using model-aware batch token cap {self.value:,} "
+                f"for {models} (Tier-2 queue {self.queue_limit:,} "
+                f"x safety margin {self.safety_margin:.2f})"
+            )
+        return f"  Using fallback batch token cap {self.value:,} (unknown model)"
+
+
+def _normalize_model_limit_key(model: str) -> str | None:
+    """Map model aliases and snapshots onto the local queue-limit table."""
+    normalized = model.strip().lower()
+    for prefix in MODEL_LIMIT_PREFIXES:
+        if normalized == prefix or normalized.startswith(f"{prefix}-"):
+            return prefix
+    return None
+
+
+def _parse_max_enqueued_tokens_override(raw: str, source: str) -> int:
+    """Parse and validate a max-enqueued-tokens override."""
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"{source} must be an integer token count, got {raw!r}"
+        ) from exc
+    if value <= 0:
+        raise ValueError(f"{source} must be > 0, got {value}")
+    return value
+
+
+def _resolve_batch_queue_safety_margin() -> float:
+    """Resolve the safety margin used for model-aware queue limits."""
+    raw = os.environ.get(BATCH_QUEUE_SAFETY_MARGIN_ENV)
+    if raw is None:
+        return DEFAULT_BATCH_QUEUE_SAFETY_MARGIN
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"{BATCH_QUEUE_SAFETY_MARGIN_ENV} must be a float, got {raw!r}"
+        ) from exc
+    if not 0 < value <= 1:
+        raise ValueError(
+            f"{BATCH_QUEUE_SAFETY_MARGIN_ENV} must be in (0, 1], got {value}"
+        )
+    return value
+
+
+def _resolve_max_enqueued_tokens(
+    requests: Sequence[dict[str, Any]],
+    max_enqueued_tokens: int | None = None,
+) -> MaxEnqueuedTokensResolution:
+    """Resolve the effective chunking cap for a request set."""
+    if max_enqueued_tokens is not None:
+        return MaxEnqueuedTokensResolution(
+            value=_parse_max_enqueued_tokens_override(
+                str(max_enqueued_tokens), "max_enqueued_tokens"
+            ),
+            source="explicit",
+        )
+
+    env_override = os.environ.get(MAX_ENQUEUED_TOKENS_ENV)
+    if env_override is not None:
+        return MaxEnqueuedTokensResolution(
+            value=_parse_max_enqueued_tokens_override(
+                env_override, MAX_ENQUEUED_TOKENS_ENV
+            ),
+            source="env",
+        )
+
+    models = sorted(
+        {
+            str(body["model"])
+            for request in requests
+            if isinstance((body := request.get("body")), dict) and "model" in body
+        }
+    )
+    limit_keys = {
+        limit_key
+        for model in models
+        if (limit_key := _normalize_model_limit_key(model)) is not None
+    }
+    if not limit_keys:
+        return MaxEnqueuedTokensResolution(
+            value=MAX_ENQUEUED_TOKENS_FALLBACK,
+            source="fallback",
+            models=tuple(models),
+        )
+
+    queue_limit = min(TIER2_BATCH_QUEUE_LIMITS[key] for key in limit_keys)
+    safety_margin = _resolve_batch_queue_safety_margin()
+    effective_limit = max(1, int(queue_limit * safety_margin))
+    return MaxEnqueuedTokensResolution(
+        value=effective_limit,
+        source="model",
+        models=tuple(models),
+        queue_limit=queue_limit,
+        safety_margin=safety_margin,
+    )
 
 
 def _estimate_request_tokens(request: dict[str, Any]) -> int:
@@ -482,7 +628,7 @@ def resume_or_submit(
     *,
     metadata: dict[str, str] | None = None,
     poll_interval: int = DEFAULT_POLL_INTERVAL,
-    max_enqueued_tokens: int = DEFAULT_MAX_ENQUEUED_TOKENS,
+    max_enqueued_tokens: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Resume an existing batch if state file exists, otherwise submit new.
 
@@ -535,13 +681,18 @@ def resume_or_submit(
             pass
         return all_results
 
+    resolution = _resolve_max_enqueued_tokens(remaining, max_enqueued_tokens)
+    print(resolution.summary())
+    effective_max_enqueued_tokens = resolution.value
+
     # 4. Chunk remaining requests if needed
     total_est = sum(_estimate_request_tokens(r) for r in remaining)
-    if total_est > max_enqueued_tokens:
-        chunks = _chunk_requests(remaining, max_enqueued_tokens)
+    if total_est > effective_max_enqueued_tokens:
+        chunks = _chunk_requests(remaining, effective_max_enqueued_tokens)
         print(
             f"  Auto-chunking: {len(remaining)} requests into {len(chunks)} "
-            f"batches (~{total_est} est. tokens, limit {max_enqueued_tokens})"
+            f"batches (~{total_est} est. tokens, "
+            f"limit {effective_max_enqueued_tokens})"
         )
     else:
         chunks = [remaining]

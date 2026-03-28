@@ -379,7 +379,13 @@ def _write_alpha_records(path: str, records: list[dict]) -> None:
 
 
 def evaluate_all_batch(
-    input_dir, alphas, benchmark, client, judge_model, prompt_cache_retention=None
+    input_dir,
+    alphas,
+    benchmark,
+    client,
+    judge_model,
+    prompt_cache_retention=None,
+    batch_max_enqueued_tokens=None,
 ):
     """Evaluate all alpha files using the OpenAI Batch API in one request.
 
@@ -446,6 +452,7 @@ def evaluate_all_batch(
         batch_requests,
         state_path,
         metadata={"benchmark": benchmark, "script": "evaluate_intervention"},
+        max_enqueued_tokens=batch_max_enqueued_tokens,
     )
 
     # 2. Apply verdicts back to records
@@ -524,6 +531,16 @@ def parse_args():
         help="Prompt cache retention policy (gpt-4.1+ for 24h). "
         "Default: server-side in-memory.",
     )
+    p.add_argument(
+        "--batch-max-enqueued-tokens",
+        "--batch_max_enqueued_tokens",
+        dest="batch_max_enqueued_tokens",
+        type=int,
+        default=None,
+        help="Override Batch API chunking cap in estimated prompt tokens. "
+        "By default this is resolved from the model's Tier-2 queue limit "
+        "with a safety margin, or from OPENAI_BATCH_MAX_ENQUEUED_TOKENS.",
+    )
     return p.parse_args()
 
 
@@ -558,6 +575,7 @@ def main():
                 client,
                 args.judge_model,
                 prompt_cache_retention=args.prompt_cache_retention,
+                batch_max_enqueued_tokens=args.batch_max_enqueued_tokens,
             )
         else:
             from openai_batch import CacheStats

@@ -125,6 +125,25 @@ uv run python scripts/evaluate_csv2.py --api_mode batch ...
 Note the flag inconsistency between the two scripts (`--api-mode` vs `--api_mode`).
 Both default to batch, so omitting the flag is also acceptable. But if you spell it
 out, get the punctuation right — a wrong flag silently fails with an argparse error.
+
+**Before queuing batch-eval jobs, verify Tier-2 limits via Codex CLI:**
+1. The pipeline scripts `scripts/infra/jailbreak_alpha1_pipeline.sh`,
+   `scripts/infra/jailbreak_alpha1_eval_only.sh`, and
+   `scripts/infra/csv2_pipeline.sh` now run
+   `scripts/infra/check_openai_batch_limits_via_codex.sh` by default.
+2. That helper launches `codex exec --search`, checks the current official OpenAI
+   model pages, compares them against the hardcoded Tier-2 queue table in
+   `scripts/openai_batch.py`, and only patches the local table if the docs moved.
+3. The intent is "trust local constants for speed, but verify them before long,
+   quota-sensitive jobs." Think of it like checking the tide chart before pushing
+   a boat off the dock: the chart is local, but you still confirm the water level
+   before committing to the trip.
+4. Logs are written to `logs/openai_batch_limit_check_<timestamp>.log` and the
+   final Codex verdict is written to
+   `logs/openai_batch_limit_check_<timestamp>.summary.txt`.
+5. Set `CODEX_VERIFY_OPENAI_LIMITS=0` only when you intentionally want to skip the
+   preflight. Tune the helper with `OPENAI_LIMIT_CHECK_TIMEOUT`,
+   `OPENAI_LIMIT_CHECK_MODELS`, or `CODEX_LIMIT_CHECK_CODEX_MODEL` if needed.
 </important>
 
 ## Future: isolate runs by directory

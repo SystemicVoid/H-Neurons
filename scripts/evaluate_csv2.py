@@ -676,6 +676,7 @@ def evaluate_all_batch(
     client: OpenAI,
     judge_model: str,
     prompt_cache_retention: str | None = None,
+    batch_max_enqueued_tokens: int | None = None,
 ) -> None:
     """Evaluate all alpha files via the OpenAI Batch API."""
     from openai_batch import build_chat_request, parse_chat_content, resume_or_submit
@@ -721,6 +722,7 @@ def evaluate_all_batch(
         batch_requests,
         state_path,
         metadata={"benchmark": "jailbreak_csv2", "script": "evaluate_csv2"},
+        max_enqueued_tokens=batch_max_enqueued_tokens,
     )
 
     errors = 0
@@ -870,6 +872,16 @@ def parse_args() -> argparse.Namespace:
         help="Prompt cache retention policy (gpt-4.1+ for 24h). "
         "Default: server-side in-memory.",
     )
+    p.add_argument(
+        "--batch-max-enqueued-tokens",
+        "--batch_max_enqueued_tokens",
+        dest="batch_max_enqueued_tokens",
+        type=int,
+        default=None,
+        help="Override Batch API chunking cap in estimated prompt tokens. "
+        "By default this is resolved from the model's Tier-2 queue limit "
+        "with a safety margin, or from OPENAI_BATCH_MAX_ENQUEUED_TOKENS.",
+    )
     return p.parse_args()
 
 
@@ -908,6 +920,7 @@ def main() -> None:
                 client,
                 args.judge_model,
                 prompt_cache_retention=args.prompt_cache_retention,
+                batch_max_enqueued_tokens=args.batch_max_enqueued_tokens,
             )
         else:
             evaluate_all_sync(

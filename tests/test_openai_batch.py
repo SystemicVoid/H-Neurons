@@ -5,12 +5,18 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+import openai_batch
 from openai_batch import (
     CacheStats,
+    DEFAULT_BATCH_QUEUE_SAFETY_MARGIN,
+    MAX_ENQUEUED_TOKENS_FALLBACK,
     _chunk_requests,
     _estimate_request_tokens,
+    _resolve_max_enqueued_tokens,
     build_chat_request,
     extract_batch_cache_stats,
     parse_chat_content,
@@ -263,3 +269,92 @@ class TestTokenEstimationAndChunking:
         chunks = _chunk_requests(reqs, max_tokens=100)
         assert len(chunks) == 1
         assert len(chunks[0]) == 1
+
+
+class TestMaxEnqueuedTokenResolution:
+    def _make_request(self, custom_id: str, model: str = "gpt-4o") -> dict:
+        return build_chat_request(
+            custom_id,
+            model,
+            [{"role": "user", "content": "short"}],
+        )
+
+    def test_known_model_uses_tier2_limit_with_default_margin(self, monkeypatch):
+        monkeypatch.delenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", raising=False)
+        monkeypatch.delenv("OPENAI_BATCH_QUEUE_SAFETY_MARGIN", raising=False)
+
+        resolution = _resolve_max_enqueued_tokens([self._make_request("r1", "gpt-4o")])
+
+        assert resolution.source == "model"
+        assert resolution.queue_limit == 1_350_000
+        assert resolution.safety_margin == DEFAULT_BATCH_QUEUE_SAFETY_MARGIN
+        assert resolution.value == int(1_350_000 * DEFAULT_BATCH_QUEUE_SAFETY_MARGIN)
+
+    def test_snapshot_alias_resolves_to_base_model_limit(self, monkeypatch):
+        monkeypatch.delenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", raising=False)
+        monkeypatch.delenv("OPENAI_BATCH_QUEUE_SAFETY_MARGIN", raising=False)
+
+        resolution = _resolve_max_enqueued_tokens(
+            [self._make_request("r1", "gpt-4o-2024-11-20")]
+        )
+
+        assert resolution.source == "model"
+        assert resolution.queue_limit == 1_350_000
+        assert resolution.models == ("gpt-4o-2024-11-20",)
+
+    def test_explicit_override_beats_env_and_model_defaults(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", "999999")
+
+        resolution = _resolve_max_enqueued_tokens(
+            [self._make_request("r1", "gpt-4o")],
+            max_enqueued_tokens=123_456,
+        )
+
+        assert resolution.source == "explicit"
+        assert resolution.value == 123_456
+
+    def test_env_override_beats_model_default(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", "654321")
+        monkeypatch.delenv("OPENAI_BATCH_QUEUE_SAFETY_MARGIN", raising=False)
+
+        resolution = _resolve_max_enqueued_tokens([self._make_request("r1", "gpt-4o")])
+
+        assert resolution.source == "env"
+        assert resolution.value == 654_321
+
+    def test_unknown_model_falls_back_to_legacy_safe_cap(self, monkeypatch):
+        monkeypatch.delenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", raising=False)
+        monkeypatch.delenv("OPENAI_BATCH_QUEUE_SAFETY_MARGIN", raising=False)
+
+        resolution = _resolve_max_enqueued_tokens(
+            [self._make_request("r1", "custom-eval-model")]
+        )
+
+        assert resolution.source == "fallback"
+        assert resolution.value == MAX_ENQUEUED_TOKENS_FALLBACK
+
+    def test_invalid_env_override_raises(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", "oops")
+
+        with pytest.raises(ValueError, match="OPENAI_BATCH_MAX_ENQUEUED_TOKENS"):
+            _resolve_max_enqueued_tokens([self._make_request("r1", "gpt-4o")])
+
+    def test_gpt4o_tier2_cap_reduces_old_17_chunk_case_to_two_chunks(self, monkeypatch):
+        monkeypatch.delenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", raising=False)
+        monkeypatch.delenv("OPENAI_BATCH_QUEUE_SAFETY_MARGIN", raising=False)
+
+        reqs = [self._make_request(f"r{i}", "gpt-4o") for i in range(500)]
+        estimates = [2568] * 499 + [2790]  # total = 1,284,222 tokens
+
+        def fake_estimate(request: dict) -> int:
+            idx = int(request["custom_id"][1:])
+            return estimates[idx]
+
+        monkeypatch.setattr(openai_batch, "_estimate_request_tokens", fake_estimate)
+
+        resolution = _resolve_max_enqueued_tokens(reqs)
+        chunks = _chunk_requests(reqs, max_tokens=resolution.value)
+
+        assert resolution.value == 1_215_000
+        assert sum(fake_estimate(r) for r in reqs) == 1_284_222
+        assert len(chunks) == 2
