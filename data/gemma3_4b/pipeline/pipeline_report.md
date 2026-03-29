@@ -5,7 +5,7 @@
 **Hardware:** RTX 5060 Ti (16 GB VRAM), AMD 9900X, 64 GB RAM
 **Paper reference:** Gao et al., "H-Neurons: On the Existence, Impact, and Origin of Hallucination-Associated Neurons in LLMs" (arXiv:2512.01797v2)
 
-**Related reports:** [intervention_findings.md](intervention_findings.md), [bioasq13b_factoid_probe_transfer_audit.md](bioasq13b_factoid_probe_transfer_audit.md)
+**Related reports:** [intervention_findings.md](intervention_findings.md), [bioasq13b_factoid_probe_transfer_audit.md](bioasq13b_factoid_probe_transfer_audit.md), [refusal_overlap_audit.md](../intervention/refusal_overlap/refusal_overlap_audit.md)
 
 ---
 
@@ -24,7 +24,7 @@
 | Test set size | — | 1,993 evaluated | **780 evaluated** (782 sampled, 2 missing activations) |
 
 <!-- from: classifier_disjoint_accuracy -->
-The disjoint test set (0% overlap with training data) yields **76.5% accuracy [73.6, 79.5]**, which is actually closer to the paper's 76.9% than the inflated overlapping score of 77.7% [75.9, 79.5]. The ~1.1 percentage point drop from overlapping→disjoint confirms mild leakage, and the classifier captures a real held-out discrimination signal. However, a verbosity confound audit (see `verbosity_confound_test.md`) found that full-response CETT readout encodes response length 3.7–16× more strongly than truthfulness. Detection performance at the answer-token level may therefore partly reflect response-form/length correlations rather than a pure hallucination signal. This does not invalidate the classifier — it discriminates on held-out data — but detection claims should be kept distinct from the stronger causal intervention evidence (Section 11, [intervention_findings.md](intervention_findings.md)).
+The disjoint test set (0% overlap with training data) yields **76.5% accuracy [73.6, 79.5]**, which is actually closer to the paper's 76.9% than the inflated overlapping score of 77.7% [75.9, 79.5]. The ~1.1 percentage point drop from overlapping→disjoint confirms mild leakage, and the classifier captures a real held-out discrimination signal. However, a verbosity confound audit (see `verbosity_confound_test.md`) found that full-response CETT readout encodes response length 3.7–16× more strongly than truthfulness. Detection performance at the answer-token level may therefore partly reflect response-form/length correlations rather than a pure hallucination signal. This does not invalidate the classifier — it discriminates on held-out data — but detection claims should be kept distinct from the stronger causal intervention evidence (Section 11, [intervention_findings.md](intervention_findings.md)). A downstream D3.5 audit also found that the classifier-selected intervention overlaps refusal geometry more than a matched random-neuron null, but that apparent mediation signal is dominated by layer 33 and is not yet robust enough to change D4 scope; see [refusal_overlap_audit.md](../intervention/refusal_overlap/refusal_overlap_audit.md).
 
 The classifier identifies 38 H-Neurons out of 348,160 total neuron positions (34 layers × 10,240 intermediate neurons), achieving 99.978% weight sparsity. The same 38 neurons were selected regardless of test set composition (training is identical).
 
