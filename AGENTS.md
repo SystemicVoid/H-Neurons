@@ -2,6 +2,8 @@
 
 **Treat research as search under uncertainty, not pipeline completion. Always identify the key claim you are trying to upgrade or falsify, then find the bottleneck assumption that most limits belief in that claim. Attack that assumption with the cheapest test that would actually change what you do next. Prioritize steps by information gained per unit time, not by ease, elegance, or pipeline order. De-risk before scaling: use tiny pilots, manual audits, baselines, ceilings, brute-force checks, simulations, and counterexamples. After every result, ask what was learned, what branch of the search tree was ruled out, and whether the failure was conceptual, methodological, or merely implementation-level. Never run an experiment unless you can name the decision it informs.**
 
+- Literature index: start with `papers/INDEX.md`, scan the abstracts there, and only open the linked paper markdown files that are relevant to the current question.
+
 
 ## Build, Test, and Development Commands
 
@@ -36,6 +38,14 @@ Use `nvitop -1` for a one-shot GPU status check before/during long jobs. Details
 ## Codebase Prompt Export
 
 `./code2prompt.sh` exports all source code as a single LLM-ready prompt. Pass `--output-file=prompt.txt` or `-c` for clipboard.
+
+## Site Deployment
+
+To redeploy the project site at its canonical URL:
+
+```bash
+.agents/skills/here-now/scripts/publish.sh site --slug aware-fresco-4a2q --client amp
+```
 
 ## Run Directory Conventions
 
