@@ -932,27 +932,81 @@ def _ci_excludes_zero(summary: dict[str, Any] | None) -> bool:
     return lower > 0.0 or upper < 0.0
 
 
+def _ci_is_positive(summary: dict[str, Any] | None) -> bool:
+    lower = _ci_lower(summary)
+    return lower is not None and lower > 0.0
+
+
+def _ci_is_negative(summary: dict[str, Any] | None) -> bool:
+    upper = _ci_upper(summary)
+    return upper is not None and upper < 0.0
+
+
+def _supports_geometry(summary: dict[str, Any]) -> bool:
+    # D2 stores direction = mean(harmful) - mean(harmless), so anti-refusal
+    # alignment appears as a negative signed cosine.
+    return _ci_is_negative(summary["canonical_overlap_gap_vs_null"]) or _ci_is_positive(
+        summary["subspace_overlap_gap_vs_null"]
+    )
+
+
+def _supports_primary_mediation(summary: dict[str, Any]) -> bool:
+    return _ci_is_negative(summary["canonical_overlap_vs_primary"]) or _ci_is_positive(
+        summary["subspace_overlap_vs_primary"]
+    )
+
+
+def _directionally_consistent_after_exclusion(
+    full_summary: dict[str, Any],
+    excluded_summary: dict[str, Any],
+) -> bool:
+    canonical_full = float(full_summary["canonical_overlap_vs_primary"]["estimate"])
+    canonical_excluded = float(
+        excluded_summary["canonical_overlap_vs_primary"]["estimate"]
+    )
+    subspace_full = float(full_summary["subspace_overlap_vs_primary"]["estimate"])
+    subspace_excluded = float(
+        excluded_summary["subspace_overlap_vs_primary"]["estimate"]
+    )
+
+    canonical_consistent = canonical_full < 0.0 and canonical_excluded < 0.0
+    subspace_consistent = subspace_full > 0.0 and subspace_excluded > 0.0
+    return canonical_consistent or subspace_consistent
+
+
 def decide_d4_gate(summary: dict[str, Any]) -> tuple[str, str]:
     headline_geometry = summary["headline_geometry"]
     faith_summary = summary["benchmarks"]["faitheval"]
     jailbreak_summary = summary["benchmarks"]["jailbreak"]
-
-    geometry_supported = any(
-        _ci_excludes_zero(headline_geometry[key])
-        for key in ("canonical_overlap_gap_vs_null", "subspace_overlap_gap_vs_null")
-    )
-    faith_supported = any(
-        _ci_excludes_zero(faith_summary[key])
-        for key in ("canonical_overlap_vs_primary", "subspace_overlap_vs_primary")
-    )
-    jailbreak_supported = any(
-        _ci_excludes_zero(jailbreak_summary[key])
-        for key in ("canonical_overlap_vs_primary", "subspace_overlap_vs_primary")
+    dominant_layer_exclusion = summary.get("sensitivity", {}).get(
+        "dominant_layer_exclusion"
     )
 
-    if geometry_supported and faith_supported and jailbreak_supported:
+    geometry_supported = _supports_geometry(headline_geometry)
+    faith_supported = _supports_primary_mediation(faith_summary)
+    jailbreak_supported = _supports_primary_mediation(jailbreak_summary)
+    robust_after_exclusion = False
+    if dominant_layer_exclusion is not None:
+        faith_robust = (
+            not faith_supported
+        ) or _directionally_consistent_after_exclusion(
+            faith_summary,
+            dominant_layer_exclusion["faitheval"],
+        )
+        jailbreak_robust = _directionally_consistent_after_exclusion(
+            jailbreak_summary,
+            dominant_layer_exclusion["jailbreak"],
+        )
+        robust_after_exclusion = faith_robust and jailbreak_robust
+
+    if (
+        geometry_supported
+        and faith_supported
+        and jailbreak_supported
+        and robust_after_exclusion
+    ):
         return "orthogonalize_d4_immediately", "Baseline A is refusal-mediated."
-    if geometry_supported and jailbreak_supported:
+    if geometry_supported and jailbreak_supported and robust_after_exclusion:
         return (
             "keep_d4_as_planned_prioritize_d6_later",
             "Baseline A leaks into refusal only on safety externalities.",
@@ -992,10 +1046,23 @@ def write_closeout_note(path: Path, summary: dict[str, Any]) -> None:
     faith = faith_summary["canonical_overlap_vs_primary"]
     jailbreak = jailbreak_summary["canonical_overlap_vs_primary"]
     decision = summary["decision"]
+    dominant_layer_exclusion = summary.get("sensitivity", {}).get(
+        "dominant_layer_exclusion"
+    )
+    fragility_block = ""
+    if dominant_layer_exclusion is not None:
+        fragility_block = f"""
+## Dominant-Layer Fragility Check
+
+- Dominant layer by subspace gap: {dominant_layer_exclusion["excluded_layer"]}
+- FaithEval Spearman after excluding dominant layer: {dominant_layer_exclusion["faitheval"]["canonical_overlap_vs_primary"]["estimate"]:.6f} (canonical), {dominant_layer_exclusion["faitheval"]["subspace_overlap_vs_primary"]["estimate"]:.6f} (subspace)
+- Jailbreak Spearman after excluding dominant layer: {dominant_layer_exclusion["jailbreak"]["canonical_overlap_vs_primary"]["estimate"]:.6f} (canonical), {dominant_layer_exclusion["jailbreak"]["subspace_overlap_vs_primary"]["estimate"]:.6f} (subspace)
+"""
     note = f"""# D3.5 Refusal-Overlap Closeout
 
 ## Geometry
 
+- Canonical direction orientation: D2 stores `harmful - harmless`, so negative signed cosine means anti-refusal / harmless-ward alignment.
 - Canonical signed cosine mean: {geometry["canonical_overlap"]["estimate"]:.6f}
 - Canonical overlap gap vs null mean: {geometry["canonical_overlap_gap_vs_null"]["estimate"]:.6f}
 - Refusal-subspace energy fraction mean: {geometry["subspace_overlap"]["estimate"]:.6f}
@@ -1012,6 +1079,7 @@ def write_closeout_note(path: Path, summary: dict[str, Any]) -> None:
 - Canonical Spearman(overlap, csv2_yes slope): {jailbreak["estimate"]:.6f}
 - Refusal-subspace Spearman(overlap, csv2_yes slope): {jailbreak_summary["subspace_overlap_vs_primary"]["estimate"]:.6f}
 - Secondary Spearman(overlap, endpoint delta): {jailbreak_summary["canonical_overlap_vs_secondary"]["estimate"]:.6f}
+{fragility_block}
 
 ## D4 Gate
 
@@ -1292,6 +1360,32 @@ def main() -> None:
             )
         write_layer_scores_csv(layer_scores_path, layer_rows)
 
+        dominant_layer_row = max(
+            layer_rows,
+            key=lambda row: (
+                row["subspace_fraction_mean"] - row["subspace_fraction_null_mean"]
+            ),
+        )
+        dominant_layer = int(dominant_layer_row["layer"])
+        excluded_layer_scores = compute_overlap_statistics(
+            {
+                layer_idx: values
+                for layer_idx, values in actual_delta.items()
+                if layer_idx != dominant_layer
+            },
+            {
+                layer_idx: values
+                for layer_idx, values in refusal_directions.items()
+                if layer_idx != dominant_layer
+            },
+            {
+                layer_idx: values
+                for layer_idx, values in refusal_subspaces.items()
+                if layer_idx != dominant_layer
+            },
+            return_per_layer=False,
+        )
+
         summary = {
             "analysis": {
                 "model_path": args.model_path,
@@ -1312,6 +1406,11 @@ def main() -> None:
                 "stability_bootstrap_resamples": int(stability_bootstrap),
                 "target_prompt_count": int(total_target_prompts),
                 "contrastive_train_prompt_count": int(len(contrastive_records)),
+                "canonical_direction_definition": "harmful_minus_harmless",
+                "canonical_direction_interpretation": (
+                    "Negative signed cosine means anti-refusal / harmless-ward "
+                    "alignment because D2 stores harmful-minus-harmless directions."
+                ),
             },
             "headline_geometry": {
                 "canonical_overlap": bootstrap_mean_summary(
@@ -1364,6 +1463,46 @@ def main() -> None:
                         np.mean(
                             np.abs(stability_prompt_subspace - actual_prompt_subspace)
                         )
+                    ),
+                },
+                "dominant_layer_exclusion": {
+                    "excluded_layer": dominant_layer,
+                    "selection_rule": "largest subspace gap vs matched null",
+                    "faitheval": build_benchmark_summary(
+                        benchmark_name="faitheval",
+                        prompt_scores=excluded_layer_scores["prompt_signed_cosine"][
+                            faitheval_slice
+                        ],
+                        prompt_subspace_scores=excluded_layer_scores[
+                            "prompt_subspace_fraction"
+                        ][faitheval_slice],
+                        outcomes=faitheval_outcomes,
+                        primary_outcome_key="compliance_slope",
+                        secondary_outcome_key="compliance_delta_0_to_3",
+                        n_bootstrap=args.n_bootstrap,
+                        seed=args.seed + 77_000,
+                    ),
+                    "jailbreak": build_benchmark_summary(
+                        benchmark_name="jailbreak",
+                        prompt_scores=excluded_layer_scores["prompt_signed_cosine"][
+                            jailbreak_slice
+                        ],
+                        prompt_subspace_scores=excluded_layer_scores[
+                            "prompt_subspace_fraction"
+                        ][jailbreak_slice],
+                        outcomes=jailbreak_outcomes,
+                        primary_outcome_key="csv2_yes_slope",
+                        secondary_outcome_key="csv2_yes_delta_0_to_3",
+                        diagnostic_keys=[
+                            "C_slope",
+                            "S_slope",
+                            "V_slope",
+                            "harmful_payload_share_slope",
+                            "pivot_earliness_slope",
+                            "csv2_yes_alpha_3.0_conditioned_on_alpha_0.0",
+                        ],
+                        n_bootstrap=args.n_bootstrap,
+                        seed=args.seed + 78_000,
                     ),
                 },
             },

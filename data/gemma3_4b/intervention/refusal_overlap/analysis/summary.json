@@ -1,0 +1,526 @@
+{
+  "analysis": {
+    "canonical_direction_definition": "harmful_minus_harmless",
+    "canonical_direction_interpretation": "Negative signed cosine means anti-refusal / harmless-ward alignment because D2 stores harmful-minus-harmless directions.",
+    "classifier_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/models/gemma3_4b_classifier.pkl",
+    "contrastive_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/refusal_contrastive.jsonl",
+    "contrastive_train_prompt_count": 256,
+    "faitheval_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval/experiment",
+    "intermediate_size": 10240,
+    "jailbreak_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/csv2_evaluation",
+    "model_path": "google/gemma-3-4b-it",
+    "n_bootstrap": 10000,
+    "n_h_neurons": 38,
+    "n_layers": 34,
+    "n_null": 100,
+    "output_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/refusal_overlap/analysis",
+    "refusal_direction_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/directions/refusal_directions.pt",
+    "seed": 42,
+    "stability_bootstrap_resamples": 256,
+    "target_prompt_count": 1500
+  },
+  "benchmarks": {
+    "faitheval": {
+      "benchmark": "faitheval",
+      "canonical_overlap_vs_primary": {
+        "ci": {
+          "level": 0.95,
+          "lower": -0.16038687649616035,
+          "method": "bootstrap_percentile_spearman",
+          "upper": -0.012378679151531362
+        },
+        "estimate": -0.08690250741741773,
+        "n": 1000,
+        "valid_bootstrap_resamples": 10000
+      },
+      "canonical_overlap_vs_secondary": {
+        "ci": {
+          "level": 0.95,
+          "lower": -0.17315969638163986,
+          "method": "bootstrap_percentile_spearman",
+          "upper": -0.029729147037675516
+        },
+        "estimate": -0.10167837589399085,
+        "n": 1000,
+        "valid_bootstrap_resamples": 10000
+      },
+      "primary_outcome": "compliance_slope",
+      "quintile_calibration": [
+        {
+          "bucket": "q1",
+          "n": 200,
+          "outcome_mean": 0.04214285714285712,
+          "score_mean": -0.03101653995923698
+        },
+        {
+          "bucket": "q2",
+          "n": 200,
+          "outcome_mean": 0.02928571428571429,
+          "score_mean": -0.021435470944270493
+        },
+        {
+          "bucket": "q3",
+          "n": 200,
+          "outcome_mean": 0.014642857142857145,
+          "score_mean": -0.017785860514268278
+        },
+        {
+          "bucket": "q4",
+          "n": 200,
+          "outcome_mean": 0.0074999999999999945,
+          "score_mean": -0.014659665403887629
+        },
+        {
+          "bucket": "q5",
+          "n": 200,
+          "outcome_mean": 0.011071428571428567,
+          "score_mean": -0.0099893234053161
+        }
+      ],
+      "secondary_outcome": "compliance_delta_0_to_3",
+      "subspace_overlap_vs_primary": {
+        "ci": {
+          "level": 0.95,
+          "lower": 0.010997567258995025,
+          "method": "bootstrap_percentile_spearman",
+          "upper": 0.1586047213639872
+        },
+        "estimate": 0.08566496803681975,
+        "n": 1000,
+        "valid_bootstrap_resamples": 10000
+      }
+    },
+    "jailbreak": {
+      "benchmark": "jailbreak",
+      "canonical_overlap_vs_primary": {
+        "ci": {
+          "level": 0.95,
+          "lower": -0.2059922627017792,
+          "method": "bootstrap_percentile_spearman",
+          "upper": -0.023812062929702876
+        },
+        "estimate": -0.11640413377550492,
+        "n": 500,
+        "valid_bootstrap_resamples": 10000
+      },
+      "canonical_overlap_vs_secondary": {
+        "ci": {
+          "level": 0.95,
+          "lower": -0.2394847647111399,
+          "method": "bootstrap_percentile_spearman",
+          "upper": -0.058138394059410035
+        },
+        "estimate": -0.15108742718043175,
+        "n": 500,
+        "valid_bootstrap_resamples": 10000
+      },
+      "diagnostics": {
+        "C_slope": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.1943279746135278,
+            "method": "bootstrap_percentile_spearman",
+            "upper": -0.015487226251576773
+          },
+          "estimate": -0.10686694096892521,
+          "n": 500,
+          "valid_bootstrap_resamples": 10000
+        },
+        "S_slope": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.17891166705310915,
+            "method": "bootstrap_percentile_spearman",
+            "upper": 0.0019088138446656452
+          },
+          "estimate": -0.0893080248333922,
+          "n": 500,
+          "valid_bootstrap_resamples": 10000
+        },
+        "V_slope": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.14449433058685288,
+            "method": "bootstrap_percentile_spearman",
+            "upper": 0.09647413773819939
+          },
+          "estimate": -0.02338474456227598,
+          "n": 273,
+          "valid_bootstrap_resamples": 10000
+        },
+        "csv2_yes_alpha_3.0_conditioned_on_alpha_0.0": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.3232943743636604,
+            "method": "bootstrap_percentile_spearman",
+            "upper": -0.1453789121961274
+          },
+          "estimate": -0.23556429010282798,
+          "n": 500,
+          "valid_bootstrap_resamples": 10000
+        },
+        "harmful_payload_share_slope": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.25059210030463613,
+            "method": "bootstrap_percentile_spearman",
+            "upper": -0.07713329061583758
+          },
+          "estimate": -0.16608414167130495,
+          "n": 500,
+          "valid_bootstrap_resamples": 10000
+        },
+        "pivot_earliness_slope": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.19267310182437886,
+            "method": "bootstrap_percentile_spearman",
+            "upper": 0.03965387309044931
+          },
+          "estimate": -0.07805431532908041,
+          "n": 269,
+          "valid_bootstrap_resamples": 10000
+        }
+      },
+      "primary_outcome": "csv2_yes_slope",
+      "quintile_calibration": [
+        {
+          "bucket": "q1",
+          "n": 100,
+          "outcome_mean": 0.06346666666666666,
+          "score_mean": -0.022446846198290585
+        },
+        {
+          "bucket": "q2",
+          "n": 100,
+          "outcome_mean": 0.031199999999999988,
+          "score_mean": -0.015997536843642593
+        },
+        {
+          "bucket": "q3",
+          "n": 100,
+          "outcome_mean": 0.002933333333333331,
+          "score_mean": -0.01324913882650435
+        },
+        {
+          "bucket": "q4",
+          "n": 100,
+          "outcome_mean": 0.009866666666666664,
+          "score_mean": -0.010739121334627271
+        },
+        {
+          "bucket": "q5",
+          "n": 100,
+          "outcome_mean": 0.007466666666666664,
+          "score_mean": -0.00716465717414394
+        }
+      ],
+      "secondary_outcome": "csv2_yes_delta_0_to_3",
+      "subspace_overlap_vs_primary": {
+        "ci": {
+          "level": 0.95,
+          "lower": 0.021862726234424482,
+          "method": "bootstrap_percentile_spearman",
+          "upper": 0.20214146141940956
+        },
+        "estimate": 0.11199273123624684,
+        "n": 500,
+        "valid_bootstrap_resamples": 10000
+      }
+    }
+  },
+  "decision": {
+    "d4_gate": "proceed_with_d4_unchanged",
+    "statement": "Refusal overlap is too weak to explain Baseline A."
+  },
+  "headline_geometry": {
+    "canonical_overlap": {
+      "ci": {
+        "level": 0.95,
+        "lower": -0.017679353279150867,
+        "method": "bootstrap_percentile_prompt_mean",
+        "upper": -0.01690780462989739
+      },
+      "estimate": -0.017291401388744514
+    },
+    "canonical_overlap_gap_vs_null": {
+      "ci": {
+        "level": 0.95,
+        "lower": -0.031014069698750972,
+        "method": "bootstrap_percentile_actual_minus_null",
+        "upper": -0.012616794842136247
+      },
+      "estimate": -0.018253064787301508,
+      "null_mean": 0.0009616633985569934,
+      "null_median": 0.00038942864921409637,
+      "null_p95": 0.0077345815720036605
+    },
+    "subspace_overlap": {
+      "ci": {
+        "level": 0.95,
+        "lower": 0.037258902422167985,
+        "method": "bootstrap_percentile_prompt_mean",
+        "upper": 0.040378181373219316
+      },
+      "estimate": 0.03875971520381669
+    },
+    "subspace_overlap_gap_vs_null": {
+      "ci": {
+        "level": 0.95,
+        "lower": 0.025107454178218424,
+        "method": "bootstrap_percentile_actual_minus_null",
+        "upper": 0.039015340089714544
+      },
+      "estimate": 0.036118132966551156,
+      "null_mean": 0.0026415822372655383,
+      "null_median": 0.0015744675765745342,
+      "null_p95": 0.007481264951638873
+    }
+  },
+  "sensitivity": {
+    "basis_stability": {
+      "mean_abs_prompt_delta": 0.004657180514186621,
+      "subspace_overlap": {
+        "ci": {
+          "level": 0.95,
+          "lower": 0.03259594406350904,
+          "method": "bootstrap_percentile_prompt_mean",
+          "upper": 0.03571965868306967
+        },
+        "estimate": 0.03410253445897252
+      }
+    },
+    "classifier_weighted_geometry": {
+      "canonical_overlap": {
+        "ci": {
+          "level": 0.95,
+          "lower": -0.06413121509946261,
+          "method": "bootstrap_percentile_prompt_mean",
+          "upper": -0.06290516837391381
+        },
+        "estimate": -0.06352325974715253
+      },
+      "subspace_overlap": {
+        "ci": {
+          "level": 0.95,
+          "lower": 0.32170596317400535,
+          "method": "bootstrap_percentile_prompt_mean",
+          "upper": 0.3341534262102097
+        },
+        "estimate": 0.32794385597730674
+      }
+    },
+    "dominant_layer_exclusion": {
+      "excluded_layer": 33,
+      "faitheval": {
+        "benchmark": "faitheval",
+        "canonical_overlap_vs_primary": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.06751899156735258,
+            "method": "bootstrap_percentile_spearman",
+            "upper": 0.059725225279827265
+          },
+          "estimate": -0.004759341137253227,
+          "n": 1000,
+          "valid_bootstrap_resamples": 10000
+        },
+        "canonical_overlap_vs_secondary": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.08267547201460232,
+            "method": "bootstrap_percentile_spearman",
+            "upper": 0.04459581902266524
+          },
+          "estimate": -0.019006569188164006,
+          "n": 1000,
+          "valid_bootstrap_resamples": 10000
+        },
+        "primary_outcome": "compliance_slope",
+        "quintile_calibration": [
+          {
+            "bucket": "q1",
+            "n": 200,
+            "outcome_mean": 0.017857142857142842,
+            "score_mean": -0.0002116891699563439
+          },
+          {
+            "bucket": "q2",
+            "n": 200,
+            "outcome_mean": 0.022499999999999992,
+            "score_mean": 9.604132289041445e-05
+          },
+          {
+            "bucket": "q3",
+            "n": 200,
+            "outcome_mean": 0.026428571428571416,
+            "score_mean": 0.0002805193104723003
+          },
+          {
+            "bucket": "q4",
+            "n": 200,
+            "outcome_mean": 0.02321428571428571,
+            "score_mean": 0.00046242498137871735
+          },
+          {
+            "bucket": "q5",
+            "n": 200,
+            "outcome_mean": 0.014642857142857141,
+            "score_mean": 0.000744914832757786
+          }
+        ],
+        "secondary_outcome": "compliance_delta_0_to_3",
+        "subspace_overlap_vs_primary": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.08592354034487208,
+            "method": "bootstrap_percentile_spearman",
+            "upper": 0.0437284270858008
+          },
+          "estimate": -0.02182619400462759,
+          "n": 1000,
+          "valid_bootstrap_resamples": 10000
+        }
+      },
+      "jailbreak": {
+        "benchmark": "jailbreak",
+        "canonical_overlap_vs_primary": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.04931872604164626,
+            "method": "bootstrap_percentile_spearman",
+            "upper": 0.10985825476990303
+          },
+          "estimate": 0.03028513531063055,
+          "n": 500,
+          "valid_bootstrap_resamples": 10000
+        },
+        "canonical_overlap_vs_secondary": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.058490444634230705,
+            "method": "bootstrap_percentile_spearman",
+            "upper": 0.10367245276179282
+          },
+          "estimate": 0.022045962679563092,
+          "n": 500,
+          "valid_bootstrap_resamples": 10000
+        },
+        "diagnostics": {
+          "C_slope": {
+            "ci": {
+              "level": 0.95,
+              "lower": -0.04928286611535624,
+              "method": "bootstrap_percentile_spearman",
+              "upper": 0.1223978855483087
+            },
+            "estimate": 0.0366097729627221,
+            "n": 500,
+            "valid_bootstrap_resamples": 10000
+          },
+          "S_slope": {
+            "ci": {
+              "level": 0.95,
+              "lower": -0.023453170496266728,
+              "method": "bootstrap_percentile_spearman",
+              "upper": 0.14580786920244412
+            },
+            "estimate": 0.06173332426504588,
+            "n": 500,
+            "valid_bootstrap_resamples": 10000
+          },
+          "V_slope": {
+            "ci": {
+              "level": 0.95,
+              "lower": -0.14381627705287442,
+              "method": "bootstrap_percentile_spearman",
+              "upper": 0.09229113175842436
+            },
+            "estimate": -0.026968086808409533,
+            "n": 273,
+            "valid_bootstrap_resamples": 10000
+          },
+          "csv2_yes_alpha_3.0_conditioned_on_alpha_0.0": {
+            "ci": {
+              "level": 0.95,
+              "lower": 0.06366761641388533,
+              "method": "bootstrap_percentile_spearman",
+              "upper": 0.2261624282125126
+            },
+            "estimate": 0.14571229245793027,
+            "n": 500,
+            "valid_bootstrap_resamples": 10000
+          },
+          "harmful_payload_share_slope": {
+            "ci": {
+              "level": 0.95,
+              "lower": 0.010170675138345232,
+              "method": "bootstrap_percentile_spearman",
+              "upper": 0.18162919268658145
+            },
+            "estimate": 0.09693290976400225,
+            "n": 500,
+            "valid_bootstrap_resamples": 10000
+          },
+          "pivot_earliness_slope": {
+            "ci": {
+              "level": 0.95,
+              "lower": -0.14496410446922822,
+              "method": "bootstrap_percentile_spearman",
+              "upper": 0.10405222115298961
+            },
+            "estimate": -0.022141340643022967,
+            "n": 269,
+            "valid_bootstrap_resamples": 10000
+          }
+        },
+        "primary_outcome": "csv2_yes_slope",
+        "quintile_calibration": [
+          {
+            "bucket": "q1",
+            "n": 100,
+            "outcome_mean": 0.016266666666666665,
+            "score_mean": 0.0004761839007551316
+          },
+          {
+            "bucket": "q2",
+            "n": 100,
+            "outcome_mean": -6.106226635438361e-18,
+            "score_mean": 0.0007208363927202299
+          },
+          {
+            "bucket": "q3",
+            "n": 100,
+            "outcome_mean": 0.055199999999999985,
+            "score_mean": 0.0008982311689760536
+          },
+          {
+            "bucket": "q4",
+            "n": 100,
+            "outcome_mean": 0.02853333333333332,
+            "score_mean": 0.0010706541175022721
+          },
+          {
+            "bucket": "q5",
+            "n": 100,
+            "outcome_mean": 0.01493333333333333,
+            "score_mean": 0.0014126937882974744
+          }
+        ],
+        "secondary_outcome": "csv2_yes_delta_0_to_3",
+        "subspace_overlap_vs_primary": {
+          "ci": {
+            "level": 0.95,
+            "lower": -0.2372875269209444,
+            "method": "bootstrap_percentile_spearman",
+            "upper": -0.07798733974211079
+          },
+          "estimate": -0.1587497124760514,
+          "n": 500,
+          "valid_bootstrap_resamples": 10000
+        }
+      },
+      "selection_rule": "largest subspace gap vs matched null"
+    }
+  }
+}

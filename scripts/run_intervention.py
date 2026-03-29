@@ -202,7 +202,7 @@ class HNeuronScaler:
 def load_model_and_tokenizer(model_path, device_map="auto"):
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForCausalLM.from_pretrained(
-        model_path, torch_dtype=torch.bfloat16, device_map=device_map
+        model_path, dtype=torch.bfloat16, device_map=device_map
     )
     model.eval()
     return model, tokenizer

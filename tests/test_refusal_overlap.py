@@ -222,6 +222,10 @@ def _summary_with_gate_metrics(
     faith_subspace_ci: tuple[float, float] = (-0.1, 0.1),
     jailbreak_canonical_ci: tuple[float, float] = (-0.1, 0.1),
     jailbreak_subspace_ci: tuple[float, float] = (-0.1, 0.1),
+    excluded_faith_canonical_ci: tuple[float, float] = (-0.1, 0.1),
+    excluded_faith_subspace_ci: tuple[float, float] = (-0.1, 0.1),
+    excluded_jailbreak_canonical_ci: tuple[float, float] = (-0.1, 0.1),
+    excluded_jailbreak_subspace_ci: tuple[float, float] = (-0.1, 0.1),
 ) -> dict[str, dict]:
     def metric(ci: tuple[float, float]) -> dict[str, dict[str, float]]:
         lower, upper = ci
@@ -248,6 +252,23 @@ def _summary_with_gate_metrics(
                 "subspace_overlap_vs_primary": metric(jailbreak_subspace_ci),
             },
         },
+        "sensitivity": {
+            "dominant_layer_exclusion": {
+                "excluded_layer": 33,
+                "faitheval": {
+                    "canonical_overlap_vs_primary": metric(excluded_faith_canonical_ci),
+                    "subspace_overlap_vs_primary": metric(excluded_faith_subspace_ci),
+                },
+                "jailbreak": {
+                    "canonical_overlap_vs_primary": metric(
+                        excluded_jailbreak_canonical_ci
+                    ),
+                    "subspace_overlap_vs_primary": metric(
+                        excluded_jailbreak_subspace_ci
+                    ),
+                },
+            }
+        },
     }
 
 
@@ -257,6 +278,8 @@ class TestD4Gate:
             canonical_geometry_ci=(-0.45, -0.15),
             faith_canonical_ci=(-0.80, -0.30),
             jailbreak_canonical_ci=(-0.70, -0.20),
+            excluded_faith_canonical_ci=(-0.50, -0.10),
+            excluded_jailbreak_canonical_ci=(-0.40, -0.05),
         )
 
         gate, statement = decide_d4_gate(summary)
@@ -269,6 +292,8 @@ class TestD4Gate:
             subspace_geometry_ci=(0.20, 0.55),
             faith_subspace_ci=(0.25, 0.65),
             jailbreak_subspace_ci=(0.15, 0.50),
+            excluded_faith_subspace_ci=(0.10, 0.30),
+            excluded_jailbreak_subspace_ci=(0.10, 0.25),
         )
 
         gate, statement = decide_d4_gate(summary)
@@ -280,9 +305,24 @@ class TestD4Gate:
         summary = _summary_with_gate_metrics(
             subspace_geometry_ci=(0.20, 0.55),
             jailbreak_subspace_ci=(0.15, 0.50),
+            excluded_jailbreak_subspace_ci=(0.10, 0.25),
         )
 
         gate, statement = decide_d4_gate(summary)
 
         assert gate == "keep_d4_as_planned_prioritize_d6_later"
         assert "safety externalities" in statement
+
+    def test_fragile_dominant_layer_signal_blocks_d4_escalation(self):
+        summary = _summary_with_gate_metrics(
+            canonical_geometry_ci=(-0.45, -0.15),
+            faith_canonical_ci=(-0.80, -0.30),
+            jailbreak_canonical_ci=(-0.70, -0.20),
+            excluded_faith_canonical_ci=(-0.05, 0.05),
+            excluded_jailbreak_canonical_ci=(0.01, 0.10),
+        )
+
+        gate, statement = decide_d4_gate(summary)
+
+        assert gate == "proceed_with_d4_unchanged"
+        assert "too weak" in statement
