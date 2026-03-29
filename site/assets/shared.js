@@ -112,6 +112,14 @@
     return value.toFixed(digits);
   }
 
+  function formatPValue(value, digits = 3) {
+    const threshold = 10 ** (-digits);
+    if (value < threshold) {
+      return `p<${threshold.toFixed(digits)}`;
+    }
+    return `p=${value.toFixed(digits)}`;
+  }
+
   function formatDecimalCiText(ci, digits = 3) {
     return `95% CI ${ci.lower.toFixed(digits)}-${ci.upper.toFixed(digits)}`;
   }
@@ -470,7 +478,12 @@
       'slope-value',
       formatPpPerAlpha(effects.slope_pp_per_alpha.estimate),
     );
-    setBoundText('data-jailbreak-summary-bind', 'spearman-p', `p=${mono.spearman_p.toFixed(3)}`);
+    setBoundText('data-jailbreak-summary-bind', 'spearman-p', formatPValue(mono.spearman_p));
+    setBoundText(
+      'data-jailbreak-summary-bind',
+      'monotonicity-description',
+      mono.description,
+    );
   }
 
   function hydratePipelineSummary(summary) {

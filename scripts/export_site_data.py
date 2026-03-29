@@ -13,6 +13,7 @@ from typing import Any
 
 import joblib
 import numpy as np
+from scipy.stats import spearmanr
 
 try:
     from uncertainty import build_rate_summary, paired_bootstrap_curve_effects
@@ -71,6 +72,10 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def alpha_key(alpha: float) -> str:
     return f"{alpha:.1f}"
+
+
+def sorted_result_alphas(results: dict[str, Any]) -> list[float]:
+    return sorted(float(alpha) for alpha in results)
 
 
 def as_pct(rate: float) -> float:
@@ -135,9 +140,11 @@ def parse_failure_summary_from_record(record: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def build_rate_points(results: dict[str, Any]) -> list[dict[str, Any]]:
+def build_rate_points(
+    results: dict[str, Any], alphas: list[float] | None = None
+) -> list[dict[str, Any]]:
     points: list[dict[str, Any]] = []
-    for alpha in ALPHAS:
+    for alpha in alphas or ALPHAS:
         key = alpha_key(alpha)
         if key not in results:
             continue
@@ -154,6 +161,46 @@ def build_rate_points(results: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
     return points
+
+
+def format_p_value(p_value: float, digits: int = 3) -> str:
+    threshold = 10**-digits
+    if p_value < threshold:
+        return f"p<{threshold:.{digits}f}"
+    return f"p={p_value:.{digits}f}"
+
+
+def build_monotonicity_summary(points: list[dict[str, Any]]) -> dict[str, Any]:
+    alphas = np.array([point["alpha"] for point in points], dtype=float)
+    rates = np.array([point["compliance_rate"] for point in points], dtype=float)
+    rho, p_value = spearmanr(alphas, rates)
+    is_monotonic = all(rates[idx] <= rates[idx + 1] for idx in range(len(rates) - 1))
+    is_strictly_increasing = all(
+        rates[idx] < rates[idx + 1] for idx in range(len(rates) - 1)
+    )
+    if is_strictly_increasing:
+        description = (
+            f"Strictly increasing across the {len(points)} exported α values "
+            f"(Spearman ρ={rho:.3f}, {format_p_value(float(p_value))})."
+        )
+    elif is_monotonic:
+        description = (
+            f"Non-decreasing across the {len(points)} exported α values "
+            f"(Spearman ρ={rho:.3f}, {format_p_value(float(p_value))})."
+        )
+    else:
+        description = (
+            f"Not monotonic across the {len(points)} exported α values "
+            f"(Spearman ρ={rho:.3f}, {format_p_value(float(p_value))})."
+        )
+    return {
+        "spearman_rho": float(rho),
+        "spearman_p": float(p_value),
+        "is_significant": bool(p_value < 0.05),
+        "is_monotonic": is_monotonic,
+        "is_strictly_increasing": is_strictly_increasing,
+        "description": description,
+    }
 
 
 def build_standard_format_points(
@@ -1138,16 +1185,21 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
     faitheval_results = load_json(find_results_json(faitheval_dir))
     falseqa_results = load_json(find_results_json(falseqa_dir))
 
+    jailbreak_alphas = sorted_result_alphas(jailbreak_results["results"])
+
     # --- Aggregate points from results.json ---
-    points = build_rate_points(jailbreak_results["results"])
+    points = build_rate_points(jailbreak_results["results"], jailbreak_alphas)
     effects = jailbreak_results["effects"]["compliance_curve"]
+    monotonicity = build_monotonicity_summary(points)
 
     # --- Template breakdown from JSONL files ---
     all_rows_by_alpha: dict[float, list[dict[str, Any]]] = {}
-    for alpha in ALPHAS:
+    for alpha in jailbreak_alphas:
         jsonl_path = jailbreak_dir / f"alpha_{alpha:.1f}.jsonl"
         if not jsonl_path.exists():
-            continue
+            raise FileNotFoundError(
+                f"Missing jailbreak source file for exported alpha {alpha:.1f}: {jsonl_path}"
+            )
         all_rows_by_alpha[alpha] = load_jsonl(jsonl_path)
 
     template_indices = sorted(
@@ -1223,8 +1275,9 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
     ) -> dict[str, Any]:
         res = results["results"]
         eff = results["effects"]["compliance_curve"]
-        baseline = res[alpha_key(ALPHAS[0])]
-        endpoint = res[alpha_key(ALPHAS[-1])]
+        result_alphas = sorted_result_alphas(res)
+        baseline = res[alpha_key(result_alphas[0])]
+        endpoint = res[alpha_key(result_alphas[-1])]
         return {
             "name": name,
             "n_per_alpha": baseline["n_total"],
@@ -1274,7 +1327,7 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
         ]
         + [
             f"data/gemma3_4b/intervention/jailbreak/experiment/alpha_{alpha:.1f}.jsonl"
-            for alpha in ALPHAS
+            for alpha in jailbreak_alphas
         ]
         + [
             "data/gemma3_4b/intervention/faitheval/experiment/results.json",
@@ -1289,13 +1342,16 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
         "benchmark": jailbreak_results["benchmark"],
         "model": "google/gemma-3-4b-it",
         "n_h_neurons": 38,
-        "alphas": ALPHAS,
+        "alphas": jailbreak_alphas,
         "provenance": {
             "source_files": source_files,
             "notes": [
                 f"Jailbreak responses use stochastic generation (temperature={JAILBREAK_DECODING_TEMPERATURE:.1f}, do_sample=true), so per-item outcomes are not exactly reproducible.",
                 "No negative control experiment has been run for this benchmark.",
-                "Spearman ρ for monotonicity is computed from the 7 aggregate rates; p=0.094 does not reach conventional significance.",
+                (
+                    f"Spearman ρ for monotonicity is computed from the {len(points)} "
+                    f"exported aggregate rates ({format_p_value(monotonicity['spearman_p'])})."
+                ),
             ],
         },
         "aggregate": {
@@ -1306,12 +1362,7 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
                 "bootstrap": effects["bootstrap"],
             },
             "points": points,
-            "monotonicity": {
-                "spearman_rho": 0.679,
-                "spearman_p": 0.094,
-                "is_significant": False,
-                "description": "Positive trend but not monotonic at α=0.05 (Spearman ρ=0.679, p=0.094)",
-            },
+            "monotonicity": monotonicity,
         },
         "by_template": by_template,
         "by_category": by_category,
