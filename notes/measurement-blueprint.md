@@ -26,6 +26,7 @@ This contract applies to Baselines A through C, the refusal-overlap audit, the r
 
 - Report the primary task metric on the benchmark the intervention is meant to improve.
 - Keep the benchmark-side metric identical across the compared baselines.
+- For multiple-choice benchmarks, also inspect answer-format distribution, chosen-option distribution, and per-correct-option accuracy; parse-failure rates alone can miss label-bias failures.
 
 ### Primary Safety Metrics
 
