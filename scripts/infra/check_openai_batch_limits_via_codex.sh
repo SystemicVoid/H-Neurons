@@ -50,7 +50,7 @@ Requirements:
 - Compare the verified values against the local registry in scripts/openai_batch.py.
 - If any local Tier 2 queue limit is stale, update only:
   1. scripts/openai_batch.py
-  2. notes/tier2-batch-size-adjustments.md
+  2. docs/tier2-batch-size-adjustments.md
 - Keep the existing model-aware resolution logic intact. Only update the hardcoded Tier 2 values and verification note as needed.
 - If nothing changed, do not edit files.
 - In the final response, list the verified limits and say whether local files changed.
