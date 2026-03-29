@@ -1,0 +1,42 @@
+{
+  "args": {
+    "contrastive_path": "data/contrastive/refusal/refusal_contrastive.jsonl",
+    "device_map": "cuda:0",
+    "model_path": "google/gemma-3-4b-it",
+    "output_dir": "data/contrastive/refusal/directions",
+    "sanity_check": true,
+    "sanity_max_new_tokens": 256
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/extract_direction.py",
+    "--model_path",
+    "google/gemma-3-4b-it",
+    "--contrastive_path",
+    "data/contrastive/refusal/refusal_contrastive.jsonl",
+    "--output_dir",
+    "data/contrastive/refusal/directions",
+    "--device_map",
+    "cuda:0",
+    "--sanity_check",
+    "--sanity_max_new_tokens",
+    "256"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/extract_direction.py --model_path google/gemma-3-4b-it --contrastive_path data/contrastive/refusal/refusal_contrastive.jsonl --output_dir data/contrastive/refusal/directions --device_map cuda:0 --sanity_check --sanity_max_new_tokens 256",
+  "completed_at_utc": "2026-03-29T12:54:50.559178+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "error": "AttributeError: 'Gemma3Model' object has no attribute 'layers'",
+  "git_dirty": true,
+  "git_sha": "3d5b405c1bf409e886b9603979cd77262f114e4f",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/directions/refusal_directions.pt",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/directions/extraction_metadata.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "extract_direction.py",
+  "started_at_utc": "2026-03-29T12:54:48.063218+00:00",
+  "status": "failed"
+}
