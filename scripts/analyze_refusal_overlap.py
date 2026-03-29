@@ -918,14 +918,37 @@ def _ci_lower(summary: dict[str, Any] | None) -> float | None:
     return float(summary["ci"]["lower"])
 
 
-def decide_d4_gate(summary: dict[str, Any]) -> tuple[str, str]:
-    geometry_gap = summary["headline_geometry"]["canonical_overlap_gap_vs_null"]
-    faith_corr = summary["benchmarks"]["faitheval"]["canonical_overlap_vs_primary"]
-    jailbreak_corr = summary["benchmarks"]["jailbreak"]["canonical_overlap_vs_primary"]
+def _ci_upper(summary: dict[str, Any] | None) -> float | None:
+    if not summary or summary.get("ci") is None:
+        return None
+    return float(summary["ci"]["upper"])
 
-    geometry_supported = (_ci_lower(geometry_gap) or float("-inf")) > 0.0
-    faith_supported = (_ci_lower(faith_corr) or float("-inf")) > 0.0
-    jailbreak_supported = (_ci_lower(jailbreak_corr) or float("-inf")) > 0.0
+
+def _ci_excludes_zero(summary: dict[str, Any] | None) -> bool:
+    lower = _ci_lower(summary)
+    upper = _ci_upper(summary)
+    if lower is None or upper is None:
+        return False
+    return lower > 0.0 or upper < 0.0
+
+
+def decide_d4_gate(summary: dict[str, Any]) -> tuple[str, str]:
+    headline_geometry = summary["headline_geometry"]
+    faith_summary = summary["benchmarks"]["faitheval"]
+    jailbreak_summary = summary["benchmarks"]["jailbreak"]
+
+    geometry_supported = any(
+        _ci_excludes_zero(headline_geometry[key])
+        for key in ("canonical_overlap_gap_vs_null", "subspace_overlap_gap_vs_null")
+    )
+    faith_supported = any(
+        _ci_excludes_zero(faith_summary[key])
+        for key in ("canonical_overlap_vs_primary", "subspace_overlap_vs_primary")
+    )
+    jailbreak_supported = any(
+        _ci_excludes_zero(jailbreak_summary[key])
+        for key in ("canonical_overlap_vs_primary", "subspace_overlap_vs_primary")
+    )
 
     if geometry_supported and faith_supported and jailbreak_supported:
         return "orthogonalize_d4_immediately", "Baseline A is refusal-mediated."
@@ -964,8 +987,10 @@ def write_layer_scores_csv(
 
 def write_closeout_note(path: Path, summary: dict[str, Any]) -> None:
     geometry = summary["headline_geometry"]
-    faith = summary["benchmarks"]["faitheval"]["canonical_overlap_vs_primary"]
-    jailbreak = summary["benchmarks"]["jailbreak"]["canonical_overlap_vs_primary"]
+    faith_summary = summary["benchmarks"]["faitheval"]
+    jailbreak_summary = summary["benchmarks"]["jailbreak"]
+    faith = faith_summary["canonical_overlap_vs_primary"]
+    jailbreak = jailbreak_summary["canonical_overlap_vs_primary"]
     decision = summary["decision"]
     note = f"""# D3.5 Refusal-Overlap Closeout
 
@@ -978,13 +1003,15 @@ def write_closeout_note(path: Path, summary: dict[str, Any]) -> None:
 
 ## FaithEval Mediation
 
-- Spearman(overlap, compliance slope): {faith["estimate"]:.6f}
-- Secondary Spearman(overlap, endpoint delta): {summary["benchmarks"]["faitheval"]["canonical_overlap_vs_secondary"]["estimate"]:.6f}
+- Canonical Spearman(overlap, compliance slope): {faith["estimate"]:.6f}
+- Refusal-subspace Spearman(overlap, compliance slope): {faith_summary["subspace_overlap_vs_primary"]["estimate"]:.6f}
+- Secondary Spearman(overlap, endpoint delta): {faith_summary["canonical_overlap_vs_secondary"]["estimate"]:.6f}
 
 ## Jailbreak Externality
 
-- Spearman(overlap, csv2_yes slope): {jailbreak["estimate"]:.6f}
-- Secondary Spearman(overlap, endpoint delta): {summary["benchmarks"]["jailbreak"]["canonical_overlap_vs_secondary"]["estimate"]:.6f}
+- Canonical Spearman(overlap, csv2_yes slope): {jailbreak["estimate"]:.6f}
+- Refusal-subspace Spearman(overlap, csv2_yes slope): {jailbreak_summary["subspace_overlap_vs_primary"]["estimate"]:.6f}
+- Secondary Spearman(overlap, endpoint delta): {jailbreak_summary["canonical_overlap_vs_secondary"]["estimate"]:.6f}
 
 ## D4 Gate
 

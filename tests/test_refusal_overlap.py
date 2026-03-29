@@ -17,6 +17,7 @@ from analyze_refusal_overlap import (
     build_faitheval_prompt_records,
     build_jailbreak_prompt_records,
     compute_overlap_statistics,
+    decide_d4_gate,
     project_down_proj_delta,
     sample_layer_matched_neuron_maps,
 )
@@ -211,3 +212,77 @@ class TestPromptReconstruction:
         assert (
             "If the context conflicts with established knowledge" in records[0].prompt
         )
+
+
+def _summary_with_gate_metrics(
+    *,
+    canonical_geometry_ci: tuple[float, float] = (-0.1, 0.1),
+    subspace_geometry_ci: tuple[float, float] = (-0.1, 0.1),
+    faith_canonical_ci: tuple[float, float] = (-0.1, 0.1),
+    faith_subspace_ci: tuple[float, float] = (-0.1, 0.1),
+    jailbreak_canonical_ci: tuple[float, float] = (-0.1, 0.1),
+    jailbreak_subspace_ci: tuple[float, float] = (-0.1, 0.1),
+) -> dict[str, dict]:
+    def metric(ci: tuple[float, float]) -> dict[str, dict[str, float]]:
+        lower, upper = ci
+        return {
+            "estimate": (lower + upper) / 2.0,
+            "ci": {
+                "lower": lower,
+                "upper": upper,
+            },
+        }
+
+    return {
+        "headline_geometry": {
+            "canonical_overlap_gap_vs_null": metric(canonical_geometry_ci),
+            "subspace_overlap_gap_vs_null": metric(subspace_geometry_ci),
+        },
+        "benchmarks": {
+            "faitheval": {
+                "canonical_overlap_vs_primary": metric(faith_canonical_ci),
+                "subspace_overlap_vs_primary": metric(faith_subspace_ci),
+            },
+            "jailbreak": {
+                "canonical_overlap_vs_primary": metric(jailbreak_canonical_ci),
+                "subspace_overlap_vs_primary": metric(jailbreak_subspace_ci),
+            },
+        },
+    }
+
+
+class TestD4Gate:
+    def test_anti_aligned_canonical_evidence_still_escalates_d4(self):
+        summary = _summary_with_gate_metrics(
+            canonical_geometry_ci=(-0.45, -0.15),
+            faith_canonical_ci=(-0.80, -0.30),
+            jailbreak_canonical_ci=(-0.70, -0.20),
+        )
+
+        gate, statement = decide_d4_gate(summary)
+
+        assert gate == "orthogonalize_d4_immediately"
+        assert "refusal-mediated" in statement
+
+    def test_subspace_evidence_can_drive_full_d4_escalation(self):
+        summary = _summary_with_gate_metrics(
+            subspace_geometry_ci=(0.20, 0.55),
+            faith_subspace_ci=(0.25, 0.65),
+            jailbreak_subspace_ci=(0.15, 0.50),
+        )
+
+        gate, statement = decide_d4_gate(summary)
+
+        assert gate == "orthogonalize_d4_immediately"
+        assert "refusal-mediated" in statement
+
+    def test_subspace_jailbreak_evidence_preserves_externality_only_path(self):
+        summary = _summary_with_gate_metrics(
+            subspace_geometry_ci=(0.20, 0.55),
+            jailbreak_subspace_ci=(0.15, 0.50),
+        )
+
+        gate, statement = decide_d4_gate(summary)
+
+        assert gate == "keep_d4_as_planned_prioritize_d6_later"
+        assert "safety externalities" in statement
