@@ -17,6 +17,7 @@ Usage:
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -66,6 +67,15 @@ def _slugify_path_component(value: str, *, max_length: int = 48) -> str:
     if not slug:
         return "unnamed"
     return slug[:max_length].rstrip("-") or "unnamed"
+
+
+def format_alpha_label(alpha: float) -> str:
+    """Format alphas without collapsing nearby micro-betas into one filename."""
+    rounded_one_decimal = round(alpha, 1)
+    if math.isclose(alpha, rounded_one_decimal, abs_tol=1e-9):
+        return f"{rounded_one_decimal:.1f}"
+    label = f"{alpha:.6f}".rstrip("0").rstrip(".")
+    return "0" if label in {"-0", "-0.0"} else label
 
 
 def build_direction_output_suffix(
@@ -690,7 +700,7 @@ def load_results(output_dir: str, alphas: list) -> dict:
     """Load all existing results across alpha files."""
     results = {}
     for alpha in alphas:
-        path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+        path = os.path.join(output_dir, f"alpha_{format_alpha_label(alpha)}.jsonl")
         if os.path.exists(path):
             records = []
             with open(path) as f:
@@ -797,7 +807,8 @@ def run_faitheval(
     throughput_session_id: str | None = None,
 ):
     """Run FaithEval for a single alpha value. Returns compliance count."""
-    out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+    alpha_label = format_alpha_label(alpha)
+    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
     existing_ids = load_existing_ids(out_path)
 
     if max_samples:
@@ -807,7 +818,7 @@ def run_faitheval(
     compliant = 0
     total = 0
 
-    for sample in tqdm(samples, desc=f"FaithEval α={alpha:.1f}"):
+    for sample in tqdm(samples, desc=f"FaithEval α={alpha_label}"):
         if sample["id"] in existing_ids:
             # Count existing results for accurate totals
             total += 1
@@ -930,7 +941,8 @@ def run_falseqa(
     throughput_session_id: str | None = None,
 ):
     """Run FalseQA for a single alpha value. Saves responses; judging is separate."""
-    out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+    alpha_label = format_alpha_label(alpha)
+    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
     existing_ids = load_existing_ids(out_path)
 
     if max_samples:
@@ -938,7 +950,7 @@ def run_falseqa(
 
     scaler.alpha = alpha
 
-    for sample in tqdm(samples, desc=f"FalseQA α={alpha:.1f}"):
+    for sample in tqdm(samples, desc=f"FalseQA α={alpha_label}"):
         if sample["id"] in existing_ids:
             continue
 
@@ -1038,7 +1050,8 @@ def run_bioasq(
     in the normalized response.  Uses ``compliance`` field for consistency
     with the aggregation pipeline (here compliance ≡ factoid accuracy).
     """
-    out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+    alpha_label = format_alpha_label(alpha)
+    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
     existing_ids = load_existing_ids(out_path)
 
     if max_samples:
@@ -1046,7 +1059,7 @@ def run_bioasq(
 
     scaler.alpha = alpha
 
-    for sample in tqdm(samples, desc=f"BioASQ α={alpha:.1f}"):
+    for sample in tqdm(samples, desc=f"BioASQ α={alpha_label}"):
         if sample["id"] in existing_ids:
             continue
 
@@ -1145,7 +1158,8 @@ def run_sycophancy_triviaqa(
     throughput_session_id: str | None = None,
 ):
     """Two-turn sycophancy: ask → challenge → check if model flips."""
-    out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+    alpha_label = format_alpha_label(alpha)
+    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
     existing_ids = load_existing_ids(out_path)
 
     if max_samples:
@@ -1153,7 +1167,7 @@ def run_sycophancy_triviaqa(
 
     scaler.alpha = alpha
 
-    for sample in tqdm(samples, desc=f"Sycophancy α={alpha:.1f}"):
+    for sample in tqdm(samples, desc=f"Sycophancy α={alpha_label}"):
         if sample["id"] in existing_ids:
             continue
 
@@ -1345,7 +1359,8 @@ def run_jailbreak(
     throughput_session_id: str | None = None,
 ):
     """Run Jailbreak for a single alpha. Saves responses; GPT-4o judging is separate."""
-    out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+    alpha_label = format_alpha_label(alpha)
+    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
     existing_ids = load_existing_ids(out_path)
 
     if max_samples:
@@ -1353,7 +1368,7 @@ def run_jailbreak(
 
     scaler.alpha = alpha
 
-    for sample in tqdm(samples, desc=f"Jailbreak α={alpha:.1f}"):
+    for sample in tqdm(samples, desc=f"Jailbreak α={alpha_label}"):
         if sample["id"] in existing_ids:
             continue
 
@@ -1412,7 +1427,8 @@ def aggregate_results(output_dir, alphas):
     rows_by_alpha = {}
     parse_failure_supported = False
     for alpha in alphas:
-        path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+        alpha_label = format_alpha_label(alpha)
+        path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
         if not os.path.exists(path):
             continue
         records = _load_records(path)
@@ -1443,7 +1459,7 @@ def aggregate_results(output_dir, alphas):
                 total_key="n_total",
             )
         results[str(alpha)] = result
-        print(f"  α={alpha:.1f}: {rate:.1%} compliance ({compliant}/{total})")
+        print(f"  α={alpha_label}: {rate:.1%} compliance ({compliant}/{total})")
 
     effects = {}
     if len(rows_by_alpha) >= 2:
@@ -1891,8 +1907,9 @@ def main():
         extra_kwargs["prompt_cache"] = prompt_cache
 
         for alpha_idx, alpha in enumerate(args.alphas, start=1):
+            alpha_label = format_alpha_label(alpha)
             print(f"\n{'=' * 60}")
-            print(f"Running α = {alpha:.1f}")
+            print(f"Running α = {alpha_label}")
             print(f"{'=' * 60}")
             alpha_wall_t0 = time.perf_counter()
             run_fn(
@@ -1912,7 +1929,7 @@ def main():
             )
             alpha_wall_total_s = round(time.perf_counter() - alpha_wall_t0, 4)
             alpha_records = _load_records(
-                os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+                os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
             )
             alpha_summary = build_alpha_throughput_summary(
                 alpha_records,
@@ -1999,7 +2016,7 @@ def main():
             output_dir,
             summary_path,
             *[
-                os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+                os.path.join(output_dir, f"alpha_{format_alpha_label(alpha)}.jsonl")
                 for alpha in args.alphas
             ],
         ]
