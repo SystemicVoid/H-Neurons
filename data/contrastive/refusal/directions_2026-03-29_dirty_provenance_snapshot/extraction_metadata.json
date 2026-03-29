@@ -2,7 +2,7 @@
   "best_layer": 25,
   "best_layer_accuracy": 0.984375,
   "best_layer_separation": 9179.039062,
-  "collection_time_s": 8.03,
+  "collection_time_s": 8.08,
   "contrastive_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/refusal/refusal_contrastive.jsonl",
   "dtype_accumulate": "float32",
   "dtype_extract": "bfloat16",

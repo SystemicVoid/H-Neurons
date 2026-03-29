@@ -1,0 +1,28 @@
+{
+  "args": {
+    "input_path": "data/contrastive/refusal/upstream/harmful_test.json",
+    "output_dir": "data/contrastive/refusal/eval"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python",
+    "scripts/materialize_harmful_eval_sets.py"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python scripts/materialize_harmful_eval_sets.py",
+  "completed_at_utc": "2026-03-29T13:31:27.093705+00:00",
+  "cwd": "/tmp/02-h-neurons-clean-d2-rerun",
+  "git_dirty": false,
+  "git_sha": "a563930cfd8d0e5fba4f272bc6196c36ba7a9663",
+  "hostname": "excurio",
+  "output_targets": [
+    "/tmp/02-h-neurons-clean-d2-rerun/data/contrastive/refusal/eval/jbb_100.jsonl",
+    "/tmp/02-h-neurons-clean-d2-rerun/data/contrastive/refusal/eval/harmbench_test_159.jsonl",
+    "/tmp/02-h-neurons-clean-d2-rerun/data/contrastive/refusal/eval/strongreject_313.jsonl",
+    "/tmp/02-h-neurons-clean-d2-rerun/data/contrastive/refusal/eval/eval_sets_metadata.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "materialize_harmful_eval_sets.py",
+  "started_at_utc": "2026-03-29T13:31:27.091896+00:00",
+  "status": "completed"
+}
