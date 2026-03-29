@@ -26,6 +26,7 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import torch
 from tqdm import tqdm
@@ -112,6 +113,16 @@ def fingerprint_records(records: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _get_text_config(model: torch.nn.Module) -> Any:
+    return getattr(model.config, "text_config", model.config)
+
+
+def _get_decoder_layers(model: torch.nn.Module) -> Any:
+    inner = getattr(model, "model")
+    language_model = getattr(inner, "language_model", None)
+    return language_model.layers if language_model is not None else inner.layers
+
+
 def collect_activations(
     model: torch.nn.Module,
     tokenizer: AutoTokenizer,
@@ -124,7 +135,8 @@ def collect_activations(
     Returns {layer_idx: list of tensors of shape [hidden_dim]} in float32.
     """
     # Running sums in float32 for numerical stability
-    hidden_dim: int = model.config.hidden_size  # type: ignore
+    cfg = _get_text_config(model)
+    hidden_dim = int(getattr(cfg, "hidden_size"))
     sums: dict[int, torch.Tensor] = {
         i: torch.zeros(int(hidden_dim), dtype=torch.float32, device="cpu")
         for i in range(n_layers)
@@ -149,11 +161,11 @@ def collect_activations(
 
         return hook_fn
 
-    # Install hooks on decoder layers
-    decoder_layers = model.model.layers  # type: ignore
+    # Install hooks on decoder layers (Gemma-3 nests under language_model)
+    decoder_layers = _get_decoder_layers(model)
     for i in range(n_layers):
-        layer_module = decoder_layers[i]  # type: ignore
-        hooks.append(layer_module.register_forward_hook(make_hook(i)))  # type: ignore
+        layer_module = decoder_layers[i]
+        hooks.append(layer_module.register_forward_hook(make_hook(i)))
 
     try:
         for prompt in tqdm(prompts, desc="Collecting activations"):
@@ -583,12 +595,14 @@ def main():
         print(f"\nLoading model: {args.model_path}")
         tokenizer = AutoTokenizer.from_pretrained(args.model_path)
         model = AutoModelForCausalLM.from_pretrained(
-            args.model_path, torch_dtype=torch.bfloat16, device_map=args.device_map
+            args.model_path, dtype=torch.bfloat16, device_map=args.device_map
         )
         model.eval()
         device = next(model.parameters()).device
-        n_layers: int = model.config.num_hidden_layers
-        hidden_dim: int = model.config.hidden_size
+        # Gemma-3 uses nested config: text_config holds layer/hidden attrs
+        cfg = _get_text_config(model)
+        n_layers = int(getattr(cfg, "num_hidden_layers"))
+        hidden_dim = int(getattr(cfg, "hidden_size"))
         print(f"Model loaded: {n_layers} layers, hidden_dim={hidden_dim}")
 
         # Collect train activations

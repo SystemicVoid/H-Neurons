@@ -14,11 +14,18 @@ Usage:
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import torch
 
 
 VALID_DIRECTION_MODES = ("ablate", "add")
+
+
+def _get_decoder_layers(model: torch.nn.Module) -> Any:
+    inner = getattr(model, "model")
+    language_model = getattr(inner, "language_model", None)
+    return language_model.layers if language_model is not None else inner.layers
 
 
 class DirectionScaler:
@@ -57,7 +64,7 @@ class DirectionScaler:
         self._install(model, device)
 
     def _install(self, model: torch.nn.Module, device: torch.device):
-        decoder_layers = model.model.layers  # type: ignore
+        decoder_layers = _get_decoder_layers(model)
         for layer_idx in self._target_layers:
             if layer_idx not in self.directions:
                 continue
@@ -66,7 +73,7 @@ class DirectionScaler:
             )
             # Ensure unit vector
             direction = direction / direction.norm()
-            layer_module = decoder_layers[layer_idx]  # type: ignore
+            layer_module = decoder_layers[layer_idx]
 
             def make_hook(d: torch.Tensor, dir_mode: str):
                 def hook_fn(module, input, output):
@@ -105,9 +112,7 @@ class DirectionScaler:
                 return hook_fn
 
             self.hooks.append(
-                layer_module.register_forward_hook(  # type: ignore
-                    make_hook(direction, self.mode)
-                )
+                layer_module.register_forward_hook(make_hook(direction, self.mode))
             )
 
     @staticmethod
