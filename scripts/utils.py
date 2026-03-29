@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -24,6 +25,15 @@ from collections.abc import Sequence
 _SENSITIVE_ARG_SUFFIXES = ("token", "secret", "password", "auth_key", "_api_key")
 _SENSITIVE_ARG_NAMES = {"api_key", "sampling_api_key"}
 _REDACTED_ARG_VALUE = "[REDACTED]"
+
+
+def format_alpha_label(alpha: float) -> str:
+    """Format alpha values without collapsing nearby micro-betas."""
+    rounded_one_decimal = round(alpha, 1)
+    if math.isclose(alpha, rounded_one_decimal, abs_tol=1e-9):
+        return f"{rounded_one_decimal:.1f}"
+    label = f"{alpha:.6f}".rstrip("0").rstrip(".")
+    return "0" if label in {"-0", "-0.0"} else label
 
 
 def normalize_answer(s: str | None) -> str:

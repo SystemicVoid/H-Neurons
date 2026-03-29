@@ -17,7 +17,6 @@ Usage:
 import argparse
 import hashlib
 import json
-import math
 import os
 from pathlib import Path
 import re
@@ -67,15 +66,6 @@ def _slugify_path_component(value: str, *, max_length: int = 48) -> str:
     if not slug:
         return "unnamed"
     return slug[:max_length].rstrip("-") or "unnamed"
-
-
-def format_alpha_label(alpha: float) -> str:
-    """Format alphas without collapsing nearby micro-betas into one filename."""
-    rounded_one_decimal = round(alpha, 1)
-    if math.isclose(alpha, rounded_one_decimal, abs_tol=1e-9):
-        return f"{rounded_one_decimal:.1f}"
-    label = f"{alpha:.6f}".rstrip("0").rstrip(".")
-    return "0" if label in {"-0", "-0.0"} else label
 
 
 def build_direction_output_suffix(
@@ -721,6 +711,7 @@ from utils import (  # noqa: E402
     define_wandb_metrics,
     extract_mc_answer,
     finish_run_provenance,
+    format_alpha_label,
     get_git_sha,
     normalize_answer,
     provenance_error_message,

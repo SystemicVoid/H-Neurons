@@ -21,7 +21,7 @@ from run_intervention import (
     build_sample_throughput_payload,
     resolve_output_dir,
 )
-from utils import extract_mc_answer, normalize_answer
+from utils import extract_mc_answer, format_alpha_label, normalize_answer
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +59,18 @@ class TestNormalizeAnswer:
 
     def test_combined_normalization(self):
         assert normalize_answer("The  'quick_brown' Fox!") == "quick brown fox"
+
+
+class TestFormatAlphaLabel:
+    def test_keeps_one_decimal_for_canonical_grid(self):
+        assert format_alpha_label(0.0) == "0.0"
+        assert format_alpha_label(1.5) == "1.5"
+        assert format_alpha_label(3.0) == "3.0"
+
+    def test_preserves_micro_beta_precision_without_collision(self):
+        assert format_alpha_label(0.02) == "0.02"
+        assert format_alpha_label(0.125) == "0.125"
+        assert format_alpha_label(0.0) != format_alpha_label(0.02)
 
 
 # ---------------------------------------------------------------------------

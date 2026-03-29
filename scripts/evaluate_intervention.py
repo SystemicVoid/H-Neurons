@@ -31,6 +31,7 @@ from tqdm import tqdm
 
 from utils import (
     finish_run_provenance,
+    format_alpha_label,
     provenance_error_message,
     provenance_status_for_exception,
     start_run_provenance,
@@ -378,6 +379,16 @@ def _write_alpha_records(path: str, records: list[dict]) -> None:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
 
+def build_alpha_file_path(input_dir: str, alpha: float) -> str:
+    """Return the canonical JSONL path for one intervention alpha."""
+    return os.path.join(input_dir, f"alpha_{format_alpha_label(alpha)}.jsonl")
+
+
+def build_alpha_batch_custom_id(alpha: float, idx: int) -> str:
+    """Return a stable batch request id that preserves micro-beta precision."""
+    return f"a{format_alpha_label(alpha)}_i{idx}"
+
+
 def evaluate_all_batch(
     input_dir,
     alphas,
@@ -404,9 +415,9 @@ def evaluate_all_batch(
     request_map: dict[str, tuple[float, int]] = {}
 
     for alpha in alphas:
-        path = os.path.join(input_dir, f"alpha_{alpha:.1f}.jsonl")
+        path = build_alpha_file_path(input_dir, alpha)
         if not os.path.exists(path):
-            print(f"  alpha={alpha:.1f}: file not found, skipping")
+            print(f"  alpha={format_alpha_label(alpha)}: file not found, skipping")
             continue
         records = _load_alpha_records(path)
         alpha_data[alpha] = (path, records)
@@ -414,7 +425,7 @@ def evaluate_all_batch(
         for idx, rec in enumerate(records):
             if "compliance" in rec:
                 continue
-            custom_id = f"a{alpha:.1f}_i{idx}"
+            custom_id = build_alpha_batch_custom_id(alpha, idx)
 
             if benchmark == "falseqa":
                 messages = build_falseqa_judge_messages(
@@ -484,7 +495,10 @@ def evaluate_all_batch(
         compliant = sum(1 for r in records if r.get("compliance"))
         total = len(records)
         rate = compliant / total if total > 0 else 0
-        print(f"  alpha={alpha:.1f}: {rate:.1%} compliance ({compliant}/{total})")
+        print(
+            f"  alpha={format_alpha_label(alpha)}: "
+            f"{rate:.1%} compliance ({compliant}/{total})"
+        )
 
     return alpha_data
 
@@ -585,11 +599,13 @@ def main():
             if args.prompt_cache_retention:
                 extra_kwargs["prompt_cache_retention"] = args.prompt_cache_retention
             for alpha in args.alphas:
-                path = os.path.join(args.input_dir, f"alpha_{alpha:.1f}.jsonl")
+                path = build_alpha_file_path(args.input_dir, alpha)
                 if not os.path.exists(path):
-                    print(f"  alpha={alpha:.1f}: file not found, skipping")
+                    print(
+                        f"  alpha={format_alpha_label(alpha)}: file not found, skipping"
+                    )
                     continue
-                print(f"\n  alpha={alpha:.1f}:")
+                print(f"\n  alpha={format_alpha_label(alpha)}:")
                 records = evaluate_alpha_file(
                     path,
                     args.benchmark,
