@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -11,11 +12,14 @@ import torch
 # scripts/ uses flat sibling imports; add it to sys.path for test discovery.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+from extract_direction import evaluate_direction_sanity_gate
 from run_intervention import (
     HNeuronScaler,
+    build_direction_output_suffix,
     build_alpha_throughput_payload,
     build_alpha_throughput_summary,
     build_sample_throughput_payload,
+    resolve_output_dir,
 )
 from utils import extract_mc_answer, normalize_answer
 
@@ -396,3 +400,84 @@ class TestThroughputHelpers:
         )
 
         assert "throughput/alpha/hook_frac_of_generate" not in payload
+
+
+class TestDirectionOutputDir:
+    def test_direction_output_suffix_changes_when_config_changes(self):
+        base = build_direction_output_suffix(
+            "data/contrastive/refusal/directions/refusal_directions.pt",
+            "ablate",
+            None,
+        )
+        different_mode = build_direction_output_suffix(
+            "data/contrastive/refusal/directions/refusal_directions.pt",
+            "add",
+            None,
+        )
+        different_layers = build_direction_output_suffix(
+            "data/contrastive/refusal/directions/refusal_directions.pt",
+            "ablate",
+            "20,21,22",
+        )
+        different_path = build_direction_output_suffix(
+            "data/contrastive/refusal/directions/alt_refusal_directions.pt",
+            "ablate",
+            None,
+        )
+
+        assert len({base, different_mode, different_layers, different_path}) == 4
+
+    def test_resolve_output_dir_uses_config_specific_direction_default(self):
+        args = SimpleNamespace(
+            output_dir=None,
+            intervention_mode="direction",
+            benchmark="jailbreak",
+            direction_path="data/contrastive/refusal/directions/refusal_directions.pt",
+            direction_mode="ablate",
+            direction_layers="20,21,22",
+        )
+
+        output_dir = resolve_output_dir(args)
+
+        assert output_dir.startswith("data/gemma3_4b/intervention/jailbreak_")
+        assert output_dir.endswith("/experiment")
+        assert "direction_ablate_layers-20-21-22" in output_dir
+
+    def test_resolve_output_dir_requires_direction_path_for_default(self):
+        args = SimpleNamespace(
+            output_dir=None,
+            intervention_mode="direction",
+            benchmark="jailbreak",
+            direction_path=None,
+            direction_mode="ablate",
+            direction_layers=None,
+        )
+
+        with pytest.raises(ValueError, match="requires --direction_path"):
+            resolve_output_dir(args)
+
+
+class TestDirectionSanityGate:
+    def test_requires_positive_ablation_effect_even_below_threshold(self):
+        gate = evaluate_direction_sanity_gate(
+            harmful_baseline_refusals=4,
+            harmful_ablated_refusals=4,
+            n_harmful=10,
+        )
+
+        assert gate["passes_refusal_threshold"] is True
+        assert gate["has_positive_ablation_effect"] is False
+        assert gate["ready_for_d3"] is False
+
+    def test_passes_only_when_ablation_reduces_refusal_and_clears_threshold(self):
+        gate = evaluate_direction_sanity_gate(
+            harmful_baseline_refusals=8,
+            harmful_ablated_refusals=3,
+            n_harmful=10,
+        )
+
+        assert gate["passes_refusal_threshold"] is True
+        assert gate["has_positive_ablation_effect"] is True
+        assert gate["refusal_rate_reduction"] == pytest.approx(0.5, abs=1e-6)
+        assert gate["refusal_count_reduction"] == 5
+        assert gate["ready_for_d3"] is True

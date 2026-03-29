@@ -14,9 +14,12 @@ Usage:
         --max_samples 500
 """
 
-import os
-import json
 import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -29,6 +32,7 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from intervene_model import get_h_neuron_indices
+from intervene_direction import DirectionScaler
 from intervene_sae import SAEFeatureScaler, load_target_features_from_classifier
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
@@ -55,6 +59,52 @@ DEFAULT_BIOASQ_DATA = os.environ.get(
     "HNEURONS_BIOASQ_DATA",
     "data/benchmarks/bioasq13b_factoid.parquet",
 )
+
+
+def _slugify_path_component(value: str, *, max_length: int = 48) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    if not slug:
+        return "unnamed"
+    return slug[:max_length].rstrip("-") or "unnamed"
+
+
+def build_direction_output_suffix(
+    direction_path: str,
+    direction_mode: str,
+    direction_layers: str | None,
+) -> str:
+    """Build a stable semantic suffix for default direction experiment dirs."""
+    resolved_path = Path(direction_path).expanduser().resolve(strict=False)
+    direction_name = _slugify_path_component(resolved_path.stem)
+    layers_label = (
+        "all-layers"
+        if direction_layers is None
+        else f"layers-{_slugify_path_component(direction_layers, max_length=32)}"
+    )
+    config_hash = hashlib.sha256(
+        f"{resolved_path}|{direction_mode}|{direction_layers or 'all'}".encode("utf-8")
+    ).hexdigest()[:10]
+    return f"direction_{direction_mode}_{layers_label}_{direction_name}_{config_hash}"
+
+
+def resolve_output_dir(args: argparse.Namespace) -> str:
+    if args.output_dir:
+        return args.output_dir
+    if args.intervention_mode == "sae":
+        return f"data/gemma3_4b/intervention/{args.benchmark}_sae/experiment"
+    if args.intervention_mode == "direction":
+        if not args.direction_path:
+            raise ValueError(
+                "--intervention_mode direction requires --direction_path "
+                "when inferring the default --output_dir"
+            )
+        direction_suffix = build_direction_output_suffix(
+            args.direction_path,
+            args.direction_mode,
+            args.direction_layers,
+        )
+        return f"data/gemma3_4b/intervention/{args.benchmark}_{direction_suffix}/experiment"
+    return f"data/gemma3_4b/intervention/{args.benchmark}/experiment"
 
 
 # ---------------------------------------------------------------------------
@@ -1487,7 +1537,8 @@ def parse_args():
         "--output_dir",
         type=str,
         default=None,
-        help="Output directory (default: data/gemma3_4b/intervention/{benchmark}/experiment)",
+        help="Output directory (default: benchmark-specific experiment directory; "
+        "direction mode derives a config-specific suffix from path/mode/layers)",
     )
     p.add_argument("--max_samples", type=int, default=None)
     # FaithEval-specific
@@ -1534,8 +1585,9 @@ def parse_args():
         "--intervention_mode",
         type=str,
         default="neuron",
-        choices=["neuron", "sae"],
-        help="Intervention mode: 'neuron' (H-neuron scaling) or 'sae' (SAE feature scaling)",
+        choices=["neuron", "sae", "direction"],
+        help="Intervention mode: 'neuron' (H-neuron scaling), 'sae' (SAE feature scaling), "
+        "or 'direction' (residual-stream directional intervention)",
     )
     p.add_argument(
         "--sae_classifier_path",
@@ -1559,6 +1611,27 @@ def parse_args():
         choices=["full_replacement", "delta_only"],
         help="SAE steering architecture: 'full_replacement' (encode-scale-decode) "
         "or 'delta_only' (add decoded delta to original activation)",
+    )
+    # Direction intervention mode
+    p.add_argument(
+        "--direction_path",
+        type=str,
+        help="Path to refusal_directions.pt (required for --intervention_mode direction)",
+    )
+    p.add_argument(
+        "--direction_mode",
+        type=str,
+        default="ablate",
+        choices=["ablate", "add"],
+        help="Direction intervention mode: 'ablate' (remove direction component) "
+        "or 'add' (inject direction)",
+    )
+    p.add_argument(
+        "--direction_layers",
+        type=str,
+        default=None,
+        help="Comma-separated layer indices for direction intervention "
+        "(default: all layers with a direction)",
     )
     p.add_argument(
         "--max_new_tokens",
@@ -1590,12 +1663,7 @@ def main():
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed_all(args.seed)
         print(f"Random seed: {args.seed}")
-    if args.output_dir:
-        output_dir = args.output_dir
-    elif args.intervention_mode == "sae":
-        output_dir = f"data/gemma3_4b/intervention/{args.benchmark}_sae/experiment"
-    else:
-        output_dir = f"data/gemma3_4b/intervention/{args.benchmark}/experiment"
+    output_dir = resolve_output_dir(args)
     os.makedirs(output_dir, exist_ok=True)
     summary = {
         "benchmark": args.benchmark,
@@ -1677,6 +1745,30 @@ def main():
                 f" (mode={args.sae_steering_mode})"
             )
             total_neurons = total_features  # for summary metadata
+        elif args.intervention_mode == "direction":
+            if not args.direction_path:
+                raise ValueError(
+                    "--intervention_mode direction requires --direction_path"
+                )
+            print(f"Loading directions: {args.direction_path}")
+            directions = torch.load(
+                args.direction_path, map_location="cpu", weights_only=True
+            )
+            direction_layers = None
+            if args.direction_layers:
+                direction_layers = [int(x) for x in args.direction_layers.split(",")]
+            scaler = DirectionScaler(
+                model,
+                directions,
+                device,
+                mode=args.direction_mode,
+                layers=direction_layers,
+            )
+            total_neurons = scaler.n_hooks  # for summary metadata
+            print(
+                f"Installed {scaler.n_hooks} direction hooks "
+                f"(mode={args.direction_mode})"
+            )
         else:
             print(f"Loading classifier: {args.classifier_path}")
             classifier = joblib.load(args.classifier_path)
@@ -1862,6 +1954,15 @@ def main():
             summary["sae_classifier"] = args.sae_classifier_path
             summary["sae_steering_mode"] = args.sae_steering_mode
             summary["n_sae_features"] = total_neurons
+        elif args.intervention_mode == "direction":
+            summary["direction_path"] = args.direction_path
+            summary["direction_mode"] = args.direction_mode
+            summary["direction_layers"] = args.direction_layers
+            summary["direction_config_key"] = build_direction_output_suffix(
+                args.direction_path,
+                args.direction_mode,
+                args.direction_layers,
+            )
         else:
             summary["classifier"] = args.classifier_path
         if args.benchmark == "faitheval":
