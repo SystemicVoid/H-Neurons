@@ -1,0 +1,363 @@
+"""Tests for head-level ITI extraction and intervention plumbing."""
+
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+import pytest
+import torch
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+
+import extract_truthfulness_iti as iti_extract
+from evaluate_intervention import parse_simpleqa_verdict
+from intervene_iti import ITIHeadScaler
+
+
+class StubTokenizer:
+    def __call__(self, text, add_special_tokens=False, return_tensors=None):
+        token_count = max(1, len(text.split()))
+        ids = list(range(token_count))
+        if return_tensors == "pt":
+            return {"input_ids": torch.tensor([ids], dtype=torch.long)}
+        return {"input_ids": ids}
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def _write_jsonl(path: Path, rows: list[dict]) -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row) + "\n")
+
+
+class TestTriviaQAExamples:
+    def test_caps_per_qid_label_and_weights_examples(self, tmp_path):
+        consistency_path = tmp_path / "consistency.jsonl"
+        _write_jsonl(
+            consistency_path,
+            [
+                {
+                    "q1": {
+                        "question": "Capital of France?",
+                        "responses": ["Paris", "City of Paris", "Paris", "Lyon"],
+                        "judges": ["true", "true", "true", "false"],
+                        "ground_truth": ["Paris"],
+                    }
+                },
+                {
+                    "q2": {
+                        "question": "2 + 2?",
+                        "responses": ["4", "four", "5"],
+                        "judges": ["true", "true", "false"],
+                        "ground_truth": ["4"],
+                    }
+                },
+            ],
+        )
+        train_path = tmp_path / "train.json"
+        val_path = tmp_path / "val.json"
+        _write_json(train_path, {"t": ["q1"], "f": []})
+        _write_json(val_path, {"t": ["q2"], "f": []})
+
+        examples, metadata = iti_extract.build_triviaqa_transfer_examples(
+            consistency_path=consistency_path,
+            train_qids_path=train_path,
+            test_qids_path=val_path,
+            tokenizer=StubTokenizer(),
+            train_cap_per_qid_label=2,
+            val_cap_per_qid_label=1,
+        )
+
+        train_truthful = [
+            ex
+            for ex in examples
+            if ex.split == "train" and ex.label == iti_extract.LABEL_TRUE
+        ]
+        val_truthful = [
+            ex
+            for ex in examples
+            if ex.split == "val" and ex.label == iti_extract.LABEL_TRUE
+        ]
+
+        assert len(train_truthful) == 2
+        assert sorted(ex.answer for ex in train_truthful) == ["City of Paris", "Paris"]
+        assert all(ex.weight == pytest.approx(0.5) for ex in train_truthful)
+        assert len(val_truthful) == 1
+        assert val_truthful[0].weight == pytest.approx(1.0)
+        assert metadata["deduplication"]["skipped_duplicate_answers"] == 1
+        assert metadata["per_qid_weights"]["q1"]["truthful"][
+            "weight_per_example"
+        ] == pytest.approx(0.5)
+
+
+class TestContextGroundedExamples:
+    def test_builds_grounded_and_abstention_pairs(self, monkeypatch):
+        train_rows = [
+            {
+                "id": "a1",
+                "question": "Who wrote Hamlet?",
+                "context": "Hamlet was written by William Shakespeare.",
+                "answers": {"text": ["William Shakespeare"]},
+                "title": "Hamlet",
+            },
+            {
+                "id": "a2",
+                "question": "Where is the Eiffel Tower?",
+                "context": "The Eiffel Tower is in Paris.",
+                "answers": {"text": ["Paris"]},
+                "title": "Eiffel",
+            },
+            {
+                "id": "i1",
+                "question": "What is the capital of Mars?",
+                "context": "The passage does not mention a capital.",
+                "answers": {"text": []},
+                "title": "Mars",
+            },
+            {
+                "id": "i2",
+                "question": "Who won the race?",
+                "context": "No winner is given.",
+                "answers": {"text": []},
+                "title": "Race",
+            },
+        ]
+        val_rows = [
+            {
+                "id": "a3",
+                "question": "Who painted Guernica?",
+                "context": "Guernica was painted by Pablo Picasso.",
+                "answers": {"text": ["Pablo Picasso"]},
+                "title": "Guernica",
+            },
+            {
+                "id": "i3",
+                "question": "What is the hidden code?",
+                "context": "No code appears in the passage.",
+                "answers": {"text": []},
+                "title": "Code",
+            },
+        ]
+
+        def fake_load_dataset(name, split):
+            assert name == "squad_v2"
+            return train_rows if split == "train" else val_rows
+
+        monkeypatch.setattr(iti_extract, "load_dataset", fake_load_dataset)
+
+        examples, metadata = iti_extract.build_context_grounded_examples(
+            tokenizer=StubTokenizer(),
+            seed=42,
+            train_questions=4,
+            val_questions=2,
+        )
+
+        abstentions = [
+            ex.answer
+            for ex in examples
+            if ex.label == iti_extract.LABEL_TRUE and ex.metadata["answerable"] is False
+        ]
+        assert abstentions == [iti_extract.DEFAULT_ABSTENTION] * 3
+        assert metadata["label_balance"]["train_answerable_questions"] == 2
+        assert metadata["label_balance"]["train_impossible_questions"] == 2
+        assert metadata["label_balance"]["val_answerable_questions"] == 1
+        assert metadata["label_balance"]["val_impossible_questions"] == 1
+
+
+class TestHeadRanking:
+    def test_prefers_best_position_summary_per_head(self):
+        examples = (
+            [
+                iti_extract.ITIExample(
+                    example_id=f"train_t_{idx}",
+                    family="iti_triviaqa_transfer",
+                    split="train",
+                    qid=f"train_t_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_TRUE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(2)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"train_f_{idx}",
+                    family="iti_triviaqa_transfer",
+                    split="train",
+                    qid=f"train_f_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_FALSE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(2)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"val_t_{idx}",
+                    family="iti_triviaqa_transfer",
+                    split="val",
+                    qid=f"val_t_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_TRUE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(2)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"val_f_{idx}",
+                    family="iti_triviaqa_transfer",
+                    split="val",
+                    qid=f"val_f_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_FALSE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(2)
+            ]
+        )
+
+        good = torch.tensor(
+            [
+                [[[3.0, 0.0]]],
+                [[[2.5, 0.0]]],
+                [[[-3.0, 0.0]]],
+                [[[-2.5, 0.0]]],
+                [[[3.2, 0.0]]],
+                [[[2.8, 0.0]]],
+                [[[-3.1, 0.0]]],
+                [[[-2.9, 0.0]]],
+            ],
+            dtype=torch.float16,
+        )
+        noisy = torch.tensor(
+            [
+                [[[0.1, 0.0]]],
+                [[[0.2, 0.0]]],
+                [[[0.0, 0.0]]],
+                [[[0.1, 0.0]]],
+                [[[0.1, 0.0]]],
+                [[[0.2, 0.0]]],
+                [[[0.0, 0.0]]],
+                [[[0.1, 0.0]]],
+            ],
+            dtype=torch.float16,
+        )
+        activations = {
+            "first_answer_token": good,
+            "mean_answer_span": noisy,
+            "last_answer_token": noisy,
+        }
+
+        ranked, metadata = iti_extract.rank_heads(activations, examples)
+
+        assert ranked[0]["position_summary"] == "first_answer_token"
+        assert ranked[0]["auroc"] > 0.9
+        assert metadata["top5"][0]["position_summary"] == "first_answer_token"
+
+
+class DummySelfAttn(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.head_dim = 2
+        self.o_proj = torch.nn.Linear(4, 4, bias=False)
+        with torch.no_grad():
+            self.o_proj.weight.copy_(torch.eye(4))
+
+
+class DummyLayer(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.self_attn = DummySelfAttn()
+
+
+class DummyLanguageModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = torch.nn.ModuleList([DummyLayer()])
+
+
+class DummyOuter(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.language_model = DummyLanguageModel()
+
+
+class DummyITIModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = DummyOuter()
+
+    def forward(self, x):
+        return self.model.language_model.layers[0].self_attn.o_proj(x)
+
+
+class TestITIHeadScaler:
+    def test_decode_only_intervention_skips_prompt_and_edits_decode(self):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_triviaqa_transfer",
+            "n_layers": 1,
+            "n_attention_heads": 2,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.9,
+                    "balanced_accuracy": 0.9,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                }
+            ],
+        }
+        scaler = ITIHeadScaler(model, artifact, torch.device("cpu"), family=None, k=1)
+        scaler.alpha = 2.0
+
+        prompt_x = torch.zeros(1, 3, 4)
+        prompt_out = model(prompt_x.clone())
+        prompt_stats = scaler.consume_sample_stats()
+
+        decode_x = torch.zeros(1, 1, 4)
+        decode_out = model(decode_x.clone())
+        decode_stats = scaler.consume_sample_stats()
+
+        assert torch.allclose(prompt_out, prompt_x)
+        assert prompt_stats["prompt_skip_calls"] == 1
+        assert decode_out.tolist() == [[[0.0, 0.0, 2.0, 0.0]]]
+        assert decode_stats["hook_calls"] == 1
+        assert decode_stats["debug_steps"][0]["generated_token_index"] == 1
+
+        scaler.remove()
+
+
+class TestSimpleQAVerdictParsing:
+    def test_parses_json_and_fallback_labels(self):
+        assert (
+            parse_simpleqa_verdict('{"grade": "CORRECT", "reason": "matches"}')
+            == "CORRECT"
+        )
+        assert parse_simpleqa_verdict("This is NOT_ATTEMPTED.") == "NOT_ATTEMPTED"
+        assert parse_simpleqa_verdict("unclear") == "UNKNOWN"

@@ -1,0 +1,243 @@
+"""Decode-only head-level ITI intervention at pre-o_proj attention outputs.
+
+The intervention surface is the tensor immediately before ``self_attn.o_proj``.
+That tensor is still head-structured, but HuggingFace flattens it to
+``[batch, seq, num_heads * head_dim]`` before the projection. This module
+reshapes it back to ``[batch, seq, num_heads, head_dim]``, edits selected head
+slots, and lets ``o_proj`` mix the modified heads normally.
+"""
+
+from __future__ import annotations
+
+import random
+import time
+from pathlib import Path
+from typing import Any
+
+import torch
+
+
+def _get_decoder_layers(model: torch.nn.Module) -> Any:
+    inner = getattr(model, "model")
+    language_model = getattr(inner, "language_model", None)
+    return language_model.layers if language_model is not None else inner.layers
+
+
+def load_iti_artifact(path: str | Path) -> dict[str, Any]:
+    artifact = torch.load(path, map_location="cpu", weights_only=False)
+    if not isinstance(artifact, dict):
+        raise TypeError(f"Expected ITI artifact dict at {path}, got {type(artifact)}")
+    return artifact
+
+
+def select_ranked_heads(
+    artifact: dict[str, Any],
+    *,
+    family: str | None,
+    k: int,
+    selection_strategy: str = "ranked",
+    random_seed: int = 42,
+) -> list[dict[str, Any]]:
+    ranked_heads = list(artifact.get("ranked_heads", []))
+    if not ranked_heads:
+        raise ValueError("ITI artifact is missing ranked_heads")
+
+    artifact_family = artifact.get("family")
+    if family is not None and artifact_family is not None and family != artifact_family:
+        raise ValueError(
+            f"ITI artifact family mismatch: expected {family!r}, found {artifact_family!r}"
+        )
+
+    if k <= 0:
+        raise ValueError("iti_k must be positive")
+    if k > len(ranked_heads):
+        raise ValueError(
+            f"Requested top-{k} heads but artifact only has {len(ranked_heads)} ranked heads"
+        )
+
+    if selection_strategy == "ranked":
+        return ranked_heads[:k]
+    if selection_strategy == "random":
+        rng = random.Random(random_seed)
+        chosen = rng.sample(ranked_heads, k)
+        return sorted(chosen, key=lambda item: (item["layer"], item["head"]))
+    raise ValueError(
+        f"selection_strategy must be 'ranked' or 'random', got {selection_strategy!r}"
+    )
+
+
+class ITIHeadScaler:
+    """Decode-only ITI intervention on selected attention heads.
+
+    Convention: ``alpha=0`` is a no-op. For compatibility with the existing
+    sweep machinery, ``alpha`` is the intervention strength parameter.
+    """
+
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        artifact: dict[str, Any],
+        device: torch.device,
+        *,
+        family: str | None = None,
+        k: int = 16,
+        selection_strategy: str = "ranked",
+        random_seed: int = 42,
+    ):
+        self._alpha = 0.0
+        self.hooks: list[Any] = []
+        self.artifact = artifact
+        self.selected_heads = select_ranked_heads(
+            artifact,
+            family=family,
+            k=k,
+            selection_strategy=selection_strategy,
+            random_seed=random_seed,
+        )
+        self.n_heads_selected = len(self.selected_heads)
+        self.family = artifact.get("family", family)
+        self.selection_strategy = selection_strategy
+        self.random_seed = random_seed
+        self.n_layers = int(artifact["n_layers"])
+        self.n_attention_heads = int(artifact["n_attention_heads"])
+        self.head_dim = int(artifact["head_dim"])
+        self._selected_by_layer = self._build_selected_by_layer(device=device)
+        self._primary_step_layer = (
+            min(self._selected_by_layer.keys()) if self._selected_by_layer else None
+        )
+        self.reset_sample_stats()
+        self._install(model)
+
+    def _build_selected_by_layer(
+        self, *, device: torch.device
+    ) -> dict[int, list[dict[str, Any]]]:
+        by_layer: dict[int, list[dict[str, Any]]] = {}
+        for item in self.selected_heads:
+            direction = torch.tensor(
+                item["direction"], dtype=torch.float32, device=device
+            )
+            sigma = float(item["sigma"])
+            by_layer.setdefault(int(item["layer"]), []).append(
+                {
+                    "head": int(item["head"]),
+                    "direction": direction,
+                    "sigma": sigma,
+                    "position_summary": item["position_summary"],
+                    "auroc": float(item["auroc"]),
+                    "balanced_accuracy": float(item["balanced_accuracy"]),
+                }
+            )
+        return by_layer
+
+    def _install(self, model: torch.nn.Module) -> None:
+        decoder_layers = _get_decoder_layers(model)
+        for layer_idx, layer_heads in sorted(self._selected_by_layer.items()):
+            layer_module = decoder_layers[layer_idx].self_attn.o_proj
+            self.hooks.append(
+                layer_module.register_forward_pre_hook(
+                    self._make_hook(layer_idx, layer_heads)
+                )
+            )
+
+    def _make_hook(self, layer_idx: int, layer_heads: list[dict[str, Any]]):
+        def hook_fn(module, args):
+            hook_t0 = time.perf_counter()
+            x = args[0]
+            self._sample_hook_calls += 1
+
+            if x.ndim != 3:
+                self._sample_hook_time_s += time.perf_counter() - hook_t0
+                return args
+
+            if x.shape[-1] != self.n_attention_heads * self.head_dim:
+                raise ValueError(
+                    "Pre-o_proj tensor shape does not match artifact head layout: "
+                    f"got trailing dim {x.shape[-1]}, expected "
+                    f"{self.n_attention_heads * self.head_dim}"
+                )
+
+            # Decode-only ITI: never edit prompt encoding activations.
+            if x.shape[1] != 1:
+                self._sample_prompt_skip_calls += 1
+                self._sample_hook_time_s += time.perf_counter() - hook_t0
+                return args
+
+            if self._alpha == 0.0:
+                self._sample_hook_time_s += time.perf_counter() - hook_t0
+                return args
+
+            batch, seq_len, _ = x.shape
+            reshaped = x.reshape(batch, seq_len, self.n_attention_heads, self.head_dim)
+            delta_norm_total = 0.0
+            activation_norm_total = 0.0
+            for item in layer_heads:
+                head_idx = item["head"]
+                direction = item["direction"].to(reshaped.device)
+                delta = (self._alpha * item["sigma"]) * direction
+                before = reshaped[:, :, head_idx, :].float()
+                reshaped[:, :, head_idx, :] = reshaped[:, :, head_idx, :] + delta.to(
+                    reshaped.dtype
+                )
+                delta_norm_total += float(delta.norm().item())
+                activation_norm_total += float(before.norm(dim=-1).mean().item())
+
+            if layer_idx == self._primary_step_layer:
+                self._generated_token_index += 1
+
+            if len(self._debug_steps) < self._max_debug_steps:
+                self._debug_steps.append(
+                    {
+                        "generated_token_index": self._generated_token_index,
+                        "layer": layer_idx,
+                        "activation_norm_delta": round(delta_norm_total, 6),
+                        "selected_head_norm_delta": round(
+                            delta_norm_total / max(len(layer_heads), 1), 6
+                        ),
+                        "selected_head_activation_norm": round(
+                            activation_norm_total / max(len(layer_heads), 1), 6
+                        ),
+                    }
+                )
+
+            self._sample_hook_time_s += time.perf_counter() - hook_t0
+            return (reshaped.reshape(batch, seq_len, -1),) + args[1:]
+
+        return hook_fn
+
+    @property
+    def alpha(self) -> float:
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, value: float) -> None:
+        self._alpha = value
+
+    @property
+    def n_hooks(self) -> int:
+        return len(self.hooks)
+
+    def reset_sample_stats(self) -> None:
+        self._sample_hook_time_s = 0.0
+        self._sample_hook_calls = 0
+        self._sample_prompt_skip_calls = 0
+        self._generated_token_index = 0
+        self._debug_steps: list[dict[str, Any]] = []
+        self._max_debug_steps = 32
+
+    def consume_sample_stats(self) -> dict[str, Any]:
+        stats = {
+            "hook_s": round(self._sample_hook_time_s, 6),
+            "hook_calls": self._sample_hook_calls,
+            "prompt_skip_calls": self._sample_prompt_skip_calls,
+            "debug_steps": list(self._debug_steps),
+            "selection_strategy": self.selection_strategy,
+            "n_heads_selected": self.n_heads_selected,
+            "family": self.family,
+        }
+        self.reset_sample_stats()
+        return stats
+
+    def remove(self) -> None:
+        for hook in self.hooks:
+            hook.remove()
+        self.hooks.clear()

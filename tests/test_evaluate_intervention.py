@@ -13,6 +13,7 @@ from evaluate_intervention import (
     build_alpha_batch_custom_id,
     build_alpha_file_path,
     evaluate_all_batch,
+    parse_simpleqa_verdict,
 )
 
 
@@ -94,3 +95,72 @@ class TestEvaluateAllBatch:
         assert alpha_0_records[0]["compliance"] is True
         assert alpha_002_records[0]["judge"] == "ACCEPTED"
         assert alpha_002_records[0]["compliance"] is True
+
+    def test_evaluates_simpleqa_batch_and_sets_grades(self, tmp_path, monkeypatch):
+        alpha_path = tmp_path / "alpha_0.0.jsonl"
+        _write_jsonl(
+            alpha_path,
+            [
+                {
+                    "id": "simple",
+                    "question": "Who wrote Hamlet?",
+                    "reference_answer": "William Shakespeare",
+                    "response": "William Shakespeare",
+                }
+            ],
+        )
+
+        def fake_build_chat_request(
+            custom_id: str, model: str, messages: list[dict], **kwargs
+        ):
+            return {
+                "custom_id": custom_id,
+                "model": model,
+                "messages": messages,
+                "kwargs": kwargs,
+            }
+
+        def fake_resume_or_submit(
+            client, batch_requests, state_path, metadata, max_enqueued_tokens
+        ):
+            return {
+                request["custom_id"]: {
+                    "custom_id": request["custom_id"],
+                    "response": {
+                        "status_code": 200,
+                        "body": {
+                            "choices": [
+                                {
+                                    "message": {
+                                        "content": '{"grade": "CORRECT", "reason": "match"}'
+                                    }
+                                }
+                            ]
+                        },
+                    },
+                }
+                for request in batch_requests
+            }
+
+        monkeypatch.setattr(openai_batch, "build_chat_request", fake_build_chat_request)
+        monkeypatch.setattr(openai_batch, "resume_or_submit", fake_resume_or_submit)
+
+        evaluate_all_batch(
+            str(tmp_path),
+            [0.0],
+            "simpleqa",
+            client=object(),
+            judge_model="gpt-4o",
+        )
+
+        records = [json.loads(line) for line in alpha_path.read_text().splitlines()]
+        assert records[0]["simpleqa_grade"] == "CORRECT"
+        assert records[0]["compliance"] is True
+
+
+class TestSimpleQAVerdict:
+    def test_parses_json_and_keyword_fallback(self):
+        assert parse_simpleqa_verdict('{"grade": "INCORRECT"}') == "INCORRECT"
+        assert (
+            parse_simpleqa_verdict("NOT_ATTEMPTED because abstained") == "NOT_ATTEMPTED"
+        )

@@ -16,6 +16,7 @@ from extract_direction import evaluate_direction_sanity_gate
 from run_intervention import (
     HNeuronScaler,
     build_direction_output_suffix,
+    build_iti_output_suffix,
     build_alpha_throughput_payload,
     build_alpha_throughput_summary,
     build_sample_throughput_payload,
@@ -466,6 +467,51 @@ class TestDirectionOutputDir:
         )
 
         with pytest.raises(ValueError, match="requires --direction_path"):
+            resolve_output_dir(args)
+
+    def test_iti_output_suffix_changes_when_artifact_or_family_changes(self):
+        base = build_iti_output_suffix(
+            "data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            "triviaqa_transfer",
+        )
+        different_family = build_iti_output_suffix(
+            "data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            "context_grounded",
+        )
+        different_path = build_iti_output_suffix(
+            "data/contrastive/truthfulness/iti_context/iti_heads.pt",
+            "triviaqa_transfer",
+        )
+
+        assert len({base, different_family, different_path}) == 3
+
+    def test_resolve_output_dir_uses_config_specific_iti_default(self):
+        args = SimpleNamespace(
+            output_dir=None,
+            intervention_mode="iti_head",
+            benchmark="faitheval",
+            iti_head_path="data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            iti_family="triviaqa_transfer",
+            truthfulqa_variant="mc1",
+        )
+
+        output_dir = resolve_output_dir(args)
+
+        assert output_dir.startswith("data/gemma3_4b/intervention/faitheval_")
+        assert output_dir.endswith("/experiment")
+        assert "iti-head_triviaqa-transfer" in output_dir
+
+    def test_resolve_output_dir_requires_iti_path_for_default(self):
+        args = SimpleNamespace(
+            output_dir=None,
+            intervention_mode="iti_head",
+            benchmark="faitheval",
+            iti_head_path=None,
+            iti_family="triviaqa_transfer",
+            truthfulqa_variant="mc1",
+        )
+
+        with pytest.raises(ValueError, match="requires --iti_head_path"):
             resolve_output_dir(args)
 
 
