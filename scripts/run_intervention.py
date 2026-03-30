@@ -1475,6 +1475,10 @@ def load_truthfulqa_mc(
             a.strip() for a in row["Incorrect Answers"].split(";") if a.strip()
         ]
 
+        assert best in correct, (
+            f"Best Answer not in Correct Answers for: {question[:60]!r}"
+        )
+
         if variant == "mc1":
             choices = [best] + incorrect
             labels = [1] + [0] * len(incorrect)
