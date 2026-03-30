@@ -95,6 +95,9 @@ def build_direction_output_suffix(
 def build_iti_output_suffix(
     iti_head_path: str,
     iti_family: str,
+    iti_k: int,
+    iti_selection_strategy: str,
+    iti_random_seed: int,
 ) -> str:
     """Build a stable semantic suffix for default ITI experiment dirs."""
     resolved_path = Path(iti_head_path).expanduser().resolve(strict=False)
@@ -102,30 +105,47 @@ def build_iti_output_suffix(
         resolved_path.parent.name + "-" + resolved_path.stem
     )
     config_hash = hashlib.sha256(
-        f"{resolved_path}|{iti_family}".encode("utf-8")
+        (
+            f"{resolved_path}|{iti_family}|{iti_k}|"
+            f"{iti_selection_strategy}|{iti_random_seed}"
+        ).encode("utf-8")
     ).hexdigest()[:10]
-    return (
-        f"iti-head_{_slugify_path_component(iti_family)}_{artifact_name}_{config_hash}"
+    steering_label = (
+        f"k-{iti_k}_{_slugify_path_component(iti_selection_strategy)}"
+        f"_seed-{iti_random_seed}"
     )
+    return (
+        "iti-head_"
+        f"{_slugify_path_component(iti_family)}_{steering_label}_"
+        f"{artifact_name}_{config_hash}"
+    )
+
+
+def resolve_benchmark_name(args: argparse.Namespace) -> str:
+    if args.benchmark == "truthfulqa_mc":
+        return f"{args.benchmark}_{args.truthfulqa_variant}"
+    return args.benchmark
 
 
 def resolve_output_dir(args: argparse.Namespace) -> str:
     if args.output_dir:
         return args.output_dir
+    benchmark_name = resolve_benchmark_name(args)
     if args.intervention_mode == "sae":
-        return f"data/gemma3_4b/intervention/{args.benchmark}_sae/experiment"
+        return f"data/gemma3_4b/intervention/{benchmark_name}_sae/experiment"
     if args.intervention_mode == "iti_head":
         if not args.iti_head_path:
             raise ValueError(
                 "--intervention_mode iti_head requires --iti_head_path "
                 "when inferring the default --output_dir"
             )
-        benchmark_name = (
-            f"{args.benchmark}_{args.truthfulqa_variant}"
-            if args.benchmark == "truthfulqa_mc"
-            else args.benchmark
+        iti_suffix = build_iti_output_suffix(
+            args.iti_head_path,
+            args.iti_family,
+            args.iti_k,
+            args.iti_selection_strategy,
+            args.iti_random_seed,
         )
-        iti_suffix = build_iti_output_suffix(args.iti_head_path, args.iti_family)
         return f"data/gemma3_4b/intervention/{benchmark_name}_{iti_suffix}/experiment"
     if args.intervention_mode == "direction":
         if not args.direction_path:
@@ -138,8 +158,11 @@ def resolve_output_dir(args: argparse.Namespace) -> str:
             args.direction_mode,
             args.direction_layers,
         )
-        return f"data/gemma3_4b/intervention/{args.benchmark}_{direction_suffix}/experiment"
-    return f"data/gemma3_4b/intervention/{args.benchmark}/experiment"
+        return (
+            "data/gemma3_4b/intervention/"
+            f"{benchmark_name}_{direction_suffix}/experiment"
+        )
+    return f"data/gemma3_4b/intervention/{benchmark_name}/experiment"
 
 
 # ---------------------------------------------------------------------------
@@ -1409,7 +1432,9 @@ def run_truthfulqa_mc(
             "metric_name": (
                 "mc1_accuracy" if sample["variant"] == "mc1" else "mc2_truthful_mass"
             ),
-            "metric_value": 1.0 if sample["variant"] == "mc1" else truthful_mass,
+            "metric_value": (
+                float(compliance) if sample["variant"] == "mc1" else truthful_mass
+            ),
             "compliance": compliance,
         }
         finalize_record(
@@ -1772,14 +1797,16 @@ def aggregate_results(output_dir, alphas):
             rec["metric_value"] for rec in records if "metric_value" in rec
         ]
         if metric_values:
-            metric_name = next(
-                (
-                    rec.get("metric_name")
-                    for rec in records
-                    if rec.get("metric_name") is not None
-                ),
-                "metric_value",
-            )
+            metric_names = {
+                rec["metric_name"]
+                for rec in records
+                if rec.get("metric_name") is not None
+            }
+            if len(metric_names) > 1:
+                raise ValueError(
+                    f"Mixed metric definitions in {path}: {sorted(metric_names)}"
+                )
+            metric_name = next(iter(metric_names), "metric_value")
             result["metric_name"] = metric_name
             result["metric_mean"] = round(float(np.mean(metric_values)), 6)
             result["metric_std"] = round(float(np.std(metric_values)), 6)

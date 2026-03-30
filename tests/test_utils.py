@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import importlib
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,17 +14,23 @@ import torch
 # scripts/ uses flat sibling imports; add it to sys.path for test discovery.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from extract_direction import evaluate_direction_sanity_gate
-from run_intervention import (
-    HNeuronScaler,
-    build_direction_output_suffix,
-    build_iti_output_suffix,
-    build_alpha_throughput_payload,
-    build_alpha_throughput_summary,
-    build_sample_throughput_payload,
-    resolve_output_dir,
-)
-from utils import extract_mc_answer, format_alpha_label, normalize_answer
+extract_direction = importlib.import_module("extract_direction")
+run_intervention = importlib.import_module("run_intervention")
+utils = importlib.import_module("utils")
+
+evaluate_direction_sanity_gate = extract_direction.evaluate_direction_sanity_gate
+HNeuronScaler = run_intervention.HNeuronScaler
+aggregate_results = run_intervention.aggregate_results
+build_direction_output_suffix = run_intervention.build_direction_output_suffix
+build_iti_output_suffix = run_intervention.build_iti_output_suffix
+build_alpha_throughput_payload = run_intervention.build_alpha_throughput_payload
+build_alpha_throughput_summary = run_intervention.build_alpha_throughput_summary
+build_sample_throughput_payload = run_intervention.build_sample_throughput_payload
+resolve_output_dir = run_intervention.resolve_output_dir
+run_truthfulqa_mc = run_intervention.run_truthfulqa_mc
+extract_mc_answer = utils.extract_mc_answer
+format_alpha_label = utils.format_alpha_label
+normalize_answer = utils.normalize_answer
 
 
 # ---------------------------------------------------------------------------
@@ -130,7 +138,9 @@ class DummyModel(torch.nn.Module):
         self.layers = torch.nn.ModuleList([DummyBlock()])
 
     def forward(self, x):
-        return self.layers[0].down_proj(x)
+        block = self.layers[0]
+        assert isinstance(block, DummyBlock)
+        return block.down_proj(x)
 
 
 class TestHNeuronScalerSampleStats:
@@ -469,21 +479,63 @@ class TestDirectionOutputDir:
         with pytest.raises(ValueError, match="requires --direction_path"):
             resolve_output_dir(args)
 
-    def test_iti_output_suffix_changes_when_artifact_or_family_changes(self):
+    def test_iti_output_suffix_changes_when_config_changes(self):
         base = build_iti_output_suffix(
             "data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
             "triviaqa_transfer",
+            16,
+            "ranked",
+            42,
         )
         different_family = build_iti_output_suffix(
             "data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
             "context_grounded",
+            16,
+            "ranked",
+            42,
+        )
+        different_k = build_iti_output_suffix(
+            "data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            "triviaqa_transfer",
+            32,
+            "ranked",
+            42,
+        )
+        different_strategy = build_iti_output_suffix(
+            "data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            "triviaqa_transfer",
+            16,
+            "random",
+            42,
+        )
+        different_seed = build_iti_output_suffix(
+            "data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            "triviaqa_transfer",
+            16,
+            "ranked",
+            7,
         )
         different_path = build_iti_output_suffix(
             "data/contrastive/truthfulness/iti_context/iti_heads.pt",
             "triviaqa_transfer",
+            16,
+            "ranked",
+            42,
         )
 
-        assert len({base, different_family, different_path}) == 3
+        assert (
+            len(
+                {
+                    base,
+                    different_family,
+                    different_k,
+                    different_strategy,
+                    different_seed,
+                    different_path,
+                }
+            )
+            == 6
+        )
 
     def test_resolve_output_dir_uses_config_specific_iti_default(self):
         args = SimpleNamespace(
@@ -492,6 +544,9 @@ class TestDirectionOutputDir:
             benchmark="faitheval",
             iti_head_path="data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
             iti_family="triviaqa_transfer",
+            iti_k=16,
+            iti_selection_strategy="ranked",
+            iti_random_seed=42,
             truthfulqa_variant="mc1",
         )
 
@@ -499,7 +554,7 @@ class TestDirectionOutputDir:
 
         assert output_dir.startswith("data/gemma3_4b/intervention/faitheval_")
         assert output_dir.endswith("/experiment")
-        assert "iti-head_triviaqa-transfer" in output_dir
+        assert "iti-head_triviaqa-transfer_k-16_ranked_seed-42" in output_dir
 
     def test_resolve_output_dir_requires_iti_path_for_default(self):
         args = SimpleNamespace(
@@ -508,11 +563,131 @@ class TestDirectionOutputDir:
             benchmark="faitheval",
             iti_head_path=None,
             iti_family="triviaqa_transfer",
+            iti_k=16,
+            iti_selection_strategy="ranked",
+            iti_random_seed=42,
             truthfulqa_variant="mc1",
         )
 
         with pytest.raises(ValueError, match="requires --iti_head_path"):
             resolve_output_dir(args)
+
+    @pytest.mark.parametrize(
+        ("intervention_mode", "expected_fragment"),
+        [
+            ("neuron", "truthfulqa_mc_mc1/experiment"),
+            ("sae", "truthfulqa_mc_mc1_sae/experiment"),
+            ("direction", "truthfulqa_mc_mc1_direction_ablate"),
+        ],
+    )
+    def test_resolve_output_dir_separates_truthfulqa_variants_for_default_dirs(
+        self, intervention_mode, expected_fragment
+    ):
+        common_args = dict(
+            output_dir=None,
+            intervention_mode=intervention_mode,
+            benchmark="truthfulqa_mc",
+            truthfulqa_variant="mc1",
+            iti_head_path="data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            iti_family="triviaqa_transfer",
+            iti_k=16,
+            iti_selection_strategy="ranked",
+            iti_random_seed=42,
+            direction_path="data/contrastive/refusal/directions/refusal_directions.pt",
+            direction_mode="ablate",
+            direction_layers=None,
+        )
+
+        mc1_dir = resolve_output_dir(SimpleNamespace(**common_args))
+        mc2_dir = resolve_output_dir(
+            SimpleNamespace(**{**common_args, "truthfulqa_variant": "mc2"})
+        )
+
+        assert mc1_dir != mc2_dir
+        assert expected_fragment in mc1_dir
+        assert "truthfulqa_mc_mc2" in mc2_dir
+
+
+class TestTruthfulqaMetrics:
+    def test_run_truthfulqa_mc_records_observed_mc1_accuracy(
+        self, tmp_path, monkeypatch
+    ):
+        output_dir = tmp_path / "truthfulqa"
+        output_dir.mkdir()
+
+        scores_by_choice = {
+            " False answer": {"avg_logprob": -0.01, "token_count": 2},
+            " True answer": {"avg_logprob": -5.0, "token_count": 2},
+        }
+
+        monkeypatch.setattr(
+            "run_intervention.score_continuation_decode_only",
+            lambda _model, _tokenizer, _prompt, continuation: scores_by_choice[
+                continuation
+            ],
+        )
+
+        run_truthfulqa_mc(
+            model=object(),
+            tokenizer=object(),
+            scaler=SimpleNamespace(alpha=1.0),
+            samples=[
+                {
+                    "id": "truthfulqa_mc1_0",
+                    "question": "Which answer is true?",
+                    "choices": ["False answer", "True answer"],
+                    "labels": [0, 1],
+                    "variant": "mc1",
+                }
+            ],
+            alpha=0.0,
+            output_dir=str(output_dir),
+        )
+
+        records = [
+            json.loads(line)
+            for line in (output_dir / "alpha_0.0.jsonl").read_text().splitlines()
+        ]
+
+        assert records[0]["compliance"] is False
+        assert records[0]["metric_name"] == "mc1_accuracy"
+        assert records[0]["metric_value"] == 0.0
+
+        aggregation = aggregate_results(str(output_dir), [0.0])
+
+        assert aggregation["results"]["0.0"]["metric_mean"] == 0.0
+        assert aggregation["results"]["0.0"]["compliance_rate"] == 0.0
+
+    def test_aggregate_results_rejects_mixed_metric_definitions(self, tmp_path):
+        output_dir = tmp_path / "mixed_metrics"
+        output_dir.mkdir()
+        alpha_path = output_dir / "alpha_0.0.jsonl"
+        alpha_path.write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "id": "sample_a",
+                            "compliance": True,
+                            "metric_name": "mc1_accuracy",
+                            "metric_value": 1.0,
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "id": "sample_b",
+                            "compliance": False,
+                            "metric_name": "mc2_truthful_mass",
+                            "metric_value": 0.4,
+                        }
+                    ),
+                ]
+            )
+            + "\n"
+        )
+
+        with pytest.raises(ValueError, match="Mixed metric definitions"):
+            aggregate_results(str(output_dir), [0.0])
 
 
 class TestDirectionSanityGate:
