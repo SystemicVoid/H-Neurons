@@ -1,0 +1,41 @@
+{
+  "args": {
+    "consistency_path": "data/gemma3_4b/pipeline/consistency_samples.jsonl",
+    "dry_run": false,
+    "faitheval_prompts_dir": "data/gemma3_4b/intervention/faitheval",
+    "falseqa_path": "data/benchmarks/falseqa_test.csv",
+    "max_per_class_per_split": 0,
+    "output_dir": "data/contrastive/truthfulness",
+    "refusal_contrastive_path": "data/contrastive/refusal/refusal_contrastive.jsonl",
+    "test_qids_path": "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+    "train_qids_path": "data/gemma3_4b/pipeline/train_qids.json"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/build_truthfulness_contrastive.py"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/build_truthfulness_contrastive.py",
+  "completed_at_utc": "2026-03-30T12:11:27.374288+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "fingerprint": "5d39ab69c2bed36a",
+  "git_dirty": true,
+  "git_sha": "0359767874ca87a7baf36e8098a42110d85c9ca4",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/truthfulness_contrastive.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/metadata.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "record_count": 2781,
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "build_truthfulness_contrastive.py",
+  "split_label_counts": {
+    "train_hallucinatory": 1000,
+    "train_truthful": 1000,
+    "val_hallucinatory": 391,
+    "val_truthful": 390
+  },
+  "started_at_utc": "2026-03-30T12:11:27.284411+00:00",
+  "status": "completed"
+}

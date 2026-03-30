@@ -24,8 +24,10 @@ from build_truthfulness_contrastive import (
     check_internal_duplicates,
     check_refusal_overlap,
     classify_consistency,
+    drop_cross_split_normalized_duplicates,
     load_consistency_samples,
     normalized_text_set,
+    validate_disjoint_qid_splits,
 )
 from extract_direction import compute_directions, compute_separation_scores
 from extract_truthfulness_direction import (
@@ -256,6 +258,36 @@ class TestBuildContrastiveRecords:
         for r in records:
             assert r["source"] == "triviaqa_consistency"
 
+    def test_rejects_overlapping_qid_splits(self, sample_data):
+        samples, train_qids, test_qids = sample_data
+        test_qids["t"].append("q1")
+
+        with pytest.raises(ValueError, match="train/val overlap"):
+            build_contrastive_records(samples, train_qids, test_qids)
+
+    def test_drops_cross_split_normalized_prompt_duplicates(self):
+        samples = {
+            "train_q": {
+                "question": "Where did Idi Amin rule from 1971 -1979?",
+                "judges": ["true"] * 10,
+                "ground_truth": "Uganda",
+            },
+            "val_q": {
+                "question": "Where did Idi Amin rule from 1971-1979?",
+                "judges": ["true"] * 10,
+                "ground_truth": "Uganda",
+            },
+        }
+        train_qids = {"t": ["train_q"], "f": []}
+        test_qids = {"t": ["val_q"], "f": []}
+
+        records, stats = build_contrastive_records(samples, train_qids, test_qids)
+
+        assert [record["qid"] for record in records] == ["train_q"]
+        assert stats["cross_split_normalized_duplicates_removed"] == 1
+        assert stats["cross_split_normalized_duplicate_groups"] == 1
+        assert stats["split_label_counts"] == {"train_truthful": 1}
+
 
 # ---------------------------------------------------------------------------
 # Overlap / leakage checks
@@ -313,6 +345,35 @@ class TestOverlapChecks:
         ]
         result = check_internal_duplicates(records)
         assert result["exact_duplicate_count"] == 1
+
+    def test_validate_disjoint_qid_splits_accepts_clean_inputs(self):
+        validate_disjoint_qid_splits({"t": ["q1"], "f": ["q2"]}, {"t": ["q3"], "f": []})
+
+    def test_drop_cross_split_normalized_duplicates_prefers_train(self):
+        records = [
+            {
+                "id": "train_1",
+                "text": "Who wrote Hamlet?",
+                "label": "truthful",
+                "source": "triviaqa_consistency",
+                "split": "train",
+                "qid": "q1",
+            },
+            {
+                "id": "val_1",
+                "text": "Who wrote Hamlet ?",
+                "label": "truthful",
+                "source": "triviaqa_consistency",
+                "split": "val",
+                "qid": "q2",
+            },
+        ]
+
+        filtered, stats = drop_cross_split_normalized_duplicates(records)
+
+        assert [record["id"] for record in filtered] == ["train_1"]
+        assert stats["duplicate_group_count"] == 1
+        assert stats["dropped_record_count"] == 1
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,92 @@
+{
+  "NOT_refusal_data": "The contrastive axis is factual accuracy, not safety/refusal. Harmful/harmless behavior is not part of the class definition.",
+  "build_stats": {
+    "consistent_hallucinatory": 1680,
+    "consistent_truthful": 1435,
+    "cross_split_normalized_duplicate_examples": [
+      {
+        "dropped_ids": [
+          "truth_val_truth_tc_207"
+        ],
+        "dropped_qids": [
+          "tc_207"
+        ],
+        "kept_ids": [
+          "truth_train_truth_tc_2433"
+        ],
+        "kept_split": "train",
+        "normalized_text": "where did idi amin rule from 1971 1979 respond with answer only without any explanation"
+      }
+    ],
+    "cross_split_normalized_duplicate_groups": 1,
+    "cross_split_normalized_duplicates_removed": 1,
+    "max_per_class_per_split": 0,
+    "mixed_excluded": 385,
+    "no_split_excluded": 333,
+    "split_label_counts": {
+      "train_hallucinatory": 1000,
+      "train_truthful": 1000,
+      "val_hallucinatory": 391,
+      "val_truthful": 390
+    },
+    "total_records": 2781,
+    "total_samples": 3500
+  },
+  "class_definitions": {
+    "hallucinatory": "Questions where Gemma-3-4B-IT consistently hallucinates (all 10 sampled responses judged false by GPT-4o)",
+    "truthful": "Questions where Gemma-3-4B-IT consistently answers correctly (all 10 sampled responses judged true by GPT-4o)"
+  },
+  "dataset_name": "truthfulness_contrastive",
+  "fingerprint": "5d39ab69c2bed36a",
+  "git_sha": "0359767874ca87a7baf36e8098a42110d85c9ca4",
+  "known_limitations": [
+    "Single source (TriviaQA via Gemma-3-4B-IT consistency sampling). A multi-source mix would strengthen external validity.",
+    "Class boundary is model-specific: 'consistently wrong' on Gemma-3-4B may not generalize to other models.",
+    "Mixed-consistency questions (385 of 3500) are excluded, reducing the dataset to the clearest cases. This may bias toward questions that are 'easy to get right' or 'easy to get wrong'.",
+    "GPT-4o judge may have its own accuracy errors, propagated into labels."
+  ],
+  "leakage_assessment": "No text overlap with refusal contrastive (different domain). No structural overlap with FaithEval (MCQ) or FalseQA (false premise). Any normalized prompt collision between train and val is dropped from val before export. TriviaQA questions are open-ended factoid; eval benchmarks are multiple-choice or false-premise. Cross-contamination risk is negligible.",
+  "overlap_checks": {
+    "internal_duplicates": {
+      "exact_duplicate_count": 0,
+      "exact_examples": [],
+      "normalized_duplicate_count": 0
+    },
+    "vs_faitheval": {
+      "contamination_risk": "negligible",
+      "note": "FaithEval uses multiple-choice questions from HuggingFace dataset. TriviaQA uses open-ended factoid questions. Format and domain are structurally disjoint. No text-level overlap check possible without loading the HF dataset, but contamination risk is negligible.",
+      "status": "structural_check"
+    },
+    "vs_falseqa": {
+      "falseqa_count": 1373,
+      "normalized_overlap_count": 0,
+      "overlap_examples": [],
+      "status": "checked",
+      "truthfulness_count": 2781
+    },
+    "vs_refusal_contrastive": {
+      "normalized_overlap_count": 0,
+      "overlap_examples": [],
+      "refusal_count": 320,
+      "status": "checked",
+      "truthfulness_count": 2781
+    }
+  },
+  "paths": {
+    "jsonl": "data/contrastive/truthfulness/truthfulness_contrastive.jsonl",
+    "metadata": "data/contrastive/truthfulness/metadata.json"
+  },
+  "provisional": false,
+  "purpose": "D4 truthfulness/hallucination direction extraction",
+  "sources": {
+    "consistency_samples": {
+      "description": "TriviaQA questions with 10x model responses, each judged true/false by GPT-4o",
+      "path": "data/gemma3_4b/pipeline/consistency_samples.jsonl",
+      "total_questions": 3500
+    }
+  },
+  "split_mapping": {
+    "train": "From train_qids.json (original classifier training split)",
+    "val": "From test_qids_disjoint.json (remapped: classifier test -> direction val)"
+  }
+}
