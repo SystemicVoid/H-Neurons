@@ -616,15 +616,25 @@ class TestTruthfulqaMetrics:
         output_dir.mkdir()
 
         scores_by_choice = {
-            " False answer": {"avg_logprob": -0.01, "token_count": 2},
-            " True answer": {"avg_logprob": -5.0, "token_count": 2},
+            " False answer": {
+                "log_likelihood": -2.0,
+                "total_logprob": -2.0,
+                "avg_logprob": -0.1,
+                "token_count": 20,
+            },
+            " True answer": {
+                "log_likelihood": -0.4,
+                "total_logprob": -0.4,
+                "avg_logprob": -0.2,
+                "token_count": 2,
+            },
         }
 
         monkeypatch.setattr(
             "run_intervention.score_continuation_decode_only",
-            lambda _model, _tokenizer, _prompt, continuation: scores_by_choice[
-                continuation
-            ],
+            lambda _model, _tokenizer, _prompt, continuation, scaler=None: (
+                scores_by_choice[continuation]
+            ),
         )
 
         run_truthfulqa_mc(
@@ -649,14 +659,86 @@ class TestTruthfulqaMetrics:
             for line in (output_dir / "alpha_0.0.jsonl").read_text().splitlines()
         ]
 
-        assert records[0]["compliance"] is False
+        assert records[0]["compliance"] is True
         assert records[0]["metric_name"] == "mc1_accuracy"
-        assert records[0]["metric_value"] == 0.0
+        assert records[0]["metric_value"] == 1.0
+        assert records[0]["chosen"] == "True answer"
+        assert records[0]["choice_log_likelihoods"] == [-2.0, -0.4]
 
         aggregation = aggregate_results(str(output_dir), [0.0])
 
-        assert aggregation["results"]["0.0"]["metric_mean"] == 0.0
-        assert aggregation["results"]["0.0"]["compliance_rate"] == 0.0
+        assert aggregation["results"]["0.0"]["metric_mean"] == 1.0
+        assert aggregation["results"]["0.0"]["compliance_rate"] == 1.0
+
+    def test_run_truthfulqa_mc_uses_log_likelihood_mass_for_mc2(
+        self, tmp_path, monkeypatch
+    ):
+        output_dir = tmp_path / "truthfulqa_mc2"
+        output_dir.mkdir()
+
+        scores_by_choice = {
+            " Truthful one": {
+                "log_likelihood": -1.0,
+                "total_logprob": -1.0,
+                "avg_logprob": -0.5,
+                "token_count": 2,
+            },
+            " Truthful two": {
+                "log_likelihood": -3.0,
+                "total_logprob": -3.0,
+                "avg_logprob": -1.0,
+                "token_count": 3,
+            },
+            " False but short": {
+                "log_likelihood": -4.0,
+                "total_logprob": -4.0,
+                "avg_logprob": -0.2,
+                "token_count": 20,
+            },
+        }
+
+        monkeypatch.setattr(
+            "run_intervention.score_continuation_decode_only",
+            lambda _model, _tokenizer, _prompt, continuation, scaler=None: (
+                scores_by_choice[continuation]
+            ),
+        )
+
+        run_truthfulqa_mc(
+            model=object(),
+            tokenizer=object(),
+            scaler=SimpleNamespace(alpha=1.0),
+            samples=[
+                {
+                    "id": "truthfulqa_mc2_0",
+                    "question": "Which answers are true?",
+                    "choices": ["Truthful one", "Truthful two", "False but short"],
+                    "labels": [1, 1, 0],
+                    "variant": "mc2",
+                }
+            ],
+            alpha=0.0,
+            output_dir=str(output_dir),
+        )
+
+        record = json.loads(
+            (output_dir / "alpha_0.0.jsonl").read_text().splitlines()[0]
+        )
+        expected_mass = float(
+            (
+                torch.exp(torch.tensor(-1.0, dtype=torch.float64))
+                + torch.exp(torch.tensor(-3.0, dtype=torch.float64))
+            )
+            / (
+                torch.exp(torch.tensor(-1.0, dtype=torch.float64))
+                + torch.exp(torch.tensor(-3.0, dtype=torch.float64))
+                + torch.exp(torch.tensor(-4.0, dtype=torch.float64))
+            )
+        )
+
+        assert record["metric_name"] == "mc2_truthful_mass"
+        assert record["metric_value"] == pytest.approx(expected_mass)
+        assert record["choice_log_likelihoods"] == [-1.0, -3.0, -4.0]
 
     def test_aggregate_results_rejects_mixed_metric_definitions(self, tmp_path):
         output_dir = tmp_path / "mixed_metrics"

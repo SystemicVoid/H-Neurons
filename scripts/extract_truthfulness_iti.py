@@ -356,16 +356,19 @@ def _bucket_answer(answer: str) -> int:
 def _sample_wrong_answer(
     *,
     rng: random.Random,
-    bucketed_answers: dict[int, list[tuple[str, str]]],
+    bucketed_answers: dict[int, list[tuple[str, str, str]]],
     bucket: int,
     forbidden_qid: str,
+    forbidden_answers: set[str],
 ) -> str:
     search_buckets = [bucket] + [b for b in sorted(bucketed_answers) if b != bucket]
     for current_bucket in search_buckets:
         pool = [
             answer
-            for qid, answer in bucketed_answers.get(current_bucket, [])
-            if qid != forbidden_qid
+            for qid, answer, normalized_answer in bucketed_answers.get(
+                current_bucket, []
+            )
+            if qid != forbidden_qid and normalized_answer not in forbidden_answers
         ]
         if pool:
             return rng.choice(pool)
@@ -400,10 +403,12 @@ def build_context_grounded_examples(
     answer_pool_rows = [
         row for row in list(train_ds) + list(val_ds) if row["answers"]["text"]
     ]
-    bucketed_answers: dict[int, list[tuple[str, str]]] = defaultdict(list)
+    bucketed_answers: dict[int, list[tuple[str, str, str]]] = defaultdict(list)
     for row in answer_pool_rows:
         answer = row["answers"]["text"][0]
-        bucketed_answers[_bucket_answer(answer)].append((row["id"], answer))
+        bucketed_answers[_bucket_answer(answer)].append(
+            (row["id"], answer, normalize_answer(answer))
+        )
 
     examples: list[ITIExample] = []
     for split, rows in (("train", sampled_train), ("val", sampled_val)):
@@ -415,11 +420,17 @@ def build_context_grounded_examples(
             answerable = bool(gold_answers)
             truthful_answer = gold_answers[0] if answerable else abstention_text
             bucket = _bucket_answer(truthful_answer) if answerable else 1
+            forbidden_answers = (
+                {normalize_answer(answer) for answer in gold_answers}
+                if answerable
+                else set()
+            )
             wrong_answer = _sample_wrong_answer(
                 rng=rng,
                 bucketed_answers=bucketed_answers,
                 bucket=bucket,
                 forbidden_qid=qid,
+                forbidden_answers=forbidden_answers,
             )
             for label, answer in (
                 (LABEL_TRUE, truthful_answer),

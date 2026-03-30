@@ -101,9 +101,23 @@ class ITIHeadScaler:
         self.n_layers = int(artifact["n_layers"])
         self.n_attention_heads = int(artifact["n_attention_heads"])
         self.head_dim = int(artifact["head_dim"])
+        self._baseline_sigma_total = sum(
+            float(item["sigma"]) for item in artifact["ranked_heads"][:k]
+        )
+        selected_sigma_total = sum(float(item["sigma"]) for item in self.selected_heads)
+        self._random_sigma_scale = 1.0
+        if (
+            self.selection_strategy == "random"
+            and selected_sigma_total > 1e-8
+            and self._baseline_sigma_total > 0.0
+        ):
+            self._random_sigma_scale = self._baseline_sigma_total / selected_sigma_total
         self._selected_by_layer = self._build_selected_by_layer(device=device)
         self._primary_step_layer = (
             min(self._selected_by_layer.keys()) if self._selected_by_layer else None
+        )
+        self._final_step_layer = (
+            max(self._selected_by_layer.keys()) if self._selected_by_layer else None
         )
         self.reset_sample_stats()
         self._install(model)
@@ -117,17 +131,29 @@ class ITIHeadScaler:
                 item["direction"], dtype=torch.float32, device=device
             )
             sigma = float(item["sigma"])
+            applied_sigma = sigma * self._random_sigma_scale
             by_layer.setdefault(int(item["layer"]), []).append(
                 {
                     "head": int(item["head"]),
                     "direction": direction,
                     "sigma": sigma,
+                    "applied_sigma": applied_sigma,
                     "position_summary": item["position_summary"],
                     "auroc": float(item["auroc"]),
                     "balanced_accuracy": float(item["balanced_accuracy"]),
                 }
             )
         return by_layer
+
+    def arm_first_decode_token(self) -> None:
+        """Treat the next prompt prefill as generation setup for token 1."""
+        self._prefill_decode_token_armed = True
+
+    def _finalize_prefill_step(
+        self, layer_idx: int, *, prefill_decode_step: bool
+    ) -> None:
+        if prefill_decode_step and layer_idx == self._final_step_layer:
+            self._prefill_decode_token_armed = False
 
     def _install(self, model: torch.nn.Module) -> None:
         decoder_layers = _get_decoder_layers(model)
@@ -156,33 +182,43 @@ class ITIHeadScaler:
                     f"{self.n_attention_heads * self.head_dim}"
                 )
 
-            # Decode-only ITI: never edit prompt encoding activations.
-            if x.shape[1] != 1:
+            prefill_decode_step = x.shape[1] > 1 and self._prefill_decode_token_armed
+
+            # Decode-only ITI: edit decode steps plus the final prompt position
+            # that produces the first generated token logits.
+            if x.shape[1] != 1 and not prefill_decode_step:
                 self._sample_prompt_skip_calls += 1
                 self._sample_hook_time_s += time.perf_counter() - hook_t0
                 return args
 
             if self._alpha == 0.0:
+                self._finalize_prefill_step(
+                    layer_idx, prefill_decode_step=prefill_decode_step
+                )
                 self._sample_hook_time_s += time.perf_counter() - hook_t0
                 return args
 
             batch, seq_len, _ = x.shape
             reshaped = x.reshape(batch, seq_len, self.n_attention_heads, self.head_dim)
+            position_slice = slice(-1, None) if prefill_decode_step else slice(None)
             delta_norm_total = 0.0
             activation_norm_total = 0.0
             for item in layer_heads:
                 head_idx = item["head"]
                 direction = item["direction"].to(reshaped.device)
-                delta = (self._alpha * item["sigma"]) * direction
-                before = reshaped[:, :, head_idx, :].float()
-                reshaped[:, :, head_idx, :] = reshaped[:, :, head_idx, :] + delta.to(
-                    reshaped.dtype
-                )
+                delta = (self._alpha * item["applied_sigma"]) * direction
+                before = reshaped[:, position_slice, head_idx, :].float()
+                reshaped[:, position_slice, head_idx, :] = reshaped[
+                    :, position_slice, head_idx, :
+                ] + delta.to(reshaped.dtype)
                 delta_norm_total += float(delta.norm().item())
                 activation_norm_total += float(before.norm(dim=-1).mean().item())
 
             if layer_idx == self._primary_step_layer:
                 self._generated_token_index += 1
+            self._finalize_prefill_step(
+                layer_idx, prefill_decode_step=prefill_decode_step
+            )
 
             if len(self._debug_steps) < self._max_debug_steps:
                 self._debug_steps.append(
@@ -221,6 +257,7 @@ class ITIHeadScaler:
         self._sample_hook_calls = 0
         self._sample_prompt_skip_calls = 0
         self._generated_token_index = 0
+        self._prefill_decode_token_armed = False
         self._debug_steps: list[dict[str, Any]] = []
         self._max_debug_steps = 32
 

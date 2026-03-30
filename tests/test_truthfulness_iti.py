@@ -168,6 +168,79 @@ class TestContextGroundedExamples:
         assert metadata["label_balance"]["val_answerable_questions"] == 1
         assert metadata["label_balance"]["val_impossible_questions"] == 1
 
+    def test_excludes_duplicate_gold_strings_from_wrong_answer_pool(self, monkeypatch):
+        train_rows = [
+            {
+                "id": "a1",
+                "question": "Where is the Louvre?",
+                "context": "The Louvre is in Paris.",
+                "answers": {"text": ["Paris"]},
+                "title": "Louvre",
+            },
+            {
+                "id": "a2",
+                "question": "Where is Notre-Dame?",
+                "context": "Notre-Dame is in Paris.",
+                "answers": {"text": ["Paris"]},
+                "title": "Notre-Dame",
+            },
+            {
+                "id": "i1",
+                "question": "What color is the hidden key?",
+                "context": "No key is described.",
+                "answers": {"text": []},
+                "title": "Key",
+            },
+            {
+                "id": "i2",
+                "question": "Who solved the unnamed puzzle?",
+                "context": "No solver is identified.",
+                "answers": {"text": []},
+                "title": "Puzzle",
+            },
+        ]
+        val_rows = [
+            {
+                "id": "a3",
+                "question": "Where is Big Ben?",
+                "context": "Big Ben is in London.",
+                "answers": {"text": ["London"]},
+                "title": "Big Ben",
+            },
+            {
+                "id": "i3",
+                "question": "What is the missing launch code?",
+                "context": "The code does not appear.",
+                "answers": {"text": []},
+                "title": "Code",
+            },
+        ]
+
+        def fake_load_dataset(name, split):
+            assert name == "squad_v2"
+            return train_rows if split == "train" else val_rows
+
+        monkeypatch.setattr(iti_extract, "load_dataset", fake_load_dataset)
+
+        examples, _ = iti_extract.build_context_grounded_examples(
+            tokenizer=StubTokenizer(),
+            seed=42,
+            train_questions=4,
+            val_questions=2,
+        )
+
+        paris_negatives = [
+            ex.answer
+            for ex in examples
+            if ex.qid in {"a1", "a2"} and ex.label == iti_extract.LABEL_FALSE
+        ]
+
+        assert paris_negatives
+        assert all(
+            iti_extract.normalize_answer(answer) != "paris"
+            for answer in paris_negatives
+        )
+
 
 class TestHeadRanking:
     def test_prefers_best_position_summary_per_head(self):
@@ -349,6 +422,98 @@ class TestITIHeadScaler:
         assert decode_out.tolist() == [[[0.0, 0.0, 2.0, 0.0]]]
         assert decode_stats["hook_calls"] == 1
         assert decode_stats["debug_steps"][0]["generated_token_index"] == 1
+
+        scaler.remove()
+
+    def test_armed_prefill_edits_only_last_prompt_position_for_first_token(self):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_triviaqa_transfer",
+            "n_layers": 1,
+            "n_attention_heads": 2,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.9,
+                    "balanced_accuracy": 0.9,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                }
+            ],
+        }
+        scaler = ITIHeadScaler(model, artifact, torch.device("cpu"), family=None, k=1)
+        scaler.alpha = 2.0
+        scaler.arm_first_decode_token()
+
+        prompt_x = torch.zeros(1, 3, 4)
+        prompt_out = model(prompt_x.clone())
+        prompt_stats = scaler.consume_sample_stats()
+
+        assert prompt_out.tolist() == [
+            [[0.0, 0.0, 0.0, 0.0]] * 2 + [[0.0, 0.0, 2.0, 0.0]]
+        ]
+        assert prompt_stats["prompt_skip_calls"] == 0
+        assert prompt_stats["debug_steps"][0]["generated_token_index"] == 1
+
+        scaler.remove()
+
+    def test_random_head_control_rescales_sigma_to_match_ranked_total_norm(self):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_triviaqa_transfer",
+            "n_layers": 1,
+            "n_attention_heads": 3,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 0,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.95,
+                    "balanced_accuracy": 0.95,
+                    "sigma": 4.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.9,
+                    "balanced_accuracy": 0.9,
+                    "sigma": 2.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 2,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.85,
+                    "balanced_accuracy": 0.85,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                },
+            ],
+        }
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family=None,
+            k=2,
+            selection_strategy="random",
+            random_seed=42,
+        )
+
+        applied_sigma_total = sum(
+            item["applied_sigma"]
+            for layer_items in scaler._selected_by_layer.values()
+            for item in layer_items
+        )
+
+        assert applied_sigma_total == pytest.approx(6.0)
 
         scaler.remove()
 
