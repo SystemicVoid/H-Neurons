@@ -1,0 +1,463 @@
+{
+  "best_layer": 32,
+  "best_layer_accuracy": 0.71471,
+  "best_layer_separation": 2747.017578,
+  "collection_time_s": 62.56,
+  "comparison_surface": "Last-token residual stream at decoder layer output. Same surface as D2 refusal direction extraction.",
+  "contrastive_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/truthfulness_contrastive.jsonl",
+  "direction_convention": "direction = normalize(mean(hallucinatory) - mean(truthful)). Positive projection = more hallucinatory.",
+  "dtype_accumulate": "float32",
+  "dtype_extract": "bfloat16",
+  "hidden_dim": 2560,
+  "model_path": "google/gemma-3-4b-it",
+  "n_layers": 34,
+  "normalization": "L2",
+  "pilot_check": {
+    "n_degenerate": 1,
+    "n_malformed": 1,
+    "n_samples": 5,
+    "observed_corruption_beta": 1.0,
+    "passes": false
+  },
+  "recommended_faitheval_sweep": {
+    "alphas": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "benchmark": "faitheval",
+    "calibration_note": "Pilot malformed output was observed at beta=1.0; bracket the onset of corruption on the full benchmark instead of sweeping past it.",
+    "command": "uv run python scripts/run_intervention.py --model_path google/gemma-3-4b-it --benchmark faitheval --intervention_mode direction --direction_path data/contrastive/truthfulness/directions/truthfulness_directions.pt --direction_mode ablate --direction_layers 32 --alphas 0.0 0.25 0.5 0.75 1.0 --max_samples 1000 --device_map cuda:0 --seed 42",
+    "direction_layers": [
+      32
+    ],
+    "direction_mode": "ablate",
+    "max_samples": 1000,
+    "observed_corruption_beta": 1.0
+  },
+  "refusal_direction_comparison": {
+    "best_layer_cosine_similarity": 0.0437,
+    "per_layer": [
+      {
+        "abs_cosine_similarity": 0.127704,
+        "cosine_similarity": 0.127704,
+        "layer": 0
+      },
+      {
+        "abs_cosine_similarity": 0.282913,
+        "cosine_similarity": 0.282913,
+        "layer": 1
+      },
+      {
+        "abs_cosine_similarity": 0.359967,
+        "cosine_similarity": 0.359967,
+        "layer": 2
+      },
+      {
+        "abs_cosine_similarity": 0.184291,
+        "cosine_similarity": -0.184291,
+        "layer": 3
+      },
+      {
+        "abs_cosine_similarity": 0.666917,
+        "cosine_similarity": 0.666917,
+        "layer": 4
+      },
+      {
+        "abs_cosine_similarity": 0.200737,
+        "cosine_similarity": 0.200737,
+        "layer": 5
+      },
+      {
+        "abs_cosine_similarity": 0.432493,
+        "cosine_similarity": -0.432493,
+        "layer": 6
+      },
+      {
+        "abs_cosine_similarity": 0.795943,
+        "cosine_similarity": -0.795943,
+        "layer": 7
+      },
+      {
+        "abs_cosine_similarity": 0.911837,
+        "cosine_similarity": -0.911837,
+        "layer": 8
+      },
+      {
+        "abs_cosine_similarity": 0.946663,
+        "cosine_similarity": -0.946663,
+        "layer": 9
+      },
+      {
+        "abs_cosine_similarity": 0.930327,
+        "cosine_similarity": -0.930327,
+        "layer": 10
+      },
+      {
+        "abs_cosine_similarity": 0.700526,
+        "cosine_similarity": -0.700526,
+        "layer": 11
+      },
+      {
+        "abs_cosine_similarity": 0.849592,
+        "cosine_similarity": -0.849592,
+        "layer": 12
+      },
+      {
+        "abs_cosine_similarity": 0.384273,
+        "cosine_similarity": 0.384273,
+        "layer": 13
+      },
+      {
+        "abs_cosine_similarity": 0.31177,
+        "cosine_similarity": -0.31177,
+        "layer": 14
+      },
+      {
+        "abs_cosine_similarity": 0.601583,
+        "cosine_similarity": -0.601583,
+        "layer": 15
+      },
+      {
+        "abs_cosine_similarity": 0.554404,
+        "cosine_similarity": -0.554404,
+        "layer": 16
+      },
+      {
+        "abs_cosine_similarity": 0.504009,
+        "cosine_similarity": -0.504009,
+        "layer": 17
+      },
+      {
+        "abs_cosine_similarity": 0.314147,
+        "cosine_similarity": -0.314147,
+        "layer": 18
+      },
+      {
+        "abs_cosine_similarity": 0.464303,
+        "cosine_similarity": -0.464303,
+        "layer": 19
+      },
+      {
+        "abs_cosine_similarity": 0.320954,
+        "cosine_similarity": -0.320954,
+        "layer": 20
+      },
+      {
+        "abs_cosine_similarity": 0.346603,
+        "cosine_similarity": -0.346603,
+        "layer": 21
+      },
+      {
+        "abs_cosine_similarity": 0.423742,
+        "cosine_similarity": -0.423742,
+        "layer": 22
+      },
+      {
+        "abs_cosine_similarity": 0.457093,
+        "cosine_similarity": -0.457093,
+        "layer": 23
+      },
+      {
+        "abs_cosine_similarity": 0.421593,
+        "cosine_similarity": -0.421593,
+        "layer": 24
+      },
+      {
+        "abs_cosine_similarity": 0.313045,
+        "cosine_similarity": -0.313045,
+        "layer": 25
+      },
+      {
+        "abs_cosine_similarity": 0.261424,
+        "cosine_similarity": -0.261424,
+        "layer": 26
+      },
+      {
+        "abs_cosine_similarity": 0.179562,
+        "cosine_similarity": -0.179562,
+        "layer": 27
+      },
+      {
+        "abs_cosine_similarity": 0.039032,
+        "cosine_similarity": -0.039032,
+        "layer": 28
+      },
+      {
+        "abs_cosine_similarity": 0.009849,
+        "cosine_similarity": 0.009849,
+        "layer": 29
+      },
+      {
+        "abs_cosine_similarity": 0.10882,
+        "cosine_similarity": -0.10882,
+        "layer": 30
+      },
+      {
+        "abs_cosine_similarity": 0.003611,
+        "cosine_similarity": -0.003611,
+        "layer": 31
+      },
+      {
+        "abs_cosine_similarity": 0.0437,
+        "cosine_similarity": 0.0437,
+        "layer": 32
+      },
+      {
+        "abs_cosine_similarity": 0.571476,
+        "cosine_similarity": 0.571476,
+        "layer": 33
+      }
+    ],
+    "refusal_directions_path": "data/contrastive/refusal/directions/refusal_directions.pt"
+  },
+  "separation_scores": [
+    {
+      "accuracy": 0.557207,
+      "layer": 0,
+      "mean_harmful_proj": 249.378128,
+      "mean_harmless_proj": 248.070419,
+      "separation": 1.307709
+    },
+    {
+      "accuracy": 0.579495,
+      "layer": 1,
+      "mean_harmful_proj": -166.582687,
+      "mean_harmless_proj": -169.279495,
+      "separation": 2.696808
+    },
+    {
+      "accuracy": 0.600297,
+      "layer": 2,
+      "mean_harmful_proj": -625.50946,
+      "mean_harmless_proj": -630.07135,
+      "separation": 4.56189
+    },
+    {
+      "accuracy": 0.566122,
+      "layer": 3,
+      "mean_harmful_proj": -47.352562,
+      "mean_harmless_proj": -50.726856,
+      "separation": 3.374294
+    },
+    {
+      "accuracy": 0.598811,
+      "layer": 4,
+      "mean_harmful_proj": -1539.92041,
+      "mean_harmless_proj": -1549.967285,
+      "separation": 10.046875
+    },
+    {
+      "accuracy": 0.561664,
+      "layer": 5,
+      "mean_harmful_proj": -2345.514893,
+      "mean_harmless_proj": -2353.415771,
+      "separation": 7.900879
+    },
+    {
+      "accuracy": 0.545319,
+      "layer": 6,
+      "mean_harmful_proj": -1928.371826,
+      "mean_harmless_proj": -1937.879028,
+      "separation": 9.507202
+    },
+    {
+      "accuracy": 0.548291,
+      "layer": 7,
+      "mean_harmful_proj": -4087.831543,
+      "mean_harmless_proj": -4103.818359,
+      "separation": 15.986816
+    },
+    {
+      "accuracy": 0.533432,
+      "layer": 8,
+      "mean_harmful_proj": -6671.877441,
+      "mean_harmless_proj": -6708.60791,
+      "separation": 36.730469
+    },
+    {
+      "accuracy": 0.523031,
+      "layer": 9,
+      "mean_harmful_proj": -8493.55957,
+      "mean_harmless_proj": -8517.125,
+      "separation": 23.56543
+    },
+    {
+      "accuracy": 0.515602,
+      "layer": 10,
+      "mean_harmful_proj": -12063.271484,
+      "mean_harmless_proj": -12095.272461,
+      "separation": 32.000977
+    },
+    {
+      "accuracy": 0.511144,
+      "layer": 11,
+      "mean_harmful_proj": -12488.598633,
+      "mean_harmless_proj": -12511.681641,
+      "separation": 23.083008
+    },
+    {
+      "accuracy": 0.502229,
+      "layer": 12,
+      "mean_harmful_proj": -18425.117188,
+      "mean_harmless_proj": -18466.398438,
+      "separation": 41.28125
+    },
+    {
+      "accuracy": 0.560178,
+      "layer": 13,
+      "mean_harmful_proj": 14435.984375,
+      "mean_harmless_proj": 14360.015625,
+      "separation": 75.96875
+    },
+    {
+      "accuracy": 0.580981,
+      "layer": 14,
+      "mean_harmful_proj": -17477.96875,
+      "mean_harmless_proj": -17617.285156,
+      "separation": 139.316406
+    },
+    {
+      "accuracy": 0.603269,
+      "layer": 15,
+      "mean_harmful_proj": -18658.789062,
+      "mean_harmless_proj": -18935.771484,
+      "separation": 276.982422
+    },
+    {
+      "accuracy": 0.609212,
+      "layer": 16,
+      "mean_harmful_proj": -20771.761719,
+      "mean_harmless_proj": -21213.583984,
+      "separation": 441.822266
+    },
+    {
+      "accuracy": 0.625557,
+      "layer": 17,
+      "mean_harmful_proj": -21615.314453,
+      "mean_harmless_proj": -22162.347656,
+      "separation": 547.033203
+    },
+    {
+      "accuracy": 0.622585,
+      "layer": 18,
+      "mean_harmful_proj": -21513.044922,
+      "mean_harmless_proj": -22100.880859,
+      "separation": 587.835938
+    },
+    {
+      "accuracy": 0.619614,
+      "layer": 19,
+      "mean_harmful_proj": -22771.486328,
+      "mean_harmless_proj": -23503.291016,
+      "separation": 731.804688
+    },
+    {
+      "accuracy": 0.631501,
+      "layer": 20,
+      "mean_harmful_proj": -18972.0625,
+      "mean_harmless_proj": -19721.484375,
+      "separation": 749.421875
+    },
+    {
+      "accuracy": 0.649331,
+      "layer": 21,
+      "mean_harmful_proj": -23168.886719,
+      "mean_harmless_proj": -24083.007812,
+      "separation": 914.121094
+    },
+    {
+      "accuracy": 0.662704,
+      "layer": 22,
+      "mean_harmful_proj": -25255.058594,
+      "mean_harmless_proj": -26514.230469,
+      "separation": 1259.171875
+    },
+    {
+      "accuracy": 0.652303,
+      "layer": 23,
+      "mean_harmful_proj": -27597.185547,
+      "mean_harmless_proj": -29141.972656,
+      "separation": 1544.787109
+    },
+    {
+      "accuracy": 0.624071,
+      "layer": 24,
+      "mean_harmful_proj": -27349.832031,
+      "mean_harmless_proj": -28995.884766,
+      "separation": 1646.052734
+    },
+    {
+      "accuracy": 0.606241,
+      "layer": 25,
+      "mean_harmful_proj": -29862.697266,
+      "mean_harmless_proj": -31555.335938,
+      "separation": 1692.638672
+    },
+    {
+      "accuracy": 0.604755,
+      "layer": 26,
+      "mean_harmful_proj": -29137.167969,
+      "mean_harmless_proj": -30887.564453,
+      "separation": 1750.396484
+    },
+    {
+      "accuracy": 0.597325,
+      "layer": 27,
+      "mean_harmful_proj": -30726.263672,
+      "mean_harmless_proj": -32551.119141,
+      "separation": 1824.855469
+    },
+    {
+      "accuracy": 0.601783,
+      "layer": 28,
+      "mean_harmful_proj": -32403.761719,
+      "mean_harmless_proj": -34331.371094,
+      "separation": 1927.609375
+    },
+    {
+      "accuracy": 0.600297,
+      "layer": 29,
+      "mean_harmful_proj": -30315.564453,
+      "mean_harmless_proj": -32369.333984,
+      "separation": 2053.769531
+    },
+    {
+      "accuracy": 0.627043,
+      "layer": 30,
+      "mean_harmful_proj": -26450.929688,
+      "mean_harmless_proj": -28690.703125,
+      "separation": 2239.773438
+    },
+    {
+      "accuracy": 0.637444,
+      "layer": 31,
+      "mean_harmful_proj": -30195.044922,
+      "mean_harmless_proj": -32790.78125,
+      "separation": 2595.736328
+    },
+    {
+      "accuracy": 0.71471,
+      "layer": 32,
+      "mean_harmful_proj": 9149.246094,
+      "mean_harmless_proj": 6402.228516,
+      "separation": 2747.017578
+    },
+    {
+      "accuracy": 0.61367,
+      "layer": 33,
+      "mean_harmful_proj": 5029.99707,
+      "mean_harmless_proj": -1461.470947,
+      "separation": 6491.468018
+    }
+  ],
+  "token_position": "last",
+  "train_hallucinatory_count": 1000,
+  "train_hallucinatory_fingerprint": "9277a9f1d47c03dc",
+  "train_truthful_count": 1000,
+  "train_truthful_fingerprint": "72aba11e3aeb8fa8",
+  "val_hallucinatory_count": 379,
+  "val_truthful_count": 294
+}

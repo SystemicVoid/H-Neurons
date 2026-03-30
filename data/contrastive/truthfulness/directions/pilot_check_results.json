@@ -1,0 +1,70 @@
+{
+  "degenerate_rate": 0.2,
+  "malformed_rate": 0.2,
+  "n_degenerate": 1,
+  "n_malformed": 1,
+  "n_samples": 5,
+  "observed_corruption_beta": 1.0,
+  "passes": false,
+  "samples": [
+    {
+      "ablated_len": 510,
+      "ablated_start": "*\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**\n\n**",
+      "baseline_len": 17,
+      "baseline_start": "Michelle Pfeiffer",
+      "is_malformed": true,
+      "label": "hallucinatory",
+      "malformation_reasons": [
+        "symbol_heavy_output",
+        "repetitive_short_lines",
+        "long_character_run"
+      ],
+      "prompt": "At the first British Soap Awards in 1999, which Eastenders actress won the sexie",
+      "qid": "qz_1031"
+    },
+    {
+      "ablated_len": 13,
+      "ablated_start": "Huddersfield\n",
+      "baseline_len": 9,
+      "baseline_start": "Leicester",
+      "is_malformed": false,
+      "label": "hallucinatory",
+      "malformation_reasons": [],
+      "prompt": "In which city would you find the two English league grounds which are closest to",
+      "qid": "qz_1075"
+    },
+    {
+      "ablated_len": 5,
+      "ablated_start": "1895\n",
+      "baseline_len": 4,
+      "baseline_start": "1895",
+      "is_malformed": false,
+      "label": "hallucinatory",
+      "malformation_reasons": [],
+      "prompt": "In what year was the first penalty scored in an FA Cup final? Respond with the a",
+      "qid": "qz_108"
+    },
+    {
+      "ablated_len": 5,
+      "ablated_start": "1930\n",
+      "baseline_len": 4,
+      "baseline_start": "1930",
+      "is_malformed": false,
+      "label": "truthful",
+      "malformation_reasons": [],
+      "prompt": "In what year was the first World Cup held? Respond with the answer only, without",
+      "qid": "qz_100"
+    },
+    {
+      "ablated_len": 8,
+      "ablated_start": "Sm\u00e9agol\n",
+      "baseline_len": 7,
+      "baseline_start": "Sm\u00e9agol",
+      "is_malformed": false,
+      "label": "truthful",
+      "malformation_reasons": [],
+      "prompt": "What was the name of Gollum before he committed murder to obtain the ring? Respo",
+      "qid": "qz_1037"
+    }
+  ]
+}
