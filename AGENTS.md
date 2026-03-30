@@ -44,7 +44,7 @@ Use `nvitop -1` for a one-shot GPU status check before/during long jobs. Details
 To redeploy the project site at its canonical URL:
 
 ```bash
-.agents/skills/here-now/scripts/publish.sh site --slug aware-fresco-4a2q --client amp
+scripts/infra/publish.sh site --slug aware-fresco-4a2q --client amp
 ```
 
 ## Run Directory Conventions
@@ -96,4 +96,5 @@ Rules:
 - Local `summary.json` and `*.provenance.json` are the source of truth. W&B is the visual cockpit, not the record.
 - Tell the user know before queuing a new GPU job if there are more than 3 entries in `notes/runs_to_analyse.md` still `awaiting analysis`, especially when these analysis outcomes could undermine the value of the experiment you are about to run, be sensible.
 - Check `nvitop -1` before launching to confirm GPU is free.
+- All in-depth reports for act 3 should be written into ./notes/act3-reports/
 </important>
