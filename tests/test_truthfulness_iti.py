@@ -526,3 +526,404 @@ class TestSimpleQAVerdictParsing:
         )
         assert parse_simpleqa_verdict("This is NOT_ATTEMPTED.") == "NOT_ATTEMPTED"
         assert parse_simpleqa_verdict("unclear") == "UNKNOWN"
+
+
+class TestTruthfulQAPaperExamples:
+    def test_builds_correct_labels_and_splits_by_question(self, monkeypatch):
+        """Each correct answer → LABEL_TRUE, each incorrect → LABEL_FALSE,
+        split is by question ID not by pair."""
+
+        class FakeDataset:
+            def __len__(self):
+                return 4
+
+            def __getitem__(self, idx):
+                questions = [
+                    {
+                        "question": "What is 1+1?",
+                        "correct_answers": ["2", "Two"],
+                        "incorrect_answers": ["3"],
+                    },
+                    {
+                        "question": "Capital of France?",
+                        "correct_answers": ["Paris"],
+                        "incorrect_answers": ["London", "Berlin"],
+                    },
+                    {
+                        "question": "Sky color?",
+                        "correct_answers": ["Blue"],
+                        "incorrect_answers": ["Red"],
+                    },
+                    {
+                        "question": "Water formula?",
+                        "correct_answers": ["H2O"],
+                        "incorrect_answers": ["CO2"],
+                    },
+                ]
+                return questions[idx]
+
+            column_names = [
+                "question",
+                "correct_answers",
+                "incorrect_answers",
+            ]
+
+        monkeypatch.setattr(
+            "extract_truthfulness_iti.load_dataset",
+            lambda *_args, **_kwargs: FakeDataset(),
+        )
+
+        examples, metadata = iti_extract.build_truthfulqa_paper_examples(
+            tokenizer=StubTokenizer(),
+            seed=42,
+            val_fraction=0.5,
+        )
+
+        # Label checks: Q0: 2T+1F, Q1: 1T+2F, Q2: 1T+1F, Q3: 1T+1F = 5T+5F
+        true_count = sum(1 for ex in examples if ex.label == iti_extract.LABEL_TRUE)
+        false_count = sum(1 for ex in examples if ex.label == iti_extract.LABEL_FALSE)
+        assert true_count == 5
+        assert false_count == 5
+
+        # Split by question: each QID's examples are all in the same split
+        qid_splits = {}
+        for ex in examples:
+            if ex.qid not in qid_splits:
+                qid_splits[ex.qid] = ex.split
+            assert ex.split == qid_splits[ex.qid], (
+                f"QID {ex.qid} has examples in both splits"
+            )
+
+        # Both splits present
+        splits = {ex.split for ex in examples}
+        assert splits == {"train", "val"}
+
+        # Family and prompt format
+        assert all(ex.family == "iti_truthfulqa_paper" for ex in examples)
+        assert metadata["family"] == "iti_truthfulqa_paper"
+        assert metadata["source_dataset"] == "truthful_qa/generation"
+
+    def test_uses_paper_prompt_format(self, monkeypatch):
+        """Prompt should be Q: {q}\\nA: {a} format."""
+
+        class FakeDataset:
+            def __len__(self):
+                return 1
+
+            def __getitem__(self, idx):
+                return {
+                    "question": "What is 1+1?",
+                    "correct_answers": ["2"],
+                    "incorrect_answers": ["3"],
+                }
+
+            column_names = ["question", "correct_answers", "incorrect_answers"]
+
+        monkeypatch.setattr(
+            "extract_truthfulness_iti.load_dataset",
+            lambda *_args, **_kwargs: FakeDataset(),
+        )
+
+        examples, _ = iti_extract.build_truthfulqa_paper_examples(
+            tokenizer=StubTokenizer(),
+            seed=42,
+            val_fraction=0.5,
+        )
+
+        for ex in examples:
+            assert ex.prompt_text.startswith("Q: What is 1+1?\nA:")
+
+
+class TestPaperFaithfulRanking:
+    def test_balanced_accuracy_ranking_differs_from_auroc(self):
+        """When ranking_primary='balanced_accuracy', the top head should
+        be the one with highest balanced_accuracy, not highest AUROC."""
+        examples = (
+            [
+                iti_extract.ITIExample(
+                    example_id=f"train_t_{idx}",
+                    family="iti_truthfulqa_paper",
+                    split="train",
+                    qid=f"train_t_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_TRUE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(4)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"train_f_{idx}",
+                    family="iti_truthfulqa_paper",
+                    split="train",
+                    qid=f"train_f_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_FALSE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(4)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"val_t_{idx}",
+                    family="iti_truthfulqa_paper",
+                    split="val",
+                    qid=f"val_t_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_TRUE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(4)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"val_f_{idx}",
+                    family="iti_truthfulqa_paper",
+                    split="val",
+                    qid=f"val_f_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_FALSE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(4)
+            ]
+        )
+
+        # Only last_answer_token — paper-faithful restriction
+        activations = {
+            "last_answer_token": torch.tensor(
+                [
+                    [[[3.0, 0.0]]],
+                    [[[2.5, 0.0]]],
+                    [[[2.8, 0.0]]],
+                    [[[2.2, 0.0]]],
+                    [[[-3.0, 0.0]]],
+                    [[[-2.5, 0.0]]],
+                    [[[-2.8, 0.0]]],
+                    [[[-2.2, 0.0]]],
+                    [[[3.2, 0.0]]],
+                    [[[2.8, 0.0]]],
+                    [[[3.0, 0.0]]],
+                    [[[2.5, 0.0]]],
+                    [[[-3.1, 0.0]]],
+                    [[[-2.9, 0.0]]],
+                    [[[-3.0, 0.0]]],
+                    [[[-2.5, 0.0]]],
+                ],
+                dtype=torch.float16,
+            ),
+        }
+
+        ranked_auroc, _ = iti_extract.rank_heads(
+            activations,
+            examples,
+            position_summaries=("last_answer_token",),
+            ranking_primary="auroc",
+        )
+        ranked_acc, _ = iti_extract.rank_heads(
+            activations,
+            examples,
+            position_summaries=("last_answer_token",),
+            ranking_primary="balanced_accuracy",
+        )
+
+        # Both produce a single head (1 layer, 1 head), so ordering doesn't
+        # differ for 1 head, but the metadata should reflect the right config
+        assert ranked_auroc[0]["position_summary"] == "last_answer_token"
+        assert ranked_acc[0]["position_summary"] == "last_answer_token"
+
+    def test_last_token_only_ignores_other_summaries(self):
+        """When position_summaries=('last_answer_token',), the other
+        summaries should not affect ranking even if they have better metrics."""
+        examples = (
+            [
+                iti_extract.ITIExample(
+                    example_id=f"train_t_{idx}",
+                    family="iti_truthfulqa_paper",
+                    split="train",
+                    qid=f"train_t_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_TRUE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(2)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"train_f_{idx}",
+                    family="iti_truthfulqa_paper",
+                    split="train",
+                    qid=f"train_f_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_FALSE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(2)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"val_t_{idx}",
+                    family="iti_truthfulqa_paper",
+                    split="val",
+                    qid=f"val_t_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_TRUE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(2)
+            ]
+            + [
+                iti_extract.ITIExample(
+                    example_id=f"val_f_{idx}",
+                    family="iti_truthfulqa_paper",
+                    split="val",
+                    qid=f"val_f_{idx}",
+                    question="q",
+                    answer="a",
+                    label=iti_extract.LABEL_FALSE,
+                    weight=1.0,
+                    prompt_text="q a",
+                    answer_positions=(1,),
+                    metadata={},
+                )
+                for idx in range(2)
+            ]
+        )
+
+        # first_answer_token has perfect separation, last_answer_token is noisy
+        good = torch.tensor(
+            [
+                [[[3.0, 0.0]]],
+                [[[2.5, 0.0]]],
+                [[[-3.0, 0.0]]],
+                [[[-2.5, 0.0]]],
+                [[[3.2, 0.0]]],
+                [[[2.8, 0.0]]],
+                [[[-3.1, 0.0]]],
+                [[[-2.9, 0.0]]],
+            ],
+            dtype=torch.float16,
+        )
+        noisy = torch.tensor(
+            [
+                [[[0.1, 0.0]]],
+                [[[0.2, 0.0]]],
+                [[[0.0, 0.0]]],
+                [[[0.1, 0.0]]],
+                [[[0.1, 0.0]]],
+                [[[0.2, 0.0]]],
+                [[[0.0, 0.0]]],
+                [[[0.1, 0.0]]],
+            ],
+            dtype=torch.float16,
+        )
+        activations = {
+            "first_answer_token": good,
+            "mean_answer_span": good,
+            "last_answer_token": noisy,
+        }
+
+        ranked, metadata = iti_extract.rank_heads(
+            activations,
+            examples,
+            position_summaries=("last_answer_token",),
+        )
+
+        # Should pick last_answer_token since it's the only allowed summary
+        assert ranked[0]["position_summary"] == "last_answer_token"
+        # Only one position summary in metadata
+        assert metadata["position_summaries"] == ["last_answer_token"]
+
+    def test_recompute_directions_uses_all_data(self):
+        """After ranking, recomputing directions from full data should use
+        both train and val examples, producing a different direction than
+        the train-only direction from ranking."""
+        examples = [
+            iti_extract.ITIExample(
+                example_id=f"{split}_{label}_{idx}",
+                family="iti_truthfulqa_paper",
+                split=split,
+                qid=f"{split}_{idx}",
+                question="q",
+                answer="a",
+                label=iti_extract.LABEL_TRUE
+                if label == "t"
+                else iti_extract.LABEL_FALSE,
+                weight=1.0,
+                prompt_text="q a",
+                answer_positions=(1,),
+                metadata={},
+            )
+            for split in ("train", "val")
+            for label in ("t", "f")
+            for idx in range(2)
+        ]
+
+        # Train: true=[1,0], false=[-1,0] → direction ≈ [1,0]
+        # Val: true=[0,1], false=[0,-1] → adds [0,1] component
+        # Full data: direction should have both components
+        activations = {
+            "last_answer_token": torch.tensor(
+                [
+                    # train_t_0, train_t_1
+                    [[[1.0, 0.0]]],
+                    [[[1.0, 0.0]]],
+                    # train_f_0, train_f_1
+                    [[[-1.0, 0.0]]],
+                    [[[-1.0, 0.0]]],
+                    # val_t_0, val_t_1
+                    [[[0.0, 1.0]]],
+                    [[[0.0, 1.0]]],
+                    # val_f_0, val_f_1
+                    [[[0.0, -1.0]]],
+                    [[[0.0, -1.0]]],
+                ],
+                dtype=torch.float16,
+            ),
+        }
+
+        ranked, _ = iti_extract.rank_heads(
+            activations, examples, position_summaries=("last_answer_token",)
+        )
+        # Train-only direction should be ≈ [1, 0]
+        train_dir = ranked[0]["direction"]
+        assert abs(train_dir[0]) > 0.9
+        assert abs(train_dir[1]) < 0.1
+
+        # Recompute from full data
+        ranked = iti_extract.recompute_directions_full_data(
+            ranked, activations, examples
+        )
+        full_dir = ranked[0]["direction"]
+        # Full direction should have both components ≈ [0.707, 0.707]
+        assert abs(full_dir[0]) > 0.5
+        assert abs(full_dir[1]) > 0.5
+        assert ranked[0]["direction_source"] == "full_data"

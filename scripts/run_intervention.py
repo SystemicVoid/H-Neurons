@@ -998,6 +998,119 @@ def run_faitheval(
     return {"compliant_total": compliant_total, "n_total": n_total}
 
 
+# ---------------------------------------------------------------------------
+# Benchmark: FaithEval MC log-prob scoring (deterministic, no generation)
+# ---------------------------------------------------------------------------
+
+
+def _faitheval_mc_logprob_prompt(sample):
+    """Build a neutral FaithEval prompt for log-prob scoring.
+
+    Neither pro-context (standard) nor anti-context (anti_compliance).
+    Raw text, no chat template — consistent with TruthfulQA MC path.
+    """
+    return (
+        f"Context: {sample['context']}\n\n"
+        f"Question: {sample['question']}\n"
+        f"{sample['choices_text']}\n\n"
+        f"Answer:"
+    )
+
+
+def run_faitheval_mc_logprob(
+    model,
+    tokenizer,
+    scaler,
+    samples,
+    alpha,
+    output_dir,
+    max_samples=None,
+    prompt_cache=None,  # noqa: ARG001 - MC scoring uses token-level forward passes
+    wandb_module=None,
+    alpha_idx=0,
+    throughput_state=None,
+    benchmark_name="faitheval_mc_logprob",
+    throughput_session_id: str | None = None,
+):
+    """Run FaithEval with log-prob MC scoring. No generation, no regex parsing."""
+    alpha_label = format_alpha_label(alpha)
+    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
+    existing_ids = load_existing_ids(out_path)
+
+    if max_samples:
+        samples = samples[:max_samples]
+
+    scaler.alpha = alpha
+
+    for sample in tqdm(samples, desc=f"FaithEval MC-logprob α={alpha_label}"):
+        if sample["id"] in existing_ids:
+            continue
+
+        wall_start_ts = time.time()
+        _reset_scaler_sample_stats(scaler)
+        prompt = _faitheval_mc_logprob_prompt(sample)
+        choice_scores = []
+        timing_parts = []
+        for letter in sample["valid_letters"]:
+            score_t0 = time.perf_counter()
+            scores = score_continuation_decode_only(
+                model, tokenizer, prompt, f" {letter}", scaler=scaler
+            )
+            score_t1 = time.perf_counter()
+            choice_scores.append({"letter": letter, **scores})
+            timing_parts.append(
+                {
+                    "template_s": 0.0,
+                    "h2d_s": 0.0,
+                    "generate_s": round(score_t1 - score_t0, 4),
+                    "decode_s": 0.0,
+                    "total_s": round(score_t1 - score_t0, 4),
+                    "prompt_tokens": 0,
+                    "generated_tokens": scores["token_count"],
+                    "hit_token_cap": False,
+                }
+            )
+
+        score_values = np.array(
+            [float(item["log_likelihood"]) for item in choice_scores],
+            dtype=np.float64,
+        )
+        best_idx = int(np.argmax(score_values))
+        chosen_letter = sample["valid_letters"][best_idx]
+        is_compliant = chosen_letter == sample["counterfactual_key"]
+
+        record = {
+            "id": sample["id"],
+            "alpha": alpha,
+            "question": sample["question"],
+            "counterfactual_key": sample["counterfactual_key"],
+            "valid_letters": sample["valid_letters"],
+            "choice_scores": choice_scores,
+            "choice_log_likelihoods": [round(float(v), 6) for v in score_values],
+            "chosen_index": best_idx,
+            "chosen": chosen_letter,
+            "compliance": is_compliant,
+            "metric_name": "compliance",
+            "metric_value": float(is_compliant),
+        }
+        finalize_record(
+            out_path,
+            record,
+            combine_timings(*timing_parts),
+            scaler=scaler,
+            wall_start_ts=wall_start_ts,
+            benchmark=benchmark_name,
+            alpha=alpha,
+            alpha_idx=alpha_idx,
+            wandb_module=wandb_module,
+            throughput_state=throughput_state,
+            throughput_session_id=throughput_session_id,
+        )
+
+    compliant_total, n_total = _count_compliance(out_path)
+    return {"compliant_total": compliant_total, "n_total": n_total}
+
+
 def _count_compliance(path: str):
     compliant = 0
     total = 0
@@ -1934,6 +2047,7 @@ def parse_args():
         required=True,
         choices=[
             "faitheval",
+            "faitheval_mc_logprob",
             "falseqa",
             "bioasq",
             "simpleqa",
@@ -1954,6 +2068,13 @@ def parse_args():
         "direction mode derives a config-specific suffix from path/mode/layers)",
     )
     p.add_argument("--max_samples", type=int, default=None)
+    p.add_argument(
+        "--sample_manifest",
+        type=str,
+        default=None,
+        help="Path to JSON file with list of sample IDs to include. "
+        "Filters loaded samples to this subset before any --max_samples truncation.",
+    )
     # FaithEval-specific
     p.add_argument(
         "--prompt_style",
@@ -2084,7 +2205,7 @@ def parse_args():
         "--iti_family",
         type=str,
         default="triviaqa_transfer",
-        choices=["triviaqa_transfer", "context_grounded"],
+        choices=["triviaqa_transfer", "context_grounded", "truthfulqa_paper"],
         help="Expected family label for the ITI artifact.",
     )
     p.add_argument(
@@ -2275,6 +2396,9 @@ def main():
         if args.benchmark == "faitheval":
             samples = load_faitheval()
             run_fn = run_faitheval
+        elif args.benchmark == "faitheval_mc_logprob":
+            samples = load_faitheval()
+            run_fn = run_faitheval_mc_logprob
         elif args.benchmark == "falseqa":
             samples = load_falseqa(args.falseqa_path)
             run_fn = run_falseqa
@@ -2303,6 +2427,14 @@ def main():
             run_fn = run_jailbreak
         else:
             raise ValueError(f"Unknown benchmark: {args.benchmark}")
+
+        if args.sample_manifest:
+            with open(args.sample_manifest) as f:
+                manifest_ids = set(json.load(f))
+            samples = [s for s in samples if s["id"] in manifest_ids]
+            print(
+                f"Filtered to {len(samples)} samples via manifest {args.sample_manifest}"
+            )
 
         print(f"Loaded {len(samples)} samples")
 

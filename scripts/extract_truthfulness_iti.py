@@ -1,17 +1,18 @@
-"""Extract head-level ITI artifacts for closed-book and grounded truthfulness.
+"""Extract head-level ITI artifacts for truthfulness steering.
 
-This script builds one of two explicit artifact families:
+This script builds one of three explicit artifact families:
 
 - ``iti_triviaqa_transfer``: closed-book factuality transfer from TriviaQA
   consistency responses.
 - ``iti_context_grounded``: matched context-grounded answering + abstention
   from SQuAD-v2.
+- ``iti_truthfulqa_paper``: paper-faithful extraction from TruthfulQA QA pairs
+  following Li et al. (arXiv 2306.03341v6).  Last-token only, validation-
+  accuracy ranking, 50/50 question-level split for clean held-out evaluation.
 
 The extraction surface is the tensor immediately before ``self_attn.o_proj``.
-For each physical attention head we evaluate three answer-span summaries
-(``first_answer_token``, ``mean_answer_span``, ``last_answer_token``), rank the
-head by probe AUROC first and balanced accuracy second, and store a truthful-
-oriented mass-mean direction for decode-time steering.
+Heads are ranked by probe metrics and steered with a truthful-oriented
+mass-mean direction for decode-time intervention.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ import random
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import torch
@@ -80,7 +81,11 @@ def parse_args() -> argparse.Namespace:
         "--family",
         type=str,
         required=True,
-        choices=["iti_triviaqa_transfer", "iti_context_grounded"],
+        choices=[
+            "iti_triviaqa_transfer",
+            "iti_context_grounded",
+            "iti_truthfulqa_paper",
+        ],
     )
     parser.add_argument(
         "--model_path",
@@ -122,7 +127,12 @@ def parse_args() -> argparse.Namespace:
 
 
 def default_output_dir(family: str) -> Path:
-    suffix = "iti_triviaqa" if family == "iti_triviaqa_transfer" else "iti_context"
+    suffix_map = {
+        "iti_triviaqa_transfer": "iti_triviaqa",
+        "iti_context_grounded": "iti_context",
+        "iti_truthfulqa_paper": "iti_truthfulqa_paper",
+    }
+    suffix = suffix_map[family]
     return Path("data/contrastive/truthfulness") / suffix
 
 
@@ -198,6 +208,41 @@ def _truth_mass_mean_direction(
             "untruthful_projection_mean": float(np.mean(projections[false_mask])),
         }
     return direction, sigma, class_means, sign
+
+
+def recompute_directions_full_data(
+    ranked_heads: list[dict[str, Any]],
+    activations: dict[str, torch.Tensor],
+    examples: list[ITIExample],
+) -> list[dict[str, Any]]:
+    """Recompute mass-mean directions using ALL examples (train+val).
+
+    After head ranking selects which heads to steer (using val metrics),
+    the final steering direction should use all available data for maximum
+    signal. This follows the paper protocol: rank on val, steer on full set.
+    """
+    all_indices = list(range(len(examples)))
+    y_all = np.array([ex.label for ex in examples], dtype=np.int64)
+    w_all = np.array([ex.weight for ex in examples], dtype=np.float64)
+
+    for head_entry in ranked_heads:
+        summary_name = head_entry["position_summary"]
+        layer_idx = head_entry["layer"]
+        head_idx = head_entry["head"]
+        X_all = (
+            activations[summary_name][all_indices, layer_idx, head_idx].float().numpy()
+        )
+        direction, sigma, class_means, sign = _truth_mass_mean_direction(
+            X_all, y_all, w_all
+        )
+        head_entry["direction"] = direction.tolist()
+        head_entry["sigma"] = round(sigma, 6)
+        head_entry["sign"] = sign
+        head_entry["class_means"] = {
+            key: round(value, 6) for key, value in class_means.items()
+        }
+        head_entry["direction_source"] = "full_data"
+    return ranked_heads
 
 
 def build_triviaqa_transfer_examples(
@@ -499,6 +544,111 @@ def build_context_grounded_examples(
     return examples, metadata
 
 
+def _qa_prompt_paper(question: str, answer: str) -> tuple[str, str]:
+    """Paper-faithful prompt: ``Q: {q}\\nA: {a}`` (Li et al. 2306.03341)."""
+    prefix = f"Q: {question}\nA:"
+    full = f"{prefix} {answer}".rstrip()
+    return prefix, full
+
+
+def build_truthfulqa_paper_examples(
+    *,
+    tokenizer: Any,
+    seed: int = 42,
+    val_fraction: float = 0.2,
+) -> tuple[list[ITIExample], dict[str, Any]]:
+    """Build QA pairs from TruthfulQA following the original ITI paper protocol.
+
+    - Data: TruthfulQA generation split (817 questions, ~5918 QA pairs)
+    - Each correct_answer → truthful pair, each incorrect_answer → untruthful pair
+    - Split by question (not pair) at ``val_fraction`` (4:1 train/val)
+    - Prompt: ``Q: {question}\\nA: {answer}``
+    - Token position: last token of the concatenated QA pair
+    """
+    ds = load_dataset("truthful_qa", "generation", split="validation")
+    rng = random.Random(seed)
+
+    question_indices = list(range(len(ds)))
+    rng.shuffle(question_indices)
+    n_val = int(len(question_indices) * val_fraction)
+    val_qidxs = set(question_indices[:n_val])
+    train_qidxs = set(question_indices[n_val:])
+
+    examples: list[ITIExample] = []
+    for idx in range(len(ds)):
+        row = ds[idx]
+        question = row["question"]
+        qid = f"tqa_{idx}"
+        split = "val" if idx in val_qidxs else "train"
+
+        for answer in row["correct_answers"]:
+            prefix, full = _qa_prompt_paper(question, answer)
+            prefix_ids = tokenizer(prefix, add_special_tokens=False)["input_ids"]
+            full_ids = tokenizer(full, add_special_tokens=False)["input_ids"]
+            if len(full_ids) <= len(prefix_ids):
+                continue
+            answer_positions = tuple(range(len(prefix_ids), len(full_ids)))
+            examples.append(
+                ITIExample(
+                    example_id=f"{split}_{qid}_truthful_{len(examples)}",
+                    family="iti_truthfulqa_paper",
+                    split=split,
+                    qid=qid,
+                    question=question,
+                    answer=answer,
+                    label=LABEL_TRUE,
+                    weight=1.0,
+                    prompt_text=full,
+                    answer_positions=answer_positions,
+                    metadata={"source": "truthful_qa/generation"},
+                )
+            )
+
+        for answer in row["incorrect_answers"]:
+            prefix, full = _qa_prompt_paper(question, answer)
+            prefix_ids = tokenizer(prefix, add_special_tokens=False)["input_ids"]
+            full_ids = tokenizer(full, add_special_tokens=False)["input_ids"]
+            if len(full_ids) <= len(prefix_ids):
+                continue
+            answer_positions = tuple(range(len(prefix_ids), len(full_ids)))
+            examples.append(
+                ITIExample(
+                    example_id=f"{split}_{qid}_untruthful_{len(examples)}",
+                    family="iti_truthfulqa_paper",
+                    split=split,
+                    qid=qid,
+                    question=question,
+                    answer=answer,
+                    label=LABEL_FALSE,
+                    weight=1.0,
+                    prompt_text=full,
+                    answer_positions=answer_positions,
+                    metadata={"source": "truthful_qa/generation"},
+                )
+            )
+
+    train_qids = sorted(f"tqa_{i}" for i in train_qidxs)
+    val_qids = sorted(f"tqa_{i}" for i in val_qidxs)
+    metadata = {
+        "family": "iti_truthfulqa_paper",
+        "source_dataset": "truthful_qa/generation",
+        "protocol": "li_et_al_2306.03341v6",
+        "prompt_format": "Q: {question}\\nA: {answer}",
+        "val_fraction": val_fraction,
+        "seed": seed,
+        "question_counts": {
+            "total": len(ds),
+            "train": len(train_qidxs),
+            "val": len(val_qidxs),
+        },
+        "split_fingerprint": {
+            "train_qids": _fingerprint_ids(train_qids),
+            "val_qids": _fingerprint_ids(val_qids),
+        },
+    }
+    return examples, metadata
+
+
 def _get_text_config(model: torch.nn.Module) -> Any:
     return getattr(model.config, "text_config", model.config)
 
@@ -601,6 +751,9 @@ def _fit_probe_metrics(
 def rank_heads(
     activations: dict[str, torch.Tensor],
     examples: list[ITIExample],
+    *,
+    position_summaries: tuple[str, ...] = POSITION_SUMMARIES,
+    ranking_primary: str = "auroc",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     train_indices = [i for i, ex in enumerate(examples) if ex.split == "train"]
     val_indices = [i for i, ex in enumerate(examples) if ex.split == "val"]
@@ -615,13 +768,26 @@ def rank_heads(
     sample_tensor = next(iter(activations.values()))
     _, n_layers, n_heads, head_dim = sample_tensor.shape
     ranked_heads: list[dict[str, Any]] = []
-    metrics_summary: dict[str, Any] = {"position_summaries": list(POSITION_SUMMARIES)}
+    metrics_summary: dict[str, Any] = {"position_summaries": list(position_summaries)}
+
+    def _rank_key(entry: dict[str, Any]) -> tuple[float, ...]:
+        if ranking_primary == "balanced_accuracy":
+            return (
+                float(entry["balanced_accuracy"]),
+                float(entry["auroc"]),
+                -float(entry["sigma"]),
+            )
+        return (
+            float(entry["auroc"]),
+            float(entry["balanced_accuracy"]),
+            -float(entry["sigma"]),
+        )
 
     for layer_idx in range(n_layers):
         for head_idx in range(n_heads):
             best_entry: dict[str, Any] | None = None
             metrics_by_summary: dict[str, Any] = {}
-            for summary_name in POSITION_SUMMARIES:
+            for summary_name in position_summaries:
                 X_train = (
                     activations[summary_name][train_indices, layer_idx, head_idx]
                     .float()
@@ -657,20 +823,10 @@ def rank_heads(
                     for key, value in entry.items()
                     if key not in {"layer", "head", "direction"}
                 }
-                entry_rank = (
-                    float(entry["auroc"]),
-                    float(entry["balanced_accuracy"]),
-                    -float(entry["sigma"]),
-                )
                 if best_entry is None:
                     best_entry = entry
                     continue
-                best_rank = (
-                    cast(float, best_entry["auroc"]),
-                    cast(float, best_entry["balanced_accuracy"]),
-                    -cast(float, best_entry["sigma"]),
-                )
-                if entry_rank > best_rank:
+                if _rank_key(entry) > _rank_key(best_entry):
                     best_entry = entry
 
             assert best_entry is not None
@@ -679,9 +835,7 @@ def rank_heads(
 
     ranked_heads.sort(
         key=lambda item: (
-            item["auroc"],
-            item["balanced_accuracy"],
-            -item["sigma"],
+            *_rank_key(item),
             -item["layer"],
             -item["head"],
         ),
@@ -757,6 +911,11 @@ def main() -> None:
                 train_cap_per_qid_label=args.train_cap_per_qid_label,
                 val_cap_per_qid_label=args.val_cap_per_qid_label,
             )
+        elif args.family == "iti_truthfulqa_paper":
+            examples, family_metadata = build_truthfulqa_paper_examples(
+                tokenizer=tokenizer,
+                seed=args.seed,
+            )
         else:
             examples, family_metadata = build_context_grounded_examples(
                 tokenizer=tokenizer,
@@ -764,6 +923,13 @@ def main() -> None:
                 train_questions=args.context_train_questions,
                 val_questions=args.context_val_questions,
             )
+
+        # Paper-faithful: last-token only, balanced_accuracy ranking
+        is_paper_faithful = args.family == "iti_truthfulqa_paper"
+        rank_position_summaries = (
+            ("last_answer_token",) if is_paper_faithful else POSITION_SUMMARIES
+        )
+        rank_primary = "balanced_accuracy" if is_paper_faithful else "auroc"
 
         print(f"Loaded {len(examples)} {args.family} examples")
         model = AutoModelForCausalLM.from_pretrained(
@@ -778,7 +944,17 @@ def main() -> None:
             examples=examples,
             device=device,
         )
-        ranked_heads, ranking_metadata = rank_heads(activations, examples)
+        ranked_heads, ranking_metadata = rank_heads(
+            activations,
+            examples,
+            position_summaries=rank_position_summaries,
+            ranking_primary=rank_primary,
+        )
+        if is_paper_faithful:
+            ranked_heads = recompute_directions_full_data(
+                ranked_heads, activations, examples
+            )
+            print("Recomputed directions from full dataset (train+val)")
         artifact = build_artifact(
             family=args.family,
             model=model,
@@ -822,7 +998,8 @@ def main() -> None:
                 ),
             },
             "family_metadata": family_metadata,
-            "position_summaries": list(POSITION_SUMMARIES),
+            "position_summaries": list(rank_position_summaries),
+            "ranking_primary": rank_primary,
             "ranking": ranking_metadata,
             "selected_head_manifest": [
                 {

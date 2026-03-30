@@ -28,6 +28,7 @@ build_alpha_throughput_summary = run_intervention.build_alpha_throughput_summary
 build_sample_throughput_payload = run_intervention.build_sample_throughput_payload
 resolve_output_dir = run_intervention.resolve_output_dir
 run_truthfulqa_mc = run_intervention.run_truthfulqa_mc
+run_faitheval_mc_logprob = run_intervention.run_faitheval_mc_logprob
 extract_mc_answer = utils.extract_mc_answer
 format_alpha_label = utils.format_alpha_label
 normalize_answer = utils.normalize_answer
@@ -796,3 +797,201 @@ class TestDirectionSanityGate:
         assert gate["refusal_rate_reduction"] == pytest.approx(0.5, abs=1e-6)
         assert gate["refusal_count_reduction"] == 5
         assert gate["ready_for_d3"] is True
+
+
+# ---------------------------------------------------------------------------
+# FaithEval MC log-prob scoring
+# ---------------------------------------------------------------------------
+
+
+class TestFaithEvalMcLogprob:
+    def test_picks_highest_logprob_letter_and_flags_compliance(
+        self, tmp_path, monkeypatch
+    ):
+        output_dir = tmp_path / "faitheval_mc"
+        output_dir.mkdir()
+
+        # D has highest log-likelihood, which matches counterfactual_key → compliant
+        scores_by_continuation = {
+            " A": {
+                "log_likelihood": -3.0,
+                "total_logprob": -3.0,
+                "avg_logprob": -3.0,
+                "token_count": 1,
+            },
+            " B": {
+                "log_likelihood": -2.0,
+                "total_logprob": -2.0,
+                "avg_logprob": -2.0,
+                "token_count": 1,
+            },
+            " C": {
+                "log_likelihood": -4.0,
+                "total_logprob": -4.0,
+                "avg_logprob": -4.0,
+                "token_count": 1,
+            },
+            " D": {
+                "log_likelihood": -0.5,
+                "total_logprob": -0.5,
+                "avg_logprob": -0.5,
+                "token_count": 1,
+            },
+        }
+
+        monkeypatch.setattr(
+            "run_intervention.score_continuation_decode_only",
+            lambda _model, _tokenizer, _prompt, continuation, scaler=None: (
+                scores_by_continuation[continuation]
+            ),
+        )
+
+        run_faitheval_mc_logprob(
+            model=object(),
+            tokenizer=object(),
+            scaler=SimpleNamespace(alpha=1.0),
+            samples=[
+                {
+                    "id": "test_sample_1",
+                    "context": "Some misleading context.",
+                    "question": "What is the capital of France?",
+                    "choices_text": "A) Berlin\nB) Madrid\nC) Rome\nD) London",
+                    "valid_letters": ["A", "B", "C", "D"],
+                    "counterfactual_key": "D",
+                    "num_options": 4,
+                }
+            ],
+            alpha=0.0,
+            output_dir=str(output_dir),
+        )
+
+        records = [
+            json.loads(line)
+            for line in (output_dir / "alpha_0.0.jsonl").read_text().splitlines()
+        ]
+        assert len(records) == 1
+        rec = records[0]
+        assert rec["chosen"] == "D"
+        assert rec["chosen_index"] == 3
+        assert rec["compliance"] is True
+        assert rec["metric_name"] == "compliance"
+        assert rec["metric_value"] == 1.0
+        assert rec["choice_log_likelihoods"] == [-3.0, -2.0, -4.0, -0.5]
+        assert len(rec["choice_scores"]) == 4
+        assert rec["choice_scores"][0]["letter"] == "A"
+
+    def test_non_compliant_when_model_picks_non_counterfactual(
+        self, tmp_path, monkeypatch
+    ):
+        output_dir = tmp_path / "faitheval_mc_nc"
+        output_dir.mkdir()
+
+        # A has highest log-likelihood, but counterfactual_key is C → not compliant
+        scores_by_continuation = {
+            " A": {
+                "log_likelihood": -0.1,
+                "total_logprob": -0.1,
+                "avg_logprob": -0.1,
+                "token_count": 1,
+            },
+            " B": {
+                "log_likelihood": -2.0,
+                "total_logprob": -2.0,
+                "avg_logprob": -2.0,
+                "token_count": 1,
+            },
+            " C": {
+                "log_likelihood": -3.0,
+                "total_logprob": -3.0,
+                "avg_logprob": -3.0,
+                "token_count": 1,
+            },
+            " D": {
+                "log_likelihood": -4.0,
+                "total_logprob": -4.0,
+                "avg_logprob": -4.0,
+                "token_count": 1,
+            },
+        }
+
+        monkeypatch.setattr(
+            "run_intervention.score_continuation_decode_only",
+            lambda _model, _tokenizer, _prompt, continuation, scaler=None: (
+                scores_by_continuation[continuation]
+            ),
+        )
+
+        run_faitheval_mc_logprob(
+            model=object(),
+            tokenizer=object(),
+            scaler=SimpleNamespace(alpha=1.0),
+            samples=[
+                {
+                    "id": "test_sample_2",
+                    "context": "Some context.",
+                    "question": "What color is the sky?",
+                    "choices_text": "A) Blue\nB) Red\nC) Green\nD) Yellow",
+                    "valid_letters": ["A", "B", "C", "D"],
+                    "counterfactual_key": "C",
+                    "num_options": 4,
+                }
+            ],
+            alpha=0.0,
+            output_dir=str(output_dir),
+        )
+
+        rec = json.loads((output_dir / "alpha_0.0.jsonl").read_text().splitlines()[0])
+        assert rec["chosen"] == "A"
+        assert rec["compliance"] is False
+        assert rec["metric_value"] == 0.0
+
+    def test_no_parse_failures_by_construction(self, tmp_path, monkeypatch):
+        """Log-prob scoring always produces a valid chosen letter."""
+        output_dir = tmp_path / "faitheval_mc_nopf"
+        output_dir.mkdir()
+
+        scores_by_continuation = {
+            " A": {
+                "log_likelihood": -1.0,
+                "total_logprob": -1.0,
+                "avg_logprob": -1.0,
+                "token_count": 1,
+            },
+            " B": {
+                "log_likelihood": -1.0,
+                "total_logprob": -1.0,
+                "avg_logprob": -1.0,
+                "token_count": 1,
+            },
+        }
+
+        monkeypatch.setattr(
+            "run_intervention.score_continuation_decode_only",
+            lambda _model, _tokenizer, _prompt, continuation, scaler=None: (
+                scores_by_continuation[continuation]
+            ),
+        )
+
+        run_faitheval_mc_logprob(
+            model=object(),
+            tokenizer=object(),
+            scaler=SimpleNamespace(alpha=1.0),
+            samples=[
+                {
+                    "id": "test_nopf",
+                    "context": "Context.",
+                    "question": "Q?",
+                    "choices_text": "A) X\nB) Y",
+                    "valid_letters": ["A", "B"],
+                    "counterfactual_key": "A",
+                    "num_options": 2,
+                }
+            ],
+            alpha=0.0,
+            output_dir=str(output_dir),
+        )
+
+        rec = json.loads((output_dir / "alpha_0.0.jsonl").read_text().splitlines()[0])
+        # chosen is always a valid letter, never None
+        assert rec["chosen"] in ["A", "B"]
+        assert rec["chosen"] is not None
