@@ -763,6 +763,344 @@ if (csvCanvas) {
   });
 }
 
+// ── Chart 1b: Structural decomposition (ablation recovery vs amplification) ──
+const decCanvas = document.getElementById('decompositionChart');
+if (decCanvas) {
+  setShellHeight(decCanvas, 320);
+  const alphaLabels = ['α=0.0', 'α=1.0', 'α=1.5', 'α=3.0'];
+  const csv2Yes = [94, 123, 118, 132];
+  const csv2YesRate = [18.8, 24.6, 23.6, 26.4];
+  const v3Rate = [3.8, 8.1, 9.3, 14.0];
+
+  new Chart(decCanvas, {
+    type: 'bar',
+    data: {
+      labels: alphaLabels,
+      datasets: [
+        {
+          label: 'csv2_yes count (/500)',
+          data: csv2Yes,
+          backgroundColor: [PURPLE + '99', PURPLE + '99', PURPLE + '99', PURPLE + '99'],
+          borderRadius: 4,
+          borderSkipped: false,
+          yAxisID: 'y',
+        },
+        {
+          label: 'V=3 rate (%)',
+          data: v3Rate,
+          type: 'line',
+          borderColor: CORAL,
+          backgroundColor: CORAL + '20',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 6,
+          pointBackgroundColor: CORAL,
+          pointBorderColor: '#0c0c0f',
+          pointBorderWidth: 2,
+          borderWidth: 2.5,
+          yAxisID: 'y1',
+        }
+      ]
+    },
+    plugins: [{
+      id: 'decompositionAnnotations',
+      afterDraw(chart) {
+        const ctx = chart.ctx;
+        const xScale = chart.scales.x;
+        const yScale = chart.scales.y;
+        ctx.save();
+        // Ablation recovery bracket
+        const x0 = xScale.getPixelForValue(0);
+        const x1 = xScale.getPixelForValue(1);
+        const bracketY = yScale.getPixelForValue(138);
+        ctx.strokeStyle = PURPLE;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(x0, bracketY);
+        ctx.lineTo(x0, bracketY - 8);
+        ctx.lineTo(x1, bracketY - 8);
+        ctx.lineTo(x1, bracketY);
+        ctx.stroke();
+        ctx.font = "600 10px 'Outfit', sans-serif";
+        ctx.fillStyle = PURPLE;
+        ctx.textAlign = 'center';
+        ctx.fillText('ablation recovery: +5.8pp (76%)', (x0 + x1) / 2, bracketY - 14);
+        // Amplification bracket
+        const x3 = xScale.getPixelForValue(3);
+        ctx.strokeStyle = CORAL;
+        ctx.beginPath();
+        ctx.moveTo(x1, bracketY);
+        ctx.lineTo(x1, bracketY - 8);
+        ctx.lineTo(x3, bracketY - 8);
+        ctx.lineTo(x3, bracketY);
+        ctx.stroke();
+        ctx.fillStyle = CORAL;
+        ctx.fillText('amplification: +1.8pp (24%)', (x1 + x3) / 2, bracketY - 14);
+        ctx.restore();
+      }
+    }],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { usePointStyle: true, pointStyle: 'rectRounded', padding: 16, font: { size: 12 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 0) return 'csv2_yes: ' + ctx.parsed.y + '/500 (' + csv2YesRate[ctx.dataIndex].toFixed(1) + '%)';
+              return 'V=3 rate: ' + ctx.parsed.y.toFixed(1) + '%';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 13, family: "'IBM Plex Mono', monospace" } },
+          border: { color: BORDER }
+        },
+        y: {
+          min: 60, max: 150,
+          grid: { color: GRID },
+          ticks: { font: { size: 12 } },
+          border: { display: false },
+          title: { display: true, text: 'csv2_yes count', font: { size: 12 }, color: '#a09b91' }
+        },
+        y1: {
+          position: 'right',
+          min: 0, max: 18,
+          grid: { display: false },
+          ticks: { callback: v => v + '%', font: { size: 11 }, color: CORAL },
+          border: { display: false },
+          title: { display: true, text: 'V=3 rate (%)', font: { size: 11 }, color: CORAL }
+        }
+      }
+    }
+  });
+}
+
+// ── Chart 1c: Severity multi-metric view ──
+const smCanvas = document.getElementById('severityMultiChart');
+if (smCanvas) {
+  setShellHeight(smCanvas, 320);
+  const alphaLabels = ['α=0.0', 'α=1.0', 'α=1.5', 'α=3.0'];
+  const v3Rate = [3.8, 8.1, 9.3, 14.0];
+  const payloadShare = [58.0, 64.2, 68.4, 72.8];
+  const pivotPosition = [16.3, 12.9, 12.0, 9.6];
+
+  new Chart(smCanvas, {
+    type: 'line',
+    data: {
+      labels: alphaLabels,
+      datasets: [
+        {
+          label: 'V=3 rate (%)',
+          data: v3Rate,
+          borderColor: CORAL,
+          backgroundColor: CORAL,
+          borderWidth: 2.5,
+          pointRadius: 5,
+          pointBackgroundColor: CORAL,
+          pointBorderColor: '#0c0c0f',
+          pointBorderWidth: 2,
+          tension: 0.2,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Payload share (%, C≥2)',
+          data: payloadShare,
+          borderColor: TEAL,
+          backgroundColor: TEAL,
+          borderWidth: 2.5,
+          pointRadius: 5,
+          pointBackgroundColor: TEAL,
+          pointBorderColor: '#0c0c0f',
+          pointBorderWidth: 2,
+          tension: 0.2,
+          yAxisID: 'y1',
+        },
+        {
+          label: 'Pivot position (%, C≥2)',
+          data: pivotPosition,
+          borderColor: AMBER,
+          backgroundColor: AMBER,
+          borderWidth: 2.5,
+          borderDash: [6, 3],
+          pointRadius: 5,
+          pointBackgroundColor: AMBER,
+          pointBorderColor: '#0c0c0f',
+          pointBorderWidth: 2,
+          tension: 0.2,
+          yAxisID: 'y1',
+        }
+      ]
+    },
+    plugins: [{
+      id: 'severityLabels',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = "600 11px 'Outfit', sans-serif";
+        // V=3 endpoint label
+        const v3Meta = chart.getDatasetMeta(0);
+        const v3Last = v3Meta.data[3];
+        ctx.fillStyle = CORAL;
+        ctx.textAlign = 'left';
+        ctx.fillText('14.0%', v3Last.x + 8, v3Last.y + 4);
+        // Payload endpoint
+        const plMeta = chart.getDatasetMeta(1);
+        const plLast = plMeta.data[3];
+        ctx.fillStyle = TEAL;
+        ctx.fillText('72.8%', plLast.x + 8, plLast.y + 4);
+        // Pivot endpoint
+        const pvMeta = chart.getDatasetMeta(2);
+        const pvLast = pvMeta.data[3];
+        ctx.fillStyle = AMBER;
+        ctx.fillText('9.6%', pvLast.x + 8, pvLast.y + 4);
+        ctx.restore();
+      }
+    }],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { right: 50 } },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, font: { size: 11 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 13, family: "'IBM Plex Mono', monospace" } },
+          border: { color: BORDER }
+        },
+        y: {
+          position: 'left',
+          min: 0, max: 18,
+          grid: { color: GRID },
+          ticks: { callback: v => v + '%', font: { size: 12 }, color: CORAL },
+          border: { display: false },
+          title: { display: true, text: 'V=3 rate (%)', font: { size: 12 }, color: CORAL }
+        },
+        y1: {
+          position: 'right',
+          min: 0, max: 80,
+          grid: { display: false },
+          ticks: { callback: v => v + '%', font: { size: 11 } },
+          border: { display: false },
+          title: { display: true, text: 'Payload share / Pivot position (%)', font: { size: 11 }, color: '#a09b91' }
+        }
+      }
+    }
+  });
+}
+
+// ── Chart 1d: Judge accuracy by alpha ──
+const jaAlphaCanvas = document.getElementById('judgeAccuracyAlphaChart');
+if (jaAlphaCanvas) {
+  setShellHeight(jaAlphaCanvas, 260);
+  const alphaLabels = ['α=0.0', 'α=1.5', 'α=3.0'];
+  const agreement = [80.0, 88.0, 87.5];
+  const fnCount = [5, 3, 3];
+
+  new Chart(jaAlphaCanvas, {
+    type: 'bar',
+    data: {
+      labels: alphaLabels,
+      datasets: [
+        {
+          label: 'Judge-human agreement',
+          data: agreement,
+          backgroundColor: agreement.map(v => v < 85 ? CORAL + 'BB' : TEAL + 'AA'),
+          borderRadius: 6,
+          borderSkipped: false,
+          yAxisID: 'y',
+        },
+        {
+          label: 'False negatives',
+          data: fnCount,
+          type: 'line',
+          borderColor: AMBER,
+          backgroundColor: AMBER + '30',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 5,
+          pointBackgroundColor: AMBER,
+          pointBorderColor: AMBER,
+          borderWidth: 2.5,
+          yAxisID: 'y1',
+        }
+      ]
+    },
+    plugins: [{
+      id: 'jaAlphaLabels',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        ctx.save();
+        ctx.font = "600 12px 'Outfit', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ede8e0';
+        meta.data.forEach((bar, i) => {
+          ctx.fillText(agreement[i].toFixed(1) + '%', bar.x, bar.y - 8);
+        });
+        ctx.restore();
+      }
+    }],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { usePointStyle: true, padding: 16, font: { size: 11 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 0) return 'Agreement: ' + ctx.parsed.y.toFixed(1) + '%';
+              return 'False negatives: ' + ctx.parsed.y;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 13, family: "'IBM Plex Mono', monospace" } },
+          border: { color: BORDER }
+        },
+        y: {
+          min: 70, max: 100,
+          grid: { color: GRID },
+          ticks: { callback: v => v + '%', font: { size: 12 } },
+          border: { display: false },
+          title: { display: true, text: 'Agreement (%)', font: { size: 12 }, color: '#a09b91' }
+        },
+        y1: {
+          position: 'right',
+          min: 0, max: 8,
+          grid: { display: false },
+          ticks: { stepSize: 1, font: { size: 11 }, color: AMBER },
+          border: { display: false },
+          title: { display: true, text: 'False negatives', font: { size: 11 }, color: AMBER }
+        }
+      }
+    }
+  });
+}
+
 // ── Chart 2: Layer accuracy curve ──
 const laCanvas = document.getElementById('layerAccuracyChart');
 if (laCanvas) {
