@@ -65,7 +65,7 @@
       <div class="metric-card">
         <div class="label">Question</div>
         <div class="value val-amber" style="font-size: 1.45rem;">Is the truthfulness direction real?</div>
-        <div class="detail">Does the narrow truthfulness-direction win point grow into a better family, or is it just a brittle spike?</div>
+        <div class="detail">It survived the kill-shot — but narrow-window on an eval it wasn&rsquo;t trained for. The real question is what to build next.</div>
       </div>
     </div>
 
@@ -212,6 +212,9 @@
       move breaks the instrument. The question is whether the truthfulness direction&rsquo;s narrow clean point is worth chasing
       because it points to a better family, or whether the robust answer is still to treat H-neurons as the
       best current baseline and look for a more stable next-generation method.
+      Part of that brittleness may be structural: both direction families are trained on open-ended factual recall,
+      while FaithEval tests contextual faithfulness &mdash; whether the model follows provided context even when it
+      conflicts with what it already knows. Those are related tasks, not the same task.
     </div>
   </div>
 </section>
@@ -260,9 +263,10 @@
     </p>
 
     <div class="insight-box" style="border-left-color: var(--accent-purple);">
-      <strong>The live question:</strong> on FaithEval, the truthfulness direction&rsquo;s narrow point is slightly stronger than the H-neuron
-      max row numerically, but much less robust. That is exactly the kind of result where advisor input matters:
-      do we treat this as the start of a better family, or as a brittle curiosity that only spikes once?
+      The narrow window may be a dataset alignment problem, not a method ceiling. The training signal targets
+      open-ended factual recall; FaithEval tests contextual faithfulness &mdash; obeying provided context even when
+      it conflicts with parametric memory. Those are cousins, not twins. A head-level ITI approach with training
+      data purpose-built to match the eval family is the natural next branch to test.
     </div>
 
     <details class="deep-dive" id="d4-evidence">
