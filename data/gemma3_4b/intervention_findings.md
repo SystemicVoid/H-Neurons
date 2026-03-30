@@ -556,3 +556,19 @@ This section documents the critique applied to the negative control analysis (§
 - The Scenario 1 verdict. The data separation is overwhelming: the H-neuron endpoint and slope both sit well outside the empirical random-set intervals, and all 8 random seeds stay near-flat. No hedging is warranted.
 - The parse failure analysis. All zeros everywhere — there is nothing to discuss.
 - The "no negative control on FalseQA" gap (§3). This is a real missing piece, not an invented one.
+
+---
+
+## D4: Truthfulness Direction Steering — Null Result (2026-03-30)
+
+**Summary:** Residual-stream truthfulness direction extracted via difference-in-means on TriviaQA consistency data (1000 hallucinatory + 1000 truthful train prompts) produces a non-trivial held-out separation (layer 32: 71.5% accuracy) that is genuinely independent from the refusal direction (cos_sim = 0.044). However, ablating this direction at layer 32 on FaithEval (500 samples, β sweep 0–5) yields **no steering effect**: compliance is flat at ~67% for β ≤ 1, then hard degeneration (repetitive garbage output) at β ≥ 3. No usable steering window exists.
+
+**Key evidence:**
+- β=0.0 → 67.6% compliance; β=1.0 → 67.2%; β=3.0 → 29.0% (281/500 parse failures, all degenerate `**\n**\n**` output)
+- The drop at β≥3 is not "wrong answers" — it is broken output format
+
+**Interpretation:** The ~71% separation is enough to identify a geometric feature but too weak to support causal steering via linear ablation. The refusal direction (98.4% separation) succeeded narrowly at D3; the truthfulness direction (71.5%) does not cross the threshold. This may indicate that truthfulness/hallucination geometry in this model is not well-captured by prompt-level last-token residual stream activations — it may be a generation-time phenomenon.
+
+**Decision:** Do not extend to FalseQA or jailbreak. Quick all-layer ablation test recommended to rule out single-layer limitation before declaring residual-stream D4 fully dead.
+
+**Full report:** `notes/reports/2026-03-30-d4-truthfulness-direction.md`
