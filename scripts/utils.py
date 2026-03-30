@@ -90,8 +90,12 @@ def get_git_sha() -> str | None:
 
 
 def get_git_dirty() -> bool | None:
-    """Return whether the git worktree is dirty when available, otherwise None."""
-    result = _run_git_command(["git", "status", "--short"])
+    """Return whether scripts/ has uncommitted changes, otherwise None.
+
+    Only checks the scripts/ directory — data files, notes, and other
+    non-code changes do not affect reproducibility of a run.
+    """
+    result = _run_git_command(["git", "status", "--short", "--", "scripts/"])
     if result is None:
         return None
     if result.returncode != 0:
