@@ -63,8 +63,8 @@
         <div class="detail">The jailbreak story is now about harmful count plus harmful severity, not a single binary label.</div>
       </div>
       <div class="metric-card">
-        <div class="label">Advisor decision</div>
-        <div class="value val-amber" style="font-size: 1.45rem;">Is D4 real?</div>
+        <div class="label">Question</div>
+        <div class="value val-amber" style="font-size: 1.45rem;">Is the truthfulness direction real?</div>
         <div class="detail">Does the narrow truthfulness-direction win point grow into a better family, or is it just a brittle spike?</div>
       </div>
     </div>
@@ -72,7 +72,7 @@
     <div class="section-links">
       <a class="section-link section-link-cta" href="#meeting-question">Start Here</a>
       <a class="section-link" href="#comparison">Comparator map</a>
-      <a class="section-link" href="#d4-spotlight">D4 spotlight</a>
+      <a class="section-link" href="#d4-spotlight">Truthfulness direction</a>
       <a class="section-link" href="#jailbreak">Jailbreak measurement fix</a>
       <a class="section-link" href="#refusal-extraction">Supporting evidence</a>
       <a class="section-link" href="#status">Status</a>
@@ -88,7 +88,6 @@
 <section id="meeting-question" class="short">
   <div class="fade-in">
     <span class="tag tag-amber">Start Here</span>
-    <h2>The meeting should revolve around one question</h2>
     <div class="question-frame">
       <div class="question-label">Decision question</div>
       <div class="question-text">
@@ -104,18 +103,18 @@
         changes both harmful-output count and harmful-output severity.
       </div>
       <div class="delta-item delta-updated">
-        <strong>D3 is useful, but fragile.</strong> Refusal-direction ablation reaches 70.2% on
+        <strong>Refusal-direction ablation is useful, but fragile.</strong> It reaches 70.2% on
         FaithEval at one narrow point, then falls apart through answer-option bias instead of
         clean steering.
       </div>
       <div class="delta-item delta-decision">
-        <strong>D4 is no longer dead.</strong> With the corrected truthfulness dataset and all-layer
-        ablation, D4 has a clean point at &beta;=0.01 that reaches 71.4% from a 66.0% baseline,
+        <strong>Truthfulness-direction steering is no longer dead.</strong> With the corrected dataset and all-layer
+        ablation, it has a clean point at &beta;=0.01 that reaches 71.4% from a 66.0% baseline,
         then immediately collapses at &beta;=0.02.
       </div>
       <div class="delta-item delta-blocker">
         <strong>The live uncertainty changed.</strong> The question is no longer
-        &ldquo;is D4 dead?&rdquo; It is whether D4 is the start of a genuinely better family or a more brittle
+        &ldquo;is the truthfulness direction dead?&rdquo; It is whether that clean point is the start of a genuinely better family or a more brittle
         curiosity that happens to spike once.
       </div>
     </div>
@@ -178,7 +177,7 @@
 
       <div class="comparison-card" data-drill-target="#refusal-evidence">
         <span class="status-pill fragile">Diagnostic only</span>
-        <div class="comparison-label">Refusal direction (D3)</div>
+        <div class="comparison-label">Refusal direction</div>
         <div class="comparison-value val-amber">70.2%</div>
         <div class="comparison-title">Useful, then immediately unstable</div>
         <div class="comparison-detail">
@@ -193,7 +192,7 @@
 
       <div class="comparison-card is-primary" data-drill-target="#d4-evidence">
         <span class="status-pill new">New contender</span>
-        <div class="comparison-label">Truthfulness direction (D4)</div>
+        <div class="comparison-label">Truthfulness direction</div>
         <div class="comparison-value val-purple">71.4%</div>
         <div class="comparison-title">Best one-shot number, weakest robustness</div>
         <div class="comparison-detail">
@@ -209,8 +208,8 @@
 
     <div class="insight-box" style="border-left-color: var(--accent-teal);">
       Think of this like comparing three volume knobs. H-neurons move more smoothly but come with a
-      visible jailbreak cost. D3 and D4 both have hair-trigger behavior: one small move helps, the next
-      move breaks the instrument. The advisor question is whether D4&rsquo;s narrow clean point is worth chasing
+      visible jailbreak cost. Both direction-steering families have hair-trigger behavior: one small move helps, the next
+      move breaks the instrument. The question is whether the truthfulness direction&rsquo;s narrow clean point is worth chasing
       because it points to a better family, or whether the robust answer is still to treat H-neurons as the
       best current baseline and look for a more stable next-generation method.
     </div>
@@ -221,12 +220,12 @@
 <section id="d4-spotlight">
   <div class="fade-in">
     <span class="tag tag-purple">Spotlight</span>
-    <h2>D4 is not dead anymore</h2>
+    <h2>Truthfulness-direction steering survived the kill-shot</h2>
     <p class="subtitle" data-source="manual">
       The old single-layer read pushed toward &ldquo;wrong surface / dead branch.&rdquo;
       The new all-layer kill-shot changes that. With the corrected clean truthfulness dataset and all-layer
-      ablation, D4 has a clean usable point at &beta;=0.01, then an immediate collapse at &beta;=0.02.
-      That makes D4 a narrow-window survivor, not a null result.
+      ablation, there is a clean usable point at &beta;=0.01, then an immediate collapse at &beta;=0.02.
+      That makes it a narrow-window survivor, not a null result.
     </p>
 
     <div class="metrics-grid" style="margin-top: 1.75rem;" data-source="manual">
@@ -256,18 +255,18 @@
       <canvas id="d4ComplianceChart"></canvas>
     </div>
     <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      D4 all-layer FaithEval rerun &middot; n=1,000 each &middot;
+      Truthfulness-direction all-layer FaithEval rerun &middot; n=1,000 each &middot;
       one clean lift at &beta;=0.01, then immediate collapse at &beta;=0.02
     </p>
 
     <div class="insight-box" style="border-left-color: var(--accent-purple);">
-      <strong>The live question:</strong> on FaithEval, D4&rsquo;s narrow point is slightly stronger than the H-neuron
+      <strong>The live question:</strong> on FaithEval, the truthfulness direction&rsquo;s narrow point is slightly stronger than the H-neuron
       max row numerically, but much less robust. That is exactly the kind of result where advisor input matters:
       do we treat this as the start of a better family, or as a brittle curiosity that only spikes once?
     </div>
 
     <details class="deep-dive" id="d4-evidence">
-      <summary>Open D4 evidence</summary>
+      <summary>Open evidence</summary>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple); margin-top: 0.6rem;">
         <h3 style="color: var(--accent-purple);">Why this changed the story</h3>
         <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
@@ -619,14 +618,14 @@
 <section id="refusal-extraction">
   <div class="fade-in">
     <span class="tag tag-purple">Supporting evidence</span>
-    <h2>D2 succeeded: the refusal direction is real and the tooling works</h2>
+    <h2>Refusal direction extraction succeeded: the direction is real and the tooling works</h2>
     <p class="subtitle" data-source="manual">
-      D2 matters mostly because it gave the sprint a real direction-extraction and intervention pipeline.
-      The extracted refusal direction is cleanly separable and strong enough to support the D3 and D3.5 reads.
+      This matters mostly because it gave the sprint a real direction-extraction and intervention pipeline.
+      The extracted refusal direction is cleanly separable and strong enough to support the ablation and overlap-audit results.
     </p>
 
     <details class="deep-dive" id="d2-evidence">
-      <summary>Open D2 evidence</summary>
+      <summary>Open evidence</summary>
       <div class="metrics-grid" style="margin-top: 0.6rem;" data-source="manual">
         <div class="metric-card">
           <div class="label">Best layer</div>
@@ -665,20 +664,20 @@
 <section id="refusal-ablation">
   <div class="fade-in">
     <span class="tag tag-amber">Comparator B</span>
-    <h2>D3 is diagnostically useful, but not a better intervention family</h2>
+    <h2>Refusal-direction ablation is diagnostically useful, but not a better intervention family</h2>
     <p class="subtitle" data-source="manual">
-      D3 already answered its key question. There is one narrow usable point at &beta;=0.02
+      This comparator already answered its key question. There is one narrow usable point at &beta;=0.02
       that reaches 70.2% on FaithEval, but the next step at &beta;=0.03 collapses behavior
       through answer-option bias rather than clean steering.
     </p>
 
     <div class="insight-box" style="border-left-color: var(--accent-amber);">
-      <strong>Decision:</strong> keep D3 as an informative diagnostic row, not as the next main steering family.
+      <strong>Decision:</strong> keep refusal-direction ablation as an informative diagnostic row, not as the next main steering family.
       If the next increment collapses the output distribution, the intervention is fragile rather than precise.
     </div>
 
     <details class="deep-dive" id="refusal-evidence">
-      <summary>Open D3 evidence</summary>
+      <summary>Open evidence</summary>
       <div class="chart-container chart-shell" style="--chart-shell-height: 280px; margin-top: 0.6rem;">
         <canvas id="d3ComplianceChart"></canvas>
       </div>
@@ -746,19 +745,19 @@
 <section id="overlap-audit">
   <div class="fade-in">
     <span class="tag tag-amber">Supporting evidence</span>
-    <h2>D3.5 says refusal overlap is real, but not stable enough to redesign D4</h2>
+    <h2>Refusal-overlap audit: overlap is real, but not stable enough to redesign the truthfulness direction</h2>
     <p class="subtitle" data-source="manual">
       The projected H-neuron update overlaps refusal geometry more than a layer-matched random null.
       But that mediation story is dominated by one layer. Once layer 33 is removed, the evidence largely collapses.
     </p>
 
     <div class="insight-box">
-      <strong>Gate decision:</strong> do not redesign D4 around refusal overlap yet. Treat refusal overlap as a live hypothesis,
+      <strong>Gate decision:</strong> do not redesign the truthfulness direction around refusal overlap yet. Treat refusal overlap as a live hypothesis,
       not a settled mechanism strong enough to redefine the intervention family yet.
     </div>
 
     <details class="deep-dive" id="overlap-evidence">
-      <summary>Open D3.5 evidence</summary>
+      <summary>Open evidence</summary>
       <div class="metrics-grid" style="margin-top: 0.6rem;" data-source="manual">
         <div class="metric-card">
           <div class="label">Canonical gap vs null</div>
@@ -778,7 +777,7 @@
         <div class="metric-card">
           <div class="label">Gate decision</div>
           <div class="value val-amber" style="font-size: 1.1rem;">Proceed</div>
-          <div class="detail">Do not redesign D4 yet &mdash; overlap is still a live, unstable hypothesis</div>
+          <div class="detail">Do not redesign the truthfulness direction yet &mdash; overlap is still a live, unstable hypothesis</div>
         </div>
       </div>
 
@@ -839,32 +838,32 @@
         <h3 style="color: var(--accent-teal);">Resolved this week</h3>
         <div class="ruled-out-evidence" style="margin-top: 0.5rem;">
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D0</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Measurement contract locked</span>
             <span class="ruled-out-verdict verdict-real">Done</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D1</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Baseline A: FaithEval + corrected graded jailbreak read</span>
             <span class="ruled-out-verdict verdict-real">Partial</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D2</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Refusal direction extraction (layer 25, 98.4%)</span>
             <span class="ruled-out-verdict verdict-real">Done</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D3</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Baseline B: refusal ablation (FaithEval, decision-complete)</span>
             <span class="ruled-out-verdict verdict-real">Done</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D3.5</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Refusal overlap audit (gate resolved)</span>
             <span class="ruled-out-verdict verdict-real">Done</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D4</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Truthfulness direction survives kill-shot at &beta;=0.01</span>
             <span class="ruled-out-verdict verdict-real">Partial</span>
           </div>
@@ -875,29 +874,29 @@
         <h3 style="color: var(--accent-amber);">Still open</h3>
         <div class="ruled-out-evidence" style="margin-top: 0.5rem;">
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D4</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Decide whether &beta;=0.01 is a real family signal or a brittle one-off</span>
             <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Meeting ask</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D5</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Full externality audit</span>
             <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Open</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D6</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">Refusal-orthogonalized mitigation check</span>
             <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Open</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D7</span>
+            <span class="ruled-out-arch">&mdash;</span>
             <span class="ruled-out-result">One scoped causal pilot</span>
             <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Open</span>
           </div>
           <div class="ruled-out-row">
             <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">&mdash;</span>
             <span class="ruled-out-result">IFEval + perplexity capability battery</span>
-            <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Blocks D5</span>
+            <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Blocks externality audit</span>
           </div>
           <div class="ruled-out-row">
             <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">&mdash;</span>
@@ -915,7 +914,7 @@
 
     <div class="insight-box" style="border-left-color: var(--accent-purple);">
       <strong>Advisor-friendly summary:</strong> the week did not just produce more runs. It improved the measurement,
-      showed that the refusal-direction family is informative but fragile, and rescued D4 from the dead branch.
+      showed that the refusal-direction family is informative but fragile, and rescued truthfulness-direction steering from the dead branch.
       The next decision is which branch deserves the next serious investment.
     </div>
   </div>
