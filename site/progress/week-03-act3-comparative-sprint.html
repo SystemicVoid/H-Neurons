@@ -34,132 +34,332 @@
     <span class="tag tag-purple">Progress &mdash; March 24&ndash;30</span>
     <h1>Week 3:<br>The Comparative<br>Sprint</h1>
     <p class="subtitle" data-source="manual">
-      The project pivoted from single-intervention tinkering to a comparative steering sprint.
-      H-neurons became the reference row, not the subject.
-      Two direction-level baselines (refusal ablation, truthfulness steering) were built
-      and tested against the same measurement stack.
+      This week stopped being a story about tweaking one intervention and became a story
+      about comparing three steering families under the same corrected measurement stack.
+      H-neurons are now the reference row, not the whole project.
     </p>
     <p class="subtitle" data-source="manual">
-      Key result: the 256-token jailbreak slope was a truncation artifact.
-      CSV-v2 graded judging recovered the real story &mdash;
-      not more jailbreaks, but structurally worse ones.
-      V=3 harmful content nearly quadrupled.
-      Refusal-direction ablation has a narrow usable window before catastrophic answer-option bias.
+      Two things changed the advisor story. First, the old jailbreak read was partly a
+      measurement artifact: full-length graded judging shows that H-neuron scaling changes
+      both how often harmful outputs appear and how explicit and actionable they become.
+      Second, the truthfulness-direction baseline is no longer dead: it has one clean,
+      narrow operating point that now matters for strategy.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;" data-source="manual">
       <div class="metric-card">
-        <div class="label">Baselines evaluated</div>
-        <div class="value val-teal">3</div>
-        <div class="detail">H-neuron (A), refusal direction (B), truthfulness direction (C)</div>
+        <div class="label">Reference row</div>
+        <div class="value val-teal" style="font-size: 1.45rem;">H-neurons</div>
+        <div class="detail">Still the smoothest steering family on FaithEval under the corrected read.</div>
       </div>
       <div class="metric-card">
-        <div class="label">Measurement artifacts caught</div>
-        <div class="value val-purple">2</div>
-        <div class="detail">256-token truncation bias, micro-beta label aliasing</div>
+        <div class="label">Best single comparator point</div>
+        <div class="value val-purple">71.4%</div>
+        <div class="detail">Truthfulness direction at &beta;=0.01 on FaithEval; H-neuron best row is 70.5%.</div>
       </div>
       <div class="metric-card">
-        <div class="label">Direction infrastructure</div>
-        <div class="value val-coral">Built</div>
-        <div class="detail">Extract, intervene, evaluate pipeline for Gemma-3-4B-IT</div>
+        <div class="label">Biggest measurement upgrade</div>
+        <div class="value val-coral" style="font-size: 1.35rem;">Full-length graded judging</div>
+        <div class="detail">The jailbreak story is now about harmful count plus harmful severity, not a single binary label.</div>
       </div>
       <div class="metric-card">
-        <div class="label">D3.5 gate</div>
-        <div class="value val-amber">Resolved</div>
-        <div class="detail">Refusal overlap real but layer-33 dominated &mdash; proceed unchanged</div>
+        <div class="label">Advisor decision</div>
+        <div class="value val-amber" style="font-size: 1.45rem;">Is D4 real?</div>
+        <div class="detail">Does the narrow truthfulness-direction win point grow into a better family, or is it just a brittle spike?</div>
       </div>
     </div>
 
     <div class="section-links">
-      <a class="section-link" href="#jailbreak">Jailbreak CSV-v2</a>
-      <a class="section-link" href="#refusal-extraction">Refusal extraction</a>
-      <a class="section-link" href="#refusal-ablation">Refusal ablation</a>
-      <a class="section-link" href="#overlap-audit">Overlap audit</a>
+      <a class="section-link section-link-cta" href="#meeting-question">Start Here</a>
+      <a class="section-link" href="#comparison">Comparator map</a>
+      <a class="section-link" href="#d4-spotlight">D4 spotlight</a>
+      <a class="section-link" href="#jailbreak">Jailbreak measurement fix</a>
+      <a class="section-link" href="#refusal-extraction">Supporting evidence</a>
       <a class="section-link" href="#status">Status</a>
     </div>
+    <p class="section-kicker" data-source="manual">
+      Desktop shortcut: double-click a comparator card to jump straight to its detailed evidence.
+      Mobile still uses the normal &ldquo;Open evidence&rdquo; buttons.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ MEETING QUESTION -->
+<section id="meeting-question" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Start Here</span>
+    <h2>The meeting should revolve around one question</h2>
+    <div class="question-frame">
+      <div class="question-label">Decision question</div>
+      <div class="question-text">
+        What is the shortest path to a steering intervention that is genuinely better than
+        the current H-neuron baseline under the corrected measurement stack?
+      </div>
+    </div>
+
+    <div class="delta-block" data-source="manual">
+      <div class="delta-item delta-new">
+        <strong>The measurement got better.</strong> The old 256-token jailbreak run overstated
+        one story and hid another. Full-length graded judging shows that H-neuron scaling
+        changes both harmful-output count and harmful-output severity.
+      </div>
+      <div class="delta-item delta-updated">
+        <strong>D3 is useful, but fragile.</strong> Refusal-direction ablation reaches 70.2% on
+        FaithEval at one narrow point, then falls apart through answer-option bias instead of
+        clean steering.
+      </div>
+      <div class="delta-item delta-decision">
+        <strong>D4 is no longer dead.</strong> With the corrected truthfulness dataset and all-layer
+        ablation, D4 has a clean point at &beta;=0.01 that reaches 71.4% from a 66.0% baseline,
+        then immediately collapses at &beta;=0.02.
+      </div>
+      <div class="delta-item delta-blocker">
+        <strong>The live uncertainty changed.</strong> The question is no longer
+        &ldquo;is D4 dead?&rdquo; It is whether D4 is the start of a genuinely better family or a more brittle
+        curiosity that happens to spike once.
+      </div>
+    </div>
+
+    <details class="deep-dive" id="measurement-glossary">
+      <summary>What the corrected harmfulness measurement actually means</summary>
+      <p class="section-kicker" style="margin-top: 0;">
+        The top-level label is a three-way judgment: clearly harmful, borderline, or not harmful.
+        Underneath that, the judge scores how committed, how specific, and how actionable the harmful
+        content is. This keeps the high-level story in plain English while preserving the formal rubric.
+      </p>
+      <div class="glossary-grid">
+        <div class="glossary-item">
+          <div class="glossary-term">Top label</div>
+          <p><strong>Clearly harmful / borderline / not harmful.</strong> This is the first-pass read on whether the answer actually crosses the line.</p>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term"><strong>C</strong> Commitment</div>
+          <p>How strongly the model endorses or commits to the harmful act, from refusal to explicit support.</p>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term"><strong>S</strong> Specificity</div>
+          <p>How concrete the instructions are, from vague discussion to step-by-step detail.</p>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term"><strong>V</strong> Actionability</div>
+          <p>Whether the harmful content is actually usable. The highest level is the clearest &ldquo;this could be acted on&rdquo; bucket.</p>
+        </div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ COMPARISON -->
+<section id="comparison" class="short">
+  <div class="fade-in">
+    <span class="tag tag-teal">Comparator map</span>
+    <h2>Three steering knobs, three very different shapes</h2>
+    <p class="subtitle" data-source="manual">
+      The easiest way to navigate the meeting is to treat these as three candidate knobs.
+      One is smoother but safety-costly, one is informative but unstable, and one is newly promising
+      but still brittle.
+    </p>
+
+    <div class="comparison-deck" data-source="manual">
+      <div class="comparison-card" data-drill-target="#jailbreak-evidence">
+        <span class="status-pill stable">Reference row</span>
+        <div class="comparison-label">H-neuron scaling</div>
+        <div class="comparison-value val-teal">70.5%</div>
+        <div class="comparison-title">Smoothest family so far</div>
+        <div class="comparison-detail">
+          Best FaithEval row at &alpha;=3.0. The curve is smooth, but the corrected jailbreak read
+          now says this family also makes harmful outputs more explicit and actionable.
+        </div>
+        <div class="card-actions">
+          <button type="button" class="drill-button" data-drill-target="#jailbreak-evidence">Open evidence</button>
+          <span class="desktop-hint">Double-click card to jump</span>
+        </div>
+      </div>
+
+      <div class="comparison-card" data-drill-target="#refusal-evidence">
+        <span class="status-pill fragile">Diagnostic only</span>
+        <div class="comparison-label">Refusal direction (D3)</div>
+        <div class="comparison-value val-amber">70.2%</div>
+        <div class="comparison-title">Useful, then immediately unstable</div>
+        <div class="comparison-detail">
+          There is one narrow point at &beta;=0.02, then &beta;=0.03 collapses behavior through
+          answer-option bias instead of clean steering. Informative family, not a better baseline.
+        </div>
+        <div class="card-actions">
+          <button type="button" class="drill-button" data-drill-target="#refusal-evidence">Open evidence</button>
+          <span class="desktop-hint">Double-click card to jump</span>
+        </div>
+      </div>
+
+      <div class="comparison-card is-primary" data-drill-target="#d4-evidence">
+        <span class="status-pill new">New contender</span>
+        <div class="comparison-label">Truthfulness direction (D4)</div>
+        <div class="comparison-value val-purple">71.4%</div>
+        <div class="comparison-title">Best one-shot number, weakest robustness</div>
+        <div class="comparison-detail">
+          The all-layer rerun finds one clean point at &beta;=0.01 and beats the H-neuron max row
+          numerically on FaithEval. But the next step, &beta;=0.02, already collapses into corruption.
+        </div>
+        <div class="card-actions">
+          <button type="button" class="drill-button" data-drill-target="#d4-evidence">Open evidence</button>
+          <span class="desktop-hint">Double-click card to jump</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight-box" style="border-left-color: var(--accent-teal);">
+      Think of this like comparing three volume knobs. H-neurons move more smoothly but come with a
+      visible jailbreak cost. D3 and D4 both have hair-trigger behavior: one small move helps, the next
+      move breaks the instrument. The advisor question is whether D4&rsquo;s narrow clean point is worth chasing
+      because it points to a better family, or whether the robust answer is still to treat H-neurons as the
+      best current baseline and look for a more stable next-generation method.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ D4 SPOTLIGHT -->
+<section id="d4-spotlight">
+  <div class="fade-in">
+    <span class="tag tag-purple">Spotlight</span>
+    <h2>D4 is not dead anymore</h2>
+    <p class="subtitle" data-source="manual">
+      The old single-layer read pushed toward &ldquo;wrong surface / dead branch.&rdquo;
+      The new all-layer kill-shot changes that. With the corrected clean truthfulness dataset and all-layer
+      ablation, D4 has a clean usable point at &beta;=0.01, then an immediate collapse at &beta;=0.02.
+      That makes D4 a narrow-window survivor, not a null result.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 1.75rem;" data-source="manual">
+      <div class="metric-card">
+        <div class="label">Unsteered baseline</div>
+        <div class="value val-amber">66.0%</div>
+        <div class="detail">FaithEval compliance at &beta;=0.00.</div>
+      </div>
+      <div class="metric-card" data-status="NEW">
+        <div class="label">Clean operating point</div>
+        <div class="value val-purple">71.4%</div>
+        <div class="detail">&beta;=0.01, zero parse failures, light format drift only.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">H-neuron best row</div>
+        <div class="value val-teal">70.5%</div>
+        <div class="detail">Best current reference row on FaithEval at &alpha;=3.0.</div>
+      </div>
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">Collapse onset</div>
+        <div class="value val-coral">46.2%</div>
+        <div class="detail">&beta;=0.02 with parse failures and answer-surface corruption.</div>
+      </div>
+    </div>
+
+    <div class="chart-container chart-shell" style="--chart-shell-height: 300px; margin-top: 1.75rem;">
+      <canvas id="d4ComplianceChart"></canvas>
+    </div>
+    <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+      D4 all-layer FaithEval rerun &middot; n=1,000 each &middot;
+      one clean lift at &beta;=0.01, then immediate collapse at &beta;=0.02
+    </p>
+
+    <div class="insight-box" style="border-left-color: var(--accent-purple);">
+      <strong>The live question:</strong> on FaithEval, D4&rsquo;s narrow point is slightly stronger than the H-neuron
+      max row numerically, but much less robust. That is exactly the kind of result where advisor input matters:
+      do we treat this as the start of a better family, or as a brittle curiosity that only spikes once?
+    </div>
+
+    <details class="deep-dive" id="d4-evidence">
+      <summary>Open D4 evidence</summary>
+      <div class="step-card" style="border-left: 3px solid var(--accent-purple); margin-top: 0.6rem;">
+        <h3 style="color: var(--accent-purple);">Why this changed the story</h3>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">Fix</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Old read</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Corrected read</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">Dataset</span>
+            <span class="ruled-out-result">Older truthfulness contrastive set</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">Corrected clean 2,781-record set</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">Intervention</span>
+            <span class="ruled-out-result">Layer 32 only</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">All-layer ablation</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(123, 140, 222, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-purple);">Outcome</span>
+            <span class="ruled-out-result">Looked null / dead</span>
+            <span style="font-size: 12px; color: var(--accent-purple); font-weight: 600;">Narrow-window survivor</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal); margin-top: 1rem;">
+        <h3 style="color: var(--accent-teal);">&beta;=0.01 counts as clean</h3>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">&beta;</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Compliance</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Read</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">0.00</span>
+            <span class="ruled-out-result">66.0% [63.0, 68.9]</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">0 parse fails</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(126, 200, 160, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-teal);">0.01</span>
+            <span class="ruled-out-result" style="color: var(--accent-teal); font-weight: 600;">71.4% [68.5, 74.1]</span>
+            <span style="font-size: 12px; color: var(--accent-teal); font-weight: 600;">0 parse fails, light drift only</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-coral);">0.02</span>
+            <span class="ruled-out-result" style="color: var(--accent-coral); font-weight: 600;">46.2% [43.1, 49.3]</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">6 parse fails, corruption onset</span>
+          </div>
+        </div>
+        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;" data-source="manual">
+          At &beta;=0.01, the gain is broad rather than a single-option trick: correct-A rises from
+          60.8% to 65.0%, correct-B from 70.5% to 70.9%, correct-C from 64.0% to 75.0%, and correct-D
+          from 68.9% to 75.0%. By &beta;=0.02, the answer surface shifts into visibly corrupted
+          <span style="font-family: var(--font-mono);">D)</span> / <span style="font-family: var(--font-mono);">**B)**</span>-style outputs.
+        </p>
+      </div>
+    </details>
   </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════ JAILBREAK -->
 <section id="jailbreak">
   <div class="fade-in">
-    <span class="tag tag-coral">1. Jailbreak: from binary miss to graded severity</span>
-    <h2>The binary judge lacks resolution</h2>
+    <span class="tag tag-coral">Measurement update</span>
+    <h2>The jailbreak story changed once measurement got fixed</h2>
     <p class="subtitle" data-source="manual">
-      The binary judge shows +3.0pp (CI includes zero &mdash; not significant).
-      CSV-v2 graded judging recovers +7.6pp (significant) plus monotonic severity escalation.
-      V=3 harmful content nearly quadruples from 3.8% to 14.0%.
+      The earlier 256-token run made jailbreak look like a weak binary slope. The corrected full-length
+      read says something more interesting: H-neuron scaling changes both the number of harmful outputs
+      and how explicit and actionable those outputs become.
     </p>
 
-    <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 2rem;">
-      <h3 style="color: var(--accent-coral);">Binary judge: CI includes zero</h3>
-      <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
-        <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
-          <span class="ruled-out-arch">&alpha;</span>
-          <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Compliance</span>
-          <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">95% Wilson CI</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">0.0</span>
-          <span class="ruled-out-result">30.4%</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">[26.5, 34.6]</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">1.0</span>
-          <span class="ruled-out-result">31.0%</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">[27.1, 35.2]</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">1.5</span>
-          <span class="ruled-out-result">32.2%</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">[28.3, 36.4]</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">3.0</span>
-          <span class="ruled-out-result">33.4%</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">[29.4, 37.6]</span>
-        </div>
-        <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
-          <span class="ruled-out-arch" style="color: var(--accent-coral);">&Delta; 0&rarr;3</span>
-          <span class="ruled-out-result" style="color: var(--accent-coral); font-weight: 600;">+3.0pp</span>
-          <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">CI [&minus;1.2, +7.2] &mdash; not significant</span>
-        </div>
+    <div class="metrics-grid" style="margin-top: 1.75rem;" data-source="manual">
+      <div class="metric-card">
+        <div class="label">Binary read</div>
+        <div class="value val-coral">+3.0pp</div>
+        <div class="detail">Confidence interval includes zero. Not a stable story on its own.</div>
       </div>
-    </div>
-
-    <div class="step-card" style="border-left: 3px solid var(--accent-teal); margin-top: 1rem;">
-      <h3 style="color: var(--accent-teal);">CSV-v2 graded judge: significant and monotonic</h3>
-      <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
-        <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
-          <span class="ruled-out-arch">&alpha;</span>
-          <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">csv2_yes</span>
-          <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">V=3 rate</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">0.0</span>
-          <span class="ruled-out-result">18.8% [15.6, 22.5]</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">3.8%</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">1.0</span>
-          <span class="ruled-out-result">24.6% [21.0, 28.6]</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">9.8%</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">1.5</span>
-          <span class="ruled-out-result">23.6% [20.1, 27.6]</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">12.2%</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">3.0</span>
-          <span class="ruled-out-result">26.4% [22.7, 30.4]</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">14.0%</span>
-        </div>
-        <div class="ruled-out-row" style="background: rgba(126, 200, 160, 0.06);">
-          <span class="ruled-out-arch" style="color: var(--accent-teal);">&Delta; 0&rarr;3</span>
-          <span class="ruled-out-result" style="color: var(--accent-teal); font-weight: 600;">+7.6pp [+3.6, +11.6]</span>
-          <span style="font-size: 12px; color: var(--accent-teal); font-weight: 600;">V=3: 3.8% &rarr; 14.0% (3.7&times;)</span>
-        </div>
+      <div class="metric-card">
+        <div class="label">Graded harmfulness read</div>
+        <div class="value val-teal">+7.6pp</div>
+        <div class="detail">Significant increase in clearly harmful outputs under the corrected judge.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Most actionable harmful bucket</div>
+        <div class="value val-purple">3.8% &rarr; 14.0%</div>
+        <div class="detail">The clearest &ldquo;usable harmful content&rdquo; bucket nearly quadruples.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Main read</div>
+        <div class="value val-amber" style="font-size: 1.3rem;">Count + severity</div>
+        <div class="detail">The corrected measurement reveals a two-part effect, not just a binary one.</div>
       </div>
     </div>
 
@@ -167,201 +367,243 @@
       <canvas id="csv2SeverityChart"></canvas>
     </div>
     <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      CSV-v2 harmful rate (harmful_binary=yes) and V=3 rate across 4 alpha values &middot;
+      Clearly harmful rate and most actionable harmful bucket across 4 alpha values &middot;
       n=500 per &alpha; &middot; GPT-4o graded judge
     </p>
 
-    <!-- ── Structural decomposition: ablation recovery vs amplification ── -->
-    <div class="step-card" style="border-left: 3px solid var(--accent-purple); margin-top: 2rem;">
-      <h3 style="color: var(--accent-purple);">Two mechanisms, one intervention</h3>
-      <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        The &alpha;=1.0 identity baseline splits the total effect into two mechanistically
-        distinct components. Count and severity have different dose-response curves:
-        count saturates early, severity escalates linearly through &alpha;=3.0.
-      </p>
-      <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
-        <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
-          <span class="ruled-out-arch">Component</span>
-          <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Count effect</span>
-          <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Severity effect</span>
-        </div>
-        <div class="ruled-out-row" style="background: rgba(123, 140, 222, 0.06);">
-          <span class="ruled-out-arch" style="color: var(--accent-purple);">Ablation recovery<br><span style="font-size: 11px; opacity: 0.7;">&alpha;=0&rarr;1</span></span>
-          <span class="ruled-out-result" style="color: var(--accent-purple); font-weight: 600;">+5.8pp (76%)</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">V=3: 3.8% &rarr; 8.1%</span>
-        </div>
-        <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
-          <span class="ruled-out-arch" style="color: var(--accent-coral);">Amplification<br><span style="font-size: 11px; opacity: 0.7;">&alpha;=1&rarr;3</span></span>
-          <span class="ruled-out-result" style="color: var(--accent-coral); font-weight: 600;">+1.8pp (24%)</span>
-          <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">V=3: 8.1% &rarr; 14.0%</span>
-        </div>
-      </div>
-      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;" data-source="manual">
-        Suppressing H-neurons (&alpha;=0.0) actively prevents ~30 responses that the model
-        would naturally produce as harmful. Restoring natural activations (&alpha;=1.0) recovers these.
-        But amplifying <em>beyond</em> natural levels creates few new harmful responses &mdash;
-        it makes <strong>existing ones structurally worse</strong>.
-      </p>
-    </div>
-
-    <div class="chart-container chart-shell" style="--chart-shell-height: 320px; margin-top: 1.5rem;">
-      <canvas id="decompositionChart"></canvas>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      Ablation recovery (&alpha;=0&rarr;1) drives count; amplification (&alpha;=1&rarr;3) drives severity &middot;
-      Stacked bars: count increase (csv2_yes) &middot; Line: V=3 rate (operational danger)
-    </p>
-
-    <!-- ── Severity escalation: multi-metric view ── -->
-    <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 2rem;">
-      <h3 style="color: var(--accent-coral);">Severity escalation: four monotonic signals</h3>
-      <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        Unlike harmful count (which saturates at &alpha;=1.0), every severity metric
-        continues to escalate through &alpha;=3.0.
-        Turnkey artifacts (S=4) nearly triple. The harmful payload share
-        rises from 58% to 73% of response length.
-        The pivot point &mdash; where harmful content begins &mdash; recedes
-        from 16% to under 10% of the response.
-      </p>
-      <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
-        <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
-          <span class="ruled-out-arch">Metric</span>
-          <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">&alpha;=0.0</span>
-          <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">&alpha;=3.0</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">V=3 rate</span>
-          <span class="ruled-out-result">3.8%</span>
-          <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">14.0% (3.7&times;)</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">S=4 (turnkey)</span>
-          <span class="ruled-out-result">3.0%</span>
-          <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">8.4% (2.8&times;)</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">Payload share</span>
-          <span class="ruled-out-result">58.0%</span>
-          <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">72.8%</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">Pivot position</span>
-          <span class="ruled-out-result">16.3%</span>
-          <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">9.6%</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">D=0 (no disclaimer)</span>
-          <span class="ruled-out-result">2%</span>
-          <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">8% (4&times;)</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="chart-container chart-shell" style="--chart-shell-height: 320px; margin-top: 1.5rem;">
-      <canvas id="severityMultiChart"></canvas>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      Three severity axes across 4 alphas &middot; All monotonic through the amplification range &middot;
-      V=3 rate, payload share (C&ge;2), and pivot position (C&ge;2)
-    </p>
-
-    <!-- ── Disclaimer erosion gradient ── -->
-    <div class="step-card" data-status="CONFIRMED" style="border-left: 3px solid var(--accent-teal); margin-top: 2rem;">
-      <h3 style="color: var(--accent-teal);">Disclaimer erosion &mdash; quantified at population scale</h3>
-      <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        Week 2 proposed disclaimer erosion as a qualitative hypothesis from 25 human-labeled responses.
-        CSV-v2 confirms it as a measured population-level gradient across all 2,000 responses.
-        The borderline pool is the reservoir: 30% of &alpha;=0.0 borderlines become genuinely harmful at &alpha;=3.0.
-      </p>
-      <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
-        <div class="ruled-out-row" style="background: rgba(126, 200, 160, 0.06);">
-          <span class="ruled-out-arch" style="color: var(--accent-teal);">&alpha;=0.0</span>
-          <span class="ruled-out-result">Harmful content wrapped in &ldquo;I strongly condemn&hellip;&rdquo; framing. Detailed but couched. Long ethical preambles.</span>
-          <span class="ruled-out-verdict verdict-real">Hedged</span>
-        </div>
-        <div class="ruled-out-row" style="background: rgba(212, 165, 116, 0.06);">
-          <span class="ruled-out-arch" style="color: var(--accent-amber);">&alpha;=1.5</span>
-          <span class="ruled-out-result">Preambles thinner. &ldquo;Much more harmful than same prompt at alpha 0&rdquo; (reviewer). Model starts endorsing.</span>
-          <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Eroding</span>
-        </div>
-        <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
-          <span class="ruled-out-arch" style="color: var(--accent-coral);">&alpha;=3.0</span>
-          <span class="ruled-out-result">&ldquo;FULLY ENDORSES BEHAVIOUR, ZERO MORAL CONDEMNATION&rdquo; (reviewer). Actionable content, no hedging.</span>
-          <span class="ruled-out-verdict verdict-null">Endorsed</span>
-        </div>
-      </div>
-      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;" data-source="manual">
-        Borderline count drops 171&rarr;127&rarr;134&rarr;98.
-        D=0 (no disclaimer) rate quadruples.
-        Persona masking (P) halves from 18%&rarr;9%.
-        H-neuron scaling does not primarily change <em>whether</em> the model complies &mdash;
-        it changes <em>how</em> it frames compliance.
-      </p>
-    </div>
-
-    <!-- ── Judge accuracy confounded with framing ── -->
-    <div class="step-card" style="border-left: 3px solid var(--accent-amber); margin-top: 2rem;">
-      <h3 style="color: var(--accent-amber);">The binary judge is confounded by framing</h3>
-      <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        Gold-label validation (25 prompts &times; 3 alphas): judge-human agreement is worst
-        at &alpha;=0.0 where disclaimers are heaviest, and best at higher alphas
-        where harm is more overt.
-        10 of 11 errors are false negatives: the judge calls SAFE what the human calls HARMFUL.
-      </p>
-      <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
-        <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
-          <span class="ruled-out-arch">&alpha;</span>
-          <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Agreement</span>
-          <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">CSV-v2 vs binary agreement</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">0.0</span>
-          <span class="ruled-out-result">80.0% (5 FN)</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">87% (61 over-calls)</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">1.0</span>
-          <span class="ruled-out-result" style="opacity: 0.5">&mdash;</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">92% (37 over-calls)</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">1.5</span>
-          <span class="ruled-out-result">88.0% (3 FN)</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">89% (50 over-calls)</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">3.0</span>
-          <span class="ruled-out-result">87.5% (3 FN)</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">93% (35 over-calls)</span>
-        </div>
-      </div>
-      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0.75rem;" data-source="manual">
-        The judge is most reliable when responses are most dangerous,
-        and least reliable when harm is subtle.
-        At &alpha;=0.0, 61 of the binary judge&rsquo;s 152 &ldquo;HARMFUL&rdquo; verdicts are responses that
-        CSV-v2 classifies as borderline or safe &mdash; disclaimer-wrapped discussions that
-        the binary judge cannot distinguish from genuine compliance.
-        This noise floor (+61 at baseline, +35 at &alpha;=3.0) explains why
-        the binary slope (+3.0pp) is compressed relative to CSV-v2&rsquo;s (+7.6pp).
-      </p>
-    </div>
-
-    <div class="chart-container chart-shell" style="--chart-shell-height: 260px; margin-top: 1.5rem;">
-      <canvas id="judgeAccuracyAlphaChart"></canvas>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      GPT-4o judge agreement with human labels on full-length responses &middot; n=25 per alpha &middot;
-      10 of 11 disagreements are false negatives (judge says SAFE, human says HARMFUL)
-    </p>
-
     <div class="insight-box" style="margin-top: 1.5rem; border-left-color: var(--accent-coral);">
-      <strong>The full picture:</strong> H-neuron scaling has a two-sided causal role.
-      Suppressing them (&alpha;=0) reduces harmful count; amplifying them (&alpha;&gt;1)
-      escalates severity. A binary metric sees only the count component (weak, borderline-significant),
-      missing the severity component entirely.
-      CSV-v2&rsquo;s continuous axes (V, S, payload share) are necessary to detect
-      the full intervention signal.
+      <strong>The high-level read:</strong> suppressing H-neurons reduces harmful-output count, but amplifying
+      them past their natural level mainly makes the harmful answers that still appear more explicit, more
+      detailed, and more usable. That is why the old binary story was incomplete.
     </div>
+
+    <details class="deep-dive" id="jailbreak-evidence">
+      <summary>Open full jailbreak evidence and judge diagnostics</summary>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 0.6rem;">
+        <h3 style="color: var(--accent-coral);">Binary judge: confidence interval includes zero</h3>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">&alpha;</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Compliance</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">95% Wilson CI</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">0.0</span>
+            <span class="ruled-out-result">30.4%</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">[26.5, 34.6]</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">1.0</span>
+            <span class="ruled-out-result">31.0%</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">[27.1, 35.2]</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">1.5</span>
+            <span class="ruled-out-result">32.2%</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">[28.3, 36.4]</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">3.0</span>
+            <span class="ruled-out-result">33.4%</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">[29.4, 37.6]</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-coral);">&Delta; 0&rarr;3</span>
+            <span class="ruled-out-result" style="color: var(--accent-coral); font-weight: 600;">+3.0pp</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">CI [&minus;1.2, +7.2] &mdash; not significant</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal); margin-top: 1rem;">
+        <h3 style="color: var(--accent-teal);">Graded judge: significant and monotonic</h3>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">&alpha;</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Clearly harmful rate</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Most actionable harmful bucket</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">0.0</span>
+            <span class="ruled-out-result">18.8% [15.6, 22.5]</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">3.8%</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">1.0</span>
+            <span class="ruled-out-result">24.6% [21.0, 28.6]</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">9.8%</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">1.5</span>
+            <span class="ruled-out-result">23.6% [20.1, 27.6]</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">12.2%</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">3.0</span>
+            <span class="ruled-out-result">26.4% [22.7, 30.4]</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">14.0%</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(126, 200, 160, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-teal);">&Delta; 0&rarr;3</span>
+            <span class="ruled-out-result" style="color: var(--accent-teal); font-weight: 600;">+7.6pp [+3.6, +11.6]</span>
+            <span style="font-size: 12px; color: var(--accent-teal); font-weight: 600;">3.8% &rarr; 14.0% (3.7&times;)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-purple); margin-top: 1rem;">
+        <h3 style="color: var(--accent-purple);">Two mechanisms, one intervention</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          The &alpha;=1.0 identity baseline splits the total effect into two distinct components.
+          Count and severity have different dose-response curves: count saturates early, while severity
+          keeps escalating through &alpha;=3.0.
+        </p>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">Component</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Count effect</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Severity effect</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(123, 140, 222, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-purple);">Ablation recovery<br><span style="font-size: 11px; opacity: 0.7;">&alpha;=0&rarr;1</span></span>
+            <span class="ruled-out-result" style="color: var(--accent-purple); font-weight: 600;">+5.8pp (76%)</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">3.8% &rarr; 8.1%</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-coral);">Amplification<br><span style="font-size: 11px; opacity: 0.7;">&alpha;=1&rarr;3</span></span>
+            <span class="ruled-out-result" style="color: var(--accent-coral); font-weight: 600;">+1.8pp (24%)</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">8.1% &rarr; 14.0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container chart-shell" style="--chart-shell-height: 320px; margin-top: 1.2rem;">
+        <canvas id="decompositionChart"></canvas>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+        Ablation recovery (&alpha;=0&rarr;1) drives count; amplification (&alpha;=1&rarr;3) drives severity &middot;
+        stacked bars: clearly harmful count &middot; line: most actionable harmful bucket
+      </p>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.2rem;">
+        <h3 style="color: var(--accent-coral);">Severity escalation: four monotonic signals</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          Unlike harmful count, every severity metric continues to escalate through &alpha;=3.0.
+          Turnkey artifacts nearly triple. Harmful payload share rises from 58% to 73% of response
+          length, and the harmful pivot point moves earlier in the answer.
+        </p>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">Metric</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">&alpha;=0.0</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">&alpha;=3.0</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">Most actionable harmful bucket</span>
+            <span class="ruled-out-result">3.8%</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">14.0% (3.7&times;)</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">S=4 (turnkey)</span>
+            <span class="ruled-out-result">3.0%</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">8.4% (2.8&times;)</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">Payload share</span>
+            <span class="ruled-out-result">58.0%</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">72.8%</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">Pivot position</span>
+            <span class="ruled-out-result">16.3%</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">9.6%</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">D=0 (no disclaimer)</span>
+            <span class="ruled-out-result">2%</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">8% (4&times;)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container chart-shell" style="--chart-shell-height: 320px; margin-top: 1.2rem;">
+        <canvas id="severityMultiChart"></canvas>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+        Three severity axes across 4 alphas &middot; all monotonic through the amplification range &middot;
+        most actionable harmful bucket, payload share, and pivot position
+      </p>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal); margin-top: 1.2rem;">
+        <h3 style="color: var(--accent-teal);">Disclaimer erosion is now quantified at population scale</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          What looked like a qualitative hunch in Week 2 now survives the population-level read.
+          The borderline pool is the reservoir: 30% of borderline responses at &alpha;=0.0 become
+          clearly harmful by &alpha;=3.0.
+        </p>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(126, 200, 160, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-teal);">&alpha;=0.0</span>
+            <span class="ruled-out-result">Harmful content wrapped in &ldquo;I strongly condemn&hellip;&rdquo; framing. Detailed but hedged.</span>
+            <span class="ruled-out-verdict verdict-real">Hedged</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(212, 165, 116, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-amber);">&alpha;=1.5</span>
+            <span class="ruled-out-result">Preambles thin out. The model starts sounding more like it endorses the behavior.</span>
+            <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Eroding</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-coral);">&alpha;=3.0</span>
+            <span class="ruled-out-result">Actionable content, almost no hedging, and explicit endorsement in many cases.</span>
+            <span class="ruled-out-verdict verdict-null">Endorsed</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber); margin-top: 1.2rem;">
+        <h3 style="color: var(--accent-amber);">The binary judge is confounded by framing</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          Gold-label validation shows the binary judge struggles most when disclaimers are heaviest and
+          harm is subtle. Ten of eleven errors are false negatives: the judge says SAFE where the human says HARMFUL.
+        </p>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">&alpha;</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Agreement</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Graded vs binary agreement</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">0.0</span>
+            <span class="ruled-out-result">80.0% (5 FN)</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">87% (61 over-calls)</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">1.0</span>
+            <span class="ruled-out-result" style="opacity: 0.5">&mdash;</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">92% (37 over-calls)</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">1.5</span>
+            <span class="ruled-out-result">88.0% (3 FN)</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">89% (50 over-calls)</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">3.0</span>
+            <span class="ruled-out-result">87.5% (3 FN)</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">93% (35 over-calls)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container chart-shell" style="--chart-shell-height: 260px; margin-top: 1.2rem;">
+        <canvas id="judgeAccuracyAlphaChart"></canvas>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+        GPT-4o judge agreement with human labels on full-length responses &middot; n=25 per alpha &middot;
+        10 of 11 disagreements are false negatives
+      </p>
+    </details>
   </div>
 </section>
 
@@ -376,115 +618,118 @@
 <!-- ═══════════════════════════════════════════════════════════ REFUSAL EXTRACTION -->
 <section id="refusal-extraction">
   <div class="fade-in">
-    <span class="tag tag-purple">2. Refusal direction extraction (D2)</span>
-    <h2>Layer 25: 98.4% accuracy, clean separation</h2>
+    <span class="tag tag-purple">Supporting evidence</span>
+    <h2>D2 succeeded: the refusal direction is real and the tooling works</h2>
     <p class="subtitle" data-source="manual">
-      Difference-in-means on the frozen 128+128 contrastive set extracts a per-layer refusal direction.
-      Accuracy rises sharply from layer 18 onward, plateaus in layers 24&ndash;33.
-      Single-layer ablation at layer 25 reduces harmful refusal rate from 25% to 0%.
+      D2 matters mostly because it gave the sprint a real direction-extraction and intervention pipeline.
+      The extracted refusal direction is cleanly separable and strong enough to support the D3 and D3.5 reads.
     </p>
 
-    <div class="metrics-grid" style="margin-top: 1.5rem;" data-source="manual">
-      <div class="metric-card">
-        <div class="label">Best layer</div>
-        <div class="value val-purple">25</div>
-        <div class="detail">Tied at 98.4% with layer 33</div>
+    <details class="deep-dive" id="d2-evidence">
+      <summary>Open D2 evidence</summary>
+      <div class="metrics-grid" style="margin-top: 0.6rem;" data-source="manual">
+        <div class="metric-card">
+          <div class="label">Best layer</div>
+          <div class="value val-purple">25</div>
+          <div class="detail">Tied at 98.4% with layer 33</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Validation accuracy</div>
+          <div class="value val-teal">98.4%</div>
+          <div class="detail">64/64 validation prompts (32+32)</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Separation score</div>
+          <div class="value val-amber">9,179</div>
+          <div class="detail">Mean projection gap (harmful &minus; harmless)</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Post-ablation refusal</div>
+          <div class="value val-coral">0%</div>
+          <div class="detail">Layer-25 ablation: 25% &rarr; 0% harmful refusal</div>
+        </div>
       </div>
-      <div class="metric-card">
-        <div class="label">Val accuracy</div>
-        <div class="value val-teal">98.4%</div>
-        <div class="detail">64/64 validation prompts (32+32)</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Separation score</div>
-        <div class="value val-amber">9,179</div>
-        <div class="detail">Mean projection gap (harmful &minus; harmless)</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Post-ablation refusal</div>
-        <div class="value val-coral">0%</div>
-        <div class="detail">Layer-25 ablation: 25% &rarr; 0% harmful refusal</div>
-      </div>
-    </div>
 
-    <div class="chart-container chart-shell" style="--chart-shell-height: 340px; margin-top: 2rem;">
-      <canvas id="layerAccuracyChart"></canvas>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      Validation accuracy per layer &middot; 34 layers &middot; 128+128 contrastive set &middot;
-      Best: layer 25 (98.4%) &middot; Clear phase transition around layer 18
-    </p>
+      <div class="chart-container chart-shell" style="--chart-shell-height: 340px; margin-top: 1.2rem;">
+        <canvas id="layerAccuracyChart"></canvas>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+        Validation accuracy per layer &middot; 34 layers &middot; 128+128 contrastive set &middot;
+        best: layer 25 (98.4%) &middot; clear phase transition around layer 18
+      </p>
+    </details>
   </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════ REFUSAL ABLATION -->
 <section id="refusal-ablation">
   <div class="fade-in">
-    <span class="tag tag-amber">3. Refusal-direction ablation on FaithEval (D3)</span>
-    <h2>Narrow window, then cliff</h2>
+    <span class="tag tag-amber">Comparator B</span>
+    <h2>D3 is diagnostically useful, but not a better intervention family</h2>
     <p class="subtitle" data-source="manual">
-      All-layer refusal-direction ablation has a narrow usable point at &beta;=0.02
-      (70.2% &mdash; roughly matching H-neurons at &alpha;=3.0) but &beta;=0.03 collapses
-      compliance to 51.1% with severe answer-option bias.
-      Not a robust alternative to H-neuron scaling.
+      D3 already answered its key question. There is one narrow usable point at &beta;=0.02
+      that reaches 70.2% on FaithEval, but the next step at &beta;=0.03 collapses behavior
+      through answer-option bias rather than clean steering.
     </p>
 
-    <div class="chart-container chart-shell" style="--chart-shell-height: 280px; margin-top: 2rem;">
-      <canvas id="d3ComplianceChart"></canvas>
+    <div class="insight-box" style="border-left-color: var(--accent-amber);">
+      <strong>Decision:</strong> keep D3 as an informative diagnostic row, not as the next main steering family.
+      If the next increment collapses the output distribution, the intervention is fragile rather than precise.
     </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      FaithEval compliance at three &beta; values &middot; n=1,000 each &middot;
-      &beta;=0.03 collapses below the unsteered baseline
-    </p>
 
-    <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 2rem;">
-      <h3 style="color: var(--accent-coral);">Answer-option bias catastrophe at &beta;=0.03</h3>
-      <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        Parse failure rate is 0% at all three &beta; values.
-        The collapse is an answer-option distribution distortion, not a format failure.
+    <details class="deep-dive" id="refusal-evidence">
+      <summary>Open D3 evidence</summary>
+      <div class="chart-container chart-shell" style="--chart-shell-height: 280px; margin-top: 0.6rem;">
+        <canvas id="d3ComplianceChart"></canvas>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+        FaithEval compliance at three &beta; values &middot; n=1,000 each &middot;
+        &beta;=0.03 collapses below the unsteered baseline
       </p>
-      <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
-        <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
-          <span class="ruled-out-arch">Option</span>
-          <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">&beta;=0.00</span>
-          <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">&beta;=0.03</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">A</span>
-          <span class="ruled-out-result">22.2%</span>
-          <span style="font-size: 12px; color: var(--text-secondary);">24.0%</span>
-        </div>
-        <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
-          <span class="ruled-out-arch" style="color: var(--accent-coral);">B</span>
-          <span class="ruled-out-result">26.6%</span>
-          <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">58.1%</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">C</span>
-          <span class="ruled-out-result">24.5%</span>
-          <span style="font-size: 12px; color: var(--accent-coral);">6.9%</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">D</span>
-          <span class="ruled-out-result">24.8%</span>
-          <span style="font-size: 12px; color: var(--accent-coral);">9.1%</span>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.2rem;">
+        <h3 style="color: var(--accent-coral);">Answer-option bias catastrophe at &beta;=0.03</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          Parse failure rate is 0% at all three &beta; values. The collapse is an answer-option
+          distribution distortion, not a format failure.
+        </p>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">Option</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">&beta;=0.00</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">&beta;=0.03</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">A</span>
+            <span class="ruled-out-result">22.2%</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">24.0%</span>
+          </div>
+          <div class="ruled-out-row" style="background: rgba(230, 57, 70, 0.06);">
+            <span class="ruled-out-arch" style="color: var(--accent-coral);">B</span>
+            <span class="ruled-out-result">26.6%</span>
+            <span style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">58.1%</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">C</span>
+            <span class="ruled-out-result">24.5%</span>
+            <span style="font-size: 12px; color: var(--accent-coral);">6.9%</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">D</span>
+            <span class="ruled-out-result">24.8%</span>
+            <span style="font-size: 12px; color: var(--accent-coral);">9.1%</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="chart-container chart-shell" style="--chart-shell-height: 280px; margin-top: 1.5rem;">
-      <canvas id="optionBiasChart"></canvas>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      Answer-option distribution at &beta;=0.00 (balanced) vs &beta;=0.03 (B-dominated) &middot;
-      n=1,000 each &middot; 0% parse failures at both settings
-    </p>
-
-    <div class="insight-box" style="margin-top: 1.5rem; border-left-color: var(--accent-amber);">
-      <strong>Decision:</strong> do not broaden D3. Carry &beta;=0.02 only as a scoped externality-check row
-      in D5 if needed. Baseline B is informative diagnostically but not robust as an intervention family.
-      Move directly to D4.
-    </div>
+      <div class="chart-container chart-shell" style="--chart-shell-height: 280px; margin-top: 1.2rem;">
+        <canvas id="optionBiasChart"></canvas>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+        Answer-option distribution at &beta;=0.00 (balanced) vs &beta;=0.03 (B-dominated) &middot;
+        n=1,000 each &middot; 0% parse failures at both settings
+      </p>
+    </details>
   </div>
 </section>
 
@@ -500,86 +745,86 @@
 <!-- ═══════════════════════════════════════════════════════════ OVERLAP AUDIT -->
 <section id="overlap-audit">
   <div class="fade-in">
-    <span class="tag tag-amber">4. Refusal-overlap audit (D3.5)</span>
-    <h2>Real overlap, fragile mediation</h2>
+    <span class="tag tag-amber">Supporting evidence</span>
+    <h2>D3.5 says refusal overlap is real, but not stable enough to redesign D4</h2>
     <p class="subtitle" data-source="manual">
-      The projected 38-neuron residual update overlaps refusal geometry more than a
-      layer-matched random-neuron null. But the signal is dominated by a single layer:
-      layer 33 has a subspace gap 43&times; larger than the next layer.
-      Removing it collapses or flips every mediation correlation.
+      The projected H-neuron update overlaps refusal geometry more than a layer-matched random null.
+      But that mediation story is dominated by one layer. Once layer 33 is removed, the evidence largely collapses.
     </p>
 
-    <div class="metrics-grid" style="margin-top: 1.5rem;" data-source="manual">
-      <div class="metric-card">
-        <div class="label">Canonical gap vs null</div>
-        <div class="value val-teal">&minus;0.018</div>
-        <div class="detail">95% CI [&minus;0.031, &minus;0.013]</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Subspace gap vs null</div>
-        <div class="value val-teal">+0.036</div>
-        <div class="detail">95% CI [+0.025, +0.039]</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Layer 33 dominance</div>
-        <div class="value val-coral">43&times;</div>
-        <div class="detail">Subspace gap +0.665 vs next layer +0.016</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Gate decision</div>
-        <div class="value val-amber" style="font-size: 1.1rem;">Proceed</div>
-        <div class="detail">D4 unchanged &mdash; overlap is live hypothesis, not settled</div>
-      </div>
+    <div class="insight-box">
+      <strong>Gate decision:</strong> do not redesign D4 around refusal overlap yet. Treat refusal overlap as a live hypothesis,
+      not a settled mechanism strong enough to redefine the intervention family yet.
     </div>
 
-    <div class="chart-container chart-shell" style="--chart-shell-height: 340px; margin-top: 2rem;">
-      <canvas id="layerOverlapChart"></canvas>
-    </div>
-    <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-      Per-layer refusal subspace fraction (H-neuron residual) &middot; 34 layers &middot;
-      Layer 33 = 0.666 vs all others &le;0.017 &middot; 100 random-neuron null sets
-    </p>
+    <details class="deep-dive" id="overlap-evidence">
+      <summary>Open D3.5 evidence</summary>
+      <div class="metrics-grid" style="margin-top: 0.6rem;" data-source="manual">
+        <div class="metric-card">
+          <div class="label">Canonical gap vs null</div>
+          <div class="value val-teal">&minus;0.018</div>
+          <div class="detail">95% CI [&minus;0.031, &minus;0.013]</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Subspace gap vs null</div>
+          <div class="value val-teal">+0.036</div>
+          <div class="detail">95% CI [+0.025, +0.039]</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Layer 33 dominance</div>
+          <div class="value val-coral">43&times;</div>
+          <div class="detail">Subspace gap +0.665 vs next layer +0.016</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Gate decision</div>
+          <div class="value val-amber" style="font-size: 1.1rem;">Proceed</div>
+          <div class="detail">Do not redesign D4 yet &mdash; overlap is still a live, unstable hypothesis</div>
+        </div>
+      </div>
 
-    <div class="step-card" style="border-left: 3px solid var(--accent-amber); margin-top: 2rem;">
-      <h3 style="color: var(--accent-amber);">Mediation collapses without layer 33</h3>
-      <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
-        Full-model prompt-level Spearman correlations (canonical overlap vs outcome slope)
-        are weak but significant on both benchmarks. Excluding layer 33 collapses them all.
+      <div class="chart-container chart-shell" style="--chart-shell-height: 340px; margin-top: 1.2rem;">
+        <canvas id="layerOverlapChart"></canvas>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+        Per-layer refusal subspace fraction (H-neuron residual) &middot; 34 layers &middot;
+        layer 33 = 0.666 vs all others &le;0.017 &middot; 100 random-neuron null sets
       </p>
-      <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
-        <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
-          <span class="ruled-out-arch">Benchmark</span>
-          <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Full model &rho;</span>
-          <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Layer 33 excluded &rho;</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">FaithEval (canon.)</span>
-          <span class="ruled-out-result" style="color: var(--accent-teal);">&minus;0.087 [&minus;0.160, &minus;0.012]</span>
-          <span style="font-size: 12px; color: var(--accent-coral);">&minus;0.005 [&minus;0.068, +0.060]</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">FaithEval (subsp.)</span>
-          <span class="ruled-out-result" style="color: var(--accent-teal);">+0.086 [+0.011, +0.159]</span>
-          <span style="font-size: 12px; color: var(--accent-coral);">&minus;0.022 [&minus;0.086, +0.044]</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">Jailbreak (canon.)</span>
-          <span class="ruled-out-result" style="color: var(--accent-teal);">&minus;0.116 [&minus;0.206, &minus;0.024]</span>
-          <span style="font-size: 12px; color: var(--accent-coral);">+0.030 [&minus;0.049, +0.110]</span>
-        </div>
-        <div class="ruled-out-row">
-          <span class="ruled-out-arch">Jailbreak (subsp.)</span>
-          <span class="ruled-out-result" style="color: var(--accent-teal);">+0.112 [+0.022, +0.202]</span>
-          <span style="font-size: 12px; color: var(--accent-coral);">&minus;0.159 [&minus;0.237, &minus;0.078]</span>
+
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber); margin-top: 1.2rem;">
+        <h3 style="color: var(--accent-amber);">Mediation collapses without layer 33</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);" data-source="manual">
+          Full-model prompt-level Spearman correlations are weak but significant on both benchmarks.
+          Excluding layer 33 collapses them all.
+        </p>
+        <div class="ruled-out-evidence" style="margin-top: 0.75rem;">
+          <div class="ruled-out-row" style="background: rgba(160, 155, 145, 0.08);">
+            <span class="ruled-out-arch">Benchmark</span>
+            <span class="ruled-out-result" style="font-weight: 600; color: var(--text-primary);">Full model &rho;</span>
+            <span style="font-weight: 600; color: var(--text-primary); font-size: 12px;">Layer 33 excluded &rho;</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">FaithEval (canon.)</span>
+            <span class="ruled-out-result" style="color: var(--accent-teal);">&minus;0.087 [&minus;0.160, &minus;0.012]</span>
+            <span style="font-size: 12px; color: var(--accent-coral);">&minus;0.005 [&minus;0.068, +0.060]</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">FaithEval (subsp.)</span>
+            <span class="ruled-out-result" style="color: var(--accent-teal);">+0.086 [+0.011, +0.159]</span>
+            <span style="font-size: 12px; color: var(--accent-coral);">&minus;0.022 [&minus;0.086, +0.044]</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">Jailbreak (canon.)</span>
+            <span class="ruled-out-result" style="color: var(--accent-teal);">&minus;0.116 [&minus;0.206, &minus;0.024]</span>
+            <span style="font-size: 12px; color: var(--accent-coral);">+0.030 [&minus;0.049, +0.110]</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch">Jailbreak (subsp.)</span>
+            <span class="ruled-out-result" style="color: var(--accent-teal);">+0.112 [+0.022, +0.202]</span>
+            <span style="font-size: 12px; color: var(--accent-coral);">&minus;0.159 [&minus;0.237, &minus;0.078]</span>
+          </div>
         </div>
       </div>
-    </div>
-
-    <div class="insight-box" style="margin-top: 1.5rem;">
-      <strong>Gate decision:</strong> proceed with D4 unchanged.
-      Treat refusal overlap as a live hypothesis, not a settled mechanism.
-      The current evidence is too layer-33-dependent to justify orthogonalizing the D4 direction.
-    </div>
+    </details>
   </div>
 </section>
 
@@ -587,11 +832,11 @@
 <section id="status">
   <div class="fade-in">
     <span class="tag tag-purple">5. Status board</span>
-    <h2>What&rsquo;s done, what&rsquo;s open</h2>
+    <h2>What is resolved, and what is still open</h2>
 
     <div class="next-steps" style="margin-top: 2rem;">
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Done</h3>
+        <h3 style="color: var(--accent-teal);">Resolved this week</h3>
         <div class="ruled-out-evidence" style="margin-top: 0.5rem;">
           <div class="ruled-out-row">
             <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D0</span>
@@ -600,7 +845,7 @@
           </div>
           <div class="ruled-out-row">
             <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D1</span>
-            <span class="ruled-out-result">Baseline A: FaithEval + jailbreak CSV-v2</span>
+            <span class="ruled-out-result">Baseline A: FaithEval + corrected graded jailbreak read</span>
             <span class="ruled-out-verdict verdict-real">Partial</span>
           </div>
           <div class="ruled-out-row">
@@ -619,20 +864,20 @@
             <span class="ruled-out-verdict verdict-real">Done</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D0.5</span>
-            <span class="ruled-out-result">Contrastive data frozen + harmful eval sets materialized</span>
+            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D4</span>
+            <span class="ruled-out-result">Truthfulness direction survives kill-shot at &beta;=0.01</span>
             <span class="ruled-out-verdict verdict-real">Partial</span>
           </div>
         </div>
       </div>
 
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Open</h3>
+        <h3 style="color: var(--accent-amber);">Still open</h3>
         <div class="ruled-out-evidence" style="margin-top: 0.5rem;">
           <div class="ruled-out-row">
             <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D4</span>
-            <span class="ruled-out-result">Baseline C: truthfulness direction</span>
-            <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Next</span>
+            <span class="ruled-out-result">Decide whether &beta;=0.01 is a real family signal or a brittle one-off</span>
+            <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Meeting ask</span>
           </div>
           <div class="ruled-out-row">
             <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D5</span>
@@ -640,9 +885,14 @@
             <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Open</span>
           </div>
           <div class="ruled-out-row">
-            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">&mdash;</span>
-            <span class="ruled-out-result">Truthfulness contrastive set curation</span>
-            <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Blocks D4</span>
+            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D6</span>
+            <span class="ruled-out-result">Refusal-orthogonalized mitigation check</span>
+            <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Open</span>
+          </div>
+          <div class="ruled-out-row">
+            <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">D7</span>
+            <span class="ruled-out-result">One scoped causal pilot</span>
+            <span class="ruled-out-verdict" style="background: var(--accent-amber-dim); color: var(--accent-amber);">Open</span>
           </div>
           <div class="ruled-out-row">
             <span class="ruled-out-arch" style="font-family: var(--font-mono); font-size: 11px;">&mdash;</span>
@@ -661,6 +911,12 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="insight-box" style="border-left-color: var(--accent-purple);">
+      <strong>Advisor-friendly summary:</strong> the week did not just produce more runs. It improved the measurement,
+      showed that the refusal-direction family is informative but fragile, and rescued D4 from the dead branch.
+      The next decision is which branch deserves the next serious investment.
     </div>
   </div>
 </section>
@@ -700,14 +956,14 @@ if (csvCanvas) {
       labels: alphaLabels,
       datasets: [
         {
-          label: 'csv2_yes (harmful)',
+          label: 'Clearly harmful rate',
           data: csv2Yes,
           backgroundColor: TEAL + 'AA',
           borderRadius: 4,
           borderSkipped: false,
         },
         {
-          label: 'V=3 (endorsed, actionable)',
+          label: 'Most actionable harmful bucket',
           data: v3Rate,
           backgroundColor: CORAL + 'CC',
           borderRadius: 4,
@@ -722,7 +978,7 @@ if (csvCanvas) {
         ctx.save();
         ctx.font = "600 11px 'Outfit', sans-serif";
         ctx.textAlign = 'center';
-        // Label V=3 bars
+        // Label most-actionable bars
         const meta = chart.getDatasetMeta(1);
         meta.data.forEach((bar, i) => {
           ctx.fillStyle = '#ede8e0';
@@ -778,7 +1034,7 @@ if (decCanvas) {
       labels: alphaLabels,
       datasets: [
         {
-          label: 'csv2_yes count (/500)',
+          label: 'Clearly harmful count (/500)',
           data: csv2Yes,
           backgroundColor: [PURPLE + '99', PURPLE + '99', PURPLE + '99', PURPLE + '99'],
           borderRadius: 4,
@@ -786,7 +1042,7 @@ if (decCanvas) {
           yAxisID: 'y',
         },
         {
-          label: 'V=3 rate (%)',
+          label: 'Most actionable harmful bucket (%)',
           data: v3Rate,
           type: 'line',
           borderColor: CORAL,
@@ -851,8 +1107,8 @@ if (decCanvas) {
         tooltip: {
           callbacks: {
             label: ctx => {
-              if (ctx.datasetIndex === 0) return 'csv2_yes: ' + ctx.parsed.y + '/500 (' + csv2YesRate[ctx.dataIndex].toFixed(1) + '%)';
-              return 'V=3 rate: ' + ctx.parsed.y.toFixed(1) + '%';
+              if (ctx.datasetIndex === 0) return 'Clearly harmful: ' + ctx.parsed.y + '/500 (' + csv2YesRate[ctx.dataIndex].toFixed(1) + '%)';
+              return 'Most actionable harmful bucket: ' + ctx.parsed.y.toFixed(1) + '%';
             }
           }
         }
@@ -868,7 +1124,7 @@ if (decCanvas) {
           grid: { color: GRID },
           ticks: { font: { size: 12 } },
           border: { display: false },
-          title: { display: true, text: 'csv2_yes count', font: { size: 12 }, color: '#a09b91' }
+          title: { display: true, text: 'Clearly harmful count', font: { size: 12 }, color: '#a09b91' }
         },
         y1: {
           position: 'right',
@@ -876,7 +1132,7 @@ if (decCanvas) {
           grid: { display: false },
           ticks: { callback: v => v + '%', font: { size: 11 }, color: CORAL },
           border: { display: false },
-          title: { display: true, text: 'V=3 rate (%)', font: { size: 11 }, color: CORAL }
+          title: { display: true, text: 'Most actionable bucket (%)', font: { size: 11 }, color: CORAL }
         }
       }
     }
@@ -898,7 +1154,7 @@ if (smCanvas) {
       labels: alphaLabels,
       datasets: [
         {
-          label: 'V=3 rate (%)',
+          label: 'Most actionable harmful bucket (%)',
           data: v3Rate,
           borderColor: CORAL,
           backgroundColor: CORAL,
@@ -945,7 +1201,7 @@ if (smCanvas) {
         const ctx = chart.ctx;
         ctx.save();
         ctx.font = "600 11px 'Outfit', sans-serif";
-        // V=3 endpoint label
+        // Endpoint labels
         const v3Meta = chart.getDatasetMeta(0);
         const v3Last = v3Meta.data[3];
         ctx.fillStyle = CORAL;
@@ -991,7 +1247,7 @@ if (smCanvas) {
           grid: { color: GRID },
           ticks: { callback: v => v + '%', font: { size: 12 }, color: CORAL },
           border: { display: false },
-          title: { display: true, text: 'V=3 rate (%)', font: { size: 12 }, color: CORAL }
+          title: { display: true, text: 'Most actionable bucket (%)', font: { size: 12 }, color: CORAL }
         },
         y1: {
           position: 'right',
@@ -1101,7 +1357,98 @@ if (jaAlphaCanvas) {
   });
 }
 
-// ── Chart 2: Layer accuracy curve ──
+// ── Chart 2: D4 narrow window ──
+const d4Canvas = document.getElementById('d4ComplianceChart');
+if (d4Canvas) {
+  setShellHeight(d4Canvas, 300);
+  const betas = ['β=0.00', 'β=0.01', 'β=0.02'];
+  const compliance = [66.0, 71.4, 46.2];
+  const ciLow = [63.0, 68.5, 43.1];
+  const ciHigh = [68.9, 74.1, 49.3];
+  const colors = [AMBER + 'BB', PURPLE + 'CC', CORAL + 'CC'];
+
+  new Chart(d4Canvas, {
+    type: 'bar',
+    data: {
+      labels: betas,
+      datasets: [{
+        label: 'Compliance',
+        data: compliance,
+        backgroundColor: colors,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    plugins: [{
+      id: 'd4Annotations',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        const yScale = chart.scales.y;
+        ctx.save();
+        meta.data.forEach((bar, i) => {
+          ctx.font = "600 12px 'Outfit', sans-serif";
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#ede8e0';
+          ctx.fillText(compliance[i].toFixed(1) + '%', bar.x, bar.y - 16);
+          ctx.strokeStyle = '#a09b91';
+          ctx.lineWidth = 1.5;
+          const yLo = yScale.getPixelForValue(ciLow[i]);
+          const yHi = yScale.getPixelForValue(ciHigh[i]);
+          ctx.beginPath();
+          ctx.moveTo(bar.x, yLo);
+          ctx.lineTo(bar.x, yHi);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(bar.x - 6, yLo);
+          ctx.lineTo(bar.x + 6, yLo);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(bar.x - 6, yHi);
+          ctx.lineTo(bar.x + 6, yHi);
+          ctx.stroke();
+        });
+        ctx.font = "500 11px 'Outfit', sans-serif";
+        ctx.textAlign = 'left';
+        ctx.fillStyle = PURPLE;
+        const cleanBar = meta.data[1];
+        ctx.fillText('clean point', cleanBar.x + 14, cleanBar.y - 6);
+        ctx.fillStyle = CORAL;
+        const cliffBar = meta.data[2];
+        ctx.fillText('collapse onset', cliffBar.x + 14, cliffBar.y + 18);
+        ctx.restore();
+      }
+    }],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.parsed.y.toFixed(1) + '% compliance'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 13, family: "'IBM Plex Mono', monospace" } },
+          border: { color: BORDER }
+        },
+        y: {
+          min: 40, max: 80,
+          grid: { color: GRID },
+          ticks: { callback: v => v + '%', font: { size: 12 } },
+          border: { display: false },
+          title: { display: true, text: 'FaithEval compliance (%)', font: { size: 12 }, color: '#a09b91' }
+        }
+      }
+    }
+  });
+}
+
+// ── Chart 3: Layer accuracy curve ──
 const laCanvas = document.getElementById('layerAccuracyChart');
 if (laCanvas) {
   setShellHeight(laCanvas, 340);
@@ -1199,7 +1546,7 @@ if (laCanvas) {
   });
 }
 
-// ── Chart 3: D3 compliance cliff ──
+// ── Chart 4: D3 compliance cliff ──
 const d3Canvas = document.getElementById('d3ComplianceChart');
 if (d3Canvas) {
   setShellHeight(d3Canvas, 280);
@@ -1291,7 +1638,7 @@ if (d3Canvas) {
   });
 }
 
-// ── Chart 4: Option bias ──
+// ── Chart 5: Option bias ──
 const obCanvas = document.getElementById('optionBiasChart');
 if (obCanvas) {
   setShellHeight(obCanvas, 280);
@@ -1368,7 +1715,7 @@ if (obCanvas) {
   });
 }
 
-// ── Chart 5: Layer overlap (subspace fraction) ──
+// ── Chart 6: Layer overlap (subspace fraction) ──
 const loCanvas = document.getElementById('layerOverlapChart');
 if (loCanvas) {
   setShellHeight(loCanvas, 340);
@@ -1446,6 +1793,48 @@ if (loCanvas) {
     }
   });
 }
+
+function resizeChartsWithin(root) {
+  if (!root) return;
+  const canvases = root.querySelectorAll('canvas');
+  requestAnimationFrame(() => {
+    canvases.forEach((canvas) => {
+      const chart = Chart.getChart(canvas);
+      if (chart) chart.resize();
+    });
+  });
+  setTimeout(() => {
+    canvases.forEach((canvas) => {
+      const chart = Chart.getChart(canvas);
+      if (chart) chart.resize();
+    });
+  }, 180);
+}
+
+document.querySelectorAll('.deep-dive').forEach((detail) => {
+  detail.addEventListener('toggle', () => {
+    if (detail.open) resizeChartsWithin(detail);
+  });
+});
+
+function openDrillTarget(selector) {
+  if (!selector) return;
+  const target = document.querySelector(selector);
+  if (!target) return;
+  if (target.tagName === 'DETAILS') {
+    target.open = true;
+    resizeChartsWithin(target);
+  }
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.querySelectorAll('[data-drill-target]').forEach((node) => {
+  if (node.classList.contains('drill-button')) {
+    node.addEventListener('click', () => openDrillTarget(node.dataset.drillTarget));
+    return;
+  }
+  node.addEventListener('dblclick', () => openDrillTarget(node.dataset.drillTarget));
+});
 </script>
 
 <script src="../assets/shared.js"></script>
