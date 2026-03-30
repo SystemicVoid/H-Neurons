@@ -1,0 +1,389 @@
+{
+  "example_counts": {
+    "train": 4789,
+    "val": 1098
+  },
+  "family": "iti_truthfulqa_paper",
+  "family_metadata": {
+    "family": "iti_truthfulqa_paper",
+    "prompt_format": "Q: {question}\\nA: {answer}",
+    "protocol": "li_et_al_2306.03341v6",
+    "question_counts": {
+      "total": 817,
+      "train": 654,
+      "val": 163
+    },
+    "seed": 42,
+    "source_dataset": "truthful_qa/generation",
+    "split_fingerprint": {
+      "train_qids": "c31012f20beac28e",
+      "val_qids": "6434e75f84c9f31d"
+    },
+    "val_fraction": 0.2
+  },
+  "git_sha": "f63c0dec9243a90781b04194f84e546064e5a6d6",
+  "label_counts": {
+    "train_truthful": 2100,
+    "train_untruthful": 2689,
+    "val_truthful": 489,
+    "val_untruthful": 609
+  },
+  "model_path": "google/gemma-3-4b-it",
+  "paths": {
+    "artifact": "data/contrastive/truthfulness/iti_truthfulqa_paper/iti_heads.pt",
+    "metadata": "data/contrastive/truthfulness/iti_truthfulqa_paper/extraction_metadata.json"
+  },
+  "position_summaries": [
+    "last_answer_token"
+  ],
+  "question_counts": {
+    "total": 817,
+    "train": 654,
+    "val": 163
+  },
+  "ranking": {
+    "head_dim": 256,
+    "position_summaries": [
+      "last_answer_token"
+    ],
+    "top5": [
+      {
+        "auroc": 0.844,
+        "balanced_accuracy": 0.771218,
+        "head": 0,
+        "layer": 11,
+        "position_summary": "last_answer_token",
+        "sigma": 0.929507
+      },
+      {
+        "auroc": 0.828083,
+        "balanced_accuracy": 0.761381,
+        "head": 5,
+        "layer": 12,
+        "position_summary": "last_answer_token",
+        "sigma": 1.34693
+      },
+      {
+        "auroc": 0.825874,
+        "balanced_accuracy": 0.752194,
+        "head": 2,
+        "layer": 19,
+        "position_summary": "last_answer_token",
+        "sigma": 1.0029
+      },
+      {
+        "auroc": 0.830897,
+        "balanced_accuracy": 0.750985,
+        "head": 2,
+        "layer": 10,
+        "position_summary": "last_answer_token",
+        "sigma": 0.67535
+      },
+      {
+        "auroc": 0.821283,
+        "balanced_accuracy": 0.748567,
+        "head": 3,
+        "layer": 18,
+        "position_summary": "last_answer_token",
+        "sigma": 1.775804
+      }
+    ]
+  },
+  "ranking_primary": "balanced_accuracy",
+  "selected_head_manifest": [
+    {
+      "auroc": 0.844,
+      "balanced_accuracy": 0.771218,
+      "head": 0,
+      "layer": 11,
+      "position_summary": "last_answer_token",
+      "rank": 1,
+      "sigma": 0.927497
+    },
+    {
+      "auroc": 0.828083,
+      "balanced_accuracy": 0.761381,
+      "head": 5,
+      "layer": 12,
+      "position_summary": "last_answer_token",
+      "rank": 2,
+      "sigma": 1.357844
+    },
+    {
+      "auroc": 0.825874,
+      "balanced_accuracy": 0.752194,
+      "head": 2,
+      "layer": 19,
+      "position_summary": "last_answer_token",
+      "rank": 3,
+      "sigma": 1.00665
+    },
+    {
+      "auroc": 0.830897,
+      "balanced_accuracy": 0.750985,
+      "head": 2,
+      "layer": 10,
+      "position_summary": "last_answer_token",
+      "rank": 4,
+      "sigma": 0.676243
+    },
+    {
+      "auroc": 0.821283,
+      "balanced_accuracy": 0.748567,
+      "head": 3,
+      "layer": 18,
+      "position_summary": "last_answer_token",
+      "rank": 5,
+      "sigma": 1.765338
+    },
+    {
+      "auroc": 0.809843,
+      "balanced_accuracy": 0.747731,
+      "head": 7,
+      "layer": 17,
+      "position_summary": "last_answer_token",
+      "rank": 6,
+      "sigma": 0.389654
+    },
+    {
+      "auroc": 0.835125,
+      "balanced_accuracy": 0.747454,
+      "head": 3,
+      "layer": 11,
+      "position_summary": "last_answer_token",
+      "rank": 7,
+      "sigma": 1.490437
+    },
+    {
+      "auroc": 0.814883,
+      "balanced_accuracy": 0.741984,
+      "head": 2,
+      "layer": 15,
+      "position_summary": "last_answer_token",
+      "rank": 8,
+      "sigma": 0.735166
+    },
+    {
+      "auroc": 0.817892,
+      "balanced_accuracy": 0.740342,
+      "head": 7,
+      "layer": 10,
+      "position_summary": "last_answer_token",
+      "rank": 9,
+      "sigma": 0.780122
+    },
+    {
+      "auroc": 0.811461,
+      "balanced_accuracy": 0.740342,
+      "head": 1,
+      "layer": 16,
+      "position_summary": "last_answer_token",
+      "rank": 10,
+      "sigma": 1.069098
+    },
+    {
+      "auroc": 0.806747,
+      "balanced_accuracy": 0.740296,
+      "head": 6,
+      "layer": 17,
+      "position_summary": "last_answer_token",
+      "rank": 11,
+      "sigma": 0.421256
+    },
+    {
+      "auroc": 0.824923,
+      "balanced_accuracy": 0.739707,
+      "head": 3,
+      "layer": 10,
+      "position_summary": "last_answer_token",
+      "rank": 12,
+      "sigma": 0.836506
+    },
+    {
+      "auroc": 0.828926,
+      "balanced_accuracy": 0.737677,
+      "head": 6,
+      "layer": 10,
+      "position_summary": "last_answer_token",
+      "rank": 13,
+      "sigma": 1.182531
+    },
+    {
+      "auroc": 0.817549,
+      "balanced_accuracy": 0.737445,
+      "head": 0,
+      "layer": 16,
+      "position_summary": "last_answer_token",
+      "rank": 14,
+      "sigma": 1.124978
+    },
+    {
+      "auroc": 0.822942,
+      "balanced_accuracy": 0.736655,
+      "head": 5,
+      "layer": 10,
+      "position_summary": "last_answer_token",
+      "rank": 15,
+      "sigma": 0.905856
+    },
+    {
+      "auroc": 0.793291,
+      "balanced_accuracy": 0.735678,
+      "head": 4,
+      "layer": 8,
+      "position_summary": "last_answer_token",
+      "rank": 16,
+      "sigma": 1.429183
+    },
+    {
+      "auroc": 0.801273,
+      "balanced_accuracy": 0.735028,
+      "head": 2,
+      "layer": 8,
+      "position_summary": "last_answer_token",
+      "rank": 17,
+      "sigma": 1.858699
+    },
+    {
+      "auroc": 0.808443,
+      "balanced_accuracy": 0.733743,
+      "head": 1,
+      "layer": 11,
+      "position_summary": "last_answer_token",
+      "rank": 18,
+      "sigma": 0.849485
+    },
+    {
+      "auroc": 0.801435,
+      "balanced_accuracy": 0.732519,
+      "head": 2,
+      "layer": 21,
+      "position_summary": "last_answer_token",
+      "rank": 19,
+      "sigma": 1.642593
+    },
+    {
+      "auroc": 0.80991,
+      "balanced_accuracy": 0.731311,
+      "head": 5,
+      "layer": 14,
+      "position_summary": "last_answer_token",
+      "rank": 20,
+      "sigma": 0.864081
+    },
+    {
+      "auroc": 0.812281,
+      "balanced_accuracy": 0.729482,
+      "head": 0,
+      "layer": 10,
+      "position_summary": "last_answer_token",
+      "rank": 21,
+      "sigma": 0.845326
+    },
+    {
+      "auroc": 0.800619,
+      "balanced_accuracy": 0.72922,
+      "head": 6,
+      "layer": 12,
+      "position_summary": "last_answer_token",
+      "rank": 22,
+      "sigma": 0.982619
+    },
+    {
+      "auroc": 0.80446,
+      "balanced_accuracy": 0.727608,
+      "head": 6,
+      "layer": 8,
+      "position_summary": "last_answer_token",
+      "rank": 23,
+      "sigma": 0.888023
+    },
+    {
+      "auroc": 0.789504,
+      "balanced_accuracy": 0.726802,
+      "head": 7,
+      "layer": 16,
+      "position_summary": "last_answer_token",
+      "rank": 24,
+      "sigma": 0.832476
+    },
+    {
+      "auroc": 0.79263,
+      "balanced_accuracy": 0.725981,
+      "head": 2,
+      "layer": 12,
+      "position_summary": "last_answer_token",
+      "rank": 25,
+      "sigma": 0.985156
+    },
+    {
+      "auroc": 0.802106,
+      "balanced_accuracy": 0.724959,
+      "head": 3,
+      "layer": 15,
+      "position_summary": "last_answer_token",
+      "rank": 26,
+      "sigma": 0.991267
+    },
+    {
+      "auroc": 0.778735,
+      "balanced_accuracy": 0.723347,
+      "head": 6,
+      "layer": 25,
+      "position_summary": "last_answer_token",
+      "rank": 27,
+      "sigma": 3.33047
+    },
+    {
+      "auroc": 0.784249,
+      "balanced_accuracy": 0.723317,
+      "head": 5,
+      "layer": 6,
+      "position_summary": "last_answer_token",
+      "rank": 28,
+      "sigma": 1.229085
+    },
+    {
+      "auroc": 0.797566,
+      "balanced_accuracy": 0.722899,
+      "head": 1,
+      "layer": 13,
+      "position_summary": "last_answer_token",
+      "rank": 29,
+      "sigma": 1.301989
+    },
+    {
+      "auroc": 0.775629,
+      "balanced_accuracy": 0.721766,
+      "head": 2,
+      "layer": 7,
+      "position_summary": "last_answer_token",
+      "rank": 30,
+      "sigma": 2.111311
+    },
+    {
+      "auroc": 0.810098,
+      "balanced_accuracy": 0.721302,
+      "head": 2,
+      "layer": 20,
+      "position_summary": "last_answer_token",
+      "rank": 31,
+      "sigma": 1.81371
+    },
+    {
+      "auroc": 0.79037,
+      "balanced_accuracy": 0.72107,
+      "head": 7,
+      "layer": 11,
+      "position_summary": "last_answer_token",
+      "rank": 32,
+      "sigma": 0.881267
+    }
+  ],
+  "source_dataset": "truthful_qa/generation",
+  "split_fingerprints": {
+    "train_qids": "c31012f20beac28e",
+    "val_qids": "6434e75f84c9f31d"
+  },
+  "steering_direction_type": "mass_mean"
+}
