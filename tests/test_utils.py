@@ -27,6 +27,7 @@ build_alpha_throughput_payload = run_intervention.build_alpha_throughput_payload
 build_alpha_throughput_summary = run_intervention.build_alpha_throughput_summary
 build_sample_throughput_payload = run_intervention.build_sample_throughput_payload
 resolve_output_dir = run_intervention.resolve_output_dir
+load_truthfulqa_mc = run_intervention.load_truthfulqa_mc
 run_truthfulqa_mc = run_intervention.run_truthfulqa_mc
 run_faitheval_mc_logprob = run_intervention.run_faitheval_mc_logprob
 extract_mc_answer = utils.extract_mc_answer
@@ -740,6 +741,46 @@ class TestTruthfulqaMetrics:
         assert record["metric_name"] == "mc2_truthful_mass"
         assert record["metric_value"] == pytest.approx(expected_mass)
         assert record["choice_log_likelihoods"] == [-1.0, -3.0, -4.0]
+
+    def test_load_truthfulqa_mc_from_csv(self, tmp_path):
+        csv_content = (
+            "\ufeffType,Category,Question,Best Answer,Correct Answers,Incorrect Answers,Source\n"
+            "Adversarial,Misc,Is the sky blue?,Yes the sky is blue,"
+            "Yes the sky is blue; The sky appears blue,No the sky is red; The sky is green,"
+            "http://example.com\n"
+            "Adversarial,Misc,Is water wet?,Water is wet,"
+            "Water is wet; Yes,No water is not wet,"
+            "http://example.com\n"
+        )
+        csv_path = tmp_path / "TruthfulQA.csv"
+        csv_path.write_text(csv_content, encoding="utf-8")
+
+        mc1 = load_truthfulqa_mc(variant="mc1", csv_path=str(csv_path))
+        mc2 = load_truthfulqa_mc(variant="mc2", csv_path=str(csv_path))
+
+        assert len(mc1) == 2
+        assert len(mc2) == 2
+
+        # MC1: best answer first with label 1, rest 0
+        assert mc1[0]["choices"][0] == "Yes the sky is blue"
+        assert mc1[0]["labels"][0] == 1
+        assert all(label == 0 for label in mc1[0]["labels"][1:])
+        assert mc1[0]["variant"] == "mc1"
+        assert mc1[0]["id"] == "truthfulqa_mc1_0"
+
+        # MC2: all correct first (label 1), all incorrect last (label 0)
+        assert mc2[0]["choices"] == [
+            "Yes the sky is blue",
+            "The sky appears blue",
+            "No the sky is red",
+            "The sky is green",
+        ]
+        assert mc2[0]["labels"] == [1, 1, 0, 0]
+        assert mc2[0]["id"] == "truthfulqa_mc2_0"
+
+        # No BOM or whitespace artifacts
+        assert not mc1[0]["question"].startswith("\ufeff")
+        assert not any(c.startswith(" ") or c.endswith(" ") for c in mc1[0]["choices"])
 
     def test_aggregate_results_rejects_mixed_metric_definitions(self, tmp_path):
         output_dir = tmp_path / "mixed_metrics"

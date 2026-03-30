@@ -1450,21 +1450,44 @@ def run_simpleqa(
 # ---------------------------------------------------------------------------
 
 
-def load_truthfulqa_mc(variant: str = "mc1"):
-    """Load TruthfulQA multiple-choice targets from HuggingFace."""
-    from datasets import load_dataset
+def load_truthfulqa_mc(
+    variant: str = "mc1",
+    csv_path: str = "data/benchmarks/TruthfulQA.csv",
+):
+    """Load TruthfulQA MC targets from the local CSV (official dataset).
 
-    ds = load_dataset("truthful_qa", "multiple_choice", split="validation")
-    target_key = "mc1_targets" if variant == "mc1" else "mc2_targets"
+    MC1: choices = [best_answer] + incorrect_answers, labels = [1, 0, 0, ...]
+    MC2: choices = correct_answers + incorrect_answers, labels = [1, ..., 0, ...]
+
+    The CSV (data/benchmarks/TruthfulQA.csv) is the authoritative source and
+    contains answer variants that HuggingFace has silently dropped (~209 questions
+    differ). Row index is used as the stable sample ID.
+    """
+    import pandas as pd
+
+    df = pd.read_csv(csv_path, encoding="utf-8-sig")
     samples = []
-    for idx, row in enumerate(ds):
-        targets = row[target_key]
+    for idx, row in df.iterrows():
+        question = row["Question"].strip()
+        best = row["Best Answer"].strip()
+        correct = [a.strip() for a in row["Correct Answers"].split(";") if a.strip()]
+        incorrect = [
+            a.strip() for a in row["Incorrect Answers"].split(";") if a.strip()
+        ]
+
+        if variant == "mc1":
+            choices = [best] + incorrect
+            labels = [1] + [0] * len(incorrect)
+        else:  # mc2
+            choices = correct + incorrect
+            labels = [1] * len(correct) + [0] * len(incorrect)
+
         samples.append(
             {
                 "id": f"truthfulqa_{variant}_{idx}",
-                "question": row["question"],
-                "choices": list(targets["choices"]),
-                "labels": list(targets["labels"]),
+                "question": question,
+                "choices": choices,
+                "labels": labels,
                 "variant": variant,
             }
         )
