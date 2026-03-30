@@ -40,33 +40,39 @@
         <p class="card-item"><strong>Detection replication:</strong> 38 H-neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy.</p>
         <p class="card-item"><strong>FaithEval intervention + negative control:</strong> 2.1 pp/&alpha; slope, H-neuron specificity confirmed (8 random seeds flat).</p>
         <p class="card-item"><strong>FalseQA intervention + negative control:</strong> +4.8 pp endpoint, H-neuron specificity confirmed (3 random seeds flat).</p>
+        <p class="card-item"><strong>CSV-v2 graded jailbreak evaluation:</strong> binary judge non-significant; graded judge recovers +7.6 pp severity escalation. V=3 harmful content nearly quadruples. 76% of the increase is ablation recovery, not amplification.</p>
+        <p class="card-item"><strong>256-token truncation artifact:</strong> the original jailbreak slope (+6.2 pp) was a measurement artifact from truncated disclaimers. 5000-token rerun falsified it.</p>
+        <p class="card-item"><strong>Refusal direction extraction (D2):</strong> difference-in-means on 128+128 contrastive set. Best layer 25, 98.4% val accuracy. Sanity gate passed.</p>
+        <p class="card-item"><strong>Refusal-direction ablation (D3):</strong> narrow usable window at &beta;=0.02 (+4.2 pp), cliff at &beta;=0.03 with catastrophic answer-option bias (B at 58%).</p>
+        <p class="card-item"><strong>Refusal-overlap audit (D3.5):</strong> H-neuron intervention overlaps refusal geometry above null, but mediation signal is dominated by layer 33. Live hypothesis, not settled mechanism.</p>
         <p class="card-item"><strong>Top-neuron investigation:</strong> neuron 4288 is an L1 artifact (0/6 tests).</p>
         <p class="card-item"><strong>SAE steering:</strong> closed, null result under both full-replacement and delta-only architectures.</p>
         <p class="card-item"><strong>Swing characterization:</strong> 68.1% knowledge override in the &alpha;-sensitive subpopulation.</p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
         <h3 style="color: var(--accent-amber);">Active</h3>
-        <p class="card-item"><strong>Jailbreak canonical rerun:</strong> 5000-token budget on JailbreakBench with structured GPT-4o judge and gold-label calibration. In progress.</p>
-        <p class="card-item"><strong>Jailbreak negative control:</strong> highest-priority missing piece for the safety benchmark.</p>
+        <p class="card-item"><strong>D4 &mdash; truthfulness direction baseline:</strong> residual-stream direction produced a null result on FaithEval. Deciding between richer contrastive data, head-level ITI, or accepting the negative result.</p>
+        <p class="card-item"><strong>Capability battery (D0.5):</strong> IFEval + perplexity needed for all baselines. Blocks D1 completion and D5.</p>
+        <p class="card-item"><strong>Jailbreak negative control:</strong> highest-priority missing specificity check for the safety externality story.</p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
         <h3 style="color: var(--accent-purple);">Remaining planned work</h3>
-        <p class="card-item"><strong>All-&alpha; text rescoring:</strong> extend the &alpha;=3.0 strict answer-text remap across the full standard-prompt sweep.</p>
-        <p class="card-item"><strong>Capability-degradation assay:</strong> fluency/accuracy baseline under perturbation, required before strong causal claims.</p>
-        <p class="card-item"><strong>Sycophancy intervention:</strong> scaffolded in the pipeline but not yet run.</p>
-        <p class="card-item"><strong>Measurement hardening:</strong> sentinel sets, cross-evaluator audits, judge regression tests.</p>
+        <p class="card-item"><strong>D5 &mdash; full externality audit:</strong> jailbreak severity drift, capability drift, and response-structure shifts across all three baselines.</p>
+        <p class="card-item"><strong>D6 &mdash; refusal-orthogonalized steering:</strong> project out the refusal-overlap component and compare before/after tradeoff.</p>
+        <p class="card-item"><strong>D7 &mdash; scoped causal pilot:</strong> attribution patching on 50-prompt subset to compare causal head ranking against L1-probe-selected neurons.</p>
+        <p class="card-item"><strong>D8 &mdash; final synthesis:</strong> close the sprint with a steering protocol &mdash; graded evaluation, externality audit, comparator suite, and one causal check.</p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-rose);">
         <h3 style="color: var(--accent-rose);">Research frontiers</h3>
-        <p class="card-item"><strong>Suppressive neuron investigation:</strong> the paper ignores the 38 negative-weight neurons. Are they stable across C values? Can amplifying them reduce hallucination?</p>
-        <p class="card-item"><strong>Swing sample deep characterization:</strong> what makes the 14% sensitive population swing? Weak-knowledge vs strong-knowledge override has direct safety implications.</p>
-        <p class="card-item"><strong>Attribution patching / GCM:</strong> rank neurons by actual causal contribution instead of L1 weight. Bypasses the regularization artifact entirely.</p>
-        <p class="card-item"><strong>Safety-neuron overlap (alignment tax):</strong> do H-neurons share circuitry with refusal neurons? If suppressing hallucination weakens safety, any intervention is a trade-off.</p>
+        <p class="card-item"><strong>Refusal-overlap mechanism:</strong> D3.5 found real overlap but it collapses without layer 33. Is this a bridge layer, a single-neuron artifact, or general fragility?</p>
+        <p class="card-item"><strong>Causal vs. correlational selection:</strong> D7 tests whether attribution-patching selects different components than L1 probing &mdash; and whether the causal set steers better.</p>
+        <p class="card-item"><strong>Detector &ne; intervention target:</strong> SAE features detect hallucination but cannot steer it. Does the same dissociation apply to the 38-neuron probe vs. direction-level features?</p>
+        <p class="card-item"><strong>Suppressive neuron investigation:</strong> the paper&rsquo;s 38 negative-weight neurons remain untested. Cheapest path to an inverse-intervention story.</p>
       </div>
     </div>
 
     <div class="section-links" style="margin-top: 2rem;">
-      <a class="section-link section-link-cta" href="progress/week-02-claims-airtight.html">Latest weekly report</a>
+      <a class="section-link section-link-cta" href="progress/week-03-act3-comparative-sprint.html">Latest weekly report</a>
       <a class="section-link" href="#snapshot">Key findings</a>
       <a class="section-link" href="story.html">Core story</a>
       <a class="section-link" href="extensions.html">Extensions</a>
@@ -122,6 +128,29 @@
         <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#cross-benchmark">Negative control data</a></p>
       </div>
 
+      <div class="step-card" data-status="OUR WORK">
+        <h3>Binary jailbreak judges miss the real safety story. Graded judging recovers it.</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The original 256-token jailbreak slope (+6.2 pp) was a truncation artifact &mdash; the model was cut off
+          mid-disclaimer, creating alpha-dependent false positives. A 5000-token rerun produced a non-significant
+          binary slope (+3.0 pp, CI includes zero). But CSV-v2 graded judging separates genuine compliance (C&ge;2)
+          from disclaimer-wrapped discussion (C=1, constant ~60-response noise floor). The real effect:
+          V=3 polished harmful content nearly quadruples (3.8%&rarr;14.0%), payload share rises from 21%&rarr;26%,
+          and pivot position recedes from 16%&rarr;10% of response length.
+          76% of the count increase is ablation recovery (&alpha;=0&rarr;1), not amplification.
+        </p>
+      </div>
+
+      <div class="step-card" data-status="OUR WORK">
+        <h3>Refusal-direction ablation has a cliff, not a curve</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          All-layer refusal-direction ablation on FaithEval has one usable point (&beta;=0.02, +4.2 pp)
+          before a catastrophic cliff at &beta;=0.03 (&minus;14.9 pp). The collapse is not a parser failure &mdash;
+          it is answer-option bias: output B jumps from 28% to 58%, while C and D compliance drops to 22%
+          and 29%. For MCQ steering evaluations, output-distribution checks matter more than parse-failure rates.
+        </p>
+      </div>
+
       <!-- from: standard_text_remap_alpha_3_rescored_rate -->
       <div class="step-card" data-status="OUR WORK">
         <h3>SAE features detect hallucination but cannot steer it</h3>
@@ -138,12 +167,13 @@
         <h3>Same 38 neurons shift behavior across 3 different benchmarks</h3>
         <!-- from: anti_compliance_delta_0_to_3 -->
         <!-- from: falseqa_delta_0_to_3 -->
-        <!-- from: jailbreak_compliance_delta_0_to_3 -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          FaithEval (+6.3pp), FalseQA (+4.8pp), and jailbreak (+6.2pp) all show compliance
-          increasing with H-neuron scaling. Two of three have independent negative controls
-          confirming specificity. 0.011% of the network, consistent causal role across
-          qualitatively different tasks and evaluators.
+          FaithEval (+6.3 pp) and FalseQA (+4.8 pp) show compliance increasing with H-neuron scaling,
+          both with independent negative controls confirming specificity.
+          Jailbreak binary compliance is non-significant (+3.0 pp, CI includes zero), but CSV-v2
+          graded judging reveals a monotonic severity escalation: the intervention does not create
+          more jailbreaks, it makes existing ones structurally worse.
+          0.011% of the network, consistent causal role across qualitatively different tasks.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#cross-benchmark">Cross-benchmark results</a></p>
       </div>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 3: The Comparative Sprint | H-Neurons</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital,wght@0,400;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="../index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="../index.html">Overview</a>
+        <a href="../story.html">Core Story</a>
+        <a href="../results/gemma-3-4b.html">Results</a>
+        <a href="../methods.html">Methods</a>
+        <a href="../extensions.html">Extensions</a>
+        <a class="active" href="index.html">Progress</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ═══════════════════════════════════════════════════════════ HERO -->
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-purple">Progress &mdash; March 24&ndash;30</span>
+    <h1>Week 3:<br>The Comparative<br>Sprint</h1>
+    <p class="subtitle" data-source="manual">
+      The project pivoted from single-intervention tinkering to a comparative steering sprint.
+      H-neurons became the reference row, not the subject.
+      Two direction-level baselines (refusal ablation, truthfulness steering) were built
+      and tested against the same measurement stack.
+    </p>
+    <p class="subtitle" data-source="manual">
+      Key result: the 256-token jailbreak slope was a truncation artifact.
+      CSV-v2 graded judging recovered the real story &mdash;
+      not more jailbreaks, but structurally worse ones.
+      V=3 harmful content nearly quadrupled.
+      Refusal-direction ablation has a narrow usable window before catastrophic answer-option bias.
+      Truthfulness direction steering produced a null result on FaithEval.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2.5rem;" data-source="manual">
+      <div class="metric-card">
+        <div class="label">Baselines evaluated</div>
+        <div class="value val-teal">3</div>
+        <div class="detail">H-neuron (A), refusal direction (B), truthfulness direction (C)</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Measurement artifacts caught</div>
+        <div class="value val-purple">2</div>
+        <div class="detail">256-token truncation bias, micro-beta label aliasing</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Direction infrastructure</div>
+        <div class="value val-coral">Built</div>
+        <div class="detail">Extract, intervene, evaluate pipeline for Gemma-3-4B-IT</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">D3.5 gate</div>
+        <div class="value val-amber">Resolved</div>
+        <div class="detail">Refusal overlap real but layer-33 dominated &mdash; proceed unchanged</div>
+      </div>
+    </div>
+
+    <div class="insight-box" style="margin-top: 2rem;">
+      <strong>Full report coming soon.</strong>
+      This page will be expanded with detailed charts and analysis
+      as act&nbsp;3 results are finalised.
+    </div>
+  </div>
+</section>
+
+<footer>
+  H-Neurons Week 3 &mdash; <a href="../index.html">Back to overview</a>
+</footer>
+
+<script src="../assets/shared.js"></script>
+
+</body>
+</html>
