@@ -53,7 +53,7 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
         --output_dir "$OUTPUT_DIR" \
         --alphas $ALPHAS \
         --judge_model gpt-4o \
-        --api_mode batch \
+        --api-mode batch \
         2>&1 | tee -a "$EVAL_LOG"; then
         EVAL_SUCCESS=true
         echo ""

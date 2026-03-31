@@ -64,7 +64,7 @@ PYTHONUNBUFFERED=1 uv run python scripts/evaluate_csv2.py \
     --output_dir "$CSV2_DIR" \
     --alphas $ALL_ALPHAS \
     --judge_model gpt-4o \
-    --api_mode batch \
+    --api-mode batch \
     2>&1 | tee "$CSV2_EVAL_LOG"
 
 echo ""

@@ -8,7 +8,7 @@ from resolved spans.
 Copies input JSONL files to an output directory and annotates each record
 with a ``csv2`` nested object. Re-run safe: skips already-annotated records.
 
-Supports --api_mode batch (50% cheaper, default) and fast (synchronous).
+Supports --api-mode batch (50% cheaper, default) and fast (synchronous).
 
 Usage:
     uv run python scripts/evaluate_csv2.py \\
@@ -18,7 +18,7 @@ Usage:
 
     uv run python scripts/evaluate_csv2.py \\
         --input_dir data/gemma3_4b/intervention/jailbreak/experiment \\
-        --api_mode fast
+        --api-mode fast
 """
 
 from __future__ import annotations
@@ -857,7 +857,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--alphas", type=float, nargs="+", default=[0.0, 1.5, 3.0])
     p.add_argument("--judge_model", type=str, default="gpt-4o")
     p.add_argument(
-        "--api_mode",
+        "--api-mode",
         type=str,
         choices=["batch", "fast"],
         default="batch",
