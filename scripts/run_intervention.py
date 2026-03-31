@@ -845,6 +845,7 @@ from utils import (  # noqa: E402
     format_alpha_label,
     get_git_sha,
     normalize_answer,
+    parse_semicolon_answers,
     provenance_error_message,
     provenance_status_for_exception,
     sanitize_run_config,
@@ -1450,6 +1451,56 @@ def run_simpleqa(
 # ---------------------------------------------------------------------------
 
 
+def _assert_no_truthfulqa_leakage(args: argparse.Namespace) -> None:
+    """Cross-check ITI extraction metadata against fold file to catch leakage.
+
+    If ``--truthfulqa_fold_path`` is provided, loads the fold and verifies
+    that no test question was used for direction fitting.  If not provided,
+    falls back to reading ``extraction_metadata.json`` next to the ITI
+    artifact and checking its embedded question ID lists.
+    """
+    artifact_dir = Path(args.iti_head_path).parent
+    meta_path = artifact_dir / "extraction_metadata.json"
+
+    # Try to load extraction metadata for the ID lists
+    extraction_meta: dict[str, Any] = {}
+    if meta_path.exists():
+        extraction_meta = json.loads(meta_path.read_text(encoding="utf-8"))
+
+    dev_ids_from_meta = set(extraction_meta.get("question_ids_dev", []))
+    train_ids_from_meta = set(extraction_meta.get("question_ids_train", []))
+    val_ids_from_meta = set(extraction_meta.get("question_ids_val", []))
+    fit_ids = dev_ids_from_meta or (train_ids_from_meta | val_ids_from_meta)
+
+    # Load test IDs — prefer explicit fold path, fall back to metadata
+    test_ids: set[str] = set()
+    if args.truthfulqa_fold_path:
+        fold = json.loads(Path(args.truthfulqa_fold_path).read_text(encoding="utf-8"))
+        test_ids = set(fold["test"])
+    elif extraction_meta.get("question_ids_test"):
+        test_ids = set(extraction_meta["question_ids_test"])
+
+    if not fit_ids or not test_ids:
+        print(
+            "Warning: cannot verify TruthfulQA leakage barrier — "
+            "no question ID lists found in extraction metadata or fold file.",
+            file=sys.stderr,
+        )
+        return
+
+    leaked = fit_ids & test_ids
+    if leaked:
+        raise RuntimeError(
+            f"FATAL: {len(leaked)} test-fold question(s) were used in ITI "
+            f"direction fitting. Leaking IDs (first 5): {sorted(leaked)[:5]}. "
+            f"Artifact: {args.iti_head_path}"
+        )
+    print(
+        f"Leakage barrier OK: {len(fit_ids)} fit IDs, "
+        f"{len(test_ids)} test IDs, 0 overlap"
+    )
+
+
 def load_truthfulqa_mc(
     variant: str = "mc1",
     csv_path: str = "data/benchmarks/TruthfulQA.csv",
@@ -1470,10 +1521,8 @@ def load_truthfulqa_mc(
     for idx, row in df.iterrows():
         question = row["Question"].strip()
         best = row["Best Answer"].strip()
-        correct = [a.strip() for a in row["Correct Answers"].split(";") if a.strip()]
-        incorrect = [
-            a.strip() for a in row["Incorrect Answers"].split(";") if a.strip()
-        ]
+        correct = parse_semicolon_answers(row["Correct Answers"])
+        incorrect = parse_semicolon_answers(row["Incorrect Answers"])
 
         assert best in correct, (
             f"Best Answer not in Correct Answers for: {question[:60]!r}"
@@ -2132,6 +2181,14 @@ def parse_args():
         choices=["mc1", "mc2"],
         help="TruthfulQA multiple-choice variant.",
     )
+    p.add_argument(
+        "--truthfulqa_fold_path",
+        type=str,
+        default=None,
+        help="Path to TruthfulQA fold JSON (from build_truthfulqa_splits.py). "
+        "When provided with --intervention_mode iti_head, enforces that test-fold "
+        "questions were not used in direction fitting.",
+    )
     # Sycophancy-specific
     p.add_argument("--sycophancy_data", type=str, default=DEFAULT_SYCOPHANCY_DATA)
     # Jailbreak-specific
@@ -2417,6 +2474,14 @@ def main():
 
             scaler = HNeuronScaler(model, neuron_map, device)
             print(f"Installed {scaler.n_hooks} hooks on {scaler.n_neurons} neurons")
+
+        # --- Leakage barrier: TruthfulQA MC + ITI ---
+        if (
+            args.benchmark == "truthfulqa_mc"
+            and args.intervention_mode == "iti_head"
+            and args.iti_head_path
+        ):
+            _assert_no_truthfulqa_leakage(args)
 
         # Load benchmark data
         print(f"\nLoading benchmark: {args.benchmark}")
