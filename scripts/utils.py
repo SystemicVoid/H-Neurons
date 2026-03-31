@@ -7,6 +7,7 @@ so it can be used from any script without pulling in GPU dependencies.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import json
 import math
 import os
@@ -434,3 +435,97 @@ def finish_run_provenance(
 def json_dumps(payload: dict[str, Any]) -> str:
     normalized_payload = _normalize_json_value(payload)
     return f"{json.dumps(normalized_payload, indent=2, sort_keys=True)}\n"
+
+
+def fingerprint_ids(values: list[str]) -> str:
+    """SHA-256 fingerprint (16 hex chars) of a sorted list of IDs."""
+    return hashlib.sha256("\n".join(sorted(values)).encode("utf-8")).hexdigest()[:16]
+
+
+def parse_semicolon_answers(cell: object) -> list[str]:
+    """Split a semicolon-delimited TruthfulQA answer cell into individual answers."""
+    return [a.strip() for a in str(cell).split(";") if a.strip()]
+
+
+def audit_split_leakage(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Audit extraction metadata for data leakage between splits.
+
+    Checks that train/val/dev/test ID sets are properly disjoint and that
+    direction fitting used only dev data. Prints a human-readable report
+    and returns the audit dict for embedding in provenance.
+
+    Raises ``RuntimeError`` if any test ID appears in the fitting set.
+    """
+    train_ids = set(metadata.get("question_ids_train", []))
+    val_ids = set(metadata.get("question_ids_val", []))
+    dev_ids = set(metadata.get("question_ids_dev", []))
+    test_ids = set(metadata.get("question_ids_test", []))
+
+    # Overlap matrix
+    overlap_train_val = sorted(train_ids & val_ids)
+    overlap_train_test = sorted(train_ids & test_ids)
+    overlap_val_test = sorted(val_ids & test_ids)
+    overlap_dev_test = sorted(dev_ids & test_ids)
+
+    # Direction fit check: dev should equal train ∪ val
+    expected_dev = train_ids | val_ids
+    direction_fit_matches_dev = (dev_ids == expected_dev) if dev_ids else None
+
+    # Sample IDs (up to 5) from each split for human inspection
+    def _sample(ids: set[str], n: int = 5) -> list[str]:
+        return sorted(ids)[:n]
+
+    audit = {
+        "counts": {
+            "train": len(train_ids),
+            "val": len(val_ids),
+            "dev": len(dev_ids),
+            "test": len(test_ids),
+        },
+        "overlap": {
+            "train_val": len(overlap_train_val),
+            "train_test": len(overlap_train_test),
+            "val_test": len(overlap_val_test),
+            "dev_test": len(overlap_dev_test),
+        },
+        "sample_ids": {
+            "train": _sample(train_ids),
+            "val": _sample(val_ids),
+            "dev": _sample(dev_ids),
+            "test": _sample(test_ids),
+        },
+        "direction_fit_ids_equal_dev_ids": direction_fit_matches_dev,
+        "direction_fit_source": metadata.get("direction_fit_source"),
+        "sigma_fit_source": metadata.get("sigma_fit_source"),
+        "leakage_detected": False,
+    }
+
+    # Print report
+    print("\n--- Split Leakage Audit ---")
+    for split, count in audit["counts"].items():
+        print(f"  {split:>5s}: {count} questions")
+    print("  Overlap matrix:")
+    for pair, count in audit["overlap"].items():
+        status = "CLEAN" if count == 0 else f"LEAKED ({count})"
+        print(f"    {pair}: {status}")
+    print("  Sample IDs:")
+    for split, ids in audit["sample_ids"].items():
+        print(f"    {split}: {ids}")
+    print(f"  direction_fit_ids == dev_ids: {direction_fit_matches_dev}")
+    print("--- End Audit ---\n")
+
+    # Hard abort on test leakage into fitting set
+    if overlap_dev_test:
+        audit["leakage_detected"] = True
+        raise RuntimeError(
+            f"FATAL: {len(overlap_dev_test)} test question(s) found in "
+            f"dev/fitting set: {overlap_dev_test[:5]}"
+        )
+    if overlap_train_test:
+        audit["leakage_detected"] = True
+        raise RuntimeError(
+            f"FATAL: {len(overlap_train_test)} test question(s) found in "
+            f"train set: {overlap_train_test[:5]}"
+        )
+
+    return audit
