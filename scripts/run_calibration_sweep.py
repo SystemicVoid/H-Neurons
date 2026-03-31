@@ -213,6 +213,17 @@ def main() -> None:
     sweep_results: list[dict[str, Any]] = []
     total_combos = len(args.k_values) * len(args.alpha_values)
 
+    # Resume from partial progress
+    progress_path = out / "sweep_progress.jsonl"
+    completed_combos: set[tuple[int, float]] = set()
+    if progress_path.exists():
+        with open(progress_path) as f:
+            for line in f:
+                rec = json.loads(line)
+                completed_combos.add((rec["k"], rec["alpha"]))
+                sweep_results.append(rec)
+        print(f"Resumed {len(completed_combos)} combos from {progress_path}")
+
     print(
         f"Sweeping {len(args.k_values)} K × {len(args.alpha_values)} α = {total_combos} combos"
     )
@@ -236,6 +247,10 @@ def main() -> None:
             combo_idx += 1
             label = f"[{combo_idx}/{total_combos}] K={k}, α={alpha}"
 
+            if (k, alpha) in completed_combos:
+                print(f"  {label}: skipped (resumed)")
+                continue
+
             # Score MC1
             mc1_records = score_mc_samples(model, tokenizer, scaler, mc1_samples, alpha)
             mc1_acc = sum(r["mc1_correct"] for r in mc1_records) / max(
@@ -257,6 +272,8 @@ def main() -> None:
                 "n_mc2": len(mc2_records),
             }
             sweep_results.append(result)
+            with open(progress_path, "a") as pf:
+                pf.write(json.dumps(result) + "\n")
             print(f"  {label}: MC1={mc1_acc:.3f}, MC2={mc2_mass:.3f}")
 
     # Clean up final scaler hooks
@@ -268,6 +285,7 @@ def main() -> None:
     with open(sweep_path, "w") as f:
         json.dump(
             {
+                "model_path": args.model_path,
                 "k_values": args.k_values,
                 "alpha_values": args.alpha_values,
                 "results": sweep_results,
