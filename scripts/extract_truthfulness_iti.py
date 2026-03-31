@@ -8,7 +8,7 @@ This script builds one of three explicit artifact families:
   from SQuAD-v2.
 - ``iti_truthfulqa_paper``: paper-faithful extraction from TruthfulQA QA pairs
   following Li et al. (arXiv 2306.03341v6).  Last-token only, validation-
-  accuracy ranking, 50/50 question-level split for clean held-out evaluation.
+  accuracy ranking, 2-fold CV with dev/test split from fold files.
 
 The extraction surface is the tensor immediately before ``self_attn.o_proj``.
 Heads are ranked by probe metrics and steered with a truthful-oriented
@@ -18,18 +18,19 @@ mass-mean direction for decode-time intervention.
 from __future__ import annotations
 
 import argparse
-import hashlib
+import json
 import random
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
+import pandas as pd
 import torch
 from datasets import load_dataset
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import balanced_accuracy_score, roc_auc_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -40,10 +41,13 @@ from build_truthfulness_contrastive import (
 )
 from intervene_iti import _get_decoder_layers
 from utils import (
+    audit_split_leakage,
     finish_run_provenance,
+    fingerprint_ids,
     get_git_sha,
     json_dumps,
     normalize_answer,
+    parse_semicolon_answers,
     provenance_error_message,
     provenance_status_for_exception,
     start_run_provenance,
@@ -123,6 +127,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--context_val_questions", type=int, default=100)
     parser.add_argument("--train_cap_per_qid_label", type=int, default=2)
     parser.add_argument("--val_cap_per_qid_label", type=int, default=1)
+    parser.add_argument(
+        "--fold_path",
+        type=Path,
+        default=None,
+        help="Fold JSON from build_truthfulqa_splits.py. "
+        "Required for iti_truthfulqa_paper.",
+    )
+    parser.add_argument(
+        "--csv_path",
+        type=Path,
+        default=Path("data/benchmarks/TruthfulQA.csv"),
+        help="Path to the official TruthfulQA CSV (canonical data source).",
+    )
     return parser.parse_args()
 
 
@@ -134,10 +151,6 @@ def default_output_dir(family: str) -> Path:
     }
     suffix = suffix_map[family]
     return Path("data/contrastive/truthfulness") / suffix
-
-
-def _fingerprint_ids(values: list[str]) -> str:
-    return hashlib.sha256("\n".join(sorted(values)).encode("utf-8")).hexdigest()[:16]
 
 
 def _qa_prompt(
@@ -210,38 +223,49 @@ def _truth_mass_mean_direction(
     return direction, sigma, class_means, sign
 
 
-def recompute_directions_full_data(
+def compute_head_directions(
     ranked_heads: list[dict[str, Any]],
     activations: dict[str, torch.Tensor],
     examples: list[ITIExample],
+    direction_fit_indices: list[int],
+    *,
+    direction_source: Literal["train_data", "dev_data"],
 ) -> list[dict[str, Any]]:
-    """Recompute mass-mean directions using ALL examples (train+val).
+    """Compute mass-mean directions using an explicit set of fit indices.
 
     After head ranking selects which heads to steer (using val metrics),
-    the final steering direction should use all available data for maximum
-    signal. This follows the paper protocol: rank on val, steer on full set.
+    this function computes the steering direction from a specified subset
+    of examples.  For paper-faithful mode, ``direction_fit_indices``
+    covers all dev data (train+val); for other families, train only.
+
+    No index in ``direction_fit_indices`` may point to an example with
+    ``split='test'``.
     """
-    all_indices = list(range(len(examples)))
-    y_all = np.array([ex.label for ex in examples], dtype=np.int64)
-    w_all = np.array([ex.weight for ex in examples], dtype=np.float64)
+    for idx in direction_fit_indices:
+        assert examples[idx].split != "test", (
+            f"FATAL: test-fold example at index {idx} in direction_fit_indices. "
+            "Test data must never be used for direction fitting."
+        )
+    y = np.array([examples[i].label for i in direction_fit_indices], dtype=np.int64)
+    w = np.array([examples[i].weight for i in direction_fit_indices], dtype=np.float64)
 
     for head_entry in ranked_heads:
         summary_name = head_entry["position_summary"]
         layer_idx = head_entry["layer"]
         head_idx = head_entry["head"]
-        X_all = (
-            activations[summary_name][all_indices, layer_idx, head_idx].float().numpy()
+        X = (
+            activations[summary_name][direction_fit_indices, layer_idx, head_idx]
+            .float()
+            .numpy()
         )
-        direction, sigma, class_means, sign = _truth_mass_mean_direction(
-            X_all, y_all, w_all
-        )
+        direction, sigma, class_means, sign = _truth_mass_mean_direction(X, y, w)
         head_entry["direction"] = direction.tolist()
         head_entry["sigma"] = round(sigma, 6)
         head_entry["sign"] = sign
         head_entry["class_means"] = {
             key: round(value, 6) for key, value in class_means.items()
         }
-        head_entry["direction_source"] = "full_data"
+        head_entry["direction_source"] = direction_source
     return ranked_heads
 
 
@@ -366,8 +390,8 @@ def build_triviaqa_transfer_examples(
         "family": "iti_triviaqa_transfer",
         "source_dataset": "triviaqa_consistency",
         "split_fingerprint": {
-            "train_qids": _fingerprint_ids(sorted(train_ids)),
-            "val_qids": _fingerprint_ids(sorted(val_ids)),
+            "train_qids": fingerprint_ids(sorted(train_ids)),
+            "val_qids": fingerprint_ids(sorted(val_ids)),
         },
         "question_counts": {
             "train": len(train_ids),
@@ -537,8 +561,8 @@ def build_context_grounded_examples(
             ),
         },
         "split_fingerprint": {
-            "train_qids": _fingerprint_ids([row["id"] for row in sampled_train]),
-            "val_qids": _fingerprint_ids([row["id"] for row in sampled_val]),
+            "train_qids": fingerprint_ids([row["id"] for row in sampled_train]),
+            "val_qids": fingerprint_ids([row["id"] for row in sampled_val]),
         },
     }
     return examples, metadata
@@ -554,34 +578,56 @@ def _qa_prompt_paper(question: str, answer: str) -> tuple[str, str]:
 def build_truthfulqa_paper_examples(
     *,
     tokenizer: Any,
-    seed: int = 42,
-    val_fraction: float = 0.2,
+    fold_path: Path,
+    csv_path: Path = Path("data/benchmarks/TruthfulQA.csv"),
 ) -> tuple[list[ITIExample], dict[str, Any]]:
-    """Build QA pairs from TruthfulQA following the original ITI paper protocol.
+    """Build QA pairs from TruthfulQA following the paper's 2-fold CV protocol.
 
-    - Data: TruthfulQA generation split (817 questions, ~5918 QA pairs)
-    - Each correct_answer → truthful pair, each incorrect_answer → untruthful pair
-    - Split by question (not pair) at ``val_fraction`` (4:1 train/val)
+    Uses a fold file (from ``build_truthfulqa_splits.py``) that specifies which
+    questions belong to train, val, and test.  **Test-fold questions are
+    excluded entirely** so they never contaminate directions or ranking.
+
+    - Data: official TruthfulQA CSV (canonical source, 817 questions, dev-fold only)
+    - Each Correct Answer → truthful pair, each Incorrect Answer → untruthful pair
+    - Split assignment from fold file (train/val within dev)
     - Prompt: ``Q: {question}\\nA: {answer}``
     - Token position: last token of the concatenated QA pair
     """
-    ds = load_dataset("truthful_qa", "generation", split="validation")
-    rng = random.Random(seed)
+    fold = json.loads(fold_path.read_text(encoding="utf-8"))
+    canonical_path = Path(fold["canonical_manifest"])
+    canonical = json.loads(canonical_path.read_text(encoding="utf-8"))
 
-    question_indices = list(range(len(ds)))
-    rng.shuffle(question_indices)
-    n_val = int(len(question_indices) * val_fraction)
-    val_qidxs = set(question_indices[:n_val])
-    train_qidxs = set(question_indices[n_val:])
+    csv_df = pd.read_csv(str(csv_path), encoding="utf-8-sig")
+    max_csv_idx = max(int(q["csv_idx"]) for q in canonical["questions"])
+    assert len(csv_df) > max_csv_idx, (
+        f"CSV has {len(csv_df)} rows but canonical manifest references csv_idx={max_csv_idx}"
+    )
+
+    train_ids = set(fold["dev"]["train"])
+    val_ids = set(fold["dev"]["val"])
+    test_ids = set(fold["test"])
+
+    dev_ids = train_ids | val_ids
+    overlap = dev_ids & test_ids
+    assert not overlap, f"FATAL: {len(overlap)} questions in both dev and test"
 
     examples: list[ITIExample] = []
-    for idx in range(len(ds)):
-        row = ds[idx]
-        question = row["question"]
-        qid = f"tqa_{idx}"
-        split = "val" if idx in val_qidxs else "train"
+    n_skipped_test = 0
+    for q_entry in canonical["questions"]:
+        csv_idx: int = int(q_entry["csv_idx"])
+        stable_id: str = str(q_entry["stable_id"])
 
-        for answer in row["correct_answers"]:
+        # Exclude test-fold questions entirely
+        if stable_id in test_ids:
+            n_skipped_test += 1
+            continue
+
+        row = csv_df.iloc[csv_idx]
+        question = str(row["Question"])
+        qid = stable_id
+        split = "val" if stable_id in val_ids else "train"
+
+        for answer in parse_semicolon_answers(row["Correct Answers"]):
             prefix, full = _qa_prompt_paper(question, answer)
             prefix_ids = tokenizer(prefix, add_special_tokens=False)["input_ids"]
             full_ids = tokenizer(full, add_special_tokens=False)["input_ids"]
@@ -600,11 +646,11 @@ def build_truthfulqa_paper_examples(
                     weight=1.0,
                     prompt_text=full,
                     answer_positions=answer_positions,
-                    metadata={"source": "truthful_qa/generation"},
+                    metadata={"source": "csv", "csv_idx": csv_idx},
                 )
             )
 
-        for answer in row["incorrect_answers"]:
+        for answer in parse_semicolon_answers(row["Incorrect Answers"]):
             prefix, full = _qa_prompt_paper(question, answer)
             prefix_ids = tokenizer(prefix, add_special_tokens=False)["input_ids"]
             full_ids = tokenizer(full, add_special_tokens=False)["input_ids"]
@@ -623,27 +669,49 @@ def build_truthfulqa_paper_examples(
                     weight=1.0,
                     prompt_text=full,
                     answer_positions=answer_positions,
-                    metadata={"source": "truthful_qa/generation"},
+                    metadata={"source": "csv", "csv_idx": csv_idx},
                 )
             )
 
-    train_qids = sorted(f"tqa_{i}" for i in train_qidxs)
-    val_qids = sorted(f"tqa_{i}" for i in val_qidxs)
+    print(f"  Skipped {n_skipped_test} test-fold questions")
+
+    train_qids = sorted(train_ids & {ex.qid for ex in examples})
+    val_qids = sorted(val_ids & {ex.qid for ex in examples})
+    test_qid_list = sorted(test_ids)
+    dev_qid_list = sorted(train_ids | val_ids)
+
     metadata = {
         "family": "iti_truthfulqa_paper",
-        "source_dataset": "truthful_qa/generation",
-        "protocol": "li_et_al_2306.03341v6",
+        "source_dataset": str(csv_path),
+        "protocol": "li_et_al_2306.03341v6_2fold",
         "prompt_format": "Q: {question}\\nA: {answer}",
-        "val_fraction": val_fraction,
-        "seed": seed,
+        "fold_path": str(fold_path),
+        "fold_id": fold["fold"],
+        "fold_fingerprint": fold.get("canonical_fingerprint", ""),
+        "direction_fit_scope": "dev_only",
+        "direction_fit_source": "dev_only",
+        "sigma_fit_source": "dev_only",
+        "head_ranking_metric": "val_accuracy",
+        "question_ids_train": sorted(train_qids),
+        "question_ids_val": sorted(val_qids),
+        "question_ids_dev": dev_qid_list,
+        "question_ids_test": test_qid_list,
+        "truthfulqa_manifest_fingerprint": canonical.get("fingerprint", ""),
+        "fold_file_fingerprint": fingerprint_ids(
+            fold["dev"]["train"] + fold["dev"]["val"] + fold["test"]
+        ),
         "question_counts": {
-            "total": len(ds),
-            "train": len(train_qidxs),
-            "val": len(val_qidxs),
+            "total": len(canonical["questions"]),
+            "dev": len(train_ids) + len(val_ids),
+            "train": len(train_qids),
+            "val": len(val_qids),
+            "test_excluded": n_skipped_test,
         },
         "split_fingerprint": {
-            "train_qids": _fingerprint_ids(train_qids),
-            "val_qids": _fingerprint_ids(val_qids),
+            "train_qids": fingerprint_ids(train_qids),
+            "val_qids": fingerprint_ids(val_qids),
+            "test_qids": fingerprint_ids(test_qid_list),
+            "dev_qids": fingerprint_ids(dev_qid_list),
         },
     }
     return examples, metadata
@@ -729,7 +797,7 @@ def _fit_probe_metrics(
     w_train: np.ndarray,
     X_val: np.ndarray,
     y_val: np.ndarray,
-) -> tuple[float, float]:
+) -> tuple[float, float, float]:
     probe = LogisticRegression(
         random_state=0,
         max_iter=2000,
@@ -738,14 +806,15 @@ def _fit_probe_metrics(
     try:
         probe.fit(X_train, y_train, sample_weight=w_train)
         val_probs = probe.predict_proba(X_val)[:, 1]
+        val_preds = (val_probs >= 0.5).astype(int)
         auroc = float(roc_auc_score(y_val, val_probs))
-        balanced_accuracy = float(
-            balanced_accuracy_score(y_val, (val_probs >= 0.5).astype(int))
-        )
+        balanced_acc = float(balanced_accuracy_score(y_val, val_preds))
+        val_acc = float(accuracy_score(y_val, val_preds))
     except Exception:
         auroc = 0.5
-        balanced_accuracy = 0.5
-    return auroc, balanced_accuracy
+        balanced_acc = 0.5
+        val_acc = 0.5
+    return auroc, balanced_acc, val_acc
 
 
 def rank_heads(
@@ -775,12 +844,15 @@ def rank_heads(
             return (
                 float(entry["balanced_accuracy"]),
                 float(entry["auroc"]),
-                -float(entry["sigma"]),
+            )
+        if ranking_primary == "val_accuracy":
+            return (
+                float(entry["val_accuracy"]),
+                float(entry["auroc"]),
             )
         return (
             float(entry["auroc"]),
             float(entry["balanced_accuracy"]),
-            -float(entry["sigma"]),
         )
 
     for layer_idx in range(n_layers):
@@ -798,11 +870,8 @@ def rank_heads(
                     .float()
                     .numpy()
                 )
-                auroc, balanced_accuracy = _fit_probe_metrics(
+                auroc, balanced_accuracy, val_accuracy = _fit_probe_metrics(
                     X_train, y_train, w_train, X_val, y_val
-                )
-                direction, sigma, class_means, sign = _truth_mass_mean_direction(
-                    X_train, y_train, w_train
                 )
                 entry = {
                     "layer": layer_idx,
@@ -810,18 +879,13 @@ def rank_heads(
                     "position_summary": summary_name,
                     "auroc": round(auroc, 6),
                     "balanced_accuracy": round(balanced_accuracy, 6),
-                    "sign": sign,
-                    "sigma": round(sigma, 6),
-                    "class_means": {
-                        key: round(value, 6) for key, value in class_means.items()
-                    },
+                    "val_accuracy": round(val_accuracy, 6),
                     "qid_coverage": qid_coverage,
-                    "direction": direction.tolist(),
                 }
                 metrics_by_summary[summary_name] = {
                     key: value
                     for key, value in entry.items()
-                    if key not in {"layer", "head", "direction"}
+                    if key not in {"layer", "head"}
                 }
                 if best_entry is None:
                     best_entry = entry
@@ -850,7 +914,7 @@ def rank_heads(
                 "position_summary",
                 "auroc",
                 "balanced_accuracy",
-                "sigma",
+                "val_accuracy",
             )
         }
         for item in ranked_heads[:5]
@@ -912,9 +976,16 @@ def main() -> None:
                 val_cap_per_qid_label=args.val_cap_per_qid_label,
             )
         elif args.family == "iti_truthfulqa_paper":
+            if args.fold_path is None:
+                raise ValueError(
+                    "--fold_path is required for iti_truthfulqa_paper. "
+                    "Generate fold files with: "
+                    "uv run python scripts/build_truthfulqa_splits.py --seed 42"
+                )
             examples, family_metadata = build_truthfulqa_paper_examples(
                 tokenizer=tokenizer,
-                seed=args.seed,
+                fold_path=args.fold_path,
+                csv_path=args.csv_path,
             )
         else:
             examples, family_metadata = build_context_grounded_examples(
@@ -924,12 +995,12 @@ def main() -> None:
                 val_questions=args.context_val_questions,
             )
 
-        # Paper-faithful: last-token only, balanced_accuracy ranking
+        # Paper-faithful: last-token only, plain val_accuracy ranking
         is_paper_faithful = args.family == "iti_truthfulqa_paper"
         rank_position_summaries = (
             ("last_answer_token",) if is_paper_faithful else POSITION_SUMMARIES
         )
-        rank_primary = "balanced_accuracy" if is_paper_faithful else "auroc"
+        rank_primary = "val_accuracy" if is_paper_faithful else "auroc"
 
         print(f"Loaded {len(examples)} {args.family} examples")
         model = AutoModelForCausalLM.from_pretrained(
@@ -951,10 +1022,21 @@ def main() -> None:
             ranking_primary=rank_primary,
         )
         if is_paper_faithful:
-            ranked_heads = recompute_directions_full_data(
-                ranked_heads, activations, examples
-            )
-            print("Recomputed directions from full dataset (train+val)")
+            direction_fit_indices = list(range(len(examples)))
+            direction_source = "dev_data"
+        else:
+            direction_fit_indices = [
+                i for i, ex in enumerate(examples) if ex.split == "train"
+            ]
+            direction_source = "train_data"
+        ranked_heads = compute_head_directions(
+            ranked_heads,
+            activations,
+            examples,
+            direction_fit_indices,
+            direction_source=direction_source,
+        )
+        print(f"Computed directions from {direction_source}")
         artifact = build_artifact(
             family=args.family,
             model=model,
@@ -967,6 +1049,25 @@ def main() -> None:
             "model_path": args.model_path,
             "source_dataset": family_metadata["source_dataset"],
             "git_sha": get_git_sha(),
+            "head_ranking_metric": rank_primary,
+            "direction_fit_scope": family_metadata.get(
+                "direction_fit_scope", "train_only"
+            ),
+            "direction_fit_source": family_metadata.get(
+                "direction_fit_source", "train_only"
+            ),
+            "sigma_fit_source": family_metadata.get("sigma_fit_source", "train_only"),
+            "fold_id": family_metadata.get("fold_id"),
+            "fold_path": family_metadata.get("fold_path"),
+            "fold_fingerprint": family_metadata.get("fold_fingerprint"),
+            "truthfulqa_manifest_fingerprint": family_metadata.get(
+                "truthfulqa_manifest_fingerprint"
+            ),
+            "fold_file_fingerprint": family_metadata.get("fold_file_fingerprint"),
+            "question_ids_train": family_metadata.get("question_ids_train", []),
+            "question_ids_val": family_metadata.get("question_ids_val", []),
+            "question_ids_dev": family_metadata.get("question_ids_dev", []),
+            "question_ids_test": family_metadata.get("question_ids_test", []),
             "paths": {
                 "artifact": str(artifact_path),
                 "metadata": str(metadata_path),
@@ -1016,9 +1117,16 @@ def main() -> None:
             "steering_direction_type": "mass_mean",
         }
         metadata_path.write_text(json_dumps(metadata), encoding="utf-8")
+
+        # Post-build leakage audit — abort on overlap, embed in provenance
+        split_audit = audit_split_leakage(metadata)
+        metadata["split_audit"] = split_audit
+        metadata_path.write_text(json_dumps(metadata), encoding="utf-8")
+
         provenance_extra["record_count"] = len(examples)
         provenance_extra["family"] = args.family
         provenance_extra["top_head"] = metadata["selected_head_manifest"][0]
+        provenance_extra["split_audit"] = split_audit
         print(f"Saved ITI artifact to {artifact_path}")
         print(f"Saved metadata to {metadata_path}")
     except BaseException as exc:

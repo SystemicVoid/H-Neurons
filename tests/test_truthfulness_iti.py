@@ -528,62 +528,121 @@ class TestSimpleQAVerdictParsing:
         assert parse_simpleqa_verdict("unclear") == "UNKNOWN"
 
 
+def _write_fold_fixtures(tmp_path, questions, train_idxs, val_idxs, test_idxs):
+    """Write canonical manifest, CSV, and fold file for test fixtures.
+
+    ``train_idxs``, ``val_idxs``, ``test_idxs`` are positional indices into
+    the ``questions`` list.  Returns (fold_path, csv_path).
+    """
+    import csv as csv_module
+
+    from build_truthfulqa_splits import fingerprint_ids, stable_question_id
+
+    # Write authoritative CSV
+    csv_path = tmp_path / "questions.csv"
+    with open(csv_path, "w", encoding="utf-8", newline="") as f:
+        writer = csv_module.writer(f)
+        writer.writerow(["Question", "Correct Answers", "Incorrect Answers"])
+        for q in questions:
+            writer.writerow(
+                [
+                    q["question"],
+                    "; ".join(q["correct_answers"]),
+                    "; ".join(q["incorrect_answers"]),
+                ]
+            )
+
+    canon_questions = []
+    for i, q in enumerate(questions):
+        canon_questions.append(
+            {
+                "stable_id": stable_question_id(q["question"]),
+                "csv_idx": i,
+                "question_text": q["question"],
+            }
+        )
+
+    sid = {i: canon_questions[i]["stable_id"] for i in range(len(questions))}
+    all_ids = [c["stable_id"] for c in canon_questions]
+    canon = {
+        "version": 1,
+        "source_csv": str(csv_path),
+        "n_questions": len(questions),
+        "fingerprint": fingerprint_ids(all_ids),
+        "questions": canon_questions,
+    }
+    canon_path = tmp_path / "canonical.json"
+    canon_path.write_text(json.dumps(canon), encoding="utf-8")
+
+    fold = {
+        "version": 1,
+        "seed": 42,
+        "fold": 0,
+        "canonical_manifest": str(canon_path),
+        "canonical_fingerprint": canon["fingerprint"],
+        "dev": {
+            "train": [sid[i] for i in train_idxs],
+            "val": [sid[i] for i in val_idxs],
+        },
+        "test": [sid[i] for i in test_idxs],
+        "counts": {
+            "train": len(train_idxs),
+            "val": len(val_idxs),
+            "test": len(test_idxs),
+        },
+    }
+    fold_path = tmp_path / "fold.json"
+    fold_path.write_text(json.dumps(fold), encoding="utf-8")
+    return fold_path, csv_path
+
+
 class TestTruthfulQAPaperExamples:
-    def test_builds_correct_labels_and_splits_by_question(self, monkeypatch):
+    _questions = [
+        {
+            "question": "What is 1+1?",
+            "correct_answers": ["2", "Two"],
+            "incorrect_answers": ["3"],
+        },
+        {
+            "question": "Capital of France?",
+            "correct_answers": ["Paris"],
+            "incorrect_answers": ["London", "Berlin"],
+        },
+        {
+            "question": "Sky color?",
+            "correct_answers": ["Blue"],
+            "incorrect_answers": ["Red"],
+        },
+        {
+            "question": "Water formula?",
+            "correct_answers": ["H2O"],
+            "incorrect_answers": ["CO2"],
+        },
+    ]
+
+    def test_builds_correct_labels_and_splits_by_question(self, tmp_path):
         """Each correct answer → LABEL_TRUE, each incorrect → LABEL_FALSE,
         split is by question ID not by pair."""
-
-        class FakeDataset:
-            def __len__(self):
-                return 4
-
-            def __getitem__(self, idx):
-                questions = [
-                    {
-                        "question": "What is 1+1?",
-                        "correct_answers": ["2", "Two"],
-                        "incorrect_answers": ["3"],
-                    },
-                    {
-                        "question": "Capital of France?",
-                        "correct_answers": ["Paris"],
-                        "incorrect_answers": ["London", "Berlin"],
-                    },
-                    {
-                        "question": "Sky color?",
-                        "correct_answers": ["Blue"],
-                        "incorrect_answers": ["Red"],
-                    },
-                    {
-                        "question": "Water formula?",
-                        "correct_answers": ["H2O"],
-                        "incorrect_answers": ["CO2"],
-                    },
-                ]
-                return questions[idx]
-
-            column_names = [
-                "question",
-                "correct_answers",
-                "incorrect_answers",
-            ]
-
-        monkeypatch.setattr(
-            "extract_truthfulness_iti.load_dataset",
-            lambda *_args, **_kwargs: FakeDataset(),
+        # Q0, Q1 = dev (Q0 train, Q1 val), Q2, Q3 = test (excluded)
+        fold_path, csv_path = _write_fold_fixtures(
+            tmp_path,
+            self._questions,
+            train_idxs=[0],
+            val_idxs=[1],
+            test_idxs=[2, 3],
         )
 
         examples, metadata = iti_extract.build_truthfulqa_paper_examples(
             tokenizer=StubTokenizer(),
-            seed=42,
-            val_fraction=0.5,
+            fold_path=fold_path,
+            csv_path=csv_path,
         )
 
-        # Label checks: Q0: 2T+1F, Q1: 1T+2F, Q2: 1T+1F, Q3: 1T+1F = 5T+5F
+        # Only dev questions: Q0: 2T+1F, Q1: 1T+2F = 3T+3F
         true_count = sum(1 for ex in examples if ex.label == iti_extract.LABEL_TRUE)
         false_count = sum(1 for ex in examples if ex.label == iti_extract.LABEL_FALSE)
-        assert true_count == 5
-        assert false_count == 5
+        assert true_count == 3
+        assert false_count == 3
 
         # Split by question: each QID's examples are all in the same split
         qid_splits = {}
@@ -598,36 +657,50 @@ class TestTruthfulQAPaperExamples:
         splits = {ex.split for ex in examples}
         assert splits == {"train", "val"}
 
-        # Family and prompt format
+        # Family and source metadata
         assert all(ex.family == "iti_truthfulqa_paper" for ex in examples)
         assert metadata["family"] == "iti_truthfulqa_paper"
-        assert metadata["source_dataset"] == "truthful_qa/generation"
+        assert "questions.csv" in metadata["source_dataset"]
 
-    def test_uses_paper_prompt_format(self, monkeypatch):
+    def test_excludes_test_fold_questions(self, tmp_path):
+        """Questions in the test fold must not appear in examples."""
+        fold_path, csv_path = _write_fold_fixtures(
+            tmp_path,
+            self._questions,
+            train_idxs=[0],
+            val_idxs=[1],
+            test_idxs=[2, 3],
+        )
+
+        examples, metadata = iti_extract.build_truthfulqa_paper_examples(
+            tokenizer=StubTokenizer(),
+            fold_path=fold_path,
+            csv_path=csv_path,
+        )
+
+        # No examples should reference test-fold questions
+        test_questions = {"Sky color?", "Water formula?"}
+        for ex in examples:
+            assert ex.question not in test_questions, (
+                f"Test-fold question {ex.question!r} leaked into examples"
+            )
+        assert metadata["question_counts"]["test_excluded"] == 2
+
+    def test_uses_paper_prompt_format(self, tmp_path):
         """Prompt should be Q: {q}\\nA: {a} format."""
-
-        class FakeDataset:
-            def __len__(self):
-                return 1
-
-            def __getitem__(self, idx):
-                return {
-                    "question": "What is 1+1?",
-                    "correct_answers": ["2"],
-                    "incorrect_answers": ["3"],
-                }
-
-            column_names = ["question", "correct_answers", "incorrect_answers"]
-
-        monkeypatch.setattr(
-            "extract_truthfulness_iti.load_dataset",
-            lambda *_args, **_kwargs: FakeDataset(),
+        questions = [self._questions[0]]
+        fold_path, csv_path = _write_fold_fixtures(
+            tmp_path,
+            questions,
+            train_idxs=[0],
+            val_idxs=[],
+            test_idxs=[],
         )
 
         examples, _ = iti_extract.build_truthfulqa_paper_examples(
             tokenizer=StubTokenizer(),
-            seed=42,
-            val_fraction=0.5,
+            fold_path=fold_path,
+            csv_path=csv_path,
         )
 
         for ex in examples:
@@ -635,9 +708,9 @@ class TestTruthfulQAPaperExamples:
 
 
 class TestPaperFaithfulRanking:
-    def test_balanced_accuracy_ranking_differs_from_auroc(self):
-        """When ranking_primary='balanced_accuracy', the top head should
-        be the one with highest balanced_accuracy, not highest AUROC."""
+    def test_val_accuracy_ranking_available(self):
+        """When ranking_primary='val_accuracy', rank_heads should use plain
+        accuracy (not balanced_accuracy) as the primary sort key."""
         examples = (
             [
                 iti_extract.ITIExample(
@@ -736,17 +809,19 @@ class TestPaperFaithfulRanking:
             position_summaries=("last_answer_token",),
             ranking_primary="auroc",
         )
-        ranked_acc, _ = iti_extract.rank_heads(
+        ranked_val_acc, _ = iti_extract.rank_heads(
             activations,
             examples,
             position_summaries=("last_answer_token",),
-            ranking_primary="balanced_accuracy",
+            ranking_primary="val_accuracy",
         )
 
         # Both produce a single head (1 layer, 1 head), so ordering doesn't
-        # differ for 1 head, but the metadata should reflect the right config
+        # differ for 1 head, but the metadata should reflect the right fields
         assert ranked_auroc[0]["position_summary"] == "last_answer_token"
-        assert ranked_acc[0]["position_summary"] == "last_answer_token"
+        assert ranked_val_acc[0]["position_summary"] == "last_answer_token"
+        # val_accuracy field should be present
+        assert "val_accuracy" in ranked_val_acc[0]
 
     def test_last_token_only_ignores_other_summaries(self):
         """When position_summaries=('last_answer_token',), the other
@@ -862,10 +937,11 @@ class TestPaperFaithfulRanking:
         # Only one position summary in metadata
         assert metadata["position_summaries"] == ["last_answer_token"]
 
-    def test_recompute_directions_uses_all_data(self):
-        """After ranking, recomputing directions from full data should use
-        both train and val examples, producing a different direction than
-        the train-only direction from ranking."""
+    def test_compute_head_directions_with_explicit_indices(self):
+        """rank_heads returns no direction; compute_head_directions adds it
+        using only the specified fit indices."""
+        import copy
+
         examples = [
             iti_extract.ITIExample(
                 example_id=f"{split}_{label}_{idx}",
@@ -889,7 +965,6 @@ class TestPaperFaithfulRanking:
 
         # Train: true=[1,0], false=[-1,0] → direction ≈ [1,0]
         # Val: true=[0,1], false=[0,-1] → adds [0,1] component
-        # Full data: direction should have both components
         activations = {
             "last_answer_token": torch.tensor(
                 [
@@ -913,17 +988,316 @@ class TestPaperFaithfulRanking:
         ranked, _ = iti_extract.rank_heads(
             activations, examples, position_summaries=("last_answer_token",)
         )
-        # Train-only direction should be ≈ [1, 0]
-        train_dir = ranked[0]["direction"]
+        # rank_heads must not include direction or sigma
+        assert "direction" not in ranked[0]
+        assert "sigma" not in ranked[0]
+
+        # Train-only direction ≈ [1, 0]
+        train_indices = [i for i, ex in enumerate(examples) if ex.split == "train"]
+        ranked_train = copy.deepcopy(ranked)
+        iti_extract.compute_head_directions(
+            ranked_train,
+            activations,
+            examples,
+            train_indices,
+            direction_source="train_data",
+        )
+        train_dir = ranked_train[0]["direction"]
         assert abs(train_dir[0]) > 0.9
         assert abs(train_dir[1]) < 0.1
+        assert ranked_train[0]["direction_source"] == "train_data"
 
-        # Recompute from full data
-        ranked = iti_extract.recompute_directions_full_data(
-            ranked, activations, examples
+        # Dev direction (train+val) ≈ [0.707, 0.707]
+        all_indices = list(range(len(examples)))
+        ranked_dev = copy.deepcopy(ranked)
+        iti_extract.compute_head_directions(
+            ranked_dev,
+            activations,
+            examples,
+            all_indices,
+            direction_source="dev_data",
         )
-        full_dir = ranked[0]["direction"]
-        # Full direction should have both components ≈ [0.707, 0.707]
-        assert abs(full_dir[0]) > 0.5
-        assert abs(full_dir[1]) > 0.5
-        assert ranked[0]["direction_source"] == "full_data"
+        dev_dir = ranked_dev[0]["direction"]
+        assert abs(dev_dir[0]) > 0.5
+        assert abs(dev_dir[1]) > 0.5
+        assert ranked_dev[0]["direction_source"] == "dev_data"
+
+
+class TestCanonicalManifest:
+    """Tests for stable question ID generation."""
+
+    def test_stable_id_deterministic(self):
+        from build_truthfulqa_splits import stable_question_id
+
+        id1 = stable_question_id("What happens if you eat watermelon seeds?")
+        id2 = stable_question_id("What happens if you eat watermelon seeds?")
+        assert id1 == id2
+
+    def test_stable_id_case_insensitive(self):
+        from build_truthfulqa_splits import stable_question_id
+
+        assert stable_question_id("Hello?") == stable_question_id("hello?")
+
+    def test_stable_id_whitespace_normalized(self):
+        from build_truthfulqa_splits import stable_question_id
+
+        assert stable_question_id("  Hello? ") == stable_question_id("Hello?")
+        assert stable_question_id("a  b") == stable_question_id("a b")
+
+    def test_stable_id_format(self):
+        from build_truthfulqa_splits import stable_question_id
+
+        sid = stable_question_id("test question?")
+        assert sid.startswith("tqa_")
+        assert len(sid) == 16  # "tqa_" + 12 hex chars
+
+
+class TestFoldIntegrity:
+    """Tests for 2-fold CV split files."""
+
+    def test_no_overlap_between_dev_and_test(self):
+        from build_truthfulqa_splits import build_folds
+
+        questions = [{"stable_id": f"tqa_{i:012x}", "csv_idx": i} for i in range(20)]
+        folds = build_folds(questions, seed=42)
+        for f in folds:
+            dev = set(f["dev"]["train"]) | set(f["dev"]["val"])
+            test = set(f["test"])
+            assert dev.isdisjoint(test), f"Fold {f['fold']}: dev/test overlap"
+
+    def test_fold_symmetry(self):
+        from build_truthfulqa_splits import build_folds
+
+        questions = [{"stable_id": f"tqa_{i:012x}", "csv_idx": i} for i in range(20)]
+        folds = build_folds(questions, seed=42)
+        dev0 = set(folds[0]["dev"]["train"]) | set(folds[0]["dev"]["val"])
+        dev1 = set(folds[1]["dev"]["train"]) | set(folds[1]["dev"]["val"])
+        assert set(folds[0]["test"]) == dev1
+        assert set(folds[1]["test"]) == dev0
+
+    def test_full_coverage(self):
+        from build_truthfulqa_splits import build_folds
+
+        questions = [{"stable_id": f"tqa_{i:012x}", "csv_idx": i} for i in range(20)]
+        folds = build_folds(questions, seed=42)
+        all_ids = {q["stable_id"] for q in questions}
+        for f in folds:
+            covered = set(f["dev"]["train"]) | set(f["dev"]["val"]) | set(f["test"])
+            assert covered == all_ids
+
+    def test_train_val_disjoint(self):
+        from build_truthfulqa_splits import build_folds
+
+        questions = [{"stable_id": f"tqa_{i:012x}", "csv_idx": i} for i in range(20)]
+        folds = build_folds(questions, seed=42)
+        for f in folds:
+            assert set(f["dev"]["train"]).isdisjoint(set(f["dev"]["val"]))
+
+
+class TestDirectionFitScope:
+    """Tests for direction recomputation scope."""
+
+    def test_rejects_test_split_in_fit_indices(self):
+        """compute_head_directions must reject fit indices pointing to test examples."""
+        examples = [
+            iti_extract.ITIExample(
+                example_id="train_0",
+                family="test",
+                split="train",
+                qid="q0",
+                question="q",
+                answer="a",
+                label=iti_extract.LABEL_TRUE,
+                weight=1.0,
+                prompt_text="q a",
+                answer_positions=(1,),
+                metadata={},
+            ),
+            iti_extract.ITIExample(
+                example_id="test_0",
+                family="test",
+                split="test",
+                qid="q1",
+                question="q",
+                answer="a",
+                label=iti_extract.LABEL_TRUE,
+                weight=1.0,
+                prompt_text="q a",
+                answer_positions=(1,),
+                metadata={},
+            ),
+        ]
+        with pytest.raises(AssertionError, match="test-fold example"):
+            iti_extract.compute_head_directions(
+                [], {}, examples, [0, 1], direction_source="dev_data"
+            )
+
+
+class TestLeakageBarrierMetadata:
+    """Tests for question ID lists and audit in extraction metadata."""
+
+    _questions = [
+        {
+            "question": "What is 1+1?",
+            "correct_answers": ["2", "Two"],
+            "incorrect_answers": ["3"],
+        },
+        {
+            "question": "Capital of France?",
+            "correct_answers": ["Paris"],
+            "incorrect_answers": ["London", "Berlin"],
+        },
+        {
+            "question": "Sky color?",
+            "correct_answers": ["Blue"],
+            "incorrect_answers": ["Red"],
+        },
+        {
+            "question": "Water formula?",
+            "correct_answers": ["H2O"],
+            "incorrect_answers": ["CO2"],
+        },
+    ]
+
+    def test_metadata_contains_question_id_lists(self, tmp_path):
+        fold_path, csv_path = _write_fold_fixtures(
+            tmp_path,
+            self._questions,
+            train_idxs=[0],
+            val_idxs=[1],
+            test_idxs=[2, 3],
+        )
+
+        _, metadata = iti_extract.build_truthfulqa_paper_examples(
+            tokenizer=StubTokenizer(),
+            fold_path=fold_path,
+            csv_path=csv_path,
+        )
+
+        assert "question_ids_train" in metadata
+        assert "question_ids_val" in metadata
+        assert "question_ids_dev" in metadata
+        assert "question_ids_test" in metadata
+        assert len(metadata["question_ids_train"]) == 1
+        assert len(metadata["question_ids_val"]) == 1
+        assert len(metadata["question_ids_dev"]) == 2
+        assert len(metadata["question_ids_test"]) == 2
+
+        # dev = train ∪ val
+        assert set(metadata["question_ids_dev"]) == (
+            set(metadata["question_ids_train"]) | set(metadata["question_ids_val"])
+        )
+        # dev ∩ test = ∅
+        assert set(metadata["question_ids_dev"]).isdisjoint(
+            set(metadata["question_ids_test"])
+        )
+
+    def test_metadata_has_fit_source_fields(self, tmp_path):
+        fold_path, csv_path = _write_fold_fixtures(
+            tmp_path,
+            self._questions,
+            train_idxs=[0],
+            val_idxs=[1],
+            test_idxs=[2, 3],
+        )
+
+        _, metadata = iti_extract.build_truthfulqa_paper_examples(
+            tokenizer=StubTokenizer(),
+            fold_path=fold_path,
+            csv_path=csv_path,
+        )
+
+        assert metadata["direction_fit_source"] == "dev_only"
+        assert metadata["sigma_fit_source"] == "dev_only"
+        assert metadata["head_ranking_metric"] == "val_accuracy"
+        assert metadata["truthfulqa_manifest_fingerprint"] != ""
+        assert metadata["fold_file_fingerprint"] != ""
+
+    def test_metadata_split_fingerprints_include_test(self, tmp_path):
+        fold_path, csv_path = _write_fold_fixtures(
+            tmp_path,
+            self._questions,
+            train_idxs=[0],
+            val_idxs=[1],
+            test_idxs=[2, 3],
+        )
+
+        _, metadata = iti_extract.build_truthfulqa_paper_examples(
+            tokenizer=StubTokenizer(),
+            fold_path=fold_path,
+            csv_path=csv_path,
+        )
+
+        fp = metadata["split_fingerprint"]
+        assert "test_qids" in fp
+        assert "dev_qids" in fp
+        assert len(fp["test_qids"]) == 16  # hex fingerprint
+
+
+class TestAuditSplitLeakage:
+    """Tests for the audit_split_leakage utility."""
+
+    def test_clean_metadata_passes_audit(self):
+        from utils import audit_split_leakage
+
+        meta = {
+            "question_ids_train": ["q1", "q2"],
+            "question_ids_val": ["q3"],
+            "question_ids_dev": ["q1", "q2", "q3"],
+            "question_ids_test": ["q4", "q5"],
+            "direction_fit_source": "dev_only",
+            "sigma_fit_source": "dev_only",
+        }
+        audit = audit_split_leakage(meta)
+        assert audit["leakage_detected"] is False
+        assert audit["counts"]["train"] == 2
+        assert audit["counts"]["val"] == 1
+        assert audit["counts"]["dev"] == 3
+        assert audit["counts"]["test"] == 2
+        assert audit["overlap"]["dev_test"] == 0
+        assert audit["overlap"]["train_test"] == 0
+        assert audit["direction_fit_ids_equal_dev_ids"] is True
+
+    def test_leakage_detected_aborts(self):
+        from utils import audit_split_leakage
+
+        meta = {
+            "question_ids_train": ["q1", "q2"],
+            "question_ids_val": ["q3"],
+            "question_ids_dev": ["q1", "q2", "q3", "q4"],  # q4 is in test!
+            "question_ids_test": ["q4", "q5"],
+            "direction_fit_source": "dev_only",
+            "sigma_fit_source": "dev_only",
+        }
+        with pytest.raises(RuntimeError, match="FATAL.*test question"):
+            audit_split_leakage(meta)
+
+    def test_sample_ids_capped_at_five(self):
+        from utils import audit_split_leakage
+
+        train = [f"q{i}" for i in range(20)]
+        meta = {
+            "question_ids_train": train,
+            "question_ids_val": [],
+            "question_ids_dev": train,
+            "question_ids_test": [f"t{i}" for i in range(10)],
+            "direction_fit_source": "dev_only",
+            "sigma_fit_source": "dev_only",
+        }
+        audit = audit_split_leakage(meta)
+        assert len(audit["sample_ids"]["train"]) == 5
+        assert len(audit["sample_ids"]["test"]) == 5
+
+    def test_direction_fit_mismatch_flagged(self):
+        from utils import audit_split_leakage
+
+        meta = {
+            "question_ids_train": ["q1", "q2"],
+            "question_ids_val": ["q3"],
+            "question_ids_dev": ["q1", "q2"],  # missing q3 — mismatch
+            "question_ids_test": ["q4"],
+            "direction_fit_source": "dev_only",
+            "sigma_fit_source": "dev_only",
+        }
+        audit = audit_split_leakage(meta)
+        assert audit["direction_fit_ids_equal_dev_ids"] is False
