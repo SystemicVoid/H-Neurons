@@ -98,6 +98,8 @@ def build_iti_output_suffix(
     iti_k: int,
     iti_selection_strategy: str,
     iti_random_seed: int,
+    direction_mode: str = "artifact",
+    direction_random_seed: int | None = None,
 ) -> str:
     """Build a stable semantic suffix for default ITI experiment dirs."""
     resolved_path = Path(iti_head_path).expanduser().resolve(strict=False)
@@ -107,13 +109,19 @@ def build_iti_output_suffix(
     config_hash = hashlib.sha256(
         (
             f"{resolved_path}|{iti_family}|{iti_k}|"
-            f"{iti_selection_strategy}|{iti_random_seed}"
+            f"{iti_selection_strategy}|{iti_random_seed}|"
+            f"{direction_mode}|{direction_random_seed}"
         ).encode("utf-8")
     ).hexdigest()[:10]
     steering_label = (
         f"k-{iti_k}_{_slugify_path_component(iti_selection_strategy)}"
         f"_seed-{iti_random_seed}"
     )
+    if direction_mode != "artifact":
+        steering_label += (
+            f"_dir-{_slugify_path_component(direction_mode)}"
+            f"_dirseed-{direction_random_seed}"
+        )
     return (
         "iti-head_"
         f"{_slugify_path_component(iti_family)}_{steering_label}_"
@@ -145,6 +153,8 @@ def resolve_output_dir(args: argparse.Namespace) -> str:
             args.iti_k,
             args.iti_selection_strategy,
             args.iti_random_seed,
+            args.iti_direction_mode,
+            args.iti_direction_random_seed,
         )
         return f"data/gemma3_4b/intervention/{benchmark_name}_{iti_suffix}/experiment"
     if args.intervention_mode == "direction":
@@ -1351,8 +1361,36 @@ def run_bioasq(
 # ---------------------------------------------------------------------------
 
 
-def load_simpleqa(dataset_name: str = DEFAULT_SIMPLEQA_DATASET):
-    """Load SimpleQA from a HuggingFace mirror."""
+def load_simpleqa(
+    dataset_name: str = DEFAULT_SIMPLEQA_DATASET,
+    csv_path: str | None = None,
+):
+    """Load SimpleQA from local CSV or a HuggingFace mirror.
+
+    When *csv_path* is provided (e.g. ``data/benchmarks/simpleqa_verified.csv``),
+    load directly from CSV — no HuggingFace dependency.  The CSV is expected to
+    have columns ``original_index``, ``problem``, ``answer``, and optionally
+    ``topic`` and ``answer_type``.
+    """
+    if csv_path is not None:
+        import pandas as pd
+
+        df = pd.read_csv(csv_path)
+        samples = []
+        for idx, row in df.iterrows():
+            samples.append(
+                {
+                    "id": f"simpleqa_{row.get('original_index', idx)}",
+                    "question": row["problem"],
+                    "reference_answer": row["answer"],
+                    "metadata": {
+                        "topic": row.get("topic"),
+                        "answer_type": row.get("answer_type"),
+                    },
+                }
+            )
+        return samples
+
     from datasets import load_dataset
 
     ds = load_dataset(dataset_name, split="test")
@@ -2173,6 +2211,13 @@ def parse_args():
         default=DEFAULT_SIMPLEQA_DATASET,
         help="HuggingFace dataset name for SimpleQA.",
     )
+    p.add_argument(
+        "--simpleqa_path",
+        type=str,
+        default=None,
+        help="Path to local SimpleQA CSV (e.g. data/benchmarks/simpleqa_verified.csv). "
+        "Overrides --simpleqa_dataset when provided.",
+    )
     # TruthfulQA-specific
     p.add_argument(
         "--truthfulqa_variant",
@@ -2309,6 +2354,20 @@ def parse_args():
         type=int,
         default=42,
         help="Seed for random ITI negative-control head selection.",
+    )
+    p.add_argument(
+        "--iti_direction_mode",
+        type=str,
+        default="artifact",
+        choices=["artifact", "random"],
+        help="Direction source: 'artifact' (default) uses learned directions, "
+        "'random' replaces with random unit vectors for negative control.",
+    )
+    p.add_argument(
+        "--iti_direction_random_seed",
+        type=int,
+        default=None,
+        help="Seed for random direction generation (when --iti_direction_mode=random).",
     )
     p.add_argument(
         "--max_new_tokens",
@@ -2464,6 +2523,8 @@ def main():
                 k=args.iti_k,
                 selection_strategy=args.iti_selection_strategy,
                 random_seed=args.iti_random_seed,
+                direction_mode=args.iti_direction_mode,
+                direction_random_seed=args.iti_direction_random_seed,
             )
             total_neurons = scaler.n_heads_selected
             print(
@@ -2503,7 +2564,7 @@ def main():
             samples = load_bioasq(args.bioasq_path)
             run_fn = run_bioasq
         elif args.benchmark == "simpleqa":
-            samples = load_simpleqa(args.simpleqa_dataset)
+            samples = load_simpleqa(args.simpleqa_dataset, csv_path=args.simpleqa_path)
             run_fn = run_simpleqa
         elif args.benchmark == "truthfulqa_mc":
             samples = load_truthfulqa_mc(args.truthfulqa_variant)

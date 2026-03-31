@@ -549,6 +549,8 @@ class TestDirectionOutputDir:
             iti_k=16,
             iti_selection_strategy="ranked",
             iti_random_seed=42,
+            iti_direction_mode="artifact",
+            iti_direction_random_seed=None,
             truthfulqa_variant="mc1",
         )
 
@@ -568,6 +570,8 @@ class TestDirectionOutputDir:
             iti_k=16,
             iti_selection_strategy="ranked",
             iti_random_seed=42,
+            iti_direction_mode="artifact",
+            iti_direction_random_seed=None,
             truthfulqa_variant="mc1",
         )
 
@@ -595,6 +599,8 @@ class TestDirectionOutputDir:
             iti_k=16,
             iti_selection_strategy="ranked",
             iti_random_seed=42,
+            iti_direction_mode="artifact",
+            iti_direction_random_seed=None,
             direction_path="data/contrastive/refusal/directions/refusal_directions.pt",
             direction_mode="ablate",
             direction_layers=None,
