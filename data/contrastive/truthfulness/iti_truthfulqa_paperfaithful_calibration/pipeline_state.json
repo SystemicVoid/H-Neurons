@@ -1,0 +1,28 @@
+{
+  "seed": 42,
+  "gate_1_sweep": {
+    "completed_at": "2026-03-31T16:40:40.576947+00:00",
+    "sweep_results_path": "sweep_results.json",
+    "auto_suggestion": {
+      "K": 12,
+      "alpha": 12.0,
+      "mc1": 0.382716,
+      "mc2": 0.505906
+    },
+    "locked": {
+      "K": 12,
+      "alpha": 8.0,
+      "mc1": 0.37037,
+      "mc2": 0.499169
+    },
+    "human_override": {
+      "K": 12,
+      "alpha": 8.0,
+      "reason": "Statistically indistinguishable from auto-lock (1.23pp delta, n=81 CIs overlap ~95%); lower alpha reduces downstream degradation risk on SimpleQA/FalseQA/FaithEval; K=12 retains simpler head set; sitting on rising slope rather than lone spike guards against cal-set overfitting"
+    }
+  },
+  "gate_2_folds": {
+    "completed_at": "2026-03-31T19:00:00Z",
+    "status": "awaiting_review"
+  }
+}

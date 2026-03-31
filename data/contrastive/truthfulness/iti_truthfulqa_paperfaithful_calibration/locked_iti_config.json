@@ -1,0 +1,18 @@
+{
+  "model": null,
+  "direction_type": "mass_mean",
+  "ranking_metric": "val_accuracy",
+  "K_locked": 12,
+  "alpha_locked": 8.0,
+  "selection_rule": "mc1_primary_mc2_tiebreak_0.5pp_then_smaller_alpha_then_smaller_k",
+  "calibration_mc1": 0.37037,
+  "calibration_mc2": 0.499169,
+  "seed": 42,
+  "calibration_artifact_path": "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_calibration/iti_heads.pt",
+  "artifact_fingerprint": "461f3ca7e0a21876",
+  "human_override": {
+    "K": 12,
+    "alpha": 8.0,
+    "reason": "Statistically indistinguishable from auto-lock (1.23pp delta, n=81 CIs overlap ~95%); lower alpha reduces downstream degradation risk on SimpleQA/FalseQA/FaithEval; K=12 retains simpler head set; sitting on rising slope rather than lone spike guards against cal-set overfitting"
+  }
+}
