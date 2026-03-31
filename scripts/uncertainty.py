@@ -223,6 +223,48 @@ def paired_bootstrap_binary_rate_difference(
     }
 
 
+def paired_bootstrap_continuous_mean_difference(
+    baseline: np.ndarray,
+    comparison: np.ndarray,
+    *,
+    confidence: float = DEFAULT_CONFIDENCE,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+) -> dict[str, Any]:
+    baseline = np.asarray(baseline, dtype=float)
+    comparison = np.asarray(comparison, dtype=float)
+    if baseline.shape != comparison.shape:
+        raise ValueError("baseline and comparison must have matching shapes")
+    if baseline.ndim != 1:
+        raise ValueError("baseline and comparison must be one-dimensional")
+
+    n_items = len(baseline)
+    rng = np.random.default_rng(seed)
+    samples = np.empty(n_resamples, dtype=float)
+    for sample_idx in range(n_resamples):
+        indices = rng.choice(n_items, size=n_items, replace=True)
+        samples[sample_idx] = (
+            comparison[indices].mean() - baseline[indices].mean()
+        ) * 100.0
+
+    interval = percentile_interval(
+        samples,
+        confidence,
+        method="bootstrap_percentile_paired_continuous",
+    )
+    return {
+        "estimate_pp": float((comparison.mean() - baseline.mean()) * 100.0),
+        "ci_pp": interval.to_dict(),
+        "bootstrap": {
+            "n_resamples": int(n_resamples),
+            "seed": int(seed),
+            "confidence": float(confidence),
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile",
+        },
+    }
+
+
 def paired_bootstrap_curve_effects(
     trajectories: np.ndarray,
     alphas: np.ndarray,
