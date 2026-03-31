@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 3+4: Extract paper-faithful TruthfulQA ITI artifact (2-fold CV), then
 # evaluate on MC1/MC2.  Chain: extract → MC1 eval (K=16) → MC2 eval (K=16)
+# Uses iti_truthfulqa_paperfaithful family (val_accuracy ranking, last-token only).
 #
 # Usage:
 #   ./scripts/infra/phase4_truthfulqa_pipeline.sh          # both folds
@@ -16,14 +17,14 @@ for FOLD_IDX in ${FOLDS}; do
     FOLD_PATH="data/manifests/truthfulqa_fold${FOLD_IDX}_seed42.json"
     MANIFEST_MC1="data/manifests/truthfulqa_fold${FOLD_IDX}_heldout_mc1_seed42.json"
     MANIFEST_MC2="data/manifests/truthfulqa_fold${FOLD_IDX}_heldout_mc2_seed42.json"
-    ARTIFACT_DIR="data/contrastive/truthfulness/iti_truthfulqa_paper"
+    ARTIFACT_DIR="data/contrastive/truthfulness/iti_truthfulqa_paperfaithful"
     ARTIFACT_PATH="${ARTIFACT_DIR}/iti_heads.pt"
 
     echo "=== Fold ${FOLD_IDX}: Extract paper-faithful TruthfulQA ITI artifact ==="
     PYTHONUNBUFFERED=1 uv run python scripts/extract_truthfulness_iti.py \
-        --family iti_truthfulqa_paper --seed 42 \
+        --family iti_truthfulqa_paperfaithful --seed 42 \
         --fold_path "${FOLD_PATH}" \
-        2>&1 | tee logs/extract_truthfulqa_paper_fold${FOLD_IDX}.log
+        2>&1 | tee logs/extract_truthfulqa_paperfaithful_fold${FOLD_IDX}.log
 
     if [ ! -f "${ARTIFACT_PATH}" ]; then
         echo "FATAL: Artifact not found at ${ARTIFACT_PATH}" >&2
@@ -36,7 +37,7 @@ for FOLD_IDX in ${FOLDS}; do
     PYTHONUNBUFFERED=1 uv run python scripts/run_intervention.py \
         --intervention_mode iti_head \
         --iti_head_path "${ARTIFACT_PATH}" \
-        --iti_family truthfulqa_paper \
+        --iti_family truthfulqa_paperfaithful \
         --benchmark truthfulqa_mc --truthfulqa_variant mc1 \
         --iti_k 16 --alphas 0.0 1.0 2.0 4.0 8.0 12.0 16.0 \
         --sample_manifest "${MANIFEST_MC1}" \
@@ -47,7 +48,7 @@ for FOLD_IDX in ${FOLDS}; do
     PYTHONUNBUFFERED=1 uv run python scripts/run_intervention.py \
         --intervention_mode iti_head \
         --iti_head_path "${ARTIFACT_PATH}" \
-        --iti_family truthfulqa_paper \
+        --iti_family truthfulqa_paperfaithful \
         --benchmark truthfulqa_mc --truthfulqa_variant mc2 \
         --iti_k 16 --alphas 0.0 1.0 2.0 4.0 8.0 12.0 16.0 \
         --sample_manifest "${MANIFEST_MC2}" \

@@ -658,8 +658,8 @@ class TestTruthfulQAPaperExamples:
         assert splits == {"train", "val"}
 
         # Family and source metadata
-        assert all(ex.family == "iti_truthfulqa_paper" for ex in examples)
-        assert metadata["family"] == "iti_truthfulqa_paper"
+        assert all(ex.family == "iti_truthfulqa_paperfaithful" for ex in examples)
+        assert metadata["family"] == "iti_truthfulqa_paperfaithful"
         assert "questions.csv" in metadata["source_dataset"]
 
     def test_excludes_test_fold_questions(self, tmp_path):
@@ -715,7 +715,7 @@ class TestPaperFaithfulRanking:
             [
                 iti_extract.ITIExample(
                     example_id=f"train_t_{idx}",
-                    family="iti_truthfulqa_paper",
+                    family="iti_truthfulqa_paperfaithful",
                     split="train",
                     qid=f"train_t_{idx}",
                     question="q",
@@ -731,7 +731,7 @@ class TestPaperFaithfulRanking:
             + [
                 iti_extract.ITIExample(
                     example_id=f"train_f_{idx}",
-                    family="iti_truthfulqa_paper",
+                    family="iti_truthfulqa_paperfaithful",
                     split="train",
                     qid=f"train_f_{idx}",
                     question="q",
@@ -747,7 +747,7 @@ class TestPaperFaithfulRanking:
             + [
                 iti_extract.ITIExample(
                     example_id=f"val_t_{idx}",
-                    family="iti_truthfulqa_paper",
+                    family="iti_truthfulqa_paperfaithful",
                     split="val",
                     qid=f"val_t_{idx}",
                     question="q",
@@ -763,7 +763,7 @@ class TestPaperFaithfulRanking:
             + [
                 iti_extract.ITIExample(
                     example_id=f"val_f_{idx}",
-                    family="iti_truthfulqa_paper",
+                    family="iti_truthfulqa_paperfaithful",
                     split="val",
                     qid=f"val_f_{idx}",
                     question="q",
@@ -830,7 +830,7 @@ class TestPaperFaithfulRanking:
             [
                 iti_extract.ITIExample(
                     example_id=f"train_t_{idx}",
-                    family="iti_truthfulqa_paper",
+                    family="iti_truthfulqa_paperfaithful",
                     split="train",
                     qid=f"train_t_{idx}",
                     question="q",
@@ -846,7 +846,7 @@ class TestPaperFaithfulRanking:
             + [
                 iti_extract.ITIExample(
                     example_id=f"train_f_{idx}",
-                    family="iti_truthfulqa_paper",
+                    family="iti_truthfulqa_paperfaithful",
                     split="train",
                     qid=f"train_f_{idx}",
                     question="q",
@@ -862,7 +862,7 @@ class TestPaperFaithfulRanking:
             + [
                 iti_extract.ITIExample(
                     example_id=f"val_t_{idx}",
-                    family="iti_truthfulqa_paper",
+                    family="iti_truthfulqa_paperfaithful",
                     split="val",
                     qid=f"val_t_{idx}",
                     question="q",
@@ -878,7 +878,7 @@ class TestPaperFaithfulRanking:
             + [
                 iti_extract.ITIExample(
                     example_id=f"val_f_{idx}",
-                    family="iti_truthfulqa_paper",
+                    family="iti_truthfulqa_paperfaithful",
                     split="val",
                     qid=f"val_f_{idx}",
                     question="q",
@@ -945,7 +945,7 @@ class TestPaperFaithfulRanking:
         examples = [
             iti_extract.ITIExample(
                 example_id=f"{split}_{label}_{idx}",
-                family="iti_truthfulqa_paper",
+                family="iti_truthfulqa_paperfaithful",
                 split=split,
                 qid=f"{split}_{idx}",
                 question="q",

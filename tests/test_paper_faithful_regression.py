@@ -109,7 +109,7 @@ def _make_examples(
                 examples.append(
                     ITIExample(
                         example_id=f"{split}_{label}_{idx}",
-                        family="iti_truthfulqa_paper",
+                        family="iti_truthfulqa_paperfaithful",
                         split=split,
                         qid=f"tqa_fake_{idx:04d}",
                         question="Q?",
@@ -366,7 +366,7 @@ class TestDirectionFittingSemantics:
         # Add a test-split example
         test_ex = ITIExample(
             example_id="test_0",
-            family="iti_truthfulqa_paper",
+            family="iti_truthfulqa_paperfaithful",
             split="test",
             qid="tqa_test_0000",
             question="Q?",

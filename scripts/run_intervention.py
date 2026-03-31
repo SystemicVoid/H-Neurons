@@ -2289,7 +2289,12 @@ def parse_args():
         "--iti_family",
         type=str,
         default="triviaqa_transfer",
-        choices=["triviaqa_transfer", "context_grounded", "truthfulqa_paper"],
+        choices=[
+            "triviaqa_transfer",
+            "context_grounded",
+            "truthfulqa_paperfaithful",
+            "truthfulqa_exploratory",
+        ],
         help="Expected family label for the ITI artifact.",
     )
     p.add_argument(

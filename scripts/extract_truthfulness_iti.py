@@ -1,14 +1,18 @@
 """Extract head-level ITI artifacts for truthfulness steering.
 
-This script builds one of three explicit artifact families:
+This script builds one of four explicit artifact families:
 
 - ``iti_triviaqa_transfer``: closed-book factuality transfer from TriviaQA
   consistency responses.
 - ``iti_context_grounded``: matched context-grounded answering + abstention
   from SQuAD-v2.
-- ``iti_truthfulqa_paper``: paper-faithful extraction from TruthfulQA QA pairs
-  following Li et al. (arXiv 2306.03341v6).  Last-token only, validation-
-  accuracy ranking, 2-fold CV with dev/test split from fold files.
+- ``iti_truthfulqa_paperfaithful``: paper-faithful extraction from TruthfulQA
+  QA pairs following Li et al. (arXiv 2306.03341v6).  Last-token only,
+  validation-accuracy ranking, 2-fold CV with dev/test split from fold files.
+- ``iti_truthfulqa_exploratory``: same TruthfulQA data source, but with
+  modernized ranking (AUROC primary, all position summaries).  Use this path
+  to iterate on ranking metrics, candidate pruning, or alpha/K search without
+  polluting the paper-faithful baseline.
 
 The extraction surface is the tensor immediately before ``self_attn.o_proj``.
 Heads are ranked by probe metrics and steered with a truthful-oriented
@@ -88,7 +92,8 @@ def parse_args() -> argparse.Namespace:
         choices=[
             "iti_triviaqa_transfer",
             "iti_context_grounded",
-            "iti_truthfulqa_paper",
+            "iti_truthfulqa_paperfaithful",
+            "iti_truthfulqa_exploratory",
         ],
     )
     parser.add_argument(
@@ -132,7 +137,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Fold JSON from build_truthfulqa_splits.py. "
-        "Required for iti_truthfulqa_paper.",
+        "Required for iti_truthfulqa_paperfaithful and iti_truthfulqa_exploratory.",
     )
     parser.add_argument(
         "--csv_path",
@@ -147,7 +152,8 @@ def default_output_dir(family: str) -> Path:
     suffix_map = {
         "iti_triviaqa_transfer": "iti_triviaqa",
         "iti_context_grounded": "iti_context",
-        "iti_truthfulqa_paper": "iti_truthfulqa_paper",
+        "iti_truthfulqa_paperfaithful": "iti_truthfulqa_paperfaithful",
+        "iti_truthfulqa_exploratory": "iti_truthfulqa_exploratory",
     }
     suffix = suffix_map[family]
     return Path("data/contrastive/truthfulness") / suffix
@@ -575,17 +581,27 @@ def _qa_prompt_paper(question: str, answer: str) -> tuple[str, str]:
     return prefix, full
 
 
+TRUTHFULQA_FAMILIES = ("iti_truthfulqa_paperfaithful", "iti_truthfulqa_exploratory")
+
+
 def build_truthfulqa_paper_examples(
     *,
     tokenizer: Any,
     fold_path: Path,
     csv_path: Path = Path("data/benchmarks/TruthfulQA.csv"),
+    family: str = "iti_truthfulqa_paperfaithful",
 ) -> tuple[list[ITIExample], dict[str, Any]]:
     """Build QA pairs from TruthfulQA following the paper's 2-fold CV protocol.
 
     Uses a fold file (from ``build_truthfulqa_splits.py``) that specifies which
     questions belong to train, val, and test.  **Test-fold questions are
     excluded entirely** so they never contaminate directions or ranking.
+
+    Both ``iti_truthfulqa_paperfaithful`` and ``iti_truthfulqa_exploratory``
+    share this builder — the data source, split logic, and prompt format are
+    identical.  What differs is the *ranking* and *position-summary* config
+    applied downstream in ``main()``.  The ``family`` parameter is threaded
+    into each example and into the metadata so the artifact is self-describing.
 
     - Data: official TruthfulQA CSV (canonical source, 817 questions, dev-fold only)
     - Each Correct Answer → truthful pair, each Incorrect Answer → untruthful pair
@@ -637,7 +653,7 @@ def build_truthfulqa_paper_examples(
             examples.append(
                 ITIExample(
                     example_id=f"{split}_{qid}_truthful_{len(examples)}",
-                    family="iti_truthfulqa_paper",
+                    family=family,
                     split=split,
                     qid=qid,
                     question=question,
@@ -660,7 +676,7 @@ def build_truthfulqa_paper_examples(
             examples.append(
                 ITIExample(
                     example_id=f"{split}_{qid}_untruthful_{len(examples)}",
-                    family="iti_truthfulqa_paper",
+                    family=family,
                     split=split,
                     qid=qid,
                     question=question,
@@ -681,7 +697,7 @@ def build_truthfulqa_paper_examples(
     dev_qid_list = sorted(train_ids | val_ids)
 
     metadata = {
-        "family": "iti_truthfulqa_paper",
+        "family": family,
         "source_dataset": str(csv_path),
         "protocol": "li_et_al_2306.03341v6_2fold",
         "prompt_format": "Q: {question}\\nA: {answer}",
@@ -975,10 +991,10 @@ def main() -> None:
                 train_cap_per_qid_label=args.train_cap_per_qid_label,
                 val_cap_per_qid_label=args.val_cap_per_qid_label,
             )
-        elif args.family == "iti_truthfulqa_paper":
+        elif args.family in TRUTHFULQA_FAMILIES:
             if args.fold_path is None:
                 raise ValueError(
-                    "--fold_path is required for iti_truthfulqa_paper. "
+                    f"--fold_path is required for {args.family}. "
                     "Generate fold files with: "
                     "uv run python scripts/build_truthfulqa_splits.py --seed 42"
                 )
@@ -986,6 +1002,7 @@ def main() -> None:
                 tokenizer=tokenizer,
                 fold_path=args.fold_path,
                 csv_path=args.csv_path,
+                family=args.family,
             )
         else:
             examples, family_metadata = build_context_grounded_examples(
@@ -996,7 +1013,7 @@ def main() -> None:
             )
 
         # Paper-faithful: last-token only, plain val_accuracy ranking
-        is_paper_faithful = args.family == "iti_truthfulqa_paper"
+        is_paper_faithful = args.family == "iti_truthfulqa_paperfaithful"
         rank_position_summaries = (
             ("last_answer_token",) if is_paper_faithful else POSITION_SUMMARIES
         )
@@ -1021,7 +1038,8 @@ def main() -> None:
             position_summaries=rank_position_summaries,
             ranking_primary=rank_primary,
         )
-        if is_paper_faithful:
+        is_truthfulqa = args.family in TRUTHFULQA_FAMILIES
+        if is_truthfulqa:
             direction_fit_indices = list(range(len(examples)))
             direction_source = "dev_data"
         else:
