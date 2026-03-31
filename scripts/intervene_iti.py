@@ -83,6 +83,8 @@ class ITIHeadScaler:
         k: int = 16,
         selection_strategy: str = "ranked",
         random_seed: int = 42,
+        direction_mode: str = "artifact",
+        direction_random_seed: int | None = None,
     ):
         self._alpha = 0.0
         self.hooks: list[Any] = []
@@ -98,6 +100,8 @@ class ITIHeadScaler:
         self.family = artifact.get("family", family)
         self.selection_strategy = selection_strategy
         self.random_seed = random_seed
+        self.direction_mode = direction_mode
+        self.direction_random_seed = direction_random_seed
         self.n_layers = int(artifact["n_layers"])
         self.n_attention_heads = int(artifact["n_attention_heads"])
         self.head_dim = int(artifact["head_dim"])
@@ -125,11 +129,27 @@ class ITIHeadScaler:
     def _build_selected_by_layer(
         self, *, device: torch.device
     ) -> dict[int, list[dict[str, Any]]]:
+        # Pre-generate random unit vectors if direction_mode == "random"
+        random_gen: torch.Generator | None = None
+        if self.direction_mode == "random":
+            random_gen = torch.Generator(device="cpu")
+            random_gen.manual_seed(
+                self.direction_random_seed
+                if self.direction_random_seed is not None
+                else self.random_seed
+            )
+
         by_layer: dict[int, list[dict[str, Any]]] = {}
         for item in self.selected_heads:
-            direction = torch.tensor(
-                item["direction"], dtype=torch.float32, device=device
-            )
+            if random_gen is not None:
+                rand_dir = torch.randn(self.head_dim, generator=random_gen)
+                direction = (rand_dir / rand_dir.norm()).to(device=device)
+                direction_source = "random"
+            else:
+                direction = torch.tensor(
+                    item["direction"], dtype=torch.float32, device=device
+                )
+                direction_source = "artifact"
             sigma = float(item["sigma"])
             applied_sigma = sigma * self._random_sigma_scale
             by_layer.setdefault(int(item["layer"]), []).append(
@@ -141,6 +161,7 @@ class ITIHeadScaler:
                     "position_summary": item["position_summary"],
                     "auroc": float(item["auroc"]),
                     "balanced_accuracy": float(item["balanced_accuracy"]),
+                    "direction_source": direction_source,
                 }
             )
         return by_layer
@@ -268,6 +289,7 @@ class ITIHeadScaler:
             "prompt_skip_calls": self._sample_prompt_skip_calls,
             "debug_steps": list(self._debug_steps),
             "selection_strategy": self.selection_strategy,
+            "direction_mode": self.direction_mode,
             "n_heads_selected": self.n_heads_selected,
             "family": self.family,
         }
