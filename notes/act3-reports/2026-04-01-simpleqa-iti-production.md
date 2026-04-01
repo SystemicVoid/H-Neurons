@@ -9,8 +9,9 @@
 > ```
 >
 > The current canonical interpretation of D4 generation results now lives in
-> [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md),
-> which includes the later forced-commitment rerun (`--simpleqa_prompt_style factual_phrase`).
+> [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md),
+> with the initial forced-commitment rerun documented in
+> [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md).
 > Do not cite this file alone as the current SimpleQA status.
 
 **Date:** 2026-04-01

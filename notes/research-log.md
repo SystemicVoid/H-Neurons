@@ -7,6 +7,7 @@
 ### What I did
 
 Three results closed. Full numbers and pipeline audit: [2026-04-01-priority-reruns-audit.md](./act3-reports/2026-04-01-priority-reruns-audit.md).
+Follow-up D4 specificity control: [2026-04-01-random-head-specificity-audit.md](./act3-reports/2026-04-01-random-head-specificity-audit.md).
 
 **D4 TruthfulQA MC canonical result locked.** The K=12 α=8 paper-faithful artifact, run over the two final held-out folds (655 questions total), is now the definitive D4 MC result: MC1 26.7%→33.0% (+6.3pp, 95% CI [+3.7, +8.9]), MC2 43.1%→50.2% (+7.2pp, 95% CI [+4.1, +10.2]). This supersedes the earlier 163-question K=16 gate-run headline for all citation purposes.
 
@@ -20,13 +21,13 @@ Expected the escape-hatch removal to unmask a real improvement — that the "I d
 
 ### What this changes about my thinking
 
-D4 genuinely improves MC answer selection (discriminative) but fails on free-form factual generation (generative). These are different capabilities, and the intervention doesn't transfer between them. The ITI direction appears to shift the model toward confident-sounding output generally, not specifically toward factually correct output. Whether this is direction-specific or just a generic perturbation artifact is what the random-head control will test.
+D4 genuinely improves MC answer selection (discriminative) but fails on free-form factual generation (generative). These are different capabilities, and the intervention doesn't transfer between them. The random-head follow-up later showed the failure is not generic matched-K perturbation; it is specific to the ranked configuration. That narrows the next question to decode scope and component choice, not "does any perturbation of this size break generation?"
 
 ### What I will do next
 
-**Priority 1:** Random-head control on the forced-commitment prompt surface — needed to separate "the truthfulness direction is actively harmful for generation" from "any perturbation at this scale is harmful for generation."
+**Priority 1:** Decode-scope ablation on the forced-commitment prompt surface — the random-head control is now complete and rules out the generic-perturbation explanation.
 
-**Priority 2 (conditional):** Only if the control shows the failure is direction-specific, decide whether generation-calibrated extraction (Stage A of [optimise-intervention-ac3.md](./act3-reports/optimise-intervention-ac3.md)) is worth doing.
+**Priority 2 (conditional):** Only after the scope test, decide whether `E1`, `E2`, or a decomposition control like random-direction should come before any generation-calibrated extraction.
 
 ---
 

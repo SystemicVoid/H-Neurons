@@ -1,13 +1,14 @@
 # Optimising The Truthfulness Intervention — Act 3 Strategy
 
 **Date:** 2026-04-01  
-**Status:** Revised after repo audit, raw-data check, code-path audit, and literature review  
+**Status:** Revised after repo audit, raw-data check, code-path audit, literature review, and the forced-commitment random-head specificity control
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)  
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
 > This file is the strategy note for "what to try next."  
 > Current result facts live in:
 > - [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md)
+> - [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
 > - [act3-sprint.md](../act3-sprint.md)
 > - [measurement-blueprint.md](../measurement-blueprint.md)
 
@@ -22,11 +23,11 @@ The grounded conclusion is:
 1. We already have a D4-class intervention that beats H-neurons on the clean answer-selection axis.
 2. We do **not** yet have a D4-class intervention that is useful for free-form factual generation.
 3. The highest-value next question is therefore **not** "can we find any stronger truth vector?" It is:
-   **can we make truth steering more selective at generation time, and can we show the effect is specific rather than generic perturbation?**
+   **can we make truth steering more selective at generation time, now that the first specificity control has ruled out generic matched-`K` perturbation?**
 4. That means the next work should prioritize:
-   - forced-commitment **random-head control**
    - **decode-scope ablation**
    - only then **artifact improvements** (`E1`, `E2`, then conditional `E3`)
+   - optional **random-direction decomposition** only if scope remains ambiguous
 5. A bridge generation benchmark is a good idea, but it should be added **before chooser work**, not before the cheap control/scope discriminators.
 
 ---
@@ -239,21 +240,69 @@ That breaks into four falsifiable hypotheses:
 - cheapest way to test whether the SimpleQA failure is a truth-direction effect
   or generic head perturbation
 
-**Run**
+**Outcome**
 
-- Benchmark: forced-commitment SimpleQA (`factual_phrase`)
-- Samples: 200 as a pilot
-- Artifact family: current paper-faithful ITI
-- Selection: `iti_selection_strategy=random`
-- Match current D4 operating point at minimum for `α=8.0`
-- If budget permits, also include `α=4.0`
+- **Completed.**
+- Canonical audit:
+  [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
+- Result:
+  the ranked `α=8.0` configuration loses `31.0` attempt-rate points on the
+  shared 200-ID slice, while all three random-head seeds stay essentially at
+  baseline attempt rate.
+- Interpretation:
+  the current failure is **not** generic matched-`K` perturbation. It is
+  specific to the ranked configuration, meaning the selected head set and/or
+  its coupling to the learned directions.
 
-**Decision rule**
+**Protocol**
 
-- If random heads reproduce the attempt/compliance collapse, the current
-  generation failure is mostly generic perturbation.
-- If they do not, the failure is more likely tied to the selected heads or
-  direction.
+- Benchmark: forced-commitment SimpleQA
+  (`--simpleqa_prompt_style factual_phrase`)
+- Sample set: fixed 200-question topic-stratified manifest
+  [`data/manifests/simpleqa_verified_control200_seed42.json`](../../data/manifests/simpleqa_verified_control200_seed42.json)
+  so every control and every later generation pilot stays paired
+- Artifact: existing paper-faithful production ITI artifact
+  [`data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/iti_heads.pt`](../../data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/iti_heads.pt)
+- Intervention family: current D4 head-level ITI, `K=12`
+- Control mode: `--iti_selection_strategy random`
+- Direction mode: `--iti_direction_mode artifact`
+- Random-head seeds: `1`, `2`, `3`
+- Alpha grid: `4.0`, `8.0`
+- Comparator: do **not** rerun ranked D4. Reuse the existing canonical
+  forced-commitment ranked run, filtered to the same 200 IDs
+
+**What to report**
+
+- primary metrics: attempt rate, precision, compliance
+- uncertainty: Wilson 95% CIs for rates and paired bootstrap deltas vs the
+  shared `α=0.0` baseline on the same 200 IDs
+- secondary diagnostics: `NOT_ATTEMPTED` language profile and per-example grade
+  transitions
+- presentation shape: one table for the ranked subset, one per-seed table for
+  random-head, plus a short seed-range summary
+
+**Interpretation bands**
+
+- **Direction-specific failure**:
+  the ranked subset shows the known collapse, while all three random-head seeds
+  stay materially closer to baseline on attempt rate and compliance
+- **Generic perturbation failure**:
+  at least two of three random-head seeds reproduce the ranked direction on
+  attempt rate and compliance, with overlapping delta uncertainty
+- **Ambiguous**:
+  anything in between; if ambiguous, expand the control before moving on
+
+**Stop/go rule**
+
+- Only proceed to decode-scope ablation if this control does **not** already
+  collapse the hypothesis into "generic perturbation at this intervention
+  scale."
+- If ambiguous, expand the control rather than moving to scope or artifact work.
+
+**Status after completion**
+
+- The control did **not** support the generic-perturbation hypothesis.
+- Proceed to **5.2 Decode-scope ablation**.
 
 ### 5.2 Decode-scope ablation on the existing paper-faithful artifact
 
@@ -297,7 +346,8 @@ problem is not just "too many decode tokens."
 ## Stage 2: Artifact Improvements Under The Best Scope
 
 Only start this after Stage 1, so we do not confound "better vector" with
-"better application policy."
+"better application policy." The random-head control is now complete, so the
+current first live question is scope.
 
 ### 5.3 E1 first: TruthfulQA-modernized
 
@@ -405,7 +455,8 @@ thing that could work.
 
 Escalate to a small GCM-inspired pilot if:
 
-- random-head control shows the current effect is direction-specific, but
+- the completed random-head control still leaves the harmful effect specific to
+  the current ranked configuration, and
 - decode-scope ablation and `E1`/`E2`/`E3` still look like commitment damping
 
 That would shift the diagnosis from "wrong scope" or "wrong dataset source" to
@@ -449,7 +500,7 @@ Instead:
 
 Kill or pause a branch if:
 
-- random heads reproduce the main effect
+- a stronger decomposition control reproduces the main effect after scope work
 - a narrower decode scope does not improve generation usefulness
 - `E1` and `E2` both fail under the best scope
 - bridge-benchmark oracle headroom is too small for chooser work
@@ -460,7 +511,8 @@ That is how we avoid spending the sprint on elegant but low-yield complexity.
 
 ## 7. Concrete Priority Order
 
-1. Run forced-commitment random-head control.
+1. Forced-commitment random-head control completed:
+   [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
 2. Implement and run decode-scope ablation on the current paper-faithful artifact.
 3. If a better scope exists, lock it and carry it forward.
 4. Run `E1` under the locked scope.

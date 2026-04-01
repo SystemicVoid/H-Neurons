@@ -1,10 +1,12 @@
 # Act 3 Priority Reruns Audit — 2026-04-01
 
-> **Status: current source of truth for the 2026-04-01 D1 TruthfulQA rerun and the forced-commitment SimpleQA rerun.**
+> **Status: current source of truth for the 2026-04-01 D1 TruthfulQA rerun and the initial forced-commitment SimpleQA ranked rerun.**
 >
-> Use this report for current interpretation. Older reports remain useful as
-> historical records of earlier prompt surfaces or earlier decision points, but
-> should link here rather than restating the updated conclusions.
+> For the later forced-commitment random-head specificity control, use
+> [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md).
+> Older reports remain useful as historical records of earlier prompt surfaces
+> or earlier decision points, but should link to the current canonical audit
+> rather than restating conclusions.
 
 ## Scope
 
@@ -284,19 +286,19 @@ Evidence:
 
 ### 4. What still needs rerunning, and in what order
 
-1. **Random-head control on the forced-commitment prompt surface.**
-   The next unresolved question is not "does prompt repair fix it?" That is now
-   answered. The unresolved question is whether the remaining generation null is
-   specific to the learned truthfulness direction or generic to strong head
-   perturbation.
+1. **Decode-scope ablation on the current paper-faithful ITI artifact.**
+   The follow-up random-head control is now complete and is audited in
+   [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md).
+   That control did not support the generic-perturbation hypothesis, so the
+   next live question is whether the current ranked configuration fails because
+   it is applied across too much of the generated continuation.
 2. **D1 externality/capability battery.**
    Since the ranking question is settled, D1 should move back onto the sprint's
    completeness track: graded jailbreak negative control, IFEval, and
    perplexity.
-3. **Generation-calibrated extraction only if D4 generation is still worth
-   pursuing after the random-head control.**
+3. **Artifact work only after the scope discriminator.**
    The current evidence does not justify treating this as the next automatic
-   step. It is now a conditional salvage path, not the default continuation.
+   step. It remains a conditional path after the cheaper scope test.
 
 ## Canonical Conclusions
 
@@ -312,6 +314,10 @@ Evidence:
 
 - Use this report as the canonical reference for the two April 1 priority
   reruns.
+- Use
+  [`2026-04-01-random-head-specificity-audit.md`](./2026-04-01-random-head-specificity-audit.md)
+  as the canonical reference for the later forced-commitment random-head
+  specificity control.
 - Keep
   [`2026-04-01-simpleqa-iti-production.md`](./2026-04-01-simpleqa-iti-production.md)
   as the historical audit of the **escape-hatch** SimpleQA surface only.
