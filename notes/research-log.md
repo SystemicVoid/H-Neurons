@@ -6,19 +6,49 @@
 
 ### What I did
 
-Spent the day making the ITI evaluation honest. After the Phase 4 results from yesterday flagged multiple validity issues, worked through them systematically: fixed the train/test leakage in direction extraction, corrected the head ranking metric to match the paper (val_accuracy, not balanced_accuracy), migrated extraction to last-token-only position, switched to a proper 2-fold CV split, and added a random-direction control mode to ITIHeadScaler so the eval can distinguish "these head positions matter" from "these learned directions matter." Also built a K×α calibration sweep (54 combinations: K=[8,12,16,24,32,40] × α=[0.0,0.5,1.0,2.0,4.0,6.0,8.0,12.0,16.0]) that runs against a held-out calibration fold — so hyperparameters are locked before touching the two test folds. Found and fixed a stacked-hooks bug (FIX 6) in the sweep: the previous loop placement left K=n−1 hooks active when constructing the K=n scaler, causing double-applied interventions for every K > 8. Added regression tests covering: no test leakage into dev fold, fold-swap symmetry, full question coverage, last-token extraction, val_accuracy ranking, and stable question ID matching between extraction and MC manifests.
+**Pipeline hardening.** After Phase 4's validity issues, worked through the ITI pipeline systematically and fixed every identified problem: train/test leakage in direction extraction, wrong head-ranking metric (balanced_accuracy → val_accuracy to match the paper), extraction migrated to last-token-only position, 2-fold CV architecture replacing the informal train/val split, random-direction control mode added to `ITIHeadScaler` to separate "these head *positions* matter" from "these learned *directions* matter." Found and fixed a critical stacked-hooks bug (FIX 6): the previous loop placement left K=n−1 hooks active when constructing the K=n scaler, meaning the Phase 4 K=16 run had K=8 and K=12 hooks still attached — effectively running with 36 simultaneous hooks instead of 16. Regression tests added for: fold-swap symmetry, no test leakage into dev fold, full question coverage, last-token extraction, val_accuracy ranking, and stable question ID matching between extraction and MC manifests.
+
+**Gate 1 calibration sweep — completed.** Ran the 54-point K×α grid (K∈{8,12,16,24,32,40} × α∈{0.0,0.5,1.0,2.0,4.0,6.0,8.0,12.0,16.0}) against the held-out calibration fold (n=81 cal-val questions, seed=42), with the paper-faithful artifact extracted on the clean pipeline. Full MC1 heatmap:
+
+```
+         α→   0.0   0.5   1.0   2.0   4.0   6.0   8.0  12.0  16.0
+K= 8        22.2  23.5  23.5  25.9  25.9  30.9  30.9  33.3  32.1
+K=12        22.2  23.5  25.9  27.2  34.6  35.8  37.0 *38.3* 34.6
+K=16        22.2  23.5  24.7  25.9  29.6  34.6  35.8  35.8  35.8
+K=24        22.2  23.5  24.7  24.7  24.7  23.5  23.5  23.5  24.7
+K=32        22.2  23.5  24.7  23.5  18.5  18.5  18.5  21.0  17.3
+K=40        22.2  25.9  27.2  25.9  22.2  22.2  22.2  17.3  14.8
+```
+
+Baseline (α=0): MC1=22.22%, MC2=40.79%. Peak: K=12 α=12 at MC1=38.27%, MC2=50.59% — but this is a lone spike with no combos within 1pp. MC1–MC2 Pearson r=0.937 across all 54 combos. K≥24 collapses: at K=24 even the best α barely exceeds baseline; at K=32/40 high-α actively degrades below no-intervention. K=16 plateau: α∈{8,12,16} all yield exactly 35.80% MC1 — the intervention saturates and further α stops flipping answers.
+
+**Config locked: K=12, α=8.0.** Auto-lock favoured K=12 α=12 (38.27%), but manual override to α=8.0 (37.04%): the 1.23pp gap is noise on n=81 (z=0.16, p=0.87), and lower α means less representation perturbation for the downstream generation benchmarks. This was written to `locked_iti_config.json` with the artifact fingerprint `461f3ca7e0a21876`. Pipeline state advanced to gate_1_sweep.locked.
 
 ### What I expected vs what happened
 
-Expected the fixes to be plumbing — clean them up, rerun, similar ballpark numbers. The stacked-hooks bug was a surprise: it means the Phase 4 runs at K=16 were effectively running with cumulative hooks from K=8 and K=12 still attached. The calibration sweep has not yet produced output (the GPU job is staged but not run), so there are no new result numbers to report yet.
+The stacked-hooks bug was the real surprise — it invalidates the Phase 4 TruthfulQA MC numbers (+4.3pp MC1, +8.5pp MC2 at K=16) entirely. Those runs had cumulative hooks from K=8 and K=12 still attached at K=16, making the intervention uninterpretable. The sweep itself ran cleanly and confirmed the direction is real: the MC1 surface shows a coherent K×α landscape with a genuine hot zone at K∈{8,12,16} × α∈{6,8,12}. The K=24+ collapse is structurally informative — marginal heads carry noise, not signal, and at high α they actively push representations in harmful directions.
+
+The sweep CIs are wide (±10pp at n=81) — this is expected and is exactly why Gate 2 (n≈327 over 2-fold eval) exists. The surface structure and the K=12 selection are defensible, but no individual number from the calibration fold is reliable.
 
 ### What this changes about my thinking
 
-The Phase 4 TruthfulQA MC results from yesterday (MC1: +4.3 pp, MC2: +8.5 pp) cannot be treated as even preliminary evidence — the extraction was leaking test questions into direction fitting, ranking on the wrong metric, and the sweep runner had stacked hooks. The signals may be real, but the numbers are not. The right posture is: all Phase 4 numbers are superseded pending the clean rerun. The calibration sweep approach is the correct protocol: lock K and α on a held-out calibration fold first, then run the 2-fold test without touching those decisions again.
+The Phase 4 MC numbers are superseded. The direction is real — the surface is coherent, not random — but the magnitude and precise operating point need the 2-fold held-out eval to be trustworthy. More interestingly, the K=24+ collapse reveals something about the geometry: the truthfulness direction lives in a low-dimensional subspace of the top-ranked heads. Once you include marginal heads (K≥24), you're injecting perturbations in subspaces unrelated to the direction, and high α compounds the damage. ITI is a precision instrument that degrades into a blunt hammer past K≈16.
+
+The clean sweep also makes the calibration→test split protocol feel right: we locked K and α on a held-out fold before touching the test folds. That is the only defensible way to report downstream numbers.
 
 ### What I will do next
 
-Run the calibration sweep and 2-fold eval with the locked config. After that, produce the aggregate report (already scripted: `scripts/report_iti_2fold.py`) with paired bootstrap CIs. Only then decide whether ITI earns a real comparison slot against H-neuron scaling and D4.
+**Immediate: execute Gate 2.** Run the locked config (K=12, α=8.0, paper-faithful artifact) over the two held-out test folds (n≈327 total) via `scripts/infra/iti_pipeline_evaluate.sh`. Report paired bootstrap CIs. This is the last gate before ITI earns a comparison slot against H-neuron scaling and D4.
+
+**Structural next: build the candidate lattice + verifier/chooser.** The sweep surface exposes a fundamental problem with the global-α regime: the same α that rescues some prompts over-steers others into "I don't know" collapse. The calibration fold can't detect this because it averages over prompts. The right architecture is a per-prompt chooser:
+
+1. **Candidate generation.** For each prompt, run 2–4 decode variants: baseline (α=0.0), low steering (α=4.0), medium steering (α=8.0), and optionally an "answer-only / no hedge" decode variant (forced commitment). This produces a row-level dataset of (prompt, candidate, correctness_label).
+
+2. **Lightweight verifier/chooser.** Train on hidden states from the answer span or first answer token, logprob/entropy features, refusal markers ("I don't know" token probability), and optionally weak features from the H-neuron scaler, D4 direction score, and ITI direction score. Target: correctness labels from SimpleQA/FalseQA/TruthfulQA MC + safety labels where relevant.
+
+3. **Inference policy.** If chooser confidence clears a threshold, select the best candidate. Otherwise abstain or respond cautiously. This is the model deciding, per question, whether steering helped.
+
+Why this is the right move: every intervention this project has run (H-neuron scaling, D4, ITI) shares the same failure mode — global α trades off correctly vs incorrectly for different prompts. A per-prompt chooser directly targets this. It also gives a natural way to beat H-neurons on OOD generation: the chooser can learn when steering helped and when it merely induced "ceremonial surrender." This is repo-grounded LITO.
 
 ---
 
