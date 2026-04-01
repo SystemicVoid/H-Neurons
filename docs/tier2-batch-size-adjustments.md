@@ -1,4 +1,29 @@
 
+## 2026-04-01T10:42:00+00:00 | OpenAI Batch API tier-3 upgrade
+
+What: account upgraded from Tier 2 → Tier 3; update local batch-queue-limit table in `scripts/openai_batch.py` to reflect new ceilings.
+Key files: `scripts/openai_batch.py`, `scripts/evaluate_intervention.py`, `scripts/evaluate_csv2.py`, `tests/test_openai_batch.py`
+Status: done: TIER3_BATCH_QUEUE_LIMITS table updated, all tier-string refs patched, regression tests updated
+
+Verified Tier-3 queue limits checked on 2026-04-01 (live API headers confirmed tier via gpt-4o headers: 5,000 RPM / 800,000 TPM, up from Tier-2's 450,000 TPM):
+
+| Model      | Tier 2        | Tier 3          | Source URL                                          |
+|------------|---------------|-----------------|-----------------------------------------------------|
+| gpt-4o     | 1,350,000     | 50,000,000      | developers.openai.com/api/docs/models/gpt-4o       |
+| gpt-4o-mini| 20,000,000    | 40,000,000      | developers.openai.com/api/docs/models/gpt-4o-mini  |
+| gpt-4.1    | 1,350,000     | 50,000,000      | developers.openai.com/api/docs/models/gpt-4.1      |
+| gpt-5      | 3,000,000     | 100,000,000     | developers.openai.com/api/docs/models/gpt-5        |
+| gpt-5-mini | 20,000,000    | 40,000,000      | developers.openai.com/api/docs/models/gpt-5-mini   |
+| o3         | 1,350,000     | 50,000,000      | developers.openai.com/api/docs/models/o3           |
+| o4-mini    | 2,000,000     | 40,000,000      | developers.openai.com/api/docs/models/o4-mini      |
+
+Changes made:
+- `scripts/openai_batch.py`: renamed `TIER2_BATCH_QUEUE_LIMITS` → `TIER3_BATCH_QUEUE_LIMITS`, updated all 7 values, updated comment date and tier label, updated log string "Tier-2 queue" → "Tier-3 queue".
+- `scripts/evaluate_intervention.py`, `scripts/evaluate_csv2.py`: updated `--batch-max-enqueued-tokens` help text to reference Tier-3.
+- `tests/test_openai_batch.py`: renamed `test_known_model_uses_tier2_limit_with_default_margin` → `..._tier3_...`, updated `queue_limit` assertions (1,350,000 → 50,000,000); renamed `test_gpt4o_tier2_cap_reduces_old_17_chunk_case_to_two_chunks` → `..._tier3_..._to_one_chunk` (1,284,222 tokens now fits in 1 batch, not 2), updated `resolution.value` assertion.
+
+Practical impact: the previously-17-chunk gpt-4o workload (~1.28M tokens) now submits as a single batch. gpt-4o-mini and gpt-5-mini see a more modest 2× increase (20M → 40M) since they were already near-unlimited at Tier 2.
+
 ## 2026-03-27T22:24:00+00:00 | OpenAI Batch API tier-2 follow-up
 What: verify whether local batch chunking is still pinned to the old `80_000` token ceiling after the OpenAI Tier 2 upgrade, and record the exact code/doc refs needed to adjust it tomorrow after the live `eval` tmux job completes.
 Key files: `scripts/openai_batch.py`, `scripts/evaluate_intervention.py`, `scripts/evaluate_csv2.py`, `logs/jailbreak_alpha1_binary_judge_20260327_204212.log`

@@ -879,7 +879,7 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=None,
         help="Override Batch API chunking cap in estimated prompt tokens. "
-        "By default this is resolved from the model's Tier-2 queue limit "
+        "By default this is resolved from the model's Tier-3 queue limit "
         "with a safety margin, or from OPENAI_BATCH_MAX_ENQUEUED_TOKENS.",
     )
     return p.parse_args()

@@ -279,16 +279,16 @@ class TestMaxEnqueuedTokenResolution:
             [{"role": "user", "content": "short"}],
         )
 
-    def test_known_model_uses_tier2_limit_with_default_margin(self, monkeypatch):
+    def test_known_model_uses_tier3_limit_with_default_margin(self, monkeypatch):
         monkeypatch.delenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", raising=False)
         monkeypatch.delenv("OPENAI_BATCH_QUEUE_SAFETY_MARGIN", raising=False)
 
         resolution = _resolve_max_enqueued_tokens([self._make_request("r1", "gpt-4o")])
 
         assert resolution.source == "model"
-        assert resolution.queue_limit == 1_350_000
+        assert resolution.queue_limit == 50_000_000
         assert resolution.safety_margin == DEFAULT_BATCH_QUEUE_SAFETY_MARGIN
-        assert resolution.value == int(1_350_000 * DEFAULT_BATCH_QUEUE_SAFETY_MARGIN)
+        assert resolution.value == int(50_000_000 * DEFAULT_BATCH_QUEUE_SAFETY_MARGIN)
 
     def test_snapshot_alias_resolves_to_base_model_limit(self, monkeypatch):
         monkeypatch.delenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", raising=False)
@@ -299,7 +299,7 @@ class TestMaxEnqueuedTokenResolution:
         )
 
         assert resolution.source == "model"
-        assert resolution.queue_limit == 1_350_000
+        assert resolution.queue_limit == 50_000_000
         assert resolution.models == ("gpt-4o-2024-11-20",)
 
     def test_explicit_override_beats_env_and_model_defaults(self, monkeypatch):
@@ -339,7 +339,7 @@ class TestMaxEnqueuedTokenResolution:
         with pytest.raises(ValueError, match="OPENAI_BATCH_MAX_ENQUEUED_TOKENS"):
             _resolve_max_enqueued_tokens([self._make_request("r1", "gpt-4o")])
 
-    def test_gpt4o_tier2_cap_reduces_old_17_chunk_case_to_two_chunks(self, monkeypatch):
+    def test_gpt4o_tier3_cap_reduces_old_17_chunk_case_to_one_chunk(self, monkeypatch):
         monkeypatch.delenv("OPENAI_BATCH_MAX_ENQUEUED_TOKENS", raising=False)
         monkeypatch.delenv("OPENAI_BATCH_QUEUE_SAFETY_MARGIN", raising=False)
 
@@ -355,6 +355,6 @@ class TestMaxEnqueuedTokenResolution:
         resolution = _resolve_max_enqueued_tokens(reqs)
         chunks = _chunk_requests(reqs, max_tokens=resolution.value)
 
-        assert resolution.value == 1_215_000
+        assert resolution.value == int(50_000_000 * DEFAULT_BATCH_QUEUE_SAFETY_MARGIN)
         assert sum(fake_estimate(r) for r in reqs) == 1_284_222
-        assert len(chunks) == 2
+        assert len(chunks) == 1
