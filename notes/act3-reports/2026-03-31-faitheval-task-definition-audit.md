@@ -1,5 +1,11 @@
 # FaithEval Task-Definition Audit — 2026-03-31
 
+> **Update — 2026-04-01:** the highest-priority follow-up recommended here
+> (run D1 on TruthfulQA MC to obtain a clean D1-vs-D4 ranking) has now been
+> completed. Use
+> [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md)
+> for the current ranking and for the forced-commitment SimpleQA rerun.
+
 > **Status: PRELIMINARY — requires independent verification before acting on any recommendation.**
 >
 > This report cross-checks an AI-generated analysis against the actual codebase. It identifies

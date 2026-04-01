@@ -1,5 +1,9 @@
 # Week 3 Log — 2026-03-24 to 2026-03-29
 
+> Post-week3 rerun resolution now lives in
+> [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md).
+> This file is the historical week-3 basis, not the current D1-vs-D4 ranking source.
+
 > Website update basis. Each section names the headline claim, the raw data files to plot from, and links to the full audit where the claim lives. Do not restate the numbers in derived documents — link here instead.
 
 ---
@@ -15,6 +19,11 @@ Week 3 closed the Baseline A evaluation (H-neuron scaling on FaithEval and jailb
 ---
 
 ## 1. Baseline A — FaithEval (H-neuron scaling)
+
+> Superseded interpretation: after the 2026-03-31 audit, this section should be read as
+> **anti-compliance MCQ context-acceptance**, not truthfulness improvement. The anti-compliance
+> D1 branch also has `0/1000` parse failures at every alpha; the older parse-failure sentence
+> below reflects the separate `faitheval_standard` branch and should not be reused for D1.
 
 **Status:** Decision-complete. Canonical result locked at commit `3f226f8`.
 
@@ -35,7 +44,7 @@ Week 3 closed the Baseline A evaluation (H-neuron scaling on FaithEval and jailb
 - **Slope:** +2.09 pp/α, 95% CI [+1.38, +2.83]
 - **Δ(0→3):** +6.3 pp, 95% CI [+4.2, +8.5]
 - **Spearman ρ = 1.0** (perfectly monotonic)
-- **Parse failures:** 0.9%–15.0% (rises with α; decision-relevant compliance computed after exclusion)
+- **Parse failures:** 0/1000 at every alpha on the anti-compliance D1 branch
 
 ### Plot data
 

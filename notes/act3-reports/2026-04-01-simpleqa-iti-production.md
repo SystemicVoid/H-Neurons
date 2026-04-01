@@ -1,5 +1,18 @@
 # SimpleQA × ITI Production Run — Deep Dive Report
 
+> **Historical scope note:** this report audits the original **escape-hatch**
+> prompt surface only:
+>
+> ```
+> Question: {question}
+> Respond with the answer only. If you are unsure, say "I don't know."
+> ```
+>
+> The current canonical interpretation of D4 generation results now lives in
+> [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md),
+> which includes the later forced-commitment rerun (`--simpleqa_prompt_style factual_phrase`).
+> Do not cite this file alone as the current SimpleQA status.
+
 **Date:** 2026-04-01
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)
 **Benchmark:** SimpleQA (1000 verified factual questions)
@@ -105,7 +118,7 @@ Every sample's trajectory across all three alphas:
 
 At α=4.0: 177 total NOT_ATTEMPTED; 174/177 (98.3%) are the literal string `"I don't know."`. The remaining 3 are longer hedging responses.
 
-At α=8.0: 792 total NOT_ATTEMPTED; 787/792 (99.4%) are the literal string `"I don't know."`.
+At α=8.0: 792 total NOT_ATTEMPTED; 767/792 (96.8%) are the exact literal string `"I don't know."`. A broader string match still finds 782/792 (98.7%) IDK-like refusals, so the mechanism is unchanged; the earlier 787 count overstated the exact-literal bucket.
 
 The mechanism is identical across alphas — alpha controls the magnitude of induction, not its character.
 
@@ -233,7 +246,7 @@ results.json                     ← Stage D: Analysis
 
 ### Stage A — Prompt Design (HIGHEST LEVERAGE)
 
-**Current state:** `"If you are unsure, say 'I don't know.'"` is a named escape hatch in the prompt. 98–99% of NOT_ATTEMPTED responses are the exact string offered.
+**Current state:** `"If you are unsure, say 'I don't know.'"` is a named escape hatch in the prompt. About 97–99% of NOT_ATTEMPTED responses are the exact string offered, and about 99% are IDK-like refusals.
 
 **The problem:** The escape hatch creates a single high-probability "exit token sequence." When ITI shifts the model's representations along the truthfulness/commitment axis, the escape hatch is the path of least resistance. The model doesn't need to generate a wrong answer — it just generates the named hedge. Removing this is the single cheapest, highest-signal experiment available.
 
@@ -384,7 +397,7 @@ SimpleQA is now a "commitment stress test" rather than an accuracy validation be
 | Compliance | 4.8% [3.6%, 6.3%] | 4.0% [3.0%, 5.4%] | 1.6% [1.0%, 2.6%] |
 | Attempt rate | 96.3% | 82.3% | 20.8% |
 | Precision | 5.0% | 4.9% | 7.7% |
-| NOT_ATTEMPTED exact "I don't know" | 97.3% (36/37) | 98.3% (174/177) | 99.4% (787/792) |
+| NOT_ATTEMPTED exact "I don't know" | 97.3% (36/37) | 98.3% (174/177) | 96.8% (767/792) |
 | CORRECT→NOT_ATTEMPTED | — | 4.2% (2/48) | 70.8% (34/48) |
 | INCORRECT→CORRECT rescues | — | 5 (0.5%) | 4 (0.4%) |
 | Science & Tech NA rate | 1.2% | 6.2% | 70.6% |
@@ -393,4 +406,5 @@ SimpleQA is now a "commitment stress test" rather than an accuracy validation be
 
 ---
 
-*Status: complete — update runs_to_analyse.md*
+*Status: complete as the escape-hatch audit. Current SimpleQA source of truth:
+[2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md).*
