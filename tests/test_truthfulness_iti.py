@@ -460,6 +460,145 @@ class TestITIHeadScaler:
 
         scaler.remove()
 
+    def test_first_token_only_scope_stops_after_token_one(self):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_triviaqa_transfer",
+            "n_layers": 1,
+            "n_attention_heads": 2,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.9,
+                    "balanced_accuracy": 0.9,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                }
+            ],
+        }
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family=None,
+            k=1,
+            decode_scope="first_token_only",
+        )
+        scaler.alpha = 2.0
+
+        scaler.arm_first_decode_token()
+        prefill_out = model(torch.zeros(1, 3, 4))
+        prefill_stats = scaler.consume_sample_stats()
+
+        decode_out = model(torch.zeros(1, 1, 4))
+        decode_stats = scaler.consume_sample_stats()
+
+        assert prefill_out.tolist() == [
+            [[0.0, 0.0, 0.0, 0.0]] * 2 + [[0.0, 0.0, 2.0, 0.0]]
+        ]
+        assert prefill_stats["decode_scope"] == "first_token_only"
+        assert prefill_stats["scope_skip_calls"] == 0
+        assert decode_out.tolist() == [[[0.0, 0.0, 0.0, 0.0]]]
+        assert decode_stats["scope_skip_calls"] == 1
+
+        scaler.remove()
+
+    def test_arming_new_decode_sequence_restarts_scope_counting(self):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_triviaqa_transfer",
+            "n_layers": 1,
+            "n_attention_heads": 2,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.9,
+                    "balanced_accuracy": 0.9,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                }
+            ],
+        }
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family=None,
+            k=1,
+            decode_scope="first_token_only",
+        )
+        scaler.alpha = 2.0
+
+        scaler.arm_first_decode_token()
+        first_out = model(torch.zeros(1, 3, 4))
+        first_stats = scaler.consume_sample_stats()
+
+        scaler.arm_first_decode_token()
+        second_out = model(torch.zeros(1, 2, 4))
+        second_stats = scaler.consume_sample_stats()
+
+        assert first_out.tolist() == [
+            [[0.0, 0.0, 0.0, 0.0]] * 2 + [[0.0, 0.0, 2.0, 0.0]]
+        ]
+        assert second_out.tolist() == [[[0.0, 0.0, 0.0, 0.0]] + [[0.0, 0.0, 2.0, 0.0]]]
+        assert first_stats["debug_steps"][0]["generated_token_index"] == 1
+        assert second_stats["debug_steps"][0]["generated_token_index"] == 1
+
+        scaler.remove()
+
+    def test_first_three_tokens_scope_stops_after_third_token(self):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_triviaqa_transfer",
+            "n_layers": 1,
+            "n_attention_heads": 2,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.9,
+                    "balanced_accuracy": 0.9,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                }
+            ],
+        }
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family=None,
+            k=1,
+            decode_scope="first_3_tokens",
+        )
+        scaler.alpha = 2.0
+
+        scaler.arm_first_decode_token()
+        outputs = [model(torch.zeros(1, 3, 4))]
+        stats = [scaler.consume_sample_stats()]
+        for _ in range(3):
+            outputs.append(model(torch.zeros(1, 1, 4)))
+            stats.append(scaler.consume_sample_stats())
+
+        assert outputs[0].tolist() == [
+            [[0.0, 0.0, 0.0, 0.0]] * 2 + [[0.0, 0.0, 2.0, 0.0]]
+        ]
+        assert outputs[1].tolist() == [[[0.0, 0.0, 2.0, 0.0]]]
+        assert outputs[2].tolist() == [[[0.0, 0.0, 2.0, 0.0]]]
+        assert outputs[3].tolist() == [[[0.0, 0.0, 0.0, 0.0]]]
+        assert stats[2]["debug_steps"][0]["generated_token_index"] == 3
+        assert stats[3]["scope_skip_calls"] == 1
+
+        scaler.remove()
+
     def test_random_head_control_rescales_sigma_to_match_ranked_total_norm(self):
         model = DummyITIModel()
         artifact = {

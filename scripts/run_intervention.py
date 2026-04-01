@@ -33,7 +33,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from intervene_model import get_h_neuron_indices
 from intervene_direction import DirectionScaler
-from intervene_iti import ITIHeadScaler, load_iti_artifact
+from intervene_iti import ITI_DECODE_SCOPES, ITIHeadScaler, load_iti_artifact
 from intervene_sae import SAEFeatureScaler, load_target_features_from_classifier
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
@@ -100,6 +100,7 @@ def build_iti_output_suffix(
     iti_random_seed: int,
     direction_mode: str = "artifact",
     direction_random_seed: int | None = None,
+    iti_decode_scope: str = "full_decode",
 ) -> str:
     """Build a stable semantic suffix for default ITI experiment dirs."""
     resolved_path = Path(iti_head_path).expanduser().resolve(strict=False)
@@ -110,7 +111,7 @@ def build_iti_output_suffix(
         (
             f"{resolved_path}|{iti_family}|{iti_k}|"
             f"{iti_selection_strategy}|{iti_random_seed}|"
-            f"{direction_mode}|{direction_random_seed}"
+            f"{direction_mode}|{direction_random_seed}|{iti_decode_scope}"
         ).encode("utf-8")
     ).hexdigest()[:10]
     steering_label = (
@@ -122,6 +123,7 @@ def build_iti_output_suffix(
             f"_dir-{_slugify_path_component(direction_mode)}"
             f"_dirseed-{direction_random_seed}"
         )
+    steering_label += f"_scope-{_slugify_path_component(iti_decode_scope)}"
     return (
         "iti-head_"
         f"{_slugify_path_component(iti_family)}_{steering_label}_"
@@ -157,6 +159,7 @@ def resolve_output_dir(args: argparse.Namespace) -> str:
             args.iti_random_seed,
             args.iti_direction_mode,
             args.iti_direction_random_seed,
+            args.iti_decode_scope,
         )
         return f"data/gemma3_4b/intervention/{benchmark_name}_{iti_suffix}/experiment"
     if args.intervention_mode == "direction":
@@ -2397,6 +2400,13 @@ def parse_args():
         help="Seed for random direction generation (when --iti_direction_mode=random).",
     )
     p.add_argument(
+        "--iti_decode_scope",
+        type=str,
+        default="full_decode",
+        choices=ITI_DECODE_SCOPES,
+        help="Decode-token intervention scope for ITI head steering.",
+    )
+    p.add_argument(
         "--max_new_tokens",
         type=int,
         default=None,
@@ -2552,11 +2562,13 @@ def main():
                 random_seed=args.iti_random_seed,
                 direction_mode=args.iti_direction_mode,
                 direction_random_seed=args.iti_direction_random_seed,
+                decode_scope=args.iti_decode_scope,
             )
             total_neurons = scaler.n_heads_selected
             print(
                 f"Installed {scaler.n_hooks} ITI hooks on {scaler.n_heads_selected} heads "
-                f"(selection={args.iti_selection_strategy})"
+                f"(selection={args.iti_selection_strategy}, "
+                f"scope={args.iti_decode_scope})"
             )
         else:
             print(f"Loading classifier: {args.classifier_path}")
@@ -2672,6 +2684,8 @@ def main():
             print(f"SimpleQA prompt style: {args.simpleqa_prompt_style}")
         elif args.benchmark == "truthfulqa_mc":
             print(f"TruthfulQA variant: {args.truthfulqa_variant}")
+        if args.intervention_mode == "iti_head":
+            print(f"ITI decode scope: {args.iti_decode_scope}")
         if args.max_new_tokens is not None and args.benchmark in (
             "jailbreak",
             "jailbreak_benign",
@@ -2801,6 +2815,7 @@ def main():
             summary["iti_selection_strategy"] = args.iti_selection_strategy
             summary["iti_random_seed"] = args.iti_random_seed
             summary["iti_family"] = args.iti_family
+            summary["iti_decode_scope"] = args.iti_decode_scope
         else:
             summary["classifier"] = args.classifier_path
         if args.benchmark == "faitheval":

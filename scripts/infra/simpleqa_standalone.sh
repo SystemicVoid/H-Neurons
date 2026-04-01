@@ -13,6 +13,7 @@
 #   SIMPLEQA_SAMPLE_MANIFEST=data/manifests/simpleqa_verified_control200_seed42.json \
 #   ITI_SELECTION_STRATEGY=random \
 #   ITI_RANDOM_SEED=1 \
+#   ITI_DECODE_SCOPE=first_3_tokens \
 #   SIMPLEQA_ALPHAS="4.0 8.0" \
 #   LOG_STEM=simpleqa_random_head_seed1 \
 #   bash scripts/infra/simpleqa_standalone.sh
@@ -58,6 +59,7 @@ ITI_SELECTION_STRATEGY="${ITI_SELECTION_STRATEGY:-ranked}"
 ITI_RANDOM_SEED="${ITI_RANDOM_SEED:-42}"
 ITI_DIRECTION_MODE="${ITI_DIRECTION_MODE:-artifact}"
 ITI_DIRECTION_RANDOM_SEED="${ITI_DIRECTION_RANDOM_SEED:-}"
+ITI_DECODE_SCOPE="${ITI_DECODE_SCOPE:-full_decode}"
 LOG_STEM="${LOG_STEM:-simpleqa_standalone}"
 
 echo "Locked config: K=${LOCKED_K}, alpha=${LOCKED_ALPHA}"
@@ -70,6 +72,7 @@ echo "Direction mode: ${ITI_DIRECTION_MODE}"
 if [ -n "${ITI_DIRECTION_RANDOM_SEED}" ]; then
     echo "Direction random seed: ${ITI_DIRECTION_RANDOM_SEED}"
 fi
+echo "Decode scope: ${ITI_DECODE_SCOPE}"
 if [ -n "${SIMPLEQA_SAMPLE_MANIFEST}" ]; then
     echo "Sample manifest: ${SIMPLEQA_SAMPLE_MANIFEST}"
 fi
@@ -116,6 +119,7 @@ suffix = build_iti_output_suffix(
     int(os.environ["ITI_RANDOM_SEED"]),
     os.environ["ITI_DIRECTION_MODE"],
     None if direction_random_seed is None else int(direction_random_seed),
+    os.environ["ITI_DECODE_SCOPE"],
 )
 print(f"data/gemma3_4b/intervention/{benchmark_name}_{suffix}/experiment")
 PY
@@ -133,6 +137,7 @@ RUN_ARGS=(
     --iti_selection_strategy "${ITI_SELECTION_STRATEGY}"
     --iti_random_seed "${ITI_RANDOM_SEED}"
     --iti_direction_mode "${ITI_DIRECTION_MODE}"
+    --iti_decode_scope "${ITI_DECODE_SCOPE}"
     --alphas "${SIMPLEQA_ALPHA_ARRAY[@]}"
 )
 if [ -n "${ITI_DIRECTION_RANDOM_SEED}" ]; then
@@ -190,7 +195,7 @@ mkdir -p notes
 cat >> notes/runs_to_analyse.md << EOF
 
 ## ${RUN_TS} | ${SIMPLEQA_DIR}
-What: SimpleQA standalone — paper-faithful ITI K=${LOCKED_K}, prompt_style=${SIMPLEQA_PROMPT_STYLE}, selection=${ITI_SELECTION_STRATEGY}, direction_mode=${ITI_DIRECTION_MODE}, seed=${ITI_RANDOM_SEED}, alpha=[${SIMPLEQA_ALPHAS// /,}], ${SIMPLEQA_SAMPLE_DESC}
+What: SimpleQA standalone — paper-faithful ITI K=${LOCKED_K}, prompt_style=${SIMPLEQA_PROMPT_STYLE}, selection=${ITI_SELECTION_STRATEGY}, direction_mode=${ITI_DIRECTION_MODE}, decode_scope=${ITI_DECODE_SCOPE}, seed=${ITI_RANDOM_SEED}, alpha=[${SIMPLEQA_ALPHAS// /,}], ${SIMPLEQA_SAMPLE_DESC}
 Key files: results.json, alpha_*.jsonl, run_intervention.provenance.*.json
 Status: awaiting analysis
 EOF

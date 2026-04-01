@@ -16,6 +16,27 @@ from typing import Any
 
 import torch
 
+ITI_DECODE_SCOPES = (
+    "full_decode",
+    "first_token_only",
+    "first_3_tokens",
+    "first_8_tokens",
+)
+
+
+def _decode_scope_limit(decode_scope: str) -> int | None:
+    if decode_scope == "full_decode":
+        return None
+    if decode_scope == "first_token_only":
+        return 1
+    if decode_scope == "first_3_tokens":
+        return 3
+    if decode_scope == "first_8_tokens":
+        return 8
+    raise ValueError(
+        f"decode_scope must be one of {ITI_DECODE_SCOPES}, got {decode_scope!r}"
+    )
+
 
 def _get_decoder_layers(model: torch.nn.Module) -> Any:
     inner = getattr(model, "model")
@@ -85,6 +106,7 @@ class ITIHeadScaler:
         random_seed: int = 42,
         direction_mode: str = "artifact",
         direction_random_seed: int | None = None,
+        decode_scope: str = "full_decode",
     ):
         self._alpha = 0.0
         self.hooks: list[Any] = []
@@ -102,6 +124,8 @@ class ITIHeadScaler:
         self.random_seed = random_seed
         self.direction_mode = direction_mode
         self.direction_random_seed = direction_random_seed
+        self.decode_scope = decode_scope
+        self._decode_scope_limit = _decode_scope_limit(decode_scope)
         self.n_layers = int(artifact["n_layers"])
         self.n_attention_heads = int(artifact["n_attention_heads"])
         self.head_dim = int(artifact["head_dim"])
@@ -124,6 +148,7 @@ class ITIHeadScaler:
             max(self._selected_by_layer.keys()) if self._selected_by_layer else None
         )
         self.reset_sample_stats()
+        self._reset_decode_sequence_state()
         self._install(model)
 
     def _build_selected_by_layer(
@@ -168,12 +193,39 @@ class ITIHeadScaler:
 
     def arm_first_decode_token(self) -> None:
         """Treat the next prompt prefill as generation setup for token 1."""
+        self._reset_decode_sequence_state()
         self._prefill_decode_token_armed = True
 
-    def _finalize_prefill_step(
-        self, layer_idx: int, *, prefill_decode_step: bool
+    def _reset_decode_sequence_state(self) -> None:
+        self._generated_token_index = 0
+        self._current_step_token_index: int | None = None
+        self._prefill_decode_token_armed = False
+
+    def _current_generated_token_index(self, layer_idx: int) -> int:
+        if (
+            self._current_step_token_index is None
+            or layer_idx == self._primary_step_layer
+        ):
+            self._current_step_token_index = self._generated_token_index + 1
+        return self._current_step_token_index
+
+    def _scope_allows_token(self, generated_token_index: int) -> bool:
+        if self._decode_scope_limit is None:
+            return True
+        return generated_token_index <= self._decode_scope_limit
+
+    def _finalize_decode_step(
+        self,
+        layer_idx: int,
+        *,
+        prefill_decode_step: bool,
+        generated_token_index: int,
     ) -> None:
-        if prefill_decode_step and layer_idx == self._final_step_layer:
+        if layer_idx != self._final_step_layer:
+            return
+        self._generated_token_index = generated_token_index
+        self._current_step_token_index = None
+        if prefill_decode_step:
             self._prefill_decode_token_armed = False
 
     def _install(self, model: torch.nn.Module) -> None:
@@ -212,9 +264,22 @@ class ITIHeadScaler:
                 self._sample_hook_time_s += time.perf_counter() - hook_t0
                 return args
 
+            generated_token_index = self._current_generated_token_index(layer_idx)
+            if not self._scope_allows_token(generated_token_index):
+                self._sample_scope_skip_calls += 1
+                self._finalize_decode_step(
+                    layer_idx,
+                    prefill_decode_step=prefill_decode_step,
+                    generated_token_index=generated_token_index,
+                )
+                self._sample_hook_time_s += time.perf_counter() - hook_t0
+                return args
+
             if self._alpha == 0.0:
-                self._finalize_prefill_step(
-                    layer_idx, prefill_decode_step=prefill_decode_step
+                self._finalize_decode_step(
+                    layer_idx,
+                    prefill_decode_step=prefill_decode_step,
+                    generated_token_index=generated_token_index,
                 )
                 self._sample_hook_time_s += time.perf_counter() - hook_t0
                 return args
@@ -235,17 +300,18 @@ class ITIHeadScaler:
                 delta_norm_total += float(delta.norm().item())
                 activation_norm_total += float(before.norm(dim=-1).mean().item())
 
-            if layer_idx == self._primary_step_layer:
-                self._generated_token_index += 1
-            self._finalize_prefill_step(
-                layer_idx, prefill_decode_step=prefill_decode_step
+            self._finalize_decode_step(
+                layer_idx,
+                prefill_decode_step=prefill_decode_step,
+                generated_token_index=generated_token_index,
             )
 
             if len(self._debug_steps) < self._max_debug_steps:
                 self._debug_steps.append(
                     {
-                        "generated_token_index": self._generated_token_index,
+                        "generated_token_index": generated_token_index,
                         "layer": layer_idx,
+                        "decode_scope": self.decode_scope,
                         "activation_norm_delta": round(delta_norm_total, 6),
                         "selected_head_norm_delta": round(
                             delta_norm_total / max(len(layer_heads), 1), 6
@@ -277,8 +343,7 @@ class ITIHeadScaler:
         self._sample_hook_time_s = 0.0
         self._sample_hook_calls = 0
         self._sample_prompt_skip_calls = 0
-        self._generated_token_index = 0
-        self._prefill_decode_token_armed = False
+        self._sample_scope_skip_calls = 0
         self._debug_steps: list[dict[str, Any]] = []
         self._max_debug_steps = 32
 
@@ -287,9 +352,11 @@ class ITIHeadScaler:
             "hook_s": round(self._sample_hook_time_s, 6),
             "hook_calls": self._sample_hook_calls,
             "prompt_skip_calls": self._sample_prompt_skip_calls,
+            "scope_skip_calls": self._sample_scope_skip_calls,
             "debug_steps": list(self._debug_steps),
             "selection_strategy": self.selection_strategy,
             "direction_mode": self.direction_mode,
+            "decode_scope": self.decode_scope,
             "n_heads_selected": self.n_heads_selected,
             "family": self.family,
         }

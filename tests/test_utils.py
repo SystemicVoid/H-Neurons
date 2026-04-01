@@ -524,6 +524,14 @@ class TestDirectionOutputDir:
             "ranked",
             42,
         )
+        different_scope = build_iti_output_suffix(
+            "data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            "triviaqa_transfer",
+            16,
+            "ranked",
+            42,
+            iti_decode_scope="first_3_tokens",
+        )
 
         assert (
             len(
@@ -534,9 +542,10 @@ class TestDirectionOutputDir:
                     different_strategy,
                     different_seed,
                     different_path,
+                    different_scope,
                 }
             )
-            == 6
+            == 7
         )
 
     def test_resolve_output_dir_uses_config_specific_iti_default(self):
@@ -551,6 +560,7 @@ class TestDirectionOutputDir:
             iti_random_seed=42,
             iti_direction_mode="artifact",
             iti_direction_random_seed=None,
+            iti_decode_scope="full_decode",
             truthfulqa_variant="mc1",
         )
 
@@ -559,6 +569,7 @@ class TestDirectionOutputDir:
         assert output_dir.startswith("data/gemma3_4b/intervention/faitheval_")
         assert output_dir.endswith("/experiment")
         assert "iti-head_triviaqa-transfer_k-16_ranked_seed-42" in output_dir
+        assert "scope-full-decode" in output_dir
 
     def test_resolve_output_dir_requires_iti_path_for_default(self):
         args = SimpleNamespace(
@@ -572,6 +583,7 @@ class TestDirectionOutputDir:
             iti_random_seed=42,
             iti_direction_mode="artifact",
             iti_direction_random_seed=None,
+            iti_decode_scope="full_decode",
             truthfulqa_variant="mc1",
         )
 
@@ -601,6 +613,7 @@ class TestDirectionOutputDir:
             iti_random_seed=42,
             iti_direction_mode="artifact",
             iti_direction_random_seed=None,
+            iti_decode_scope="full_decode",
             direction_path="data/contrastive/refusal/directions/refusal_directions.pt",
             direction_mode="ablate",
             direction_layers=None,
