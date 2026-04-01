@@ -1,10 +1,12 @@
 # Week 3 Log — 2026-03-24 to 2026-03-29
 
-> Post-week3 rerun resolution now lives in
-> [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md).
-> This file is the historical week-3 basis, not the current D1-vs-D4 ranking source.
+> **Frozen data archive.** This file is the authoritative data reference for week-3 experiments (D1 FaithEval, D1 Jailbreak, D2, D3, D3.5). Do not update it further.
+>
+> - Narrative and decisions for this period: [research-log.md](../research-log.md) §2026-03-24 to 2026-03-29
+> - Post-week-3 rerun resolution (D1 vs D4 ranking, forced-commitment SimpleQA): [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md)
+> - Plot registry: [plot-registry.md](../plot-registry.md)
 
-> Website update basis. Each section names the headline claim, the raw data files to plot from, and links to the full audit where the claim lives. Do not restate the numbers in derived documents — link here instead.
+> Data table reference: each section names the headline numbers, the raw data files to pull from, and links to the full audit. Do not restate the numbers in derived documents — link here instead.
 
 ---
 
@@ -323,35 +325,4 @@ Layer 33 dominance: subspace gap +0.6647 vs next layer +0.0155 (43× ratio).
 
 ---
 
-## Plot Registry for Website Session
-
-These are the files to pull in the next session to generate charts for the website:
-
-```
-# Baseline A — FaithEval compliance curve (7 alphas)
-data/gemma3_4b/intervention/faitheval/experiment/results.json
-
-# Baseline A — Jailbreak binary compliance (4 alphas)
-data/gemma3_4b/intervention/jailbreak/experiment/results.json
-
-# Baseline A — Jailbreak CSV-v2 severity (per-item, 4 alphas)
-data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_0.0.jsonl
-data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_1.0.jsonl
-data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_1.5.jsonl
-data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_3.0.jsonl
-
-# D2 — Per-layer accuracy / separation curve (34 layers)
-data/contrastive/refusal/directions/extraction_metadata.json
-
-# D3 — Refusal-direction ablation compliance curve (3 β values)
-data/gemma3_4b/intervention/faitheval_direction_ablate_d3_calibrated/experiment/results.20260329_192019.json
-data/gemma3_4b/intervention/faitheval_direction_ablate_d3_calibrated/experiment/alpha_0.0.jsonl
-data/gemma3_4b/intervention/faitheval_direction_ablate_d3_calibrated/experiment/alpha_0.02.jsonl
-data/gemma3_4b/intervention/faitheval_direction_ablate_d3_calibrated/experiment/alpha_0.03.jsonl
-
-# D3.5 — Refusal overlap geometry and null distribution
-data/gemma3_4b/intervention/refusal_overlap/analysis/summary.json
-data/gemma3_4b/intervention/refusal_overlap/analysis/layer_scores.csv
-data/gemma3_4b/intervention/refusal_overlap/analysis/prompt_scores.csv
-data/gemma3_4b/intervention/refusal_overlap/analysis/null_distribution.json
-```
+> Plot registry moved to [plot-registry.md](../plot-registry.md).
