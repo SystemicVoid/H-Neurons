@@ -330,6 +330,21 @@ Test these scopes:
 - TruthfulQA MC1 cal-val: retain a clean answer-selection gate
 - forced-commitment SimpleQA pilot: primary generation readout
 
+**Status after Gate 1 review**
+
+- Canonical audit:
+  [2026-04-01-decode-scope-gate1-audit.md](./2026-04-01-decode-scope-gate1-audit.md)
+- What now withstands scrutiny:
+  `first_token_only` is too weak, while `first_3_tokens` and `first_8_tokens`
+  both retain most of the observed MC1 gain.
+- What does **not** yet withstand scrutiny:
+  a claim that either narrower surviving scope is already better than
+  `full_decode`.
+- Operational consequence:
+  carry `full_decode`, `first_3_tokens`, and `first_8_tokens` into the 200-ID
+  forced-commitment SimpleQA pilot; do not promote a new locked scope from the
+  cal-val gate alone.
+
 **Promotion rule**
 
 Promote a narrower scope if it:
@@ -513,8 +528,10 @@ That is how we avoid spending the sprint on elegant but low-yield complexity.
 
 1. Forced-commitment random-head control completed:
    [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
-2. Implement and run decode-scope ablation on the current paper-faithful artifact.
-3. If a better scope exists, lock it and carry it forward.
+2. Decode-scope Gate 1 completed:
+   [2026-04-01-decode-scope-gate1-audit.md](./2026-04-01-decode-scope-gate1-audit.md)
+3. Run the 200-ID forced-commitment SimpleQA pilot for `full_decode`,
+   `first_3_tokens`, and `first_8_tokens`.
 4. Run `E1` under the locked scope.
 5. Run `E2` under the locked scope.
 6. Run `E3` only if `E1` and `E2` create a real complementarity story.
