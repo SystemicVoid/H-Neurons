@@ -1,9 +1,8 @@
 # Repository Guidelines
 
-**Prioritize steps by information gained per unit time, not by ease. After every result, ask what was learned, what branch of the search tree was ruled out, and whether the failure was conceptual, methodological, or merely implementation-level. Push back on running an experiment unless you can name the decision it informs.**
+**Prioritize steps by information gained per unit time. After every result, ask what was learned, what branch of the search tree was ruled out, and whether the failure was conceptual, methodological, or merely implementation-level.**
 
-- Literature index: start with `papers/INDEX.md`, scan the abstracts there, and only open the linked paper markdown files that are relevant to the current question.
-
+- Use the literature when building experiments based on related work, start with `papers/INDEX.md`.
 
 ## Build, Test, and Development Commands
 
@@ -26,19 +25,6 @@ Follow PEP 8 naming conventions, enforced by ruff's `pep8-naming` (N) rules:
 
 Every quantitative claim in presentation materials must include uncertainty estimates (bootstrap 95% CIs or binomial proportion CIs). Treat `docs/ci_manifest.json` as the source-of-truth registry. Before finishing any change that touches quantitative reporting surfaces, run `uv run python scripts/audit_ci_coverage.py`.
 
-## Long-Running Jobs
-
-Use `systemd-inhibit` for any GPU job longer than ~20 minutes. Recipes and recovery steps in `docs/tooling-assessment.md`.
-- If a script supports `--wandb`, prefer enabling it for long, comparison-heavy, or audit-heavy runs: treat W&B as the visual cockpit for curves, tables, and triage, while local `summary.json` and `*.provenance.json` remain the source of truth.
-
-## GPU Monitoring
-
-Use `nvitop -1` for a one-shot GPU status check before/during long jobs. Details in `docs/tooling-assessment.md`.
-
-## Codebase Prompt Export
-
-`./code2prompt.sh` exports all source code as a single LLM-ready prompt. Pass `--output-file=prompt.txt` or `-c` for clipboard.
-
 ## Site Deployment
 
 To redeploy the project site at its canonical URL:
@@ -49,7 +35,7 @@ scripts/infra/publish.sh site --slug aware-fresco-4a2q --client amp
 
 ## Run Directory Conventions
 
-Keep the existing semantic layout `data/<model>/intervention/<benchmark>/experiment/`. Do not restructure into timestamped run directories — the provenance sidecars already carry the "when" and "how."
+Keep the existing semantic layout `data/<model>/intervention/<benchmark>/experiment/`. The provenance sidecars already carry the "when" and "how."
 
 When a re-run would overwrite an existing `experiment/` directory that contains committed or analysed data, archive it first:
 
@@ -57,30 +43,19 @@ When a re-run would overwrite an existing `experiment/` directory that contains 
 data/<model>/intervention/<benchmark>/experiment_YYYY-MM-DD_<reason>/
 ```
 
-For genuinely new experiments (new benchmark, new method), create a new semantic directory rather than a timestamped one. Prefer names that describe what varies, not when it ran.
+For genuinely new experiments (new benchmark, new method), create a new semantic directory rather than just timestamped one. Prefer names that describe what varies, not just when it ran.
 
 ## GPU Job Discipline
 
 <important if="running GPU jobs or pipeline scripts">
 Never start a GPU job without pre-staging its downstream chain in a tmux window.
-The chain for intervention experiments is:
-
-```bash
-# Chain: inference → evaluate → export → log to backlog
-set -euo pipefail
-PYTHONUNBUFFERED=1 uv run python scripts/run_intervention.py \
-  <args> 2>&1 | tee logs/<benchmark>_intervention.log
-PYTHONUNBUFFERED=1 uv run python scripts/evaluate_intervention.py \
-  --input_dir <run_dir> 2>&1 | tee logs/<benchmark>_evaluate.log
-uv run python scripts/export_site_data.py 2>&1 | tee logs/export.log
-```
 
 Chaining rules:
-- Write the full chain as a single bash script (or `bash -c` heredoc), then run that script in one tmux pane. Never use `tmux send-keys` to inject commands one at a time — it races or stalls.
+- Write the chain as a robust bash script, then run that script in one tmux window, open for user to monitor. Integrate HITL review gates, with easy continue ux post-review.
 - Use `set -euo pipefail` instead of `&&` — it halts on any non-zero exit and catches pipe failures.
-- The pattern in `scripts/infra/gh200_sequential_pipeline.sh` is the reference implementation.
+- Use `systemd-inhibit` for any GPU job longer than ~20 minutes.
 
-After the chain completes, append an entry to `notes/runs_to_analyse.md` (create file and directory if they do not exist):
+After the chain completes, append an entry to `notes/runs_to_analyse.md` :
 
 ```markdown
 ## <ISO timestamp> | <run_dir relative path>
@@ -89,12 +64,9 @@ Key files: results.json, *.provenance.json, activations/responses.jsonl
 Status: awaiting analysis
 ```
 
-Change status to `done: <brief finding>` after analysis.
+After that entry is analysed, remove it.
 
 Rules:
 - Every script already writes a `*.provenance.json` sidecar via `start_run_provenance` / `finish_run_provenance` — never bypass or delete these. They are the machine-readable chain of custody.
-- Local `summary.json` and `*.provenance.json` are the source of truth. W&B is the visual cockpit, not the record.
-- Tell the user know before queuing a new GPU job if there are more than 3 entries in `notes/runs_to_analyse.md` still `awaiting analysis`, especially when these analysis outcomes could undermine the value of the experiment you are about to run, be sensible.
 - Check `nvitop -1` before launching to confirm GPU is free.
-- All in-depth reports for act 3 should be written into ./notes/act3-reports/
 </important>
