@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-26
 **Test set:** `tests/gold_labels/jailbreak_cross_alpha_gold.jsonl` (75 records, 25 prompts x 3 alphas)
-**Results:** `results/judge_validation/deepinfra-glm5-test/`
+**Results:** `data/judge_validation/deepinfra-glm5-test/`
 
 ## TL;DR
 

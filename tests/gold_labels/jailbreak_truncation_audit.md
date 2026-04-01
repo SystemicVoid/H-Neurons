@@ -822,8 +822,8 @@ The α=1.0 identity baseline enables a clean decomposition of the total H-neuron
 | `jailbreak_review_a1_5.md` | Manual review worksheet — α=1.5 labels with severity notes |
 | `jailbreak_review_a3_0.md` | Manual review worksheet — α=3.0 labels with severity notes |
 | `jailbreak_cross_alpha_gold.jsonl` | Combined 75-record fixture (25 IDs × 3 alphas) with human labels |
-| `results/judge_validation/judge_validation_jailbreak-cross-alpha_*.jsonl` | Per-record GPT-4o judge results |
-| `results/judge_validation/judge_comparison_*.md` | Truncated vs full-length judge comparison table |
+| `data/judge_validation/judge_validation_jailbreak-cross-alpha_*.jsonl` | Per-record GPT-4o judge results |
+| `data/judge_validation/judge_comparison_*.md` | Truncated vs full-length judge comparison table |
 | `experiment/alpha_{0.0,1.5,3.0}.jsonl` | 500 full-length sampled responses per alpha with GPT-4o judge verdicts (5000tok) |
 | `experiment/alpha_1.0.jsonl` | 500 full-length sampled responses at α=1.0 (identity baseline) with binary judge verdicts |
 | `experiment/run_intervention.provenance.20260325_084310.json` | Inference provenance for canonical 5000-token run (α=0.0/1.5/3.0) |

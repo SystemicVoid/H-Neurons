@@ -8,7 +8,7 @@ Supports --api_mode batch|fast (default: batch).
 Usage:
     uv run python scripts/validate_evaluator_gold.py --benchmark falseqa
     uv run python scripts/validate_evaluator_gold.py --benchmark jailbreak
-    uv run python scripts/validate_evaluator_gold.py --benchmark jailbreak-cross-alpha --compare --output_dir results/judge_validation/
+    uv run python scripts/validate_evaluator_gold.py --benchmark jailbreak-cross-alpha --compare --output_dir data/judge_validation/
     uv run python scripts/validate_evaluator_gold.py --benchmark all
     uv run python scripts/validate_evaluator_gold.py --benchmark all --api_mode fast
 """

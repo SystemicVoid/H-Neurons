@@ -93,7 +93,7 @@ Cross-alpha judge validation with comparison:
 uv run python scripts/validate_evaluator_gold.py \
   --benchmark jailbreak-cross-alpha \
   --compare \
-  --output_dir results/judge_validation/
+  --output_dir data/judge_validation/
 ```
 
 # Gold Labels — Labeling Notes
