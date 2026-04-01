@@ -1,0 +1,47 @@
+{
+  "args": {
+    "alphas": [
+      0.0,
+      4.0,
+      8.0
+    ],
+    "api_mode": "batch",
+    "batch_max_enqueued_tokens": 1600000,
+    "benchmark": "simpleqa",
+    "input_dir": "data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment",
+    "judge_model": "gpt-4o",
+    "prompt_cache_retention": null
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_intervention.py",
+    "--benchmark",
+    "simpleqa",
+    "--input_dir",
+    "data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment",
+    "--alphas",
+    "0.0",
+    "4.0",
+    "8.0",
+    "--api-mode",
+    "batch",
+    "--batch-max-enqueued-tokens",
+    "1600000"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_intervention.py --benchmark simpleqa --input_dir data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment --alphas 0.0 4.0 8.0 --api-mode batch --batch-max-enqueued-tokens 1600000",
+  "completed_at_utc": "2026-04-01T19:11:49.049763+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "bc4a858568f7ae44f5d4ee60577895d1e9ab6606",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/results.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_intervention.py",
+  "started_at_utc": "2026-04-01T18:55:10.959856+00:00",
+  "status": "completed"
+}
