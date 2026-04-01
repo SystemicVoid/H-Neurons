@@ -1,0 +1,134 @@
+{
+  "benchmark": "simpleqa",
+  "model": "google/gemma-3-4b-it",
+  "intervention_mode": "iti_head",
+  "n_h_neurons": 12,
+  "results": {
+    "4.0": {
+      "compliance_rate": 0.0,
+      "n_compliant": 0,
+      "n_judged": 0,
+      "n_total": 200,
+      "judging_complete": false,
+      "compliance": {
+        "estimate": 0.0,
+        "n_compliant": 0,
+        "n_total": 200,
+        "ci": {
+          "lower": 1.7020320458977177e-18,
+          "upper": 0.018845326377266575,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "8.0": {
+      "compliance_rate": 0.0,
+      "n_compliant": 0,
+      "n_judged": 0,
+      "n_total": 200,
+      "judging_complete": false,
+      "compliance": {
+        "estimate": 0.0,
+        "n_compliant": 0,
+        "n_total": 200,
+        "ci": {
+          "lower": 1.7020320458977177e-18,
+          "upper": 0.018845326377266575,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    }
+  },
+  "effects": {
+    "compliance_curve": {
+      "rates": [
+        0.0,
+        0.0
+      ],
+      "delta_0_to_max_pp": {
+        "estimate": 0.0,
+        "ci": {
+          "lower": 0.0,
+          "upper": 0.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "slope_pp_per_alpha": {
+        "estimate": 0.0,
+        "ci": {
+          "lower": 0.0,
+          "upper": 0.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "paired_by_sample_id",
+        "interval": "percentile"
+      }
+    }
+  },
+  "throughput": {
+    "by_alpha": {
+      "4.0": {
+        "samples_completed": 200,
+        "record_count_total": 200,
+        "instrumented_row_count": 200,
+        "instrumented_coverage": 1.0,
+        "generated_tokens_total": 1645,
+        "prompt_tokens_total": 8404,
+        "wall_total_s": 46.2017,
+        "wall_measured_s": 46.1678,
+        "generate_total_s": 46.1437,
+        "mean_generated_tokens": 8.225,
+        "mean_generate_s": 0.2307,
+        "samples_per_s_wall": 4.3288,
+        "tokens_per_s_wall": 35.6048,
+        "tokens_per_s_generate": 35.6495,
+        "inter_sample_gap_count": 199,
+        "inter_sample_gap_mean_s": 0.00017,
+        "inter_sample_gap_p50_s": 0.000176,
+        "inter_sample_gap_p95_s": 0.000193,
+        "hook_total_s": 19.768011,
+        "hook_mean_s": 0.09884,
+        "hook_frac_of_generate": 0.428401
+      },
+      "8.0": {
+        "samples_completed": 200,
+        "record_count_total": 200,
+        "instrumented_row_count": 200,
+        "instrumented_coverage": 1.0,
+        "generated_tokens_total": 1609,
+        "prompt_tokens_total": 8404,
+        "wall_total_s": 45.4774,
+        "wall_measured_s": 45.4429,
+        "generate_total_s": 45.4183,
+        "mean_generated_tokens": 8.045,
+        "mean_generate_s": 0.2271,
+        "samples_per_s_wall": 4.3978,
+        "tokens_per_s_wall": 35.3802,
+        "tokens_per_s_generate": 35.4262,
+        "inter_sample_gap_count": 199,
+        "inter_sample_gap_mean_s": 0.00017,
+        "inter_sample_gap_p50_s": 0.000177,
+        "inter_sample_gap_p95_s": 0.000193,
+        "hook_total_s": 19.624986,
+        "hook_mean_s": 0.098125,
+        "hook_frac_of_generate": 0.432094
+      }
+    }
+  },
+  "iti_head_path": "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/iti_heads.pt",
+  "iti_k": 12,
+  "iti_selection_strategy": "random",
+  "iti_random_seed": 3,
+  "iti_family": "truthfulqa_paperfaithful",
+  "simpleqa_prompt_style": "factual_phrase",
+  "judge_required": true
+}
