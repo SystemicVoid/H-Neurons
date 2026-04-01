@@ -100,15 +100,15 @@ updated to mark these summaries as **judge-pending** in future runs.
 |---|---:|---:|---:|---:|---:|
 | MC1 | 0 | 1.0 | 82/328 = 25.0% | 88/328 = 26.8% | +1.8 pp |
 | MC1 | 1 | 2.0 | 87/327 = 26.6% | 91/327 = 27.8% | +1.2 pp |
-| MC2 | 0 | 1.0 | 143/328 = 43.6% | 144/328 = 43.9% | +0.3 pp |
-| MC2 | 1 | 0.5 or 2.0 | 136/327 = 41.6% | 140/327 = 42.8% | +1.2 pp |
+| MC2 truthful mass | 0 | 0.0 | 43.87% mean truthful mass | 43.87% mean truthful mass | +0.00 pp |
+| MC2 truthful mass | 1 | 0.5 | 42.04% mean truthful mass | 43.08% mean truthful mass | +1.03 pp |
 
 #### 1b. Pooled results over both held-out folds
 
-| Variant | Best alpha by pooled accuracy | Baseline | Best | Paired delta 95% CI |
+| Variant | Best alpha by pooled metric | Baseline | Best | Paired delta 95% CI |
 |---|---:|---:|---:|---:|
 | MC1 | 1.0 | 169/655 = 25.8% | 175/655 = 26.7% | +0.9 pp [-1.7, +3.5] |
-| MC2 | 1.0 | 279/655 = 42.6% | 282/655 = 43.1% | +0.5 pp [-2.3, +3.4] |
+| MC2 truthful mass | 0.5 | 42.96% mean truthful mass | 42.99% mean truthful mass | +0.03 pp [-1.54, +1.62] |
 
 #### 1c. Pairwise flips at D1 best alpha
 
@@ -118,11 +118,8 @@ Pooled MC1, `α=0.0 → α=1.0`:
 - correct → incorrect: 33
 - net: +6
 
-Pooled MC2, `α=0.0 → α=1.0`:
-
-- incorrect → correct: 47
-- correct → incorrect: 44
-- net: +3
+MC2 is a continuous truthful-mass metric, so binary flip counting is not the
+right summary surface.
 
 #### 1d. Parse failures
 
@@ -134,13 +131,14 @@ All four D1 TruthfulQA MC runs have **0 parse failures** at every tested alpha.
 |---|---|---:|---:|---:|
 | MC1 | D1 H-neurons | 25.8% | 26.7% at `α=1.0` | +0.9 pp [-1.7, +3.5] |
 | MC1 | D4 ITI | 26.7% | 33.0% at `α=8.0` | +6.3 pp [+3.7, +8.9] |
-| MC2 | D1 H-neurons | 42.6% | 43.1% at `α=1.0` | +0.5 pp [-2.3, +3.4] |
-| MC2 | D4 ITI | 43.1% | 50.2% at `α=8.0` | +7.2 pp [+4.1, +10.2] |
+| MC2 truthful mass | D1 H-neurons | 42.96% | 42.99% at `α=0.5` | +0.03 pp [-1.54, +1.62] |
+| MC2 truthful mass | D4 ITI | 42.86% | 50.36% at `α=8.0` | +7.49 pp [+5.28, +9.82] |
 
 Pairwise flips at D4 `α=8.0`:
 
 - MC1: 61 incorrect → correct vs 20 correct → incorrect
-- MC2: 76 incorrect → correct vs 29 correct → incorrect
+- MC2 truthful mass is continuous, so use the paired bootstrap delta above
+  rather than binary flip counts.
 
 ### 3. SimpleQA forced-commitment rerun
 
@@ -237,12 +235,12 @@ the H-neuron rerun is weak and not statistically separated from zero at its best
 operating point:
 
 - MC1: +0.9 pp [-1.7, +3.5]
-- MC2: +0.5 pp [-2.3, +3.4]
+- MC2 truthful mass: +0.03 pp [-1.54, +1.62]
 
 D4 remains clearly stronger:
 
 - MC1: +6.3 pp [+3.7, +8.9]
-- MC2: +7.2 pp [+4.1, +10.2]
+- MC2 truthful mass: +7.49 pp [+5.28, +9.82]
 
 This means the sprint no longer needs a speculative D1-vs-D4 ranking rerun.
 That question is answered.
