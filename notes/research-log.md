@@ -2,6 +2,34 @@
 
 ---
 
+## 2026-04-01
+
+### What I did
+
+Three results closed. Full numbers and pipeline audit: [2026-04-01-priority-reruns-audit.md](./act3-reports/2026-04-01-priority-reruns-audit.md).
+
+**D4 TruthfulQA MC canonical result locked.** The K=12 α=8 paper-faithful artifact, run over the two final held-out folds (655 questions total), is now the definitive D4 MC result: MC1 26.7%→33.0% (+6.3pp, 95% CI [+3.7, +8.9]), MC2 43.1%→50.2% (+7.2pp, 95% CI [+4.1, +10.2]). This supersedes the earlier 163-question K=16 gate-run headline for all citation purposes.
+
+**D1 TruthfulQA MC rerun.** Ran H-neuron scaling on the same 655 held-out questions used for D4 (α=[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0], both MC1 and MC2, both folds). Pooled best point: MC1 25.8%→26.7% (+0.9pp, 95% CI [-1.7, +3.5]), MC2 42.6%→43.1% (+0.5pp, 95% CI [-2.3, +3.4]). The D1-vs-D4 ranking on TruthfulQA MC is now resolved: D4 wins by a clear margin. Do not run more D1 TruthfulQA reruns.
+
+**SimpleQA forced-commitment rerun** (`--simpleqa_prompt_style factual_phrase`). Added the flag to `run_intervention.py` and `simpleqa_standalone.sh`, ran K=12 α=8 with the explicit "I don't know" escape hatch removed from the prompt. α=8.0 abstention dropped from 79.2% to 33.0% — the escape hatch was real. But compliance still fell below baseline (4.6%→2.8%) and precision stayed flat within uncertainty (4.6%→4.2%, delta CI [-1.9, +1.1]). The generation null survives prompt repair.
+
+### What I expected vs what happened
+
+Expected the escape-hatch removal to unmask a real improvement — that the "I don't know" collapse was a pure prompt artefact. Instead, we got a partial unmask: abstention dropped substantially, but the responses that did appear didn't improve accuracy. The model isn't just saying "I don't know" — at high α it's also producing wrong answers. Removing the escape hatch changes the failure mode from abstention to incorrect generation; neither is compliance.
+
+### What this changes about my thinking
+
+D4 genuinely improves MC answer selection (discriminative) but fails on free-form factual generation (generative). These are different capabilities, and the intervention doesn't transfer between them. The ITI direction appears to shift the model toward confident-sounding output generally, not specifically toward factually correct output. Whether this is direction-specific or just a generic perturbation artifact is what the random-head control will test.
+
+### What I will do next
+
+**Priority 1:** Random-head control on the forced-commitment prompt surface — needed to separate "the truthfulness direction is actively harmful for generation" from "any perturbation at this scale is harmful for generation."
+
+**Priority 2 (conditional):** Only if the control shows the failure is direction-specific, decide whether generation-calibrated extraction (Stage A of [optimise-intervention-ac3.md](./act3-reports/optimise-intervention-ac3.md)) is worth doing.
+
+---
+
 ## 2026-03-31
 
 ### What I did
@@ -79,3 +107,41 @@ D4 is alive but behaves the same way as D3: narrow usable window, immediate clif
 ### What I will do next
 
 Fix the ITI extraction pipeline (leakage, ranking metric, position, hooks) before drawing any conclusions from TruthfulQA MC. Drop context-grounded ITI. Fix the FaithEval harness config for D2/D3 reruns.
+
+---
+
+## 2026-03-24 to 2026-03-29
+
+Week 3 retrospective. Data tables and plot file pointers for this period: [week3-log.md](./act3-reports/week3-log.md). Plot registry: [plot-registry.md](./plot-registry.md).
+
+### What I did
+
+**Sprint reframed (2026-03-27).** Act 3 reframed as a *comparative steering sprint*: H-neurons become the reference row rather than the subject, evaluated against stronger direction-level baselines with the same high-resolution measurement stack. Archived stale pre-pivot planning files under `act2-pre-pivot-archive`. Kept deep research report and literature review as reference, not live planning.
+
+**External critique review and methodology decisions (2026-03-28).** Reviewed an AI-generated critique of the sprint plan. Adopted: (1) D3.5 methodology fix — must project neuron weights into residual-stream space via `down_proj` columns before cosine comparison; the previous approach compared a neuron-weight vector to a residual-stream direction without projecting, which is dimensionally incompatible; (2) expand refusal overlap analysis to a PCA subspace, not just a single vector; (3) separate contrastive datasets aggressively (refusal, truthfulness, detection) to avoid "hallucination vector is a refusal vector in disguise"; (4) D4 uses difference-in-means with diverse multi-source data, not single-dataset logistic regression; (5) Baseline B reframed as a *diagnostic comparator* for safety geometry, not a presumed mitigator; (6) FaithEval first for D4 (MDE logic). Rejected: "start head-level first in D4" — the codebase had no head-level intervention hooks at this point (only `down_proj` hooks), and TransformerLens does not support Gemma-3-4B-IT (only Gemma-2 variants). Head-level work is a conditional refinement, not the starting point.
+
+**D0.5 technical decisions (2026-03-28).** Hook block-output residual stream (not `down_proj`) for direction extraction/intervention — this is the standard representation-engineering surface. Per-layer direction extraction with separation diagnostics rather than cross-layer PCA. All-layer default for refusal intervention (following Arditi 2024), with subset as a conditional refinement. β=0.0 as the no-op convention for direction steering, distinct from H-neuron α=1.0 convention. Capability battery = BioASQ + IFEval (541 prompts, programmatic eval) + WikiText-2 NLL perplexity.
+
+**Refusal contrastive dataset frozen (2026-03-28).** Froze around the published `refusal_direction` repo snapshot, seed-42 sampling, 128+128 train / 32+32 val / 100 harmful test. One explicit leakage fix applied: 2 train-harmful prompts whose normalised text still overlapped the harmful test pool were replaced. This is paper-faithful at the level of source pools and split sizes (Appendix A / page 18), not a proven row-for-row recovery of the exact hidden paper sample. Provenance and caveats in `data/contrastive/refusal/metadata.json`.
+
+**Gemma-3 compatibility fixed (2026-03-29).** `extract_direction.py` and `intervene_direction.py` both needed three fixes for Gemma-3: (1) layer count and hidden dim are under `model.config.text_config`, not `model.config` directly; (2) decoder layers are at `model.model.language_model.layers`, not `model.model.layers`; (3) `dtype=` replaces the deprecated `torch_dtype=` argument. These were never-tested code paths.
+
+**D2 completed (2026-03-29).** Difference-in-means on the frozen 128+128 contrastive set. Best layer: 25 (98.4% val accuracy, separation=9,179). Single-layer ablation at layer 25 reduces harmful refusal rate from 25% to 0%. Single-layer addition has zero effect on harmless — expected, since D3 uses all-layer. Clean-rerun from a fresh worktree reproduced the same tensor hash, layer, and val accuracy: residual risk is conceptual, not chain-of-custody. Harmful eval sets materialised (JBB_100, HarmBench_159, StrongREJECT_313) at `data/contrastive/refusal/eval/`.
+
+**D3 calibrated: narrow window, then cliff (2026-03-29).** All-layer refusal-direction ablation on FaithEval (1,000 samples). β=0.02: 70.2% compliance, 702/1000, clean. β=0.03: 51.1% — a 191-sample net loss. The collapse at β=0.03 is primarily answer-option bias (option B jumps to 58.1% of responses) not a parser failure (parse rate = 0% at all β). Decision: do not broaden D3. Full data: [2026-03-29-d3-faitheval-refusal-direction.md](./act3-reports/2026-03-29-d3-faitheval-refusal-direction.md).
+
+**D3.5 gate resolved (2026-03-29).** Projected the 38-neuron residual update into the refusal-direction space. Both canonical cosine gap (−0.0183) and PCA subspace gap (+0.0361) differ from a layer-matched random-neuron null in the expected directions — real overlap. But the signal is dominated by layer 33: removing that one layer collapses or flips all four mediation correlations (FaithEval + Jailbreak × canonical + subspace). Layer 33's subspace gap is 43× larger than the next layer. Gate decision: `proceed_with_d4_unchanged`. Refusal overlap is a live hypothesis, not a settled mechanism. Full audit: `data/gemma3_4b/intervention/refusal_overlap/refusal_overlap_audit.md`.
+
+**Bug fixes (week 3).** (1) Gemma-3 nested config compatibility — unblocked D2/D3 entirely. (2) Micro-beta alpha label aliasing: α=0.005/0.01/0.02 all formatted to `alpha_0.0.jsonl` due to single-decimal `f"{alpha:.1f}"` formatting — fixed before the clean D3 calibration run. (3) Jailbreak site payload drift: site was displaying a stale 7-point axis against the current 4-point data sweep. (4) D3.5 gate hardening: added dominant-layer exclusion test and sign-convention audit after the initial D3.5 result had ambiguous sign conventions.
+
+### What I expected vs what happened
+
+**Jailbreak binary judge falsified by 5,000-token rerun.** An earlier 7-alpha, 256-token run appeared to show a significant jailbreak compliance slope (+6.2pp, slope +2.14 pp/α). A 5,000-token rerun on 2026-03-25 falsified it: the 256-token window was truncating responses mid-disclaimer, creating alpha-dependent false positives (the disclaimer was often in the second half of the response). The binary judge on the 5,000-token run shows a non-significant effect. CSV-v2 graded scoring recovers a real but structurally different result: +7.6pp csv2_yes (CI [+3.6, +11.6]), but the effect is driven by severity escalation (V=3 rate quadruples), not count growth. 76% of the count increase is ablation recovery at α=0→1.
+
+**D3.5 fragility.** Expected a cleaner mediation story. Got a result that is statistically real but dominated by a single layer in a way that makes mechanistic interpretation very uncertain. The D3.5 gate outcome is "proceed unchanged" but it leaves the refusal-overlap hypothesis neither confirmed nor falsified.
+
+### What this changes about my thinking
+
+The D3 β cliff and D3.5 layer-33 fragility are telling the same underlying story: the truthfulness and refusal representations in Gemma-3-4B-IT are not smoothly decomposable. There are sharp thresholds past which the intervention disrupts something orthogonal to the intended target. This should inform how aggressively we push any intervention vector — a wide, robust operating window is a prerequisite for the result being mechanistically clean, not just numerically positive.
+
+The jailbreak 256-token false positive is a methodological lesson: response-length distributions are intervention-dependent, so fixed-length truncation in a judge is not neutral.
