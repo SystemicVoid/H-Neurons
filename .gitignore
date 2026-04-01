@@ -88,6 +88,7 @@ docs/good-practices
 # Claude Code local config
 .claude/
 scratchpad.md
+notes/CLAUDE.md
 
 # AI-generated research brainstorms (local refs only; see intervention_findings.md for final analysis)
 docs/extensions-ideas/
