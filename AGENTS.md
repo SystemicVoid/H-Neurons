@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+**Prioritize steps by information gained per unit time, not by ease. After every result, ask what was learned, what branch of the search tree was ruled out, and whether the failure was conceptual, methodological, or merely implementation-level. Push back on running an experiment unless you can name the decision it informs.**
+
 - Literature index: start with `papers/INDEX.md`, scan the abstracts there, and only open the linked paper markdown files that are relevant to the current question.
 
 
