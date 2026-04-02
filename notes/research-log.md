@@ -2,6 +2,52 @@
 
 ---
 
+## 2026-04-02
+
+### What I did
+
+Ran the GPT-4o batch judge on the three decode-scope SimpleQA pilot panels
+(full_decode, first_3_tokens, first_8_tokens — 200 questions × 2 alphas each).
+Full numbers and paired analysis:
+[2026-04-02-decode-scope-simpleqa-judge-results.md](./act3-reports/2026-04-02-decode-scope-simpleqa-judge-results.md).
+
+### What happened
+
+All three scopes degrade compliance below the unsteered baseline (5.5%).
+`first_3_tokens` is least bad (4.0%), `full_decode` worst (2.5%). The grade
+breakdown tells the clearest story: `full_decode` generates 64/200
+NOT_ATTEMPTED responses at α=8; `first_3_tokens` cuts that to 21/200. But of
+the 44 questions rescued from NOT_ATTEMPTED by the narrower scope, only 2 (5%)
+were judged CORRECT. Narrowing scope converts meta-hedging into confident wrong
+answers, not into factual recall.
+
+`first_3_tokens` cleared the §5.2 promotion rule (MC1 retention ~90%; attempt
+rate and compliance above `full_decode`; precision not worse) and is now the
+locked canonical scope. Stage 5.2 closed.
+
+### What this changes about my thinking
+
+The scope hypothesis is falsified as a complete explanation. The current
+TruthfulQA-trained directions appear to encode calibrated-uncertainty behavior
+("don't overclaim") rather than factual-retrieval behavior ("recall the right
+fact"). Narrowing scope limits how many generated tokens are pushed toward
+uncertainty expression, which reduces NOT_ATTEMPTED — but without changing the
+underlying direction geometry, the model's factual accuracy doesn't improve.
+
+This is a direction-quality problem. The form channel (how hedgy the output
+sounds) and the content channel (is the fact correct) are separate. ITI with
+TruthfulQA directions only moves the form channel.
+
+### What I will do next
+
+Stage 5.3: run E1 (TruthfulQA-modernized extraction: chat-template matching,
+AUROC-based head ranking) under `first_3_tokens`. If E1 fails to recover
+SimpleQA, run E2 (TriviaQA-only directions) — the literature suggests
+TriviaQA-trained directions transfer better to factual-recall tasks. Continue
+using the shared 200-ID manifest for all pilots.
+
+---
+
 ## 2026-04-01
 
 ### What I did

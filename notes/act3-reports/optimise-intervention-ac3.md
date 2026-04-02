@@ -345,6 +345,22 @@ Test these scopes:
   forced-commitment SimpleQA pilot; do not promote a new locked scope from the
   cal-val gate alone.
 
+**Status after 200-ID generation review**
+
+- Canonical audit:
+  [2026-04-01-decode-scope-simpleqa-pilot-audit.md](./2026-04-01-decode-scope-simpleqa-pilot-audit.md)
+- What now withstands scrutiny:
+  `first_3_tokens` materially reduces raw meta-evasive spillover and restores
+  more concise phrase-like outputs relative to `full_decode`, while
+  `first_8_tokens` is intermediate but much closer to `full_decode`.
+- What still does **not** withstand scrutiny:
+  any claim that `first_3_tokens` is already more correct or already the locked
+  best scope.
+- Operational consequence:
+  proceed to judged comparison for all three surviving scopes on the shared
+  200-ID slice; treat `first_3_tokens` as the main narrowed candidate, but do
+  not prune `first_8_tokens` post hoc from raw surface form alone.
+
 **Promotion rule**
 
 Promote a narrower scope if it:
@@ -355,6 +371,29 @@ Promote a narrower scope if it:
 
 If no narrower scope helps, that is strong evidence that the current artifact
 problem is not just "too many decode tokens."
+
+**Status after batch judging — STAGE 5.2 COMPLETE (2026-04-02)**
+
+- Canonical results:
+  [2026-04-02-decode-scope-simpleqa-judge-results.md](./2026-04-02-decode-scope-simpleqa-judge-results.md)
+- Summary:
+
+| Scope | α=8.0 compliance | Δ vs baseline | Bootstrap 95% CI | Attempt rate | Precision |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Baseline (α=0.0) | 5.5% (11/200) | — | — | 99.0% | 5.6% |
+| `full_decode` | 2.5% (5/200) | −3.0 pp | [−6.0, 0.0] | 68.0% | 3.7% |
+| `first_8_tokens` | 3.5% (7/200) | −2.0 pp | [−5.0, +1.0] | 84.5% | 4.1% |
+| `first_3_tokens` | 4.0% (8/200) | −1.5 pp | [−4.0, +0.5] | 89.5% | 4.5% |
+
+- Scope hypothesis **falsified as a complete fix.** Narrowing scope converts
+  NOT_ATTEMPTED into INCORRECT (95% of rescued attempts), not into CORRECT.
+  All three scopes remain below unsteered baseline compliance.
+- `first_3_tokens` clears all three promotion criteria (MC1 retention ~90%;
+  attempt/compliance above `full_decode`; precision not worse) and is
+  **locked as the canonical default scope** for all subsequent experiments.
+- Decode-scope is a useful regularizer, not a solution. The direction-quality
+  hypothesis is now the primary candidate.
+- Proceed to **5.3 E1 (TruthfulQA-modernized)** under `first_3_tokens`.
 
 ---
 
@@ -530,15 +569,20 @@ That is how we avoid spending the sprint on elegant but low-yield complexity.
    [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
 2. Decode-scope Gate 1 completed:
    [2026-04-01-decode-scope-gate1-audit.md](./2026-04-01-decode-scope-gate1-audit.md)
-3. Run the 200-ID forced-commitment SimpleQA pilot for `full_decode`,
-   `first_3_tokens`, and `first_8_tokens`.
-4. Run `E1` under the locked scope.
-5. Run `E2` under the locked scope.
-6. Run `E3` only if `E1` and `E2` create a real complementarity story.
-7. Build the bridge generation benchmark before any chooser/LITO-style work.
-8. Run chooser work only if the bridge benchmark shows real oracle headroom.
-9. Escalate to a small causal head-selection pilot if probe-selected variants
-   still behave like truth-flavored refusal.
+3. Decode-scope SimpleQA pilot generation review completed:
+   [2026-04-01-decode-scope-simpleqa-pilot-audit.md](./2026-04-01-decode-scope-simpleqa-pilot-audit.md)
+4. Decode-scope batch judging completed — scope `first_3_tokens` locked:
+   [2026-04-02-decode-scope-simpleqa-judge-results.md](./2026-04-02-decode-scope-simpleqa-judge-results.md)
+5. **Run `E1` (TruthfulQA-modernized) under `first_3_tokens`.** ← next priority
+6. Run `E2` (TriviaQA-only) under `first_3_tokens` if E1 does not recover
+   SimpleQA compliance.
+7. Run `E3` (mixed-source) only if `E1` and `E2` create a real complementarity
+   story.
+8. Build the bridge generation benchmark (open-domain TriviaQA or NQ) before
+   any chooser/LITO-style work.
+9. Run chooser work only if the bridge benchmark shows real oracle headroom.
+10. Escalate to a small causal head-selection pilot if probe-selected variants
+    still behave like truth-flavored refusal after E1–E3.
 
 ---
 
