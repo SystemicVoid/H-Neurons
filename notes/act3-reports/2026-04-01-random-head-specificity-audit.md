@@ -267,7 +267,7 @@ This control narrows the problem, but it does not solve the whole mechanism.
 It does **not** prove:
 
 - that the learned truth directions themselves are harmful in the abstract
-- that head choice alone is the culprit
+- that head choice alone is the culprit (this control keeps artifact directions fixed, so it does not separate "wrong heads" from "wrong directions on otherwise tolerable heads")
 - that decode scope is already optimal
 - that the ranked head set is worse than every possible alternative head set
 
@@ -277,6 +277,7 @@ The cleanest statement is narrower:
   configuration**
 - "configuration" here means the selected head set plus the learned
   head-specific directions applied to that set
+- no ablation yet isolates head selection, direction quality, or their interaction as the primary mechanism
 
 ### 3. Why decode-scope ablation is now the highest-value next step
 

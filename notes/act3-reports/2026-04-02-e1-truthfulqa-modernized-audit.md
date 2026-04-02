@@ -61,7 +61,7 @@
 - Best lock candidate by current rule: `(K=8, alpha=8.0)`.
 - Calibration sample size was `n=81` (MC1 and MC2).
 - MC1 one-sample resolution is `100/81 = 1.2346 pp`.
-- Current tie tolerance in selection rule is `0.5 pp`, yielding exactly one candidate within tolerance in this run (no MC2 tie-break activation).
+- Current tie tolerance in selection rule is `0.5 pp`, yielding exactly one candidate within tolerance in this run (no MC2 tie-break activation). With `n=81`, MC1 moves in `1.2346 pp` steps, so a `0.5 pp` tolerance is below the minimum distinguishable difference — effectively fake precision.
 
 ### 1.4 Final 2-Fold TruthfulQA Outcomes (E1 Modernized)
 
@@ -133,7 +133,7 @@ Paired modernized minus paper-faithful at α=8.0:
 
 ### 2.1 What Survives Skeptical Review
 
-1. **E1 is a real but smaller clean-axis improvement than paper-faithful.**
+1. **E1 improves over its own baseline but is dominated by paper-faithful on the clean axis.**
    - E1 still improves MC1/MC2 vs its own α=0 baseline with positive CIs.
    - But paired head-to-head versus paper-faithful at α=8.0 is negative on both MC axes with non-overlapping-zero CIs.
 
@@ -150,19 +150,19 @@ Paired modernized minus paper-faithful at α=8.0:
 1. **“E1 fixed generation” is not supported.**
    - The within-run SimpleQA signal is directionally positive but statistically weak on n=200.
 
-2. **“Modernized extraction is superior overall” is not supported.**
+2. **“Modernized extraction is superior overall” is not supported.** On the paired head-to-head, E1 traded MC sharpness for gentler generation behavior — a real tradeoff, not a vague “mixed” result.
    - It improves generation behavior relative to paper-faithful, but degrades both MC1 and MC2.
 
 3. **“MC2 tie-break drove lock robustness” is not supported in this run.**
    - The tie-break branch was effectively inactive because tolerance was tighter than single-sample MC1 granularity.
 
-### 2.3 Mechanistic Read (Moderate Confidence)
+### 2.3 Mechanistic Read (Moderate Confidence — Descriptive, Not Proven Causal)
 
 A concise analogy: E1 behaves like a **less aggressive brake pedal** than paper-faithful.
 - On SimpleQA, the model refuses less often (higher attempt).
 - But on TruthfulQA MC, the model’s clean discrimination between truthful and distractor options weakens relative to paper-faithful.
 
-This suggests E1 may trade some truth-direction sharpness for gentler generation-time suppression. That hypothesis is consistent with data, but not proven causal.
+This suggests E1 may trade some truth-direction sharpness for gentler generation-time suppression. That description fits the observed tradeoff but is not proven causal — the data does not yet separate whether the effect comes from AUROC ranking, multi-position selection, the `K=8` vs `K=12` difference, or interaction among all of these. E1 changed multiple extraction parameters simultaneously.
 
 ### 2.4 Uncertainty Register
 
@@ -193,9 +193,10 @@ These are pipeline-hygiene fixes; they do **not** retroactively change already-p
 
 - **E1 is complete and informative, but not a terminal solution.**
 - Promote result as:
-  - “generation behavior improved vs paper-faithful on SimpleQA panel”
-  - “clean TruthfulQA MC performance regressed vs paper-faithful”
-  - “net outcome is mixed; proceed to E2”
+  - “E1 is a successful diagnosis of a tradeoff, not a successful solution”
+  - “generation behavior improved vs paper-faithful on SimpleQA panel (higher attempt rate and compliance)”
+  - “clean TruthfulQA MC performance regressed vs paper-faithful (MC1 −3.51 pp, MC2 −3.01 pp, both CIs exclude zero)”
+  - “this is a real MC↓ / SimpleQA-behavior↑ tradeoff, currently on the wrong side of the sprint’s cross-benchmark consistency objective”
 
 ### 4.2 Highest-Value Next Experiments
 

@@ -275,7 +275,8 @@ The forced-commitment rerun looks less like "better truthfulness" and more like
 The easiest mental model is a thermostat that lowers the room temperature
 without checking whether anyone is actually overheating. The intervention is
 clearly moving behavior, but it is not selectively pruning bad answers while
-preserving good ones.
+preserving good ones. This is a descriptive characterization of observed
+behavior, not a proven causal mechanism — the data shows what changed, not why.
 
 Evidence:
 

@@ -270,11 +270,12 @@ outputs (+11.5 pp phrase-like proxy) and fewer verbose hedging responses (−21.
 pp evasive proxy). Why does this improvement in form not produce more correct
 answers?
 
-**The mechanism:** ITI directions trained on TruthfulQA appear to encode
-calibrated-uncertainty behavior — "don't overclaim when you're unsure" — rather
-than factual-recall behavior. When applied at `full_decode`, this signal
-permeates every generated token, causing the model to repeatedly second-guess
-itself and produce verbose meta-hedging that the judge classifies `NOT_ATTEMPTED`.
+**Descriptive mechanism (not yet proven causal):** ITI directions trained on
+TruthfulQA appear to encode calibrated-uncertainty behavior — "don't overclaim
+when you're unsure" — rather than factual-recall behavior. When applied at
+`full_decode`, this signal permeates every generated token, causing the model to
+repeatedly second-guess itself and produce verbose meta-hedging that the judge
+classifies `NOT_ATTEMPTED`.
 
 When scope is narrowed to the first 3 tokens, the uncertainty signal shapes the
 *opening* of the response without dominating the entire generation. The model
@@ -282,8 +283,8 @@ commits to an answer form earlier. But the *content* of that answer — the
 specific factual claim — is not steered toward accuracy. The model is now giving
 short, direct answers, but those answers are wrong for the same reasons as before.
 
-One useful (though simplified) framing is two separable channels — the actual
-circuits likely overlap:
+One useful (though simplified) framing is two separable channels — this is a
+descriptive decomposition of observed behavior, not a proven circuit claim:
 - **Form channel:** "how much hedging language?" — scope narrows this, conciseness
   improves.
 - **Content channel:** "is the factual claim correct?" — scope does not visibly

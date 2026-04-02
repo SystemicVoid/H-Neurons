@@ -1,7 +1,7 @@
 # Optimising The Truthfulness Intervention — Act 3 Strategy
 
 **Date:** 2026-04-01  
-**Status:** Revised through the 2026-04-02 E1 audit (repo audit, raw-data checks, code-path audit, literature review, random-head specificity control, and E1 execution follow-up)
+**Status:** Revised through the 2026-04-02 E1 synthesis (repo audit, raw-data checks, code-path audit, literature review, random-head specificity control, E1 execution, and cross-report tightening)
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)  
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
@@ -431,9 +431,12 @@ extraction mismatch rather than by source-data limitations.
 - Canonical report:
   [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
 - Outcome summary:
-  mixed tradeoff. E1 improves SimpleQA attempt/compliance relative to the
-  paper-faithful comparator on the paired 200-ID panel, but regresses both MC1
-  and MC2 on paired 2-fold TruthfulQA held-out comparison.
+  E1 is a successful diagnosis of a tradeoff, not a successful solution. It
+  improves SimpleQA attempt/compliance relative to the paper-faithful comparator
+  on the paired 200-ID panel, but regresses both MC1 and MC2 on the paired
+  2-fold TruthfulQA held-out comparison. This is a structured MC↓ /
+  SimpleQA-behavior↑ tradeoff, currently on the wrong side of the sprint's
+  cross-benchmark consistency requirement.
 - Methodology note:
   lock-selection metadata drift and sweep auditability gaps were patched in
   pipeline code (`scripts/run_calibration_sweep.py`, `scripts/lock_config.py`)
@@ -625,7 +628,7 @@ That is how we avoid spending the sprint on elegant but low-yield complexity.
    [2026-04-02-decode-scope-simpleqa-judge-results.md](./2026-04-02-decode-scope-simpleqa-judge-results.md)
 5. E1 executed and audited:
    [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
-   (mixed outcome: generation behavior better than paper-faithful on SimpleQA panel, MC worse).
+   (E1 diagnosed a structured MC↓ / SimpleQA-behavior↑ tradeoff vs paper-faithful; informative but dominated for the sprint objective).
 6. **Run `E2` (TriviaQA-only) under `first_3_tokens`.** ← next priority
 7. Run `E3` (mixed-source) only if `E1` and `E2` create a real complementarity
    story.
