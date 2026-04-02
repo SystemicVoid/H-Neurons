@@ -848,7 +848,7 @@ async function initInterventionCharts() {
             border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
-            min: 60, max: 74,
+            suggestedMin: 60, suggestedMax: 74,
             grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: {
               callback: (value) => value + '%',
@@ -988,7 +988,7 @@ async function initInterventionCharts() {
             border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
-            min: 60, max: 80,
+            suggestedMin: 60, suggestedMax: 80,
             grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: {
               callback: (value) => value + '%',
@@ -1320,7 +1320,7 @@ async function initJailbreakCharts() {
             border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
-            min: 16, max: 32,
+            suggestedMin: 16, suggestedMax: 36,
             grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: {
               callback: (value) => value + '%',
@@ -1402,7 +1402,7 @@ async function initJailbreakCharts() {
             border: { color: 'rgba(160, 155, 145, 0.12)' }
           },
           y: {
-            min: 0, max: 55,
+            suggestedMin: 0, suggestedMax: 55,
             grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: {
               callback: (value) => value + '%',
@@ -1581,7 +1581,7 @@ async function initJailbreakCharts() {
         },
         scales: {
           x: {
-            min: 0, max: 12,
+            suggestedMin: 0, suggestedMax: 12,
             grid: { color: 'rgba(160, 155, 145, 0.08)' },
             ticks: {
               callback: (value) => value + 'pp',
