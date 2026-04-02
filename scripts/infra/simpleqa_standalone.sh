@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Standalone SimpleQA run: inference + batch judging
+# Standalone SimpleQA run: inference with optional batch judging
 #
 # Reads locked K/alpha from pipeline_state.json (Gate 1 must be passed).
 # Skips the codex OpenAI-limit check (no credits). Batch token cap defaults to
@@ -22,12 +22,13 @@ set -euo pipefail
 # Disable the codex-based OpenAI batch limit pre-flight (no API credits)
 export CODEX_VERIFY_OPENAI_LIMITS=0
 
-# Wrap in systemd-inhibit (inference ~20-30 min + batch poll)
+# Wrap in systemd-inhibit (inference ~20-30 min + optional batch poll)
 if [ -z "${INHIBIT_WRAPPED:-}" ] && command -v systemd-inhibit &>/dev/null; then
+    INHIBIT_WHY="${INHIBIT_WHY:-SimpleQA standalone}"
     echo "Re-launching under systemd-inhibit..."
     exec env INHIBIT_WRAPPED=1 systemd-inhibit \
         --what=sleep:idle \
-        --why="SimpleQA standalone (inference + batch judge)" \
+        --why="${INHIBIT_WHY}" \
         -- bash "$0" "$@"
 fi
 
@@ -61,6 +62,9 @@ ITI_DIRECTION_MODE="${ITI_DIRECTION_MODE:-artifact}"
 ITI_DIRECTION_RANDOM_SEED="${ITI_DIRECTION_RANDOM_SEED:-}"
 ITI_DECODE_SCOPE="${ITI_DECODE_SCOPE:-full_decode}"
 LOG_STEM="${LOG_STEM:-simpleqa_standalone}"
+SIMPLEQA_RUN_JUDGE="${SIMPLEQA_RUN_JUDGE:-1}"
+SIMPLEQA_EXPORT_SITE_DATA="${SIMPLEQA_EXPORT_SITE_DATA:-${SIMPLEQA_RUN_JUDGE}}"
+SIMPLEQA_LOG_QUEUE="${SIMPLEQA_LOG_QUEUE:-1}"
 
 echo "Locked config: K=${LOCKED_K}, alpha=${LOCKED_ALPHA}"
 echo "Production artifact: ${PROD_ARTIFACT}"
@@ -73,6 +77,9 @@ if [ -n "${ITI_DIRECTION_RANDOM_SEED}" ]; then
     echo "Direction random seed: ${ITI_DIRECTION_RANDOM_SEED}"
 fi
 echo "Decode scope: ${ITI_DECODE_SCOPE}"
+echo "Run judge: ${SIMPLEQA_RUN_JUDGE}"
+echo "Export site data: ${SIMPLEQA_EXPORT_SITE_DATA}"
+echo "Log queue entry: ${SIMPLEQA_LOG_QUEUE}"
 if [ -n "${SIMPLEQA_SAMPLE_MANIFEST}" ]; then
     echo "Sample manifest: ${SIMPLEQA_SAMPLE_MANIFEST}"
 fi
@@ -173,35 +180,50 @@ PYTHONUNBUFFERED=1 uv run python scripts/run_intervention.py \
     2>&1 | tee "logs/${LOG_STEM}_inference.log"
 
 # ===================================================================
-# Phase 2: SimpleQA batch judging
+# Phase 2: SimpleQA batch judging (optional)
 # ===================================================================
-echo ""
-echo "=== SimpleQA batch judging (batch-max-enqueued-tokens=${SIMPLEQA_BATCH_MAX_ENQUEUED_TOKENS}) ==="
-PYTHONUNBUFFERED=1 uv run python scripts/evaluate_intervention.py \
-    "${JUDGE_ARGS[@]}" \
-    2>&1 | tee "logs/${LOG_STEM}_judge.log"
+if [ "${SIMPLEQA_RUN_JUDGE}" = "1" ]; then
+    echo ""
+    echo "=== SimpleQA batch judging (batch-max-enqueued-tokens=${SIMPLEQA_BATCH_MAX_ENQUEUED_TOKENS}) ==="
+    PYTHONUNBUFFERED=1 uv run python scripts/evaluate_intervention.py \
+        "${JUDGE_ARGS[@]}" \
+        2>&1 | tee "logs/${LOG_STEM}_judge.log"
+else
+    echo ""
+    echo "=== Review gate ==="
+    echo "Skipping batch judging by request."
+fi
 
 # ===================================================================
-# Phase 3: Export site data
+# Phase 3: Export site data (optional)
 # ===================================================================
-echo ""
-echo "=== Export site data ==="
-uv run python scripts/export_site_data.py 2>&1 | tee "logs/${LOG_STEM}_export.log"
+if [ "${SIMPLEQA_EXPORT_SITE_DATA}" = "1" ]; then
+    echo ""
+    echo "=== Export site data ==="
+    uv run python scripts/export_site_data.py 2>&1 | tee "logs/${LOG_STEM}_export.log"
+fi
 
 # ===================================================================
 # Log to runs_to_analyse
 # ===================================================================
 RUN_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-mkdir -p notes
-cat >> notes/runs_to_analyse.md << EOF
+if [ "${SIMPLEQA_LOG_QUEUE}" = "1" ]; then
+    mkdir -p notes
+    cat >> notes/runs_to_analyse.md << EOF
 
 ## ${RUN_TS} | ${SIMPLEQA_DIR}
 What: SimpleQA standalone — paper-faithful ITI K=${LOCKED_K}, prompt_style=${SIMPLEQA_PROMPT_STYLE}, selection=${ITI_SELECTION_STRATEGY}, direction_mode=${ITI_DIRECTION_MODE}, decode_scope=${ITI_DECODE_SCOPE}, seed=${ITI_RANDOM_SEED}, alpha=[${SIMPLEQA_ALPHAS// /,}], ${SIMPLEQA_SAMPLE_DESC}
 Key files: results.json, alpha_*.jsonl, run_intervention.provenance.*.json
 Status: awaiting analysis
 EOF
+fi
 
 echo ""
 echo "=== Done ==="
 echo "Results: ${SIMPLEQA_DIR}"
-echo "Logged to notes/runs_to_analyse.md"
+if [ "${SIMPLEQA_RUN_JUDGE}" != "1" ]; then
+    echo "Stopped at the post-inference review gate."
+fi
+if [ "${SIMPLEQA_LOG_QUEUE}" = "1" ]; then
+    echo "Logged to notes/runs_to_analyse.md"
+fi
