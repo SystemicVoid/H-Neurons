@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -118,6 +119,49 @@ class TestPilotPoisonGate:
         assert rejected["rejected"] is True
         assert "attempt_and_precision_gate" in rejected["rejection_reasons"]
         assert "not_attempted_spike_gate" in rejected["rejection_reasons"]
+
+    def test_pilot_precision_ci_is_zero_when_no_attempts(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        experiment_dir = tmp_path / "pilot"
+        experiment_dir.mkdir()
+        baseline_path = experiment_dir / "alpha_0.0.jsonl"
+        candidate_path = experiment_dir / "alpha_8.0.jsonl"
+        rows = [
+            {"id": "q1", "simpleqa_grade": "NOT_ATTEMPTED"},
+            {"id": "q2", "simpleqa_grade": "NOT_ATTEMPTED"},
+            {"id": "q3", "simpleqa_grade": "NOT_ATTEMPTED"},
+        ]
+        baseline_path.write_text(
+            "\n".join(json.dumps(row) for row in rows) + "\n",
+            encoding="utf-8",
+        )
+        candidate_path.write_text(
+            "\n".join(json.dumps(row) for row in rows) + "\n",
+            encoding="utf-8",
+        )
+
+        # Keep test runtime low while still exercising paired bootstrap path.
+        monkeypatch.setattr(
+            report_simpleqa_shortlist_pilot, "DEFAULT_BOOTSTRAP_RESAMPLES", 200
+        )
+        summary = report_simpleqa_shortlist_pilot._summary_for_candidate(
+            k=8,
+            alpha=8.0,
+            experiment_dir=experiment_dir,
+            baseline_alpha=0.0,
+            seed=42,
+            attempt_gate_pp=-10.0,
+            precision_gate_pp=0.0,
+            not_attempted_gate_n=15,
+        )
+
+        assert summary["precision"]["baseline"] == 0.0
+        assert summary["precision"]["candidate"] == 0.0
+        assert summary["precision"]["baseline_ci"]["lower"] == 0.0
+        assert summary["precision"]["baseline_ci"]["upper"] == 0.0
+        assert summary["precision"]["candidate_ci"]["lower"] == 0.0
+        assert summary["precision"]["candidate_ci"]["upper"] == 0.0
 
 
 class TestPairedIdParity:

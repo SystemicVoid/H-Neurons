@@ -246,10 +246,10 @@ def _summary_for_candidate(
                 seed=seed,
             ),
             "baseline_ci": wilson_interval(
-                baseline_counts["CORRECT"], max(baseline_attempted, 1)
+                baseline_counts["CORRECT"], baseline_attempted
             ).to_dict(),
             "candidate_ci": wilson_interval(
-                candidate_counts["CORRECT"], max(candidate_attempted, 1)
+                candidate_counts["CORRECT"], candidate_attempted
             ).to_dict(),
         },
         "not_attempted_delta_n": int(not_attempted_delta_n),
