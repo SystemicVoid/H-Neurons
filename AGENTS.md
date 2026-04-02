@@ -45,17 +45,38 @@ data/<model>/intervention/<benchmark>/experiment_YYYY-MM-DD_<reason>/
 
 For genuinely new experiments (new benchmark, new method), create a new semantic directory rather than just timestamped one. Prefer names that describe what varies, not just when it ran.
 
-## GPU Job Discipline
+## GPU Run Constitution
 
 <important if="running GPU jobs or pipeline scripts">
-Never start a GPU job without pre-staging its downstream chain in a tmux window.
 
-Chaining rules:
-- Write the chain as a robust bash script, then run that script in one tmux window, open for user to monitor. Integrate HITL review gates, with easy continue ux post-review.
-- Use `set -euo pipefail` instead of `&&` — it halts on any non-zero exit and catches pipe failures.
-- Use `systemd-inhibit` for any GPU job longer than ~20 minutes.
+- Never run long GPU jobs ad hoc.
+- Always launch via a dedicated bash script in a tmux window.
+- Use `set -euo pipefail`.
+- Use `systemd-inhibit` for runs longer than ~20 minutes.
+- Check `nvitop -1` before launch.
 
-After the chain completes, append an entry to `notes/runs_to_analyse.md` :
+Non-negotiable properties for long runs:
+- **idempotent**
+- **incrementally persisted**
+- **resumable**
+- **failure-visible**
+
+Forbidden:
+- keeping hours of results only in memory
+- “collect everything, write at end” designs
+- manual multi-step shell driving for critical runs
+- bypassing provenance sidecars
+
+Required patterns:
+- write outputs incrementally (`jsonl`, shards, per-batch/per-split artifacts)
+- flush/close files regularly
+- checkpoint expensive stages
+- on restart, skip completed work via existence/integrity guards
+- fail fast with clear logs and non-zero exits
+
+Never delete, bypass, or overwrite `*.provenance.json`.
+
+After successful completion, append to `notes/runs_to_analyse.md`:
 
 ```markdown
 ## <ISO timestamp> | <run_dir relative path>
@@ -64,9 +85,8 @@ Key files: results.json, *.provenance.json, activations/responses.jsonl
 Status: awaiting analysis
 ```
 
-After that entry is analysed, remove it.
+Remove the entry once analysed.
 
-Rules:
-- Every script already writes a `*.provenance.json` sidecar via `start_run_provenance` / `finish_run_provenance` — never bypass or delete these. They are the machine-readable chain of custody.
-- Check `nvitop -1` before launching to confirm GPU is free.
-</important>
+If killing the process loses substantial work, the pipeline is misdesigned.
+
+</important> ```
