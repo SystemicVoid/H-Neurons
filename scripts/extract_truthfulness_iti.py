@@ -1,6 +1,6 @@
 """Extract head-level ITI artifacts for truthfulness steering.
 
-This script builds one of four explicit artifact families:
+This script builds one of five explicit artifact families:
 
 - ``iti_triviaqa_transfer``: closed-book factuality transfer from TriviaQA
   consistency responses.
@@ -13,6 +13,9 @@ This script builds one of four explicit artifact families:
   modernized ranking (AUROC primary, all position summaries).  Use this path
   to iterate on ranking metrics, candidate pruning, or alpha/K search without
   polluting the paper-faithful baseline.
+- ``iti_truthfulqa_modernized``: TruthfulQA extraction with chat-template
+  prompt matching, assistant-content token positions, AUROC ranking, and
+  first/mean/last answer-position selection.
 
 The extraction surface is the tensor immediately before ``self_attn.o_proj``.
 Heads are ranked by probe metrics and steered with a truthful-oriented
@@ -81,6 +84,7 @@ class ITIExample:
     prompt_text: str
     answer_positions: tuple[int, ...]
     metadata: dict[str, Any]
+    prompt_input_ids: tuple[int, ...] | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -94,6 +98,7 @@ def parse_args() -> argparse.Namespace:
             "iti_context_grounded",
             "iti_truthfulqa_paperfaithful",
             "iti_truthfulqa_exploratory",
+            "iti_truthfulqa_modernized",
         ],
     )
     parser.add_argument(
@@ -137,7 +142,8 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Fold JSON from build_truthfulqa_splits.py. "
-        "Required for iti_truthfulqa_paperfaithful and iti_truthfulqa_exploratory.",
+        "Required for iti_truthfulqa_paperfaithful, iti_truthfulqa_exploratory, "
+        "and iti_truthfulqa_modernized.",
     )
     parser.add_argument(
         "--csv_path",
@@ -154,6 +160,7 @@ def default_output_dir(family: str) -> Path:
         "iti_context_grounded": "iti_context",
         "iti_truthfulqa_paperfaithful": "iti_truthfulqa_paperfaithful",
         "iti_truthfulqa_exploratory": "iti_truthfulqa_exploratory",
+        "iti_truthfulqa_modernized": "iti_truthfulqa_modernized",
     }
     suffix = suffix_map[family]
     return Path("data/contrastive/truthfulness") / suffix
@@ -581,7 +588,98 @@ def _qa_prompt_paper(question: str, answer: str) -> tuple[str, str]:
     return prefix, full
 
 
-TRUTHFULQA_FAMILIES = ("iti_truthfulqa_paperfaithful", "iti_truthfulqa_exploratory")
+def _longest_common_prefix_len(a: list[int], b: list[int]) -> int:
+    n = 0
+    for x, y in zip(a, b, strict=False):
+        if x != y:
+            break
+        n += 1
+    return n
+
+
+def _chat_prompt_with_answer_positions(
+    tokenizer: Any,
+    *,
+    question: str,
+    answer: str,
+) -> tuple[str, tuple[int, ...], tuple[int, ...], dict[str, Any]]:
+    """Render chat-formatted QA and return assistant-content token positions.
+
+    Positions are computed on the fully-rendered chat sequence while excluding
+    assistant control/suffix tokens (e.g. end-of-turn markers).
+    """
+    prompt_messages = [{"role": "user", "content": question}]
+    full_messages = [
+        {"role": "user", "content": question},
+        {"role": "assistant", "content": answer},
+    ]
+    empty_assistant_messages = [
+        {"role": "user", "content": question},
+        {"role": "assistant", "content": ""},
+    ]
+
+    prompt_ids = list(
+        tokenizer.apply_chat_template(
+            prompt_messages, tokenize=True, add_generation_prompt=True
+        )
+    )
+    full_ids = list(
+        tokenizer.apply_chat_template(
+            full_messages, tokenize=True, add_generation_prompt=False
+        )
+    )
+    full_text = str(
+        tokenizer.apply_chat_template(
+            full_messages, tokenize=False, add_generation_prompt=False
+        )
+    )
+    empty_ids = list(
+        tokenizer.apply_chat_template(
+            empty_assistant_messages, tokenize=True, add_generation_prompt=False
+        )
+    )
+
+    prefix_len = _longest_common_prefix_len(prompt_ids, full_ids)
+    if prefix_len != len(prompt_ids):
+        raise ValueError(
+            "Chat-template mismatch: prompt IDs are not a full prefix of full IDs "
+            f"(prefix_len={prefix_len}, prompt_len={len(prompt_ids)})."
+        )
+
+    suffix_ids = empty_ids[prefix_len:]
+    tail_ids = full_ids[prefix_len:]
+    if suffix_ids and tail_ids[-len(suffix_ids) :] == suffix_ids:
+        content_tail = tail_ids[: -len(suffix_ids)]
+    else:
+        content_tail = tail_ids
+
+    if not content_tail:
+        raise ValueError(
+            "Chat-template answer encoding produced no assistant-content tokens for "
+            f"question={question!r}, answer={answer!r}"
+        )
+
+    answer_start = prefix_len
+    answer_end = answer_start + len(content_tail)
+    answer_positions = tuple(range(answer_start, answer_end))
+    return (
+        full_text,
+        answer_positions,
+        tuple(full_ids),
+        {
+            "prompt_len_tokens": len(prompt_ids),
+            "full_len_tokens": len(full_ids),
+            "assistant_suffix_len_tokens": len(suffix_ids),
+            "assistant_content_len_tokens": len(content_tail),
+        },
+    )
+
+
+TRUTHFULQA_FAMILIES = (
+    "iti_truthfulqa_paperfaithful",
+    "iti_truthfulqa_exploratory",
+    "iti_truthfulqa_modernized",
+)
 
 
 def build_truthfulqa_paper_examples(
@@ -597,17 +695,18 @@ def build_truthfulqa_paper_examples(
     questions belong to train, val, and test.  **Test-fold questions are
     excluded entirely** so they never contaminate directions or ranking.
 
-    Both ``iti_truthfulqa_paperfaithful`` and ``iti_truthfulqa_exploratory``
-    share this builder — the data source, split logic, and prompt format are
-    identical.  What differs is the *ranking* and *position-summary* config
-    applied downstream in ``main()``.  The ``family`` parameter is threaded
-    into each example and into the metadata so the artifact is self-describing.
+    TruthfulQA families share this builder for split logic and provenance
+    handling. Prompt rendering differs by family:
+    - ``iti_truthfulqa_paperfaithful`` / ``iti_truthfulqa_exploratory``:
+      paper raw-text prompt ``Q: {question}\\nA: {answer}``.
+    - ``iti_truthfulqa_modernized``: model chat-template prompt with
+      assistant-content token spans.
 
     - Data: official TruthfulQA CSV (canonical source, 817 questions, dev-fold only)
     - Each Correct Answer → truthful pair, each Incorrect Answer → untruthful pair
     - Split assignment from fold file (train/val within dev)
-    - Prompt: ``Q: {question}\\nA: {answer}``
-    - Token position: last token of the concatenated QA pair
+    - Prompt: paper raw-text or modernized chat-template (family-dependent)
+    - Token positions: family-dependent (paper span vs assistant-content span)
     """
     fold = json.loads(fold_path.read_text(encoding="utf-8"))
     canonical_path = Path(fold["canonical_manifest"])
@@ -644,12 +743,22 @@ def build_truthfulqa_paper_examples(
         split = "val" if stable_id in val_ids else "train"
 
         for answer in parse_semicolon_answers(row["Correct Answers"]):
-            prefix, full = _qa_prompt_paper(question, answer)
-            prefix_ids = tokenizer(prefix, add_special_tokens=False)["input_ids"]
-            full_ids = tokenizer(full, add_special_tokens=False)["input_ids"]
-            if len(full_ids) <= len(prefix_ids):
-                continue
-            answer_positions = tuple(range(len(prefix_ids), len(full_ids)))
+            if family == "iti_truthfulqa_modernized":
+                full, answer_positions, full_ids, prompt_meta = (
+                    _chat_prompt_with_answer_positions(
+                        tokenizer,
+                        question=question,
+                        answer=answer,
+                    )
+                )
+            else:
+                prefix, full = _qa_prompt_paper(question, answer)
+                prefix_ids = tokenizer(prefix, add_special_tokens=False)["input_ids"]
+                full_ids = tokenizer(full, add_special_tokens=False)["input_ids"]
+                if len(full_ids) <= len(prefix_ids):
+                    continue
+                answer_positions = tuple(range(len(prefix_ids), len(full_ids)))
+                prompt_meta = {}
             examples.append(
                 ITIExample(
                     example_id=f"{split}_{qid}_truthful_{len(examples)}",
@@ -662,17 +771,32 @@ def build_truthfulqa_paper_examples(
                     weight=1.0,
                     prompt_text=full,
                     answer_positions=answer_positions,
-                    metadata={"source": "csv", "csv_idx": csv_idx},
+                    metadata={
+                        "source": "csv",
+                        "csv_idx": csv_idx,
+                        **prompt_meta,
+                    },
+                    prompt_input_ids=tuple(full_ids),
                 )
             )
 
         for answer in parse_semicolon_answers(row["Incorrect Answers"]):
-            prefix, full = _qa_prompt_paper(question, answer)
-            prefix_ids = tokenizer(prefix, add_special_tokens=False)["input_ids"]
-            full_ids = tokenizer(full, add_special_tokens=False)["input_ids"]
-            if len(full_ids) <= len(prefix_ids):
-                continue
-            answer_positions = tuple(range(len(prefix_ids), len(full_ids)))
+            if family == "iti_truthfulqa_modernized":
+                full, answer_positions, full_ids, prompt_meta = (
+                    _chat_prompt_with_answer_positions(
+                        tokenizer,
+                        question=question,
+                        answer=answer,
+                    )
+                )
+            else:
+                prefix, full = _qa_prompt_paper(question, answer)
+                prefix_ids = tokenizer(prefix, add_special_tokens=False)["input_ids"]
+                full_ids = tokenizer(full, add_special_tokens=False)["input_ids"]
+                if len(full_ids) <= len(prefix_ids):
+                    continue
+                answer_positions = tuple(range(len(prefix_ids), len(full_ids)))
+                prompt_meta = {}
             examples.append(
                 ITIExample(
                     example_id=f"{split}_{qid}_untruthful_{len(examples)}",
@@ -685,7 +809,12 @@ def build_truthfulqa_paper_examples(
                     weight=1.0,
                     prompt_text=full,
                     answer_positions=answer_positions,
-                    metadata={"source": "csv", "csv_idx": csv_idx},
+                    metadata={
+                        "source": "csv",
+                        "csv_idx": csv_idx,
+                        **prompt_meta,
+                    },
+                    prompt_input_ids=tuple(full_ids),
                 )
             )
 
@@ -700,14 +829,25 @@ def build_truthfulqa_paper_examples(
         "family": family,
         "source_dataset": str(csv_path),
         "protocol": "li_et_al_2306.03341v6_2fold",
-        "prompt_format": "Q: {question}\\nA: {answer}",
+        "prompt_format": (
+            "chat_template(user->assistant)"
+            if family == "iti_truthfulqa_modernized"
+            else "Q: {question}\\nA: {answer}"
+        ),
         "fold_path": str(fold_path),
         "fold_id": fold["fold"],
         "fold_fingerprint": fold.get("canonical_fingerprint", ""),
         "direction_fit_scope": "dev_only",
         "direction_fit_source": "dev_only",
         "sigma_fit_source": "dev_only",
-        "head_ranking_metric": "val_accuracy",
+        "head_ranking_metric": (
+            "auroc" if family == "iti_truthfulqa_modernized" else "val_accuracy"
+        ),
+        "answer_token_policy": (
+            "assistant_content_only"
+            if family == "iti_truthfulqa_modernized"
+            else "raw_prompt_answer_span"
+        ),
         "question_ids_train": sorted(train_qids),
         "question_ids_val": sorted(val_qids),
         "question_ids_dev": dev_qid_list,
@@ -793,9 +933,16 @@ def collect_pre_o_proj_head_activations(
         for idx, example in enumerate(
             tqdm(examples, desc="Collecting ITI head activations")
         ):
-            input_ids = tokenizer(
-                example.prompt_text, return_tensors="pt", add_special_tokens=False
-            )["input_ids"].to(device)
+            if example.prompt_input_ids is not None:
+                input_ids = torch.tensor(
+                    [list(example.prompt_input_ids)],
+                    dtype=torch.long,
+                    device=device,
+                )
+            else:
+                input_ids = tokenizer(
+                    example.prompt_text, return_tensors="pt", add_special_tokens=False
+                )["input_ids"].to(device)
             state["example_idx"] = idx
             state["answer_positions"] = example.answer_positions
             with torch.no_grad():
@@ -1012,7 +1159,8 @@ def main() -> None:
                 val_questions=args.context_val_questions,
             )
 
-        # Paper-faithful: last-token only, plain val_accuracy ranking
+        # Paper-faithful lane: last-token only + val_accuracy.
+        # Modernized/exploratory lanes: first/mean/last + AUROC.
         is_paper_faithful = args.family == "iti_truthfulqa_paperfaithful"
         rank_position_summaries = (
             ("last_answer_token",) if is_paper_faithful else POSITION_SUMMARIES
@@ -1068,6 +1216,8 @@ def main() -> None:
             "source_dataset": family_metadata["source_dataset"],
             "git_sha": get_git_sha(),
             "head_ranking_metric": rank_primary,
+            "prompt_format": family_metadata.get("prompt_format"),
+            "answer_token_policy": family_metadata.get("answer_token_policy"),
             "direction_fit_scope": family_metadata.get(
                 "direction_fit_scope", "train_only"
             ),

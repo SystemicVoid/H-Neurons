@@ -2369,6 +2369,7 @@ def parse_args():
             "context_grounded",
             "truthfulqa_paperfaithful",
             "truthfulqa_exploratory",
+            "truthfulqa_modernized",
         ],
         help="Expected family label for the ITI artifact.",
     )
