@@ -1,0 +1,195 @@
+{
+  "benchmark": "truthfulqa_mc",
+  "model": "google/gemma-3-4b-it",
+  "intervention_mode": "iti_head",
+  "n_h_neurons": 8,
+  "results": {
+    "0.0": {
+      "compliance_rate": 0.2683,
+      "n_compliant": 88,
+      "n_judged": 328,
+      "n_total": 328,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.2682926829268293,
+        "n_compliant": 88,
+        "n_total": 328,
+        "ci": {
+          "lower": 0.22322839062293356,
+          "upper": 0.31872154974864897,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "metric_name": "mc1_accuracy",
+      "metric_mean": 0.268293,
+      "metric_std": 0.443071,
+      "parse_failures": 0,
+      "parse_failure": {
+        "estimate": 0.0,
+        "count": 0,
+        "n_total": 328,
+        "ci": {
+          "lower": 0.0,
+          "upper": 0.011576187117625359,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "8.0": {
+      "compliance_rate": 0.2896,
+      "n_compliant": 95,
+      "n_judged": 328,
+      "n_total": 328,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.2896341463414634,
+        "n_compliant": 95,
+        "n_total": 328,
+        "ci": {
+          "lower": 0.2432054169566122,
+          "upper": 0.340933344696535,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "metric_name": "mc1_accuracy",
+      "metric_mean": 0.289634,
+      "metric_std": 0.453593,
+      "parse_failures": 0,
+      "parse_failure": {
+        "estimate": 0.0,
+        "count": 0,
+        "n_total": 328,
+        "ci": {
+          "lower": 0.0,
+          "upper": 0.011576187117625359,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    }
+  },
+  "effects": {
+    "compliance_curve": {
+      "rates": [
+        0.2682926829268293,
+        0.2896341463414634
+      ],
+      "delta_0_to_max_pp": {
+        "estimate": 2.1341463414634108,
+        "ci": {
+          "lower": -1.2195121951219523,
+          "upper": 5.48780487804878,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "slope_pp_per_alpha": {
+        "estimate": 0.26676829268292535,
+        "ci": {
+          "lower": -0.15243902439024426,
+          "upper": 0.6859756097560976,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "paired_by_sample_id",
+        "interval": "percentile"
+      }
+    },
+    "parse_failure_curve": {
+      "rates": [
+        0.0,
+        0.0
+      ],
+      "delta_0_to_max_pp": {
+        "estimate": 0.0,
+        "ci": {
+          "lower": 0.0,
+          "upper": 0.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "slope_pp_per_alpha": {
+        "estimate": 0.0,
+        "ci": {
+          "lower": 0.0,
+          "upper": 0.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "paired_by_sample_id",
+        "interval": "percentile"
+      }
+    }
+  },
+  "throughput": {
+    "by_alpha": {
+      "0.0": {
+        "samples_completed": 328,
+        "record_count_total": 328,
+        "instrumented_row_count": 328,
+        "instrumented_coverage": 1.0,
+        "generated_tokens_total": 15672,
+        "prompt_tokens_total": 0,
+        "wall_total_s": 421.4233,
+        "wall_measured_s": 421.366,
+        "generate_total_s": 421.3359,
+        "mean_generated_tokens": 47.7805,
+        "mean_generate_s": 1.2846,
+        "samples_per_s_wall": 0.7783,
+        "tokens_per_s_wall": 37.1883,
+        "tokens_per_s_generate": 37.196,
+        "inter_sample_gap_count": 327,
+        "inter_sample_gap_mean_s": 0.000173,
+        "inter_sample_gap_p50_s": 0.000173,
+        "inter_sample_gap_p95_s": 0.000193,
+        "hook_total_s": 0.101902,
+        "hook_mean_s": 0.000311,
+        "hook_frac_of_generate": 0.000242
+      },
+      "8.0": {
+        "samples_completed": 328,
+        "record_count_total": 328,
+        "instrumented_row_count": 328,
+        "instrumented_coverage": 1.0,
+        "generated_tokens_total": 15672,
+        "prompt_tokens_total": 0,
+        "wall_total_s": 432.4538,
+        "wall_measured_s": 432.3845,
+        "generate_total_s": 432.3539,
+        "mean_generated_tokens": 47.7805,
+        "mean_generate_s": 1.3182,
+        "samples_per_s_wall": 0.7585,
+        "tokens_per_s_wall": 36.2397,
+        "tokens_per_s_generate": 36.2481,
+        "inter_sample_gap_count": 327,
+        "inter_sample_gap_mean_s": 0.000208,
+        "inter_sample_gap_p50_s": 0.000208,
+        "inter_sample_gap_p95_s": 0.000224,
+        "hook_total_s": 119.957887,
+        "hook_mean_s": 0.365725,
+        "hook_frac_of_generate": 0.277453
+      }
+    }
+  },
+  "iti_head_path": "data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold0/iti_heads.pt",
+  "iti_k": 8,
+  "iti_selection_strategy": "ranked",
+  "iti_random_seed": 42,
+  "iti_family": "truthfulqa_modernized",
+  "iti_decode_scope": "full_decode",
+  "truthfulqa_variant": "mc1"
+}
