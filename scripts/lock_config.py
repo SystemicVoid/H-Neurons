@@ -26,7 +26,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from run_calibration_sweep import select_locked_config
+from run_calibration_sweep import (
+    compute_selection_diagnostics,
+    infer_ranking_metric,
+    select_locked_config,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,6 +67,27 @@ def _find_result(
     for r in results:
         if r["k"] == k and r["alpha"] == alpha:
             return r
+    return None
+
+
+def _infer_artifact_family(
+    sweep_data: dict[str, Any], state_dir: Path, artifact_path: str | None
+) -> str | None:
+    """Infer family if absent from sweep metadata."""
+    family = sweep_data.get("artifact_family")
+    if family:
+        return family
+
+    candidates = [str(state_dir), artifact_path or ""]
+    for value in candidates:
+        if "paperfaithful" in value:
+            return "iti_truthfulqa_paperfaithful"
+        if "modernized" in value:
+            return "iti_truthfulqa_modernized"
+        if "triviaqa_transfer" in value:
+            return "iti_triviaqa_transfer"
+        if "context_grounded" in value:
+            return "iti_context_grounded"
     return None
 
 
@@ -135,21 +160,33 @@ def main() -> None:
         "mc2": locked_result["mc2"],
     }
 
+    artifact_path = sweep_data.get("artifact_path")
+    artifact_family = _infer_artifact_family(sweep_data, state_dir, artifact_path)
+    ranking_metric = sweep_data.get("ranking_metric") or infer_ranking_metric(
+        artifact_family
+    )
+    direction_type = sweep_data.get("direction_type", "mass_mean")
+    selection_diagnostics = sweep_data.get("selection_diagnostics") or (
+        compute_selection_diagnostics(results, args.tolerance_pp)
+    )
+
     # --- Write locked_iti_config.json ---
     locked_config = {
         "model": sweep_data.get("model_path"),
-        "direction_type": "mass_mean",
-        "ranking_metric": "val_accuracy",
+        "artifact_family": artifact_family,
+        "direction_type": direction_type,
+        "ranking_metric": ranking_metric,
         "K_locked": locked_result["k"],
         "alpha_locked": locked_result["alpha"],
         "selection_rule": (
             f"mc1_primary_mc2_tiebreak_{args.tolerance_pp}pp_"
             "then_smaller_alpha_then_smaller_k"
         ),
+        "selection_diagnostics": selection_diagnostics,
         "calibration_mc1": locked_result["mc1"],
         "calibration_mc2": locked_result["mc2"],
         "seed": 42,
-        "calibration_artifact_path": sweep_data.get("artifact_path"),
+        "calibration_artifact_path": artifact_path,
         "artifact_fingerprint": sweep_data.get("artifact_fingerprint"),
     }
     if human_override:
@@ -171,6 +208,7 @@ def main() -> None:
             "auto_suggestion": auto_suggestion,
             "locked": locked_entry,
             "human_override": human_override,
+            "selection_diagnostics": selection_diagnostics,
         },
     }
 
