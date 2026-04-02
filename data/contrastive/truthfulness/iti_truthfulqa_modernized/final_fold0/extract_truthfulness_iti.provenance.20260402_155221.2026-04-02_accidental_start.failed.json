@@ -1,0 +1,47 @@
+{
+  "args": {
+    "consistency_path": "data/gemma3_4b/pipeline/consistency_samples.jsonl",
+    "context_train_questions": 400,
+    "context_val_questions": 100,
+    "csv_path": "data/benchmarks/TruthfulQA.csv",
+    "device_map": "cuda:0",
+    "family": "iti_truthfulqa_modernized",
+    "fold_path": "data/manifests/truthfulqa_final_fold0_seed42.json",
+    "model_path": "google/gemma-3-4b-it",
+    "output_dir": "data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold0",
+    "seed": 42,
+    "test_qids_path": "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+    "train_cap_per_qid_label": 2,
+    "train_qids_path": "data/gemma3_4b/pipeline/train_qids.json",
+    "val_cap_per_qid_label": 1
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/extract_truthfulness_iti.py",
+    "--family",
+    "iti_truthfulqa_modernized",
+    "--seed",
+    "42",
+    "--fold_path",
+    "data/manifests/truthfulqa_final_fold0_seed42.json",
+    "--output_dir",
+    "data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold0"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/extract_truthfulness_iti.py --family iti_truthfulqa_modernized --seed 42 --fold_path data/manifests/truthfulqa_final_fold0_seed42.json --output_dir data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold0",
+  "completed_at_utc": "2026-04-02T15:54:16.616947+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "error": "BrokenPipeError: [Errno 32] Broken pipe",
+  "git_dirty": true,
+  "git_sha": "26b04ccd26628c87fc0dbda43bbc97460313a229",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold0/iti_heads.pt",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold0/extraction_metadata.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "extract_truthfulness_iti.py",
+  "started_at_utc": "2026-04-02T15:52:21.308764+00:00",
+  "status": "failed"
+}

@@ -1,0 +1,26 @@
+{
+  "model": "google/gemma-3-4b-it",
+  "dataset_fingerprint": "b6a5425138bb554e",
+  "artifact_family": "iti_truthfulqa_modernized",
+  "direction_type": "mass_mean",
+  "ranking_metric": "auroc",
+  "K_locked": 8,
+  "alpha_locked": 8.0,
+  "selection_rule": "mc1_primary_mc2_tiebreak_0.5pp_then_smaller_alpha_then_smaller_k",
+  "selection_diagnostics": {
+    "tolerance_pp": 0.5,
+    "best_mc1": 0.320988,
+    "n_candidates_within_tolerance_pp": 1,
+    "tie_break_triggered": false,
+    "mc1_sample_sizes": [
+      81
+    ],
+    "mc1_resolution_pp": 1.2345679012345678,
+    "tolerance_lt_mc1_resolution": true
+  },
+  "calibration_mc1": 0.320988,
+  "calibration_mc2": 0.44146,
+  "seed": 42,
+  "calibration_artifact_path": "data/contrastive/truthfulness/iti_truthfulqa_modernized_calibration/iti_heads.pt",
+  "artifact_fingerprint": "00a8f406de6a6dc1"
+}

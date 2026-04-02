@@ -1,0 +1,105 @@
+{
+  "args": {
+    "consistency_path": "data/gemma3_4b/pipeline/consistency_samples.jsonl",
+    "context_train_questions": 400,
+    "context_val_questions": 100,
+    "csv_path": "data/benchmarks/TruthfulQA.csv",
+    "device_map": "cuda:0",
+    "family": "iti_truthfulqa_modernized",
+    "fold_path": "data/manifests/truthfulqa_final_fold1_seed42.json",
+    "model_path": "google/gemma-3-4b-it",
+    "output_dir": "data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold1",
+    "seed": 42,
+    "test_qids_path": "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+    "train_cap_per_qid_label": 2,
+    "train_qids_path": "data/gemma3_4b/pipeline/train_qids.json",
+    "val_cap_per_qid_label": 1
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/extract_truthfulness_iti.py",
+    "--family",
+    "iti_truthfulqa_modernized",
+    "--seed",
+    "42",
+    "--fold_path",
+    "data/manifests/truthfulqa_final_fold1_seed42.json",
+    "--output_dir",
+    "data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold1"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/extract_truthfulness_iti.py --family iti_truthfulqa_modernized --seed 42 --fold_path data/manifests/truthfulqa_final_fold1_seed42.json --output_dir data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold1",
+  "completed_at_utc": "2026-04-02T13:55:24.484970+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "family": "iti_truthfulqa_modernized",
+  "git_dirty": true,
+  "git_sha": "26b04ccd26628c87fc0dbda43bbc97460313a229",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold1/iti_heads.pt",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_truthfulqa_modernized/final_fold1/extraction_metadata.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "record_count": 3749,
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "extract_truthfulness_iti.py",
+  "split_audit": {
+    "counts": {
+      "dev": 328,
+      "test": 327,
+      "train": 263,
+      "val": 65
+    },
+    "direction_fit_ids_equal_dev_ids": true,
+    "direction_fit_source": "dev_only",
+    "leakage_detected": false,
+    "overlap": {
+      "dev_test": 0,
+      "train_test": 0,
+      "train_val": 0,
+      "val_test": 0
+    },
+    "sample_ids": {
+      "dev": [
+        "tqa_0015e70af230",
+        "tqa_01eaaf57615d",
+        "tqa_025035244aeb",
+        "tqa_03a7d8d889cb",
+        "tqa_055aee45e6bb"
+      ],
+      "test": [
+        "tqa_01f95f5b824c",
+        "tqa_0275ec140684",
+        "tqa_0317b57af04b",
+        "tqa_059a49440199",
+        "tqa_05d86dfa9a54"
+      ],
+      "train": [
+        "tqa_0015e70af230",
+        "tqa_01eaaf57615d",
+        "tqa_025035244aeb",
+        "tqa_03a7d8d889cb",
+        "tqa_055aee45e6bb"
+      ],
+      "val": [
+        "tqa_0efb55a3fcd1",
+        "tqa_0f3d596c4254",
+        "tqa_15339b01e284",
+        "tqa_16079283ecce",
+        "tqa_160f842bc98f"
+      ]
+    },
+    "sigma_fit_source": "dev_only"
+  },
+  "started_at_utc": "2026-04-02T13:52:20.318037+00:00",
+  "status": "completed",
+  "top_head": {
+    "auroc": 0.906347,
+    "balanced_accuracy": 0.805046,
+    "head": 2,
+    "layer": 15,
+    "position_summary": "last_answer_token",
+    "rank": 1,
+    "sigma": 0.552745
+  }
+}
