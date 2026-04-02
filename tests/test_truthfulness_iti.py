@@ -25,6 +25,65 @@ class StubTokenizer:
         return {"input_ids": ids}
 
 
+class StubChatTokenizer:
+    """Deterministic chat-template tokenizer for E1 tests."""
+
+    _USER_PREFIX = [101, 11, 12]
+    _ASSISTANT_PREFIX = [201]
+    _ASSISTANT_SUFFIX = [299]
+
+    def __call__(self, text, add_special_tokens=False, return_tensors=None):
+        # Tokenize rendered strings in a way that exactly matches apply_chat_template.
+        if "<A>" in text and "</A>" in text:
+            answer = text.split("<A>", 1)[1].split("</A>", 1)[0]
+            ids = (
+                self._USER_PREFIX
+                + self._ASSISTANT_PREFIX
+                + [1000 + ord(ch) for ch in answer]
+                + self._ASSISTANT_SUFFIX
+            )
+        else:
+            ids = list(range(max(1, len(text.split()))))
+        if return_tensors == "pt":
+            return {"input_ids": torch.tensor([ids], dtype=torch.long)}
+        return {"input_ids": ids}
+
+    def apply_chat_template(
+        self,
+        messages,
+        *,
+        tokenize=True,
+        add_generation_prompt=False,
+        return_tensors=None,
+    ):
+        roles = [m["role"] for m in messages]
+        if roles == ["user"]:
+            content = messages[0]["content"]
+            if tokenize:
+                ids = self._USER_PREFIX + self._ASSISTANT_PREFIX
+                if return_tensors == "pt":
+                    return torch.tensor([ids], dtype=torch.long)
+                return ids
+            return f"<U>{content}</U><A>"
+
+        if roles == ["user", "assistant"]:
+            user = messages[0]["content"]
+            answer = messages[1]["content"]
+            if tokenize:
+                ids = (
+                    self._USER_PREFIX
+                    + self._ASSISTANT_PREFIX
+                    + [1000 + ord(ch) for ch in answer]
+                    + self._ASSISTANT_SUFFIX
+                )
+                if return_tensors == "pt":
+                    return torch.tensor([ids], dtype=torch.long)
+                return ids
+            return f"<U>{user}</U><A>{answer}</A>"
+
+        raise AssertionError(f"Unexpected chat message roles: {roles}")
+
+
 def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
@@ -844,6 +903,61 @@ class TestTruthfulQAPaperExamples:
 
         for ex in examples:
             assert ex.prompt_text.startswith("Q: What is 1+1?\nA:")
+
+
+class TestTruthfulQAModernizedExamples:
+    def test_chat_template_positions_exclude_assistant_suffix(self):
+        tok = StubChatTokenizer()
+        full, positions, full_ids, meta = (
+            iti_extract._chat_prompt_with_answer_positions(
+                tok,
+                question="Where?",
+                answer="AB",
+            )
+        )
+
+        assert full == "<U>Where?</U><A>AB</A>"
+        assert positions == (4, 5)
+        assert list(full_ids) == [101, 11, 12, 201, 1065, 1066, 299]
+        assert meta["assistant_suffix_len_tokens"] == 1
+        assert meta["assistant_content_len_tokens"] == 2
+
+    def test_builds_modernized_truthfulqa_examples(self, tmp_path):
+        questions = [
+            {
+                "question": "Capital of France?",
+                "correct_answers": ["Paris"],
+                "incorrect_answers": ["London"],
+            }
+        ]
+        fold_path, csv_path = _write_fold_fixtures(
+            tmp_path,
+            questions,
+            train_idxs=[0],
+            val_idxs=[],
+            test_idxs=[],
+        )
+        examples, metadata = iti_extract.build_truthfulqa_paper_examples(
+            tokenizer=StubChatTokenizer(),
+            fold_path=fold_path,
+            csv_path=csv_path,
+            family="iti_truthfulqa_modernized",
+        )
+
+        assert metadata["family"] == "iti_truthfulqa_modernized"
+        assert metadata["prompt_format"] == "chat_template(user->assistant)"
+        assert metadata["answer_token_policy"] == "assistant_content_only"
+        assert metadata["head_ranking_metric"] == "auroc"
+        assert all(ex.prompt_input_ids is not None for ex in examples)
+        assert all("assistant_suffix_len_tokens" in ex.metadata for ex in examples)
+        assert all(ex.answer_positions for ex in examples)
+
+    def test_modernized_family_registered_in_defaults(self):
+        assert "iti_truthfulqa_modernized" in iti_extract.TRUTHFULQA_FAMILIES
+        outdir = iti_extract.default_output_dir("iti_truthfulqa_modernized")
+        assert str(outdir).endswith(
+            "data/contrastive/truthfulness/iti_truthfulqa_modernized"
+        )
 
 
 class TestPaperFaithfulRanking:
