@@ -129,6 +129,46 @@ def select_locked_config(
     return candidates[0]
 
 
+def infer_ranking_metric(family: str | None) -> str:
+    """Infer the primary head-ranking metric used for the artifact family."""
+    if family == "iti_truthfulqa_paperfaithful":
+        return "val_accuracy"
+    return "auroc"
+
+
+def compute_selection_diagnostics(
+    sweep_results: list[dict[str, Any]],
+    tolerance_pp: float,
+) -> dict[str, Any]:
+    """Compute audit metadata for lock selection behavior."""
+    if not sweep_results:
+        return {
+            "tolerance_pp": tolerance_pp,
+            "n_candidates_within_tolerance_pp": 0,
+            "tie_break_triggered": False,
+        }
+
+    best_mc1 = max(r["mc1"] for r in sweep_results)
+    candidates = [
+        r for r in sweep_results if (best_mc1 - r["mc1"]) * 100 <= tolerance_pp
+    ]
+
+    n_values = sorted({int(r["n_mc1"]) for r in sweep_results if int(r["n_mc1"]) > 0})
+    mc1_resolution_pp = 100.0 / n_values[0] if len(n_values) == 1 else None
+
+    diagnostics: dict[str, Any] = {
+        "tolerance_pp": tolerance_pp,
+        "best_mc1": round(best_mc1, 6),
+        "n_candidates_within_tolerance_pp": len(candidates),
+        "tie_break_triggered": len(candidates) > 1,
+        "mc1_sample_sizes": n_values,
+    }
+    if mc1_resolution_pp is not None:
+        diagnostics["mc1_resolution_pp"] = mc1_resolution_pp
+        diagnostics["tolerance_lt_mc1_resolution"] = tolerance_pp < mc1_resolution_pp
+    return diagnostics
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -205,6 +245,9 @@ def main() -> None:
         )
         args.k_values = [k for k in args.k_values if k <= n_ranked]
 
+    artifact_family = artifact.get("family")
+    ranking_metric = infer_ranking_metric(artifact_family)
+
     # Artifact fingerprint
     with open(args.artifact_path, "rb") as f:
         artifact_fp = hashlib.sha256(f.read()).hexdigest()[:16]
@@ -238,7 +281,7 @@ def main() -> None:
             model,
             artifact,
             device,
-            family="iti_truthfulqa_paperfaithful",
+            family=artifact.get("family"),
             k=k,
             selection_strategy="ranked",
         )
@@ -280,15 +323,38 @@ def main() -> None:
     if scaler is not None:
         scaler.remove()
 
+    # Select locked config
+    selection_diagnostics = compute_selection_diagnostics(
+        sweep_results, tolerance_pp=args.tolerance_pp
+    )
+    if selection_diagnostics.get("tolerance_lt_mc1_resolution"):
+        resolution_pp = float(selection_diagnostics["mc1_resolution_pp"])
+        print(
+            "NOTE: tolerance_pp is below single-sample MC1 resolution "
+            f"({resolution_pp:.3f}pp); MC2 tie-break is unlikely to activate."
+        )
+
+    locked = select_locked_config(sweep_results, tolerance_pp=args.tolerance_pp)
+
     # Write sweep table
     sweep_path = out / "sweep_results.json"
     with open(sweep_path, "w") as f:
         json.dump(
             {
                 "model_path": args.model_path,
+                "artifact_family": artifact_family,
+                "direction_type": artifact.get("steering_direction_type", "mass_mean"),
+                "ranking_metric": ranking_metric,
                 "k_values": args.k_values,
                 "alpha_values": args.alpha_values,
                 "results": sweep_results,
+                "selection_diagnostics": selection_diagnostics,
+                "locked_candidate": {
+                    "k": locked["k"],
+                    "alpha": locked["alpha"],
+                    "mc1": locked["mc1"],
+                    "mc2": locked["mc2"],
+                },
                 "artifact_path": args.artifact_path,
                 "artifact_fingerprint": artifact_fp,
                 "n_mc1_samples": len(mc1_samples),
@@ -308,21 +374,21 @@ def main() -> None:
         print(f"{r['k']:>4}  {r['alpha']:>6.1f}  {r['mc1']:>8.4f}  {r['mc2']:>8.4f}")
     print("=" * 70)
 
-    # Select locked config
-    locked = select_locked_config(sweep_results, tolerance_pp=args.tolerance_pp)
     locked_config = {
         "model": args.model_path,
         "dataset_fingerprint": fingerprint_ids(
             [s["id"] for s in mc1_samples + mc2_samples]
         ),
-        "direction_type": "mass_mean",
-        "ranking_metric": "val_accuracy",
+        "artifact_family": artifact_family,
+        "direction_type": artifact.get("steering_direction_type", "mass_mean"),
+        "ranking_metric": ranking_metric,
         "K_locked": locked["k"],
         "alpha_locked": locked["alpha"],
         "selection_rule": (
             f"mc1_primary_mc2_tiebreak_{args.tolerance_pp}pp_"
             "then_smaller_alpha_then_smaller_k"
         ),
+        "selection_diagnostics": selection_diagnostics,
         "calibration_mc1": locked["mc1"],
         "calibration_mc2": locked["mc2"],
         "seed": 42,
