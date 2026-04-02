@@ -15,6 +15,8 @@ This audit covers the first decode-scope review gate from
 3. what this panel does and does not justify before any expensive generation or API judging
 
 This report does **not** cover the downstream forced-commitment SimpleQA pilot.
+That follow-up now lives in
+[2026-04-01-decode-scope-simpleqa-pilot-audit.md](./2026-04-01-decode-scope-simpleqa-pilot-audit.md).
 
 ## Source Hierarchy
 
@@ -42,6 +44,8 @@ This report does **not** cover the downstream forced-commitment SimpleQA pilot.
   [scripts/infra/iti_decode_scope_gate1.sh](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/scripts/infra/iti_decode_scope_gate1.sh)
 - Related upstream audit:
   [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
+- Downstream follow-up:
+  [2026-04-01-decode-scope-simpleqa-pilot-audit.md](./2026-04-01-decode-scope-simpleqa-pilot-audit.md)
 
 ## Pipeline Audit
 
