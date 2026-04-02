@@ -1,9 +1,48 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "model_config": {
+    "gemma3_4b": {
+      "n_layers": 34,
+      "top_n_neurons": 10,
+      "canonical_alpha_grid": ["0.0", "0.5", "1.0", "1.5", "2.0", "2.5", "3.0"]
+    }
+  },
   "banned_phrases": [
     "no CI yet",
     "no_ci_yet",
     "No confidence intervals computed"
+  ],
+  "text_surfaces": [
+    "site/index.html",
+    "site/story.html",
+    "site/results/gemma-3-4b.html",
+    "site/methods.html",
+    "site/extensions.html",
+    "site/deep-dives/neuron-4288.html",
+    "site/deep-dives/swing-characterization.html",
+    "data/gemma3_4b/pipeline/pipeline_report.md",
+    "data/gemma3_4b/intervention_findings.md"
+  ],
+  "structural_checks": [
+    {"type": "classifier_summary", "file": "data/gemma3_4b/pipeline/classifier_disjoint_summary.json", "label": "classifier_disjoint"},
+    {"type": "classifier_summary", "file": "data/gemma3_4b/pipeline/classifier_overlap_summary.json",  "label": "classifier_overlap"},
+    {"type": "classifier_summary", "file": "data/gemma3_4b/probing/bioasq13b_factoid/classifier_summary.json", "label": "bioasq_recovery"},
+    {"type": "classifier_summary", "file": "data/gemma3_4b/pipeline/classifier_sae_summary.json",     "label": "classifier_sae"},
+    {"type": "classifier_summary", "file": "data/gemma3_4b/pipeline/classifier_sae_1v1_summary.json", "label": "classifier_sae_1v1"},
+    {"type": "tracked_classifier_structure", "file": "data/gemma3_4b/pipeline/classifier_structure_summary.json", "model": "gemma3_4b"},
+    {"type": "tracked_top_neuron_artifact",  "file": "data/gemma3_4b/pipeline/neuron_4288_summary.json"},
+    {
+      "type": "site_classifier",
+      "file": "site/data/classifier_summary.json",
+      "model": "gemma3_4b",
+      "tracked_structure_file": "data/gemma3_4b/pipeline/classifier_structure_summary.json",
+      "tracked_neuron_file":    "data/gemma3_4b/pipeline/neuron_4288_summary.json"
+    },
+    {"type": "intervention_result", "file": "data/gemma3_4b/intervention/faitheval/experiment/results.json",               "label": "faitheval_anti",   "model": "gemma3_4b"},
+    {"type": "intervention_result", "file": "data/gemma3_4b/intervention/falseqa/experiment/results.json",                 "label": "falseqa",          "model": "gemma3_4b"},
+    {"type": "intervention_result", "file": "data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json", "label": "jailbreak_legacy", "model": "gemma3_4b"},
+    {"type": "site_intervention",   "file": "site/data/intervention_sweep.json"},
+    {"type": "negative_control",    "file": "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"}
   ],
   "claims": [
     {
