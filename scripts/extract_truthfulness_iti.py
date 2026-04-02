@@ -151,6 +151,27 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/benchmarks/TruthfulQA.csv"),
         help="Path to the official TruthfulQA CSV (canonical data source).",
     )
+    parser.add_argument(
+        "--ranking_metric_override",
+        type=str,
+        default=None,
+        choices=["auroc", "balanced_accuracy", "val_accuracy"],
+        help=(
+            "Optional probe ranking-metric override. Default remains family-specific "
+            "(paper-faithful: val_accuracy; others: auroc)."
+        ),
+    )
+    parser.add_argument(
+        "--position_policy_override",
+        type=str,
+        default=None,
+        choices=["last_answer_token", "all_answer_positions"],
+        help=(
+            "Optional answer-position policy override. "
+            "'last_answer_token' uses only the final answer token; "
+            "'all_answer_positions' uses first/mean/last summaries."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -164,6 +185,29 @@ def default_output_dir(family: str) -> Path:
     }
     suffix = suffix_map[family]
     return Path("data/contrastive/truthfulness") / suffix
+
+
+def resolve_selector_policy(
+    *,
+    family: str,
+    ranking_metric_override: str | None,
+    position_policy_override: str | None,
+) -> tuple[str, tuple[str, ...], str]:
+    """Resolve ranking metric and position summaries for head selection."""
+    is_paper_faithful = family == "iti_truthfulqa_paperfaithful"
+    default_rank_primary = "val_accuracy" if is_paper_faithful else "auroc"
+    default_position_policy = (
+        "last_answer_token" if is_paper_faithful else "all_answer_positions"
+    )
+
+    rank_primary = ranking_metric_override or default_rank_primary
+    position_policy = position_policy_override or default_position_policy
+    rank_position_summaries = (
+        ("last_answer_token",)
+        if position_policy == "last_answer_token"
+        else POSITION_SUMMARIES
+    )
+    return rank_primary, rank_position_summaries, position_policy
 
 
 def _qa_prompt(
@@ -402,6 +446,8 @@ def build_triviaqa_transfer_examples(
     metadata = {
         "family": "iti_triviaqa_transfer",
         "source_dataset": "triviaqa_consistency",
+        "prompt_format": "Question: {question}\\nAnswer: {answer}",
+        "answer_token_policy": "raw_prompt_answer_span",
         "split_fingerprint": {
             "train_qids": fingerprint_ids(sorted(train_ids)),
             "val_qids": fingerprint_ids(sorted(val_ids)),
@@ -549,6 +595,8 @@ def build_context_grounded_examples(
     metadata = {
         "family": "iti_context_grounded",
         "source_dataset": "squad_v2",
+        "prompt_format": "Context: {context}\\n\\nQuestion: {question}\\nAnswer: {answer}",
+        "answer_token_policy": "raw_prompt_answer_span",
         "sampling": {
             "seed": seed,
             "train_questions": train_questions,
@@ -1159,13 +1207,13 @@ def main() -> None:
                 val_questions=args.context_val_questions,
             )
 
-        # Paper-faithful lane: last-token only + val_accuracy.
-        # Modernized/exploratory lanes: first/mean/last + AUROC.
-        is_paper_faithful = args.family == "iti_truthfulqa_paperfaithful"
-        rank_position_summaries = (
-            ("last_answer_token",) if is_paper_faithful else POSITION_SUMMARIES
+        rank_primary, rank_position_summaries, position_policy = (
+            resolve_selector_policy(
+                family=args.family,
+                ranking_metric_override=args.ranking_metric_override,
+                position_policy_override=args.position_policy_override,
+            )
         )
-        rank_primary = "val_accuracy" if is_paper_faithful else "auroc"
 
         print(f"Loaded {len(examples)} {args.family} examples")
         model = AutoModelForCausalLM.from_pretrained(
@@ -1212,12 +1260,17 @@ def main() -> None:
 
         metadata = {
             "family": args.family,
+            "artifact_family": args.family,
             "model_path": args.model_path,
             "source_dataset": family_metadata["source_dataset"],
             "git_sha": get_git_sha(),
             "head_ranking_metric": rank_primary,
+            "ranking_metric": rank_primary,
+            "position_policy": position_policy,
             "prompt_format": family_metadata.get("prompt_format"),
-            "answer_token_policy": family_metadata.get("answer_token_policy"),
+            "answer_token_policy": family_metadata.get(
+                "answer_token_policy", "raw_prompt_answer_span"
+            ),
             "direction_fit_scope": family_metadata.get(
                 "direction_fit_scope", "train_only"
             ),
@@ -1269,6 +1322,10 @@ def main() -> None:
             "family_metadata": family_metadata,
             "position_summaries": list(rank_position_summaries),
             "ranking_primary": rank_primary,
+            "selector_overrides": {
+                "ranking_metric_override": args.ranking_metric_override,
+                "position_policy_override": args.position_policy_override,
+            },
             "ranking": ranking_metadata,
             "selected_head_manifest": [
                 {
@@ -1283,6 +1340,17 @@ def main() -> None:
                 for idx, head in enumerate(ranked_heads[:32])
             ],
             "steering_direction_type": "mass_mean",
+            "direction_type": "mass_mean",
+            "family_fingerprint": {
+                "artifact_family": args.family,
+                "source_dataset": family_metadata["source_dataset"],
+                "ranking_metric": rank_primary,
+                "position_policy": position_policy,
+                "answer_token_policy": family_metadata.get(
+                    "answer_token_policy", "raw_prompt_answer_span"
+                ),
+                "direction_type": "mass_mean",
+            },
         }
         metadata_path.write_text(json_dumps(metadata), encoding="utf-8")
 

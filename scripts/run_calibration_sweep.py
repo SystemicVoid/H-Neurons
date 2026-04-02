@@ -6,7 +6,7 @@ MC1 and MC2 on the calibration validation set.  Writes a sweep table and
 a ``locked_iti_config.json`` using the selection rule:
 
 1. Best MC1
-2. Among ties within 0.5pp: best MC2
+2. Among ties within tolerance: best MC2
 3. Smaller α
 4. Smaller K
 
@@ -47,6 +47,7 @@ from utils import (
 )
 
 DEFAULT_MODEL = os.environ.get("HNEURONS_MODEL_PATH", "google/gemma-3-4b-it")
+MIN_TOLERANCE_PP = 1.5
 
 
 # ---------------------------------------------------------------------------
@@ -107,65 +108,195 @@ def score_mc_samples(
 # ---------------------------------------------------------------------------
 
 
-def select_locked_config(
-    sweep_results: list[dict[str, Any]],
-    tolerance_pp: float = 0.5,
+def _resolve_tolerance_pp(
+    *,
+    requested_tolerance_pp: float | None,
+    n_calibration_samples: int,
 ) -> dict[str, Any]:
-    """Apply the locking selection rule to sweep results.
+    if n_calibration_samples <= 0:
+        raise ValueError("n_calibration_samples must be positive")
+    mc1_resolution_pp = 100.0 / n_calibration_samples
+    tolerance_floor_pp = max(mc1_resolution_pp, MIN_TOLERANCE_PP)
+    if requested_tolerance_pp is None:
+        applied_tolerance_pp = tolerance_floor_pp
+        raised_to_floor = False
+    else:
+        applied_tolerance_pp = max(float(requested_tolerance_pp), tolerance_floor_pp)
+        raised_to_floor = bool(requested_tolerance_pp < tolerance_floor_pp)
+    return {
+        "mc1_resolution_pp": float(mc1_resolution_pp),
+        "tolerance_floor_pp": float(tolerance_floor_pp),
+        "tolerance_pp_requested": (
+            float(requested_tolerance_pp)
+            if requested_tolerance_pp is not None
+            else None
+        ),
+        "tolerance_pp_applied": float(applied_tolerance_pp),
+        "tolerance_raised_to_resolution_floor": raised_to_floor,
+    }
 
-    1. Best MC1
-    2. Within tolerance_pp of best MC1: best MC2
-    3. Smaller α
-    4. Smaller K
-    """
+
+def _candidate_brief(entry: dict[str, Any], *, best_mc1: float) -> dict[str, Any]:
+    return {
+        "k": int(entry["k"]),
+        "alpha": float(entry["alpha"]),
+        "mc1": float(entry["mc1"]),
+        "mc2": float(entry["mc2"]),
+        "n_mc1": int(entry["n_mc1"]),
+        "n_mc2": int(entry["n_mc2"]),
+        "mc1_gap_pp_from_best": round((best_mc1 - float(entry["mc1"])) * 100.0, 6),
+    }
+
+
+def _shortlist_candidates(
+    sweep_results: list[dict[str, Any]],
+    *,
+    tolerance_pp: float,
+) -> tuple[float, list[dict[str, Any]]]:
     if not sweep_results:
         raise ValueError("No sweep results to select from")
-
-    best_mc1 = max(r["mc1"] for r in sweep_results)
-    candidates = [
-        r for r in sweep_results if (best_mc1 - r["mc1"]) * 100 <= tolerance_pp
+    best_mc1 = max(float(r["mc1"]) for r in sweep_results)
+    shortlist = [
+        r for r in sweep_results if (best_mc1 - float(r["mc1"])) * 100.0 <= tolerance_pp
     ]
-    candidates.sort(key=lambda r: (-r["mc2"], r["alpha"], r["k"]))
-    return candidates[0]
+    shortlist.sort(
+        key=lambda r: (-float(r["mc1"]), -float(r["mc2"]), r["alpha"], r["k"])
+    )
+    return best_mc1, shortlist
 
 
-def infer_ranking_metric(family: str | None) -> str:
+def _select_with_trace(
+    shortlist: list[dict[str, Any]],
+    *,
+    best_mc1: float,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    if not shortlist:
+        raise ValueError("Shortlist is empty")
+
+    current = list(shortlist)
+    tie_break_path: list[dict[str, Any]] = []
+    eps = 1e-12
+
+    best_mc2 = max(float(r["mc2"]) for r in current)
+    current = [r for r in current if abs(float(r["mc2"]) - best_mc2) <= eps]
+    tie_break_path.append(
+        {
+            "step": "max_mc2",
+            "criterion": "maximize_mc2",
+            "selected_value": round(best_mc2, 6),
+            "n_survivors": len(current),
+            "survivors": [_candidate_brief(r, best_mc1=best_mc1) for r in current],
+        }
+    )
+
+    min_alpha = min(float(r["alpha"]) for r in current)
+    current = [r for r in current if abs(float(r["alpha"]) - min_alpha) <= eps]
+    tie_break_path.append(
+        {
+            "step": "min_alpha",
+            "criterion": "minimize_alpha",
+            "selected_value": round(min_alpha, 6),
+            "n_survivors": len(current),
+            "survivors": [_candidate_brief(r, best_mc1=best_mc1) for r in current],
+        }
+    )
+
+    min_k = min(int(r["k"]) for r in current)
+    current = [r for r in current if int(r["k"]) == min_k]
+    tie_break_path.append(
+        {
+            "step": "min_k",
+            "criterion": "minimize_k",
+            "selected_value": int(min_k),
+            "n_survivors": len(current),
+            "survivors": [_candidate_brief(r, best_mc1=best_mc1) for r in current],
+        }
+    )
+
+    current.sort(key=lambda r: (int(r["k"]), float(r["alpha"])))
+    return current[0], tie_break_path
+
+
+def select_locked_config(
+    sweep_results: list[dict[str, Any]],
+    tolerance_pp: float,
+) -> dict[str, Any]:
+    """Apply the locking rule and return the locked candidate."""
+    best_mc1, shortlist = _shortlist_candidates(
+        sweep_results, tolerance_pp=float(tolerance_pp)
+    )
+    selected, _ = _select_with_trace(shortlist, best_mc1=best_mc1)
+    return selected
+
+
+def infer_ranking_metric(
+    family: str | None, extraction_metadata: dict[str, Any]
+) -> str:
     """Infer the primary head-ranking metric used for the artifact family."""
+    rank_from_meta = extraction_metadata.get(
+        "ranking_metric", extraction_metadata.get("head_ranking_metric")
+    )
+    if rank_from_meta:
+        return str(rank_from_meta)
     if family == "iti_truthfulqa_paperfaithful":
         return "val_accuracy"
     return "auroc"
 
 
+def infer_position_policy(
+    family: str | None,
+    extraction_metadata: dict[str, Any],
+) -> str:
+    value = extraction_metadata.get("position_policy")
+    if value:
+        return str(value)
+    if family == "iti_truthfulqa_paperfaithful":
+        return "last_answer_token"
+    return "all_answer_positions"
+
+
 def compute_selection_diagnostics(
     sweep_results: list[dict[str, Any]],
-    tolerance_pp: float,
+    *,
+    tolerance_pp_requested: float | None,
+    tolerance_pp_applied: float,
+    n_calibration_samples: int,
 ) -> dict[str, Any]:
     """Compute audit metadata for lock selection behavior."""
     if not sweep_results:
         return {
-            "tolerance_pp": tolerance_pp,
+            "tolerance_pp_requested": tolerance_pp_requested,
+            "tolerance_pp_applied": tolerance_pp_applied,
             "n_candidates_within_tolerance_pp": 0,
             "tie_break_triggered": False,
         }
 
-    best_mc1 = max(r["mc1"] for r in sweep_results)
-    candidates = [
-        r for r in sweep_results if (best_mc1 - r["mc1"]) * 100 <= tolerance_pp
-    ]
-
-    n_values = sorted({int(r["n_mc1"]) for r in sweep_results if int(r["n_mc1"]) > 0})
-    mc1_resolution_pp = 100.0 / n_values[0] if len(n_values) == 1 else None
+    best_mc1, shortlist = _shortlist_candidates(
+        sweep_results, tolerance_pp=float(tolerance_pp_applied)
+    )
+    selected, tie_break_path = _select_with_trace(shortlist, best_mc1=best_mc1)
+    tolerance_resolution = _resolve_tolerance_pp(
+        requested_tolerance_pp=tolerance_pp_requested,
+        n_calibration_samples=n_calibration_samples,
+    )
 
     diagnostics: dict[str, Any] = {
-        "tolerance_pp": tolerance_pp,
+        "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+        "tolerance_pp_requested": tolerance_pp_requested,
+        "tolerance_pp_applied": tolerance_pp_applied,
+        "tolerance_floor_rule": "max(100/n_cal, 1.5)",
+        "mc1_resolution_pp": tolerance_resolution["mc1_resolution_pp"],
+        "n_calibration_samples": int(n_calibration_samples),
         "best_mc1": round(best_mc1, 6),
-        "n_candidates_within_tolerance_pp": len(candidates),
-        "tie_break_triggered": len(candidates) > 1,
-        "mc1_sample_sizes": n_values,
+        "n_candidates_within_tolerance_pp": len(shortlist),
+        "tie_break_triggered": len(shortlist) > 1,
+        "shortlist": [_candidate_brief(r, best_mc1=best_mc1) for r in shortlist],
+        "tie_break_path": tie_break_path,
+        "locked_candidate_summary": _candidate_brief(selected, best_mc1=best_mc1),
+        "tolerance_raised_to_resolution_floor": tolerance_resolution[
+            "tolerance_raised_to_resolution_floor"
+        ],
     }
-    if mc1_resolution_pp is not None:
-        diagnostics["mc1_resolution_pp"] = mc1_resolution_pp
-        diagnostics["tolerance_lt_mc1_resolution"] = tolerance_pp < mc1_resolution_pp
     return diagnostics
 
 
@@ -189,7 +320,15 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--output_dir", type=str, required=True)
     p.add_argument("--model_path", type=str, default=DEFAULT_MODEL)
     p.add_argument("--device_map", type=str, default="cuda:0")
-    p.add_argument("--tolerance_pp", type=float, default=0.5)
+    p.add_argument(
+        "--tolerance_pp",
+        type=float,
+        default=None,
+        help=(
+            "Optional MC1 shortlist tolerance in pp. Applied tolerance is always "
+            "max(requested, 100/n_cal, 1.5)."
+        ),
+    )
     p.add_argument(
         "--truthfulqa_csv",
         type=str,
@@ -246,7 +385,33 @@ def main() -> None:
         args.k_values = [k for k in args.k_values if k <= n_ranked]
 
     artifact_family = artifact.get("family")
-    ranking_metric = infer_ranking_metric(artifact_family)
+
+    extraction_metadata: dict[str, Any] = {}
+    extraction_meta_path = Path(args.artifact_path).with_name(
+        "extraction_metadata.json"
+    )
+    if extraction_meta_path.exists():
+        extraction_metadata = json.loads(
+            extraction_meta_path.read_text(encoding="utf-8")
+        )
+        meta_family = extraction_metadata.get(
+            "artifact_family"
+        ) or extraction_metadata.get("family")
+        if meta_family and artifact_family and str(meta_family) != str(artifact_family):
+            raise ValueError(
+                "Artifact family mismatch between iti_heads.pt and extraction metadata: "
+                f"{artifact_family!r} vs {meta_family!r}"
+            )
+
+    ranking_metric = infer_ranking_metric(artifact_family, extraction_metadata)
+    position_policy = infer_position_policy(artifact_family, extraction_metadata)
+    answer_token_policy = extraction_metadata.get(
+        "answer_token_policy", "raw_prompt_answer_span"
+    )
+    source_dataset = extraction_metadata.get("source_dataset")
+    direction_type = extraction_metadata.get(
+        "direction_type", artifact.get("steering_direction_type", "mass_mean")
+    )
 
     # Artifact fingerprint
     with open(args.artifact_path, "rb") as f:
@@ -324,17 +489,26 @@ def main() -> None:
         scaler.remove()
 
     # Select locked config
-    selection_diagnostics = compute_selection_diagnostics(
-        sweep_results, tolerance_pp=args.tolerance_pp
+    tolerance_resolution = _resolve_tolerance_pp(
+        requested_tolerance_pp=args.tolerance_pp,
+        n_calibration_samples=len(mc1_samples),
     )
-    if selection_diagnostics.get("tolerance_lt_mc1_resolution"):
-        resolution_pp = float(selection_diagnostics["mc1_resolution_pp"])
+    if tolerance_resolution["tolerance_raised_to_resolution_floor"]:
+        floor_pp = float(tolerance_resolution["tolerance_floor_pp"])
         print(
-            "NOTE: tolerance_pp is below single-sample MC1 resolution "
-            f"({resolution_pp:.3f}pp); MC2 tie-break is unlikely to activate."
+            "NOTE: requested tolerance_pp was below the resolution-aware floor; "
+            f"raised to {floor_pp:.3f}pp."
         )
 
-    locked = select_locked_config(sweep_results, tolerance_pp=args.tolerance_pp)
+    selection_diagnostics = compute_selection_diagnostics(
+        sweep_results,
+        tolerance_pp_requested=args.tolerance_pp,
+        tolerance_pp_applied=float(tolerance_resolution["tolerance_pp_applied"]),
+        n_calibration_samples=len(mc1_samples),
+    )
+    locked = select_locked_config(
+        sweep_results, tolerance_pp=float(tolerance_resolution["tolerance_pp_applied"])
+    )
 
     # Write sweep table
     sweep_path = out / "sweep_results.json"
@@ -343,8 +517,11 @@ def main() -> None:
             {
                 "model_path": args.model_path,
                 "artifact_family": artifact_family,
-                "direction_type": artifact.get("steering_direction_type", "mass_mean"),
+                "source_dataset": source_dataset,
+                "direction_type": direction_type,
                 "ranking_metric": ranking_metric,
+                "position_policy": position_policy,
+                "answer_token_policy": answer_token_policy,
                 "k_values": args.k_values,
                 "alpha_values": args.alpha_values,
                 "results": sweep_results,
@@ -357,6 +534,15 @@ def main() -> None:
                 },
                 "artifact_path": args.artifact_path,
                 "artifact_fingerprint": artifact_fp,
+                "extraction_metadata": extraction_metadata,
+                "family_fingerprint": {
+                    "artifact_family": artifact_family,
+                    "source_dataset": source_dataset,
+                    "ranking_metric": ranking_metric,
+                    "position_policy": position_policy,
+                    "answer_token_policy": answer_token_policy,
+                    "direction_type": direction_type,
+                },
                 "n_mc1_samples": len(mc1_samples),
                 "n_mc2_samples": len(mc2_samples),
             },
@@ -380,20 +566,28 @@ def main() -> None:
             [s["id"] for s in mc1_samples + mc2_samples]
         ),
         "artifact_family": artifact_family,
-        "direction_type": artifact.get("steering_direction_type", "mass_mean"),
+        "source_dataset": source_dataset,
+        "direction_type": direction_type,
         "ranking_metric": ranking_metric,
+        "position_policy": position_policy,
+        "answer_token_policy": answer_token_policy,
         "K_locked": locked["k"],
         "alpha_locked": locked["alpha"],
-        "selection_rule": (
-            f"mc1_primary_mc2_tiebreak_{args.tolerance_pp}pp_"
-            "then_smaller_alpha_then_smaller_k"
-        ),
+        "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
         "selection_diagnostics": selection_diagnostics,
         "calibration_mc1": locked["mc1"],
         "calibration_mc2": locked["mc2"],
         "seed": 42,
         "calibration_artifact_path": args.artifact_path,
         "artifact_fingerprint": artifact_fp,
+        "family_fingerprint": {
+            "artifact_family": artifact_family,
+            "source_dataset": source_dataset,
+            "ranking_metric": ranking_metric,
+            "position_policy": position_policy,
+            "answer_token_policy": answer_token_policy,
+            "direction_type": direction_type,
+        },
     }
 
     locked_path = out / "locked_iti_config.json"
