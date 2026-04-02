@@ -1,7 +1,7 @@
 # Optimising The Truthfulness Intervention — Act 3 Strategy
 
 **Date:** 2026-04-01  
-**Status:** Revised after repo audit, raw-data check, code-path audit, literature review, and the forced-commitment random-head specificity control
+**Status:** Revised through the 2026-04-02 E1 audit (repo audit, raw-data checks, code-path audit, literature review, random-head specificity control, and E1 execution follow-up)
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)  
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
@@ -9,6 +9,7 @@
 > Current result facts live in:
 > - [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md)
 > - [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
+> - [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
 > - [act3-sprint.md](../act3-sprint.md)
 > - [measurement-blueprint.md](../measurement-blueprint.md)
 
@@ -393,15 +394,17 @@ problem is not just "too many decode tokens."
   **locked as the canonical default scope** for all subsequent experiments.
 - Decode-scope is a useful regularizer, not a solution. The direction-quality
   hypothesis is now the primary candidate.
-- Proceed to **5.3 E1 (TruthfulQA-modernized)** under `first_3_tokens`.
+- E1 (5.3) has now completed with mixed outcomes (see
+  [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)).
+  Proceed to **5.4 E2 (TriviaQA-only)** under `first_3_tokens`.
 
 ---
 
 ## Stage 2: Artifact Improvements Under The Best Scope
 
 Only start this after Stage 1, so we do not confound "better vector" with
-"better application policy." The random-head control is now complete, so the
-current first live question is scope.
+"better application policy." Scope is now fixed (`first_3_tokens`), so the
+current live question is artifact/source quality under that scope.
 
 ### 5.3 E1 first: TruthfulQA-modernized
 
@@ -422,6 +425,53 @@ current first live question is scope.
 
 Whether the current paper-faithful artifact is being limited by avoidable
 extraction mismatch rather than by source-data limitations.
+
+**Status (2026-04-02) — E1 EXECUTION COMPLETE**
+
+- Canonical report:
+  [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
+- Outcome summary:
+  mixed tradeoff. E1 improves SimpleQA attempt/compliance relative to the
+  paper-faithful comparator on the paired 200-ID panel, but regresses both MC1
+  and MC2 on paired 2-fold TruthfulQA held-out comparison.
+- Methodology note:
+  lock-selection metadata drift and sweep auditability gaps were patched in
+  pipeline code (`scripts/run_calibration_sweep.py`, `scripts/lock_config.py`)
+  for future runs; completed E1 numerical outputs remain unchanged.
+- **Operational next step: run E2 (TriviaQA-only) under `first_3_tokens`.**
+
+### 5.3b E1b (conditional): entity-span position targeting
+
+**Hypothesis:** `mean_answer_span` is diluted by syntactic filler tokens (e.g. "The answer is…").
+Restricting activation extraction to the core factual entity tokens could yield a cleaner probe
+direction. This is the token-position logic from the H-Neurons paper applied to ITI extraction.
+
+**Gate:** run only if E2 also fails to produce a clean MC+generation profile, or if we
+choose to continue iterating the TruthfulQA-source lane despite E1's mixed tradeoff.
+
+**What exists in the repo**
+
+- [`scripts/extract_answer_tokens.py`](../../scripts/extract_answer_tokens.py): GPT-4o pipeline that
+  identifies minimal contiguous entity-token spans in model responses. Output format:
+  `{qid: {answer_tokens: [...], judge: true/false}}`.
+- [`scripts/extract_activations.py`](../../scripts/extract_activations.py): CETT (MLP `down_proj`)
+  activations at those positions — **not** reusable for ITI directly (wrong architectural site;
+  ITI uses `self_attn.o_proj` attention head projections).
+
+**What would be needed**
+
+- Re-run `extract_answer_tokens.py` on TruthfulQA best-answer strings in the ITI forced-answer
+  prompt format (entity spans from free-form generation do not transfer; token positions differ).
+- Add an `entity_span` position summary to
+  [`scripts/extract_truthfulness_iti.py`](../../scripts/extract_truthfulness_iti.py) alongside
+  the existing `first_answer_token` / `mean_answer_span` / `last_answer_token`.
+- For E2 (TriviaQA), the existing annotations have partial overlap in QID space but still require
+  re-identification in the forced-answer context.
+
+**Disclaimer:** this path has not been validated. The expected gain on short TruthfulQA
+best-answers is unclear — for compact factual strings, entity-span ≈ full answer span and
+`mean_answer_span` already captures most of the signal. Treat as a live hypothesis pending E1
+results, not a committed experiment.
 
 ### 5.4 E2 second: TriviaQA-only
 
@@ -573,9 +623,10 @@ That is how we avoid spending the sprint on elegant but low-yield complexity.
    [2026-04-01-decode-scope-simpleqa-pilot-audit.md](./2026-04-01-decode-scope-simpleqa-pilot-audit.md)
 4. Decode-scope batch judging completed — scope `first_3_tokens` locked:
    [2026-04-02-decode-scope-simpleqa-judge-results.md](./2026-04-02-decode-scope-simpleqa-judge-results.md)
-5. **Run `E1` (TruthfulQA-modernized) under `first_3_tokens`.** ← next priority
-6. Run `E2` (TriviaQA-only) under `first_3_tokens` if E1 does not recover
-   SimpleQA compliance.
+5. E1 executed and audited:
+   [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
+   (mixed outcome: generation behavior better than paper-faithful on SimpleQA panel, MC worse).
+6. **Run `E2` (TriviaQA-only) under `first_3_tokens`.** ← next priority
 7. Run `E3` (mixed-source) only if `E1` and `E2` create a real complementarity
    story.
 8. Build the bridge generation benchmark (open-domain TriviaQA or NQ) before

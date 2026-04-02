@@ -6,6 +6,10 @@
 > This report contains official GPT-4o compliance numbers and paired grade
 > analyses. For raw generation surface analysis and pipeline integrity, see the
 > pre-judge audit.
+>
+> **Follow-up status:** Stage-3 E1 execution is now complete; see
+> [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
+> for canonical E1 outcomes and current priority updates.
 
 ## Source Hierarchy
 
@@ -15,6 +19,8 @@
   [2026-04-01-decode-scope-gate1-audit.md](./2026-04-01-decode-scope-gate1-audit.md)
 - Pre-judge generation audit:
   [2026-04-01-decode-scope-simpleqa-pilot-audit.md](./2026-04-01-decode-scope-simpleqa-pilot-audit.md)
+- Stage-3 E1 follow-up:
+  [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
 - Judge chain script:
   [scripts/infra/decode_scope_judge_chain.sh](../../scripts/infra/decode_scope_judge_chain.sh)
 - Run directories:
