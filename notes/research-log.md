@@ -18,8 +18,9 @@ All three scopes degrade compliance below the unsteered baseline (5.5%).
 breakdown tells the clearest story: `full_decode` generates 64/200
 NOT_ATTEMPTED responses at α=8; `first_3_tokens` cuts that to 21/200. But of
 the 44 questions rescued from NOT_ATTEMPTED by the narrower scope, only 2 (5%)
-were judged CORRECT. Narrowing scope converts meta-hedging into confident wrong
-answers, not into factual recall.
+were judged CORRECT. With n=44 and only 2 events, no strong claim about those
+items is warranted; at minimum, they were not selectively more answerable.
+Narrowing scope converts meta-hedging into incorrect answers, not correct ones.
 
 `first_3_tokens` cleared the §5.2 promotion rule (MC1 retention ~90%; attempt
 rate and compliance above `full_decode`; precision not worse) and is now the
@@ -34,9 +35,10 @@ fact"). Narrowing scope limits how many generated tokens are pushed toward
 uncertainty expression, which reduces NOT_ATTEMPTED — but without changing the
 underlying direction geometry, the model's factual accuracy doesn't improve.
 
-This is a direction-quality problem. The form channel (how hedgy the output
-sounds) and the content channel (is the fact correct) are separate. ITI with
-TruthfulQA directions only moves the form channel.
+The leading hypothesis is a direction-quality problem. How hedgy the output
+sounds and whether the factual claim is correct appear to be separable in this
+experiment: ITI with TruthfulQA directions moves the hedging axis but not the
+accuracy axis. This is a working frame, not a proven circuit decomposition.
 
 ### What I will do next
 

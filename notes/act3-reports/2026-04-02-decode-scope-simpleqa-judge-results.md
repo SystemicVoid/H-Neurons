@@ -35,9 +35,9 @@
    It retains ~90% of the MC1 gain, improves compliance relative to
    `full_decode`, and does not reduce precision. But the absolute signal is
    below baseline — this is "least bad," not "recovered."
-3. **Decode scope is not the primary bottleneck.** Narrowing scope converts
-   meta-hedging (`NOT_ATTEMPTED`) into confident wrong answers
-   (`INCORRECT`), not into correct ones. Of 44 questions first rescued from
+3. **Decode scope is not sufficient as a complete fix.** Narrowing scope
+   converts meta-hedging (`NOT_ATTEMPTED`) into incorrect answers
+   (`INCORRECT`), not into correct ones. Of 44 questions rescued from
    `NOT_ATTEMPTED` by `first_3_tokens`, only 2 (5%) were judged `CORRECT`.
 4. **Decision:** promote `first_3_tokens` as the canonical default scope for
    subsequent experiments. Advance to Stage 3 (artifact improvements: E1,
@@ -143,22 +143,21 @@ Question-level grade transitions for the 200 paired items at α=8.0:
 Net change in CORRECT: +5 gained (NA→CORRECT: 2, INCORRECT→CORRECT: 3)
 − 2 lost (CORRECT→INCORRECT) = **+3 net** (5→8).
 
-### The calibration finding
+### NA→CORRECT conversion rate
 
 Of the 44 questions rescued from `NOT_ATTEMPTED` by `first_3_tokens`:
 - 2/44 → CORRECT (5%)
 - 42/44 → INCORRECT (95%)
 
-The unsteered baseline precision is 5.6% — meaning randomly-attempted questions
-are correct 5.6% of the time. The questions the model specifically hedges on
-under `full_decode`, when forced to answer under a narrower scope, are correct
-at a *below-baseline* rate (5%). This is not a statistical artifact of small
-numbers; it is consistent with the model having implicit calibration even under
-steering — the questions it hedges on are genuinely harder or less accessible
-factually.
+The unsteered baseline precision is 5.6%. The 5% conversion rate for rescued
+items is numerically similar to baseline, but with n=44 and only 2 CORRECT
+events, no strong conclusion is warranted — this estimate has wide uncertainty.
+The most that can be said is: the questions rescued by narrowing scope were not
+selectively more answerable in this 200-item pilot. Whether they are
+systematically harder is not established here; that would require item-level
+difficulty evidence from multiple models or conditions.
 
-Narrowing scope converts meta-hedging into *confident confabulation*, not into
-factual recall.
+Narrowing scope converts meta-hedging into incorrect answers, not correct ones.
 
 ### For reference: full\_decode → first\_8\_tokens
 
@@ -277,13 +276,16 @@ commits to an answer form earlier. But the *content* of that answer — the
 specific factual claim — is not steered toward accuracy. The model is now giving
 short, direct answers, but those answers are wrong for the same reasons as before.
 
-Think of it as two independent channels:
+One useful (though simplified) framing is two separable channels — the actual
+circuits likely overlap:
 - **Form channel:** "how much hedging language?" — scope narrows this, conciseness
   improves.
-- **Content channel:** "is the factual claim correct?" — scope does not touch this.
+- **Content channel:** "is the factual claim correct?" — scope does not visibly
+  move this in this experiment.
 
-SimpleQA requires the second channel to work. The current TruthfulQA-trained
-directions only reliably affect the first.
+SimpleQA compliance requires the content channel to move. In this setup, the
+current TruthfulQA-trained directions appear to primarily affect the form
+channel.
 
 ---
 
@@ -297,10 +299,11 @@ directions only reliably affect the first.
    issue is deeper. Even with minimal scope, compliance does not reach baseline.
 
 2. **The direction-quality hypothesis is now the primary candidate.** The
-   TruthfulQA-trained directions encode calibrated uncertainty, not factual
-   retrieval. A direction trained on a factual-recall task (TriviaQA) may target
-   a different geometry — one that improves the *content channel* rather than
-   just the *form channel*.
+   TruthfulQA-trained directions appear to encode calibrated-uncertainty
+   behavior, not factual retrieval. A direction trained on a factual-recall
+   task (TriviaQA) may target a different geometry — one that moves the factual
+   accuracy axis rather than primarily the hedging axis. This remains a
+   hypothesis until E2 is tested.
 
 3. **`first_3_tokens` is strictly better than `full_decode` on every relevant
    metric.** It should be the default for all future experiments:
@@ -326,11 +329,14 @@ directions only reliably affect the first.
 
 ### What the 5.5% baseline implies
 
-The unsteered baseline compliance (5.5%) is low in absolute terms. ITI can at
-best steer the model toward more confident expression of what it already knows.
-If the model's knowledge of the 200-question test set is capped at ~5–6%,
-direction steering can surface a slightly larger fraction of that knowledge,
-but cannot create factual knowledge that does not exist.
+The unsteered baseline compliance (5.5%) is low in absolute terms. The 5.5%
+figure bundles together model knowledge, retrieval ability, generation format,
+judge strictness, and prompt setup — it is not a direct read on raw factual
+knowledge. But whatever its cause, the practical effect is a low ceiling for
+what direction steering can accomplish: if the model rarely produces the exact
+correct answer without steering, steering can shift the boundary slightly
+(surfacing marginally more correct answers) but cannot manufacture factual
+knowledge that the generation setup never produces.
 
 This raises a structural question: is Stage 3 (artifact improvement) enough, or
 does the project eventually need to move to a higher-headroom generation
