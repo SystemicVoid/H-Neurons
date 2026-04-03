@@ -17,10 +17,6 @@
 
 ## 0. Bottom Line
 
-The outside recommendation is directionally useful but materially overstated in a few places.
-
-The grounded conclusion is:
-
 1. We already have a D4-class intervention that beats H-neurons on the clean answer-selection axis.
 2. We do **not** yet have a D4-class intervention that is useful for free-form factual generation.
 3. The highest-value next question is therefore **not** "can we find any stronger truth vector?" It is:
@@ -487,7 +483,30 @@ results, not a committed experiment.
 **Why not first**
 
 - current bottleneck is still application selectivity
-- the repo does not yet have clean local behavioral evidence that E2 helps
+
+**Status (2026-04-03) — E2-A EXECUTION COMPLETE: NEAR-INERT**
+
+- Canonical report:
+  [2026-04-02-e2-triviaqa-source-isolated-audit.md](./2026-04-02-e2-triviaqa-source-isolated-audit.md)
+- Outcome summary:
+  E2-A is a valid, well-executed null for the source-isolated TriviaQA
+  artifact under paper-faithful override selectors (val_accuracy ranking +
+  last_answer_token). The locked config (K=40, α=6.0) produces no detectable
+  effect on TruthfulQA MC1 (-0.92 pp, CI [-3.36, +1.53]),
+  MC2 (+0.73 pp, CI [-1.21, +2.65]), or SimpleQA compliance (-0.50 pp,
+  CI [-3.50, +2.50]). All CIs include zero. This is a negative result for
+  E2-A specifically — the family-default selectors (AUROC + all_answer_positions)
+  remain untested.
+- Key finding: TriviaQA-derived probes are substantially weaker than
+  TruthfulQA-derived probes (best E2 head val_accuracy = 0.696 < worst
+  E0 head = 0.739). Direction cosines on the 4 shared selected heads are
+  negative (mean = -0.163), which is suggestive but based on too small a
+  sample for a strong conclusion. Rank agreement across 272 shared heads
+  is moderate (ρ = 0.543).
+- Calibration signal (+3.70 pp on 81 questions) did not replicate in the
+  655-question held-out evaluation. All four extraction artifacts are
+  bit-for-bit identical (expected for source-isolated families).
+- **Operational next step: evaluate E3 conditional gate.**
 
 ### 5.5 E3 third and conditional: mixed-source
 
@@ -499,6 +518,25 @@ Run mixed-source only if at least one of these is true:
 
 That is the right moment to ask whether mixing sources combines useful geometry.
 Before that, E3 is too underconstrained.
+
+**Status (2026-04-03) — E3 CONDITIONAL GATE NOT MET**
+
+- E1 shows a tradeoff (MC↑ relative to own baseline, but MC↓ and
+  generation-behavior↑ relative to paper). E2 shows near-inert results.
+- E1 and E2-A are not complementary: E1 actively steers (wrong direction),
+  E2-A does nothing under paper-faithful override selectors. Mixing an
+  active-but-imperfect signal with an inert signal is unlikely to produce
+  useful geometry.
+- The E3 gate conditions are evaluated:
+  - "E1 helps MC but not generation": **Partially met** (E1 helps MC vs own
+    baseline, but not vs paper; E1 does not help generation vs own baseline).
+  - "E2 helps generation but regresses MC": **Not met** (E2-A is inert on both under paper-faithful selectors).
+  - "E1 and E2 appear complementary in head selection or benchmark profile":
+    **Not met** (head overlap is 2.1% Jaccard; no complementary profile).
+- **Decision: E3 is deprioritized.** The ITI artifact-improvement lane
+  (Stage 2) has likely reached diminishing returns. Shift priority to
+  D5 (externality audit), D7 (causal head selection), or the bridge
+  benchmark (§5.6).
 
 ---
 
@@ -520,7 +558,7 @@ Before any Stage B chooser / adaptive-α campaign:
 **Why later, not now**
 
 - the repo does not yet have a production-ready judged open-ended TriviaQA/NQ
-  intervention harness
+  intervention harness (Did we not build one for h-neurons precisely ?)
 - building that harness before the control/scope tests would slow the highest-ROI
   uncertainty reduction
 

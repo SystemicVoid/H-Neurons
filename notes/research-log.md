@@ -2,6 +2,49 @@
 
 ---
 
+## 2026-04-03
+
+### What I did
+
+Completed comprehensive audit of the E2 (TriviaQA source-isolated) pipeline and results. Full numbers and methodological analysis:
+[2026-04-02-e2-triviaqa-source-isolated-audit.md](./act3-reports/2026-04-02-e2-triviaqa-source-isolated-audit.md).
+
+### What happened
+
+**E2-A is a clean negative result for the source-isolated TriviaQA artifact under paper-faithful override selectors.** The locked config (K=40, α=6.0, val_accuracy ranking, last-answer-token only) produces no detectable effect on any measured surface:
+- TruthfulQA MC1: -0.92 pp (95% CI [-3.36, +1.53])
+- TruthfulQA MC2: +0.73 pp (95% CI [-1.21, +2.65])
+- SimpleQA compliance: -0.50 pp (95% CI [-3.50, +2.50])
+All CIs include zero. The SimpleQA transition table (6 correct→incorrect vs 5 incorrect→correct) is consistent with a near-zero net effect.
+
+A critical finding: all four E2 extraction artifacts (calibration, fold0, fold1, production) are bit-for-bit identical (SHA256 `e24f219e069b77c6...`). This is correct — TriviaQA extraction doesn't depend on TruthfulQA folds — but means the 2-fold CV adds no extraction robustness.
+
+The calibration signal (+3.70 pp on 81 questions = 3 extra correct answers) did not replicate in the 655-question held-out eval. E0's calibration signal was 4× stronger (+14.82 pp) and replicated at ~43% strength.
+
+The head overlap and direction diagnostics yielded a structurally interesting finding: E2 and E0 share moderate rank agreement (Spearman ρ = 0.543) but have *negative* direction cosines on their shared selected heads (mean = -0.163). The probes agree on which heads are important but disagree on which direction is truthful.
+
+### What this changes about my thinking
+
+Three ITI variants have now been tested on Gemma-3-4B-IT:
+- E0 (paper-faithful TruthfulQA): works on MC (+6.3 pp MC1), harms generation (attempt drops to 89.5%)
+- E1 (modernized TruthfulQA): partial MC gain (+2.75 pp MC1 vs own baseline), improves generation behavior vs E0, but trades MC discrimination vs E0
+- E2-A (TriviaQA, paper-faithful override selectors): near-inert on all surfaces
+
+**Important caveat:** E2-A used paper-faithful override selectors (val_accuracy ranking + last_answer_token) rather than the family defaults (AUROC + all_answer_positions). The negative result is strong for E2-A specifically, not yet for the entire TriviaQA transfer lane.
+
+This pattern suggests the mass-mean ITI approach under these selectors has hit a direction-quality ceiling on this model. The TruthfulQA-sourced directions engage the relevant representations but have side effects; the TriviaQA-sourced directions under paper-faithful selectors don't engage them at all. Mixing an active-but-imperfect signal (E1) with an inert signal (E2-A) is unlikely to produce E3 complementarity.
+
+The rank-direction dissociation (moderate rank agreement on 272 heads, negative cosines on 4 shared selected heads) is an intriguing observation. It is weakly suggestive that "truthfulness" at the attention-head level is not a single unitary concept in this model, but the 4-head sample is too small for a strong conclusion — this needs replication.
+
+### What I will do next
+
+The E3 conditional gate is **not met** (E1 and E2-A are not complementary). The ITI artifact-improvement path (Stage 2 of the strategy) has likely reached diminishing returns. The decision point is whether to:
+1. Try one cheap diagnostic: E2 with family-default selectors (AUROC + all positions) to separate "wrong metric" from "wrong source"
+2. Accept the three-variant evidence and shift priority to D5 (externality audit) or D7 (causal head selection pilot)
+3. Consider whether the bridge benchmark (§5.6) should precede further artifact work
+
+---
+
 ## 2026-04-02
 
 ### What I did
