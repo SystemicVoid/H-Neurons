@@ -2,46 +2,19 @@
 
 ---
 
-## 2026-04-03
+## 2026-04-03 (provisional — E2-B overnight results pending)
 
 ### What I did
 
-Completed comprehensive audit of the E2 (TriviaQA source-isolated) pipeline and results. Full numbers and methodological analysis:
-[2026-04-02-e2-triviaqa-source-isolated-audit.md](./act3-reports/2026-04-02-e2-triviaqa-source-isolated-audit.md).
+Audited the E2-A (TriviaQA source-isolated) pipeline results: [2026-04-02-e2-triviaqa-source-isolated-audit.md](./act3-reports/2026-04-02-e2-triviaqa-source-isolated-audit.md). Built E2-B diagnostic pipeline and report script for the family-default selector test.
 
 ### What happened
 
-**E2-A is a clean negative result for the source-isolated TriviaQA artifact under paper-faithful override selectors.** The locked config (K=40, α=6.0, val_accuracy ranking, last-answer-token only) produces no detectable effect on any measured surface:
-- TruthfulQA MC1: -0.92 pp (95% CI [-3.36, +1.53])
-- TruthfulQA MC2: +0.73 pp (95% CI [-1.21, +2.65])
-- SimpleQA compliance: -0.50 pp (95% CI [-3.50, +2.50])
-All CIs include zero. The SimpleQA transition table (6 correct→incorrect vs 5 incorrect→correct) is consistent with a near-zero net effect.
+**E2-A is a clean null.** K=40, α=6.0 with paper-faithful override selectors produces no detectable effect on any surface — all CIs include zero. The calibration signal (+3.70 pp = 3 extra correct on 81 questions) did not replicate. E3 complementarity gate **not met**: E1 is active-but-imperfect, E2-A is inert, mixing them won't help.
 
-A critical finding: all four E2 extraction artifacts (calibration, fold0, fold1, production) are bit-for-bit identical (SHA256 `e24f219e069b77c6...`). This is correct — TriviaQA extraction doesn't depend on TruthfulQA folds — but means the 2-fold CV adds no extraction robustness.
+One structurally interesting finding: E2 and E0 probes agree on which heads matter (Spearman ρ = 0.543 on 272 heads) but disagree on direction (mean cosine = -0.163 on 4 shared selected heads). Preliminary — n=4 is too small — but suggestive that "truthfulness" is not unitary at the head level in this model.
 
-The calibration signal (+3.70 pp on 81 questions = 3 extra correct answers) did not replicate in the 655-question held-out eval. E0's calibration signal was 4× stronger (+14.82 pp) and replicated at ~43% strength.
-
-The head overlap and direction diagnostics yielded a structurally interesting finding: E2 and E0 share moderate rank agreement (Spearman ρ = 0.543) but have *negative* direction cosines on their shared selected heads (mean = -0.163). The probes agree on which heads are important but disagree on which direction is truthful.
-
-### What this changes about my thinking
-
-Three ITI variants have now been tested on Gemma-3-4B-IT:
-- E0 (paper-faithful TruthfulQA): works on MC (+6.3 pp MC1), harms generation (attempt drops to 89.5%)
-- E1 (modernized TruthfulQA): partial MC gain (+2.75 pp MC1 vs own baseline), improves generation behavior vs E0, but trades MC discrimination vs E0
-- E2-A (TriviaQA, paper-faithful override selectors): near-inert on all surfaces
-
-**Important caveat:** E2-A used paper-faithful override selectors (val_accuracy ranking + last_answer_token) rather than the family defaults (AUROC + all_answer_positions). The negative result is strong for E2-A specifically, not yet for the entire TriviaQA transfer lane.
-
-This pattern suggests the mass-mean ITI approach under these selectors has hit a direction-quality ceiling on this model. The TruthfulQA-sourced directions engage the relevant representations but have side effects; the TriviaQA-sourced directions under paper-faithful selectors don't engage them at all. Mixing an active-but-imperfect signal (E1) with an inert signal (E2-A) is unlikely to produce E3 complementarity.
-
-The rank-direction dissociation (moderate rank agreement on 272 heads, negative cosines on 4 shared selected heads) is an intriguing observation. It is weakly suggestive that "truthfulness" at the attention-head level is not a single unitary concept in this model, but the 4-head sample is too small for a strong conclusion — this needs replication.
-
-### What I will do next
-
-The E3 conditional gate is **not met** (E1 and E2-A are not complementary). The ITI artifact-improvement path (Stage 2 of the strategy) has likely reached diminishing returns. The decision point is whether to:
-1. Try one cheap diagnostic: E2 with family-default selectors (AUROC + all positions) to separate "wrong metric" from "wrong source"
-2. Accept the three-variant evidence and shift priority to D5 (externality audit) or D7 (causal head selection pilot)
-3. Consider whether the bridge benchmark (§5.6) should precede further artifact work
+**Key open question:** was E2-A's null caused by paper-faithful selectors (val_accuracy + last_answer_token) or by the TriviaQA source itself? E2-B (AUROC + all_answer_positions) is built and ready to run; will update after overnight results.
 
 ---
 
@@ -49,47 +22,42 @@ The E3 conditional gate is **not met** (E1 and E2-A are not complementary). The 
 
 ### What I did
 
-Ran the GPT-4o batch judge on the three decode-scope SimpleQA pilot panels
-(full_decode, first_3_tokens, first_8_tokens — 200 questions × 2 alphas each).
-Full numbers and paired analysis:
-[2026-04-02-decode-scope-simpleqa-judge-results.md](./act3-reports/2026-04-02-decode-scope-simpleqa-judge-results.md).
+Three threads: closed Stage 5.2 (decode-scope), built and ran the full E1 pipeline end-to-end, and hardened infrastructure for the E2 pipeline.
+
+**Stage 5.2 (decode-scope).** Ran GPT-4o batch judge on three decode-scope SimpleQA panels (full_decode, first_3_tokens, first_8_tokens — 200 questions × 2 alphas each). Full numbers: [2026-04-02-decode-scope-simpleqa-judge-results.md](./act3-reports/2026-04-02-decode-scope-simpleqa-judge-results.md).
+
+**E1 (TruthfulQA-modernized).** Built the modernized extraction family (chat-template prompts, AUROC ranking, assistant-content-only token positions), wrote deterministic tests with a `StubChatTokenizer`, built the pipeline script, and ran the full chain: extraction → calibration sweep → lock (K=8, α=8.0) → 2-fold held-out eval → production → SimpleQA-200 judge. Full audit: [2026-04-02-e1-truthfulqa-modernized-audit.md](./act3-reports/2026-04-02-e1-truthfulqa-modernized-audit.md).
+
+**Infrastructure.** Overhauled the CI-coverage audit for per-check isolation and manifest-driven extensibility. Enriched calibration sweep and lock config outputs with artifact family, ranking metric inference, and selection diagnostics. Fixed site chart axis clipping (suggestedMin/suggestedMax). Built the E2 source-isolated lock pipeline with pilot-gated promotion, paired sample-ID parity enforcement, and zero-attempt precision CI handling.
 
 ### What happened
 
-All three scopes degrade compliance below the unsteered baseline (5.5%).
-`first_3_tokens` is least bad (4.0%), `full_decode` worst (2.5%). The grade
-breakdown tells the clearest story: `full_decode` generates 64/200
-NOT_ATTEMPTED responses at α=8; `first_3_tokens` cuts that to 21/200. But of
-the 44 questions rescued from NOT_ATTEMPTED by the narrower scope, only 2 (5%)
-were judged CORRECT. With n=44 and only 2 events, no strong claim about those
-items is warranted; at minimum, they were not selectively more answerable.
-Narrowing scope converts meta-hedging into incorrect answers, not correct ones.
+**Stage 5.2: scope hypothesis falsified as a complete fix.** `full_decode` generates 64/200 NOT_ATTEMPTED at α=8; `first_3_tokens` cuts that to 21/200. But of the 44 questions rescued from NOT_ATTEMPTED, only 2 (5%) were judged CORRECT — with n=44 and 2 events, no strong claim is warranted. Narrowing scope converts meta-hedging into incorrect answers, not correct ones. `first_3_tokens` cleared the §5.2 promotion rule and is now the locked canonical scope.
 
-`first_3_tokens` cleared the §5.2 promotion rule (MC1 retention ~90%; attempt
-rate and compliance above `full_decode`; precision not worse) and is now the
-locked canonical scope. Stage 5.2 closed.
+**E1: real tradeoff, not a solution.** E1 results on the 655-question held-out eval:
+- Within-E1 (α=8 vs α=0): MC1 +2.75 pp [+0.46, +5.19], MC2 +4.48 pp [+2.53, +6.49] — real improvement over its own baseline
+- E1 vs paper-faithful (head-to-head at α=8): MC1 -3.51 pp [-5.95, -1.07], MC2 -3.01 pp [-4.90, -1.15] — CIs exclude zero, paper-faithful wins on MC
+- E1 vs paper-faithful on SimpleQA: compliance +2.0 pp [+0.5, +4.0], attempt rate +8.0 pp [+4.0, +12.5] — E1 is significantly gentler on generation
+
+The tradeoff is sharp and well-characterized: E1 buys back generation behavior (attempt rate 97.5% vs E0's 89.5%) by sacrificing MC discrimination. It does not improve SimpleQA correctness vs its own baseline — compliance delta is +0.5 pp with CI crossing zero.
+
+### Issues found
+
+1. **E1 lock metadata mismatch.** Extraction used AUROC ranking but the locked config labels it as `val_accuracy`. The numbers are unaffected — the mismatch is in metadata, not computation — but it required pipeline fixes (provenance enrichment in sweep/lock scripts) to prevent recurrence.
+
+2. **Lock tolerance fake precision.** The 0.5 pp tolerance in the lock rule is below the MC1 resolution on n=81 (1.23 pp per answer). The tie-break branch was structurally incapable of activating. Not harmful for E1 (only one candidate survived), but the tolerance needs widening for future runs.
+
+3. **Tightened several overstatements** in the decode-scope report and log after first draft: "primary bottleneck," "confident confabulation," "genuinely harder questions," and "knowledge capped at 5-6%" all exceeded what a 200-item pilot can support. Fixed same day.
 
 ### What this changes about my thinking
 
-The scope hypothesis is falsified as a complete explanation. The current
-TruthfulQA-trained directions appear to encode calibrated-uncertainty behavior
-("don't overclaim") rather than factual-retrieval behavior ("recall the right
-fact"). Narrowing scope limits how many generated tokens are pushed toward
-uncertainty expression, which reduces NOT_ATTEMPTED — but without changing the
-underlying direction geometry, the model's factual accuracy doesn't improve.
+**The hedging/accuracy decomposition is now the central frame.** The decode-scope experiment showed that ITI with TruthfulQA directions moves the hedging axis (how confidently the model responds) but not the accuracy axis (whether the factual claim is correct). E1 confirms this is not just a scope artifact: modernized extraction with AUROC ranking, chat-template alignment, and multi-position selection still fails to improve SimpleQA correctness. The directions encode "don't overclaim" behavior, not "recall the right fact" behavior. This is a working frame, not a proven circuit decomposition — no ablation yet isolates which of AUROC, K, or multi-position is responsible.
 
-The leading hypothesis is a direction-quality problem. How hedgy the output
-sounds and whether the factual claim is correct appear to be separable in this
-experiment: ITI with TruthfulQA directions moves the hedging axis but not the
-accuracy axis. This is a working frame, not a proven circuit decomposition.
+**E1 usefully separates "steers the model" from "steers it correctly."** Paper-faithful E0 steers strongly but harms generation. E1 steers more gently — it partially undoes the refusal-inducing side of E0 (attempt rate 97.5% vs 89.5%) while retaining a weaker but still positive MC signal. This is a genuine tradeoff point, not a vague "mixed result." But it's the wrong side of the sprint's cross-benchmark consistency objective: we want MC *and* generation to improve, not to trade between them.
 
 ### What I will do next
 
-Stage 5.3: run E1 (TruthfulQA-modernized extraction: chat-template matching,
-AUROC-based head ranking) under `first_3_tokens`. If E1 fails to recover
-SimpleQA, run E2 (TriviaQA-only directions) — the literature suggests
-TriviaQA-trained directions transfer better to factual-recall tasks. Continue
-using the shared 200-ID manifest for all pilots.
+Run E2 (TriviaQA source-isolated) with paper-faithful override selectors to test whether an alternative data source breaks the direction-quality ceiling. The E2 pipeline with pilot gating is built and ready. If E2's TriviaQA directions show no signal, the mass-mean ITI artifact path is likely exhausted on this model under paper-faithful selectors.
 
 ---
 
