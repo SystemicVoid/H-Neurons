@@ -1,0 +1,130 @@
+{
+  "benchmark": "triviaqa_bridge",
+  "model": "google/gemma-3-4b-it",
+  "intervention_mode": "iti_head",
+  "n_h_neurons": 8,
+  "results": {
+    "8.0": {
+      "compliance_rate": 0.0,
+      "n_compliant": 0,
+      "n_judged": 0,
+      "n_total": 100,
+      "judging_complete": false,
+      "compliance": {
+        "estimate": 0.0,
+        "n_compliant": 0,
+        "n_total": 100,
+        "ci": {
+          "lower": 3.341099972357286e-18,
+          "upper": 0.03699349820698568,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "deterministic_accuracy_rate": 0.33,
+      "n_deterministic_correct": 33,
+      "deterministic_accuracy": {
+        "estimate": 0.33,
+        "n_deterministic_correct": 33,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.24563122734128034,
+          "upper": 0.42694656204909476,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "attempt_rate": 0.98,
+      "n_attempted": 98,
+      "attempt": {
+        "estimate": 0.98,
+        "n_attempted": 98,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.9299882092714561,
+          "upper": 0.9944980324498376,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "not_attempted_rate": 0.02,
+      "n_not_attempted": 2,
+      "not_attempted": {
+        "estimate": 0.02,
+        "n_not_attempted": 2,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.00550196755016235,
+          "upper": 0.0700117907285439,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "precision_given_attempt_rate": 0.3367,
+      "precision_given_attempt": {
+        "estimate": 0.336734693877551,
+        "n_correct": 33,
+        "n_attempted": 98,
+        "ci": {
+          "lower": 0.25090134513623824,
+          "upper": 0.4348847740871675,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "nonmatch_judged": 0,
+      "nonmatch_recovered": 0,
+      "audit_disagree_rate_nonmatches": 0.0,
+      "match_audited": 0,
+      "match_disagree": 0,
+      "audit_disagree_rate_matches": 0.0,
+      "metric_name": "deterministic_accuracy",
+      "metric_mean": 0.33,
+      "metric_std": 0.470213
+    }
+  },
+  "effects": {
+    "baseline_alpha": 8.0,
+    "paired_against_baseline": {
+      "status": "blocked_no_comparisons",
+      "baseline_alpha": 8.0,
+      "comparisons": {}
+    }
+  },
+  "throughput": {
+    "by_alpha": {
+      "8.0": {
+        "samples_completed": 100,
+        "record_count_total": 100,
+        "instrumented_row_count": 100,
+        "instrumented_coverage": 1.0,
+        "generated_tokens_total": 603,
+        "prompt_tokens_total": 3974,
+        "wall_total_s": 17.2557,
+        "wall_measured_s": 17.2386,
+        "generate_total_s": 17.2057,
+        "mean_generated_tokens": 6.03,
+        "mean_generate_s": 0.1721,
+        "samples_per_s_wall": 5.7952,
+        "tokens_per_s_wall": 34.945,
+        "tokens_per_s_generate": 35.0465,
+        "inter_sample_gap_count": 99,
+        "inter_sample_gap_mean_s": 0.000164,
+        "inter_sample_gap_p50_s": 0.000174,
+        "inter_sample_gap_p95_s": 0.000191,
+        "hook_total_s": 2.10894,
+        "hook_mean_s": 0.021089,
+        "hook_frac_of_generate": 0.122572
+      }
+    }
+  },
+  "iti_head_path": "data/contrastive/truthfulness/iti_truthfulqa_modernized_production/iti_heads.pt",
+  "iti_k": 8,
+  "iti_selection_strategy": "ranked",
+  "iti_random_seed": 42,
+  "iti_family": "truthfulqa_modernized",
+  "iti_decode_scope": "first_3_tokens",
+  "judge_required": true,
+  "triviaqa_bridge_manifest": "data/manifests/triviaqa_bridge_dev100_seed42.json",
+  "baseline_alpha": 0.0
+}
