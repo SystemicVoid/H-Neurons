@@ -11,6 +11,7 @@
 - `ty check` type-checks `scripts/` (configured in `[tool.ty]` in pyproject.toml; resolves third-party imports from `../.venv`).
 - `ruff`, `ty`, and `prek` are global tools on PATH (installed via `uv tool`).
 Tests live in `tests/` and run via `uv run pytest`. Core evaluation helpers (`normalize_answer`, `extract_mc_answer`) have unit tests in `tests/test_utils.py`.
+- `ty check` MUST pass with zero diagnostics before committing.
 - Follow existing conventional commits pattern.
 
 ## Coding Style & Naming Conventions
