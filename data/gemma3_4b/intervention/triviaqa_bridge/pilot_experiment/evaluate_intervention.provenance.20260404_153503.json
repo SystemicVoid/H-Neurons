@@ -1,0 +1,41 @@
+{
+  "args": {
+    "alphas": [
+      1.0
+    ],
+    "api_mode": "batch",
+    "batch_max_enqueued_tokens": null,
+    "benchmark": "triviaqa_bridge",
+    "input_dir": "data/gemma3_4b/intervention/triviaqa_bridge/pilot_experiment",
+    "judge_model": "gpt-4o",
+    "prompt_cache_retention": null
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_intervention.py",
+    "--benchmark",
+    "triviaqa_bridge",
+    "--input_dir",
+    "data/gemma3_4b/intervention/triviaqa_bridge/pilot_experiment",
+    "--alphas",
+    "1.0",
+    "--api-mode",
+    "batch"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_intervention.py --benchmark triviaqa_bridge --input_dir data/gemma3_4b/intervention/triviaqa_bridge/pilot_experiment --alphas 1.0 --api-mode batch",
+  "completed_at_utc": "2026-04-04T15:38:41.465984+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "6a5bf9376b7e4105ea9cad27004902631bb6e939",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/triviaqa_bridge/pilot_experiment",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/triviaqa_bridge/pilot_experiment/results.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_intervention.py",
+  "started_at_utc": "2026-04-04T15:35:03.148191+00:00",
+  "status": "completed"
+}
