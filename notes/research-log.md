@@ -2,6 +2,44 @@
 
 ---
 
+## 2026-04-04 (session 2)
+
+### What I did
+
+Ran TriviaQA Bridge Phase 2 dev validation: 3 conditions (baseline α=1.0, E0 ITI α=4.0, E0 ITI α=8.0) on the 100-question dev manifest. Full pipeline: GPU generation → GPT-4o batch judge (bidirectional audit) → paired analysis. Deep sample-level audit of all flips, failure modes, and response perturbation patterns. Report: [2026-04-04-bridge-phase2-dev-results.md](./act3-reports/2026-04-04-bridge-phase2-dev-results.md).
+
+### What happened
+
+E0 ITI does not improve factual generation on TriviaQA. α=4 is flat (Δ adj = -1pp, CI [-6%, +4%]), α=8 is borderline harmful (Δ adj = -7pp, CI [-14%, 0%], McNemar p=0.096). The flip asymmetry at α=8 is 10:3 (right-to-wrong : wrong-to-right).
+
+The qualitative flip analysis revealed the mechanism. The dominant failure mode at α=8 is **confident wrong substitution** (5/10 right-to-wrong flips) — the model replaces a correct entity with a plausible-but-wrong alternative (Terry Hall → Horace Panter, Two-up → Nimble Nick, Head size → Brain size). This is not refusal or hedging — it's the truthfulness direction reshuffling the model's factual distribution. Secondary modes: verbosity (3/10, answer lost in elaboration) and evasion (1/10, description instead of answer).
+
+The intervention is unambiguously active: 51% of correct responses change surface form, 73% of wrong responses change, mean response length grows 70% (15→26 chars), exact match tier drops 28→14. But this activity is indiscriminate — it perturbs all responses, not selectively wrong ones.
+
+The damage is concentrated in `qb` (quiz bowl: 45%→18%) and `bt` (brain teasers: 20%→0%) — the "tricky" question types where the model's knowledge is least robust. Straightforward factual categories (bb, sfq, wh) are unaffected.
+
+### What surprised us
+
+1. **The substitution pattern is the sharpest signal.** We expected ITI failure on TriviaQA to look like the SimpleQA escape-hatch interaction (refusal/evasion). Instead, the model confidently produces *different wrong facts*. "Horace Panter" is the Specials' bassist, not vocalist — the truthfulness direction is activating semantically adjacent but factually wrong completions.
+
+2. **Response drift in correct answers is massive.** 19/37 both-correct pairs produce different text at α=8 (e.g., "Nathuram Godse" → "Nathuram Godse assassinated Mahatma Gandhi."). The intervention is not selectively targeting uncertainty — it broadly reshapes generation style toward more verbose, sentence-form outputs.
+
+3. **The always-wrong population (49 questions) is also perturbed.** 36/49 change their wrong answer under ITI, sometimes shifting from confident-wrong to denial ("CD is not a Roman numeral" replacing "XCIX" for the question "what number is CD?"). The truthfulness direction is correctly identifying uncertainty on these questions but expressing it as denial rather than correction.
+
+4. **Grader is rock-solid.** 0/90 false positives across all match audits. The bidirectional audit design works exactly as planned.
+
+### What was learned
+
+The TriviaQA bridge generation result completes the E0 transfer picture: ITI trained on TruthfulQA improves TruthfulQA answer selection (+6.3pp MC1) but does not transfer to TriviaQA — not for answer selection (E2: null) and not for generation (Phase 2: null-to-harmful). The truthfulness direction is dataset-specific, not a universal "make the model more accurate" lever. It shifts probability mass among the model's existing candidates, which helps when the wrong candidate is a TruthfulQA-style misconception but hurts when the model simply lacks the knowledge.
+
+The bridge benchmark itself is validated: productive headroom (47%), clean grading (0% FP), and the paired flip analysis reveals mechanism that aggregate metrics would hide.
+
+### What I will do next
+
+Per the bridge plan decision tree: this is an "informative null." Still run Phase 3 (test set) for the record with the baseline to establish the published headroom number, but E0 ITI is not the intervention to test there. Shift to D5/D7 per sprint priority.
+
+---
+
 ## 2026-04-04
 
 ### What I did
