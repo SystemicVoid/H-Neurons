@@ -1,6 +1,6 @@
 {
   "locked_alpha": 6.0,
-  "locked_k": 40,
+  "locked_k": 8,
   "variant": "mc2",
   "folds": [
     {
@@ -19,19 +19,19 @@
       },
       "intervened": {
         "alpha": 6.0,
-        "rate": 0.439597,
+        "rate": 0.440902,
         "ci": {
-          "lower": 0.39032001350970597,
-          "upper": 0.48850739590341646,
+          "lower": 0.39148629054784945,
+          "upper": 0.4903897819633231,
           "level": 0.95,
           "method": "bootstrap_percentile"
         }
       },
       "delta_pp": {
-        "estimate_pp": 0.7288130213836619,
+        "estimate_pp": 0.8593692355933991,
         "ci_pp": {
-          "lower": -1.950244489869075,
-          "upper": 3.4993639605966913,
+          "lower": -1.2789117547203182,
+          "upper": 2.987970160676602,
           "level": 0.95,
           "method": "bootstrap_percentile_paired_continuous"
         },
@@ -60,19 +60,19 @@
       },
       "intervened": {
         "alpha": 6.0,
-        "rate": 0.432219,
+        "rate": 0.445538,
         "ci": {
-          "lower": 0.38422635658766063,
-          "upper": 0.4801227660407993,
+          "lower": 0.39660142182511454,
+          "upper": 0.49431412071071296,
           "level": 0.95,
           "method": "bootstrap_percentile"
         }
       },
       "delta_pp": {
-        "estimate_pp": 0.7246420211744431,
+        "estimate_pp": 2.05650391528534,
         "ci_pp": {
-          "lower": -2.049203313500842,
-          "upper": 3.5537183458018395,
+          "lower": -0.2748448441841958,
+          "upper": 4.398298438531892,
           "level": 0.95,
           "method": "bootstrap_percentile_paired_continuous"
         },
@@ -102,19 +102,19 @@
     },
     "intervened": {
       "alpha": 6.0,
-      "rate": 0.435914,
+      "rate": 0.443217,
       "ci": {
-        "lower": 0.4017561425486072,
-        "upper": 0.4704886159492556,
+        "lower": 0.40890333495984754,
+        "upper": 0.47760163578633286,
         "level": 0.95,
         "method": "bootstrap_percentile"
       }
     },
     "delta_pp": {
-      "estimate_pp": 0.7267307052486682,
+      "estimate_pp": 1.457022732172425,
       "ci_pp": {
-        "lower": -1.2148763659050208,
-        "upper": 2.6537629033164776,
+        "lower": -0.11359864666510738,
+        "upper": 3.018800964927425,
         "level": 0.95,
         "method": "bootstrap_percentile_paired_continuous"
       },

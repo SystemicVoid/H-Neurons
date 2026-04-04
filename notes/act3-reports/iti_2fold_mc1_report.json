@@ -1,6 +1,6 @@
 {
   "locked_alpha": 6.0,
-  "locked_k": 40,
+  "locked_k": 8,
   "variant": "mc1",
   "folds": [
     {
@@ -30,8 +30,8 @@
       "delta_pp": {
         "estimate_pp": -2.4390243902439046,
         "ci_pp": {
-          "lower": -5.792682926829268,
-          "upper": 0.9146341463414642,
+          "lower": -4.8780487804878065,
+          "upper": 0.0,
           "level": 0.95,
           "method": "bootstrap_percentile_paired"
         },
@@ -43,7 +43,7 @@
           "interval": "percentile"
         }
       },
-      "mcnemar_p": 0.21532714972272515
+      "mcnemar_p": 0.076812744140625
     },
     {
       "fold": 1,
@@ -61,19 +61,19 @@
       },
       "intervened": {
         "alpha": 6.0,
-        "rate": 0.272171,
+        "rate": 0.29052,
         "ci": {
-          "lower": 0.22678429964874625,
-          "upper": 0.3228489279064695,
+          "lower": 0.24397066465797854,
+          "upper": 0.34193371235587755,
           "level": 0.95,
           "method": "wilson"
         }
       },
       "delta_pp": {
-        "estimate_pp": 0.6116207951070318,
+        "estimate_pp": 2.4464831804281326,
         "ci_pp": {
-          "lower": -2.7522935779816518,
-          "upper": 3.975535168195718,
+          "lower": -0.6116207951070318,
+          "upper": 5.5045871559633035,
           "level": 0.95,
           "method": "bootstrap_percentile_paired"
         },
@@ -85,7 +85,7 @@
           "interval": "percentile"
         }
       },
-      "mcnemar_p": 0.8555355519056321
+      "mcnemar_p": 0.16863754391670227
     }
   ],
   "pooled": {
@@ -104,19 +104,19 @@
     },
     "intervened": {
       "alpha": 6.0,
-      "rate": 0.258015,
+      "rate": 0.267176,
       "ci": {
-        "lower": 0.2259863079820603,
-        "upper": 0.29286607181896157,
+        "lower": 0.23471833147159293,
+        "upper": 0.30234783836850704,
         "level": 0.95,
         "method": "wilson"
       }
     },
     "delta_pp": {
-      "estimate_pp": -0.9160305343511477,
+      "estimate_pp": 0.0,
       "ci_pp": {
-        "lower": -3.358778625954198,
-        "upper": 1.5267175572519054,
+        "lower": -1.9847328244274793,
+        "upper": 1.984732824427482,
         "level": 0.95,
         "method": "bootstrap_percentile_paired"
       },
@@ -128,6 +128,6 @@
         "interval": "percentile"
       }
     },
-    "mcnemar_p": 0.52577336017565
+    "mcnemar_p": 1.0
   }
 }
