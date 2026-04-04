@@ -1,0 +1,81 @@
+{
+  "args": {
+    "consistency_path": "data/gemma3_4b/pipeline/consistency_samples.jsonl",
+    "context_train_questions": 400,
+    "context_val_questions": 100,
+    "csv_path": "data/benchmarks/TruthfulQA.csv",
+    "device_map": "cuda:0",
+    "family": "iti_triviaqa_transfer",
+    "fold_path": null,
+    "model_path": "google/gemma-3-4b-it",
+    "output_dir": "data/contrastive/truthfulness/iti_triviaqa_familydefault/final_fold1",
+    "position_policy_override": null,
+    "ranking_metric_override": null,
+    "seed": 42,
+    "test_qids_path": "data/gemma3_4b/pipeline/test_qids_disjoint.json",
+    "train_cap_per_qid_label": 2,
+    "train_qids_path": "data/gemma3_4b/pipeline/train_qids.json",
+    "val_cap_per_qid_label": 1
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/extract_truthfulness_iti.py",
+    "--family",
+    "iti_triviaqa_transfer",
+    "--seed",
+    "42",
+    "--output_dir",
+    "data/contrastive/truthfulness/iti_triviaqa_familydefault/final_fold1"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/extract_truthfulness_iti.py --family iti_triviaqa_transfer --seed 42 --output_dir data/contrastive/truthfulness/iti_triviaqa_familydefault/final_fold1",
+  "completed_at_utc": "2026-04-03T20:34:25.840549+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "family": "iti_triviaqa_transfer",
+  "git_dirty": true,
+  "git_sha": "56541bae1b21e0701a42c30129ec3781ee93b69d",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_triviaqa_familydefault/final_fold1/iti_heads.pt",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_triviaqa_familydefault/final_fold1/extraction_metadata.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "record_count": 3424,
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "extract_truthfulness_iti.py",
+  "split_audit": {
+    "counts": {
+      "dev": 0,
+      "test": 0,
+      "train": 0,
+      "val": 0
+    },
+    "direction_fit_ids_equal_dev_ids": null,
+    "direction_fit_source": "train_only",
+    "leakage_detected": false,
+    "overlap": {
+      "dev_test": 0,
+      "train_test": 0,
+      "train_val": 0,
+      "val_test": 0
+    },
+    "sample_ids": {
+      "dev": [],
+      "test": [],
+      "train": [],
+      "val": []
+    },
+    "sigma_fit_source": "train_only"
+  },
+  "started_at_utc": "2026-04-03T20:31:48.331826+00:00",
+  "status": "completed",
+  "top_head": {
+    "auroc": 0.768454,
+    "balanced_accuracy": 0.70844,
+    "head": 2,
+    "layer": 11,
+    "position_summary": "mean_answer_span",
+    "rank": 1,
+    "sigma": 1.54966
+  }
+}

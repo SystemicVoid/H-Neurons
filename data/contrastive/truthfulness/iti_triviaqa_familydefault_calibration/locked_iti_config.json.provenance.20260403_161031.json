@@ -1,0 +1,214 @@
+{
+  "args": {
+    "alpha_values": [
+      0.0,
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      6.0,
+      8.0,
+      12.0,
+      16.0
+    ],
+    "artifact_path": "data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration/iti_heads.pt",
+    "cal_val_mc1_manifest": "data/manifests/truthfulqa_cal_val_mc1_seed42.json",
+    "cal_val_mc2_manifest": "data/manifests/truthfulqa_cal_val_mc2_seed42.json",
+    "device_map": "cuda:0",
+    "k_values": [
+      8,
+      12,
+      16,
+      24,
+      32,
+      40
+    ],
+    "model_path": "google/gemma-3-4b-it",
+    "output_dir": "data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration",
+    "tolerance_pp": null,
+    "truthfulqa_csv": "data/benchmarks/TruthfulQA.csv"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/run_calibration_sweep.py",
+    "--artifact_path",
+    "data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration/iti_heads.pt",
+    "--cal_val_mc1_manifest",
+    "data/manifests/truthfulqa_cal_val_mc1_seed42.json",
+    "--cal_val_mc2_manifest",
+    "data/manifests/truthfulqa_cal_val_mc2_seed42.json",
+    "--k_values",
+    "8",
+    "12",
+    "16",
+    "24",
+    "32",
+    "40",
+    "--alpha_values",
+    "0.0",
+    "0.5",
+    "1.0",
+    "2.0",
+    "4.0",
+    "6.0",
+    "8.0",
+    "12.0",
+    "16.0",
+    "--output_dir",
+    "data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/run_calibration_sweep.py --artifact_path data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration/iti_heads.pt --cal_val_mc1_manifest data/manifests/truthfulqa_cal_val_mc1_seed42.json --cal_val_mc2_manifest data/manifests/truthfulqa_cal_val_mc2_seed42.json --k_values 8 12 16 24 32 40 --alpha_values 0.0 0.5 1.0 2.0 4.0 6.0 8.0 12.0 16.0 --output_dir data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration",
+  "completed_at_utc": "2026-04-03T20:15:25.427529+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "56541bae1b21e0701a42c30129ec3781ee93b69d",
+  "hostname": "excurio",
+  "locked_config": {
+    "K_locked": 8,
+    "alpha_locked": 6.0,
+    "answer_token_policy": "raw_prompt_answer_span",
+    "artifact_family": "iti_triviaqa_transfer",
+    "artifact_fingerprint": "3231a3450a2227fa",
+    "calibration_artifact_path": "data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration/iti_heads.pt",
+    "calibration_mc1": 0.283951,
+    "calibration_mc2": 0.41902,
+    "dataset_fingerprint": "b6a5425138bb554e",
+    "direction_type": "mass_mean",
+    "family_fingerprint": {
+      "answer_token_policy": "raw_prompt_answer_span",
+      "artifact_family": "iti_triviaqa_transfer",
+      "direction_type": "mass_mean",
+      "position_policy": "all_answer_positions",
+      "ranking_metric": "auroc",
+      "source_dataset": "triviaqa_consistency"
+    },
+    "model": "google/gemma-3-4b-it",
+    "position_policy": "all_answer_positions",
+    "ranking_metric": "auroc",
+    "seed": 42,
+    "selection_diagnostics": {
+      "best_mc1": 0.283951,
+      "locked_candidate_summary": {
+        "alpha": 6.0,
+        "k": 8,
+        "mc1": 0.283951,
+        "mc1_gap_pp_from_best": 0.0,
+        "mc2": 0.41902,
+        "n_mc1": 81,
+        "n_mc2": 81
+      },
+      "mc1_resolution_pp": 1.2345679012345678,
+      "n_calibration_samples": 81,
+      "n_candidates_within_tolerance_pp": 4,
+      "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+      "shortlist": [
+        {
+          "alpha": 6.0,
+          "k": 8,
+          "mc1": 0.283951,
+          "mc1_gap_pp_from_best": 0.0,
+          "mc2": 0.41902,
+          "n_mc1": 81,
+          "n_mc2": 81
+        },
+        {
+          "alpha": 6.0,
+          "k": 24,
+          "mc1": 0.271605,
+          "mc1_gap_pp_from_best": 1.2346,
+          "mc2": 0.418981,
+          "n_mc1": 81,
+          "n_mc2": 81
+        },
+        {
+          "alpha": 8.0,
+          "k": 8,
+          "mc1": 0.271605,
+          "mc1_gap_pp_from_best": 1.2346,
+          "mc2": 0.414473,
+          "n_mc1": 81,
+          "n_mc2": 81
+        },
+        {
+          "alpha": 12.0,
+          "k": 8,
+          "mc1": 0.271605,
+          "mc1_gap_pp_from_best": 1.2346,
+          "mc2": 0.404639,
+          "n_mc1": 81,
+          "n_mc2": 81
+        }
+      ],
+      "tie_break_path": [
+        {
+          "criterion": "maximize_mc2",
+          "n_survivors": 1,
+          "selected_value": 0.41902,
+          "step": "max_mc2",
+          "survivors": [
+            {
+              "alpha": 6.0,
+              "k": 8,
+              "mc1": 0.283951,
+              "mc1_gap_pp_from_best": 0.0,
+              "mc2": 0.41902,
+              "n_mc1": 81,
+              "n_mc2": 81
+            }
+          ]
+        },
+        {
+          "criterion": "minimize_alpha",
+          "n_survivors": 1,
+          "selected_value": 6.0,
+          "step": "min_alpha",
+          "survivors": [
+            {
+              "alpha": 6.0,
+              "k": 8,
+              "mc1": 0.283951,
+              "mc1_gap_pp_from_best": 0.0,
+              "mc2": 0.41902,
+              "n_mc1": 81,
+              "n_mc2": 81
+            }
+          ]
+        },
+        {
+          "criterion": "minimize_k",
+          "n_survivors": 1,
+          "selected_value": 8,
+          "step": "min_k",
+          "survivors": [
+            {
+              "alpha": 6.0,
+              "k": 8,
+              "mc1": 0.283951,
+              "mc1_gap_pp_from_best": 0.0,
+              "mc2": 0.41902,
+              "n_mc1": 81,
+              "n_mc2": 81
+            }
+          ]
+        }
+      ],
+      "tie_break_triggered": true,
+      "tolerance_floor_rule": "max(100/n_cal, 1.5)",
+      "tolerance_pp_applied": 1.5,
+      "tolerance_pp_requested": null,
+      "tolerance_raised_to_resolution_floor": false
+    },
+    "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+    "source_dataset": "triviaqa_consistency"
+  },
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration/locked_iti_config.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration/sweep_results.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "run_calibration_sweep.py",
+  "started_at_utc": "2026-04-03T16:10:31.396162+00:00",
+  "status": "completed"
+}

@@ -1,0 +1,193 @@
+{
+  "model": "google/gemma-3-4b-it",
+  "artifact_family": "iti_triviaqa_transfer",
+  "source_dataset": "triviaqa_consistency",
+  "direction_type": "mass_mean",
+  "ranking_metric": "auroc",
+  "position_policy": "all_answer_positions",
+  "answer_token_policy": "raw_prompt_answer_span",
+  "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+  "selection_diagnostics": {
+    "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+    "tolerance_pp_requested": null,
+    "tolerance_pp_applied": 1.5,
+    "tolerance_floor_rule": "max(100/n_cal, 1.5)",
+    "mc1_resolution_pp": 1.2345679012345678,
+    "n_calibration_samples": 81,
+    "best_mc1": 0.283951,
+    "n_candidates_within_tolerance_pp": 4,
+    "tie_break_triggered": true,
+    "shortlist": [
+      {
+        "k": 8,
+        "alpha": 6.0,
+        "mc1": 0.283951,
+        "mc2": 0.41902,
+        "n_mc1": 81,
+        "n_mc2": 81,
+        "mc1_gap_pp_from_best": 0.0
+      },
+      {
+        "k": 24,
+        "alpha": 6.0,
+        "mc1": 0.271605,
+        "mc2": 0.418981,
+        "n_mc1": 81,
+        "n_mc2": 81,
+        "mc1_gap_pp_from_best": 1.2346
+      },
+      {
+        "k": 8,
+        "alpha": 8.0,
+        "mc1": 0.271605,
+        "mc2": 0.414473,
+        "n_mc1": 81,
+        "n_mc2": 81,
+        "mc1_gap_pp_from_best": 1.2346
+      },
+      {
+        "k": 8,
+        "alpha": 12.0,
+        "mc1": 0.271605,
+        "mc2": 0.404639,
+        "n_mc1": 81,
+        "n_mc2": 81,
+        "mc1_gap_pp_from_best": 1.2346
+      }
+    ],
+    "tie_break_path": [
+      {
+        "step": "max_mc2",
+        "criterion": "maximize_mc2",
+        "selected_value": 0.41902,
+        "n_survivors": 1,
+        "survivors": [
+          {
+            "k": 8,
+            "alpha": 6.0,
+            "mc1": 0.283951,
+            "mc2": 0.41902,
+            "n_mc1": 81,
+            "n_mc2": 81,
+            "mc1_gap_pp_from_best": 0.0
+          }
+        ]
+      },
+      {
+        "step": "min_alpha",
+        "criterion": "minimize_alpha",
+        "selected_value": 6.0,
+        "n_survivors": 1,
+        "survivors": [
+          {
+            "k": 8,
+            "alpha": 6.0,
+            "mc1": 0.283951,
+            "mc2": 0.41902,
+            "n_mc1": 81,
+            "n_mc2": 81,
+            "mc1_gap_pp_from_best": 0.0
+          }
+        ]
+      },
+      {
+        "step": "min_k",
+        "criterion": "minimize_k",
+        "selected_value": 8,
+        "n_survivors": 1,
+        "survivors": [
+          {
+            "k": 8,
+            "alpha": 6.0,
+            "mc1": 0.283951,
+            "mc2": 0.41902,
+            "n_mc1": 81,
+            "n_mc2": 81,
+            "mc1_gap_pp_from_best": 0.0
+          }
+        ]
+      }
+    ],
+    "locked_candidate_summary": {
+      "k": 8,
+      "alpha": 6.0,
+      "mc1": 0.283951,
+      "mc2": 0.41902,
+      "n_mc1": 81,
+      "n_mc2": 81,
+      "mc1_gap_pp_from_best": 0.0
+    },
+    "tolerance_raised_to_resolution_floor": false
+  },
+  "lock_status": "locked",
+  "seed": 42,
+  "calibration_artifact_path": "data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration/iti_heads.pt",
+  "artifact_fingerprint": "3231a3450a2227fa",
+  "family_fingerprint": {
+    "artifact_family": "iti_triviaqa_transfer",
+    "source_dataset": "triviaqa_consistency",
+    "ranking_metric": "auroc",
+    "position_policy": "all_answer_positions",
+    "answer_token_policy": "raw_prompt_answer_span",
+    "direction_type": "mass_mean"
+  },
+  "K_locked": 8,
+  "alpha_locked": 6.0,
+  "calibration_mc1": 0.283951,
+  "calibration_mc2": 0.41902,
+  "locked_candidate_summary": {
+    "k": 8,
+    "alpha": 6.0,
+    "mc1": 0.283951,
+    "mc2": 0.41902
+  },
+  "pilot_gate": {
+    "pilot_report": "data/contrastive/truthfulness/iti_triviaqa_familydefault_calibration/shortlist_generation_pilot_report.json",
+    "rule": {
+      "attempt_delta_pp_lte": -10.0,
+      "precision_delta_pp_lte": 0.0,
+      "not_attempted_delta_n_gte": 15,
+      "logic": "reject_if((attempt<=A and precision<=P) or not_attempted_delta>=N)"
+    },
+    "candidate_gate": [
+      {
+        "k": 8,
+        "alpha": 6.0,
+        "attempt_delta_pp": 0.0,
+        "precision_delta_pp": -1.0000000000000002,
+        "not_attempted_delta_n": 0,
+        "rejected": false,
+        "rejection_reasons": []
+      },
+      {
+        "k": 24,
+        "alpha": 6.0,
+        "attempt_delta_pp": 0.0,
+        "precision_delta_pp": -1.0000000000000002,
+        "not_attempted_delta_n": 0,
+        "rejected": false,
+        "rejection_reasons": []
+      },
+      {
+        "k": 8,
+        "alpha": 8.0,
+        "attempt_delta_pp": 0.0,
+        "precision_delta_pp": 0.0,
+        "not_attempted_delta_n": 0,
+        "rejected": false,
+        "rejection_reasons": []
+      },
+      {
+        "k": 8,
+        "alpha": 12.0,
+        "attempt_delta_pp": 0.0,
+        "precision_delta_pp": -2.0000000000000004,
+        "not_attempted_delta_n": 0,
+        "rejected": false,
+        "rejection_reasons": []
+      }
+    ],
+    "n_shortlist": 4,
+    "n_survivors": 4
+  }
+}
