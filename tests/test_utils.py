@@ -832,6 +832,46 @@ class TestTruthfulqaMetrics:
         with pytest.raises(ValueError, match="Mixed metric definitions"):
             aggregate_results(str(output_dir), [0.0])
 
+    def test_aggregate_results_exports_triviaqa_bridge_deterministic_metrics(
+        self, tmp_path
+    ):
+        output_dir = tmp_path / "triviaqa_bridge"
+        output_dir.mkdir()
+        alpha_path = output_dir / "alpha_0.0.jsonl"
+        alpha_path.write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "id": "sample_a",
+                            "deterministic_correct": True,
+                            "attempted": True,
+                            "compliance": True,
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "id": "sample_b",
+                            "deterministic_correct": False,
+                            "attempted": False,
+                            "compliance": False,
+                        }
+                    ),
+                ]
+            )
+            + "\n"
+        )
+
+        aggregation = aggregate_results(str(output_dir), [0.0])
+        result = aggregation["results"]["0.0"]
+
+        assert result["metric_name"] == "deterministic_accuracy"
+        assert result["metric_mean"] == 0.5
+        assert result["deterministic_accuracy_rate"] == 0.5
+        assert result["n_deterministic_correct"] == 1
+        assert result["attempt_rate"] == 0.5
+        assert result["n_attempted"] == 1
+
 
 class TestDirectionSanityGate:
     def test_requires_positive_ablation_effect_even_below_threshold(self):

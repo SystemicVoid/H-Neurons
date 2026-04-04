@@ -13,6 +13,7 @@ from evaluate_intervention import (
     build_alpha_batch_custom_id,
     build_alpha_file_path,
     evaluate_all_batch,
+    evaluate_triviaqa_bridge_batch,
     parse_simpleqa_verdict,
 )
 
@@ -156,6 +157,107 @@ class TestEvaluateAllBatch:
         records = [json.loads(line) for line in alpha_path.read_text().splitlines()]
         assert records[0]["simpleqa_grade"] == "CORRECT"
         assert records[0]["compliance"] is True
+
+
+class TestEvaluateTriviaQaBridgeBatch:
+    def test_match_audit_sample_is_stable_across_reruns(self, tmp_path, monkeypatch):
+        alpha_path = tmp_path / "alpha_0.0.jsonl"
+        _write_jsonl(
+            alpha_path,
+            [
+                {
+                    "id": f"tqa_{idx}",
+                    "question": f"Question {idx}?",
+                    "response": f"Answer {idx}",
+                    "ground_truth_aliases": [f"Answer {idx}"],
+                    "match_tier": "exact",
+                    "deterministic_correct": True,
+                    "attempted": True,
+                }
+                for idx in range(50)
+            ],
+        )
+
+        submitted_batches: list[list[str]] = []
+
+        def fake_build_chat_request(
+            custom_id: str, model: str, messages: list[dict], **kwargs
+        ):
+            return {
+                "custom_id": custom_id,
+                "model": model,
+                "messages": messages,
+                "kwargs": kwargs,
+            }
+
+        def fake_resume_or_submit(
+            client, batch_requests, state_path, metadata, max_enqueued_tokens
+        ):
+            submitted_batches.append(
+                [request["custom_id"] for request in batch_requests]
+            )
+            return {
+                request["custom_id"]: {
+                    "custom_id": request["custom_id"],
+                    "response": {
+                        "status_code": 200,
+                        "body": {
+                            "choices": [{"message": {"content": '{"grade":"CORRECT"}'}}]
+                        },
+                    },
+                }
+                for request in batch_requests
+            }
+
+        monkeypatch.setattr(openai_batch, "build_chat_request", fake_build_chat_request)
+        monkeypatch.setattr(openai_batch, "resume_or_submit", fake_resume_or_submit)
+
+        evaluate_triviaqa_bridge_batch(
+            str(tmp_path),
+            [0.0],
+            client=object(),
+            judge_model="gpt-4o",
+            audit_seed=123,
+        )
+
+        first_pass_records = [
+            json.loads(line) for line in alpha_path.read_text().splitlines()
+        ]
+        first_audit_stats = json.loads((tmp_path / "audit_stats.json").read_text())
+
+        assert len(submitted_batches) == 1
+        assert len(submitted_batches[0]) == 30
+        assert (
+            sum(
+                rec.get("judge_audit_type") == "match_audit"
+                for rec in first_pass_records
+            )
+            == 30
+        )
+
+        evaluate_triviaqa_bridge_batch(
+            str(tmp_path),
+            [0.0],
+            client=object(),
+            judge_model="gpt-4o",
+            audit_seed=123,
+        )
+
+        second_pass_records = [
+            json.loads(line) for line in alpha_path.read_text().splitlines()
+        ]
+        second_audit_stats = json.loads((tmp_path / "audit_stats.json").read_text())
+
+        assert len(submitted_batches) == 1
+        assert (
+            sum(
+                rec.get("judge_audit_type") == "match_audit"
+                for rec in second_pass_records
+            )
+            == 30
+        )
+        assert first_pass_records == second_pass_records
+        assert first_audit_stats == second_audit_stats
 
 
 class TestSimpleQAVerdict:
