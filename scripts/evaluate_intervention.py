@@ -877,6 +877,9 @@ def _compute_triviaqa_bridge_audit_stats(
             elif rec.get("match_tier") in ("exact", "boundary"):
                 match_candidates += 1
 
+            if not _triviaqa_bridge_audit_completed(rec):
+                continue
+
             if rec.get("judge_audit_type") == "nonmatch":
                 nonmatch_judged += 1
                 if rec.get("triviaqa_bridge_grade") == "CORRECT":
@@ -901,6 +904,29 @@ def _compute_triviaqa_bridge_audit_stats(
             match_disagree / match_audited if match_audited > 0 else 0.0, 4
         ),
     }
+
+
+_TRIVIAQA_BRIDGE_FINAL_GRADES = {"CORRECT", "INCORRECT", "NOT_ATTEMPTED"}
+
+
+def _triviaqa_bridge_audit_completed(rec: dict) -> bool:
+    """Return True when an audit has a terminal, non-error verdict."""
+    return (
+        rec.get("judge_audit_type")
+        in {
+            "nonmatch",
+            "match_audit",
+        }
+        and rec.get("triviaqa_bridge_grade") in _TRIVIAQA_BRIDGE_FINAL_GRADES
+    )
+
+
+def _clear_triviaqa_bridge_audit_fields(rec: dict, *, judge: str) -> None:
+    """Keep transient audit failures visible without marking them complete."""
+    rec["judge"] = judge
+    rec.pop("judge_audit_type", None)
+    rec.pop("triviaqa_bridge_grade", None)
+    rec.pop("compliance", None)
 
 
 def evaluate_triviaqa_bridge_batch(
@@ -948,7 +974,7 @@ def evaluate_triviaqa_bridge_batch(
 
         # All non-matches get judged
         for idx, rec in enumerate(records):
-            if rec.get("judge_audit_type") is not None:
+            if _triviaqa_bridge_audit_completed(rec):
                 continue  # already audited
             if rec.get("match_tier") != "no_match":
                 continue
@@ -975,7 +1001,7 @@ def evaluate_triviaqa_bridge_batch(
         # Stable blinded sample of deterministic matches
         for idx in sorted(selected_match_indices):
             rec = records[idx]
-            if rec.get("judge_audit_type") is not None:
+            if _triviaqa_bridge_audit_completed(rec):
                 continue
             custom_id = f"tqa_{format_alpha_label(alpha)}_ma_{idx}"
             messages = build_triviaqa_bridge_judge_messages(
@@ -1034,10 +1060,13 @@ def evaluate_triviaqa_bridge_batch(
             else:
                 verdict = parse_simpleqa_verdict(content)
 
+        if verdict not in _TRIVIAQA_BRIDGE_FINAL_GRADES:
+            _clear_triviaqa_bridge_audit_fields(rec, judge=verdict)
+            continue
+
         rec["judge"] = verdict
         rec["judge_audit_type"] = audit_type
         rec["triviaqa_bridge_grade"] = verdict
-
         if audit_type == "nonmatch":
             rec["compliance"] = verdict == "CORRECT"
         elif audit_type == "match_audit":

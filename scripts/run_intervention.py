@@ -1775,6 +1775,44 @@ def _triviaqa_bridge_has_ambiguous_multi_answer(norm_resp: str) -> bool:
     return len(candidates) >= 2
 
 
+_TRIVIAQA_BRIDGE_NOT_ATTEMPTED_PATTERNS = (
+    r"\bi do not know\b",
+    r"\b(?:i )?don t know\b",
+    r"\bdont know\b",
+    r"\bdo not know\b",
+    r"\bnot sure\b",
+    r"\bunsure\b",
+    r"\bno idea\b",
+    r"\bcannot answer\b",
+    r"\bcan t answer\b",
+    r"\bcan not answer\b",
+    r"\bunable to answer\b",
+    r"\bneed more context\b",
+    r"\binsufficient (?:context|information)\b",
+    r"\bnot enough (?:context|information)\b",
+    r"\bthe (?:provided )?(?:text|context|question) does not (?:provide|contain)\b",
+    r"\bwithout (?:more )?(?:context|information|researching the web)\b",
+)
+
+
+def triviaqa_bridge_attempted(response: str) -> bool:
+    """Return True when the response commits to a single answer attempt.
+
+    Attempt-rate diagnostics should only count responses that meaningfully try
+    to answer the factoid. Explicit abstentions and unresolved multi-answer
+    guesses are non-attempts, even though they contain text.
+    """
+    norm_resp = normalize_answer(response)
+    if not norm_resp:
+        return False
+    if _triviaqa_bridge_has_ambiguous_multi_answer(norm_resp):
+        return False
+    return not any(
+        re.search(pattern, norm_resp)
+        for pattern in _TRIVIAQA_BRIDGE_NOT_ATTEMPTED_PATTERNS
+    )
+
+
 def load_triviaqa_bridge(
     manifest_path: str,
     parquet_path: str = "data/TriviaQA/rc.nocontext/validation-00000-of-00001.parquet",
@@ -1787,14 +1825,39 @@ def load_triviaqa_bridge(
     import pandas as pd
 
     with open(manifest_path) as f:
-        qids = set(json.load(f))
+        qids = json.load(f)
+
+    seen_qids = set()
+    duplicate_qids = set()
+    for qid in qids:
+        if qid in seen_qids:
+            duplicate_qids.add(qid)
+        else:
+            seen_qids.add(qid)
+    if duplicate_qids:
+        raise ValueError(
+            "TriviaQA bridge manifest contains duplicate question IDs: "
+            f"{sorted(duplicate_qids)[:5]}"
+        )
+
+    qid_set = set(qids)
 
     df = pd.read_parquet(parquet_path)
     df = df.drop_duplicates(subset="question_id", keep="first")
-    df = df[df["question_id"].isin(qids)]
+    df = df[df["question_id"].isin(qid_set)]
+
+    rows_by_qid = {row["question_id"]: row for _, row in df.iterrows()}
+    missing = [qid for qid in qids if qid not in rows_by_qid]
+    if missing:
+        raise ValueError(
+            "TriviaQA bridge manifest/parquet mismatch: "
+            f"{len(missing)} manifest IDs are absent from {parquet_path}. "
+            f"Examples: {missing[:5]}"
+        )
 
     samples = []
-    for _, row in df.iterrows():
+    for qid in qids:
+        row = rows_by_qid[qid]
         answer = row["answer"]
         aliases = list(answer.get("aliases", []))
         samples.append(
@@ -1804,14 +1867,6 @@ def load_triviaqa_bridge(
                 "question": row["question"],
                 "ground_truth_aliases": aliases,
             }
-        )
-
-    loaded_qids = {s["question_id"] for s in samples}
-    missing = qids - loaded_qids
-    if missing:
-        print(
-            f"Warning: {len(missing)} manifest QIDs not found in parquet: "
-            f"{sorted(missing)[:5]}"
         )
     return samples
 
@@ -1878,8 +1933,7 @@ def run_triviaqa_bridge(
         )
 
         grade = grade_triviaqa_bridge(response, sample["ground_truth_aliases"])
-        norm_resp = normalize_answer(response)
-        attempted = bool(norm_resp and len(norm_resp) > 1)
+        attempted = triviaqa_bridge_attempted(response)
 
         record = {
             "id": sample["id"],
@@ -2260,7 +2314,13 @@ def aggregate_results(output_dir, alphas):
         }
         if any("deterministic_correct" in rec for rec in records):
             det_correct = sum(bool(rec.get("deterministic_correct")) for rec in records)
-            attempted = sum(bool(rec.get("attempted")) for rec in records)
+            attempted = sum(
+                bool(rec.get("triviaqa_bridge_grade") != "NOT_ATTEMPTED")
+                if rec.get("triviaqa_bridge_grade")
+                in {"CORRECT", "INCORRECT", "NOT_ATTEMPTED"}
+                else bool(rec.get("attempted"))
+                for rec in records
+            )
             det_rate = det_correct / total if total > 0 else 0
             attempt_rate = attempted / total if total > 0 else 0
             result["deterministic_accuracy_rate"] = round(det_rate, 4)

@@ -14,6 +14,7 @@ import torch
 # scripts/ uses flat sibling imports; add it to sys.path for test discovery.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+evaluate_intervention = importlib.import_module("evaluate_intervention")
 extract_direction = importlib.import_module("extract_direction")
 run_intervention = importlib.import_module("run_intervention")
 utils = importlib.import_module("utils")
@@ -28,7 +29,9 @@ build_alpha_throughput_summary = run_intervention.build_alpha_throughput_summary
 build_sample_throughput_payload = run_intervention.build_sample_throughput_payload
 resolve_output_dir = run_intervention.resolve_output_dir
 load_truthfulqa_mc = run_intervention.load_truthfulqa_mc
+load_triviaqa_bridge = run_intervention.load_triviaqa_bridge
 run_truthfulqa_mc = run_intervention.run_truthfulqa_mc
+triviaqa_bridge_attempted = run_intervention.triviaqa_bridge_attempted
 run_faitheval_mc_logprob = run_intervention.run_faitheval_mc_logprob
 extract_mc_answer = utils.extract_mc_answer
 format_alpha_label = utils.format_alpha_label
@@ -871,6 +874,139 @@ class TestTruthfulqaMetrics:
         assert result["n_deterministic_correct"] == 1
         assert result["attempt_rate"] == 0.5
         assert result["n_attempted"] == 1
+
+    def test_aggregate_results_prefers_judge_grade_for_triviaqa_attempts(
+        self, tmp_path
+    ):
+        output_dir = tmp_path / "triviaqa_bridge_judged"
+        output_dir.mkdir()
+        alpha_path = output_dir / "alpha_0.0.jsonl"
+        alpha_path.write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "id": "sample_a",
+                            "deterministic_correct": False,
+                            "attempted": True,
+                            "triviaqa_bridge_grade": "NOT_ATTEMPTED",
+                            "compliance": False,
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "id": "sample_b",
+                            "deterministic_correct": False,
+                            "attempted": False,
+                            "triviaqa_bridge_grade": "INCORRECT",
+                            "compliance": False,
+                        }
+                    ),
+                ]
+            )
+            + "\n"
+        )
+
+        aggregation = aggregate_results(str(output_dir), [0.0])
+        result = aggregation["results"]["0.0"]
+
+        assert result["attempt_rate"] == 0.5
+        assert result["n_attempted"] == 1
+
+
+class TestTriviaQaBridge:
+    def test_attempt_detector_rejects_abstentions_and_multi_answers(self):
+        assert triviaqa_bridge_attempted("Paris") is True
+        assert triviaqa_bridge_attempted("I think Paris") is True
+        assert triviaqa_bridge_attempted("I don't know.") is False
+        assert triviaqa_bridge_attempted("Need more context.") is False
+        assert triviaqa_bridge_attempted("Paris or London") is False
+
+    def test_load_triviaqa_bridge_raises_when_manifest_ids_missing(self, tmp_path):
+        pandas = pytest.importorskip("pandas")
+
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text(json.dumps(["q1", "q_missing"]))
+
+        dataframe = pandas.DataFrame(
+            [
+                {
+                    "question_id": "q1",
+                    "question": "Capital of France?",
+                    "answer": {"aliases": ["Paris"]},
+                }
+            ]
+        )
+
+        original_read_parquet = pandas.read_parquet
+        pandas.read_parquet = lambda _path: dataframe
+        try:
+            with pytest.raises(ValueError, match="manifest/parquet mismatch"):
+                load_triviaqa_bridge(str(manifest_path), parquet_path="dummy.parquet")
+        finally:
+            pandas.read_parquet = original_read_parquet
+
+    def test_evaluate_triviaqa_bridge_batch_retries_prior_error_records(
+        self, tmp_path, monkeypatch
+    ):
+        output_dir = tmp_path / "triviaqa_bridge_eval"
+        output_dir.mkdir()
+        alpha_path = output_dir / "alpha_0.0.jsonl"
+        alpha_path.write_text(
+            json.dumps(
+                {
+                    "id": "tqa_bridge_q1",
+                    "question": "Capital of France?",
+                    "response": "Paris",
+                    "ground_truth_aliases": ["Paris"],
+                    "match_tier": "no_match",
+                    "deterministic_correct": False,
+                    "judge": "ERROR",
+                    "judge_audit_type": "nonmatch",
+                    "triviaqa_bridge_grade": "ERROR",
+                    "compliance": False,
+                }
+            )
+            + "\n"
+        )
+
+        submitted_requests = []
+        openai_batch = importlib.import_module("openai_batch")
+
+        monkeypatch.setattr(
+            openai_batch,
+            "build_chat_request",
+            lambda **kwargs: submitted_requests.append(kwargs) or kwargs,
+        )
+        monkeypatch.setattr(
+            openai_batch,
+            "resume_or_submit",
+            lambda *_args, **_kwargs: {"tqa_0.0_nm_0": {"content": "A"}},
+        )
+        monkeypatch.setattr(
+            openai_batch,
+            "parse_chat_content",
+            lambda entry: entry["content"],
+        )
+
+        evaluate_intervention.evaluate_triviaqa_bridge_batch(
+            input_dir=str(output_dir),
+            alphas=[0.0],
+            client=object(),
+            judge_model="gpt-test",
+        )
+
+        records = [
+            json.loads(line)
+            for line in alpha_path.read_text().splitlines()
+            if line.strip()
+        ]
+
+        assert len(submitted_requests) == 1
+        assert records[0]["judge"] == "CORRECT"
+        assert records[0]["judge_audit_type"] == "nonmatch"
+        assert records[0]["triviaqa_bridge_grade"] == "CORRECT"
+        assert records[0]["compliance"] is True
 
 
 class TestDirectionSanityGate:
