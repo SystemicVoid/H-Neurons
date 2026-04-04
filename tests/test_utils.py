@@ -912,6 +912,138 @@ class TestTruthfulqaMetrics:
 
         assert result["attempt_rate"] == 0.5
         assert result["n_attempted"] == 1
+        assert result["not_attempted_rate"] == 0.5
+        assert result["n_not_attempted"] == 1
+        assert result["precision_given_attempt_rate"] == 0.0
+
+    def test_aggregate_results_reports_bridge_paired_diagnostics(self, tmp_path):
+        output_dir = tmp_path / "triviaqa_bridge_paired"
+        output_dir.mkdir()
+        (output_dir / "alpha_1.0.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "id": "sample_a",
+                            "deterministic_correct": True,
+                            "attempted": True,
+                            "triviaqa_bridge_grade": "CORRECT",
+                            "compliance": True,
+                            "judge_audit_type": "match_audit",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "id": "sample_b",
+                            "deterministic_correct": False,
+                            "attempted": False,
+                            "triviaqa_bridge_grade": "NOT_ATTEMPTED",
+                            "compliance": False,
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "id": "sample_c",
+                            "deterministic_correct": False,
+                            "attempted": True,
+                            "triviaqa_bridge_grade": "INCORRECT",
+                            "compliance": False,
+                            "judge_audit_type": "nonmatch",
+                        }
+                    ),
+                ]
+            )
+            + "\n"
+        )
+        (output_dir / "alpha_4.0.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "id": "sample_a",
+                            "deterministic_correct": False,
+                            "attempted": True,
+                            "triviaqa_bridge_grade": "INCORRECT",
+                            "compliance": False,
+                            "judge_audit_type": "match_audit",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "id": "sample_b",
+                            "deterministic_correct": False,
+                            "attempted": True,
+                            "triviaqa_bridge_grade": "CORRECT",
+                            "compliance": True,
+                            "judge_audit_type": "nonmatch",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "id": "sample_c",
+                            "deterministic_correct": False,
+                            "attempted": True,
+                            "triviaqa_bridge_grade": "CORRECT",
+                            "compliance": True,
+                            "judge_audit_type": "nonmatch",
+                        }
+                    ),
+                ]
+            )
+            + "\n"
+        )
+
+        aggregation = aggregate_results(str(output_dir), [1.0, 4.0], baseline_alpha=1.0)
+        baseline = aggregation["results"]["1.0"]
+        comparison = aggregation["results"]["4.0"]
+        paired = aggregation["effects"]["paired_against_baseline"]["comparisons"]["4.0"]
+
+        assert aggregation["effects"]["baseline_alpha"] == 1.0
+        assert baseline["n_not_attempted"] == 1
+        assert baseline["precision_given_attempt_rate"] == 0.5
+        assert baseline["audit_disagree_rate_nonmatches"] == 0.0
+        assert comparison["audit_disagree_rate_nonmatches"] == 1.0
+        assert paired["status"] == "ok"
+        assert paired["flip_table"] == {
+            "wrong_to_right": 2,
+            "right_to_wrong": 1,
+            "stayed_wrong": 0,
+            "stayed_right": 0,
+        }
+        assert "accuracy_delta" in paired
+        assert "attempt_delta" in paired
+        assert "not_attempted_delta" in paired
+        assert "precision_given_attempt_delta" in paired
+        assert "mcnemar_p" in paired
+
+    def test_aggregate_results_blocks_bridge_pairing_on_mismatched_ids(self, tmp_path):
+        output_dir = tmp_path / "triviaqa_bridge_mismatch"
+        output_dir.mkdir()
+        (output_dir / "alpha_1.0.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps({"id": "sample_a", "deterministic_correct": True}),
+                    json.dumps({"id": "sample_b", "deterministic_correct": False}),
+                ]
+            )
+            + "\n"
+        )
+        (output_dir / "alpha_4.0.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps({"id": "sample_a", "deterministic_correct": True}),
+                    json.dumps({"id": "sample_c", "deterministic_correct": False}),
+                ]
+            )
+            + "\n"
+        )
+
+        aggregation = aggregate_results(str(output_dir), [1.0, 4.0], baseline_alpha=1.0)
+        paired = aggregation["effects"]["paired_against_baseline"]["comparisons"]["4.0"]
+
+        assert paired["status"] == "blocked_mismatched_sample_ids"
+        assert paired["missing_in_compare_n"] == 1
+        assert paired["missing_in_baseline_n"] == 1
 
 
 class TestTriviaQaBridge:
