@@ -102,7 +102,7 @@ The manifest generation script must:
 |---|---|
 | N | 150 questions |
 | Source | Safe pool (see §3.6), seed-42 stratified sample |
-| Runs | α=0.0 baseline only (no intervention) |
+| Runs | Actual no-op baseline only (`α=1.0` in neuron mode) |
 | Goal | Validate headroom, grading reliability, and attempt rate |
 | GPU cost | ~15 minutes (150 × greedy decode, no hooks) |
 | Grading | Conservative deterministic + blinded audit (see §3.4) |
@@ -122,7 +122,7 @@ The manifest generation script must:
 |---|---|
 | N | 100 questions |
 | Purpose | Prompt tuning, grader validation, alpha selection |
-| Runs | α=0.0 baseline + one locked D4 config |
+| Runs | Actual no-op baseline + one locked D4 config |
 | Rule | All tuning decisions finalized on dev before test is touched |
 
 **Stage 3: Locked Test Set (headline reporting)**
@@ -291,7 +291,7 @@ All intervention comparisons on the bridge benchmark must use:
 
 **Primary analysis:**
 - **Paired bootstrap** (10,000 resamples, seed 42) for accuracy delta between
-  α=X and α=0.0 on the same IDs
+  α=X and the actual no-op baseline on the same IDs (`α=1.0` in neuron mode)
 - Report: point estimate, 95% CI, and whether CI excludes zero
 
 **Secondary analyses:**
@@ -436,9 +436,11 @@ uv run python scripts/build_triviaqa_bridge_manifest.py \
 
 ### Phase 1: Headroom pilot (GPU, ~15 min)
 
-Run α=0.0 only on the 150-question **pilot** manifest.
+Run the actual no-op baseline only on the 150-question **pilot** manifest
+(`α=1.0` in neuron mode).
 Grade with conservative deterministic matcher.
-Run blinded bidirectional audit (20 matches + 20 non-matches).
+Run blinded bidirectional audit, and require the scripted pilot gate to pass on
+an exact 20-match + 20-nonmatch sample.
 Apply CI-based go/no-go gate (see §3.1).
 
 **Decision point:** if gate passes, proceed. If not, debug grader/prompt on
@@ -446,7 +448,8 @@ pilot data only. Never look at dev or test data during this phase.
 
 ### Phase 2: Dev validation (GPU, ~30 min)
 
-Run α=0.0 on the 100-question **dev** manifest.
+Run the actual no-op baseline on the 100-question **dev** manifest
+(`α=1.0` in neuron mode).
 Run one locked D4 configuration at its locked alpha.
 Finalize:
 - Grading pipeline (confirm audit disagree rate < 10%)
@@ -457,7 +460,8 @@ Finalize:
 
 ### Phase 3: Locked test run (GPU, ~60 min)
 
-Run α=0.0 + one locked D4 config on the 500-question **test** manifest.
+Run the actual no-op baseline + one locked D4 config on the 500-question
+**test** manifest (`α=1.0` baseline in neuron mode).
 This is a single shot — the test set is touched exactly once.
 
 ### Phase 4: Full evaluation (API, batch mode)

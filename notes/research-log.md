@@ -44,7 +44,7 @@ One structurally interesting finding: E2 and E0 probes agree on which heads matt
 
 **E2-B confirms `wrong_source_still_likely`.** Removing selector overrides (AUROC + all_answer_positions instead of val_accuracy + last_answer_token) changes the artifact substantially — only 2/46 selected heads overlap (Jaccard 0.043), locked config shifts from K=40 to K=8 — but does not rescue the intervention. Key results on held-out n=655:
 
-- Within E2-B (K=8, α=6.0 vs α=0): MC1 +0.00 pp [-1.98, +1.98], MC2 +1.46 pp [-0.11, +3.02]
+- Within E2-B (K=8, α=6.0 vs α=0.0 ITI baseline): MC1 +0.00 pp [-1.98, +1.98], MC2 +1.46 pp [-0.11, +3.02]
 - E2-B vs E2-A (headline diagnostic): MC1 +0.92 pp [-1.37, +3.21] — CI includes zero
 - Sidecar A (E2-B artifact @ K=40, α=6.0 vs E2-A): MC1 -0.92 pp [-2.75, +0.92] — artifact change alone is null
 - Sidecar B (K=16 vs K=40 on E2-B artifact): MC1 +0.76 pp [-1.22, +2.75] — compact-K is not materially better
@@ -79,11 +79,11 @@ Three threads: closed Stage 5.2 (decode-scope), built and ran the full E1 pipeli
 **Stage 5.2: scope hypothesis falsified as a complete fix.** `full_decode` generates 64/200 NOT_ATTEMPTED at α=8; `first_3_tokens` cuts that to 21/200. But of the 44 questions rescued from NOT_ATTEMPTED, only 2 (5%) were judged CORRECT — with n=44 and 2 events, no strong claim is warranted. Narrowing scope converts meta-hedging into incorrect answers, not correct ones. `first_3_tokens` cleared the §5.2 promotion rule and is now the locked canonical scope.
 
 **E1: real tradeoff, not a solution.** E1 results on the 655-question held-out eval:
-- Within-E1 (α=8 vs α=0): MC1 +2.75 pp [+0.46, +5.19], MC2 +4.48 pp [+2.53, +6.49] — real improvement over its own baseline
+- Within-E1 (α=8 vs α=0.0 ITI baseline): MC1 +2.75 pp [+0.46, +5.19], MC2 +4.48 pp [+2.53, +6.49] — real improvement over its own baseline (α=0.0)
 - E1 vs paper-faithful (head-to-head at α=8): MC1 -3.51 pp [-5.95, -1.07], MC2 -3.01 pp [-4.90, -1.15] — CIs exclude zero, paper-faithful wins on MC
 - E1 vs paper-faithful on SimpleQA: compliance +2.0 pp [+0.5, +4.0], attempt rate +8.0 pp [+4.0, +12.5] — E1 is significantly gentler on generation
 
-The tradeoff is sharp and well-characterized: E1 buys back generation behavior (attempt rate 97.5% vs E0's 89.5%) by sacrificing MC discrimination. It does not improve SimpleQA correctness vs its own baseline — compliance delta is +0.5 pp with CI crossing zero.
+The tradeoff is sharp and well-characterized: E1 buys back generation behavior (attempt rate 97.5% vs E0's 89.5%) by sacrificing MC discrimination. It does not improve SimpleQA correctness vs its own ITI baseline (α=0.0) — compliance delta is +0.5 pp with CI crossing zero.
 
 ### Issues found
 
@@ -114,9 +114,9 @@ Follow-up D4 specificity control: [2026-04-01-random-head-specificity-audit.md](
 
 **D4 TruthfulQA MC canonical result locked.** The K=12 α=8 paper-faithful artifact, run over the two final held-out folds (655 questions total), is now the definitive D4 MC result: MC1 26.7%→33.0% (+6.3pp, 95% CI [+3.7, +8.9]), MC2 43.1%→50.2% (+7.2pp, 95% CI [+4.1, +10.2]). This supersedes the earlier 163-question K=16 gate-run headline for all citation purposes.
 
-**D1 TruthfulQA MC rerun.** Ran H-neuron scaling on the same 655 held-out questions used for D4 (α=[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0], both MC1 and MC2, both folds). Pooled best point: MC1 25.8%→26.7% (+0.9pp, 95% CI [-1.7, +3.5]), MC2 42.6%→43.1% (+0.5pp, 95% CI [-2.3, +3.4]). The D1-vs-D4 ranking on TruthfulQA MC is now resolved: D4 wins by a clear margin. Do not run more D1 TruthfulQA reruns.
+**D1 TruthfulQA MC rerun.** Ran H-neuron scaling on the same 655 held-out questions used for D4 (α=[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0] where α=1.0 is the neuron-mode identity baseline; both MC1 and MC2, both folds). Pooled best point: MC1 25.8%→26.7% (+0.9pp, 95% CI [-1.7, +3.5]), MC2 42.6%→43.1% (+0.5pp, 95% CI [-2.3, +3.4]). The D1-vs-D4 ranking on TruthfulQA MC is now resolved: D4 wins by a clear margin. Do not run more D1 TruthfulQA reruns.
 
-**SimpleQA forced-commitment rerun** (`--simpleqa_prompt_style factual_phrase`). Added the flag to `run_intervention.py` and `simpleqa_standalone.sh`, ran K=12 α=8 with the explicit "I don't know" escape hatch removed from the prompt. α=8.0 abstention dropped from 79.2% to 33.0% — the escape hatch was real. But compliance still fell below baseline (4.6%→2.8%) and precision stayed flat within uncertainty (4.6%→4.2%, delta CI [-1.9, +1.1]). The generation null survives prompt repair.
+**SimpleQA forced-commitment rerun** (`--simpleqa_prompt_style factual_phrase`). Added the flag to `run_intervention.py` and `simpleqa_standalone.sh`, ran K=12 α=8 with the explicit "I don't know" escape hatch removed from the prompt. α=8.0 abstention dropped from 79.2% to 33.0% — the escape hatch was real. But compliance still fell below ITI baseline α=0.0 (4.6%→2.8%) and precision stayed flat within uncertainty (4.6%→4.2%, delta CI [-1.9, +1.1]). The generation null survives prompt repair.
 
 ### What I expected vs what happened
 
@@ -152,7 +152,7 @@ K=32        22.2  23.5  24.7  23.5  18.5  18.5  18.5  21.0  17.3
 K=40        22.2  25.9  27.2  25.9  22.2  22.2  22.2  17.3  14.8
 ```
 
-Baseline (α=0): MC1=22.22%, MC2=40.79%. Peak: K=12 α=12 at MC1=38.27%, MC2=50.59% — but this is a lone spike with no combos within 1pp. MC1–MC2 Pearson r=0.937 across all 54 combos. K≥24 collapses: at K=24 even the best α barely exceeds baseline; at K=32/40 high-α actively degrades below no-intervention. K=16 plateau: α∈{8,12,16} all yield exactly 35.80% MC1 — the intervention saturates and further α stops flipping answers.
+ITI baseline (α=0.0, no steering): MC1=22.22%, MC2=40.79%. Peak: K=12 α=12 at MC1=38.27%, MC2=50.59% — but this is a lone spike with no combos within 1pp. MC1–MC2 Pearson r=0.937 across all 54 combos. K≥24 collapses: at K=24 even the best α barely exceeds baseline; at K=32/40 high-α actively degrades below no-intervention. K=16 plateau: α∈{8,12,16} all yield exactly 35.80% MC1 — the intervention saturates and further α stops flipping answers.
 
 **Config locked: K=12, α=8.0.** Auto-lock favoured K=12 α=12 (38.27%), but manual override to α=8.0 (37.04%): the 1.23pp gap is noise on n=81 (z=0.16, p=0.87), and lower α means less representation perturbation for the downstream generation benchmarks. This was written to `locked_iti_config.json` with the artifact fingerprint `461f3ca7e0a21876`. Pipeline state advanced to gate_1_sweep.locked.
 
@@ -174,7 +174,7 @@ The clean sweep also makes the calibration→test split protocol feel right: we 
 
 **Structural next: build the candidate lattice + verifier/chooser.** The sweep surface exposes a fundamental problem with the global-α regime: the same α that rescues some prompts over-steers others into "I don't know" collapse. The calibration fold can't detect this because it averages over prompts. The right architecture is a per-prompt chooser:
 
-1. **Candidate generation.** For each prompt, run 2–4 decode variants: baseline (α=0.0), low steering (α=4.0), medium steering (α=8.0), and optionally an "answer-only / no hedge" decode variant (forced commitment). This produces a row-level dataset of (prompt, candidate, correctness_label).
+1. **Candidate generation.** For each prompt, run 2–4 decode variants: ITI baseline (α=0.0), low steering (α=4.0), medium steering (α=8.0), and optionally an "answer-only / no hedge" decode variant (forced commitment). This produces a row-level dataset of (prompt, candidate, correctness_label).
 
 2. **Lightweight verifier/chooser.** Train on hidden states from the answer span or first answer token, logprob/entropy features, refusal markers ("I don't know" token probability), and optionally weak features from the H-neuron scaler, D4 direction score, and ITI direction score. Target: correctness labels from SimpleQA/FalseQA/TruthfulQA MC + safety labels where relevant.
 

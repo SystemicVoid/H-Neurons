@@ -312,7 +312,7 @@ At 4.8% baseline, ~95% of questions are at the model's knowledge ceiling. Even a
 
 ## 4. Key Insights
 
-1. **α=4.0 confirms Outcome A (monotonic decline).** Compliance drops baseline→4.0%→1.6% with no intermediate peak. There is no usable alpha for generation tasks in the range {0.0, 4.0, 8.0} with the current prompt design. Priority shifts from "find the sweet spot" to "fix the prompt or the direction."
+1. **α=4.0 confirms Outcome A (monotonic decline).** Compliance drops from α=0.0 ITI baseline → 4.0% → 1.6% with no intermediate peak. There is no usable alpha for generation tasks in the range {0.0, 4.0, 8.0} with the current prompt design. Priority shifts from "find the sweet spot" to "fix the prompt or the direction."
 
 2. **Precision is structurally flat at α=0.0 and α=4.0.** At 5.0% and 4.9% respectively, the intervention is not improving the model's ability to generate correct factual content. It is only modulating how often the model commits to generating *any* factual content.
 
@@ -336,7 +336,7 @@ Question: {question}
 Answer with a single factual phrase.
 ```
 
-**Why this first:** It takes ~30 min GPU and tests whether the entire negative result is an artefact of the prompt design. If NOT_ATTEMPTED collapses to near-0% and compliance rises above baseline at some alpha, the prompt was the problem. If compliance stays flat or falls, we have confirmed the intervention has no factual accuracy effect on generation tasks regardless of prompt.
+**Why this first:** It takes ~30 min GPU and tests whether the entire negative result is an artefact of the prompt design. If NOT_ATTEMPTED collapses to near-0% and compliance rises above baseline (α=0.0) at some alpha, the prompt was the problem. If compliance stays flat or falls, we have confirmed the intervention has no factual accuracy effect on generation tasks regardless of prompt.
 
 **Cost:** ~30 min GPU, ~$15 judge API.
 
