@@ -47,7 +47,9 @@ def normalize_answer(s: str | None) -> str:
         return " ".join(text.split())
 
     def handle_punc(text: str) -> str:
-        exclude = set(string.punctuation + "\u2018\u2019\u00b4`")
+        exclude = set(
+            string.punctuation + "\u2018\u2019\u00b4`\u201c\u201d\u2013\u2014"
+        )
         return "".join(ch if ch not in exclude else " " for ch in text)
 
     if not s:
