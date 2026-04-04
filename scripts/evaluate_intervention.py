@@ -689,6 +689,32 @@ def build_alpha_batch_custom_id(alpha: float, idx: int) -> str:
     return f"a{format_alpha_label(alpha)}_i{idx}"
 
 
+def _load_bridge_baseline_alpha_hint(input_dir: str) -> float | None:
+    """Read bridge baseline alpha from the latest generation summary when available."""
+    from run_intervention import resolve_triviaqa_bridge_baseline_alpha_for_mode
+
+    summary_candidates = sorted(Path(input_dir).glob("results.*.json"))
+    for path in reversed(summary_candidates):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if payload.get("benchmark") != "triviaqa_bridge":
+            continue
+        baseline_alpha = payload.get("baseline_alpha")
+        if isinstance(baseline_alpha, (float, int)):
+            return float(baseline_alpha)
+        intervention_mode = payload.get("intervention_mode")
+        if isinstance(intervention_mode, str):
+            try:
+                return resolve_triviaqa_bridge_baseline_alpha_for_mode(
+                    intervention_mode
+                )
+            except ValueError:
+                continue
+    return None
+
+
 def evaluate_all_batch(
     input_dir,
     alphas,
@@ -818,6 +844,9 @@ def evaluate_all_batch(
 
 _TRIVIAQA_BRIDGE_AUDIT_FRAC = 0.20
 _TRIVIAQA_BRIDGE_AUDIT_MIN = 30
+_TRIVIAQA_BRIDGE_PILOT_GATE_MATCH_N = 20
+_TRIVIAQA_BRIDGE_PILOT_GATE_NONMATCH_N = 20
+_TRIVIAQA_BRIDGE_PILOT_GATE_AGREEMENT_THRESHOLD = 0.90
 
 
 def _stable_triviaqa_bridge_match_audit_key(
@@ -831,27 +860,73 @@ def _stable_triviaqa_bridge_match_audit_key(
     return digest, idx
 
 
-def _select_triviaqa_bridge_match_audit_indices(
+def _stable_triviaqa_bridge_nonmatch_gate_key(
+    alpha: float, record: dict, idx: int, audit_seed: int
+) -> tuple[str, int]:
+    """Return a rerun-stable sort key for pilot-gate non-match audits."""
+    stable_id = record.get("id") or record.get("question_id") or f"idx:{idx}"
+    digest = hashlib.sha256(
+        f"{audit_seed}|pilot_nonmatch|{format_alpha_label(alpha)}|{stable_id}".encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    return digest, idx
+
+
+def _rank_triviaqa_bridge_match_indices(
     alpha: float, records: list[dict], audit_seed: int
-) -> set[int]:
-    """Select a stable blinded audit sample from deterministic matches."""
+) -> list[int]:
     match_indices = [
         idx
         for idx, rec in enumerate(records)
         if rec.get("match_tier") in ("exact", "boundary")
     ]
-    audit_n = max(
-        _TRIVIAQA_BRIDGE_AUDIT_MIN,
-        int(len(match_indices) * _TRIVIAQA_BRIDGE_AUDIT_FRAC),
-    )
-    audit_n = min(audit_n, len(match_indices))
-    ranked = sorted(
+    return sorted(
         match_indices,
         key=lambda idx: _stable_triviaqa_bridge_match_audit_key(
             alpha, records[idx], idx, audit_seed
         ),
     )
-    return set(ranked[:audit_n])
+
+
+def _select_triviaqa_bridge_match_audit_indices(
+    alpha: float, records: list[dict], audit_seed: int
+) -> set[int]:
+    """Select a stable blinded audit sample from deterministic matches."""
+    match_indices = _rank_triviaqa_bridge_match_indices(alpha, records, audit_seed)
+    audit_n = max(
+        _TRIVIAQA_BRIDGE_AUDIT_MIN,
+        int(len(match_indices) * _TRIVIAQA_BRIDGE_AUDIT_FRAC),
+    )
+    audit_n = min(audit_n, len(match_indices))
+    return set(match_indices[:audit_n])
+
+
+def _select_triviaqa_bridge_pilot_gate_match_indices(
+    alpha: float, records: list[dict], audit_seed: int
+) -> set[int]:
+    """Select the exact 20-match pilot gate subset using the audit ranking."""
+    return set(
+        _rank_triviaqa_bridge_match_indices(alpha, records, audit_seed)[
+            :_TRIVIAQA_BRIDGE_PILOT_GATE_MATCH_N
+        ]
+    )
+
+
+def _select_triviaqa_bridge_pilot_gate_nonmatch_indices(
+    alpha: float, records: list[dict], audit_seed: int
+) -> set[int]:
+    """Select the exact 20 non-match pilot gate subset."""
+    nonmatch_indices = [
+        idx for idx, rec in enumerate(records) if rec.get("match_tier") == "no_match"
+    ]
+    ranked = sorted(
+        nonmatch_indices,
+        key=lambda idx: _stable_triviaqa_bridge_nonmatch_gate_key(
+            alpha, records[idx], idx, audit_seed
+        ),
+    )
+    return set(ranked[:_TRIVIAQA_BRIDGE_PILOT_GATE_NONMATCH_N])
 
 
 def _compute_triviaqa_bridge_audit_stats(
@@ -865,29 +940,135 @@ def _compute_triviaqa_bridge_audit_stats(
     nonmatch_recovered = 0
     match_audited = 0
     match_disagree = 0
+    per_alpha: dict[str, dict] = {}
+    pilot_gate_by_alpha: dict[str, dict] = {}
 
     for alpha, (_, records) in alpha_data.items():
         selected_match_indices = _select_triviaqa_bridge_match_audit_indices(
             alpha, records, audit_seed
         )
+        gate_match_indices = _select_triviaqa_bridge_pilot_gate_match_indices(
+            alpha, records, audit_seed
+        )
+        gate_nonmatch_indices = _select_triviaqa_bridge_pilot_gate_nonmatch_indices(
+            alpha, records, audit_seed
+        )
+        alpha_nonmatch_candidates = 0
+        alpha_match_candidates = 0
+        alpha_nonmatch_judged = 0
+        alpha_nonmatch_recovered = 0
+        alpha_match_audited = 0
+        alpha_match_disagree = 0
         match_target += len(selected_match_indices)
         for idx, rec in enumerate(records):
             if rec.get("match_tier") == "no_match":
                 nonmatch_candidates += 1
+                alpha_nonmatch_candidates += 1
             elif rec.get("match_tier") in ("exact", "boundary"):
                 match_candidates += 1
+                alpha_match_candidates += 1
 
             if not _triviaqa_bridge_audit_completed(rec):
                 continue
 
             if rec.get("judge_audit_type") == "nonmatch":
                 nonmatch_judged += 1
+                alpha_nonmatch_judged += 1
                 if rec.get("triviaqa_bridge_grade") == "CORRECT":
                     nonmatch_recovered += 1
+                    alpha_nonmatch_recovered += 1
             elif rec.get("judge_audit_type") == "match_audit":
                 match_audited += 1
+                alpha_match_audited += 1
                 if rec.get("triviaqa_bridge_grade") != "CORRECT":
                     match_disagree += 1
+                    alpha_match_disagree += 1
+
+        alpha_label = format_alpha_label(alpha)
+        per_alpha[alpha_label] = {
+            "n_nonmatch_candidates": alpha_nonmatch_candidates,
+            "n_match_candidates": alpha_match_candidates,
+            "match_audit_target_n": len(selected_match_indices),
+            "nonmatch_judged": alpha_nonmatch_judged,
+            "nonmatch_recovered": alpha_nonmatch_recovered,
+            "match_audited": alpha_match_audited,
+            "match_disagree": alpha_match_disagree,
+            "audit_disagree_rate_nonmatches": round(
+                alpha_nonmatch_recovered / alpha_nonmatch_judged
+                if alpha_nonmatch_judged > 0
+                else 0.0,
+                4,
+            ),
+            "audit_disagree_rate_matches": round(
+                alpha_match_disagree / alpha_match_audited
+                if alpha_match_audited > 0
+                else 0.0,
+                4,
+            ),
+        }
+
+        gate_match_completed = sum(
+            1
+            for idx in gate_match_indices
+            if idx < len(records) and _triviaqa_bridge_audit_completed(records[idx])
+        )
+        gate_nonmatch_completed = sum(
+            1
+            for idx in gate_nonmatch_indices
+            if idx < len(records) and _triviaqa_bridge_audit_completed(records[idx])
+        )
+        gate_match_agree = sum(
+            1
+            for idx in gate_match_indices
+            if idx < len(records)
+            and _triviaqa_bridge_audit_completed(records[idx])
+            and records[idx].get("triviaqa_bridge_grade") == "CORRECT"
+        )
+        gate_nonmatch_agree = sum(
+            1
+            for idx in gate_nonmatch_indices
+            if idx < len(records)
+            and _triviaqa_bridge_audit_completed(records[idx])
+            and records[idx].get("triviaqa_bridge_grade") != "CORRECT"
+        )
+        required_total = (
+            _TRIVIAQA_BRIDGE_PILOT_GATE_MATCH_N + _TRIVIAQA_BRIDGE_PILOT_GATE_NONMATCH_N
+        )
+        completed_total = gate_match_completed + gate_nonmatch_completed
+        agreement_total = gate_match_agree + gate_nonmatch_agree
+        gate_status = "ready"
+        if (
+            len(gate_match_indices) < _TRIVIAQA_BRIDGE_PILOT_GATE_MATCH_N
+            or len(gate_nonmatch_indices) < _TRIVIAQA_BRIDGE_PILOT_GATE_NONMATCH_N
+        ):
+            gate_status = "insufficient_pool"
+        elif completed_total < required_total:
+            gate_status = "incomplete_audit"
+        agreement_rate = (
+            agreement_total / required_total
+            if gate_status == "ready" and required_total > 0
+            else 0.0
+        )
+        pilot_gate_by_alpha[alpha_label] = {
+            "status": gate_status,
+            "required_match_n": _TRIVIAQA_BRIDGE_PILOT_GATE_MATCH_N,
+            "required_nonmatch_n": _TRIVIAQA_BRIDGE_PILOT_GATE_NONMATCH_N,
+            "required_total_n": required_total,
+            "available_match_n": len(gate_match_indices),
+            "available_nonmatch_n": len(gate_nonmatch_indices),
+            "completed_match_n": gate_match_completed,
+            "completed_nonmatch_n": gate_nonmatch_completed,
+            "completed_total_n": completed_total,
+            "agree_match_n": gate_match_agree,
+            "agree_nonmatch_n": gate_nonmatch_agree,
+            "agree_total_n": agreement_total,
+            "agreement_rate": round(agreement_rate, 4),
+            "agreement_threshold": _TRIVIAQA_BRIDGE_PILOT_GATE_AGREEMENT_THRESHOLD,
+            "passes_agreement_threshold": (
+                gate_status == "ready"
+                and agreement_rate >= _TRIVIAQA_BRIDGE_PILOT_GATE_AGREEMENT_THRESHOLD
+            ),
+        }
 
     return {
         "audit_seed": audit_seed,
@@ -900,9 +1081,19 @@ def _compute_triviaqa_bridge_audit_stats(
         "nonmatch_recovered": nonmatch_recovered,
         "match_audited": match_audited,
         "match_disagree": match_disagree,
+        "audit_disagree_rate_nonmatches": round(
+            nonmatch_recovered / nonmatch_judged if nonmatch_judged > 0 else 0.0, 4
+        ),
         "audit_disagree_rate_matches": round(
             match_disagree / match_audited if match_audited > 0 else 0.0, 4
         ),
+        "per_alpha": per_alpha,
+        "pilot_gate": {
+            "required_match_n": _TRIVIAQA_BRIDGE_PILOT_GATE_MATCH_N,
+            "required_nonmatch_n": _TRIVIAQA_BRIDGE_PILOT_GATE_NONMATCH_N,
+            "agreement_threshold": _TRIVIAQA_BRIDGE_PILOT_GATE_AGREEMENT_THRESHOLD,
+            "by_alpha": pilot_gate_by_alpha,
+        },
     }
 
 
@@ -1248,12 +1439,23 @@ def main():
         # Save summary
         from run_intervention import aggregate_results
 
-        aggregation = aggregate_results(args.input_dir, args.alphas)
+        bridge_baseline_alpha = (
+            _load_bridge_baseline_alpha_hint(args.input_dir)
+            if args.benchmark == "triviaqa_bridge"
+            else None
+        )
+        aggregation = aggregate_results(
+            args.input_dir,
+            args.alphas,
+            baseline_alpha=bridge_baseline_alpha,
+        )
         summary = {
             "benchmark": args.benchmark,
             "results": aggregation["results"],
             "effects": aggregation["effects"],
         }
+        if bridge_baseline_alpha is not None:
+            summary["baseline_alpha"] = bridge_baseline_alpha
         with open(summary_path, "w") as f:
             json.dump(summary, f, indent=2)
         print(f"\nSaved to {summary_path}")

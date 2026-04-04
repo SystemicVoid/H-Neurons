@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+import build_triviaqa_bridge_manifest as manifest_builder
 from run_intervention import _triviaqa_bridge_prompt, grade_triviaqa_bridge
 
 
@@ -130,3 +135,73 @@ class TestTriviaQaBridgePrompt:
             prompt
             == "Question: Who painted the Mona Lisa?\nAnswer with a single short factual phrase only."
         )
+
+
+class TestTriviaQaBridgeManifest:
+    def test_main_applies_exclusions_and_records_metadata(self, tmp_path, monkeypatch):
+        pandas = pytest.importorskip("pandas")
+
+        parquet_path = tmp_path / "validation.parquet"
+        output_dir = tmp_path / "manifests"
+        exclusion_path = tmp_path / "exclude.json"
+        exclusion_path.write_text(json.dumps(["q5"]), encoding="utf-8")
+
+        dataframe = pandas.DataFrame(
+            [
+                {
+                    "question_id": f"q{idx}",
+                    "question": f"Question {idx}?",
+                    "answer": {"aliases": [f"Answer {idx}"]},
+                }
+                for idx in range(1, 6)
+            ]
+        )
+
+        monkeypatch.setattr(pandas, "read_parquet", lambda _path: dataframe)
+        monkeypatch.setattr(
+            manifest_builder,
+            "_parse_args",
+            lambda: argparse.Namespace(
+                seed=42,
+                pilot_n=1,
+                dev_n=1,
+                test_n=1,
+                reserve_n=1,
+                parquet_path=str(parquet_path),
+                output_dir=str(output_dir),
+                exclude_qids_path=[str(exclusion_path)],
+            ),
+        )
+
+        manifest_builder.main()
+
+        metadata = json.loads(
+            (output_dir / "triviaqa_bridge_metadata_seed42.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        sampled_ids = set()
+        for split in ("pilot", "dev", "test", "reserve"):
+            sampled_ids.update(
+                json.loads(
+                    (
+                        output_dir
+                        / f"triviaqa_bridge_{split}{1 if split != 'reserve' else 1}_seed42.json"
+                    ).read_text(encoding="utf-8")
+                )
+            )
+
+        assert "q5" not in sampled_ids
+        assert metadata["exclusion_sets"]["n_sources"] == 1
+        assert metadata["exclusion_sets"]["n_excluded_qids"] == 1
+        assert metadata["exclusion_sets"]["candidate_pool_overlap"]["n_qids"] == 1
+        assert metadata["exclusion_sets"]["sources"][0]["path"] == str(exclusion_path)
+
+    def test_rejects_overlapping_exclusion_sets(self, tmp_path):
+        first = tmp_path / "first.json"
+        second = tmp_path / "second.json"
+        first.write_text(json.dumps(["q1", "q2"]), encoding="utf-8")
+        second.write_text(json.dumps(["q2", "q3"]), encoding="utf-8")
+
+        with pytest.raises(ValueError, match="Exclusion set overlap detected"):
+            manifest_builder._load_exclusion_qid_sets([str(first), str(second)])

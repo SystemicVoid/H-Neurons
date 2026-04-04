@@ -28,6 +28,9 @@ class SAEFeatureScaler:
 
     Registers forward hooks on post_feedforward_layernorm modules.
 
+    Convention: α=1.0 is no-op (multiplicative identity, like H-neuron mode).
+    This differs from ITI_head and direction modes where α=0.0 is baseline.
+
     Supports two steering modes:
       - ``full_replacement`` (default): encode -> scale -> decode, replacing the
         original activation entirely.  Subject to SAE reconstruction error.

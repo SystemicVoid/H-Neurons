@@ -22,7 +22,7 @@ import json
 import random
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from utils import (
     fingerprint_ids,
@@ -69,6 +69,57 @@ def _alias_count_bucket(n_aliases: int) -> str:
 
 def _stratum_key(prefix: str, ans_bucket: str, alias_bucket: str) -> str:
     return f"{prefix}{ans_bucket}|{alias_bucket}"
+
+
+def _load_exclusion_qid_sets(
+    exclusion_paths: list[str],
+) -> tuple[set[str], dict[str, Any]]:
+    """Load exclusion QID sets, rejecting malformed or overlapping inputs."""
+    sources: list[dict[str, Any]] = []
+    exclusions_union: set[str] = set()
+
+    for raw_path in exclusion_paths:
+        path = Path(raw_path)
+        with open(path, encoding="utf-8") as f:
+            payload = json.load(f)
+        if not isinstance(payload, list) or not all(
+            isinstance(item, str) for item in payload
+        ):
+            raise ValueError(
+                f"Exclusion set {path} must be a JSON list of question_id strings"
+            )
+
+        qids = cast(list[str], list(payload))
+        duplicate_qids = sorted({qid for qid in qids if qids.count(qid) > 1})
+        if duplicate_qids:
+            raise ValueError(
+                f"Exclusion set {path} contains duplicate question IDs: "
+                f"{duplicate_qids[:5]}"
+            )
+
+        qid_set = set(qids)
+        overlap = sorted(exclusions_union & qid_set)
+        if overlap:
+            raise ValueError(
+                f"Exclusion set overlap detected for {path}: {overlap[:5]}"
+            )
+
+        sources.append(
+            {
+                "path": str(path),
+                "n_qids": len(qids),
+                "fingerprint": fingerprint_ids(qids),
+                "sample_qids": sorted(qids)[:5],
+            }
+        )
+        exclusions_union.update(qid_set)
+
+    return exclusions_union, {
+        "n_sources": len(sources),
+        "n_excluded_qids": len(exclusions_union),
+        "fingerprint": fingerprint_ids(list(exclusions_union)),
+        "sources": sources,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -271,6 +322,13 @@ def _parse_args() -> argparse.Namespace:
         default="data/TriviaQA/rc.nocontext/validation-00000-of-00001.parquet",
     )
     p.add_argument("--output_dir", type=str, default="data/manifests")
+    p.add_argument(
+        "--exclude_qids_path",
+        action="append",
+        default=[],
+        help="Path to a JSON list of question_id strings to exclude. "
+        "Can be provided multiple times.",
+    )
     return p.parse_args()
 
 
@@ -325,11 +383,39 @@ def main() -> None:
         unique_qids = len(df)
         print(f"  Unique question_ids after dedup: {unique_qids}")
 
+        # --- Apply exclusion sets before curation ---
+        print("Loading exclusion sets...")
+        exclusion_ids, exclusion_metadata = _load_exclusion_qid_sets(
+            args.exclude_qids_path
+        )
+        candidate_qids = set(df["question_id"].tolist())
+        exclusion_intersection = candidate_qids & exclusion_ids
+        exclusion_metadata["candidate_pool_overlap"] = {
+            "n_qids": len(exclusion_intersection),
+            "fingerprint": fingerprint_ids(list(exclusion_intersection)),
+            "sample_qids": sorted(exclusion_intersection)[:5],
+        }
+        if exclusion_ids:
+            before = len(df)
+            df = df[~df["question_id"].isin(exclusion_ids)].copy()
+            print(
+                f"  Excluded {before - len(df)} rows via exclusion sets, "
+                f"remaining {len(df)}"
+            )
+        else:
+            print("  No exclusion sets provided")
+
         # --- Apply curation filters ---
         print("Applying curation filters...")
         df_safe, filter_stats = _apply_curation_filters(df)
         safe_pool_size = len(df_safe)
         print(f"  Safe pool size: {safe_pool_size}")
+        leaked_exclusions = sorted(set(df_safe["question_id"].tolist()) & exclusion_ids)
+        if leaked_exclusions:
+            raise ValueError(
+                "Excluded question IDs survived into the safe pool: "
+                f"{leaked_exclusions[:5]}"
+            )
 
         total_needed = sum(split_sizes.values())
         if total_needed > safe_pool_size:
@@ -366,6 +452,12 @@ def main() -> None:
 
         safe_pool_ids = set(df_safe["question_id"].tolist())
         assert all_sampled.issubset(safe_pool_ids), "Sampled IDs not in safe pool"
+        leaked_sampled_exclusions = sorted(all_sampled & exclusion_ids)
+        if leaked_sampled_exclusions:
+            raise ValueError(
+                "Excluded question IDs appeared in sampled splits: "
+                f"{leaked_sampled_exclusions[:5]}"
+            )
 
         for name in split_names:
             assert len(splits[name]) == split_sizes[name], (
@@ -392,7 +484,7 @@ def main() -> None:
 
         # --- Write metadata ---
         metadata = {
-            "version": 1,
+            "version": 2,
             "seed": seed,
             "parquet_path": args.parquet_path,
             "total_raw_rows": total_raw_rows,
@@ -406,7 +498,7 @@ def main() -> None:
                 "safe_pool": fingerprint_ids(list(safe_pool_ids)),
                 **{name: fingerprint_ids(splits[name]) for name in split_names},
             },
-            "exclusion_sets": {},
+            "exclusion_sets": exclusion_metadata,
         }
         metadata_path = out / metadata_name
         _write_json(metadata_path, metadata)

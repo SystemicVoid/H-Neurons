@@ -2,7 +2,11 @@
 Intervention experiments: scale H-Neuron activations and measure compliance.
 
 Replicates Section 3 of Gao et al. "H-Neurons" (arXiv:2512.01797v2).
-For each benchmark, sweeps α ∈ [0, 3] and records model responses.
+For each benchmark, sweeps α and records model responses.
+
+Baseline (no-op) α depends on --intervention_mode:
+  neuron / sae   → α=1.0  (multiplicative identity)
+  iti_head / direction → α=0.0  (additive zero)
 
 Usage:
     uv run python scripts/run_intervention.py \
@@ -39,7 +43,9 @@ from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
     build_rate_summary,
+    paired_bootstrap_binary_rate_difference,
     paired_bootstrap_curve_effects,
+    percentile_interval,
 )
 
 
@@ -64,6 +70,12 @@ DEFAULT_SIMPLEQA_DATASET = os.environ.get(
     "HNEURONS_SIMPLEQA_DATASET",
     "basicv8vc/SimpleQA",
 )
+NOOP_ALPHA_BY_INTERVENTION_MODE = {
+    "neuron": 1.0,
+    "sae": 1.0,
+    "direction": 0.0,
+    "iti_head": 0.0,
+}
 
 
 def _slugify_path_component(value: str, *, max_length: int = 48) -> str:
@@ -189,6 +201,9 @@ class HNeuronScaler:
     """Registers forward pre-hooks on down_proj layers to scale H-Neuron
     activations by a configurable α.  Stateless: changing .alpha between
     generation calls is all that's needed to sweep intervention strengths.
+
+    Convention: α=1.0 is no-op (multiplicative identity).  This differs
+    from ITI_head and direction modes where α=0.0 is baseline.
     """
 
     def __init__(self, model, neuron_map: dict, device):
@@ -2277,11 +2292,302 @@ def run_jailbreak(
 
 
 # ---------------------------------------------------------------------------
+# TriviaQA Bridge reporting helpers
+# ---------------------------------------------------------------------------
+
+
+_TRIVIAQA_BRIDGE_FINAL_GRADES = {"CORRECT", "INCORRECT", "NOT_ATTEMPTED"}
+
+
+def resolve_triviaqa_bridge_baseline_alpha(
+    rows_by_alpha: dict[float, list[dict[str, Any]]],
+    requested_alphas: list[float] | None = None,
+    baseline_alpha_hint: float | None = None,
+) -> float | None:
+    """Resolve bridge baseline alpha from an explicit hint or known no-op."""
+    available = set(rows_by_alpha)
+    if baseline_alpha_hint is not None and baseline_alpha_hint in available:
+        return baseline_alpha_hint
+    ordered = [
+        alpha
+        for alpha in (requested_alphas or sorted(rows_by_alpha))
+        if alpha in available
+    ]
+    # Try 1.0 first (neuron/sae no-op), then 0.0 (iti/direction no-op).
+    for candidate in (1.0, 0.0):
+        if candidate in available:
+            return candidate
+    return ordered[0] if ordered else None
+
+
+def resolve_triviaqa_bridge_baseline_alpha_for_mode(intervention_mode: str) -> float:
+    """Return the real no-op alpha for the current bridge intervention mode."""
+    try:
+        return NOOP_ALPHA_BY_INTERVENTION_MODE[intervention_mode]
+    except KeyError as exc:
+        raise ValueError(
+            f"Unsupported intervention mode for TriviaQA Bridge: {intervention_mode}"
+        ) from exc
+
+
+def _triviaqa_bridge_grade_label(rec: dict[str, Any]) -> str:
+    grade = rec.get("triviaqa_bridge_grade")
+    if grade in _TRIVIAQA_BRIDGE_FINAL_GRADES:
+        return str(grade)
+    if "compliance" in rec:
+        return "CORRECT" if rec.get("compliance") else "INCORRECT"
+    if rec.get("deterministic_correct"):
+        return "CORRECT"
+    return "NOT_ATTEMPTED" if not rec.get("attempted") else "INCORRECT"
+
+
+def _triviaqa_bridge_is_correct(rec: dict[str, Any]) -> bool:
+    if "compliance" in rec:
+        return bool(rec.get("compliance"))
+    return bool(rec.get("deterministic_correct"))
+
+
+def _triviaqa_bridge_attempted_flag(rec: dict[str, Any]) -> bool:
+    grade = rec.get("triviaqa_bridge_grade")
+    if grade in _TRIVIAQA_BRIDGE_FINAL_GRADES:
+        return grade != "NOT_ATTEMPTED"
+    return bool(rec.get("attempted"))
+
+
+def _build_precision_summary(correct: int, attempted: int) -> dict[str, Any]:
+    return build_rate_summary(
+        correct,
+        attempted,
+        count_key="n_correct",
+        total_key="n_attempted",
+    )
+
+
+def _triviaqa_bridge_per_alpha_audit_stats(
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    nonmatch_judged = 0
+    nonmatch_recovered = 0
+    match_audited = 0
+    match_disagree = 0
+    for rec in records:
+        grade = rec.get("triviaqa_bridge_grade")
+        if grade not in _TRIVIAQA_BRIDGE_FINAL_GRADES:
+            continue
+        audit_type = rec.get("judge_audit_type")
+        if audit_type == "nonmatch":
+            nonmatch_judged += 1
+            if grade == "CORRECT":
+                nonmatch_recovered += 1
+        elif audit_type == "match_audit":
+            match_audited += 1
+            if grade != "CORRECT":
+                match_disagree += 1
+    return {
+        "nonmatch_judged": nonmatch_judged,
+        "nonmatch_recovered": nonmatch_recovered,
+        "audit_disagree_rate_nonmatches": round(
+            nonmatch_recovered / nonmatch_judged if nonmatch_judged > 0 else 0.0, 4
+        ),
+        "match_audited": match_audited,
+        "match_disagree": match_disagree,
+        "audit_disagree_rate_matches": round(
+            match_disagree / match_audited if match_audited > 0 else 0.0, 4
+        ),
+    }
+
+
+def _preview_ids(ids: list[str], limit: int = 5) -> list[str]:
+    return ids[:limit]
+
+
+def _mcnemar_exact_p_value(
+    baseline_correct: np.ndarray, comparison_correct: np.ndarray
+) -> float:
+    from scipy.stats import binomtest
+
+    right_to_wrong = int(np.sum(baseline_correct & ~comparison_correct))
+    wrong_to_right = int(np.sum(~baseline_correct & comparison_correct))
+    discordant = right_to_wrong + wrong_to_right
+    if discordant == 0:
+        return 1.0
+    return float(
+        binomtest(
+            min(right_to_wrong, wrong_to_right),
+            discordant,
+            0.5,
+            alternative="two-sided",
+        ).pvalue
+    )
+
+
+def _paired_precision_delta(
+    baseline_labels: np.ndarray,
+    comparison_labels: np.ndarray,
+    *,
+    seed: int,
+) -> dict[str, Any]:
+    if baseline_labels.shape != comparison_labels.shape:
+        raise ValueError("Precision delta arrays must match exactly")
+
+    def _precision(labels: np.ndarray) -> float:
+        attempted = int(np.sum(labels != "NOT_ATTEMPTED"))
+        correct = int(np.sum(labels == "CORRECT"))
+        return (correct / attempted) if attempted > 0 else 0.0
+
+    n_items = len(baseline_labels)
+    rng = np.random.default_rng(seed)
+    samples = np.empty(DEFAULT_BOOTSTRAP_RESAMPLES, dtype=float)
+    for idx in range(DEFAULT_BOOTSTRAP_RESAMPLES):
+        sample_idx = rng.choice(n_items, size=n_items, replace=True)
+        samples[idx] = (
+            _precision(comparison_labels[sample_idx])
+            - _precision(baseline_labels[sample_idx])
+        ) * 100.0
+
+    return {
+        "estimate_pp": float(
+            (_precision(comparison_labels) - _precision(baseline_labels)) * 100.0
+        ),
+        "ci_pp": percentile_interval(
+            samples,
+            0.95,
+            method="bootstrap_percentile_paired_conditional_precision",
+        ).to_dict(),
+        "bootstrap": {
+            "n_resamples": int(DEFAULT_BOOTSTRAP_RESAMPLES),
+            "seed": int(seed),
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile",
+        },
+    }
+
+
+def _triviaqa_bridge_pairwise_effects(
+    rows_by_alpha: dict[float, list[dict[str, Any]]],
+    ordered_alphas: list[float],
+    *,
+    baseline_alpha: float | None,
+) -> dict[str, Any]:
+    if baseline_alpha is None:
+        return {"status": "blocked_missing_baseline_alpha"}
+    if baseline_alpha not in rows_by_alpha:
+        return {
+            "status": "blocked_missing_baseline_records",
+            "baseline_alpha": baseline_alpha,
+        }
+
+    baseline_rows = rows_by_alpha[baseline_alpha]
+    baseline_ids = {rec["id"] for rec in baseline_rows}
+    if not baseline_ids:
+        return {"status": "blocked_empty_baseline", "baseline_alpha": baseline_alpha}
+
+    paired: dict[str, Any] = {}
+    baseline_audit_stats = _triviaqa_bridge_per_alpha_audit_stats(baseline_rows)
+
+    for alpha in ordered_alphas:
+        if alpha == baseline_alpha:
+            continue
+        comparison_rows = rows_by_alpha[alpha]
+        comparison_ids = {rec["id"] for rec in comparison_rows}
+        if baseline_ids != comparison_ids:
+            missing_in_compare = sorted(baseline_ids - comparison_ids)
+            missing_in_baseline = sorted(comparison_ids - baseline_ids)
+            paired[str(alpha)] = {
+                "status": "blocked_mismatched_sample_ids",
+                "baseline_alpha": baseline_alpha,
+                "comparison_alpha": alpha,
+                "missing_in_compare_n": len(missing_in_compare),
+                "missing_in_compare_sample": _preview_ids(missing_in_compare),
+                "missing_in_baseline_n": len(missing_in_baseline),
+                "missing_in_baseline_sample": _preview_ids(missing_in_baseline),
+            }
+            continue
+
+        ids = sorted(baseline_ids)
+        baseline_map = {rec["id"]: rec for rec in baseline_rows}
+        comparison_map = {rec["id"]: rec for rec in comparison_rows}
+        baseline_correct = np.array(
+            [_triviaqa_bridge_is_correct(baseline_map[sid]) for sid in ids], dtype=bool
+        )
+        comparison_correct = np.array(
+            [_triviaqa_bridge_is_correct(comparison_map[sid]) for sid in ids],
+            dtype=bool,
+        )
+        baseline_attempt = np.array(
+            [_triviaqa_bridge_attempted_flag(baseline_map[sid]) for sid in ids],
+            dtype=bool,
+        )
+        comparison_attempt = np.array(
+            [_triviaqa_bridge_attempted_flag(comparison_map[sid]) for sid in ids],
+            dtype=bool,
+        )
+        baseline_not_attempted = ~baseline_attempt
+        comparison_not_attempted = ~comparison_attempt
+        baseline_labels = np.array(
+            [_triviaqa_bridge_grade_label(baseline_map[sid]) for sid in ids],
+            dtype=object,
+        )
+        comparison_labels = np.array(
+            [_triviaqa_bridge_grade_label(comparison_map[sid]) for sid in ids],
+            dtype=object,
+        )
+        flip_table = {
+            "wrong_to_right": int(np.sum(~baseline_correct & comparison_correct)),
+            "right_to_wrong": int(np.sum(baseline_correct & ~comparison_correct)),
+            "stayed_wrong": int(np.sum(~baseline_correct & ~comparison_correct)),
+            "stayed_right": int(np.sum(baseline_correct & comparison_correct)),
+        }
+        comparison_audit_stats = _triviaqa_bridge_per_alpha_audit_stats(comparison_rows)
+        paired[str(alpha)] = {
+            "status": "ok",
+            "baseline_alpha": baseline_alpha,
+            "comparison_alpha": alpha,
+            "n_paired": len(ids),
+            "accuracy_delta": paired_bootstrap_binary_rate_difference(
+                baseline_correct,
+                comparison_correct,
+                seed=DEFAULT_BOOTSTRAP_SEED,
+                n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+            ),
+            "flip_table": flip_table,
+            "mcnemar_p": _mcnemar_exact_p_value(baseline_correct, comparison_correct),
+            "attempt_delta": paired_bootstrap_binary_rate_difference(
+                baseline_attempt,
+                comparison_attempt,
+                seed=DEFAULT_BOOTSTRAP_SEED,
+                n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+            ),
+            "not_attempted_delta": paired_bootstrap_binary_rate_difference(
+                baseline_not_attempted,
+                comparison_not_attempted,
+                seed=DEFAULT_BOOTSTRAP_SEED,
+                n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+            ),
+            "precision_given_attempt_delta": _paired_precision_delta(
+                baseline_labels,
+                comparison_labels,
+                seed=DEFAULT_BOOTSTRAP_SEED,
+            ),
+            "audit_disagree_rate_nonmatches": {
+                "baseline": baseline_audit_stats["audit_disagree_rate_nonmatches"],
+                "comparison": comparison_audit_stats["audit_disagree_rate_nonmatches"],
+            },
+        }
+
+    return {
+        "status": "ok" if paired else "blocked_no_comparisons",
+        "baseline_alpha": baseline_alpha,
+        "comparisons": paired,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Results aggregation
 # ---------------------------------------------------------------------------
 
 
-def aggregate_results(output_dir, alphas):
+def aggregate_results(output_dir, alphas, baseline_alpha: float | None = None):
     """Read all alpha files and compute compliance rates."""
     results = {}
     throughput = {"by_alpha": {}}
@@ -2314,15 +2620,12 @@ def aggregate_results(output_dir, alphas):
         }
         if any("deterministic_correct" in rec for rec in records):
             det_correct = sum(bool(rec.get("deterministic_correct")) for rec in records)
-            attempted = sum(
-                bool(rec.get("triviaqa_bridge_grade") != "NOT_ATTEMPTED")
-                if rec.get("triviaqa_bridge_grade")
-                in {"CORRECT", "INCORRECT", "NOT_ATTEMPTED"}
-                else bool(rec.get("attempted"))
-                for rec in records
-            )
+            correct = sum(_triviaqa_bridge_is_correct(rec) for rec in records)
+            attempted = sum(_triviaqa_bridge_attempted_flag(rec) for rec in records)
+            not_attempted = total - attempted
             det_rate = det_correct / total if total > 0 else 0
             attempt_rate = attempted / total if total > 0 else 0
+            not_attempted_rate = not_attempted / total if total > 0 else 0
             result["deterministic_accuracy_rate"] = round(det_rate, 4)
             result["n_deterministic_correct"] = det_correct
             result["deterministic_accuracy"] = build_rate_summary(
@@ -2339,6 +2642,23 @@ def aggregate_results(output_dir, alphas):
                 count_key="n_attempted",
                 total_key="n_total",
             )
+            result["not_attempted_rate"] = round(not_attempted_rate, 4)
+            result["n_not_attempted"] = not_attempted
+            result["not_attempted"] = build_rate_summary(
+                not_attempted,
+                total,
+                count_key="n_not_attempted",
+                total_key="n_total",
+            )
+            result["precision_given_attempt_rate"] = round(
+                (correct / attempted) if attempted > 0 else 0.0,
+                4,
+            )
+            result["precision_given_attempt"] = _build_precision_summary(
+                correct,
+                attempted,
+            )
+            result.update(_triviaqa_bridge_per_alpha_audit_stats(records))
 
         metric_records: list[tuple[str, float]] = []
         for rec in records:
@@ -2442,6 +2762,22 @@ def aggregate_results(output_dir, alphas):
                 )
         else:
             effects["status"] = "blocked_mismatched_sample_ids"
+
+    if any(
+        any("deterministic_correct" in rec for rec in records)
+        for records in rows_by_alpha.values()
+    ):
+        resolved_baseline_alpha = resolve_triviaqa_bridge_baseline_alpha(
+            rows_by_alpha,
+            requested_alphas=alphas,
+            baseline_alpha_hint=baseline_alpha,
+        )
+        effects["baseline_alpha"] = resolved_baseline_alpha
+        effects["paired_against_baseline"] = _triviaqa_bridge_pairwise_effects(
+            rows_by_alpha,
+            [alpha for alpha in alphas if alpha in rows_by_alpha],
+            baseline_alpha=resolved_baseline_alpha,
+        )
 
     return {"results": results, "effects": effects, "throughput": throughput}
 
@@ -3100,7 +3436,16 @@ def main():
         else:
             print("Results Summary")
         print(f"{'=' * 60}")
-        aggregation = aggregate_results(output_dir, args.alphas)
+        bridge_baseline_alpha = None
+        if args.benchmark == "triviaqa_bridge":
+            bridge_baseline_alpha = resolve_triviaqa_bridge_baseline_alpha_for_mode(
+                args.intervention_mode
+            )
+        aggregation = aggregate_results(
+            output_dir,
+            args.alphas,
+            baseline_alpha=bridge_baseline_alpha,
+        )
 
         # Save summary
         summary = {
@@ -3152,6 +3497,7 @@ def main():
             summary["judge_required"] = True
         if args.benchmark == "triviaqa_bridge":
             summary["triviaqa_bridge_manifest"] = args.triviaqa_bridge_manifest
+            summary["baseline_alpha"] = bridge_baseline_alpha
         with open(summary_path, "w") as f:
             json.dump(summary, f, indent=2)
         print(f"\nSaved results to {summary_path}")
