@@ -20,6 +20,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import time
@@ -475,6 +476,57 @@ def parse_jailbreak_verdict(raw: str) -> str:
 JAILBREAK_JUDGE_KWARGS = {"temperature": 0.0, "max_tokens": 100}
 
 
+# ---------------------------------------------------------------------------
+# TriviaQA Bridge: bidirectional judge audit
+# ---------------------------------------------------------------------------
+
+
+TRIVIAQA_BRIDGE_JUDGE_KWARGS = {"temperature": 0.0, "max_tokens": 10}
+
+
+def build_triviaqa_bridge_judge_messages(
+    question: str, aliases: list[str], response: str
+) -> list[dict]:
+    """Build judge messages for TriviaQA bridge grading.
+
+    Reuses the SimpleQA grader template with aliases as the gold target.
+    """
+    target = "; ".join(aliases)
+    prompt = SIMPLEQA_GRADER_TEMPLATE.format(
+        question=question,
+        target=target,
+        predicted_answer=response,
+    )
+    return [{"role": "user", "content": prompt}]
+
+
+def judge_triviaqa_bridge(
+    client,
+    model,
+    question,
+    aliases,
+    response,
+    max_retries=5,
+    cache_stats=None,
+    **extra_kwargs,
+):
+    """Grade whether a TriviaQA bridge response is correct, incorrect, or abstained."""
+    messages = build_triviaqa_bridge_judge_messages(question, aliases, response)
+    kwargs = {**TRIVIAQA_BRIDGE_JUDGE_KWARGS, **extra_kwargs}
+    for attempt in range(max_retries):
+        try:
+            completion = client.chat.completions.create(
+                model=model, messages=messages, **kwargs
+            )
+            if cache_stats is not None:
+                cache_stats.record(completion.usage)
+            return parse_simpleqa_verdict(completion.choices[0].message.content.strip())
+        except Exception as e:
+            print(f"Judge API error (attempt {attempt + 1}): {e}")
+            time.sleep(2**attempt)
+    return "ERROR"
+
+
 def judge_jailbreak(
     client, model, goal, response, max_retries=5, cache_stats=None, **extra_kwargs
 ):
@@ -566,6 +618,19 @@ def evaluate_alpha_file(
             )
             rec["judge"] = verdict
             rec["compliance"] = verdict == "HARMFUL"
+        elif benchmark == "triviaqa_bridge":
+            verdict = judge_triviaqa_bridge(
+                client,
+                judge_model,
+                rec["question"],
+                rec.get("ground_truth_aliases", []),
+                rec["response"],
+                cache_stats=cache_stats,
+                **_extra,
+            )
+            rec["judge"] = verdict
+            rec["triviaqa_bridge_grade"] = verdict
+            rec["compliance"] = verdict == "CORRECT"
 
         updated.append(rec)
 
@@ -592,6 +657,9 @@ def _apply_verdict(rec: dict, benchmark: str, verdict: str) -> None:
         rec["compliance"] = verdict == "CORRECT"
     elif benchmark in ("jailbreak", "jailbreak_benign"):
         rec["compliance"] = verdict == "HARMFUL"
+    elif benchmark == "triviaqa_bridge":
+        rec["triviaqa_bridge_grade"] = verdict
+        rec["compliance"] = verdict == "CORRECT"
 
 
 def _load_alpha_records(path: str) -> list[dict]:
@@ -745,6 +813,273 @@ def evaluate_all_batch(
 
 
 # ---------------------------------------------------------------------------
+# TriviaQA Bridge: bidirectional batch evaluation
+# ---------------------------------------------------------------------------
+
+_TRIVIAQA_BRIDGE_AUDIT_FRAC = 0.20
+_TRIVIAQA_BRIDGE_AUDIT_MIN = 30
+
+
+def _stable_triviaqa_bridge_match_audit_key(
+    alpha: float, record: dict, idx: int, audit_seed: int
+) -> tuple[str, int]:
+    """Return a rerun-stable sort key for blinded match audits."""
+    stable_id = record.get("id") or record.get("question_id") or f"idx:{idx}"
+    digest = hashlib.sha256(
+        f"{audit_seed}|{format_alpha_label(alpha)}|{stable_id}".encode("utf-8")
+    ).hexdigest()
+    return digest, idx
+
+
+def _select_triviaqa_bridge_match_audit_indices(
+    alpha: float, records: list[dict], audit_seed: int
+) -> set[int]:
+    """Select a stable blinded audit sample from deterministic matches."""
+    match_indices = [
+        idx
+        for idx, rec in enumerate(records)
+        if rec.get("match_tier") in ("exact", "boundary")
+    ]
+    audit_n = max(
+        _TRIVIAQA_BRIDGE_AUDIT_MIN,
+        int(len(match_indices) * _TRIVIAQA_BRIDGE_AUDIT_FRAC),
+    )
+    audit_n = min(audit_n, len(match_indices))
+    ranked = sorted(
+        match_indices,
+        key=lambda idx: _stable_triviaqa_bridge_match_audit_key(
+            alpha, records[idx], idx, audit_seed
+        ),
+    )
+    return set(ranked[:audit_n])
+
+
+def _compute_triviaqa_bridge_audit_stats(
+    alpha_data: dict[float, tuple[str, list[dict]]], audit_seed: int
+) -> dict:
+    """Summarize the final persisted TriviaQA bridge audit state."""
+    nonmatch_candidates = 0
+    match_candidates = 0
+    match_target = 0
+    nonmatch_judged = 0
+    nonmatch_recovered = 0
+    match_audited = 0
+    match_disagree = 0
+
+    for alpha, (_, records) in alpha_data.items():
+        selected_match_indices = _select_triviaqa_bridge_match_audit_indices(
+            alpha, records, audit_seed
+        )
+        match_target += len(selected_match_indices)
+        for idx, rec in enumerate(records):
+            if rec.get("match_tier") == "no_match":
+                nonmatch_candidates += 1
+            elif rec.get("match_tier") in ("exact", "boundary"):
+                match_candidates += 1
+
+            if rec.get("judge_audit_type") == "nonmatch":
+                nonmatch_judged += 1
+                if rec.get("triviaqa_bridge_grade") == "CORRECT":
+                    nonmatch_recovered += 1
+            elif rec.get("judge_audit_type") == "match_audit":
+                match_audited += 1
+                if rec.get("triviaqa_bridge_grade") != "CORRECT":
+                    match_disagree += 1
+
+    return {
+        "audit_seed": audit_seed,
+        "match_audit_fraction": _TRIVIAQA_BRIDGE_AUDIT_FRAC,
+        "match_audit_min": _TRIVIAQA_BRIDGE_AUDIT_MIN,
+        "n_nonmatch_candidates": nonmatch_candidates,
+        "n_match_candidates": match_candidates,
+        "match_audit_target_n": match_target,
+        "nonmatch_judged": nonmatch_judged,
+        "nonmatch_recovered": nonmatch_recovered,
+        "match_audited": match_audited,
+        "match_disagree": match_disagree,
+        "audit_disagree_rate_matches": round(
+            match_disagree / match_audited if match_audited > 0 else 0.0, 4
+        ),
+    }
+
+
+def evaluate_triviaqa_bridge_batch(
+    input_dir,
+    alphas,
+    client,
+    judge_model,
+    prompt_cache_retention=None,
+    batch_max_enqueued_tokens=None,
+    audit_seed=42,
+):
+    """Bidirectional judge audit for TriviaQA bridge benchmark.
+
+    Unlike other benchmarks, triviaqa_bridge has inline deterministic grading.
+    The judge pass is bidirectional:
+      1. ALL deterministic non-matches → judge classifies as
+         CORRECT / INCORRECT / NOT_ATTEMPTED
+      2. Stable blinded sample of deterministic matches (~20%, min 30)
+         → judge confirms or overturns the deterministic grade
+
+    Records gain: ``judge``, ``judge_audit_type`` ("nonmatch"|"match_audit"),
+    ``triviaqa_bridge_grade``, and ``compliance`` (adjudicated).
+    """
+    from openai_batch import (
+        build_chat_request,
+        parse_chat_content,
+        resume_or_submit,
+    )
+
+    alpha_data: dict[float, tuple[str, list[dict]]] = {}
+    batch_requests = []
+    request_map: dict[str, tuple[float, int, str]] = {}
+
+    for alpha in alphas:
+        path = build_alpha_file_path(input_dir, alpha)
+        if not os.path.exists(path):
+            print(f"  alpha={format_alpha_label(alpha)}: file not found, skipping")
+            continue
+        records = _load_alpha_records(path)
+        alpha_data[alpha] = (path, records)
+
+        selected_match_indices = _select_triviaqa_bridge_match_audit_indices(
+            alpha, records, audit_seed
+        )
+
+        # All non-matches get judged
+        for idx, rec in enumerate(records):
+            if rec.get("judge_audit_type") is not None:
+                continue  # already audited
+            if rec.get("match_tier") != "no_match":
+                continue
+            rec = records[idx]
+            custom_id = f"tqa_{format_alpha_label(alpha)}_nm_{idx}"
+            messages = build_triviaqa_bridge_judge_messages(
+                rec["question"],
+                rec.get("ground_truth_aliases", []),
+                rec["response"],
+            )
+            kwargs = dict(TRIVIAQA_BRIDGE_JUDGE_KWARGS)
+            if prompt_cache_retention:
+                kwargs["prompt_cache_retention"] = prompt_cache_retention
+            batch_requests.append(
+                build_chat_request(
+                    custom_id=custom_id,
+                    model=judge_model,
+                    messages=messages,
+                    **kwargs,
+                )
+            )
+            request_map[custom_id] = (alpha, idx, "nonmatch")
+
+        # Stable blinded sample of deterministic matches
+        for idx in sorted(selected_match_indices):
+            rec = records[idx]
+            if rec.get("judge_audit_type") is not None:
+                continue
+            custom_id = f"tqa_{format_alpha_label(alpha)}_ma_{idx}"
+            messages = build_triviaqa_bridge_judge_messages(
+                rec["question"],
+                rec.get("ground_truth_aliases", []),
+                rec["response"],
+            )
+            kwargs = dict(TRIVIAQA_BRIDGE_JUDGE_KWARGS)
+            if prompt_cache_retention:
+                kwargs["prompt_cache_retention"] = prompt_cache_retention
+            batch_requests.append(
+                build_chat_request(
+                    custom_id=custom_id,
+                    model=judge_model,
+                    messages=messages,
+                    **kwargs,
+                )
+            )
+            request_map[custom_id] = (alpha, idx, "match_audit")
+
+    results = {}
+    if batch_requests:
+        print(
+            f"  Submitting {len(batch_requests)} triviaqa_bridge judge requests "
+            f"via Batch API..."
+        )
+        state_path = Path(input_dir) / ".eval_batch_state.json"
+        results = resume_or_submit(
+            client,
+            batch_requests,
+            state_path,
+            metadata={
+                "benchmark": "triviaqa_bridge",
+                "script": "evaluate_intervention",
+            },
+            max_enqueued_tokens=batch_max_enqueued_tokens,
+        )
+    else:
+        print("  All eligible triviaqa_bridge records already audited")
+
+    # Apply verdicts
+    errors = 0
+
+    for custom_id, (alpha, idx, audit_type) in request_map.items():
+        _, records = alpha_data[alpha]
+        rec = records[idx]
+        entry = results.get(custom_id)
+        if entry is None:
+            verdict = "ERROR"
+            errors += 1
+        else:
+            content = parse_chat_content(entry)
+            if content is None:
+                verdict = "ERROR"
+                errors += 1
+            else:
+                verdict = parse_simpleqa_verdict(content)
+
+        rec["judge"] = verdict
+        rec["judge_audit_type"] = audit_type
+        rec["triviaqa_bridge_grade"] = verdict
+
+        if audit_type == "nonmatch":
+            rec["compliance"] = verdict == "CORRECT"
+        elif audit_type == "match_audit":
+            rec["compliance"] = verdict == "CORRECT"
+
+    # Records that were deterministic matches but not audited keep their grade
+    for alpha, (path, records) in alpha_data.items():
+        for rec in records:
+            if "compliance" not in rec and rec.get("deterministic_correct"):
+                rec["compliance"] = True
+            elif "compliance" not in rec:
+                rec["compliance"] = False
+
+    if errors:
+        print(f"  Warning: {errors} requests failed in batch")
+
+    # Report audit stats
+    audit_stats = _compute_triviaqa_bridge_audit_stats(alpha_data, audit_seed)
+    print(f"  Audit stats: {json.dumps(audit_stats, indent=2)}")
+
+    # Write updated files
+    for alpha, (path, records) in alpha_data.items():
+        _write_alpha_records(path, records)
+        compliant = sum(1 for r in records if r.get("compliance"))
+        total = len(records)
+        rate = compliant / total if total > 0 else 0
+        det_correct = sum(1 for r in records if r.get("deterministic_correct"))
+        print(
+            f"  alpha={format_alpha_label(alpha)}: "
+            f"deterministic {det_correct}/{total}, "
+            f"adjudicated {compliant}/{total} ({rate:.1%})"
+        )
+
+    # Write audit summary alongside results
+    audit_path = Path(input_dir) / "audit_stats.json"
+    with open(audit_path, "w") as f:
+        json.dump(audit_stats, f, indent=2)
+
+    return alpha_data
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -757,7 +1092,13 @@ def parse_args():
         "--benchmark",
         type=str,
         required=True,
-        choices=["falseqa", "simpleqa", "jailbreak", "jailbreak_benign"],
+        choices=[
+            "falseqa",
+            "simpleqa",
+            "jailbreak",
+            "jailbreak_benign",
+            "triviaqa_bridge",
+        ],
     )
     p.add_argument("--input_dir", type=str, required=True)
     p.add_argument(
@@ -822,7 +1163,21 @@ def main():
             f"(mode={args.api_mode})"
         )
 
-        if args.api_mode == "batch":
+        if args.benchmark == "triviaqa_bridge":
+            if args.api_mode != "batch":
+                raise ValueError(
+                    "triviaqa_bridge evaluation requires --api-mode batch "
+                    "(bidirectional audit is batch-only)"
+                )
+            evaluate_triviaqa_bridge_batch(
+                args.input_dir,
+                args.alphas,
+                client,
+                args.judge_model,
+                prompt_cache_retention=args.prompt_cache_retention,
+                batch_max_enqueued_tokens=args.batch_max_enqueued_tokens,
+            )
+        elif args.api_mode == "batch":
             evaluate_all_batch(
                 args.input_dir,
                 args.alphas,

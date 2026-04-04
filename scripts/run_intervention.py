@@ -1721,6 +1721,197 @@ def run_truthfulqa_mc(
 
 
 # ---------------------------------------------------------------------------
+# Benchmark: TriviaQA Bridge (open-ended factoid generation)
+# ---------------------------------------------------------------------------
+
+
+def grade_triviaqa_bridge(response: str, aliases: list[str]) -> dict:
+    """Conservative tiered grading for TriviaQA bridge benchmark.
+
+    Tier 1: exact normalized match (highest confidence).
+    Tier 2: ambiguous multi-answer generations are deferred to the judge.
+    Tier 3: boundary-aware containment for aliases ≥4 normalized chars.
+    Tier 4: no deterministic match — deferred to judge.
+
+    Short aliases (≤3 chars after normalization) are excluded from containment
+    to prevent false positives from digit/substring noise.
+    """
+    norm_resp = normalize_answer(response)
+
+    # Tier 1: exact normalized match
+    for alias in aliases:
+        na = normalize_answer(alias)
+        if na and na == norm_resp:
+            return {"correct": True, "match_tier": "exact", "matched_alias": alias}
+
+    # Tier 2: disjunctive replies are ambiguous for this single-answer benchmark.
+    if _triviaqa_bridge_has_ambiguous_multi_answer(norm_resp):
+        return {"correct": False, "match_tier": "no_match", "matched_alias": None}
+
+    # Tier 3: boundary-aware containment (aliases ≥4 chars only)
+    for alias in aliases:
+        na = normalize_answer(alias)
+        if len(na) < 4:
+            continue
+        pattern = r"(?:^|\s)" + re.escape(na) + r"(?:\s|$)"
+        if re.search(pattern, norm_resp):
+            return {"correct": True, "match_tier": "boundary", "matched_alias": alias}
+
+    # Tier 4: no deterministic match
+    return {"correct": False, "match_tier": "no_match", "matched_alias": None}
+
+
+def _triviaqa_bridge_has_ambiguous_multi_answer(norm_resp: str) -> bool:
+    """Return True when the response names multiple candidates.
+
+    The benchmark prompt requires a single short factual phrase. After exact
+    alias matches are handled, a remaining disjunctive answer like
+    "paris or london" is too ambiguous for deterministic credit and should be
+    deferred to the judge instead of boundary-matched.
+    """
+    if " or " not in norm_resp:
+        return False
+    candidates = [chunk.strip() for chunk in norm_resp.split(" or ") if chunk.strip()]
+    return len(candidates) >= 2
+
+
+def load_triviaqa_bridge(
+    manifest_path: str,
+    parquet_path: str = "data/TriviaQA/rc.nocontext/validation-00000-of-00001.parquet",
+) -> list[dict]:
+    """Load TriviaQA bridge benchmark from manifest + parquet.
+
+    The manifest is a JSON list of question_id strings.  The parquet is
+    joined to retrieve questions and answer aliases.
+    """
+    import pandas as pd
+
+    with open(manifest_path) as f:
+        qids = set(json.load(f))
+
+    df = pd.read_parquet(parquet_path)
+    df = df.drop_duplicates(subset="question_id", keep="first")
+    df = df[df["question_id"].isin(qids)]
+
+    samples = []
+    for _, row in df.iterrows():
+        answer = row["answer"]
+        aliases = list(answer.get("aliases", []))
+        samples.append(
+            {
+                "id": f"tqa_bridge_{row['question_id']}",
+                "question_id": row["question_id"],
+                "question": row["question"],
+                "ground_truth_aliases": aliases,
+            }
+        )
+
+    loaded_qids = {s["question_id"] for s in samples}
+    missing = qids - loaded_qids
+    if missing:
+        print(
+            f"Warning: {len(missing)} manifest QIDs not found in parquet: "
+            f"{sorted(missing)[:5]}"
+        )
+    return samples
+
+
+def _triviaqa_bridge_prompt(sample):
+    """Build the TriviaQA bridge factoid QA prompt."""
+    return (
+        f"Question: {sample['question']}\n"
+        "Answer with a single short factual phrase only."
+    )
+
+
+def run_triviaqa_bridge(
+    model,
+    tokenizer,
+    scaler,
+    samples,
+    alpha,
+    output_dir,
+    max_samples=None,
+    prompt_cache=None,
+    wandb_module=None,
+    alpha_idx=0,
+    throughput_state=None,
+    benchmark_name="triviaqa_bridge",
+    prompt_style="factual_phrase",
+    throughput_session_id: str | None = None,
+):
+    """Run TriviaQA bridge for a single alpha value.
+
+    Inline conservative deterministic grading at generation time.
+    Judge-based bidirectional audit happens post-hoc via
+    evaluate_intervention.py.
+    """
+    alpha_label = format_alpha_label(alpha)
+    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
+    existing_ids = load_existing_ids(out_path)
+
+    if max_samples:
+        samples = samples[:max_samples]
+
+    scaler.alpha = alpha
+
+    for sample in tqdm(samples, desc=f"TriviaQA Bridge α={alpha_label}"):
+        if sample["id"] in existing_ids:
+            continue
+
+        wall_start_ts = time.time()
+        _reset_scaler_sample_stats(scaler)
+        cached_ids = prompt_cache.get(sample["id"]) if prompt_cache else None
+        if cached_ids is None:
+            prompt = _triviaqa_bridge_prompt(sample)
+            messages = [{"role": "user", "content": prompt}]
+        else:
+            messages = None
+        response, timings = generate_response(
+            model,
+            tokenizer,
+            messages,
+            do_sample=False,
+            max_new_tokens=64,
+            cached_input_ids=cached_ids,
+            scaler=scaler,
+        )
+
+        grade = grade_triviaqa_bridge(response, sample["ground_truth_aliases"])
+        norm_resp = normalize_answer(response)
+        attempted = bool(norm_resp and len(norm_resp) > 1)
+
+        record = {
+            "id": sample["id"],
+            "alpha": alpha,
+            "question": sample["question"],
+            "response": response,
+            "ground_truth_aliases": sample["ground_truth_aliases"],
+            "prompt_style": prompt_style,
+            "match_tier": grade["match_tier"],
+            "matched_alias": grade["matched_alias"],
+            "deterministic_correct": grade["correct"],
+            "metric_name": "deterministic_accuracy",
+            "metric_value": float(grade["correct"]),
+            "attempted": attempted,
+            "response_length_tokens": timings.get("generated_tokens", 0),
+        }
+        finalize_record(
+            out_path,
+            record,
+            timings,
+            scaler=scaler,
+            wall_start_ts=wall_start_ts,
+            benchmark=benchmark_name,
+            alpha=alpha,
+            alpha_idx=alpha_idx,
+            wandb_module=wandb_module,
+            throughput_state=throughput_state,
+            throughput_session_id=throughput_session_id,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Benchmark: Sycophancy (two-turn challenge)
 # ---------------------------------------------------------------------------
 
@@ -2067,21 +2258,51 @@ def aggregate_results(output_dir, alphas):
                 total_key="n_total",
             ),
         }
-        metric_values = [
-            rec["metric_value"] for rec in records if "metric_value" in rec
-        ]
-        if metric_values:
-            metric_names = {
-                rec["metric_name"]
-                for rec in records
-                if rec.get("metric_name") is not None
-            }
+        if any("deterministic_correct" in rec for rec in records):
+            det_correct = sum(bool(rec.get("deterministic_correct")) for rec in records)
+            attempted = sum(bool(rec.get("attempted")) for rec in records)
+            det_rate = det_correct / total if total > 0 else 0
+            attempt_rate = attempted / total if total > 0 else 0
+            result["deterministic_accuracy_rate"] = round(det_rate, 4)
+            result["n_deterministic_correct"] = det_correct
+            result["deterministic_accuracy"] = build_rate_summary(
+                det_correct,
+                total,
+                count_key="n_deterministic_correct",
+                total_key="n_total",
+            )
+            result["attempt_rate"] = round(attempt_rate, 4)
+            result["n_attempted"] = attempted
+            result["attempt"] = build_rate_summary(
+                attempted,
+                total,
+                count_key="n_attempted",
+                total_key="n_total",
+            )
+
+        metric_records: list[tuple[str, float]] = []
+        for rec in records:
+            if "metric_value" in rec:
+                metric_records.append(
+                    (str(rec.get("metric_name") or "metric_value"), rec["metric_value"])
+                )
+            elif "deterministic_correct" in rec:
+                metric_records.append(
+                    (
+                        "deterministic_accuracy",
+                        float(bool(rec["deterministic_correct"])),
+                    )
+                )
+
+        if metric_records:
+            metric_names = {name for name, _ in metric_records}
             if len(metric_names) > 1:
                 raise ValueError(
                     f"Mixed metric definitions in {path}: {sorted(metric_names)}"
                 )
             metric_name = next(iter(metric_names), "metric_value")
             result["metric_name"] = metric_name
+            metric_values = [value for _, value in metric_records]
             result["metric_mean"] = round(float(np.mean(metric_values)), 6)
             result["metric_std"] = round(float(np.std(metric_values)), 6)
         if any("chosen" in rec for rec in records):
@@ -2189,6 +2410,7 @@ def parse_args():
             "sycophancy_triviaqa",
             "jailbreak",
             "jailbreak_benign",
+            "triviaqa_bridge",
         ],
     )
     p.add_argument(
@@ -2266,6 +2488,20 @@ def parse_args():
     )
     # Sycophancy-specific
     p.add_argument("--sycophancy_data", type=str, default=DEFAULT_SYCOPHANCY_DATA)
+    # TriviaQA Bridge-specific
+    p.add_argument(
+        "--triviaqa_bridge_manifest",
+        type=str,
+        default=None,
+        help="Path to TriviaQA bridge manifest JSON (list of QID strings). "
+        "Required for --benchmark triviaqa_bridge.",
+    )
+    p.add_argument(
+        "--triviaqa_bridge_parquet",
+        type=str,
+        default="data/TriviaQA/rc.nocontext/validation-00000-of-00001.parquet",
+        help="Path to TriviaQA rc.nocontext validation parquet.",
+    )
     # Jailbreak-specific
     p.add_argument(
         "--jailbreak_source",
@@ -2614,6 +2850,16 @@ def main():
                 args.sycophancy_data, max_samples=args.max_samples or 500
             )
             run_fn = run_sycophancy_triviaqa
+        elif args.benchmark == "triviaqa_bridge":
+            if not args.triviaqa_bridge_manifest:
+                raise ValueError(
+                    "--benchmark triviaqa_bridge requires --triviaqa_bridge_manifest"
+                )
+            samples = load_triviaqa_bridge(
+                args.triviaqa_bridge_manifest,
+                args.triviaqa_bridge_parquet,
+            )
+            run_fn = run_triviaqa_bridge
         elif args.benchmark in ("jailbreak", "jailbreak_benign"):
             split = "benign" if args.benchmark == "jailbreak_benign" else "harmful"
             samples = load_jailbreak(
@@ -2726,6 +2972,11 @@ def main():
             for s in effective_samples:
                 msgs = [{"role": "user", "content": s["question"]}]
                 prompt_cache[s["id"]] = tokenize_chat(tokenizer, msgs)
+        elif args.benchmark == "triviaqa_bridge":
+            for s in effective_samples:
+                prompt = _triviaqa_bridge_prompt(s)
+                msgs = [{"role": "user", "content": prompt}]
+                prompt_cache[s["id"]] = tokenize_chat(tokenizer, msgs)
         elif args.benchmark in ("jailbreak", "jailbreak_benign"):
             for s in effective_samples:
                 msgs = [{"role": "user", "content": s["full_prompt"]}]
@@ -2778,7 +3029,13 @@ def main():
 
         # Aggregate results
         print(f"\n{'=' * 60}")
-        if args.benchmark in {"falseqa", "simpleqa", "jailbreak", "jailbreak_benign"}:
+        if args.benchmark in {
+            "falseqa",
+            "simpleqa",
+            "jailbreak",
+            "jailbreak_benign",
+            "triviaqa_bridge",
+        }:
             print("Inference Summary (Judge-Based Metrics Pending)")
         else:
             print("Results Summary")
@@ -2825,12 +3082,26 @@ def main():
             summary["simpleqa_prompt_style"] = args.simpleqa_prompt_style
         elif args.benchmark == "truthfulqa_mc":
             summary["truthfulqa_variant"] = args.truthfulqa_variant
-        if args.benchmark in {"falseqa", "simpleqa", "jailbreak", "jailbreak_benign"}:
+        if args.benchmark in {
+            "falseqa",
+            "simpleqa",
+            "jailbreak",
+            "jailbreak_benign",
+            "triviaqa_bridge",
+        }:
             summary["judge_required"] = True
+        if args.benchmark == "triviaqa_bridge":
+            summary["triviaqa_bridge_manifest"] = args.triviaqa_bridge_manifest
         with open(summary_path, "w") as f:
             json.dump(summary, f, indent=2)
         print(f"\nSaved results to {summary_path}")
-        if args.benchmark in {"falseqa", "simpleqa", "jailbreak", "jailbreak_benign"}:
+        if args.benchmark in {
+            "falseqa",
+            "simpleqa",
+            "jailbreak",
+            "jailbreak_benign",
+            "triviaqa_bridge",
+        }:
             print(
                 "Note: compliance metrics for this benchmark are only final after "
                 "scripts/evaluate_intervention.py writes judge labels."
