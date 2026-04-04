@@ -33,9 +33,10 @@ ignore-names = [
 
 [tool.ty.environment]
 python = "../.venv"
+extra-paths = ["scripts", "scripts/infra"]
 
 [tool.ty.src]
-include = ["scripts"]
+include = ["scripts", "tests"]
 
 [dependency-groups]
 dev = [
