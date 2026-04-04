@@ -36,6 +36,7 @@ data/**/activations_sae/
 data/**/activations_sae*/
 data/**/investigation_*/
 models/
+data/benchmarks/facts_grounding_examples.csv
 data/benchmarks/BioASQ-training*.zip
 data/benchmarks/BioASQ-training*/
 data/benchmarks/bioasq*.parquet

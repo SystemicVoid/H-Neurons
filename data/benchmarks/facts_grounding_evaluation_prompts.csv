@@ -1,0 +1,282 @@
+evaluation_method,evaluation_prompt
+response_level,"Your task is to check if the Response is accurate to the Evidence.
+Generate 'Accurate' if the Response is accurate when verified according to the Evidence, or 'Inaccurate' if the Response is inaccurate (contradicts the evidence) or cannot be verified.
+
+**Query**:\n\n{{user_request}}\n\n**End of Query**\n
+**Evidence**\n\n{{context_document}}\n\n**End of Evidence**\n
+**Response**:\n\n{{response}}\n\n**End of Response**\n
+Let's think step-by-step."
+json_alt,"You are a helpful and harmless AI assistant. You will be provided with a textual context and a model-generated response.
+Your task is to analyze the response sentence by sentence and classify each sentence according to its relationship with the provided context.
+
+**Instructions:**
+
+1. **Decompose the response into individual sentences.**
+2. **For each sentence, assign one of the following labels:**
+    * **`supported`**: The sentence is entailed by the given context.  Provide a supporting excerpt from the context.
+    * **`unsupported`**: The sentence is not entailed by the given context. Provide an excerpt that is close but does not fully support the sentence.
+    * **`contradictory`**: The sentence is falsified by the given context. Provide a contradicting excerpt from the context.
+    * **`no_rad`**: The sentence does not require factual attribution (e.g., opinions, greetings, questions, disclaimers).  No excerpt is needed for this label.
+
+3. **For each label, provide a short rationale explaining your decision.**  The rationale should be separate from the excerpt.
+
+**Input Format:**
+
+The input will consist of two parts, clearly separated:
+
+* **Context:**  The textual context used to generate the response.
+* **Response:** The model-generated response to be analyzed.
+
+**Output Format:**
+
+For each sentence in the response, output a JSON object with the following fields:
+
+* `""sentence""`: The sentence being analyzed.
+* `""label""`: One of `supported`, `unsupported`, `contradictory`, or `no_rad`.
+* `""rationale""`: A brief explanation for the assigned label.
+* `""excerpt""`:  A relevant excerpt from the context. Only required for `supported`, `unsupported`, and `contradictory` labels.
+
+Output each JSON object on a new line.
+
+**Example:**
+
+**Input:**
+
+```
+Context: Apples are red fruits. Bananas are yellow fruits.
+
+Response: Apples are red. Bananas are green.  Enjoy your fruit!
+```
+
+**Output:**
+
+{""sentence"": ""Apples are red."", ""label"": ""supported"", ""rationale"": ""The context explicitly states that apples are red."", ""excerpt"": ""Apples are red fruits.""}
+{""sentence"": ""Bananas are green."", ""label"": ""contradictory"", ""rationale"": ""The context states that bananas are yellow, not green."", ""excerpt"": ""Bananas are yellow fruits.""}
+{""sentence"": ""Enjoy your fruit!"", ""label"": ""no_rad"", ""rationale"": ""This is a general expression and does not require factual attribution."", ""excerpt"": null}
+
+**Now, please analyze the following context and response:**
+
+**User Query:**
+{{user_request}}
+
+**Context:**
+{{context_document}}
+
+**Response:**
+{{response}}"
+json,"You are a helpful and harmless AI assistant. You will be provided with a textual context and a model-generated response.
+Your task is to analyze the response sentence by sentence and classify each sentence according to its relationship with the provided context.
+
+**Instructions:**
+
+1. **Decompose the response into individual sentences.**
+2. **For each sentence, assign one of the following labels:**
+    * **`supported`**: The sentence is entailed by the given context.  Provide a supporting excerpt from the context. The supporting except must *fully* entail the sentence. If you need to cite multiple supporting excepts, simply concatenate them.
+    * **`unsupported`**: The sentence is not entailed by the given context. No excerpt is needed for this label.
+    * **`contradictory`**: The sentence is falsified by the given context. Provide a contradicting excerpt from the context.
+    * **`no_rad`**: The sentence does not require factual attribution (e.g., opinions, greetings, questions, disclaimers).  No excerpt is needed for this label.
+3. **For each label, provide a short rationale explaining your decision.**  The rationale should be separate from the excerpt.
+4. **Be very strict with your `supported` and `contradictory` decisions.** Unless you can find straightforward, indisputable evidence excerpts *in the context* that a sentence is `supported` or `contradictory`, consider it `unsupported`. You should not employ world knowledge unless it is truly trivial.
+
+**Input Format:**
+
+The input will consist of two parts, clearly separated:
+
+* **Context:**  The textual context used to generate the response.
+* **Response:** The model-generated response to be analyzed.
+
+**Output Format:**
+
+For each sentence in the response, output a JSON object with the following fields:
+
+* `""sentence""`: The sentence being analyzed.
+* `""label""`: One of `supported`, `unsupported`, `contradictory`, or `no_rad`.
+* `""rationale""`: A brief explanation for the assigned label.
+* `""excerpt""`:  A relevant excerpt from the context. Only required for `supported` and `contradictory` labels.
+
+Output each JSON object on a new line.
+
+**Example:**
+
+**Input:**
+
+```
+Context: Apples are red fruits. Bananas are yellow fruits.
+
+Response: Apples are red. Bananas are green. Bananas are cheaper than apples. Enjoy your fruit!
+```
+
+**Output:**
+
+{""sentence"": ""Apples are red."", ""label"": ""supported"", ""rationale"": ""The context explicitly states that apples are red."", ""excerpt"": ""Apples are red fruits.""}
+{""sentence"": ""Bananas are green."", ""label"": ""contradictory"", ""rationale"": ""The context states that bananas are yellow, not green."", ""excerpt"": ""Bananas are yellow fruits.""}
+{""sentence"": ""Bananas are cheaper than apples."", ""label"": ""unsupported"", ""rationale"": ""The context does not mention the price of bananas or apples."", ""excerpt"": null}
+{""sentence"": ""Enjoy your fruit!"", ""label"": ""no_rad"", ""rationale"": ""This is a general expression and does not require factual attribution."", ""excerpt"": null}
+
+**Now, please analyze the following context and response:**
+
+**User Query:**
+{{user_request}}
+
+**Context:**
+{{context_document}}
+
+**Response:**
+{{response}}"
+json_with_double_check,"Your task is to verify whether a given sentence is entailed by a given context or not. Answer only in YES or NO without any additional text. Do not try to avoid answering, or apologize, or give any answer that isn't simply YES or NO.
+
+**Sentence**
+{{json_dict[""sentence""]}}
+
+**Context**
+{{json_dict[""excerpt""]}}"
+span_level,"Your task is to check if a specific Span is accurate to the Evidence.
+Generate 'Accurate' if the Span is accurate when verified according to the Evidence or when there is nothing to verify in the Span.
+Generate 'Inaccurate' if the Span is inaccurate (contradicts the evidence), or cannot be verified.
+
+**Query**:\n\n{{user_request}}\n\n**End of Query**\n
+**Evidence**\n\n{{context_document}}\n\n**End of Evidence**\n
+**Response**:\n\n{{response}}\n\n**End of Response**\n
+
+You are currently verifying **Span {{ix+1}}** from the Response.
+**Span {{ix+1}}**:\n\n{{span}}\n\n**End of Span {{ix+1}}**\n
+
+Is Span {{ix+1}} accurate or inaccurate when verified according to the Evidence? Point to where in the evidence justifies your answer."
+implicit_span_level,"Your task is to check if the Response is accurate to the Evidence.
+Generate 'Accurate' if the Response is accurate when verified according to the Evidence, or 'Inaccurate' if the Response is inaccurate (contradicts the evidence) or cannot be verified.
+
+**Query**:\n\n{{user_request}}\n\n**End of Query**\n
+**Evidence**\n\n{{context_document}}\n\n**End of Evidence**\n
+**Response**:\n\n{{response}}\n\n**End of Response**\n
+
+Break down the Response into sentences and classify each one separately, then give the final answer: If even one of the sentences is inaccurate, then the Response is inaccurate.
+
+For example, your output should be of this format:
+Sentence 1: <Sentence 1>
+Sentence 1 label: Accurate/Inaccurate (choose 1)
+Sentence 2: <Sentence 2>
+Sentence 2 label: Accurate/Inaccurate (choose 1)
+Sentence 3: <Sentence 3>
+Sentence 3 label: Accurate/Inaccurate (choose 1)
+[...]
+Final Answer: Accurate/Inaccurate (choose 1)"
+ineligible_responses_filter_with_context,"Your mission is to judge the response from an AI model, the *test* response, calibrating your judgement using a *baseline* response.
+Please use the following rubric criteria to judge the responses:
+
+<START OF RUBRICS>
+Your task is to analyze the test response based on the criterion of ""Instruction Following"". Start your analysis with ""Analysis"".
+
+**Instruction Following**
+Please first list the instructions in the user query.
+In general, an instruction is VERY important if it is specifically asked for in the prompt and deviates from the norm. Please highlight such specific keywords.
+You should also derive the task type from the user query and include the task-specific implied instructions.
+Sometimes, no instruction is available in the user query.
+It is your job to infer if the instruction is to autocomplete the user query or is asking the LLM for follow-ups.
+After listing the instructions, you should rank them in order of importance.
+After that, INDEPENDENTLY check if the test response and the baseline response meet each of the instructions.
+You should itemize, for each instruction, whether the response meets, partially meets, or does not meet the requirement, using reasoning.
+You should start reasoning first before reaching a conclusion about whether the response satisfies the requirement.
+Citing examples while reasoning is preferred.
+
+Reflect on your answer and consider the possibility that you are wrong.
+If you are wrong, explain clearly what needs to be clarified, improved, or changed in the rubric criteria and guidelines.
+
+In the end, express your final verdict as one of the following three json objects:
+
+```json
+{{
+  ""Instruction Following"": ""No Issues""
+}}
+```
+
+```json
+{{
+  ""Instruction Following"": ""Minor Issue(s)""
+}}
+```
+
+```json
+{{
+  ""Instruction Following"": ""Major Issue(s)""
+}}
+```
+
+<END OF RUBRICS>
+
+# Your task
+## User query
+<|begin_of_query|>
+{{full_prompt}}
+<|end_of_query|>
+
+## Test Response:
+<|begin_of_test_response|>
+{{response_a}}
+<|end_of_test_response|>
+
+## Baseline Response:
+<|begin_of_baseline_response|>
+{{response_b}}
+<|end_of_baseline_response|>
+
+Please write your analysis and final verdict for the test response."
+ineligible_responses_filter_no_context,"Your mission is to judge the response from an AI model, the *test* response, calibrating your judgement using a *baseline* response.
+Please use the following rubric criteria to judge the responses:
+
+<START OF RUBRICS>
+Your task is to analyze the test response based on the criterion of ""Instruction Following"". Start your analysis with ""Analysis"".
+
+**Instruction Following**
+Please first list the instructions in the user query.
+In general, an instruction is VERY important if it is specifically asked for in the prompt and deviates from the norm. Please highlight such specific keywords.
+You should also derive the task type from the user query and include the task-specific implied instructions.
+Sometimes, no instruction is available in the user query.
+It is your job to infer if the instruction is to autocomplete the user query or is asking the LLM for follow-ups.
+After listing the instructions, you should rank them in order of importance.
+After that, INDEPENDENTLY check if the test response and the baseline response meet each of the instructions.
+You should itemize, for each instruction, whether the response meets, partially meets, or does not meet the requirement, using reasoning.
+You should start reasoning first before reaching a conclusion about whether the response satisfies the requirement.
+Citing examples while reasoning is preferred.
+
+Reflect on your answer and consider the possibility that you are wrong.
+If you are wrong, explain clearly what needs to be clarified, improved, or changed in the rubric criteria and guidelines.
+
+In the end, express your final verdict as one of the following three json objects:
+
+```json
+{{
+  ""Instruction Following"": ""No Issues""
+}}
+```
+
+```json
+{{
+  ""Instruction Following"": ""Minor Issue(s)""
+}}
+```
+
+```json
+{{
+  ""Instruction Following"": ""Major Issue(s)""
+}}
+```
+
+<END OF RUBRICS>
+
+# Your task
+## User query
+<|begin_of_query|>
+{{user_request}}
+<|end_of_query|>
+
+## Test Response:
+<|begin_of_test_response|>
+{{response_a}}
+<|end_of_test_response|>
+
+## Baseline Response:
+<|begin_of_baseline_response|>
+{{response_b}}
+<|end_of_baseline_response|>
+
+Please write your analysis and final verdict for the test response."
