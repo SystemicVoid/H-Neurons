@@ -1,12 +1,14 @@
 # E2-A TriviaQA Source-Isolated Audit — 2026-04-03
 
-> **Status: canonical source of truth for E2 execution, results, and methodological audit.**
+> **Status: data authority for E2-A (paper-faithful selector overrides).**
+>
+> **Superseded by:** E2-B diagnostic ([2026-04-03-e2b-triviaqa-familydefault-diagnostic.md](./2026-04-03-e2b-triviaqa-familydefault-diagnostic.md)) tested the family-default selectors. Analytical synthesis closing the full TriviaQA transfer lane: [2026-04-04-e2-triviaqa-transfer-synthesis.md](./2026-04-04-e2-triviaqa-transfer-synthesis.md).
 >
 > This report is intentionally split into:
 > 1. **Data (observations only)**
 > 2. **Interpretation (inference from data)**
 >
-> Use this file for E2 conclusions. Keep other notes as links back to this report to avoid drift.
+> Use this file for E2-A data. Use the synthesis for E2 conclusions.
 
 ## Source Hierarchy
 

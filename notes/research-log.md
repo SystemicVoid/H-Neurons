@@ -2,11 +2,39 @@
 
 ---
 
-## 2026-04-03 (provisional — E2-B overnight results pending)
+## 2026-04-04
 
 ### What I did
 
-Audited the E2-A (TriviaQA source-isolated) pipeline results: [2026-04-02-e2-triviaqa-source-isolated-audit.md](./act3-reports/2026-04-02-e2-triviaqa-source-isolated-audit.md). Built E2-B diagnostic pipeline and report script for the family-default selector test.
+Conducted a full scientific review of the E2 TriviaQA transfer investigation (E2-A + E2-B) and wrote the closure synthesis: [2026-04-04-e2-triviaqa-transfer-synthesis.md](./act3-reports/2026-04-04-e2-triviaqa-transfer-synthesis.md). Cross-validated all numbers from the auto-generated E2-B diagnostic against the JSON data artifacts. Verified classification logic against actual inputs. Updated E2-A and E2-B data reports with cross-references. Added the synthesis link to the sprint D4 status.
+
+### What happened
+
+The review confirmed the `wrong_source_still_likely` classification and found no errors in the pipeline output. The key analytical contributions beyond the auto-generated reports:
+
+1. **Calibration overfitting is the sharpest signal.** Both E2 variants show calibration-to-held-out collapse (E2-B: +6.2 pp → +0.0 pp; E2-A: +3.7 pp → -0.9 pp), while E0 replicates (cal MC1 0.370, held-out +6.3 pp). This is the clearest evidence that the TriviaQA signal is absent, not just weak.
+
+2. **Selector choice is second-order to data source.** The E2-A vs E2-B comparison changed K from 40→8, ranking metric, and position policy, but moved held-out MC1 by at most 0.92 pp (not significant). The E0 vs E2-B comparison (same pipeline, different data) shows a 6.26 pp gap. Data source dominates.
+
+3. **The MC2 near-miss (+1.46 pp, CI [-0.11, +3.02]) is not evidence of signal.** It would not survive multiple comparison correction across ~13 pairwise comparisons. MC1 showing exactly zero confirms no behaviorally meaningful change.
+
+4. **The E2-B vs E2-A head overlap is paradoxically informative.** Jaccard 0.043 but Spearman ρ 0.914 means the two selector policies agree on which heads are good (nearly identical ranking) but disagree on how many to include (K=8 vs K=40). The directions are identical where heads overlap (cosine 1.000). Selector choice changes K thresholds, not quality ordering.
+
+### What was learned
+
+TriviaQA-sourced mass-mean ITI does not work on Gemma-3-4B-IT because the probes are weaker (AUROC 0.75 vs 0.82) and the directions do not capture TruthfulQA-relevant representations. The "truthfulness direction" is dataset-specific in this model, not universal. This constraints the claims D8 can make about ITI mechanism.
+
+### What I will do next
+
+Shift to D5 (externality audit) or D7 (causal pilot) per the sprint priority order.
+
+---
+
+## 2026-04-03
+
+### What I did
+
+Audited the E2-A (TriviaQA source-isolated) pipeline results: [2026-04-02-e2-triviaqa-source-isolated-audit.md](./act3-reports/2026-04-02-e2-triviaqa-source-isolated-audit.md). Built and ran E2-B diagnostic pipeline (family-default selectors) with two frozen comparator sidecars: [2026-04-03-e2b-triviaqa-familydefault-diagnostic.md](./act3-reports/2026-04-03-e2b-triviaqa-familydefault-diagnostic.md).
 
 ### What happened
 
@@ -14,7 +42,23 @@ Audited the E2-A (TriviaQA source-isolated) pipeline results: [2026-04-02-e2-tri
 
 One structurally interesting finding: E2 and E0 probes agree on which heads matter (Spearman ρ = 0.543 on 272 heads) but disagree on direction (mean cosine = -0.163 on 4 shared selected heads). Preliminary — n=4 is too small — but suggestive that "truthfulness" is not unitary at the head level in this model.
 
-**Key open question:** was E2-A's null caused by paper-faithful selectors (val_accuracy + last_answer_token) or by the TriviaQA source itself? E2-B (AUROC + all_answer_positions) is built and ready to run; will update after overnight results.
+**E2-B confirms `wrong_source_still_likely`.** Removing selector overrides (AUROC + all_answer_positions instead of val_accuracy + last_answer_token) changes the artifact substantially — only 2/46 selected heads overlap (Jaccard 0.043), locked config shifts from K=40 to K=8 — but does not rescue the intervention. Key results on held-out n=655:
+
+- Within E2-B (K=8, α=6.0 vs α=0): MC1 +0.00 pp [-1.98, +1.98], MC2 +1.46 pp [-0.11, +3.02]
+- E2-B vs E2-A (headline diagnostic): MC1 +0.92 pp [-1.37, +3.21] — CI includes zero
+- Sidecar A (E2-B artifact @ K=40, α=6.0 vs E2-A): MC1 -0.92 pp [-2.75, +0.92] — artifact change alone is null
+- Sidecar B (K=16 vs K=40 on E2-B artifact): MC1 +0.76 pp [-1.22, +2.75] — compact-K is not materially better
+- SimpleQA: compliance +0.00 pp [-3.00, +3.00] — dead flat
+
+All four artifact SHA256 hashes identical (3231a345...), confirming source-isolation assumption. March 30 artifact sanity check passed (5/5 top heads match). The calibration signal (+6.2 pp on n=81 at K=8, α=6.0) was stronger than E2-A's, but still did not survive held-out evaluation.
+
+### What was learned
+
+The E2-A null was not a selector problem. Both selector policies produce inert interventions from TriviaQA-sourced mass-mean directions on Gemma-3-4B-IT. The TriviaQA directions occupy a different subspace from TruthfulQA directions (E0 Spearman ρ = 0.527, E1 ρ = 0.366) and that subspace does not engage TruthfulQA-relevant representations. E3 gate remains not met. Three-variant evidence (E0 positive, E1 partial, E2 null under both selector policies) closes the TriviaQA-transfer ITI lane for this model.
+
+### What I will do next
+
+Accept the three-variant evidence and shift to D5 (externality audit) or D7 (causal head selection). No further TriviaQA ITI variants are warranted.
 
 ---
 
