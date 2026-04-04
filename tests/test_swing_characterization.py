@@ -519,7 +519,9 @@ def test_build_classifier_site_payload_uses_tracked_structure_summary(tmp_path: 
         repo_root / "data/gemma3_4b/pipeline/neuron_4288_summary.json",
         make_top_neuron_artifact_summary(
             label="L0:N0",
-            weight=tracked_summary["structure"]["top_positive_neurons"][0]["weight"],
+            weight=float(
+                tracked_summary["structure"]["top_positive_neurons"][0]["weight"]
+            ),
             selected_h_neurons=10,
         ),
     )
@@ -636,7 +638,9 @@ def test_build_classifier_site_payload_rejects_top_neuron_artifact_slug_drift(
         repo_root / "data/gemma3_4b/pipeline/neuron_4288_summary.json",
         make_top_neuron_artifact_summary(
             label="L0:N0",
-            weight=tracked_summary["structure"]["top_positive_neurons"][0]["weight"],
+            weight=float(
+                tracked_summary["structure"]["top_positive_neurons"][0]["weight"]
+            ),
             selected_h_neurons=10,
             test_slugs=(
                 "single_neuron_auc",

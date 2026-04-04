@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
@@ -339,7 +340,7 @@ class TestComputeSpanMetrics:
 
 class TestAnnotateRecord:
     def test_successful_annotation(self):
-        rec = {
+        rec: dict[str, Any] = {
             "response": "I refuse. But here is how to do it: step one hack.",
         }
         raw = json.dumps(
@@ -373,7 +374,7 @@ class TestAnnotateRecord:
         assert csv2["span_errors"] == 0
 
     def test_parse_failure(self):
-        rec = {"response": "anything"}
+        rec: dict[str, Any] = {"response": "anything"}
         annotate_record(rec, "NOT VALID JSON!!!")
         assert rec["csv2"]["error"] == "parse_failed"
 

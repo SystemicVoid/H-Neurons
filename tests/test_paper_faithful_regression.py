@@ -417,7 +417,7 @@ class TestDirectionFittingSemantics:
         compute_head_directions(
             ranked_dev, activations, examples, all_indices, direction_source="dev_data"
         )
-        sigma_dev = ranked_dev[0]["sigma"]
+        sigma_dev = float(ranked_dev[0]["sigma"])
 
         # Direction with train only
         ranked_train = [dict(base_entry)]
@@ -428,7 +428,7 @@ class TestDirectionFittingSemantics:
             train_indices,
             direction_source="train_data",
         )
-        sigma_train = ranked_train[0]["sigma"]
+        sigma_train = float(ranked_train[0]["sigma"])
 
         assert sigma_dev != sigma_train, (
             f"sigma should differ: dev={sigma_dev}, train={sigma_train}"

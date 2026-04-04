@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import importlib
 import sys
@@ -61,6 +62,12 @@ class TestNormalizeAnswer:
 
     def test_curly_quotes_stripped(self):
         assert normalize_answer("\u2018quoted\u2019") == "quoted"
+
+    def test_curly_double_quotes_stripped(self):
+        assert normalize_answer("\u201cIn God We Trust\u201d") == "in god we trust"
+
+    def test_em_dash_stripped(self):
+        assert normalize_answer("foo\u2014bar") == "foo bar"
 
     def test_empty_string(self):
         assert normalize_answer("") == ""
@@ -456,7 +463,7 @@ class TestDirectionOutputDir:
         assert len({base, different_mode, different_layers, different_path}) == 4
 
     def test_resolve_output_dir_uses_config_specific_direction_default(self):
-        args = SimpleNamespace(
+        args = argparse.Namespace(
             output_dir=None,
             intervention_mode="direction",
             benchmark="jailbreak",
@@ -472,7 +479,7 @@ class TestDirectionOutputDir:
         assert "direction_ablate_layers-20-21-22" in output_dir
 
     def test_resolve_output_dir_requires_direction_path_for_default(self):
-        args = SimpleNamespace(
+        args = argparse.Namespace(
             output_dir=None,
             intervention_mode="direction",
             benchmark="jailbreak",
@@ -552,7 +559,7 @@ class TestDirectionOutputDir:
         )
 
     def test_resolve_output_dir_uses_config_specific_iti_default(self):
-        args = SimpleNamespace(
+        args = argparse.Namespace(
             output_dir=None,
             intervention_mode="iti_head",
             benchmark="faitheval",
@@ -575,7 +582,7 @@ class TestDirectionOutputDir:
         assert "scope-full-decode" in output_dir
 
     def test_resolve_output_dir_requires_iti_path_for_default(self):
-        args = SimpleNamespace(
+        args = argparse.Namespace(
             output_dir=None,
             intervention_mode="iti_head",
             benchmark="faitheval",
@@ -622,9 +629,9 @@ class TestDirectionOutputDir:
             direction_layers=None,
         )
 
-        mc1_dir = resolve_output_dir(SimpleNamespace(**common_args))
+        mc1_dir = resolve_output_dir(argparse.Namespace(**common_args))
         mc2_dir = resolve_output_dir(
-            SimpleNamespace(**{**common_args, "truthfulqa_variant": "mc2"})
+            argparse.Namespace(**{**common_args, "truthfulqa_variant": "mc2"})
         )
 
         assert mc1_dir != mc2_dir

@@ -29,7 +29,7 @@ from spike_sae_feasibility import inspect_sae
 class TestSelectTokenActivations:
     def test_answer_tokens_returns_answer_slice(self):
         activations = torch.arange(6, dtype=torch.float32).view(1, 6, 1)
-        regions = {
+        regions: dict[str, tuple[int, int] | None] = {
             "input": (0, 2),
             "output": (2, 6),
             "answer_tokens": (3, 5),
@@ -42,7 +42,7 @@ class TestSelectTokenActivations:
 
     def test_all_except_answer_tokens_returns_complement(self):
         activations = torch.arange(6, dtype=torch.float32).view(1, 6, 1)
-        regions = {
+        regions: dict[str, tuple[int, int] | None] = {
             "input": (0, 2),
             "output": (2, 6),
             "answer_tokens": (2, 4),
@@ -172,7 +172,7 @@ class FakeSAEClass:
 class TestSpikeSaeFeasibility:
     def test_inspect_sae_supports_single_object_api(self, monkeypatch):
         fake_module = types.ModuleType("sae_lens")
-        fake_module.SAE = FakeSAEClass
+        setattr(fake_module, "SAE", FakeSAEClass)
         monkeypatch.setitem(sys.modules, "sae_lens", fake_module)
 
         sae, cfg = inspect_sae("release", "layer_0_width_16k_l0_small")

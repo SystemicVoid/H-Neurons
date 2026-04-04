@@ -176,8 +176,8 @@ class TestPairedIdParity:
             )
 
     def test_canonical_mc_paired_rejects_mismatched_ids(self):
-        baseline_map = {"f0:q1": True, "f0:q2": False}
-        compare_map = {"f0:q1": True}
+        baseline_map: dict[str, float | bool] = {"f0:q1": True, "f0:q2": False}
+        compare_map: dict[str, float | bool] = {"f0:q1": True}
         with pytest.raises(ValueError, match="paired sample IDs must match exactly"):
             report_e2_canonical._paired_delta_from_maps(
                 baseline_map,

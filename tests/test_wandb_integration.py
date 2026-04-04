@@ -176,6 +176,7 @@ class TestWandbHelpers:
         )
 
         assert run is fake_wandb.run
+        assert fake_wandb.init_kwargs is not None
         assert fake_wandb.init_kwargs["job_type"] == "collect_responses"
         assert fake_wandb.init_kwargs["group"] == "collect_responses:triviaqa"
         assert fake_wandb.init_kwargs["config"] == {
@@ -574,6 +575,8 @@ class TestRunProvenance:
         )
         finish_run_provenance(second, "completed")
 
+        assert first is not None
+        assert second is not None
         assert first["path"].exists()
         assert second["path"].exists()
         assert first["path"] != second["path"]

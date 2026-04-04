@@ -227,7 +227,7 @@ def _summary_with_gate_metrics(
     excluded_jailbreak_canonical_ci: tuple[float, float] = (-0.1, 0.1),
     excluded_jailbreak_subspace_ci: tuple[float, float] = (-0.1, 0.1),
 ) -> dict[str, dict]:
-    def metric(ci: tuple[float, float]) -> dict[str, dict[str, float]]:
+    def metric(ci: tuple[float, float]) -> dict[str, float | dict[str, float]]:
         lower, upper = ci
         return {
             "estimate": (lower + upper) / 2.0,
