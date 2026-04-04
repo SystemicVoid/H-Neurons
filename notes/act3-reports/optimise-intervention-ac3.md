@@ -1,15 +1,17 @@
 # Optimising The Truthfulness Intervention — Act 3 Strategy
 
-**Date:** 2026-04-01  
-**Status:** Revised through the 2026-04-02 E1 synthesis (repo audit, raw-data checks, code-path audit, literature review, random-head specificity control, E1 execution, and cross-report tightening)
+**Date:** 2026-04-01
+**Status:** Revised through 2026-04-04 Bridge Phase 2 dev results. Stage 2 artifact lane closed (E1 tradeoff, E2 null, E3 gate not met). Stage 3 bridge benchmark built and validated — E0 ITI informative null on generation. Chooser gate (§5.7) definitively not met. D5/D7 are the live priorities.
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)  
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
-> This file is the strategy note for "what to try next."  
+> This file is the strategy note for "what to try next."
 > Current result facts live in:
 > - [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md)
 > - [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
 > - [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
+> - [2026-04-04-e2-triviaqa-transfer-synthesis.md](./2026-04-04-e2-triviaqa-transfer-synthesis.md)
+> - [2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md)
 > - [act3-sprint.md](../act3-sprint.md)
 > - [measurement-blueprint.md](../measurement-blueprint.md)
 
@@ -46,7 +48,7 @@ From raw held-out TruthfulQA MC runs summarized in
 So the project no longer has an "is there any truth signal at all?" problem.
 On answer selection, D4 is already the better intervention family.
 
-### 1.2 D4 still fails on generation, even after prompt repair
+### 1.2 D4 still fails on generation — now confirmed on two benchmarks
 
 From the forced-commitment SimpleQA rerun in
 [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md):
@@ -59,6 +61,23 @@ From the forced-commitment SimpleQA rerun in
 
 Removing the explicit `"I don't know."` escape hatch helped diagnose the
 surface form, but it did **not** rescue generation usefulness.
+
+From the TriviaQA Bridge Phase 2 dev run in
+[2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md):
+
+- Baseline (α=1.0, n=100): adjudicated `47.0%` CI [37.5%, 56.7%]
+- ITI α=4.0: adjudicated `46.0%`, Δ = `-1.0 pp` CI [-6%, +4%]
+- ITI α=8.0: adjudicated `40.0%`, Δ = `-7.0 pp` CI [-14%, 0%]
+- Flip asymmetry at α=8: 10 right→wrong vs 3 wrong→right (McNemar p=0.096)
+- Dominant failure mode: **confident wrong substitution** (5/10 right→wrong
+  flips replace correct entity with plausible-but-wrong alternative)
+- NOT_ATTEMPTED growth: 1 → 2 → 3 (evasion is secondary, not primary)
+
+The bridge result confirms on a higher-headroom benchmark (47% vs SimpleQA 4.6%)
+that the generation failure is not a floor effect. E0 ITI genuinely cannot improve
+factual generation — the truthfulness direction redistributes probability mass among
+the model's existing candidates, which helps when the wrong candidate is a
+TruthfulQA-style misconception but hurts when the model simply lacks the knowledge.
 
 ### 1.3 The current ITI implementation is already decode-only
 
@@ -82,23 +101,26 @@ steered**:
 - first few generated tokens only
 - some other short prefix
 
-### 1.4 The repo does not yet justify a mixed-source hero shot
+### 1.4 Mixed-source and transfer paths are now closed
 
 What exists locally:
 
-- a clean paper-faithful TruthfulQA ITI artifact
-- a TriviaQA-based ITI artifact
+- a clean paper-faithful TruthfulQA ITI artifact (E0: MC winner)
+- a TriviaQA-based ITI artifact (E2: null on both selection and generation)
 - evidence that the TriviaQA artifact selects different heads/positions:
   [iti_audit_baseline.md](./iti_audit_baseline.md)
 
-What does **not** yet exist cleanly:
+What has been tested and failed:
 
-- a valid cross-benchmark win from `iti_triviaqa_transfer`
-- any valid mixed-source ITI artifact result
-- evidence that a better direction alone fixes the generation failure mode
+- **E2-A** (TriviaQA source-isolated): near-inert on TruthfulQA MC and SimpleQA
+- **E2-B** (TriviaQA family-default): calibration overfitting, held-out null
+- **E0 on TriviaQA bridge**: informative null on generation (Phase 2 dev)
+- **E3 gate**: not met (no complementary profile between E1 and E2)
 
-So mixed-source remains a live bet, but it is not the best-supported **first**
-bet.
+The transfer/artifact-improvement lane is exhausted. The remaining value is in
+D5 (externality audit) and D7 (causal head selection), not further artifact
+iteration. See [E2 synthesis](./2026-04-04-e2-triviaqa-transfer-synthesis.md)
+and [Bridge Phase 2 results](./2026-04-04-bridge-phase2-dev-results.md).
 
 ### 1.5 One stale reporting edge needed correction
 
@@ -506,7 +528,14 @@ results, not a committed experiment.
 - Calibration signal (+3.70 pp on 81 questions) did not replicate in the
   655-question held-out evaluation. All four extraction artifacts are
   bit-for-bit identical (expected for source-isolated families).
-- **Operational next step: evaluate E3 conditional gate.**
+- E2-B (family-default selectors) subsequently tested and also null:
+  [2026-04-03-e2b-triviaqa-familydefault-diagnostic.md](./2026-04-03-e2b-triviaqa-familydefault-diagnostic.md).
+  Calibration overfitting (+6.2pp → +0.0pp held-out). Classification:
+  `wrong_source_still_likely`.
+- Full transfer synthesis:
+  [2026-04-04-e2-triviaqa-transfer-synthesis.md](./2026-04-04-e2-triviaqa-transfer-synthesis.md).
+- **TriviaQA transfer lane closed: both selector policies null.**
+- **Operational next step: evaluate E3 conditional gate.** → **Gate not met (see §5.5).**
 
 ### 5.5 E3 third and conditional: mixed-source
 
@@ -555,18 +584,26 @@ Before any Stage B chooser / adaptive-α campaign:
 - add a held-out open-ended factual QA benchmark with more headroom
 - likely candidates: open-ended TriviaQA or NQ
 
-**Why later, not now**
+**Status (2026-04-04) — BRIDGE BENCHMARK BUILT AND VALIDATED**
 
-- the repo does not yet have a production-ready judged open-ended TriviaQA/NQ
-  intervention harness (Did we not build one for h-neurons precisely ?)
-- building that harness before the control/scope tests would slow the highest-ROI
-  uncertainty reduction
+- Benchmark plan:
+  [2026-04-03-bridge-benchmark-plan.md](./2026-04-03-bridge-benchmark-plan.md)
+- Phase 1 (pilot): passed — IT headroom 47.3% adjudicated on 150 questions,
+  grader calibrated (§3.4.1), two-metric policy locked
+- Phase 2 (dev): executed — E0 ITI informative null on 100 questions
+  ([2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md))
+- Phase 3 (test): not yet run — awaiting a candidate intervention that warrants
+  the single-shot 500-question test. Baseline-only run can establish published
+  headroom independently.
+- The bridge benchmark confirmed that the generation failure is not a headroom
+  problem. E0 ITI has 47% baseline headroom to work with — and still cannot
+  improve accuracy. The failure is in the intervention, not the surface.
 
-**Role of each benchmark after that**
+**Role of each benchmark (confirmed)**
 
 - **TruthfulQA MC1**: primary clean answer-selection axis
 - **MC2 truthful mass**: secondary clean axis
-- **Bridge benchmark**: primary development surface for generation usefulness
+- **TriviaQA bridge**: primary development surface for generation usefulness
 - **SimpleQA**: hard OOD stress test, not the sole generation benchmark
 - **FalseQA / FaithEval**: diagnostics, not flagship truthfulness score
 
@@ -585,14 +622,18 @@ Run a small candidate-lattice study only if:
 - the single-vector intervention has a live generation effect on the bridge benchmark
 - oracle best-of-K materially beats the best single α
 
-**Escalation order**
+**Status (2026-04-04) — GATE NOT MET**
+
+The first condition fails: E0 ITI has no live generation effect on the bridge
+benchmark (α=4 flat, α=8 harmful). There is no signal for a chooser to amplify.
+Chooser/adaptive-α work is definitively deprioritized.
+
+**Escalation order** (retained for reference if a future intervention creates
+signal):
 
 1. max-confidence chooser
 2. simple linear verifier
 3. LSTM-style verifier only if the simpler methods leave real oracle gap
-
-This matches both the literature and best practice: start with the simplest
-thing that could work.
 
 ---
 
@@ -650,31 +691,37 @@ Kill or pause a branch if:
 - `E1` and `E2` both fail under the best scope
 - bridge-benchmark oracle headroom is too small for chooser work
 
-That is how we avoid spending the sprint on elegant but low-yield complexity.
+**Status (2026-04-04):** conditions 3 and 4 are now met. E1 shows a tradeoff
+(MC↓ vs paper, SimpleQA-behavior↑). E2 is null on both selector policies.
+The bridge benchmark has ample headroom (47%) but E0 ITI shows no signal to
+amplify. The artifact-improvement and chooser branches are both stopped.
+The remaining active branches are D5 (externality audit) and D7 (causal pilot).
 
 ---
 
 ## 7. Concrete Priority Order
 
-1. Forced-commitment random-head control completed:
+1. ~~Forced-commitment random-head control~~ **done:**
    [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
-2. Decode-scope Gate 1 completed:
+2. ~~Decode-scope Gate 1~~ **done:**
    [2026-04-01-decode-scope-gate1-audit.md](./2026-04-01-decode-scope-gate1-audit.md)
-3. Decode-scope SimpleQA pilot generation review completed:
+3. ~~Decode-scope SimpleQA pilot generation review~~ **done:**
    [2026-04-01-decode-scope-simpleqa-pilot-audit.md](./2026-04-01-decode-scope-simpleqa-pilot-audit.md)
-4. Decode-scope batch judging completed — scope `first_3_tokens` locked:
+4. ~~Decode-scope batch judging — scope `first_3_tokens` locked~~ **done:**
    [2026-04-02-decode-scope-simpleqa-judge-results.md](./2026-04-02-decode-scope-simpleqa-judge-results.md)
-5. E1 executed and audited:
+5. ~~E1 (TruthfulQA-modernized)~~ **done (tradeoff, dominated):**
    [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
-   (E1 diagnosed a structured MC↓ / SimpleQA-behavior↑ tradeoff vs paper-faithful; informative but dominated for the sprint objective).
-6. **Run `E2` (TriviaQA-only) under `first_3_tokens`.** ← next priority
-7. Run `E3` (mixed-source) only if `E1` and `E2` create a real complementarity
-   story.
-8. Build the bridge generation benchmark (open-domain TriviaQA or NQ) before
-   any chooser/LITO-style work.
-9. Run chooser work only if the bridge benchmark shows real oracle headroom.
-10. Escalate to a small causal head-selection pilot if probe-selected variants
-    still behave like truth-flavored refusal after E1–E3.
+6. ~~E2 (TriviaQA-only)~~ **done (null on both selector policies):**
+   [2026-04-04-e2-triviaqa-transfer-synthesis.md](./2026-04-04-e2-triviaqa-transfer-synthesis.md)
+7. ~~E3 (mixed-source)~~ **gate not met (no complementarity).** Deprioritized.
+8. ~~Build the bridge generation benchmark~~ **done (TriviaQA bridge, 3-stage):**
+   [2026-04-03-bridge-benchmark-plan.md](./2026-04-03-bridge-benchmark-plan.md)
+9. ~~Bridge Phase 2 dev validation~~ **done (E0 ITI informative null):**
+   [2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md)
+10. ~~Chooser work~~ **gate not met** (no live generation signal to amplify).
+11. **Run externality audit (D5).** ← next priority
+12. **Run causal head-selection pilot (D7).**
+13. **Final synthesis (D8).**
 
 ---
 

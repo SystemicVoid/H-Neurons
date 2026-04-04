@@ -6,10 +6,13 @@
 
 - Execution and priority order: [act3-sprint.md](./act3-sprint.md) ← you are here
 - Narrative log (decisions, surprises, reasoning): [research-log.md](./research-log.md)
-- Current rerun audit: [2026-04-01-priority-reruns-audit.md](./act3-reports/2026-04-01-priority-reruns-audit.md)
-- Current D4 generation specificity audit: [2026-04-01-random-head-specificity-audit.md](./act3-reports/2026-04-01-random-head-specificity-audit.md)
+- Strategy note (what to try next, stop/go gates): [optimise-intervention-ac3.md](./act3-reports/optimise-intervention-ac3.md)
+- TriviaQA bridge benchmark plan: [2026-04-03-bridge-benchmark-plan.md](./act3-reports/2026-04-03-bridge-benchmark-plan.md)
+- Bridge Phase 2 dev results: [2026-04-04-bridge-phase2-dev-results.md](./act3-reports/2026-04-04-bridge-phase2-dev-results.md)
 - E2 TriviaQA transfer closure: [2026-04-04-e2-triviaqa-transfer-synthesis.md](./act3-reports/2026-04-04-e2-triviaqa-transfer-synthesis.md)
 - Current E1 audit (canonical): [2026-04-02-e1-truthfulqa-modernized-audit.md](./act3-reports/2026-04-02-e1-truthfulqa-modernized-audit.md)
+- D4 rerun audit: [2026-04-01-priority-reruns-audit.md](./act3-reports/2026-04-01-priority-reruns-audit.md)
+- D4 specificity audit: [2026-04-01-random-head-specificity-audit.md](./act3-reports/2026-04-01-random-head-specificity-audit.md)
 - Evaluation and audit contract: [measurement-blueprint.md](./measurement-blueprint.md)
 - Plot registry (site data file pointers): [plot-registry.md](./plot-registry.md)
 - Strategic synthesis: [gpt-act3-deep-research-report.md](./gpt-act3-deep-research-report.md)
@@ -38,25 +41,27 @@ Act 3 is a final-sprint comparative program: use the H-neuron work as the refere
 | D3 | Baseline B: refusal-direction intervention | Diagnostic comparator for safety geometry and externality explanation, not the presumed best hallucination mitigator. Tests what fraction of H-neuron effects are attributable to refusal-circuit overlap. | **partial / decision-complete on FaithEval** — [2026-03-29-d3-faitheval-refusal-direction.md](./act3-reports/2026-03-29-d3-faitheval-refusal-direction.md) | Do not broaden D3. Carry β=0.02 only as one scoped D5 externality-check row if needed. |
 | D3.5 | Refusal-overlap analysis for Baseline A | Cheap once D2 is done; informs whether D4 should change approach | **done / robustness-downgraded** — [week3-log.md §7](./act3-reports/week3-log.md); full audit: `data/gemma3_4b/intervention/refusal_overlap/refusal_overlap_audit.md` | Do **not** orthogonalize D4 yet. Treat refusal overlap as a live hypothesis; targeted layer-33 / top-neuron robustness pass deferred. |
 | **GATE** | **Decision gate** | If H-neuron overlap with refusal direction is high, D4 may need to target a direction orthogonal to both; if low, proceed as planned | **resolved** — real overlap but layer-33-dominated; robustness insufficient to act on | Proceed with D4 as planned; refusal-orthogonalization conditional on a robustness-confirmed overlap result. |
-| D4 | Baseline C: truthfulness direction baseline | Test whether a direction-level intervention can beat neuron scaling on the task family the project actually cares about | **ITI path active / MC winner / E1 tradeoff / E2 closed (both selectors null) / E3 gate not met** — residual-stream: [2026-03-30-d4-truthfulness-direction.md](./act3-reports/2026-03-30-d4-truthfulness-direction.md); reruns: [2026-04-01-priority-reruns-audit.md](./act3-reports/2026-04-01-priority-reruns-audit.md); specificity control: [2026-04-01-random-head-specificity-audit.md](./act3-reports/2026-04-01-random-head-specificity-audit.md); scope judge results: [2026-04-02-decode-scope-simpleqa-judge-results.md](./act3-reports/2026-04-02-decode-scope-simpleqa-judge-results.md); E1 audit: [2026-04-02-e1-truthfulqa-modernized-audit.md](./act3-reports/2026-04-02-e1-truthfulqa-modernized-audit.md); E2-A audit: [2026-04-02-e2-triviaqa-source-isolated-audit.md](./act3-reports/2026-04-02-e2-triviaqa-source-isolated-audit.md); E2-B diagnostic: [2026-04-03-e2b-triviaqa-familydefault-diagnostic.md](./act3-reports/2026-04-03-e2b-triviaqa-familydefault-diagnostic.md); E2 synthesis: [2026-04-04-e2-triviaqa-transfer-synthesis.md](./act3-reports/2026-04-04-e2-triviaqa-transfer-synthesis.md) | TriviaQA transfer lane closed: both selector policies null, classification `wrong_source_still_likely`. Three-variant evidence accepted (E0 positive, E1 partial, E2 null). Shift to D5/D7. |
-| D5 | Full externality audit | Turn steering safety drift into a first-class result instead of an afterthought | not started | For Baselines A through C, report jailbreak severity drift, capability drift, response-structure shifts, and overlap with refusal geometry |
+| D4 | Baseline C: truthfulness direction baseline | Test whether a direction-level intervention can beat neuron scaling on the task family the project actually cares about | **ITI path active / MC winner / E1 tradeoff / E2 closed / Bridge Phase 2: informative null** — residual-stream: [2026-03-30-d4-truthfulness-direction.md](./act3-reports/2026-03-30-d4-truthfulness-direction.md); reruns: [2026-04-01-priority-reruns-audit.md](./act3-reports/2026-04-01-priority-reruns-audit.md); specificity control: [2026-04-01-random-head-specificity-audit.md](./act3-reports/2026-04-01-random-head-specificity-audit.md); scope judge results: [2026-04-02-decode-scope-simpleqa-judge-results.md](./act3-reports/2026-04-02-decode-scope-simpleqa-judge-results.md); E1 audit: [2026-04-02-e1-truthfulqa-modernized-audit.md](./act3-reports/2026-04-02-e1-truthfulqa-modernized-audit.md); E2-A audit: [2026-04-02-e2-triviaqa-source-isolated-audit.md](./act3-reports/2026-04-02-e2-triviaqa-source-isolated-audit.md); E2-B diagnostic: [2026-04-03-e2b-triviaqa-familydefault-diagnostic.md](./act3-reports/2026-04-03-e2b-triviaqa-familydefault-diagnostic.md); E2 synthesis: [2026-04-04-e2-triviaqa-transfer-synthesis.md](./act3-reports/2026-04-04-e2-triviaqa-transfer-synthesis.md); Bridge Phase 2: [2026-04-04-bridge-phase2-dev-results.md](./act3-reports/2026-04-04-bridge-phase2-dev-results.md) | Bridge dev: E0 ITI null-to-harmful on TriviaQA generation (α=4 Δ=-1pp, α=8 Δ=-7pp p=0.096; dominant failure=confident substitution). Transfer closed on both selection and generation. Shift to D5/D7. |
+| D5 | Full externality audit | Turn steering safety drift into a first-class result instead of an afterthought | **next priority** | For Baselines A through C, report jailbreak severity drift, capability drift, response-structure shifts, and overlap with refusal geometry. D4 bridge results provide a generation-side externality datapoint (verbosity scaling, match-tier drift, NOT_ATTEMPTED growth). |
 | D6 | Refusal-orthogonalized mitigation check | Convert the overlap analysis into a positive safety-aware steering result if possible | not started | Project out the refusal-overlap component from the truthfulness or hallucination vector and compare the before-versus-after tradeoff |
-| D7 | One scoped causal pilot | Validate the critique that correlational selection is not the right intervention selector | not started | Attribution patching (2 fwd + 1 bwd) to rank top-20 attention heads by indirect effect on jailbreak refusal for a 50-prompt contrastive subset; compare top-k heads to L1-probe-selected neurons; success = methods select different components AND causal components change CSV-v2 outcome consistently |
+| D7 | One scoped causal pilot | Validate the critique that correlational selection is not the right intervention selector | **next priority** (can run parallel with D5) | Attribution patching (2 fwd + 1 bwd) to rank top-20 attention heads by indirect effect on jailbreak refusal for a 50-prompt contrastive subset; compare top-k heads to L1-probe-selected neurons; success = methods select different components AND causal components change CSV-v2 outcome consistently. Bridge Phase 2 showed that probe-selected ITI heads reshuffle factual recall without improving it — D7 tests whether causally-selected components behave differently. |
 | D8 | Final synthesis | Close the sprint with a field-useful protocol and comparative claim, not another idea list | not started | Write the result as a steering protocol: graded evaluation, externality audit, comparator suite, and one causal check |
 
 ## Priority Order
 
-1. Enforce the measurement contract (D0).
-2. Infrastructure sprint: contrastive data, direction extraction code, capability battery (D0.5).
-3. Finish Baseline A as the cleaned reference row (D1).
-4. Extract the refusal direction (D2).
-5. Close Baseline B at the current FaithEval diagnostic state; do not broaden D3 without a specific D5 externality reason.
-6. D3.5 complete: keep refusal overlap as a live hypothesis, but do not let the current layer-33-dominated signal redefine D4.
-7. Run Baseline C: truthfulness or hallucination direction (D4).
-8. Add a targeted D3.5 robustness follow-up only if it is cheaper than the next D4 decision it informs.
-9. Run the full externality audit across A, B, and C (D5).
-10. Run the refusal-orthogonalized mitigation check (D6).
-11. Run one scoped causal pilot (D7).
+Completed milestones (1-8) are listed for audit trail; active priorities start at 9.
+
+1. ~~Enforce the measurement contract (D0).~~ **done**
+2. ~~Infrastructure sprint (D0.5).~~ **partial** — IFEval + perplexity remain open.
+3. ~~Finish Baseline A as the cleaned reference row (D1).~~ **partial** — FaithEval + jailbreak done; capability mini-battery remains.
+4. ~~Extract the refusal direction (D2).~~ **done**
+5. ~~Close Baseline B (D3).~~ **decision-complete on FaithEval.**
+6. ~~D3.5 refusal-overlap analysis.~~ **done / robustness-downgraded.**
+7. ~~Run Baseline C: truthfulness direction (D4).~~ **MC winner, generation null.** ITI E0 +6.3pp MC1 but flat-to-harmful on SimpleQA and TriviaQA bridge. Artifact lane (E1 tradeoff, E2 null, E3 gate not met) and chooser lane (no generation signal) both stopped. Bridge benchmark built and validated (Phase 2 complete).
+8. ~~Bridge benchmark Phase 2 dev validation.~~ **done** — E0 ITI informative null. Benchmark ready for Phase 3 when a candidate warrants it.
+9. **Run the full externality audit across A, B, and C (D5).** ← next priority
+10. **Run one scoped causal pilot (D7).** ← next priority (can run in parallel with D5)
+11. Run the refusal-orthogonalized mitigation check (D6) — conditional on D5 findings.
 12. Write the final synthesis (D8).
 
 ## Dataset Status And Caveats
@@ -95,7 +100,7 @@ A steering baseline is not complete until it has all of the following:
 - Negative-weight neuron work is allowed only as a closure experiment after the committed slate is on track. It is not on the critical path.
 - **Sparse detector comparison**: compare the 38-neuron L1 probe as a *detector* against (a) mean-pooled residual-stream features, (b) difference-in-means truthfulness features, (c) top-K attention head features. The point: good detector features are not necessarily good intervention targets. Low cost if D4 contrastive data already exists.
 - **CASAL-style weight baking**: if D4/D6 produce a useful truthfulness steering direction, CASAL (Conditional Activation Steering Amortized into weights) is the cleanest path from "useful direction" to "baked-in model improvement." Out of scope for this sprint.
-- **Head-level ITI as D4 refinement**: if residual-stream truthfulness direction in D4 is weak, implement ITI (Li et al. 2023) with attention-head probing. Requires new hook infrastructure (current codebase only has `down_proj` hooks, no head-output hooks). TransformerLens is available in the parent venv but does not support Gemma-3; use raw HuggingFace hooks if this path is taken.
+- **Head-level ITI as D4 refinement**: ~~if residual-stream truthfulness direction in D4 is weak, implement ITI with attention-head probing.~~ **Done.** Head-level ITI implemented and is the D4 winner on TruthfulQA MC (+6.3pp MC1). However, it does not improve generation on any benchmark tested (SimpleQA: flat-to-harmful; TriviaQA bridge: informative null). The generation failure is a distributional limitation, not a hook-infrastructure gap.
 
 ## Claims To Test
 
@@ -107,7 +112,7 @@ Inherited claims from the deep research report that must be verified against act
 | H-neurons are a noisy proxy for the refusal direction | Deep research report | Untested hypothesis | Cosine similarity between projected 38-neuron residual-stream vector and refusal direction (including PCA subspace) is low (< 0.3); or refusal direction does not reproduce FaithEval compliance effect |
 | FaithEval compliance is mediated by hallucination circuits, not refusal circuits | Implicit in original paper | Untested | Refusal-direction ablation reproduces the FaithEval alpha slope, implying FaithEval compliance is partially a refusal behavior |
 | Direction-level interventions are cleaner than neuron-level on this model | Literature consensus | Untested on Gemma-3-4B-IT | Refusal-direction intervention has wider CIs or smaller effect than H-neurons on matched benchmarks |
-| Residual-stream direction is sufficient for truthfulness intervention (head-level not needed) | Sprint design assumption | **More clearly false.** Head-level ITI (paper-faithful, K=12) improves TruthfulQA MC on the 2-fold held-out eval (+6.3 pp MC1 [95% CI +3.7, +8.9], +7.49 pp MC2 truthful mass [95% CI +5.28, +9.82]). Residual-stream direction has a narrow window (β=0.01) on FaithEval MCQ. Head-level ITI still fails to improve SimpleQA generation even after the escape hatch is removed, and the random-head control shows that this failure is specific to the ranked configuration rather than generic matched-K perturbation. | Decode-scope ablation now tests whether application policy, not intervention family alone, is the main remaining culprit |
+| Residual-stream direction is sufficient for truthfulness intervention (head-level not needed) | Sprint design assumption | **False.** Head-level ITI (paper-faithful, K=12) improves TruthfulQA MC on the 2-fold held-out eval (+6.3 pp MC1, +7.49 pp MC2). But head-level ITI still fails on generation: SimpleQA compliance flat-to-harmful, TriviaQA bridge Δ adj = -1pp (α=4) / -7pp (α=8). The generation failure is not scope (first_3_tokens locked), not headroom (bridge 47%), not source (E2 null) — it is that the ITI truthfulness direction redistributes probability mass among existing candidates without injecting new knowledge. | The remaining question is whether causal head selection (D7) can find components that actually change generation outcomes, rather than just reshuffling |
 | H-neuron overlap with refusal is measurable via single-vector cosine | D3.5 assumption (now corrected) | Corrected in D3.5 | Overlap appears artificially low because projection step was missing; after projection, if overlap is still <0.1 across the PCA refusal subspace, refusal-overlap explanation is genuinely weak |
 
 ## Open Uncertainties
@@ -116,7 +121,7 @@ Inherited claims from the deep research report that must be verified against act
 |---|---|---|---|
 | AdvBench gated on HF — harmful source availability | Affects D0.5a refusal dataset construction | Use `forbidden_question_set.csv` (390) + JBB-Behaviors (100) + other accessible sources. 490 available sources is plenty for 128+32. | Low |
 | IFEval constraint checker complexity | Affects D0.5c timeline | Start with subset of simplest constraints (word count, format markers). Full checker can follow. | Medium |
-| Truthfulness contrastive quality | **Resolved for TruthfulQA (E0 works); falsified for TriviaQA transfer (E2 null).** See [E2 synthesis](./act3-reports/2026-04-04-e2-triviaqa-transfer-synthesis.md). | — | — |
+| Truthfulness contrastive quality | **Fully resolved.** TruthfulQA E0 works for MC selection (+6.3pp MC1). TriviaQA transfer null (E2 synthesis). E0 ITI fails on generation even with adequate headroom (bridge Phase 2: 47% baseline, Δ = -1pp / -7pp). The ITI direction is dataset-specific and selection-only — it does not improve generation on any benchmark tested. | — | — |
 | `device_map="auto"` vs `cuda:0` for direction hooks | Affects per-layer device assignment in extract/intervene scripts | Existing code uses `cuda:0` default. Test both paths. | Low |
 
 ## Narrative Log

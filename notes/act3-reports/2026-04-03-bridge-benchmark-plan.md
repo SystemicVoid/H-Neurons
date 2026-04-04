@@ -1,7 +1,8 @@
 # Bridge Generation Benchmark Plan — 2026-04-03
 
-> **Status: Phase 1 (pilot) complete. Grader calibrated. Benchmark promoted
-> to primary generation-development surface (rev 3).**
+> **Status: Phase 2 (dev) complete. E0 ITI informative null. Benchmark
+> validated — ready for Phase 3 (test) when a candidate intervention warrants
+> it.**
 >
 > Rev 1: Oracle-reviewed plan with corrections to original AI recommendation.
 > Rev 2: Incorporated external reviewer feedback. Key changes: test-set
@@ -15,6 +16,12 @@
 > normalization bug. Two-metric policy locked: adjudicated accuracy = primary,
 > deterministic = conservative floor. Audit agreement diagnostic: 87.5% → 91.9%.
 > See §3.4.1 for calibration record.
+> Rev 4 (2026-04-04): Phase 2 dev validation executed. E0 paper-faithful ITI
+> (K=12, first_3_tokens) tested at α=4.0 and α=8.0 against neuron-mode α=1.0
+> baseline. Result: informative null (α=4 Δ=-1pp, α=8 Δ=-7pp p=0.096).
+> Dominant failure mode: confident wrong substitution (5/10 right→wrong flips).
+> Grader audit clean (0/90 FP). Benchmark validated for Phase 3.
+> Full report: [2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md).
 
 ## Source Hierarchy
 
@@ -528,6 +535,23 @@ Finalize:
 
 **All tuning stops here.** After Phase 2, the pipeline is frozen.
 
+**Phase 2 outcome (2026-04-04):** executed with E0 paper-faithful ITI (K=12,
+`first_3_tokens`) at α=4.0 and α=8.0. Full report:
+[2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md).
+
+- Baseline headroom: 47% adjudicated (47/100), 41% deterministic (41/100) — in
+  the productive [15%, 70%] range
+- Grader reliability: 0/90 false positives across all match audits; audit
+  agreement 92.5%–97.5% (all pass ≥90% gate)
+- E0 ITI α=4.0: Δ adj = -1.0pp CI [-6%, +4%], flat (McNemar p=1.0)
+- E0 ITI α=8.0: Δ adj = -7.0pp CI [-14%, 0%], borderline harmful (McNemar
+  p=0.096, 10:3 right→wrong:wrong→right flip asymmetry)
+- Dominant failure mode: confident wrong substitution (5/10 flips at α=8) —
+  model replaces correct entity with plausible-but-wrong alternative
+- Decision per §3.1 tree: **informative null.** E0 ITI is not the intervention
+  to carry to Phase 3. Run Phase 3 baseline-only for published headroom, or
+  wait for a candidate intervention from D5/D7 that warrants testing.
+
 ### Phase 3: Locked test run (GPU, ~60 min)
 
 Run the actual no-op baseline + one locked D4 config on the 500-question
@@ -597,7 +621,7 @@ The bridge benchmark is complete when:
 - [x] Scorer calibrated: 4 recoveries, 0 FP, 0 regressions (§3.4.1)
 - [x] Two-metric policy locked: adjudicated = primary, deterministic = floor
 - [x] Manifests, metadata, and exclusion audit committed
-- [ ] Dev set validates grader + prompt + alpha selection
+- [x] Dev set validates grader + prompt + alpha selection — [Phase 2 results](./2026-04-04-bridge-phase2-dev-results.md): grader PASS (0% FP), E0 ITI informative null
 - [ ] Test set run exactly once with frozen pipeline
 - [ ] Paired bootstrap deltas, flip table, and McNemar test reported
 - [ ] Results reported with uncertainty per measurement blueprint
