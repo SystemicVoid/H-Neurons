@@ -1,0 +1,79 @@
+{
+  "audit_seed": 42,
+  "match_audit_fraction": 0.2,
+  "match_audit_min": 30,
+  "n_nonmatch_candidates": 126,
+  "n_match_candidates": 72,
+  "match_audit_target_n": 60,
+  "nonmatch_judged": 126,
+  "nonmatch_recovered": 12,
+  "match_audited": 60,
+  "match_disagree": 0,
+  "audit_disagree_rate_nonmatches": 0.0952,
+  "audit_disagree_rate_matches": 0.0,
+  "per_alpha": {
+    "4.0": {
+      "n_nonmatch_candidates": 61,
+      "n_match_candidates": 38,
+      "match_audit_target_n": 30,
+      "nonmatch_judged": 61,
+      "nonmatch_recovered": 7,
+      "match_audited": 30,
+      "match_disagree": 0,
+      "audit_disagree_rate_nonmatches": 0.1148,
+      "audit_disagree_rate_matches": 0.0
+    },
+    "8.0": {
+      "n_nonmatch_candidates": 65,
+      "n_match_candidates": 34,
+      "match_audit_target_n": 30,
+      "nonmatch_judged": 65,
+      "nonmatch_recovered": 5,
+      "match_audited": 30,
+      "match_disagree": 0,
+      "audit_disagree_rate_nonmatches": 0.0769,
+      "audit_disagree_rate_matches": 0.0
+    }
+  },
+  "pilot_gate": {
+    "required_match_n": 20,
+    "required_nonmatch_n": 20,
+    "agreement_threshold": 0.9,
+    "by_alpha": {
+      "4.0": {
+        "status": "ready",
+        "required_match_n": 20,
+        "required_nonmatch_n": 20,
+        "required_total_n": 40,
+        "available_match_n": 20,
+        "available_nonmatch_n": 20,
+        "completed_match_n": 20,
+        "completed_nonmatch_n": 20,
+        "completed_total_n": 40,
+        "agree_match_n": 20,
+        "agree_nonmatch_n": 19,
+        "agree_total_n": 39,
+        "agreement_rate": 0.975,
+        "agreement_threshold": 0.9,
+        "passes_agreement_threshold": true
+      },
+      "8.0": {
+        "status": "ready",
+        "required_match_n": 20,
+        "required_nonmatch_n": 20,
+        "required_total_n": 40,
+        "available_match_n": 20,
+        "available_nonmatch_n": 20,
+        "completed_match_n": 20,
+        "completed_nonmatch_n": 20,
+        "completed_total_n": 40,
+        "agree_match_n": 20,
+        "agree_nonmatch_n": 18,
+        "agree_total_n": 38,
+        "agreement_rate": 0.95,
+        "agreement_threshold": 0.9,
+        "passes_agreement_threshold": true
+      }
+    }
+  }
+}

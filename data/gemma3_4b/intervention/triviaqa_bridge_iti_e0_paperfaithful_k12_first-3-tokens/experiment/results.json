@@ -1,0 +1,282 @@
+{
+  "benchmark": "triviaqa_bridge",
+  "results": {
+    "4.0": {
+      "compliance_rate": 0.46,
+      "n_compliant": 46,
+      "n_judged": 100,
+      "n_total": 100,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.46,
+        "n_compliant": 46,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.36560808309024106,
+          "upper": 0.5573513967663178,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "deterministic_accuracy_rate": 0.39,
+      "n_deterministic_correct": 39,
+      "deterministic_accuracy": {
+        "estimate": 0.39,
+        "n_deterministic_correct": 39,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.3001687400639442,
+          "upper": 0.4879698295415926,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "attempt_rate": 0.98,
+      "n_attempted": 98,
+      "attempt": {
+        "estimate": 0.98,
+        "n_attempted": 98,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.9299882092714561,
+          "upper": 0.9944980324498376,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "not_attempted_rate": 0.02,
+      "n_not_attempted": 2,
+      "not_attempted": {
+        "estimate": 0.02,
+        "n_not_attempted": 2,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.00550196755016235,
+          "upper": 0.0700117907285439,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "precision_given_attempt_rate": 0.4694,
+      "precision_given_attempt": {
+        "estimate": 0.46938775510204084,
+        "n_correct": 46,
+        "n_attempted": 98,
+        "ci": {
+          "lower": 0.37360956939896406,
+          "upper": 0.5674753279554244,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "nonmatch_judged": 61,
+      "nonmatch_recovered": 7,
+      "audit_disagree_rate_nonmatches": 0.1148,
+      "match_audited": 30,
+      "match_disagree": 0,
+      "audit_disagree_rate_matches": 0.0,
+      "metric_name": "deterministic_accuracy",
+      "metric_mean": 0.39,
+      "metric_std": 0.48775
+    },
+    "8.0": {
+      "compliance_rate": 0.4,
+      "n_compliant": 40,
+      "n_judged": 100,
+      "n_total": 100,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.4,
+        "n_compliant": 40,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.3094012864324589,
+          "upper": 0.4979974132089382,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "deterministic_accuracy_rate": 0.35,
+      "n_deterministic_correct": 35,
+      "deterministic_accuracy": {
+        "estimate": 0.35,
+        "n_deterministic_correct": 35,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.26364248243097527,
+          "upper": 0.44745556703112027,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "attempt_rate": 0.97,
+      "n_attempted": 97,
+      "attempt": {
+        "estimate": 0.97,
+        "n_attempted": 97,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.9154806357094722,
+          "upper": 0.9897454759759611,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "not_attempted_rate": 0.03,
+      "n_not_attempted": 3,
+      "not_attempted": {
+        "estimate": 0.03,
+        "n_not_attempted": 3,
+        "n_total": 100,
+        "ci": {
+          "lower": 0.010254524024038928,
+          "upper": 0.08451936429052762,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "precision_given_attempt_rate": 0.4124,
+      "precision_given_attempt": {
+        "estimate": 0.41237113402061853,
+        "n_correct": 40,
+        "n_attempted": 97,
+        "ci": {
+          "lower": 0.31957324017789795,
+          "upper": 0.5118453033575773,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "nonmatch_judged": 65,
+      "nonmatch_recovered": 5,
+      "audit_disagree_rate_nonmatches": 0.0769,
+      "match_audited": 30,
+      "match_disagree": 0,
+      "audit_disagree_rate_matches": 0.0,
+      "metric_name": "deterministic_accuracy",
+      "metric_mean": 0.35,
+      "metric_std": 0.47697
+    }
+  },
+  "effects": {
+    "compliance_curve": {
+      "rates": [
+        0.46,
+        0.4
+      ],
+      "delta_0_to_max_pp": {
+        "estimate": -6.0,
+        "ci": {
+          "lower": -12.000000000000005,
+          "upper": 0.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "slope_pp_per_alpha": {
+        "estimate": -1.499999999999996,
+        "ci": {
+          "lower": -2.9999999999999982,
+          "upper": 1.5888218580782547e-15,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "paired_by_sample_id",
+        "interval": "percentile"
+      }
+    },
+    "baseline_alpha": 4.0,
+    "paired_against_baseline": {
+      "status": "ok",
+      "baseline_alpha": 4.0,
+      "comparisons": {
+        "8.0": {
+          "status": "ok",
+          "baseline_alpha": 4.0,
+          "comparison_alpha": 8.0,
+          "n_paired": 100,
+          "accuracy_delta": {
+            "estimate_pp": -6.0,
+            "ci_pp": {
+              "lower": -12.000000000000005,
+              "upper": 0.0,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "paired_by_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "flip_table": {
+            "wrong_to_right": 2,
+            "right_to_wrong": 8,
+            "stayed_wrong": 52,
+            "stayed_right": 38
+          },
+          "mcnemar_p": 0.109375,
+          "attempt_delta": {
+            "estimate_pp": -1.0000000000000009,
+            "ci_pp": {
+              "lower": -3.0000000000000027,
+              "upper": 0.0,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "paired_by_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "not_attempted_delta": {
+            "estimate_pp": 0.9999999999999999,
+            "ci_pp": {
+              "lower": 0.0,
+              "upper": 3.0000000000000004,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "paired_by_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "precision_given_attempt_delta": {
+            "estimate_pp": -5.70166210814223,
+            "ci_pp": {
+              "lower": -12.244897959183676,
+              "upper": 0.42437750219705167,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired_conditional_precision"
+            },
+            "bootstrap": {
+              "n_resamples": 10000,
+              "seed": 42,
+              "resampling": "paired_by_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "audit_disagree_rate_nonmatches": {
+            "baseline": 0.1148,
+            "comparison": 0.0769
+          }
+        }
+      }
+    }
+  },
+  "baseline_alpha": 0.0
+}
