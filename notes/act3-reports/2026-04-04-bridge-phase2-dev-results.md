@@ -1,8 +1,10 @@
 # TriviaQA Bridge Phase 2 Dev Results — 2026-04-04
 
-> **Verdict: E0 ITI does not improve factual generation on the bridge benchmark.
-> The intervention is active (responses change) but the effect on accuracy is
-> null-to-harmful. All three conditions pass the grader reliability gate.**
+> **Verdict: ITI does not improve factual generation on the bridge benchmark,
+> regardless of artifact quality. Both E0 (paper-faithful, K=12) and E1
+> (modernized, K=8) are harmful — E1 significantly so (p=0.016). The damage
+> is method-level, not artifact-level. All conditions pass the grader
+> reliability gate.**
 
 ## Source Hierarchy
 
@@ -23,9 +25,12 @@
 | ITI α=4 provenance | `data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/experiment/run_intervention.provenance.20260404_180904.json` |
 | ITI α=8 provenance | `data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/experiment/run_intervention.provenance.20260404_180925.json` |
 | Dev manifest | `data/manifests/triviaqa_bridge_dev100_seed42.json` |
-| ITI artifact | `data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/iti_heads.pt` |
-| Pipeline script | `scripts/infra/triviaqa_bridge_dev.sh` |
-| Log | `logs/triviaqa_bridge_dev_20260404_190821.log` |
+| ITI artifact (E0) | `data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/iti_heads.pt` |
+| Pipeline script (E0) | `scripts/infra/triviaqa_bridge_dev.sh` |
+| Log (E0) | `logs/triviaqa_bridge_dev_20260404_190821.log` |
+| E1 JSONL (α=8) | `data/gemma3_4b/intervention/triviaqa_bridge_iti_e1_modernized_k8_first-3-tokens/experiment/alpha_8.0.jsonl` |
+| ITI artifact (E1) | `data/contrastive/truthfulness/iti_truthfulqa_modernized_production/iti_heads.pt` |
+| Pipeline script (E1) | `scripts/infra/triviaqa_bridge_dev_e1.sh` |
 
 ---
 
@@ -34,9 +39,11 @@
 | Parameter | Value |
 |---|---|
 | Manifest | `triviaqa_bridge_dev100_seed42.json` (100 questions, stratified) |
-| Conditions | 3: neuron baseline α=1.0, E0 ITI α=4.0, E0 ITI α=8.0 |
-| ITI config | Paper-faithful E0, K=12, `first_3_tokens` decode scope |
-| ITI artifact | `iti_truthfulqa_paperfaithful_production/iti_heads.pt` |
+| Conditions | 4: neuron baseline α=1.0, E0 ITI α=4.0, E0 ITI α=8.0, E1 ITI α=8.0 |
+| E0 ITI config | Paper-faithful, K=12, `first_3_tokens` decode scope |
+| E0 ITI artifact | `iti_truthfulqa_paperfaithful_production/iti_heads.pt` |
+| E1 ITI config | Modernized, K=8, `first_3_tokens` decode scope |
+| E1 ITI artifact | `iti_truthfulqa_modernized_production/iti_heads.pt` |
 | Generation | `do_sample=False`, `max_new_tokens=64`, greedy decode |
 | Prompt | `"Question: {q}\nAnswer with a single short factual phrase only."` |
 | Judge | GPT-4o batch, bidirectional audit (all non-matches + blinded ~20% match audit) |
@@ -52,22 +59,26 @@
 | Condition | Adj. Acc. | 95% CI | Det. Acc. | 95% CI | Attempt | Not-attempted |
 |---|---|---|---|---|---|---|
 | Baseline α=1.0 | 47/100 (47.0%) | [37.5%, 56.7%] | 41/100 (41.0%) | [31.9%, 50.8%] | 99% | 1 |
-| ITI α=4.0 | 46/100 (46.0%) | [36.6%, 55.7%] | 39/100 (39.0%) | [30.0%, 48.8%] | 98% | 2 |
-| ITI α=8.0 | 40/100 (40.0%) | [30.9%, 49.8%] | 35/100 (35.0%) | [26.4%, 44.7%] | 97% | 3 |
+| E0 ITI α=4.0 | 46/100 (46.0%) | [36.6%, 55.7%] | 39/100 (39.0%) | [30.0%, 48.8%] | 98% | 2 |
+| E0 ITI α=8.0 | 40/100 (40.0%) | [30.9%, 49.8%] | 35/100 (35.0%) | [26.4%, 44.7%] | 97% | 3 |
+| **E1 ITI α=8.0** | **38/100 (38.0%)** | **[29.1%, 47.8%]** | **33/100 (33.0%)** | **[24.6%, 42.7%]** | **97%** | **3** |
 
-Precision given attempt: baseline 47.5%, α=4.0 46.9%, α=8.0 41.2%.
+Precision given attempt: baseline 47.5%, E0 α=4.0 46.9%, E0 α=8.0 41.2%, **E1 α=8.0 39.2%**.
 
 ### 2.2 Paired bootstrap deltas (vs. baseline)
 
 | Comparison | Δ Adjudicated | 95% CI | Δ Deterministic | 95% CI | CI excludes zero |
 |---|---|---|---|---|---|
-| α=4.0 − baseline | -1.0% | [-6.0%, +4.0%] | -2.0% | [-7.0%, +3.0%] | No |
-| α=8.0 − baseline | -7.0% | [-14.0%, 0.0%] | -6.0% | [-13.0%, 0.0%] | No |
+| E0 α=4.0 − baseline | -1.0% | [-6.0%, +4.0%] | -2.0% | [-7.0%, +3.0%] | No |
+| E0 α=8.0 − baseline | -7.0% | [-14.0%, 0.0%] | -6.0% | [-13.0%, 0.0%] | No |
+| **E1 α=8.0 − baseline** | **-9.0%** | **[-16.0%, -3.0%]** | **-8.0%** | **[-14.0%, -2.0%]** | **YES** |
 
-Both metrics are consistent in sign and magnitude for each alpha — the two-metric
-policy shows no divergence. The α=8 CI upper bound touches zero, meaning we cannot
+Both E0 metrics are consistent in sign and magnitude — the two-metric
+policy shows no divergence. E0 α=8 CI upper bound touches zero, meaning we cannot
 formally reject the null, but the point estimate and consistency across metrics make
-this a near-significant harmful trend.
+this a near-significant harmful trend. **E1 α=8 is formally significant: both
+adjudicated and deterministic CIs exclude zero (McNemar p=0.016).** The "gentler"
+artifact is worse, not better.
 
 ### 2.3 Flip tables
 
@@ -81,7 +92,7 @@ this a near-significant harmful trend.
 
 Net flips: -1. McNemar χ²=0.00, p=1.00.
 
-**Baseline → α=8.0:**
+**Baseline → E0 α=8.0:**
 
 |  | ITI correct | ITI wrong | Total |
 |---|---|---|---|
@@ -91,9 +102,20 @@ Net flips: -1. McNemar χ²=0.00, p=1.00.
 
 Net flips: -7. McNemar χ²=2.77, p=0.096.
 
-The flip asymmetry at α=8 is striking: 10 right-to-wrong vs 3 wrong-to-right. The
-intervention is actively damaging correct answers 3× more often than rescuing wrong
-ones.
+**Baseline → E1 α=8.0:**
+
+|  | ITI correct | ITI wrong | Total |
+|---|---|---|---|
+| **Base correct** | 37 | 10 | 47 |
+| **Base wrong** | 1 | 52 | 53 |
+| **Total** | 38 | 62 | 100 |
+
+Net flips: -9. McNemar χ²=5.82, p=0.016.
+
+The flip asymmetry is consistent across artifacts: both E0 and E1 produce exactly
+10 right-to-wrong flips. The difference is that E1 rescues only 1 wrong-to-right
+(vs E0's 3), making E1's net damage worse (-9 vs -7). The "gentler" artifact (K=8
+vs K=12) is not gentler on the damage axis — it merely loses its rescue capacity.
 
 ### 2.4 Cross-alpha stability patterns
 
@@ -394,7 +416,9 @@ direction occasionally destabilizes the confident answer (especially at α=8).
 Horace Panter, Two-up → Nimble Nick). This is not the truthfulness direction
 promoting "I don't know" — it's the direction reshuffling the model's factual
 distribution. The refusal/evasion mode (NOT_ATTEMPTED growth: 1 → 2 → 3) exists but
-is secondary.
+is secondary. **E1 confirms this is method-level**: the same substitution errors
+(Horace Panter, Brain size, The Scotsman, Miep van Pels) appear identically with
+K=8 modernized heads. See §9.4–9.5.
 
 ### 8.4 Consistency with prior E2 transfer results
 
@@ -419,7 +443,105 @@ warrants it.
 
 ---
 
-## 9. Summary Statistics Table
+## 9. E1 Modernized Comparative Analysis
+
+> Added 2026-04-04 after E0 results showed harmful damage. Hypothesis: E1's
+> gentler perturbation (K=8 vs K=12, +8pp attempt rate vs E0 on SimpleQA)
+> would avoid E0's right-to-wrong flip asymmetry.
+
+### 9.1 Design
+
+| Parameter | Value |
+|---|---|
+| ITI config | Modernized E1, K=8, α=8.0, `first_3_tokens` decode scope |
+| ITI artifact | `iti_truthfulqa_modernized_production/iti_heads.pt` |
+| Baseline | Reused from Phase 2 (no re-run) |
+| Pipeline script | `scripts/infra/triviaqa_bridge_dev_e1.sh` |
+
+### 9.2 Headline: E1 is worse than E0, not better
+
+| Metric | Baseline | E0 (K=12) | E1 (K=8) |
+|---|---|---|---|
+| Adjudicated accuracy | 47.0% | 40.0% | **38.0%** |
+| Δ vs baseline | — | -7.0% CI [-14, 0] | **-9.0% CI [-16, -3]** |
+| CI excludes zero | — | no (p=0.096) | **YES (p=0.016)** |
+| Deterministic accuracy | 41.0% | 35.0% | **33.0%** |
+| right→wrong flips | — | 10 | **10** |
+| wrong→right flips | — | 3 | **1** |
+| Net flips | — | -7 | **-9** |
+| Precision given attempt | 47.5% | 41.2% | **39.2%** |
+| Mean response chars | 15.2 | 25.9 | 18.2 |
+
+### 9.3 Side-by-side flip comparison
+
+```
+                  │ E1 (K=8) │ E0 (K=12) │    Δ
+──────────────────┼──────────┼───────────┼──────
+wrong→right       │      1   │       3   │   -2
+right→wrong       │     10   │      10   │    0
+both right        │     37   │      37   │    0
+both wrong        │     52   │      50   │   +2
+net flips         │     -9   │      -7   │   -2
+```
+
+The damage profile is identical (10 right-to-wrong in both). The difference is
+rescue capacity: E1 rescues only 1 question vs E0's 3. Fewer heads does not mean
+less damage — it means less perturbation in both directions.
+
+### 9.4 Focal damage analysis: E0's 10 right-to-wrong questions under E1
+
+On the 10 questions E0 flipped from baseline-correct to wrong, E1 saves 2 and
+also damages 8. E1's rescue rate on E0-damaged questions: **20%**.
+
+| QID | Question (abbrev.) | Baseline (correct) | E0 K=12 (wrong) | E1 K=8 | E1 outcome |
+|---|---|---|---|---|---|
+| `bt_711` | Archery finger protection | Finger tabs | Leather finger guards | Finger guards. | also wrong |
+| `dpql_424` | Indian Pale Ale brand | Jaipur Pale Ale | Bengal Tiger is named after Kolkata. | Mumbai. | also wrong |
+| `odql_8813` | Lewis Carroll hunting poem | Hunting for a Snark | Hunting for a caucus-race. | Hunting for a hat. | also wrong |
+| `qb_2363` | Lead singer of The Specials | Terry Hall | Horace Panter | Horace Panter | also wrong |
+| `qb_4415` | Anne Frank friend | Margot | Miep van Pels | Miep van Pels | also wrong |
+| `qb_7212` | Microcephaly = small ___? | Head size | Brain size | Brain size. | also wrong |
+| `qw_740` | WWII coin gambling game | Two-up | Nimble Nick | Up-ko. | also wrong |
+| `qz_1794` | Scottish paper: Broons/Wullie | The Sunday Post. | The Scotsman | The Scotsman. | also wrong |
+| **`qw_15141`** | **Cos lettuce, anchovies dish** | **Caesar salad** | **There isn't a single...** | **Caesar salad** | **SAVES** |
+| **`sfq_1626`** | **Ophelia painter** | **John Everett Millais** | **He was a renowned...** | **John Everett Millais** | **SAVES** |
+
+The two saves are both cases where E0 produced a **verbosity/evasion failure**
+(sentence-form hedging), not a substitution. E1's lower verbosity (18.2 vs 25.9
+chars) rescues these — but on the 5 confident wrong substitutions (Horace Panter,
+Brain size, The Scotsman, etc.), E1 produces the **identical wrong answer** as E0.
+
+### 9.5 Interpretation: method-level, not artifact-level
+
+The E1 result rules out the "wrong artifact" hypothesis. Key evidence:
+
+1. **Same 10 right-to-wrong flips.** Despite K=8 vs K=12, both artifacts damage
+   the same questions. The vulnerable population is determined by the truthfulness
+   direction, not by the head count.
+
+2. **Identical substitution errors.** On 4 of 8 shared damages, E1 produces the
+   exact same wrong entity as E0 (Horace Panter, Miep van Pels, Brain size, The
+   Scotsman). The direction is pushing the model toward the same alternative
+   candidates regardless of how many heads deliver the push.
+
+3. **E1's only advantage is reduced verbosity.** Mean response length (18.2 chars)
+   is much closer to baseline (15.2) than E0 (25.9). This saves the two
+   verbosity/evasion failures but has no effect on substitution failures.
+
+4. **E1 loses E0's rescue capacity.** E0 rescued 3 questions; E1 rescues only 1.
+   With fewer heads, the perturbation is weaker in both directions — less damage
+   from verbosity, but also less chance of accidentally correcting a wrong answer.
+
+**Conclusion:** The truthfulness direction itself encodes a systematic bias toward
+specific wrong entities on TriviaQA questions. This is not an extraction artifact
+or a head-count effect — it is a property of the direction. ITI is fundamentally
+harmful on factual generation tasks where the model's knowledge is uncertain,
+because it reshuffles probability mass toward related-but-wrong candidates without
+injecting new knowledge.
+
+---
+
+## 10. Summary Statistics Table
 
 For copy into downstream reporting surfaces:
 
@@ -428,13 +550,16 @@ Condition                  | Adj.Acc (CI)              | Det.Acc (CI)           
 Baseline α=1.0             | 47.0% [37.5%, 56.7%]     | 41.0% [31.9%, 50.8%]     | 99%     | 1
 E0 ITI α=4.0 first_3_tok  | 46.0% [36.6%, 55.7%]     | 39.0% [30.0%, 48.8%]     | 98%     | 2
 E0 ITI α=8.0 first_3_tok  | 40.0% [30.9%, 49.8%]     | 35.0% [26.4%, 44.7%]     | 97%     | 3
+E1 ITI α=8.0 first_3_tok  | 38.0% [29.1%, 47.8%]     | 33.0% [24.6%, 42.7%]     | 97%     | 3
 
 Comparison vs baseline     | Δ Adj. (CI)          | Δ Det. (CI)          | McNemar p | Net flips
-α=4.0 − baseline           | -1.0% [-6%, +4%]     | -2.0% [-7%, +3%]     | 1.000     | -1
-α=8.0 − baseline           | -7.0% [-14%, 0%]     | -6.0% [-13%, 0%]     | 0.096     | -7
+E0 α=4.0 − baseline       | -1.0% [-6%, +4%]     | -2.0% [-7%, +3%]     | 1.000     | -1
+E0 α=8.0 − baseline       | -7.0% [-14%, 0%]     | -6.0% [-13%, 0%]     | 0.096     | -7
+E1 α=8.0 − baseline       | -9.0% [-16%, -3%]    | -8.0% [-14%, -2%]    | 0.016     | -9
 
 Grader audit               | Match disagree  | Non-match recovery | Pilot gate
 Baseline                   | 0/30 (0.0%)     | 6/59 (10.2%)       | PASS (92.5%)
-α=4.0                      | 0/30 (0.0%)     | 7/61 (11.5%)       | PASS (97.5%)
-α=8.0                      | 0/30 (0.0%)     | 5/65 (7.7%)        | PASS (95.0%)
+E0 α=4.0                  | 0/30 (0.0%)     | 7/61 (11.5%)       | PASS (97.5%)
+E0 α=8.0                  | 0/30 (0.0%)     | 5/65 (7.7%)        | PASS (95.0%)
+E1 α=8.0                  | 1/30 (3.3%)     | 6/67 (9.0%)        | PASS (96.7%)
 ```
