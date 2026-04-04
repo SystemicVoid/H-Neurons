@@ -51,11 +51,11 @@ class TestGradeTriviaQaBridge:
         assert result["match_tier"] == "exact"
         assert result["matched_alias"] == "To Have or Have Not"
 
-    def test_short_alias_rejected(self):
+    def test_short_numeric_alias_matches_via_numeric_tier(self):
         result = grade_triviaqa_bridge("I think it was 10 items", ["10"])
-        assert result["correct"] is False
-        assert result["match_tier"] == "no_match"
-        assert result["matched_alias"] is None
+        assert result["correct"] is True
+        assert result["match_tier"] == "numeric"
+        assert result["matched_alias"] == "10"
 
     def test_substring_rejection_mars_in_marshall(self):
         result = grade_triviaqa_bridge("marshall mcluhan was media theorist", ["Mars"])
@@ -120,6 +120,84 @@ class TestGradeTriviaQaBridge:
         assert result["correct"] is False
         assert result["match_tier"] == "no_match"
         assert result["matched_alias"] is None
+
+    # -- Tier 3b: alias simplification --
+
+    def test_alias_simplified_parenthetical(self):
+        result = grade_triviaqa_bridge(
+            "Endurance", ["Endurance (ship)", "HMS Endurance"]
+        )
+        assert result["correct"] is True
+        assert result["match_tier"] == "alias_simplified"
+
+    def test_alias_simplified_leading_title_hms(self):
+        result = grade_triviaqa_bridge("Endurance", ["HMS Endurance"])
+        assert result["correct"] is True
+        assert result["match_tier"] == "alias_simplified"
+
+    def test_alias_simplified_preserves_mt_prefix(self):
+        result = grade_triviaqa_bridge("Kilimanjaro", ["Mt Kilimanjaro"])
+        assert result["correct"] is False
+        assert result["match_tier"] == "no_match"
+
+    def test_alias_simplified_preserves_st_prefix(self):
+        result = grade_triviaqa_bridge("Columba", ["St Columba"])
+        assert result["correct"] is False
+        assert result["match_tier"] == "no_match"
+
+    def test_alias_simplified_does_not_false_positive_on_disambiguator(self):
+        result = grade_triviaqa_bridge("film", ["Cyclops (film)"])
+        assert result["correct"] is False
+
+    # -- Tier 3c: numeric alias extraction --
+
+    def test_numeric_alias_in_verbose_response(self):
+        result = grade_triviaqa_bridge("27 years old.", ["27", "twenty-seven"])
+        assert result["correct"] is True
+        assert result["match_tier"] == "numeric"
+
+    def test_numeric_alias_no_false_positive_on_different_number(self):
+        result = grade_triviaqa_bridge("I think 42 is the answer", ["27"])
+        assert result["correct"] is False
+
+    def test_numeric_alias_requires_full_decimal_phrase(self):
+        result = grade_triviaqa_bridge("5", ["0.5"])
+        assert result["correct"] is False
+        assert result["match_tier"] == "no_match"
+
+    def test_numeric_alias_requires_full_range_phrase(self):
+        result = grade_triviaqa_bridge("1939", ["1930-1939"])
+        assert result["correct"] is False
+        assert result["match_tier"] == "no_match"
+
+    def test_numeric_alias_skips_non_numeric_alias(self):
+        result = grade_triviaqa_bridge("27 years old", ["twenty-seven"])
+        assert result["correct"] is False
+        assert result["match_tier"] == "no_match"
+
+    # -- Tier 3d: guarded reverse containment --
+
+    def test_reverse_containment_two_token_response_in_long_alias(self):
+        result = grade_triviaqa_bridge("Taking blood", ["Taking blood samples"])
+        assert result["correct"] is True
+        assert result["match_tier"] == "reverse_contain"
+
+    def test_reverse_containment_rejects_single_token_fragment(self):
+        result = grade_triviaqa_bridge("David", ["David Seville"])
+        assert result["correct"] is False
+        assert result["match_tier"] == "no_match"
+
+    def test_reverse_containment_rejects_verbose_response(self):
+        result = grade_triviaqa_bridge(
+            "Collecting and processing blood samples", ["Taking blood"]
+        )
+        assert result["correct"] is False
+
+    def test_reverse_containment_rejects_low_coverage(self):
+        result = grade_triviaqa_bridge(
+            "revolution", ["French Revolution of 1789 and aftermath"]
+        )
+        assert result["correct"] is False
 
 
 # ---------------------------------------------------------------------------

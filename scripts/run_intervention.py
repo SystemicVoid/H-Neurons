@@ -19,6 +19,7 @@ Usage:
 """
 
 import argparse
+from collections import Counter
 import hashlib
 import json
 import os
@@ -1740,12 +1741,46 @@ def run_truthfulqa_mc(
 # ---------------------------------------------------------------------------
 
 
+def _simplify_alias(alias: str) -> str:
+    """Strip parenthetical disambiguators and selected leading titles from an alias.
+
+    TriviaQA aliases often carry Wikipedia-style disambiguators that make them
+    *more specific* than a correct short response, e.g. "Endurance (ship)" or
+    "Cyclops (disambiguation)".  Stripping these lets the normalizer match
+    the core entity name while keeping full-word boundary guards.
+
+    Only strip prefixes that behave like detachable honorifics/articles here.
+    Tokens like ``Mt`` and ``St`` are part of many canonical entity names in
+    TriviaQA, so removing them changes answer identity and creates false
+    positives.
+    """
+    s = re.sub(r"\s*\([^)]*\)\s*", " ", alias).strip()
+    s = re.sub(r"^(?:HMS|The|Dr|Sir|Mr|Mrs|Ms)\s+", "", s, flags=re.IGNORECASE)
+    return s
+
+
+def _contains_normalized_phrase(text: str, phrase: str) -> bool:
+    """Return True when a normalized phrase appears on token boundaries."""
+    if not text or not phrase:
+        return False
+    pattern = r"(?:^|\s)" + re.escape(phrase) + r"(?:\s|$)"
+    return re.search(pattern, text) is not None
+
+
 def grade_triviaqa_bridge(response: str, aliases: list[str]) -> dict:
     """Conservative tiered grading for TriviaQA bridge benchmark.
 
     Tier 1: exact normalized match (highest confidence).
     Tier 2: ambiguous multi-answer generations are deferred to the judge.
     Tier 3: boundary-aware containment for aliases ≥4 normalized chars.
+    Tier 3b: alias simplification — strip parenthetical disambiguators and
+             leading titles, then retry exact + boundary matching.
+    Tier 3c: numeric alias extraction — if an alias normalizes to digits
+             only, require the full normalized numeric phrase to appear on
+             token boundaries in the response.
+    Tier 3d: guarded reverse containment — if the response is short (2-4
+             tokens, ≥4 chars), check whether its token multiset is a
+             ≥50%-coverage subset of an alias's tokens.
     Tier 4: no deterministic match — deferred to judge.
 
     Short aliases (≤3 chars after normalization) are excluded from containment
@@ -1768,9 +1803,60 @@ def grade_triviaqa_bridge(response: str, aliases: list[str]) -> dict:
         na = normalize_answer(alias)
         if len(na) < 4:
             continue
-        pattern = r"(?:^|\s)" + re.escape(na) + r"(?:\s|$)"
-        if re.search(pattern, norm_resp):
+        if _contains_normalized_phrase(norm_resp, na):
             return {"correct": True, "match_tier": "boundary", "matched_alias": alias}
+
+    # Tier 3b: alias simplification (strip disambiguators / titles)
+    for alias in aliases:
+        simplified = _simplify_alias(alias)
+        na = normalize_answer(simplified)
+        if not na or len(na) < 4:
+            continue
+        if na == norm_resp:
+            return {
+                "correct": True,
+                "match_tier": "alias_simplified",
+                "matched_alias": alias,
+            }
+        if _contains_normalized_phrase(norm_resp, na):
+            return {
+                "correct": True,
+                "match_tier": "alias_simplified",
+                "matched_alias": alias,
+            }
+
+    # Tier 3c: numeric alias extraction
+    for alias in aliases:
+        na = normalize_answer(alias)
+        if not na:
+            continue
+        # Only fire when the alias is purely numeric (digits + whitespace)
+        if not re.fullmatch(r"[\d\s]+", na):
+            continue
+        if _contains_normalized_phrase(norm_resp, na):
+            return {"correct": True, "match_tier": "numeric", "matched_alias": alias}
+
+    # Tier 3d: guarded reverse containment (short response ⊆ alias tokens)
+    # Uses simplified aliases to avoid matching disambiguator words like "film".
+    resp_tokens = norm_resp.split()
+    if 2 <= len(resp_tokens) <= 4 and len(norm_resp) >= 4:
+        resp_counts = Counter(resp_tokens)
+        for alias in aliases:
+            na = normalize_answer(_simplify_alias(alias))
+            if not na or len(na) < 4:
+                continue
+            alias_tokens = na.split()
+            if len(alias_tokens) <= len(resp_tokens):
+                continue
+            alias_counts = Counter(alias_tokens)
+            if all(
+                alias_counts[token] >= count for token, count in resp_counts.items()
+            ) and (len(resp_tokens) / len(alias_tokens) >= 0.5):
+                return {
+                    "correct": True,
+                    "match_tier": "reverse_contain",
+                    "matched_alias": alias,
+                }
 
     # Tier 4: no deterministic match
     return {"correct": False, "match_tier": "no_match", "matched_alias": None}
