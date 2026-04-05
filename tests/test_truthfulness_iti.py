@@ -441,10 +441,10 @@ class DummyITIModel(torch.nn.Module):
         super().__init__()
         self.model = DummyOuter()
 
-    def forward(self, x):
+    def forward(self, input_ids):
         layer = self.model.language_model.layers[0]
         assert isinstance(layer, DummyLayer)
-        return layer.self_attn.o_proj(x)
+        return layer.self_attn.o_proj(input_ids)
 
 
 class TestITIHeadScaler:
