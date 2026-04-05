@@ -4,7 +4,7 @@ Post-hoc evaluation of intervention experiment responses.
 FaithEval and Sycophancy are evaluated inline during generation (rule-based).
 FalseQA and Jailbreak need GPT-4o judging, handled here.
 
-Supports two API modes (--api_mode):
+Supports two API modes (--api-mode):
   batch  — OpenAI Batch API, 50% cheaper, async (default)
   fast   — synchronous per-request calls, immediate results
 
@@ -15,7 +15,7 @@ Usage:
         --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0
 
     uv run python scripts/evaluate_intervention.py \
-        --benchmark jailbreak --api_mode fast \
+        --benchmark jailbreak --api-mode fast \
         --input_dir data/gemma3_4b/intervention/jailbreak/experiment
 """
 
@@ -1333,6 +1333,7 @@ def parse_args():
     p.add_argument("--judge_model", type=str, default="gpt-4o")
     p.add_argument(
         "--api-mode",
+        "--api_mode",
         type=str,
         choices=["batch", "fast"],
         default="batch",

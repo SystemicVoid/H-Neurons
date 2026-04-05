@@ -20,6 +20,6 @@ A running job has `"status": "running"` in its `*.provenance.json`. Wait for it 
 
 Always use `--api-mode batch` / `--api_mode batch`. Fast mode is all-or-nothing in memory — a crash or quota hit loses everything. Batch is crash-safe (`.eval_batch_state.json`) and 50% cheaper.
 
-**Flag inconsistency:** `evaluate_intervention.py` uses `--api-mode` (hyphen); `evaluate_csv2.py` uses `--api_mode` (underscore). Both default to batch — omitting the flag is fine.
+**Flag names:** Both `evaluate_intervention.py` and `evaluate_csv2.py` accept `--api-mode` (hyphen). `evaluate_intervention.py` also accepts `--api_mode` (underscore alias). Both default to batch — omitting the flag is fine.
 
 Pipeline scripts run `scripts/infra/check_openai_batch_limits_via_codex.sh` automatically before submitting. Set `CODEX_VERIFY_OPENAI_LIMITS=0` to skip. Incident: 2026-03-27, 190 judge calls lost.
