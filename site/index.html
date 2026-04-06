@@ -59,13 +59,13 @@
         <h3 style="color: var(--accent-purple);">Remaining planned work</h3>
         <p class="card-item"><strong>D5 &mdash; full externality audit:</strong> jailbreak severity drift, capability drift, and response-structure shifts across all three baselines.</p>
         <p class="card-item"><strong>D6 &mdash; refusal-orthogonalized steering:</strong> project out the refusal-overlap component and compare before/after tradeoff.</p>
-        <p class="card-item"><strong>D7 &mdash; scoped causal pilot:</strong> attribution patching on 50-prompt subset to compare causal head ranking against L1-probe-selected neurons.</p>
+        <p class="card-item"><strong>D7 &mdash; scoped causal pilot:</strong> contrastive grad&times;activation head ranking on 50-prompt extraction set to compare gradient-based head ranking against L1-probe-selected neurons.</p>
         <p class="card-item"><strong>D8 &mdash; final synthesis:</strong> close the sprint with a steering protocol &mdash; graded evaluation, externality audit, comparator suite, and one causal check.</p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-rose);">
         <h3 style="color: var(--accent-rose);">Research frontiers</h3>
         <p class="card-item"><strong>Refusal-overlap mechanism:</strong> D3.5 found real overlap but it collapses without layer 33. Is this a bridge layer, a single-neuron artifact, or general fragility?</p>
-        <p class="card-item"><strong>Causal vs. correlational selection:</strong> D7 tests whether attribution-patching selects different components than L1 probing &mdash; and whether the causal set steers better.</p>
+        <p class="card-item"><strong>Causal vs. correlational selection:</strong> D7 tests whether gradient-based ranking selects different components than L1 probing &mdash; and whether the gradient-selected set steers better.</p>
         <p class="card-item"><strong>Detector &ne; intervention target:</strong> SAE features detect hallucination but cannot steer it. Does the same dissociation apply to the 38-neuron probe vs. direction-level features?</p>
         <p class="card-item"><strong>Suppressive neuron investigation:</strong> the paper&rsquo;s 38 negative-weight neurons remain untested. Cheapest path to an inverse-intervention story.</p>
       </div>

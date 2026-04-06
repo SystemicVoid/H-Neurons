@@ -56,6 +56,8 @@ Date: 2026-03-27 | Purpose: Ground Act 3 decisions in current best techniques
 
 **Paper**: `papers/Surgical Activation Steering via Generative Causal Mediation-2602.16080v1.pdf`
 
+> **D7 implementation note:** Our D7 causal head ranking uses contrastive grad×activation (∂logp/∂z · z, computed per-objective on a shared prompt; 2 fwd + 2 bwd per pair), not GCM's attribution patching (grad × activation-difference between two prompts; 2 fwd + 1 bwd). The method is motivated by GCM but is not a replication.
+
 ---
 
 ### 1.4 Analysing the Safety Pitfalls of Steering Vectors (Li et al., Mar 2026)

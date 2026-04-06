@@ -3,6 +3,7 @@
 _Created 2026-03-20 by splitting performance analysis out of `docs/tooling-assessment.md`._
 _Updated 2026-03-23 with deeper workload characterisation and concrete intervention alternatives._
 _Updated 2026-03-24 with empirical results from canonical 5000-token run and sensor gap analysis._
+_Updated 2026-04-05 with live D7 pipeline bottleneck diagnosis and applied fixes._
 
 ## Scope
 
@@ -48,6 +49,88 @@ Practical decision:
 - **Do optimize the real path directly.**
 
 GPU is continuously busy, but not expensively busy — single-stream long decode with too much host-side fuss around it.
+
+## Live Pipeline Diagnosis (2026-04-05, Ongoing D7 Pilot)
+
+Active process inspected:
+
+- `scripts/run_intervention.py --benchmark jailbreak --intervention_mode iti_head ...`
+- Output dir: `data/gemma3_4b/intervention/jailbreak_d7/pilot100/probe/experiment/`
+
+Observed from in-progress JSONL timing records:
+
+- `alpha_0.0` (`n=100`):
+  - mean `generate_s`: `27.657s`
+  - mean generated tokens: `997.2`
+  - throughput: `36.053 tok/s` (wall)
+  - mean `hook_frac_of_generate`: `0.0004`
+- `alpha_1.0` (`n=82`, still running when measured):
+  - mean `generate_s`: `28.965s`
+  - mean generated tokens: `1002.8`
+  - throughput: `34.621 tok/s` (wall)
+  - mean `hook_frac_of_generate`: `0.3586`
+  - mean `hook_s`: `10.3886s`
+- Inter-sample orchestration gap is negligible in both (`~0.0002s` mean), so this is **not** a launch-gap problem.
+
+Interpretation:
+
+- The main avoidable tax in this active run is inside the ITI hook path during steered alphas, not between samples.
+- The largest concrete offender is per-step debug instrumentation (`delta.norm().item()`, activation norms, and per-step debug payload accumulation).
+- These debug calculations are in the hot decode loop and force frequent host/device synchronization.
+- Output rows also get much heavier when debug traces are emitted (observed mean row bytes roughly doubled).
+
+## Applied Fixes (2026-04-05)
+
+These changes are designed to preserve scientific outputs while removing avoidable runtime tax.
+
+### 1) Make ITI debug tracing opt-in (default off in pipelines)
+
+Files:
+
+- `scripts/intervene_iti.py`
+- `scripts/run_intervention.py`
+- `scripts/run_calibration_sweep.py`
+
+Changes:
+
+- Added `ITIHeadScaler(..., collect_debug_stats: bool = True, max_debug_steps: int = 32)`.
+- ITI hook now computes expensive per-step norm/debug values **only when debug collection is enabled**.
+- `run_intervention.py` now exposes `--iti_collect_debug_stats` (disabled by default).
+- `run_calibration_sweep.py` now explicitly constructs `ITIHeadScaler(..., collect_debug_stats=False)`.
+
+Why this is safe:
+
+- Steering math is unchanged.
+- Only debug bookkeeping and debug JSON payload emission are gated.
+- Existing behavior remains available by passing `--iti_collect_debug_stats`.
+
+### 2) Use `torch.inference_mode()` in hot inference paths
+
+Files:
+
+- `scripts/run_intervention.py`
+
+Changes:
+
+- Replaced `torch.no_grad()` with `torch.inference_mode()` in:
+  - generation (`generate_response`)
+  - continuation scoring (`score_continuation_decode_only`)
+
+Why this is safe:
+
+- The code path is inference-only.
+- `inference_mode()` reduces autograd/view tracking overhead without changing model intent.
+
+## Validation status
+
+Local validation after patch:
+
+- `ruff check` on touched files: pass
+- `uv run pytest tests/test_truthfulness_iti.py -q`: pass (`40 passed`)
+- `uv run pytest tests/test_wandb_integration.py -q`: pass (`29 passed`)
+- `ty check scripts`: pass
+
+GPU A/B rerun was not executed immediately because the D7 pilot process was actively occupying GPU memory.
 
 ## What the Evidence Says
 

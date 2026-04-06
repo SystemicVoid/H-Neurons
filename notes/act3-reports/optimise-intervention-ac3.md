@@ -1,7 +1,7 @@
 # Optimising The Truthfulness Intervention — Act 3 Strategy
 
 **Date:** 2026-04-01
-**Status:** Revised through 2026-04-04 Bridge Phase 2 dev results. Stage 2 artifact lane closed (E1 tradeoff, E2 null, E3 gate not met). Stage 3 bridge benchmark built and validated — E0 ITI informative null on generation. Chooser gate (§5.7) definitively not met. D5/D7 are the live priorities.
+**Status:** Revised through 2026-04-05 implementation update. Stage 2 artifact lane closed (E1 tradeoff, E2 null, E3 gate not met). Stage 3 bridge benchmark built and validated — E0 ITI informative null on generation. Chooser gate (§5.7) definitively not met. D5/D7 are the live priorities.
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)  
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
@@ -14,6 +14,20 @@
 > - [2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md)
 > - [act3-sprint.md](../act3-sprint.md)
 > - [measurement-blueprint.md](../measurement-blueprint.md)
+
+### Update — 2026-04-05 (D7 pipeline implementation ready)
+
+The D7 execution stack is now implemented and validated at code/test level:
+
+- Deterministic JBB paired manifests (`scripts/build_d7_jbb_manifests.py`) with disjoint extraction/pilot splits and parity metadata.
+- New extraction families in [`scripts/extract_truthfulness_iti.py`](../../scripts/extract_truthfulness_iti.py):
+  - `iti_refusal_probe` (probe-ranked heads on paired harmful/benign labels)
+  - `iti_refusal_causal` (paired causal head ranking from harmful-prompt NLL attribution deltas)
+- Deterministic jailbreak decoding controls in [`scripts/run_intervention.py`](../../scripts/run_intervention.py) with backward-compatible defaults.
+- Pilot alpha lock utility (`scripts/lock_d7_alpha.py`) and paired CSV2 report utility (`scripts/report_d7_csv2.py`).
+- Staged, resumable orchestrator (`scripts/infra/d7_causal_pilot.sh`) for 100→500 execution.
+
+Implementation-only status: long GPU/judge execution has not been launched in this change set. D7 remains execution-pending, not result-complete.
 
 ---
 
