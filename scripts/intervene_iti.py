@@ -107,6 +107,8 @@ class ITIHeadScaler:
         direction_mode: str = "artifact",
         direction_random_seed: int | None = None,
         decode_scope: str = "full_decode",
+        collect_debug_stats: bool = True,
+        max_debug_steps: int = 32,
     ):
         self._alpha = 0.0
         self.hooks: list[Any] = []
@@ -125,6 +127,8 @@ class ITIHeadScaler:
         self.direction_mode = direction_mode
         self.direction_random_seed = direction_random_seed
         self.decode_scope = decode_scope
+        self.collect_debug_stats = bool(collect_debug_stats)
+        self._max_debug_steps_default = int(max_debug_steps)
         self._decode_scope_limit = _decode_scope_limit(decode_scope)
         self.n_layers = int(artifact["n_layers"])
         self.n_attention_heads = int(artifact["n_attention_heads"])
@@ -287,18 +291,22 @@ class ITIHeadScaler:
             batch, seq_len, _ = x.shape
             reshaped = x.reshape(batch, seq_len, self.n_attention_heads, self.head_dim)
             position_slice = slice(-1, None) if prefill_decode_step else slice(None)
+            collect_step_debug = self.collect_debug_stats and (
+                len(self._debug_steps) < self._max_debug_steps
+            )
             delta_norm_total = 0.0
             activation_norm_total = 0.0
             for item in layer_heads:
                 head_idx = item["head"]
-                direction = item["direction"].to(reshaped.device)
+                target = reshaped[:, position_slice, head_idx, :]
+                # Layers can run on different devices under device_map sharding.
+                direction = item["direction"].to(device=target.device)
                 delta = (self._alpha * item["applied_sigma"]) * direction
-                before = reshaped[:, position_slice, head_idx, :].float()
-                reshaped[:, position_slice, head_idx, :] = reshaped[
-                    :, position_slice, head_idx, :
-                ] + delta.to(reshaped.dtype)
-                delta_norm_total += float(delta.norm().item())
-                activation_norm_total += float(before.norm(dim=-1).mean().item())
+                if collect_step_debug:
+                    before = target.float()
+                    delta_norm_total += float(delta.norm().item())
+                    activation_norm_total += float(before.norm(dim=-1).mean().item())
+                target.add_(delta.to(dtype=reshaped.dtype))
 
             self._finalize_decode_step(
                 layer_idx,
@@ -306,7 +314,7 @@ class ITIHeadScaler:
                 generated_token_index=generated_token_index,
             )
 
-            if len(self._debug_steps) < self._max_debug_steps:
+            if collect_step_debug:
                 self._debug_steps.append(
                     {
                         "generated_token_index": generated_token_index,
@@ -345,7 +353,7 @@ class ITIHeadScaler:
         self._sample_prompt_skip_calls = 0
         self._sample_scope_skip_calls = 0
         self._debug_steps: list[dict[str, Any]] = []
-        self._max_debug_steps = 32
+        self._max_debug_steps = self._max_debug_steps_default
 
     def consume_sample_stats(self) -> dict[str, Any]:
         stats = {
@@ -359,6 +367,7 @@ class ITIHeadScaler:
             "decode_scope": self.decode_scope,
             "n_heads_selected": self.n_heads_selected,
             "family": self.family,
+            "debug_stats_enabled": self.collect_debug_stats,
         }
         self.reset_sample_stats()
         return stats
