@@ -1,6 +1,6 @@
 """Extract head-level ITI artifacts for truthfulness steering.
 
-This script builds one of five explicit artifact families:
+This script builds one of seven explicit artifact families:
 
 - ``iti_triviaqa_transfer``: closed-book factuality transfer from TriviaQA
   consistency responses.
@@ -16,6 +16,11 @@ This script builds one of five explicit artifact families:
 - ``iti_truthfulqa_modernized``: TruthfulQA extraction with chat-template
   prompt matching, assistant-content token positions, AUROC ranking, and
   first/mean/last answer-position selection.
+- ``iti_refusal_probe``: paired JBB harmful/benign prompt extraction with
+  per-head logistic probes over prompt-final token activations.
+- ``iti_refusal_causal``: paired JBB harmful/benign prompt extraction with
+  head ranking via contrastive grad×activation scoring (∂logp/∂z · z per
+  objective; motivated by GCM, not identical to GCM attribution patching).
 
 The extraction surface is the tensor immediately before ``self_attn.o_proj``.
 Heads are ranked by probe metrics and steered with a truthful-oriented
@@ -27,6 +32,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -69,6 +75,10 @@ POSITION_SUMMARIES = (
 LABEL_FALSE = 0
 LABEL_TRUE = 1
 DEFAULT_ABSTENTION = "The context does not contain the answer."
+REFUSAL_FAMILIES = (
+    "iti_refusal_probe",
+    "iti_refusal_causal",
+)
 
 
 @dataclass(frozen=True)
@@ -87,6 +97,17 @@ class ITIExample:
     prompt_input_ids: tuple[int, ...] | None = None
 
 
+@dataclass(frozen=True)
+class D7CausalPair:
+    pair_id: str
+    split: str
+    behavior_index: int
+    template_idx: int
+    harmful_prompt: str
+    harmful_response_target: str
+    benign_response_target: str
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Extract head-level truthfulness ITI")
     parser.add_argument(
@@ -99,6 +120,8 @@ def parse_args() -> argparse.Namespace:
             "iti_truthfulqa_paperfaithful",
             "iti_truthfulqa_exploratory",
             "iti_truthfulqa_modernized",
+            "iti_refusal_probe",
+            "iti_refusal_causal",
         ],
     )
     parser.add_argument(
@@ -172,6 +195,12 @@ def parse_args() -> argparse.Namespace:
             "'all_answer_positions' uses first/mean/last summaries."
         ),
     )
+    parser.add_argument(
+        "--d7_manifest_path",
+        type=Path,
+        default=Path("data/manifests/jbb_d7_extraction_pairs_seed42.jsonl"),
+        help="Path to D7 extraction-pair JSONL manifest (required for refusal families).",
+    )
     return parser.parse_args()
 
 
@@ -182,6 +211,8 @@ def default_output_dir(family: str) -> Path:
         "iti_truthfulqa_paperfaithful": "iti_truthfulqa_paperfaithful",
         "iti_truthfulqa_exploratory": "iti_truthfulqa_exploratory",
         "iti_truthfulqa_modernized": "iti_truthfulqa_modernized",
+        "iti_refusal_probe": "iti_refusal_probe",
+        "iti_refusal_causal": "iti_refusal_causal",
     }
     suffix = suffix_map[family]
     return Path("data/contrastive/truthfulness") / suffix
@@ -194,6 +225,14 @@ def resolve_selector_policy(
     position_policy_override: str | None,
 ) -> tuple[str, tuple[str, ...], str]:
     """Resolve ranking metric and position summaries for head selection."""
+    if family in REFUSAL_FAMILIES:
+        if position_policy_override and position_policy_override != "last_answer_token":
+            raise ValueError(
+                "Refusal families currently support only last_answer_token position policy"
+            )
+        rank_primary = ranking_metric_override or "auroc"
+        return rank_primary, ("last_answer_token",), "last_answer_token"
+
     is_paper_faithful = family == "iti_truthfulqa_paperfaithful"
     default_rank_primary = "val_accuracy" if is_paper_faithful else "auroc"
     default_position_policy = (
@@ -238,6 +277,218 @@ def _encode_with_answer_positions(
         )
     positions = tuple(range(len(prefix_ids), len(full_ids)))
     return full, positions
+
+
+_JBB_SAMPLE_ID_PATTERN = re.compile(r"^jbb_(harmful|benign)_(\d+)_t(\d+)$")
+
+
+def _parse_jbb_sample_id(sample_id: str) -> tuple[str, int, int]:
+    match = _JBB_SAMPLE_ID_PATTERN.match(sample_id)
+    if not match:
+        raise ValueError(f"Malformed JBB sample ID: {sample_id!r}")
+    split, index, template_idx = match.groups()
+    return split, int(index), int(template_idx)
+
+
+def _encode_prompt_last_token(
+    tokenizer: Any,
+    *,
+    prompt: str,
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    prompt_ids = tokenizer(prompt, add_special_tokens=False)["input_ids"]
+    if len(prompt_ids) == 0:
+        raise ValueError(f"Prompt encodes to empty token sequence: {prompt!r}")
+    prompt_ids_tuple = tuple(int(token_id) for token_id in prompt_ids)
+    return prompt_ids_tuple, (len(prompt_ids_tuple) - 1,)
+
+
+def _load_d7_manifest_rows(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            payload = json.loads(line)
+            if not isinstance(payload, dict):
+                raise ValueError(f"D7 manifest row must be an object: {payload!r}")
+            rows.append(payload)
+    return rows
+
+
+def build_refusal_d7_examples(
+    *,
+    tokenizer: Any,
+    manifest_path: Path,
+    family: str,
+) -> tuple[list[ITIExample], list[D7CausalPair], dict[str, Any]]:
+    rows = _load_d7_manifest_rows(manifest_path)
+    if not rows:
+        raise ValueError(f"D7 manifest has no rows: {manifest_path}")
+
+    examples: list[ITIExample] = []
+    causal_pairs: list[D7CausalPair] = []
+    seen_pair_ids: set[str] = set()
+    seen_harmful_ids: set[str] = set()
+    seen_benign_ids: set[str] = set()
+
+    for row in rows:
+        pair_id = str(row["pair_id"])
+        if pair_id in seen_pair_ids:
+            raise ValueError(f"Duplicate pair_id in D7 manifest: {pair_id}")
+        seen_pair_ids.add(pair_id)
+
+        split = str(row.get("split", "train"))
+        if split not in {"train", "val"}:
+            raise ValueError(f"Invalid split for pair_id={pair_id}: {split!r}")
+
+        harmful_sample_id = str(row["harmful_sample_id"])
+        benign_sample_id = str(row["benign_sample_id"])
+        h_split, h_index, h_template_idx = _parse_jbb_sample_id(harmful_sample_id)
+        b_split, b_index, b_template_idx = _parse_jbb_sample_id(benign_sample_id)
+        if h_split != "harmful" or b_split != "benign":
+            raise ValueError(
+                f"Pair {pair_id} has invalid harmful/benign ID split tags: "
+                f"{harmful_sample_id!r}, {benign_sample_id!r}"
+            )
+        if h_index != b_index or h_template_idx != b_template_idx:
+            raise ValueError(
+                f"Pair {pair_id} is misaligned by index/template: "
+                f"{harmful_sample_id!r} vs {benign_sample_id!r}"
+            )
+        declared_index = int(row["behavior_index"])
+        declared_template_idx = int(row["template_idx"])
+        if declared_index != h_index or declared_template_idx != h_template_idx:
+            raise ValueError(
+                f"Pair {pair_id} manifest index/template mismatch: "
+                f"declared=({declared_index},{declared_template_idx}) "
+                f"parsed=({h_index},{h_template_idx})"
+            )
+        if harmful_sample_id in seen_harmful_ids:
+            raise ValueError(f"Duplicate harmful sample ID: {harmful_sample_id}")
+        if benign_sample_id in seen_benign_ids:
+            raise ValueError(f"Duplicate benign sample ID: {benign_sample_id}")
+        seen_harmful_ids.add(harmful_sample_id)
+        seen_benign_ids.add(benign_sample_id)
+
+        harmful_prompt = str(row["harmful_prompt"]).strip()
+        benign_prompt = str(row["benign_prompt"]).strip()
+        harmful_target = str(row["harmful_response_target"]).strip()
+        benign_target = str(row["benign_response_target"]).strip()
+        if not harmful_prompt or not benign_prompt:
+            raise ValueError(f"Pair {pair_id} has empty prompt field")
+        if not harmful_target or not benign_target:
+            raise ValueError(f"Pair {pair_id} has empty target field")
+
+        harmful_prompt_ids, harmful_positions = _encode_prompt_last_token(
+            tokenizer,
+            prompt=harmful_prompt,
+        )
+        benign_prompt_ids, benign_positions = _encode_prompt_last_token(
+            tokenizer,
+            prompt=benign_prompt,
+        )
+
+        metadata_base = {
+            "pair_id": pair_id,
+            "behavior_index": declared_index,
+            "behavior": str(row["behavior"]),
+            "category": str(row["category"]),
+            "source": str(row.get("source", "")),
+            "template_idx": declared_template_idx,
+            "harmful_sample_id": harmful_sample_id,
+            "benign_sample_id": benign_sample_id,
+        }
+
+        examples.append(
+            ITIExample(
+                example_id=harmful_sample_id,
+                family=family,
+                split=split,
+                qid=pair_id,
+                question=harmful_prompt,
+                answer=str(row["harmful_goal"]),
+                label=LABEL_FALSE,
+                weight=1.0,
+                prompt_text=harmful_prompt,
+                answer_positions=harmful_positions,
+                metadata={**metadata_base, "prompt_role": "harmful"},
+                prompt_input_ids=harmful_prompt_ids,
+            )
+        )
+        examples.append(
+            ITIExample(
+                example_id=benign_sample_id,
+                family=family,
+                split=split,
+                qid=pair_id,
+                question=benign_prompt,
+                answer=str(row["benign_goal"]),
+                label=LABEL_TRUE,
+                weight=1.0,
+                prompt_text=benign_prompt,
+                answer_positions=benign_positions,
+                metadata={**metadata_base, "prompt_role": "benign"},
+                prompt_input_ids=benign_prompt_ids,
+            )
+        )
+        causal_pairs.append(
+            D7CausalPair(
+                pair_id=pair_id,
+                split=split,
+                behavior_index=declared_index,
+                template_idx=declared_template_idx,
+                harmful_prompt=harmful_prompt,
+                harmful_response_target=harmful_target,
+                benign_response_target=benign_target,
+            )
+        )
+
+    metadata = {
+        "family": family,
+        "source_dataset": "JailbreakBench/JBB-Behaviors paired manifest",
+        "manifest_path": str(manifest_path),
+        "prompt_format": "templated_jbb_goal_prompt",
+        "answer_token_policy": "last_prompt_token",
+        "question_counts": {
+            "train_pairs": sum(1 for pair in causal_pairs if pair.split == "train"),
+            "val_pairs": sum(1 for pair in causal_pairs if pair.split == "val"),
+        },
+        "example_counts": {
+            "train_harmful": sum(
+                1 for ex in examples if ex.split == "train" and ex.label == LABEL_FALSE
+            ),
+            "train_benign": sum(
+                1 for ex in examples if ex.split == "train" and ex.label == LABEL_TRUE
+            ),
+            "val_harmful": sum(
+                1 for ex in examples if ex.split == "val" and ex.label == LABEL_FALSE
+            ),
+            "val_benign": sum(
+                1 for ex in examples if ex.split == "val" and ex.label == LABEL_TRUE
+            ),
+        },
+        "split_fingerprint": {
+            "train_qids": fingerprint_ids(
+                sorted({pair.pair_id for pair in causal_pairs if pair.split == "train"})
+            ),
+            "val_qids": fingerprint_ids(
+                sorted({pair.pair_id for pair in causal_pairs if pair.split == "val"})
+            ),
+        },
+        "question_ids_train": sorted(
+            {pair.pair_id for pair in causal_pairs if pair.split == "train"}
+        ),
+        "question_ids_val": sorted(
+            {pair.pair_id for pair in causal_pairs if pair.split == "val"}
+        ),
+        "question_ids_dev": sorted({pair.pair_id for pair in causal_pairs}),
+        "question_ids_test": [],
+        "direction_fit_scope": "dev_only",
+        "direction_fit_source": "dev_only",
+        "sigma_fit_source": "dev_only",
+    }
+    return examples, causal_pairs, metadata
 
 
 def _weighted_mean(X: np.ndarray, weights: np.ndarray) -> np.ndarray:
@@ -1134,6 +1385,238 @@ def rank_heads(
     return ranked_heads, metrics_summary
 
 
+def _encode_continuation_tokens(tokenizer: Any, text: str) -> tuple[int, ...]:
+    continuation = text if text[:1].isspace() else f" {text}"
+    token_ids = tokenizer(continuation, add_special_tokens=False)["input_ids"]
+    if not token_ids:
+        token_ids = tokenizer(text, add_special_tokens=False)["input_ids"]
+    if not token_ids:
+        raise ValueError(f"Continuation has no tokens: {text!r}")
+    return tuple(int(token_id) for token_id in token_ids)
+
+
+def _causal_branch_logprob_and_attribution(
+    *,
+    model: torch.nn.Module,
+    prompt_ids: tuple[int, ...],
+    continuation_ids: tuple[int, ...],
+    device: torch.device,
+    n_layers: int,
+    n_heads: int,
+    head_dim: int,
+) -> tuple[float, np.ndarray]:
+    prompt_pos = len(prompt_ids) - 1
+    full_ids = torch.tensor(
+        [list(prompt_ids + continuation_ids)],
+        dtype=torch.long,
+        device=device,
+    )
+
+    decoder_layers = _get_decoder_layers(model)
+    hook_state: dict[int, torch.Tensor] = {}
+    hooks = []
+
+    def make_hook(layer_idx: int):
+        def hook_fn(module, args):
+            x = args[0]
+            if x.ndim != 3 or x.shape[0] != 1:
+                return args
+            if prompt_pos >= x.shape[1]:
+                raise ValueError(
+                    f"Prompt position {prompt_pos} out of range for seq_len={x.shape[1]}"
+                )
+            hook_state[layer_idx] = x
+            return args
+
+        return hook_fn
+
+    for layer_idx in range(n_layers):
+        hooks.append(
+            decoder_layers[layer_idx].self_attn.o_proj.register_forward_pre_hook(
+                make_hook(layer_idx)
+            )
+        )
+
+    try:
+        model.zero_grad(set_to_none=True)
+        logits = model(full_ids).logits
+        pred_logits = logits[:, :-1, :]
+        target_ids = full_ids[:, 1:]
+        start = len(prompt_ids) - 1
+        end = start + len(continuation_ids)
+        token_logprobs = torch.log_softmax(pred_logits[:, start:end, :], dim=-1)
+        gathered = token_logprobs.gather(
+            dim=-1,
+            index=target_ids[:, start:end].unsqueeze(-1),
+        ).squeeze(-1)
+        total_logprob = gathered.sum()
+        if not torch.isfinite(total_logprob):
+            raise ValueError("Non-finite causal branch objective")
+        layer_inputs: list[torch.Tensor] = []
+        for layer_idx in range(n_layers):
+            layer_input = hook_state.get(layer_idx)
+            if layer_input is None:
+                raise ValueError(
+                    "Missing causal hook captures for one or more decoder layers"
+                )
+            layer_inputs.append(layer_input)
+        grads = torch.autograd.grad(
+            total_logprob,
+            layer_inputs,
+            allow_unused=True,
+        )
+
+        attribution = np.zeros((n_layers, n_heads), dtype=np.float64)
+        for layer_idx in range(n_layers):
+            layer_input = layer_inputs[layer_idx]
+            layer_grad = grads[layer_idx]
+            if layer_grad is None:
+                raise ValueError(
+                    f"Missing prompt activation gradient for causal branch at layer {layer_idx}"
+                )
+            prompt_grad = layer_grad[:, prompt_pos, :].reshape(1, n_heads, head_dim)
+            prompt_act = layer_input.detach()[:, prompt_pos, :].reshape(
+                1, n_heads, head_dim
+            )
+            contrib = (prompt_grad[0] * prompt_act[0]).sum(dim=-1)
+            contrib_np = contrib.detach().float().cpu().numpy().astype(np.float64)
+            if not np.isfinite(contrib_np).all():
+                raise ValueError(
+                    f"NaN/Inf causal attribution detected at layer {layer_idx}"
+                )
+            attribution[layer_idx] = contrib_np
+        return float(total_logprob.item()), attribution
+    finally:
+        for hook in hooks:
+            hook.remove()
+
+
+def rank_heads_causal(
+    *,
+    model: torch.nn.Module,
+    tokenizer: Any,
+    causal_pairs: list[D7CausalPair],
+    device: torch.device,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if not causal_pairs:
+        raise ValueError("Causal ranking requires at least one extraction pair")
+
+    cfg = _get_text_config(model)
+    n_layers = int(getattr(cfg, "num_hidden_layers"))
+    n_heads = int(getattr(cfg, "num_attention_heads"))
+    decoder_layers = _get_decoder_layers(model)
+    head_dim = int(getattr(decoder_layers[0].self_attn, "head_dim"))
+
+    score_accumulator = np.zeros((n_layers, n_heads), dtype=np.float64)
+    objective_deltas: list[float] = []
+
+    for pair in tqdm(causal_pairs, desc="Scoring causal head attributions"):
+        prompt_ids = tuple(
+            int(token_id)
+            for token_id in tokenizer(
+                pair.harmful_prompt,
+                add_special_tokens=False,
+            )["input_ids"]
+        )
+        if not prompt_ids:
+            raise ValueError(f"Pair {pair.pair_id} has empty harmful prompt encoding")
+
+        benign_ids = _encode_continuation_tokens(tokenizer, pair.benign_response_target)
+        harmful_ids = _encode_continuation_tokens(
+            tokenizer,
+            pair.harmful_response_target,
+        )
+
+        benign_logprob, benign_attr = _causal_branch_logprob_and_attribution(
+            model=model,
+            prompt_ids=prompt_ids,
+            continuation_ids=benign_ids,
+            device=device,
+            n_layers=n_layers,
+            n_heads=n_heads,
+            head_dim=head_dim,
+        )
+        harmful_logprob, harmful_attr = _causal_branch_logprob_and_attribution(
+            model=model,
+            prompt_ids=prompt_ids,
+            continuation_ids=harmful_ids,
+            device=device,
+            n_layers=n_layers,
+            n_heads=n_heads,
+            head_dim=head_dim,
+        )
+        delta_attr = benign_attr - harmful_attr
+        if not np.isfinite(delta_attr).all():
+            raise ValueError(f"NaN/Inf attribution delta for pair {pair.pair_id}")
+        score_accumulator += delta_attr
+        objective_deltas.append(benign_logprob - harmful_logprob)
+
+    mean_scores = score_accumulator / len(causal_pairs)
+    ranked_heads: list[dict[str, Any]] = []
+    qid_coverage = {
+        "train": len({pair.pair_id for pair in causal_pairs if pair.split == "train"}),
+        "val": len({pair.pair_id for pair in causal_pairs if pair.split == "val"}),
+    }
+    for layer_idx in range(n_layers):
+        for head_idx in range(n_heads):
+            score = float(mean_scores[layer_idx, head_idx])
+            ranked_heads.append(
+                {
+                    "layer": layer_idx,
+                    "head": head_idx,
+                    "position_summary": "last_answer_token",
+                    "causal_effect": round(score, 6),
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "val_accuracy": 0.5,
+                    "qid_coverage": qid_coverage,
+                    "metrics_by_summary": {
+                        "last_answer_token": {
+                            "causal_effect": round(score, 6),
+                            "auroc": 0.5,
+                            "balanced_accuracy": 0.5,
+                            "val_accuracy": 0.5,
+                            "qid_coverage": qid_coverage,
+                        }
+                    },
+                }
+            )
+
+    ranked_heads.sort(
+        key=lambda item: (float(item["causal_effect"]), -item["layer"], -item["head"]),
+        reverse=True,
+    )
+    objective_arr = np.array(objective_deltas, dtype=np.float64)
+    ranking_metadata = {
+        "position_summaries": ["last_answer_token"],
+        "head_dim": head_dim,
+        "objective_name": (
+            "log_p(benign_response_target|harmful_prompt) - "
+            "log_p(harmful_response_target|harmful_prompt)"
+        ),
+        "objective_summary": {
+            "n_pairs": len(causal_pairs),
+            "mean_delta": round(float(objective_arr.mean()), 6),
+            "std_delta": round(float(objective_arr.std()), 6),
+            "min_delta": round(float(objective_arr.min()), 6),
+            "max_delta": round(float(objective_arr.max()), 6),
+        },
+        "top5": [
+            {
+                "layer": item["layer"],
+                "head": item["head"],
+                "position_summary": item["position_summary"],
+                "causal_effect": item["causal_effect"],
+                "auroc": item["auroc"],
+                "balanced_accuracy": item["balanced_accuracy"],
+                "val_accuracy": item["val_accuracy"],
+            }
+            for item in ranked_heads[:5]
+        ],
+    }
+    return ranked_heads, ranking_metadata
+
+
 def build_artifact(
     *,
     family: str,
@@ -1177,6 +1660,7 @@ def main() -> None:
 
     try:
         tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+        causal_pairs: list[D7CausalPair] = []
         if args.family == "iti_triviaqa_transfer":
             examples, family_metadata = build_triviaqa_transfer_examples(
                 consistency_path=args.consistency_path,
@@ -1199,6 +1683,12 @@ def main() -> None:
                 csv_path=args.csv_path,
                 family=args.family,
             )
+        elif args.family in REFUSAL_FAMILIES:
+            examples, causal_pairs, family_metadata = build_refusal_d7_examples(
+                tokenizer=tokenizer,
+                manifest_path=args.d7_manifest_path,
+                family=args.family,
+            )
         else:
             examples, family_metadata = build_context_grounded_examples(
                 tokenizer=tokenizer,
@@ -1207,13 +1697,18 @@ def main() -> None:
                 val_questions=args.context_val_questions,
             )
 
-        rank_primary, rank_position_summaries, position_policy = (
-            resolve_selector_policy(
-                family=args.family,
-                ranking_metric_override=args.ranking_metric_override,
-                position_policy_override=args.position_policy_override,
+        if args.family == "iti_refusal_causal":
+            rank_primary = "causal_effect"
+            rank_position_summaries = ("last_answer_token",)
+            position_policy = "last_answer_token"
+        else:
+            rank_primary, rank_position_summaries, position_policy = (
+                resolve_selector_policy(
+                    family=args.family,
+                    ranking_metric_override=args.ranking_metric_override,
+                    position_policy_override=args.position_policy_override,
+                )
             )
-        )
 
         print(f"Loaded {len(examples)} {args.family} examples")
         model = AutoModelForCausalLM.from_pretrained(
@@ -1228,14 +1723,25 @@ def main() -> None:
             examples=examples,
             device=device,
         )
-        ranked_heads, ranking_metadata = rank_heads(
-            activations,
-            examples,
-            position_summaries=rank_position_summaries,
-            ranking_primary=rank_primary,
+        if args.family == "iti_refusal_causal":
+            ranked_heads, ranking_metadata = rank_heads_causal(
+                model=model,
+                tokenizer=tokenizer,
+                causal_pairs=causal_pairs,
+                device=device,
+            )
+        else:
+            ranked_heads, ranking_metadata = rank_heads(
+                activations,
+                examples,
+                position_summaries=rank_position_summaries,
+                ranking_primary=rank_primary,
+            )
+
+        use_dev_direction_fit = (
+            args.family in TRUTHFULQA_FAMILIES or args.family in REFUSAL_FAMILIES
         )
-        is_truthfulqa = args.family in TRUTHFULQA_FAMILIES
-        if is_truthfulqa:
+        if use_dev_direction_fit:
             direction_fit_indices = list(range(len(examples)))
             direction_source = "dev_data"
         else:
@@ -1285,6 +1791,7 @@ def main() -> None:
                 "truthfulqa_manifest_fingerprint"
             ),
             "fold_file_fingerprint": family_metadata.get("fold_file_fingerprint"),
+            "d7_manifest_path": family_metadata.get("manifest_path"),
             "question_ids_train": family_metadata.get("question_ids_train", []),
             "question_ids_val": family_metadata.get("question_ids_val", []),
             "question_ids_dev": family_metadata.get("question_ids_dev", []),
@@ -1335,6 +1842,7 @@ def main() -> None:
                     "position_summary": head["position_summary"],
                     "auroc": head["auroc"],
                     "balanced_accuracy": head["balanced_accuracy"],
+                    "causal_effect": head.get("causal_effect"),
                     "sigma": head["sigma"],
                 }
                 for idx, head in enumerate(ranked_heads[:32])

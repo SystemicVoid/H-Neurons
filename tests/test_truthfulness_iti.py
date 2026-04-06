@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -447,7 +448,143 @@ class DummyITIModel(torch.nn.Module):
         return layer.self_attn.o_proj(input_ids)
 
 
+class CausalDummyModel(DummyITIModel):
+    def __init__(self):
+        super().__init__()
+        self.config = SimpleNamespace(num_hidden_layers=1, num_attention_heads=2)
+
+
+class CausalAttributionToyModel(CausalDummyModel):
+    def __init__(self, vocab_size: int = 32, n_layers: int = 2):
+        super().__init__()
+        while len(self.model.language_model.layers) < n_layers:
+            self.model.language_model.layers.append(DummyLayer())
+        self.config = SimpleNamespace(
+            num_hidden_layers=n_layers,
+            num_attention_heads=2,
+        )
+        self.embed = torch.nn.Embedding(vocab_size, 4)
+        self.lm_head = torch.nn.Linear(4, vocab_size, bias=False)
+        torch.manual_seed(0)
+        with torch.no_grad():
+            self.embed.weight.normal_(mean=0.0, std=0.2)
+            self.lm_head.weight.normal_(mean=0.0, std=0.2)
+
+    def forward(self, input_ids):
+        x = self.embed(input_ids)
+        for layer in self.model.language_model.layers:
+            assert isinstance(layer, DummyLayer)
+            x = layer.self_attn.o_proj(x)
+        logits = self.lm_head(x)
+        return SimpleNamespace(logits=logits)
+
+
+class TestD7CausalRanking:
+    def test_causal_branch_collects_prompt_gradients_from_layer_input(self):
+        model = CausalAttributionToyModel(vocab_size=48, n_layers=2)
+
+        logprob, attribution = iti_extract._causal_branch_logprob_and_attribution(
+            model=model,
+            prompt_ids=(1, 2, 3),
+            continuation_ids=(4, 5),
+            device=torch.device("cpu"),
+            n_layers=2,
+            n_heads=2,
+            head_dim=2,
+        )
+
+        assert isinstance(logprob, float)
+        assert attribution.shape == (2, 2)
+        assert torch.isfinite(torch.from_numpy(attribution)).all()
+        assert torch.count_nonzero(torch.from_numpy(attribution)).item() > 0
+
+    def test_rank_heads_causal_orders_by_attribution_score(self, monkeypatch):
+        model = CausalDummyModel()
+        tokenizer = StubTokenizer()
+        pairs = [
+            iti_extract.D7CausalPair(
+                pair_id="pair_1",
+                split="train",
+                behavior_index=0,
+                template_idx=0,
+                harmful_prompt="harmful prompt",
+                harmful_response_target="harmful target",
+                benign_response_target="benign target",
+            ),
+            iti_extract.D7CausalPair(
+                pair_id="pair_2",
+                split="val",
+                behavior_index=1,
+                template_idx=1,
+                harmful_prompt="harmful prompt two",
+                harmful_response_target="harmful target",
+                benign_response_target="benign target",
+            ),
+        ]
+
+        monkeypatch.setattr(
+            iti_extract,
+            "_encode_continuation_tokens",
+            lambda _tokenizer, text: (1,) if "benign" in text else (2,),
+        )
+
+        def fake_branch(*, continuation_ids, **_kwargs):
+            if continuation_ids == (1,):
+                return 0.5, torch.tensor([[3.0, 1.0]], dtype=torch.float64).numpy()
+            return -0.5, torch.tensor([[1.0, 2.0]], dtype=torch.float64).numpy()
+
+        monkeypatch.setattr(
+            iti_extract,
+            "_causal_branch_logprob_and_attribution",
+            fake_branch,
+        )
+
+        ranked, metadata = iti_extract.rank_heads_causal(
+            model=model,
+            tokenizer=tokenizer,
+            causal_pairs=pairs,
+            device=torch.device("cpu"),
+        )
+
+        assert ranked[0]["head"] == 0
+        assert ranked[0]["causal_effect"] > 0
+        assert ranked[-1]["head"] == 1
+        assert ranked[-1]["causal_effect"] < 0
+        assert metadata["objective_summary"]["n_pairs"] == 2
+
+
 class TestITIHeadScaler:
+    def test_accepts_refusal_probe_artifact_family(self):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_refusal_probe",
+            "n_layers": 1,
+            "n_attention_heads": 2,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.75,
+                    "balanced_accuracy": 0.7,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                }
+            ],
+        }
+
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family="iti_refusal_probe",
+            k=1,
+        )
+        assert scaler.family == "iti_refusal_probe"
+        assert scaler.n_heads_selected == 1
+        scaler.remove()
+
     def test_decode_only_intervention_skips_prompt_and_edits_decode(self):
         model = DummyITIModel()
         artifact = {
@@ -960,6 +1097,50 @@ class TestTruthfulQAModernizedExamples:
         assert str(outdir).endswith(
             "data/contrastive/truthfulness/iti_truthfulqa_modernized"
         )
+
+
+class TestRefusalD7Examples:
+    def test_build_refusal_pairs_and_metadata(self, tmp_path):
+        manifest_path = tmp_path / "d7_pairs.jsonl"
+        _write_jsonl(
+            manifest_path,
+            [
+                {
+                    "pair_id": "jbb_idx7_t0",
+                    "split": "train",
+                    "behavior_index": 7,
+                    "behavior": "behavior_7",
+                    "category": "category",
+                    "source": "test",
+                    "template_idx": 0,
+                    "harmful_sample_id": "jbb_harmful_7_t0",
+                    "benign_sample_id": "jbb_benign_7_t0",
+                    "harmful_goal": "harmful goal",
+                    "benign_goal": "benign goal",
+                    "harmful_prompt": "Harmful prompt text",
+                    "benign_prompt": "Benign prompt text",
+                    "harmful_response_target": "harmful target text",
+                    "benign_response_target": "benign target text",
+                }
+            ],
+        )
+
+        examples, causal_pairs, metadata = iti_extract.build_refusal_d7_examples(
+            tokenizer=StubTokenizer(),
+            manifest_path=manifest_path,
+            family="iti_refusal_probe",
+        )
+
+        assert len(examples) == 2
+        assert len(causal_pairs) == 1
+        assert {ex.label for ex in examples} == {
+            iti_extract.LABEL_FALSE,
+            iti_extract.LABEL_TRUE,
+        }
+        assert all(ex.answer_positions == (2,) for ex in examples)
+        assert metadata["family"] == "iti_refusal_probe"
+        assert metadata["direction_fit_scope"] == "dev_only"
+        assert metadata["question_ids_dev"] == ["jbb_idx7_t0"]
 
 
 class TestPaperFaithfulRanking:
