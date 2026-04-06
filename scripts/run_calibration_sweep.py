@@ -449,6 +449,7 @@ def main() -> None:
             family=artifact.get("family"),
             k=k,
             selection_strategy="ranked",
+            collect_debug_stats=False,
         )
 
         for alpha in args.alpha_values:

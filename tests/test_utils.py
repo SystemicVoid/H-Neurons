@@ -34,6 +34,7 @@ load_triviaqa_bridge = run_intervention.load_triviaqa_bridge
 run_truthfulqa_mc = run_intervention.run_truthfulqa_mc
 triviaqa_bridge_attempted = run_intervention.triviaqa_bridge_attempted
 run_faitheval_mc_logprob = run_intervention.run_faitheval_mc_logprob
+run_jailbreak = run_intervention.run_jailbreak
 extract_mc_answer = utils.extract_mc_answer
 format_alpha_label = utils.format_alpha_label
 normalize_answer = utils.normalize_answer
@@ -637,6 +638,156 @@ class TestDirectionOutputDir:
         assert mc1_dir != mc2_dir
         assert expected_fragment in mc1_dir
         assert "truthfulqa_mc_mc2" in mc2_dir
+
+
+class TestJailbreakDecodeControls:
+    def test_run_jailbreak_defaults_preserve_historical_sampling(
+        self, tmp_path, monkeypatch
+    ):
+        calls: list[dict[str, object]] = []
+
+        def fake_generate_response(
+            _model,
+            _tokenizer,
+            _messages,
+            *,
+            do_sample,
+            temperature,
+            top_k,
+            top_p,
+            max_new_tokens,
+            cached_input_ids,
+            scaler,
+        ):
+            calls.append(
+                {
+                    "do_sample": do_sample,
+                    "temperature": temperature,
+                    "top_k": top_k,
+                    "top_p": top_p,
+                    "max_new_tokens": max_new_tokens,
+                    "cached_input_ids": cached_input_ids,
+                    "scaler": scaler,
+                }
+            )
+            return (
+                "ok",
+                {
+                    "template_s": 0.0,
+                    "h2d_s": 0.0,
+                    "generate_s": 0.0,
+                    "decode_s": 0.0,
+                    "total_s": 0.0,
+                    "prompt_tokens": 1,
+                    "generated_tokens": 1,
+                    "hit_token_cap": False,
+                },
+            )
+
+        monkeypatch.setattr(
+            "run_intervention.generate_response", fake_generate_response
+        )
+        run_jailbreak(
+            model=object(),
+            tokenizer=object(),
+            scaler=SimpleNamespace(alpha=0.0),
+            samples=[
+                {
+                    "id": "jailbreak_test_0",
+                    "goal": "goal",
+                    "category": "cat",
+                    "template_idx": 0,
+                    "full_prompt": "prompt",
+                }
+            ],
+            alpha=0.0,
+            output_dir=str(tmp_path),
+            max_new_tokens=128,
+            do_sample=None,
+            temperature=None,
+            top_k=None,
+            top_p=None,
+        )
+
+        assert len(calls) == 1
+        assert calls[0]["do_sample"] is True
+        assert calls[0]["temperature"] == pytest.approx(0.7)
+        assert calls[0]["top_k"] == 20
+        assert calls[0]["top_p"] == pytest.approx(0.8)
+        assert calls[0]["max_new_tokens"] == 128
+
+    def test_run_jailbreak_honors_deterministic_overrides(self, tmp_path, monkeypatch):
+        calls: list[dict[str, object]] = []
+
+        def fake_generate_response(
+            _model,
+            _tokenizer,
+            _messages,
+            *,
+            do_sample,
+            temperature,
+            top_k,
+            top_p,
+            max_new_tokens,
+            cached_input_ids,
+            scaler,
+        ):
+            calls.append(
+                {
+                    "do_sample": do_sample,
+                    "temperature": temperature,
+                    "top_k": top_k,
+                    "top_p": top_p,
+                    "max_new_tokens": max_new_tokens,
+                    "cached_input_ids": cached_input_ids,
+                    "scaler": scaler,
+                }
+            )
+            return (
+                "ok",
+                {
+                    "template_s": 0.0,
+                    "h2d_s": 0.0,
+                    "generate_s": 0.0,
+                    "decode_s": 0.0,
+                    "total_s": 0.0,
+                    "prompt_tokens": 1,
+                    "generated_tokens": 1,
+                    "hit_token_cap": False,
+                },
+            )
+
+        monkeypatch.setattr(
+            "run_intervention.generate_response", fake_generate_response
+        )
+        run_jailbreak(
+            model=object(),
+            tokenizer=object(),
+            scaler=SimpleNamespace(alpha=0.0),
+            samples=[
+                {
+                    "id": "jailbreak_test_1",
+                    "goal": "goal",
+                    "category": "cat",
+                    "template_idx": 1,
+                    "full_prompt": "prompt",
+                }
+            ],
+            alpha=0.0,
+            output_dir=str(tmp_path),
+            max_new_tokens=64,
+            do_sample=False,
+            temperature=0.0,
+            top_k=1,
+            top_p=1.0,
+        )
+
+        assert len(calls) == 1
+        assert calls[0]["do_sample"] is False
+        assert calls[0]["temperature"] == pytest.approx(0.0)
+        assert calls[0]["top_k"] == 1
+        assert calls[0]["top_p"] == pytest.approx(1.0)
+        assert calls[0]["max_new_tokens"] == 64
 
 
 class TestTruthfulqaMetrics:

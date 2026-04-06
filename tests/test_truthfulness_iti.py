@@ -854,6 +854,45 @@ class TestITIHeadScaler:
 
         scaler.remove()
 
+    def test_debug_stats_can_be_disabled(self):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_triviaqa_transfer",
+            "n_layers": 1,
+            "n_attention_heads": 2,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "first_answer_token",
+                    "auroc": 0.9,
+                    "balanced_accuracy": 0.9,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                }
+            ],
+        }
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family=None,
+            k=1,
+            collect_debug_stats=False,
+        )
+        scaler.alpha = 2.0
+
+        decode_x = torch.zeros(1, 1, 4)
+        decode_out = model(decode_x.clone())
+        stats = scaler.consume_sample_stats()
+
+        assert decode_out.tolist() == [[[0.0, 0.0, 2.0, 0.0]]]
+        assert stats["debug_stats_enabled"] is False
+        assert stats["debug_steps"] == []
+
+        scaler.remove()
+
 
 class TestSimpleQAVerdictParsing:
     def test_parses_json_and_fallback_labels(self):

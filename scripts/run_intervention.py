@@ -2318,6 +2318,10 @@ def run_jailbreak(
     throughput_state=None,
     benchmark_name="jailbreak",
     throughput_session_id: str | None = None,
+    do_sample: bool | None = None,
+    temperature: float | None = None,
+    top_k: int | None = None,
+    top_p: float | None = None,
 ):
     """Run Jailbreak for a single alpha. Saves responses; GPT-4o judging is separate."""
     alpha_label = format_alpha_label(alpha)
@@ -2328,6 +2332,10 @@ def run_jailbreak(
         samples = samples[:max_samples]
 
     scaler.alpha = alpha
+    effective_do_sample = True if do_sample is None else bool(do_sample)
+    effective_temperature = 0.7 if temperature is None else float(temperature)
+    effective_top_k = 20 if top_k is None else int(top_k)
+    effective_top_p = 0.8 if top_p is None else float(top_p)
 
     for sample in tqdm(samples, desc=f"Jailbreak α={alpha_label}"):
         if sample["id"] in existing_ids:
@@ -2344,10 +2352,10 @@ def run_jailbreak(
             model,
             tokenizer,
             messages,
-            do_sample=True,
-            temperature=0.7,
-            top_k=20,
-            top_p=0.8,
+            do_sample=effective_do_sample,
+            temperature=effective_temperature,
+            top_k=effective_top_k,
+            top_p=effective_top_p,
             max_new_tokens=max_new_tokens,
             cached_input_ids=cached_ids,
             scaler=scaler,
@@ -3006,6 +3014,37 @@ def parse_args():
         choices=range(1, 6),
         help="Number of jailbreak templates to use (1-5)",
     )
+    p.add_argument(
+        "--jailbreak_do_sample",
+        type=str,
+        default="default",
+        choices=["default", "true", "false"],
+        help=(
+            "Jailbreak generation sampling control. "
+            "'default' preserves historical behavior (do_sample=true)."
+        ),
+    )
+    p.add_argument(
+        "--jailbreak_temperature",
+        type=float,
+        default=None,
+        help=(
+            "Optional jailbreak decode temperature override. "
+            "Only used when benchmark is jailbreak/jailbreak_benign."
+        ),
+    )
+    p.add_argument(
+        "--jailbreak_top_k",
+        type=int,
+        default=None,
+        help="Optional jailbreak decode top-k override.",
+    )
+    p.add_argument(
+        "--jailbreak_top_p",
+        type=float,
+        default=None,
+        help="Optional jailbreak decode top-p override.",
+    )
     # SAE intervention mode
     p.add_argument(
         "--intervention_mode",
@@ -3088,6 +3127,8 @@ def parse_args():
             "truthfulqa_paperfaithful",
             "truthfulqa_exploratory",
             "truthfulqa_modernized",
+            "refusal_probe",
+            "refusal_causal",
         ],
         help="Expected family label for the ITI artifact.",
     )
@@ -3124,6 +3165,14 @@ def parse_args():
         default="full_decode",
         choices=ITI_DECODE_SCOPES,
         help="Decode-token intervention scope for ITI head steering.",
+    )
+    p.add_argument(
+        "--iti_collect_debug_stats",
+        action="store_true",
+        help=(
+            "Collect per-step ITI debug norms/trace rows in JSONL output. "
+            "Useful for diagnostics but expensive for throughput."
+        ),
     )
     p.add_argument(
         "--max_new_tokens",
@@ -3282,12 +3331,14 @@ def main():
                 direction_mode=args.iti_direction_mode,
                 direction_random_seed=args.iti_direction_random_seed,
                 decode_scope=args.iti_decode_scope,
+                collect_debug_stats=args.iti_collect_debug_stats,
             )
             total_neurons = scaler.n_heads_selected
             print(
                 f"Installed {scaler.n_hooks} ITI hooks on {scaler.n_heads_selected} heads "
                 f"(selection={args.iti_selection_strategy}, "
-                f"scope={args.iti_decode_scope})"
+                f"scope={args.iti_decode_scope}, "
+                f"debug_stats={'on' if args.iti_collect_debug_stats else 'off'})"
             )
         else:
             print(f"Loading classifier: {args.classifier_path}")
@@ -3421,6 +3472,24 @@ def main():
         ):
             extra_kwargs["max_new_tokens"] = args.max_new_tokens
             print(f"Jailbreak max_new_tokens override: {args.max_new_tokens}")
+        if args.benchmark in ("jailbreak", "jailbreak_benign"):
+            if args.jailbreak_do_sample == "true":
+                extra_kwargs["do_sample"] = True
+            elif args.jailbreak_do_sample == "false":
+                extra_kwargs["do_sample"] = False
+            if args.jailbreak_temperature is not None:
+                extra_kwargs["temperature"] = args.jailbreak_temperature
+            if args.jailbreak_top_k is not None:
+                extra_kwargs["top_k"] = args.jailbreak_top_k
+            if args.jailbreak_top_p is not None:
+                extra_kwargs["top_p"] = args.jailbreak_top_p
+            print(
+                "Jailbreak decode controls: "
+                f"do_sample={extra_kwargs.get('do_sample', 'default:true')}, "
+                f"temperature={extra_kwargs.get('temperature', 0.7)}, "
+                f"top_k={extra_kwargs.get('top_k', 20)}, "
+                f"top_p={extra_kwargs.get('top_p', 0.8)}"
+            )
 
         # Pre-tokenize prompts once for reuse across all alpha values.
         # Each entry maps sample_id -> CPU-side input_ids tensor.
@@ -3565,6 +3634,7 @@ def main():
             summary["iti_random_seed"] = args.iti_random_seed
             summary["iti_family"] = args.iti_family
             summary["iti_decode_scope"] = args.iti_decode_scope
+            summary["iti_collect_debug_stats"] = args.iti_collect_debug_stats
         else:
             summary["classifier"] = args.classifier_path
         if args.benchmark == "faitheval":
@@ -3573,6 +3643,25 @@ def main():
             summary["simpleqa_prompt_style"] = args.simpleqa_prompt_style
         elif args.benchmark == "truthfulqa_mc":
             summary["truthfulqa_variant"] = args.truthfulqa_variant
+        elif args.benchmark in {"jailbreak", "jailbreak_benign"}:
+            summary["jailbreak_generation"] = {
+                "do_sample": (
+                    True
+                    if args.jailbreak_do_sample == "default"
+                    else args.jailbreak_do_sample == "true"
+                ),
+                "temperature": (
+                    0.7
+                    if args.jailbreak_temperature is None
+                    else float(args.jailbreak_temperature)
+                ),
+                "top_k": 20
+                if args.jailbreak_top_k is None
+                else int(args.jailbreak_top_k),
+                "top_p": (
+                    0.8 if args.jailbreak_top_p is None else float(args.jailbreak_top_p)
+                ),
+            }
         if args.benchmark in {
             "falseqa",
             "simpleqa",
