@@ -352,7 +352,7 @@ def generate_response(
         gen_kwargs.update(temperature=temperature, top_k=top_k, top_p=top_p)
 
     _arm_scaler_first_decode_token(scaler)
-    with torch.no_grad():
+    with torch.inference_mode():
         output_ids = model.generate(input_ids, **gen_kwargs)
     t_generate = time.perf_counter()
 
@@ -401,7 +401,7 @@ def score_continuation_decode_only(
         raise ValueError(f"Continuation has no tokens: {continuation!r}")
 
     _arm_scaler_first_decode_token(scaler)
-    with torch.no_grad():
+    with torch.inference_mode():
         prompt_outputs = model(prompt_ids, use_cache=True)
 
     prompt_logits = prompt_outputs.logits[:, -1, :]
@@ -417,7 +417,7 @@ def score_continuation_decode_only(
         for position in range(continuation_ids.shape[1] - 1):
             current_token = continuation_ids[:, position : position + 1]
             next_token = continuation_ids[:, position + 1]
-            with torch.no_grad():
+            with torch.inference_mode():
                 outputs = model(
                     current_token,
                     use_cache=True,
