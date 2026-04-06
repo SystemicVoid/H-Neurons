@@ -29,6 +29,11 @@ build_alpha_throughput_payload = run_intervention.build_alpha_throughput_payload
 build_alpha_throughput_summary = run_intervention.build_alpha_throughput_summary
 build_sample_throughput_payload = run_intervention.build_sample_throughput_payload
 resolve_output_dir = run_intervention.resolve_output_dir
+resolve_jailbreak_generation_settings = (
+    run_intervention.resolve_jailbreak_generation_settings
+)
+validate_run_profile_args = run_intervention.validate_run_profile_args
+build_generation_fingerprint = run_intervention.build_generation_fingerprint
 load_truthfulqa_mc = run_intervention.load_truthfulqa_mc
 load_triviaqa_bridge = run_intervention.load_triviaqa_bridge
 run_truthfulqa_mc = run_intervention.run_truthfulqa_mc
@@ -641,6 +646,94 @@ class TestDirectionOutputDir:
 
 
 class TestJailbreakDecodeControls:
+    def test_resolve_jailbreak_generation_settings_canonical_profile(self):
+        args = argparse.Namespace(
+            run_profile="canonical",
+            benchmark="jailbreak",
+            jailbreak_do_sample="default",
+            jailbreak_temperature=None,
+            jailbreak_top_k=None,
+            jailbreak_top_p=None,
+            max_new_tokens=None,
+            iti_collect_debug_stats=False,
+            jailbreak_batch_size=1,
+        )
+
+        resolved = resolve_jailbreak_generation_settings(args)
+
+        assert resolved == {
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_k": 20,
+            "top_p": 0.8,
+            "max_new_tokens": 5000,
+        }
+
+    def test_validate_run_profile_args_rejects_canonical_overrides(self):
+        args = argparse.Namespace(
+            run_profile="canonical",
+            benchmark="jailbreak",
+            jailbreak_do_sample="false",
+            jailbreak_temperature=None,
+            jailbreak_top_k=None,
+            jailbreak_top_p=None,
+            max_new_tokens=None,
+            iti_collect_debug_stats=False,
+            jailbreak_batch_size=1,
+        )
+
+        with pytest.raises(ValueError, match="do_sample=True"):
+            validate_run_profile_args(args)
+
+    def test_validate_run_profile_args_rejects_debug_in_canonical(self):
+        args = argparse.Namespace(
+            run_profile="canonical",
+            benchmark="jailbreak",
+            jailbreak_do_sample="default",
+            jailbreak_temperature=None,
+            jailbreak_top_k=None,
+            jailbreak_top_p=None,
+            max_new_tokens=None,
+            iti_collect_debug_stats=True,
+            jailbreak_batch_size=1,
+        )
+
+        with pytest.raises(ValueError, match="disallows --iti_collect_debug_stats"):
+            validate_run_profile_args(args)
+
+    def test_generation_fingerprint_changes_with_profile(self):
+        args = argparse.Namespace(
+            run_profile="canonical",
+            intervention_mode="iti_head",
+            iti_decode_scope="full_decode",
+        )
+        canonical = build_generation_fingerprint(
+            args=args,
+            jailbreak_generation={
+                "do_sample": True,
+                "temperature": 0.7,
+                "top_k": 20,
+                "top_p": 0.8,
+                "max_new_tokens": 5000,
+            },
+        )
+
+        args.run_profile = "fast"
+        fast = build_generation_fingerprint(
+            args=args,
+            jailbreak_generation={
+                "do_sample": True,
+                "temperature": 0.7,
+                "top_k": 20,
+                "top_p": 0.8,
+                "max_new_tokens": 5000,
+            },
+        )
+
+        assert canonical["id"] != fast["id"]
+        assert canonical["spec"]["run_profile"] == "canonical"
+        assert fast["spec"]["run_profile"] == "fast"
+
     def test_run_jailbreak_defaults_preserve_historical_sampling(
         self, tmp_path, monkeypatch
     ):
@@ -788,6 +881,85 @@ class TestJailbreakDecodeControls:
         assert calls[0]["top_k"] == 1
         assert calls[0]["top_p"] == pytest.approx(1.0)
         assert calls[0]["max_new_tokens"] == 64
+
+    def test_run_jailbreak_batch_writes_rows_in_manifest_order(
+        self, tmp_path, monkeypatch
+    ):
+        def fake_generate_responses_batched(
+            _model,
+            _tokenizer,
+            messages_batch,
+            *,
+            do_sample,
+            temperature,
+            top_k,
+            top_p,
+            max_new_tokens,
+            cached_input_ids_batch,
+            scaler,
+        ):
+            del _model, _tokenizer, scaler
+            assert do_sample is True
+            assert temperature == pytest.approx(0.7)
+            assert top_k == 20
+            assert top_p == pytest.approx(0.8)
+            assert max_new_tokens == 128
+            assert len(messages_batch) == 2
+            assert cached_input_ids_batch == [None, None]
+            responses = ["resp_0", "resp_1"]
+            sample_timings = [
+                {"prompt_tokens": 10, "generated_tokens": 4, "hit_token_cap": False},
+                {"prompt_tokens": 9, "generated_tokens": 3, "hit_token_cap": False},
+            ]
+            batch_timings = {
+                "template_s": 0.0,
+                "h2d_s": 0.0,
+                "generate_s": 1.0,
+                "decode_s": 0.1,
+                "total_s": 1.1,
+            }
+            return responses, sample_timings, batch_timings
+
+        monkeypatch.setattr(
+            "run_intervention.generate_responses_batched",
+            fake_generate_responses_batched,
+        )
+        run_jailbreak(
+            model=object(),
+            tokenizer=object(),
+            scaler=SimpleNamespace(alpha=0.0),
+            samples=[
+                {
+                    "id": "sample_0",
+                    "goal": "goal 0",
+                    "category": "cat",
+                    "template_idx": 0,
+                    "full_prompt": "prompt 0",
+                },
+                {
+                    "id": "sample_1",
+                    "goal": "goal 1",
+                    "category": "cat",
+                    "template_idx": 1,
+                    "full_prompt": "prompt 1",
+                },
+            ],
+            alpha=0.0,
+            output_dir=str(tmp_path),
+            max_new_tokens=128,
+            do_sample=True,
+            temperature=0.7,
+            top_k=20,
+            top_p=0.8,
+            jailbreak_batch_size=2,
+        )
+
+        rows = [
+            json.loads(line)
+            for line in (tmp_path / "alpha_0.0.jsonl").read_text().splitlines()
+        ]
+        assert [row["id"] for row in rows] == ["sample_0", "sample_1"]
+        assert [row["response"] for row in rows] == ["resp_0", "resp_1"]
 
 
 class TestTruthfulqaMetrics:

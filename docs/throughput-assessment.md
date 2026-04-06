@@ -4,6 +4,7 @@ _Created 2026-03-20 by splitting performance analysis out of `docs/tooling-asses
 _Updated 2026-03-23 with deeper workload characterisation and concrete intervention alternatives._
 _Updated 2026-03-24 with empirical results from canonical 5000-token run and sensor gap analysis._
 _Updated 2026-04-05 with live D7 pipeline bottleneck diagnosis and applied fixes._
+_Updated 2026-04-06 with D7 debug-confound correction and dual-track execution policy._
 
 ## Scope
 
@@ -35,7 +36,7 @@ Source files inspected for the current recommendations:
 
 **The GPU is doing real work, and one CPU core is doing suspicious amounts of paperwork.**
 
-`max_new_tokens=1024` is now the dominant unavoidable cost; hook overhead is still the dominant avoidable cost. The reason hook overhead still matters is brutal and simple: you now pay it on ~4× more decode steps.
+For D7 claimable runs (`max_new_tokens=5000`), long decode is now the dominant unavoidable cost; hook/debug overhead is still the dominant avoidable cost.
 
 The real jailbreak path is a **mixed CPU + GPU workload**:
 
@@ -50,34 +51,20 @@ Practical decision:
 
 GPU is continuously busy, but not expensively busy — single-stream long decode with too much host-side fuss around it.
 
-## Live Pipeline Diagnosis (2026-04-05, Ongoing D7 Pilot)
+## Live Pipeline Diagnosis (2026-04-05 / corrected 2026-04-06)
 
-Active process inspected:
+Correction for D7 decisions:
 
-- `scripts/run_intervention.py --benchmark jailbreak --intervention_mode iti_head ...`
-- Output dir: `data/gemma3_4b/intervention/jailbreak_d7/pilot100/probe/experiment/`
+- The very large hook tax seen in pilot probe timings was **debug-confounded**:
+  probe had ITI debug traces on, while causal was run with debug off.
+- Therefore probe-vs-causal pilot timing deltas are not a valid estimate of intrinsic ITI hook overhead.
+- For D7 planning, causal pilot timings are the better baseline for non-debug ITI cost.
 
-Observed from in-progress JSONL timing records:
+Operational consequence:
 
-- `alpha_0.0` (`n=100`):
-  - mean `generate_s`: `27.657s`
-  - mean generated tokens: `997.2`
-  - throughput: `36.053 tok/s` (wall)
-  - mean `hook_frac_of_generate`: `0.0004`
-- `alpha_1.0` (`n=82`, still running when measured):
-  - mean `generate_s`: `28.965s`
-  - mean generated tokens: `1002.8`
-  - throughput: `34.621 tok/s` (wall)
-  - mean `hook_frac_of_generate`: `0.3586`
-  - mean `hook_s`: `10.3886s`
-- Inter-sample orchestration gap is negligible in both (`~0.0002s` mean), so this is **not** a launch-gap problem.
-
-Interpretation:
-
-- The main avoidable tax in this active run is inside the ITI hook path during steered alphas, not between samples.
-- The largest concrete offender is per-step debug instrumentation (`delta.norm().item()`, activation norms, and per-step debug payload accumulation).
-- These debug calculations are in the hot decode loop and force frequent host/device synchronization.
-- Output rows also get much heavier when debug traces are emitted (observed mean row bytes roughly doubled).
+- Treat profile hygiene first: canonical claimable runs must be fixed-decode and debug-off.
+- Keep throughput experiments in a separate fast profile and separate directories.
+- Do not mix these tracks in final claim tables until a promotion gate passes.
 
 ## Applied Fixes (2026-04-05)
 
@@ -93,7 +80,7 @@ Files:
 
 Changes:
 
-- Added `ITIHeadScaler(..., collect_debug_stats: bool = True, max_debug_steps: int = 32)`.
+- Added `ITIHeadScaler(..., collect_debug_stats: bool = False, max_debug_steps: int = 32)`.
 - ITI hook now computes expensive per-step norm/debug values **only when debug collection is enabled**.
 - `run_intervention.py` now exposes `--iti_collect_debug_stats` (disabled by default).
 - `run_calibration_sweep.py` now explicitly constructs `ITIHeadScaler(..., collect_debug_stats=False)`.
@@ -219,20 +206,17 @@ More than 30% from hook cleanup alone would be surprising. The 4× longer decode
 
 ## Ranked Throughput Paths
 
-### Speed only (current jailbreak run)
+### D7 priority order (comparability-safe)
 
-1. Redesign/remove the Python intervention path
-2. Try small-batch generation
-3. Cache tokenization/chat-template outputs
-4. `inference_mode()`
-5. Everything else
+1. Guardrails/default hygiene (`run_profile=canonical`, fixed decode controls, debug-off)
+2. Optional fast-track batching experiments (`run_profile=fast`, isolated directories)
+3. Deeper kernel/runtime work (only after the above are stable)
 
-### Speed × scientific cleanliness (canonical jailbreak run)
+### Promotion policy for fast-track changes
 
-1. Intervention-path cleanup
-2. Tokenization caching
-3. `inference_mode()`
-4. Batching — only after validation
+1. Require paired 100-sample throughput gain target (>=25% tok/s wall).
+2. Require paired quality/comparability gate on the same manifest before promoting to claimable.
+3. Until then, fast outputs remain `comparability_class=experimental`.
 
 ## Intervention Architecture Alternatives
 

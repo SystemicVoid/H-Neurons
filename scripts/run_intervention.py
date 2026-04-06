@@ -77,6 +77,18 @@ NOOP_ALPHA_BY_INTERVENTION_MODE = {
     "direction": 0.0,
     "iti_head": 0.0,
 }
+RUN_PROFILES = ("canonical", "fast")
+COMPARABILITY_CLASS_BY_PROFILE = {
+    "canonical": "claimable",
+    "fast": "experimental",
+}
+CANONICAL_JAILBREAK_GENERATION = {
+    "do_sample": True,
+    "temperature": 0.7,
+    "top_k": 20,
+    "top_p": 0.8,
+    "max_new_tokens": 5000,
+}
 
 
 def _slugify_path_component(value: str, *, max_length: int = 48) -> str:
@@ -152,10 +164,108 @@ def resolve_benchmark_name(args: argparse.Namespace) -> str:
     return args.benchmark
 
 
+def effective_run_profile(args: argparse.Namespace) -> str:
+    profile = getattr(args, "run_profile", "canonical")
+    if profile not in RUN_PROFILES:
+        raise ValueError(f"run_profile must be one of {RUN_PROFILES}, got {profile!r}")
+    return profile
+
+
+def resolve_jailbreak_generation_settings(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve jailbreak decode settings for the selected run profile."""
+    profile = effective_run_profile(args)
+    if profile == "canonical":
+        if args.jailbreak_do_sample == "false":
+            raise ValueError(
+                "--run_profile canonical requires jailbreak do_sample=True; "
+                "remove --jailbreak_do_sample false"
+            )
+        if (
+            args.jailbreak_temperature is not None
+            and abs(float(args.jailbreak_temperature) - 0.7) > 1e-9
+        ):
+            raise ValueError(
+                "--run_profile canonical requires --jailbreak_temperature 0.7"
+            )
+        if args.jailbreak_top_k is not None and int(args.jailbreak_top_k) != 20:
+            raise ValueError("--run_profile canonical requires --jailbreak_top_k 20")
+        if (
+            args.jailbreak_top_p is not None
+            and abs(float(args.jailbreak_top_p) - 0.8) > 1e-9
+        ):
+            raise ValueError("--run_profile canonical requires --jailbreak_top_p 0.8")
+        if args.max_new_tokens is not None and int(args.max_new_tokens) != 5000:
+            raise ValueError("--run_profile canonical requires --max_new_tokens 5000")
+        return dict(CANONICAL_JAILBREAK_GENERATION)
+
+    return {
+        "do_sample": (
+            True
+            if args.jailbreak_do_sample == "default"
+            else args.jailbreak_do_sample == "true"
+        ),
+        "temperature": (
+            0.7
+            if args.jailbreak_temperature is None
+            else float(args.jailbreak_temperature)
+        ),
+        "top_k": 20 if args.jailbreak_top_k is None else int(args.jailbreak_top_k),
+        "top_p": 0.8 if args.jailbreak_top_p is None else float(args.jailbreak_top_p),
+        "max_new_tokens": 256
+        if args.max_new_tokens is None
+        else int(args.max_new_tokens),
+    }
+
+
+def validate_run_profile_args(args: argparse.Namespace) -> None:
+    profile = effective_run_profile(args)
+    if args.jailbreak_batch_size < 1:
+        raise ValueError("--jailbreak_batch_size must be >= 1")
+
+    if profile == "canonical":
+        if args.iti_collect_debug_stats:
+            raise ValueError(
+                "--run_profile canonical disallows --iti_collect_debug_stats. "
+                "Use --run_profile fast for debug traces."
+            )
+        if args.jailbreak_batch_size != 1:
+            raise ValueError(
+                "--run_profile canonical requires --jailbreak_batch_size 1 "
+                "to preserve claimable generation semantics."
+            )
+        if args.benchmark in ("jailbreak", "jailbreak_benign"):
+            resolve_jailbreak_generation_settings(args)
+
+
+def build_generation_fingerprint(
+    *,
+    args: argparse.Namespace,
+    jailbreak_generation: dict[str, Any] | None,
+) -> dict[str, Any]:
+    spec = {
+        "run_profile": effective_run_profile(args),
+        "intervention_mode": args.intervention_mode,
+        "iti_decode_scope": args.iti_decode_scope
+        if args.intervention_mode == "iti_head"
+        else None,
+        "jailbreak_generation": jailbreak_generation,
+    }
+    encoded = json.dumps(spec, sort_keys=True, separators=(",", ":"))
+    return {
+        "id": hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16],
+        "spec": spec,
+    }
+
+
 def resolve_output_dir(args: argparse.Namespace) -> str:
     if args.output_dir:
         return args.output_dir
     benchmark_name = resolve_benchmark_name(args)
+    if (
+        benchmark_name in {"jailbreak", "jailbreak_benign"}
+        and effective_run_profile(args) == "fast"
+    ):
+        benchmark_name = f"{benchmark_name}_fast"
     if args.intervention_mode == "sae":
         return f"data/gemma3_4b/intervention/{benchmark_name}_sae/experiment"
     if args.intervention_mode == "iti_head":
@@ -376,6 +486,222 @@ def generate_response(
     }
 
     return response, timings
+
+
+def generate_responses_batched(
+    model,
+    tokenizer,
+    messages_batch: list[list[dict[str, str]] | None],
+    *,
+    do_sample=False,
+    temperature=1.0,
+    top_k=50,
+    top_p=0.9,
+    max_new_tokens=256,
+    cached_input_ids_batch: list[torch.Tensor | None] | None = None,
+    scaler=None,
+):
+    """Generate multiple jailbreak responses in one decoder-only batch."""
+    t0 = time.perf_counter()
+    cached_batch = (
+        cached_input_ids_batch
+        if cached_input_ids_batch is not None
+        else [None] * len(messages_batch)
+    )
+    if len(messages_batch) != len(cached_batch):
+        raise ValueError(
+            "messages_batch and cached_input_ids_batch must have same length"
+        )
+    if not messages_batch:
+        return (
+            [],
+            [],
+            {
+                "template_s": 0.0,
+                "h2d_s": 0.0,
+                "generate_s": 0.0,
+                "decode_s": 0.0,
+                "total_s": 0.0,
+            },
+        )
+
+    original_padding_side = tokenizer.padding_side
+    tokenizer.padding_side = "left"
+    try:
+        input_ids_list: list[torch.Tensor] = []
+        for messages, cached_ids in zip(messages_batch, cached_batch):
+            if cached_ids is not None:
+                input_ids = cached_ids
+            else:
+                if messages is None:
+                    raise ValueError(
+                        "messages must be provided when cached_input_ids is None"
+                    )
+                input_ids = tokenize_chat(tokenizer, messages)
+            if input_ids.ndim == 2:
+                input_ids = input_ids.squeeze(0)
+            if input_ids.ndim != 1:
+                raise ValueError(
+                    f"Expected 1D token ids, got shape={tuple(input_ids.shape)}"
+                )
+            input_ids_list.append(input_ids.to(dtype=torch.long, device="cpu"))
+        t_template = time.perf_counter()
+
+        pad_token_id = tokenizer.pad_token_id
+        eos_token_id = tokenizer.eos_token_id
+        if pad_token_id is None:
+            if eos_token_id is None:
+                raise ValueError(
+                    "Tokenizer needs pad_token_id or eos_token_id for left-padded batching"
+                )
+            pad_token_id = int(eos_token_id)
+        max_prompt_tokens = max(int(ids.shape[0]) for ids in input_ids_list)
+        batch_size = len(input_ids_list)
+        batch_input_ids = torch.full(
+            (batch_size, max_prompt_tokens),
+            int(pad_token_id),
+            dtype=torch.long,
+        )
+        attention_mask = torch.zeros((batch_size, max_prompt_tokens), dtype=torch.long)
+        prompt_tokens_per_sample: list[int] = []
+        for row_idx, input_ids in enumerate(input_ids_list):
+            prompt_tokens = int(input_ids.shape[0])
+            prompt_tokens_per_sample.append(prompt_tokens)
+            batch_input_ids[row_idx, -prompt_tokens:] = input_ids
+            attention_mask[row_idx, -prompt_tokens:] = 1
+
+        batch_input_ids = batch_input_ids.to(model.device)
+        attention_mask = attention_mask.to(model.device)
+        t_h2d = time.perf_counter()
+
+        gen_kwargs = dict(
+            max_new_tokens=max_new_tokens,
+            do_sample=do_sample,
+            pad_token_id=int(pad_token_id),
+            attention_mask=attention_mask,
+        )
+        if do_sample:
+            gen_kwargs.update(temperature=temperature, top_k=top_k, top_p=top_p)
+
+        _arm_scaler_first_decode_token(scaler)
+        with torch.inference_mode():
+            output_ids = model.generate(batch_input_ids, **gen_kwargs)
+        t_generate = time.perf_counter()
+
+        responses: list[str] = []
+        sample_timings: list[dict[str, Any]] = []
+        for row_idx in range(output_ids.shape[0]):
+            generated = output_ids[row_idx][max_prompt_tokens:]
+            if eos_token_id is not None:
+                eos_idx = (generated == int(eos_token_id)).nonzero(as_tuple=False)
+                if eos_idx.numel() > 0:
+                    generated = generated[: int(eos_idx[0].item()) + 1]
+            if pad_token_id is not None and (
+                eos_token_id is None or pad_token_id != eos_token_id
+            ):
+                while generated.numel() > 0 and int(generated[-1].item()) == int(
+                    pad_token_id
+                ):
+                    generated = generated[:-1]
+            responses.append(
+                tokenizer.decode(generated, skip_special_tokens=True).strip()
+            )
+            generated_tokens = int(generated.shape[0])
+            sample_timings.append(
+                {
+                    "prompt_tokens": prompt_tokens_per_sample[row_idx],
+                    "generated_tokens": generated_tokens,
+                    "hit_token_cap": generated_tokens >= max_new_tokens,
+                }
+            )
+        t_decode = time.perf_counter()
+    finally:
+        tokenizer.padding_side = original_padding_side
+
+    batch_timings = {
+        "template_s": round(t_template - t0, 4),
+        "h2d_s": round(t_h2d - t_template, 6),
+        "generate_s": round(t_generate - t_h2d, 4),
+        "decode_s": round(t_decode - t_generate, 4),
+        "total_s": round(t_decode - t0, 4),
+    }
+    return responses, sample_timings, batch_timings
+
+
+def split_batch_timings(
+    sample_timings: list[dict[str, Any]],
+    batch_timings: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Split batch-level timing totals into per-sample rows for logging."""
+    n_samples = len(sample_timings)
+    if n_samples == 0:
+        return []
+    template_share = float(batch_timings.get("template_s", 0.0)) / n_samples
+    h2d_share = float(batch_timings.get("h2d_s", 0.0)) / n_samples
+    generate_share = float(batch_timings.get("generate_s", 0.0)) / n_samples
+    decode_share = float(batch_timings.get("decode_s", 0.0)) / n_samples
+    rows = []
+    for sample_timing in sample_timings:
+        rows.append(
+            {
+                "template_s": round(template_share, 4),
+                "h2d_s": round(h2d_share, 6),
+                "generate_s": round(generate_share, 4),
+                "decode_s": round(decode_share, 4),
+                "total_s": round(
+                    template_share + h2d_share + generate_share + decode_share, 4
+                ),
+                "prompt_tokens": int(sample_timing.get("prompt_tokens", 0)),
+                "generated_tokens": int(sample_timing.get("generated_tokens", 0)),
+                "hit_token_cap": bool(sample_timing.get("hit_token_cap", False)),
+            }
+        )
+    return rows
+
+
+def split_batch_hook_stats(
+    hook_stats: dict[str, Any] | None,
+    *,
+    n_samples: int,
+) -> list[dict[str, Any] | None]:
+    if hook_stats is None:
+        return [None] * n_samples
+    if n_samples <= 0:
+        return []
+
+    shared = {
+        "selection_strategy": hook_stats.get("selection_strategy"),
+        "direction_mode": hook_stats.get("direction_mode"),
+        "decode_scope": hook_stats.get("decode_scope"),
+        "n_heads_selected": hook_stats.get("n_heads_selected"),
+        "family": hook_stats.get("family"),
+        "debug_stats_enabled": hook_stats.get("debug_stats_enabled"),
+    }
+    hook_calls = int(hook_stats.get("hook_calls", 0))
+    prompt_skip_calls = int(hook_stats.get("prompt_skip_calls", 0))
+    scope_skip_calls = int(hook_stats.get("scope_skip_calls", 0))
+    hook_s_share = float(hook_stats.get("hook_s", 0.0)) / n_samples
+    debug_steps = list(hook_stats.get("debug_steps") or [])
+
+    def _split_counts(total: int) -> list[int]:
+        base, remainder = divmod(total, n_samples)
+        return [base + (1 if idx < remainder else 0) for idx in range(n_samples)]
+
+    hook_calls_by_sample = _split_counts(hook_calls)
+    prompt_skip_by_sample = _split_counts(prompt_skip_calls)
+    scope_skip_by_sample = _split_counts(scope_skip_calls)
+    rows: list[dict[str, Any] | None] = []
+    for idx in range(n_samples):
+        row = {
+            "hook_s": round(hook_s_share, 6),
+            "hook_calls": hook_calls_by_sample[idx],
+            "prompt_skip_calls": prompt_skip_by_sample[idx],
+            "scope_skip_calls": scope_skip_by_sample[idx],
+            "debug_steps": debug_steps if idx == 0 else [],
+            **shared,
+        }
+        rows.append(row)
+    return rows
 
 
 def score_continuation_decode_only(
@@ -802,6 +1128,37 @@ def finalize_record(
 ) -> dict[str, Any]:
     wall_end_ts = time.time()
     hook_stats = _consume_scaler_sample_stats(scaler)
+    return finalize_record_with_timings(
+        out_path,
+        record,
+        timings,
+        hook_stats=hook_stats,
+        wall_start_ts=wall_start_ts,
+        wall_end_ts=wall_end_ts,
+        benchmark=benchmark,
+        alpha=alpha,
+        alpha_idx=alpha_idx,
+        wandb_module=wandb_module,
+        throughput_state=throughput_state,
+        throughput_session_id=throughput_session_id,
+    )
+
+
+def finalize_record_with_timings(
+    out_path: str,
+    record: dict[str, Any],
+    timings: dict[str, Any],
+    *,
+    hook_stats: dict[str, Any] | None,
+    wall_start_ts: float,
+    wall_end_ts: float,
+    benchmark: str,
+    alpha: float,
+    alpha_idx: int,
+    wandb_module=None,
+    throughput_state: dict[str, int] | None = None,
+    throughput_session_id: str | None = None,
+) -> dict[str, Any]:
     final_timings = finalize_sample_timings(
         timings,
         wall_start_ts=wall_start_ts,
@@ -2322,6 +2679,7 @@ def run_jailbreak(
     temperature: float | None = None,
     top_k: int | None = None,
     top_p: float | None = None,
+    jailbreak_batch_size: int = 1,
 ):
     """Run Jailbreak for a single alpha. Saves responses; GPT-4o judging is separate."""
     alpha_label = format_alpha_label(alpha)
@@ -2336,53 +2694,138 @@ def run_jailbreak(
     effective_temperature = 0.7 if temperature is None else float(temperature)
     effective_top_k = 20 if top_k is None else int(top_k)
     effective_top_p = 0.8 if top_p is None else float(top_p)
+    effective_batch_size = max(1, int(jailbreak_batch_size))
 
-    for sample in tqdm(samples, desc=f"Jailbreak α={alpha_label}"):
-        if sample["id"] in existing_ids:
-            continue
+    pending_samples = [sample for sample in samples if sample["id"] not in existing_ids]
+    if effective_batch_size == 1:
+        for sample in tqdm(pending_samples, desc=f"Jailbreak α={alpha_label}"):
+            wall_start_ts = time.time()
+            _reset_scaler_sample_stats(scaler)
+            cached_ids = prompt_cache.get(sample["id"]) if prompt_cache else None
+            if cached_ids is None:
+                messages = [{"role": "user", "content": sample["full_prompt"]}]
+            else:
+                messages = None
+            response, timings = generate_response(
+                model,
+                tokenizer,
+                messages,
+                do_sample=effective_do_sample,
+                temperature=effective_temperature,
+                top_k=effective_top_k,
+                top_p=effective_top_p,
+                max_new_tokens=max_new_tokens,
+                cached_input_ids=cached_ids,
+                scaler=scaler,
+            )
 
-        wall_start_ts = time.time()
+            record = {
+                "id": sample["id"],
+                "alpha": alpha,
+                "goal": sample["goal"],
+                "category": sample["category"],
+                "template_idx": sample["template_idx"],
+                "response": response,
+                # compliance will be filled by evaluate_intervention.py
+            }
+            finalize_record(
+                out_path,
+                record,
+                timings,
+                scaler=scaler,
+                wall_start_ts=wall_start_ts,
+                benchmark=benchmark_name,
+                alpha=alpha,
+                alpha_idx=alpha_idx,
+                wandb_module=wandb_module,
+                throughput_state=throughput_state,
+                throughput_session_id=throughput_session_id,
+            )
+        return
+
+    batch_range = range(0, len(pending_samples), effective_batch_size)
+    for batch_start in tqdm(batch_range, desc=f"Jailbreak α={alpha_label} batched"):
+        batch_samples = pending_samples[
+            batch_start : batch_start + effective_batch_size
+        ]
+        messages_batch: list[list[dict[str, str]] | None] = []
+        cached_input_ids_batch: list[torch.Tensor | None] = []
+        for sample in batch_samples:
+            cached_ids = prompt_cache.get(sample["id"]) if prompt_cache else None
+            cached_input_ids_batch.append(cached_ids)
+            if cached_ids is None:
+                messages_batch.append(
+                    [{"role": "user", "content": sample["full_prompt"]}]
+                )
+            else:
+                messages_batch.append(None)
+
+        batch_wall_start = time.time()
         _reset_scaler_sample_stats(scaler)
-        cached_ids = prompt_cache.get(sample["id"]) if prompt_cache else None
-        if cached_ids is None:
-            messages = [{"role": "user", "content": sample["full_prompt"]}]
-        else:
-            messages = None
-        response, timings = generate_response(
+        responses, sample_timings, batch_timings = generate_responses_batched(
             model,
             tokenizer,
-            messages,
+            messages_batch,
             do_sample=effective_do_sample,
             temperature=effective_temperature,
             top_k=effective_top_k,
             top_p=effective_top_p,
             max_new_tokens=max_new_tokens,
-            cached_input_ids=cached_ids,
+            cached_input_ids_batch=cached_input_ids_batch,
             scaler=scaler,
         )
+        batch_wall_end = time.time()
+        hook_stats_batch = _consume_scaler_sample_stats(scaler)
+        per_sample_timings = split_batch_timings(sample_timings, batch_timings)
+        per_sample_hook_stats = split_batch_hook_stats(
+            hook_stats_batch,
+            n_samples=len(batch_samples),
+        )
+        batch_wall_total = max(0.0, batch_wall_end - batch_wall_start)
+        timing_weights = [
+            max(float(row.get("total_s", 0.0)), 1e-9) for row in per_sample_timings
+        ]
+        weight_total = sum(timing_weights) or float(len(batch_samples))
+        batch_cursor = batch_wall_start
 
-        record = {
-            "id": sample["id"],
-            "alpha": alpha,
-            "goal": sample["goal"],
-            "category": sample["category"],
-            "template_idx": sample["template_idx"],
-            "response": response,
-            # compliance will be filled by evaluate_intervention.py
-        }
-        finalize_record(
-            out_path,
-            record,
-            timings,
-            scaler=scaler,
-            wall_start_ts=wall_start_ts,
-            benchmark=benchmark_name,
-            alpha=alpha,
-            alpha_idx=alpha_idx,
-            wandb_module=wandb_module,
-            throughput_state=throughput_state,
-            throughput_session_id=throughput_session_id,
-        )
+        for idx, (sample, response, timings, hook_stats) in enumerate(
+            zip(
+                batch_samples,
+                responses,
+                per_sample_timings,
+                per_sample_hook_stats,
+                strict=True,
+            )
+        ):
+            if idx == len(batch_samples) - 1:
+                row_wall_end = batch_wall_end
+            else:
+                row_fraction = timing_weights[idx] / weight_total
+                row_wall_end = batch_cursor + (batch_wall_total * row_fraction)
+
+            record = {
+                "id": sample["id"],
+                "alpha": alpha,
+                "goal": sample["goal"],
+                "category": sample["category"],
+                "template_idx": sample["template_idx"],
+                "response": response,
+            }
+            finalize_record_with_timings(
+                out_path,
+                record,
+                timings,
+                hook_stats=hook_stats,
+                wall_start_ts=batch_cursor,
+                wall_end_ts=row_wall_end,
+                benchmark=benchmark_name,
+                alpha=alpha,
+                alpha_idx=alpha_idx,
+                wandb_module=wandb_module,
+                throughput_state=throughput_state,
+                throughput_session_id=throughput_session_id,
+            )
+            batch_cursor = row_wall_end
 
 
 # ---------------------------------------------------------------------------
@@ -2881,7 +3324,7 @@ def aggregate_results(output_dir, alphas, baseline_alpha: float | None = None):
 # ---------------------------------------------------------------------------
 
 
-def parse_args():
+def parse_args(argv: list[str] | None = None):
     p = argparse.ArgumentParser(description="H-Neuron intervention experiments")
     p.add_argument("--model_path", type=str, default=DEFAULT_MODEL_PATH)
     p.add_argument("--classifier_path", type=str, default=DEFAULT_CLASSIFIER_PATH)
@@ -3045,6 +3488,25 @@ def parse_args():
         default=None,
         help="Optional jailbreak decode top-p override.",
     )
+    p.add_argument(
+        "--run_profile",
+        type=str,
+        default="canonical",
+        choices=RUN_PROFILES,
+        help=(
+            "Run profile policy. canonical = claimable, fixed jailbreak decode "
+            "semantics and serial generation; fast = throughput experiments."
+        ),
+    )
+    p.add_argument(
+        "--jailbreak_batch_size",
+        type=int,
+        default=1,
+        help=(
+            "Jailbreak generation batch size. Only meaningful in --run_profile fast; "
+            "canonical requires 1."
+        ),
+    )
     # SAE intervention mode
     p.add_argument(
         "--intervention_mode",
@@ -3179,7 +3641,7 @@ def parse_args():
         type=int,
         default=None,
         help="Override max_new_tokens for generation (default: benchmark-specific). "
-        "Recommended: 1024 for jailbreak to avoid truncation bias.",
+        "Canonical jailbreak profile enforces 5000.",
     )
     p.add_argument(
         "--wandb",
@@ -3192,13 +3654,23 @@ def parse_args():
         default=None,
         help="Random seed for reproducibility (sets torch, cuda, and python random)",
     )
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
 def main():
     args = parse_args()
     if args.intervention_mode == "iti_head" and args.iti_alpha is not None:
         args.alphas = [args.iti_alpha]
+    validate_run_profile_args(args)
+    run_profile = effective_run_profile(args)
+    comparability_class = COMPARABILITY_CLASS_BY_PROFILE[run_profile]
+    jailbreak_generation = None
+    if args.benchmark in {"jailbreak", "jailbreak_benign"}:
+        jailbreak_generation = resolve_jailbreak_generation_settings(args)
+    generation_fingerprint = build_generation_fingerprint(
+        args=args,
+        jailbreak_generation=jailbreak_generation,
+    )
     if args.seed is not None:
         import random
 
@@ -3212,6 +3684,9 @@ def main():
         "benchmark": args.benchmark,
         "model": args.model_path,
         "classifier": args.classifier_path,
+        "run_profile": run_profile,
+        "comparability_class": comparability_class,
+        "generation_fingerprint": generation_fingerprint,
     }
     run_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     throughput_session_id = f"run_intervention:{run_ts}"
@@ -3220,11 +3695,22 @@ def main():
         args,
         primary_target=output_dir,
         output_targets=[output_dir, summary_path],
+        extra={
+            "run_profile": run_profile,
+            "comparability_class": comparability_class,
+            "generation_fingerprint": generation_fingerprint,
+        },
         primary_target_is_dir=True,
         run_ts=run_ts,
     )
     provenance_status = "completed"
-    provenance_extra = {}
+    provenance_extra: dict[str, Any] = {
+        "run_profile": run_profile,
+        "comparability_class": comparability_class,
+        "generation_fingerprint": generation_fingerprint,
+    }
+    if jailbreak_generation is not None:
+        provenance_extra["jailbreak_generation"] = jailbreak_generation
     scaler = None
     wb_run = None
     wandb_module = None
@@ -3466,29 +3952,26 @@ def main():
             print(f"TruthfulQA variant: {args.truthfulqa_variant}")
         if args.intervention_mode == "iti_head":
             print(f"ITI decode scope: {args.iti_decode_scope}")
-        if args.max_new_tokens is not None and args.benchmark in (
-            "jailbreak",
-            "jailbreak_benign",
-        ):
-            extra_kwargs["max_new_tokens"] = args.max_new_tokens
-            print(f"Jailbreak max_new_tokens override: {args.max_new_tokens}")
         if args.benchmark in ("jailbreak", "jailbreak_benign"):
-            if args.jailbreak_do_sample == "true":
-                extra_kwargs["do_sample"] = True
-            elif args.jailbreak_do_sample == "false":
-                extra_kwargs["do_sample"] = False
-            if args.jailbreak_temperature is not None:
-                extra_kwargs["temperature"] = args.jailbreak_temperature
-            if args.jailbreak_top_k is not None:
-                extra_kwargs["top_k"] = args.jailbreak_top_k
-            if args.jailbreak_top_p is not None:
-                extra_kwargs["top_p"] = args.jailbreak_top_p
+            assert jailbreak_generation is not None
+            extra_kwargs["max_new_tokens"] = int(jailbreak_generation["max_new_tokens"])
+            extra_kwargs["do_sample"] = bool(jailbreak_generation["do_sample"])
+            extra_kwargs["temperature"] = float(jailbreak_generation["temperature"])
+            extra_kwargs["top_k"] = int(jailbreak_generation["top_k"])
+            extra_kwargs["top_p"] = float(jailbreak_generation["top_p"])
+            extra_kwargs["jailbreak_batch_size"] = (
+                args.jailbreak_batch_size if run_profile == "fast" else 1
+            )
             print(
                 "Jailbreak decode controls: "
-                f"do_sample={extra_kwargs.get('do_sample', 'default:true')}, "
-                f"temperature={extra_kwargs.get('temperature', 0.7)}, "
-                f"top_k={extra_kwargs.get('top_k', 20)}, "
-                f"top_p={extra_kwargs.get('top_p', 0.8)}"
+                f"profile={run_profile}, "
+                f"comparability={comparability_class}, "
+                f"batch_size={extra_kwargs['jailbreak_batch_size']}, "
+                f"do_sample={extra_kwargs['do_sample']}, "
+                f"temperature={extra_kwargs['temperature']}, "
+                f"top_k={extra_kwargs['top_k']}, "
+                f"top_p={extra_kwargs['top_p']}, "
+                f"max_new_tokens={extra_kwargs['max_new_tokens']}"
             )
 
         # Pre-tokenize prompts once for reuse across all alpha values.
@@ -3607,6 +4090,9 @@ def main():
             "benchmark": args.benchmark,
             "model": args.model_path,
             "intervention_mode": args.intervention_mode,
+            "run_profile": run_profile,
+            "comparability_class": comparability_class,
+            "generation_fingerprint": generation_fingerprint,
             "n_h_neurons": total_neurons,
             "results": aggregation["results"],
             "effects": aggregation["effects"],
@@ -3644,24 +4130,10 @@ def main():
         elif args.benchmark == "truthfulqa_mc":
             summary["truthfulqa_variant"] = args.truthfulqa_variant
         elif args.benchmark in {"jailbreak", "jailbreak_benign"}:
-            summary["jailbreak_generation"] = {
-                "do_sample": (
-                    True
-                    if args.jailbreak_do_sample == "default"
-                    else args.jailbreak_do_sample == "true"
-                ),
-                "temperature": (
-                    0.7
-                    if args.jailbreak_temperature is None
-                    else float(args.jailbreak_temperature)
-                ),
-                "top_k": 20
-                if args.jailbreak_top_k is None
-                else int(args.jailbreak_top_k),
-                "top_p": (
-                    0.8 if args.jailbreak_top_p is None else float(args.jailbreak_top_p)
-                ),
-            }
+            summary["jailbreak_generation"] = jailbreak_generation
+            summary["jailbreak_batch_size"] = (
+                args.jailbreak_batch_size if run_profile == "fast" else 1
+            )
         if args.benchmark in {
             "falseqa",
             "simpleqa",

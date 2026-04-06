@@ -107,7 +107,7 @@ class ITIHeadScaler:
         direction_mode: str = "artifact",
         direction_random_seed: int | None = None,
         decode_scope: str = "full_decode",
-        collect_debug_stats: bool = True,
+        collect_debug_stats: bool = False,
         max_debug_steps: int = 32,
     ):
         self._alpha = 0.0

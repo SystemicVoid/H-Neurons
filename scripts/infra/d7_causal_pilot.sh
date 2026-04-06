@@ -36,8 +36,8 @@ CAUSAL_ARTIFACT="${CAUSAL_ART_DIR}/iti_heads.pt"
 PROBE_ARTIFACT="${PROBE_ART_DIR}/iti_heads.pt"
 
 RUN_ROOT="data/gemma3_4b/intervention/jailbreak_d7"
-PILOT_ROOT="${RUN_ROOT}/pilot100"
-FULL_ROOT="${RUN_ROOT}/full500"
+PILOT_ROOT="${RUN_ROOT}/pilot100_canonical"
+FULL_ROOT="${RUN_ROOT}/full500_canonical"
 
 PILOT_PROBE_DIR="${PILOT_ROOT}/probe/experiment"
 PILOT_CAUSAL_DIR="${PILOT_ROOT}/causal/experiment"
@@ -51,6 +51,22 @@ FULL_PROBE_DIR="${FULL_ROOT}/probe_locked/experiment"
 FULL_CAUSAL_DIR="${FULL_ROOT}/causal_locked/experiment"
 FULL_RANDOM_ROOT="${FULL_ROOT}/causal_random_head"
 FULL_REPORT="${FULL_ROOT}/d7_csv2_report.json"
+
+JAILBREAK_DECODE_ARGS=(
+    --jailbreak_do_sample true
+    --jailbreak_temperature 0.7
+    --jailbreak_top_k 20
+    --jailbreak_top_p 0.8
+    --max_new_tokens 5000
+)
+RUN_PROFILE_ARGS=(--run_profile canonical)
+ITI_DEBUG_ARGS=()
+if [[ "${D7_ALLOW_CANONICAL_ITI_DEBUG:-0}" == "1" ]]; then
+    echo "WARNING: enabling ITI debug traces with fast profile via D7_ALLOW_CANONICAL_ITI_DEBUG=1"
+    # run_profile=canonical rejects --iti_collect_debug_stats; keep canonical decode knobs for diagnostics.
+    RUN_PROFILE_ARGS=(--run_profile fast --jailbreak_batch_size 1)
+    ITI_DEBUG_ARGS=(--iti_collect_debug_stats)
+fi
 
 mkdir -p logs "${PILOT_ROOT}" "${FULL_ROOT}"
 LOG="logs/d7_causal_pilot_$(date +%Y%m%d_%H%M%S).log"
@@ -157,7 +173,9 @@ if ! ensure_generation_files "${PILOT_PROBE_DIR}" "0.0" "1.0" "2.0" "4.0" "8.0";
         --iti_family refusal_probe \
         --iti_k 20 \
         --alphas "${PILOT_ALPHAS[@]}" \
-        --max_new_tokens 5000 2>&1 | tee -a "${LOG}"
+        "${ITI_DEBUG_ARGS[@]}" \
+        "${RUN_PROFILE_ARGS[@]}" \
+        "${JAILBREAK_DECODE_ARGS[@]}" 2>&1 | tee -a "${LOG}"
 else
     echo "Stage 3: probe pilot generation complete; skipping" | tee -a "${LOG}"
 fi
@@ -174,7 +192,9 @@ if ! ensure_generation_files "${PILOT_CAUSAL_DIR}" "0.0" "1.0" "2.0" "4.0" "8.0"
         --iti_family refusal_causal \
         --iti_k 20 \
         --alphas "${PILOT_ALPHAS[@]}" \
-        --max_new_tokens 5000 2>&1 | tee -a "${LOG}"
+        "${ITI_DEBUG_ARGS[@]}" \
+        "${RUN_PROFILE_ARGS[@]}" \
+        "${JAILBREAK_DECODE_ARGS[@]}" 2>&1 | tee -a "${LOG}"
 else
     echo "Stage 3: causal pilot generation complete; skipping" | tee -a "${LOG}"
 fi
@@ -242,7 +262,8 @@ if ! ensure_generation_files "${FULL_BASELINE_DIR}" "1.0"; then
         --output_dir "${FULL_BASELINE_DIR}" \
         --sample_manifest "${FULL_IDS}" \
         --alphas 1.0 \
-        --max_new_tokens 5000 2>&1 | tee -a "${LOG}"
+        "${RUN_PROFILE_ARGS[@]}" \
+        "${JAILBREAK_DECODE_ARGS[@]}" 2>&1 | tee -a "${LOG}"
 else
     echo "Stage 4: baseline generation complete; skipping" | tee -a "${LOG}"
 fi
@@ -255,7 +276,8 @@ if ! ensure_generation_files "${FULL_L1_DIR}" "${L1_ALPHA}"; then
         --output_dir "${FULL_L1_DIR}" \
         --sample_manifest "${FULL_IDS}" \
         --alphas "${L1_ALPHA}" \
-        --max_new_tokens 5000 2>&1 | tee -a "${LOG}"
+        "${RUN_PROFILE_ARGS[@]}" \
+        "${JAILBREAK_DECODE_ARGS[@]}" 2>&1 | tee -a "${LOG}"
 else
     echo "Stage 4: L1 generation complete; skipping" | tee -a "${LOG}"
 fi
@@ -272,7 +294,9 @@ if ! ensure_generation_files "${FULL_PROBE_DIR}" "${PROBE_LOCKED_ALPHA}"; then
         --iti_family refusal_probe \
         --iti_k 20 \
         --alphas "${PROBE_LOCKED_ALPHA}" \
-        --max_new_tokens 5000 2>&1 | tee -a "${LOG}"
+        "${ITI_DEBUG_ARGS[@]}" \
+        "${RUN_PROFILE_ARGS[@]}" \
+        "${JAILBREAK_DECODE_ARGS[@]}" 2>&1 | tee -a "${LOG}"
 else
     echo "Stage 4: probe generation complete; skipping" | tee -a "${LOG}"
 fi
@@ -289,7 +313,9 @@ if ! ensure_generation_files "${FULL_CAUSAL_DIR}" "${CAUSAL_LOCKED_ALPHA}"; then
         --iti_family refusal_causal \
         --iti_k 20 \
         --alphas "${CAUSAL_LOCKED_ALPHA}" \
-        --max_new_tokens 5000 2>&1 | tee -a "${LOG}"
+        "${ITI_DEBUG_ARGS[@]}" \
+        "${RUN_PROFILE_ARGS[@]}" \
+        "${JAILBREAK_DECODE_ARGS[@]}" 2>&1 | tee -a "${LOG}"
 else
     echo "Stage 4: causal generation complete; skipping" | tee -a "${LOG}"
 fi
@@ -311,7 +337,9 @@ for seed in 1 2 3; do
             --iti_selection_strategy random \
             --iti_random_seed "${seed}" \
             --alphas "${CAUSAL_LOCKED_ALPHA}" \
-            --max_new_tokens 5000 2>&1 | tee -a "${LOG}"
+            "${ITI_DEBUG_ARGS[@]}" \
+            "${RUN_PROFILE_ARGS[@]}" \
+            "${JAILBREAK_DECODE_ARGS[@]}" 2>&1 | tee -a "${LOG}"
     else
         echo "Stage 4: random seed=${seed} generation complete; skipping" | tee -a "${LOG}"
     fi

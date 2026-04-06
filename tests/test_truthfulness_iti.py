@@ -580,6 +580,7 @@ class TestITIHeadScaler:
             torch.device("cpu"),
             family="iti_refusal_probe",
             k=1,
+            collect_debug_stats=True,
         )
         assert scaler.family == "iti_refusal_probe"
         assert scaler.n_heads_selected == 1
@@ -604,7 +605,14 @@ class TestITIHeadScaler:
                 }
             ],
         }
-        scaler = ITIHeadScaler(model, artifact, torch.device("cpu"), family=None, k=1)
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family=None,
+            k=1,
+            collect_debug_stats=True,
+        )
         scaler.alpha = 2.0
 
         prompt_x = torch.zeros(1, 3, 4)
@@ -642,7 +650,14 @@ class TestITIHeadScaler:
                 }
             ],
         }
-        scaler = ITIHeadScaler(model, artifact, torch.device("cpu"), family=None, k=1)
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family=None,
+            k=1,
+            collect_debug_stats=True,
+        )
         scaler.alpha = 2.0
         scaler.arm_first_decode_token()
 
@@ -684,6 +699,7 @@ class TestITIHeadScaler:
             family=None,
             k=1,
             decode_scope="first_token_only",
+            collect_debug_stats=True,
         )
         scaler.alpha = 2.0
 
@@ -730,6 +746,7 @@ class TestITIHeadScaler:
             family=None,
             k=1,
             decode_scope="first_token_only",
+            collect_debug_stats=True,
         )
         scaler.alpha = 2.0
 
@@ -776,6 +793,7 @@ class TestITIHeadScaler:
             family=None,
             k=1,
             decode_scope="first_3_tokens",
+            collect_debug_stats=True,
         )
         scaler.alpha = 2.0
 
@@ -842,6 +860,7 @@ class TestITIHeadScaler:
             k=2,
             selection_strategy="random",
             random_seed=42,
+            collect_debug_stats=True,
         )
 
         applied_sigma_total = sum(
