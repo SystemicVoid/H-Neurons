@@ -4,9 +4,10 @@
 set -euo pipefail
 
 ROOT="/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons"
-LOG="${ROOT}/logs/d7_causal_pilot_20260406_090209.log"
-PILOT_ROOT="${ROOT}/data/gemma3_4b/intervention/jailbreak_d7/pilot100"
-FULL_ROOT="${ROOT}/data/gemma3_4b/intervention/jailbreak_d7/full500"
+LOG=$(ls -t "${ROOT}"/logs/d7_*.log 2>/dev/null | head -1)
+if [[ -z "${LOG}" ]]; then echo "No D7 log found in ${ROOT}/logs/"; exit 1; fi
+PILOT_ROOT="${ROOT}/data/gemma3_4b/intervention/jailbreak_d7/pilot100_canonical"
+FULL_ROOT="${ROOT}/data/gemma3_4b/intervention/jailbreak_d7/full500_canonical"
 
 echo "═══════════════════════════════════════════════════════"
 echo "  D7 Causal Pilot — Status @ $(date '+%Y-%m-%d %H:%M:%S')"
@@ -76,7 +77,7 @@ fi
 
 echo ""
 echo "── Stage 4: Full 500 ──"
-CONDITIONS=(baseline l1 probe causal)
+CONDITIONS=(baseline_noop l1_neuron probe_locked causal_locked)
 for cond in "${CONDITIONS[@]}"; do
     dir="${FULL_ROOT}/${cond}/experiment"
     if [[ -d "${dir}" ]]; then
@@ -88,18 +89,18 @@ for cond in "${CONDITIONS[@]}"; do
 done
 # Random seeds
 for seed in 1 2 3; do
-    dir="${FULL_ROOT}/random/seed_${seed}/experiment"
+    dir="${FULL_ROOT}/causal_random_head/seed_${seed}/experiment"
     if [[ -d "${dir}" ]]; then
         n=$(find "${dir}" -name 'alpha_*.jsonl' 2>/dev/null | wc -l)
-        echo "  random/seed_${seed}: ${n} alpha file(s)"
+        echo "  causal_random_head/seed_${seed}: ${n} alpha file(s)"
     else
-        echo "  random/seed_${seed}: not started"
+        echo "  causal_random_head/seed_${seed}: not started"
     fi
 done
 
 echo ""
 echo "── Stage 5: Report ──"
-report="${FULL_ROOT}/d7_paired_report.json"
+report="${FULL_ROOT}/d7_csv2_report.json"
 [[ -f "${report}" ]] && echo "  ✓ Report generated" || echo "  ✗ Not yet"
 
 echo ""
