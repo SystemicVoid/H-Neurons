@@ -44,6 +44,7 @@ PILOT_CAUSAL_DIR="${PILOT_ROOT}/causal/experiment"
 PILOT_PROBE_CSV2="${PILOT_ROOT}/probe/csv2_evaluation"
 PILOT_CAUSAL_CSV2="${PILOT_ROOT}/causal/csv2_evaluation"
 PILOT_ALPHAS=(0.0 1.0 2.0 4.0 8.0)
+PIPELINE="uv run python -m scripts.lib.pipeline"
 
 FULL_BASELINE_DIR="${FULL_ROOT}/baseline_noop/experiment"
 FULL_L1_DIR="${FULL_ROOT}/l1_neuron/experiment"
@@ -102,26 +103,11 @@ assert_dir_ready() {
     fi
 }
 
-ensure_generation_files() {
-    local dir="$1"
-    shift
-    local missing=0
-    for alpha in "$@"; do
-        if [[ ! -f "${dir}/alpha_${alpha}.jsonl" ]]; then
-            missing=1
-        fi
-    done
-    return ${missing}
-}
-
 echo "=== D7 causal pilot ==="
 echo "seed=${SEED} model=${MODEL_PATH} device_map=${DEVICE_MAP} resume=${RESUME}"
 echo "log=${LOG}"
 
-if command -v nvitop &>/dev/null; then
-    echo "--- GPU preflight ---" | tee -a "${LOG}"
-    nvitop -1 2>&1 | tee -a "${LOG}" || true
-fi
+${PIPELINE} gpu-preflight 2>&1 | tee -a "${LOG}" || true
 
 # Stage 1: build manifests
 if [[ ! -f "${EXTRACTION_PAIRS}" || ! -f "${PILOT_IDS}" || ! -f "${FULL_IDS}" ]]; then
@@ -161,7 +147,7 @@ fi
 assert_dir_ready "${PILOT_PROBE_DIR}"
 assert_dir_ready "${PILOT_CAUSAL_DIR}"
 
-if ! ensure_generation_files "${PILOT_PROBE_DIR}" "0.0" "1.0" "2.0" "4.0" "8.0"; then
+if ! ${PIPELINE} check-stage --output-dir "${PILOT_PROBE_DIR}" --manifest "${PILOT_IDS}" --alphas "${PILOT_ALPHAS[@]}"; then
     run_cmd uv run python scripts/run_intervention.py \
         --benchmark jailbreak \
         --model_path "${MODEL_PATH}" \
@@ -180,7 +166,7 @@ else
     echo "Stage 3: probe pilot generation complete; skipping" | tee -a "${LOG}"
 fi
 
-if ! ensure_generation_files "${PILOT_CAUSAL_DIR}" "0.0" "1.0" "2.0" "4.0" "8.0"; then
+if ! ${PIPELINE} check-stage --output-dir "${PILOT_CAUSAL_DIR}" --manifest "${PILOT_IDS}" --alphas "${PILOT_ALPHAS[@]}"; then
     run_cmd uv run python scripts/run_intervention.py \
         --benchmark jailbreak \
         --model_path "${MODEL_PATH}" \
@@ -254,7 +240,7 @@ assert_dir_ready "${FULL_PROBE_DIR}"
 assert_dir_ready "${FULL_CAUSAL_DIR}"
 mkdir -p "${FULL_RANDOM_ROOT}"
 
-if ! ensure_generation_files "${FULL_BASELINE_DIR}" "1.0"; then
+if ! ${PIPELINE} check-stage --output-dir "${FULL_BASELINE_DIR}" --manifest "${FULL_IDS}" --alphas 1.0; then
     run_cmd uv run python scripts/run_intervention.py \
         --benchmark jailbreak \
         --model_path "${MODEL_PATH}" \
@@ -268,7 +254,7 @@ else
     echo "Stage 4: baseline generation complete; skipping" | tee -a "${LOG}"
 fi
 
-if ! ensure_generation_files "${FULL_L1_DIR}" "${L1_ALPHA}"; then
+if ! ${PIPELINE} check-stage --output-dir "${FULL_L1_DIR}" --manifest "${FULL_IDS}" --alphas "${L1_ALPHA}"; then
     run_cmd uv run python scripts/run_intervention.py \
         --benchmark jailbreak \
         --model_path "${MODEL_PATH}" \
@@ -282,7 +268,7 @@ else
     echo "Stage 4: L1 generation complete; skipping" | tee -a "${LOG}"
 fi
 
-if ! ensure_generation_files "${FULL_PROBE_DIR}" "${PROBE_LOCKED_ALPHA}"; then
+if ! ${PIPELINE} check-stage --output-dir "${FULL_PROBE_DIR}" --manifest "${FULL_IDS}" --alphas "${PROBE_LOCKED_ALPHA}"; then
     run_cmd uv run python scripts/run_intervention.py \
         --benchmark jailbreak \
         --model_path "${MODEL_PATH}" \
@@ -301,7 +287,7 @@ else
     echo "Stage 4: probe generation complete; skipping" | tee -a "${LOG}"
 fi
 
-if ! ensure_generation_files "${FULL_CAUSAL_DIR}" "${CAUSAL_LOCKED_ALPHA}"; then
+if ! ${PIPELINE} check-stage --output-dir "${FULL_CAUSAL_DIR}" --manifest "${FULL_IDS}" --alphas "${CAUSAL_LOCKED_ALPHA}"; then
     run_cmd uv run python scripts/run_intervention.py \
         --benchmark jailbreak \
         --model_path "${MODEL_PATH}" \
@@ -323,7 +309,7 @@ fi
 for seed in 1 2 3; do
     RANDOM_DIR="${FULL_RANDOM_ROOT}/seed_${seed}/experiment"
     assert_dir_ready "${RANDOM_DIR}"
-    if ! ensure_generation_files "${RANDOM_DIR}" "${CAUSAL_LOCKED_ALPHA}"; then
+    if ! ${PIPELINE} check-stage --output-dir "${RANDOM_DIR}" --manifest "${FULL_IDS}" --alphas "${CAUSAL_LOCKED_ALPHA}"; then
         run_cmd uv run python scripts/run_intervention.py \
             --benchmark jailbreak \
             --model_path "${MODEL_PATH}" \
