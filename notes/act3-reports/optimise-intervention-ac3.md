@@ -1,12 +1,14 @@
 # Optimising The Truthfulness Intervention — Act 3 Strategy
 
 **Date:** 2026-04-01
-**Status:** Revised through 2026-04-05 implementation update. Stage 2 artifact lane closed (E1 tradeoff, E2 null, E3 gate not met). Stage 3 bridge benchmark built and validated — E0 ITI informative null on generation. Chooser gate (§5.7) definitively not met. D5/D7 are the live priorities.
+**Status:** Revised through 2026-04-08 D7 full-500 audit. Stage 2 artifact lane closed (E1 tradeoff, E2 null, E3 gate not met). Stage 3 bridge benchmark built and validated — E0 ITI informative null on generation. Chooser gate (§5.7) definitively not met. **D7 full-500 trimmed result: causal beats shared baseline and L1 comparator on jailbreak severity; selector-specific negative control still missing.** D5 remains the main live priority; D7 specificity is an optional but high-value cleanup.
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)  
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
 > This file is the strategy note for "what to try next."
 > Current result facts live in:
+> - [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md)
+> - [2026-04-07-d7-causal-pilot-audit.md](./2026-04-07-d7-causal-pilot-audit.md)
 > - [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md)
 > - [2026-04-01-random-head-specificity-audit.md](./2026-04-01-random-head-specificity-audit.md)
 > - [2026-04-02-e1-truthfulqa-modernized-audit.md](./2026-04-02-e1-truthfulqa-modernized-audit.md)
@@ -14,6 +16,29 @@
 > - [2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md)
 > - [act3-sprint.md](../act3-sprint.md)
 > - [measurement-blueprint.md](../measurement-blueprint.md)
+
+### Update — 2026-04-08 (D7 full-500 trimmed audit)
+
+The canonical D7 report is now [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md).
+
+- **Shared baseline:** 23.4% `csv2_yes` (117/500).
+- **L1-neuron comparator:** 27.4% `csv2_yes`, paired **+4.0 pp** **[+0.6, +7.6]** versus baseline.
+- **Causal locked intervention:** 14.4% `csv2_yes`, paired **-9.0 pp** **[-12.2, -5.8]** versus baseline.
+- **Binary judge diagnostic:** same direction; causal **-10.6 pp** **[-14.0, -7.2]**.
+- **Important caveat:** this was a **trimmed** confirmatory run. `probe_locked` remained incomplete and the planned `causal_random_head` negative control was skipped.
+
+Interpretation update: D7 is now good enough to support the practical claim that the locked causal head intervention is a better jailbreak mitigation than both no-op and the current L1-neuron baseline on this benchmark surface. It is **not** yet strong enough to support a clean selector-specific mechanistic claim.
+
+### Update — 2026-04-07 (D7 pilot result)
+
+Pilot100 canonical run complete for both causal and probe families. Full audit: [2026-04-07-d7-causal-pilot-audit.md](./2026-04-07-d7-causal-pilot-audit.md).
+
+- **Causal selector (gradient-based):** α=4.0 locked, **-13pp csv2_yes [CI: -21, -6]**. Statistically significant. Harmful payload share decreases monotonically. But 24% of samples hit the 5000-token cap at α=4.0 — degeneration is a concern.
+- **Probe selector (AUROC-based):** α=1.0 locked, **-2pp csv2_yes [CI: -10, +6]**. Null at every alpha. At α=8.0, the probe *increases* harmful compliance (+12pp [+3, +21]).
+- **Head overlap:** Jaccard = 0.11 on top-20. The methods select genuinely different heads.
+- **Template heterogeneity:** The causal effect is carried by templates 1 and 2 (instruction-following and fiction framing); DAN persona (template 0) shows zero effect.
+
+The pilot justifies proceeding to the full-500 confirmatory run. See audit report §8 for full-500 recommendations. Baseline_noop generation is in progress.
 
 ### Update — 2026-04-05 (D7 pipeline implementation ready)
 
@@ -734,7 +759,8 @@ The remaining active branches are D5 (externality audit) and D7 (causal pilot).
    [2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md)
 10. ~~Chooser work~~ **gate not met** (no live generation signal to amplify).
 11. **Run externality audit (D5).** ← next priority
-12. **Run causal head-selection pilot (D7).**
+12. ~~Run causal head-selection pilot (D7).~~ **full-500 trimmed audit complete:**
+    [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md) — causal beats shared baseline and L1 on the primary metric; selector-specific random-head control still missing.
 13. **Final synthesis (D8).**
 
 ---

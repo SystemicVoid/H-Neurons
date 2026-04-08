@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-04-08
+
+### What I did
+
+Audited the D7 full-500 directory and wrote the canonical report:
+[2026-04-08-d7-full500-audit.md](./act3-reports/2026-04-08-d7-full500-audit.md).
+
+This review recomputed the headline numbers from the row-level CSV2 files, checked prompt-ID parity, traced provenance, verified that the relevant generation/evaluation code paths did not change between the baseline and later runs, and reconciled the full-500 directory contents against both the original `d7_causal_pilot.sh` plan and the trimmed continuation script that actually produced the confirmatory artifacts.
+
+### What I expected vs what happened
+
+Expected a clean full-500 closure of the pilot story: causal vs probe vs control. What actually exists is narrower and more useful, but also less complete. The **trimmed** full-500 run gives a solid three-way benchmark comparison:
+
+- baseline `csv2_yes`: **23.4%**
+- L1-neuron comparator: **27.4%**, paired **+4.0 pp** **[+0.6, +7.6]**
+- causal locked intervention: **14.4%**, paired **-9.0 pp** **[-12.2, -5.8]**
+
+So the practical answer is clearer than in the pilot: on this benchmark surface, the causal intervention beats both no-op and the incumbent L1 comparator.
+
+But two process gaps matter. First, the full-500 directory still contains an **interrupted** `probe_locked` branch (84/500 rows, no judge/CSV2 outputs), so the pilot's "causal beats probe" story was **not** re-run to completion at full scale. Second, the planned `causal_random_head` negative control was skipped in the trimmed script. That means D7 now has a strong benchmark-level result, but still lacks the selector-specificity control required for a stronger mechanistic claim.
+
+The degeneration story also sharpened. Causal α=4.0 produces **112/500 token-cap hits**, which is real quality debt. But those cap-hit rows are mostly `csv2_no` (97/112) with very low mean harmful payload share (0.019), so the main safety win does **not** look like a truncation illusion. The safer reading is "the intervention helps, but it makes the model weird in a noticeable subset of cases."
+
+### What this changes about my thinking
+
+D7 is no longer "pending confirmatory evidence." It now supports a narrower but defensible claim:
+
+> the locked causal head intervention is a better jailbreak mitigation than both no-op and the current L1-neuron comparator on the canonical 500-prompt D7 surface.
+
+The stronger theory-facing claim remains open:
+
+> the gain is specific to the gradient-ranked head set rather than a generic matched-K perturbation.
+
+That distinction matters for D8. If the sprint needs a practical comparator result, D7 is good enough. If the sprint wants a mechanism-clean claim fit for a paper or a central thesis sentence, the missing random-head control is still the bottleneck.
+
+### What I will do next
+
+Use the new full-500 audit as the D7 canonical reference, update the sprint/context files to point at it, and remove the analysed full-500 entry from `notes/runs_to_analyse.md`. Treat the D7 random-head control as the highest-value optional follow-up if synthesis needs selector specificity rather than just benchmark performance.
+
+---
+
 ## 2026-04-05
 
 ### What I did
@@ -29,6 +70,36 @@ D7 is the sprint's last novel experiment before synthesis. Its outcome shapes D8
 ### What I will do next
 
 Execute the D7 pilot run (`scripts/infra/d7_causal_pilot.sh`) and add the resulting run entry to `notes/runs_to_analyse.md` once generation/judging completes.
+
+---
+
+## 2026-04-07
+
+### What I did
+
+Analysed the D7 causal pilot (pilot100_canonical). Both families — causal (gradient-based head selector) and probe (AUROC-based) — ran to completion on the 100-prompt canonical manifests with correct generation settings. Full audit: [2026-04-07-d7-causal-pilot-audit.md](./act3-reports/2026-04-07-d7-causal-pilot-audit.md).
+
+### What I expected vs what happened
+
+Expected the causal selector to show either a clear win or a clear null. Got something more nuanced. **Causal α=4.0 produces a statistically significant -13pp drop in csv2_yes [CI: -21, -6]** — a real effect. **Probe is null at every alpha** (best: -2pp [-10, +6]). The two selectors pick nearly disjoint heads (Jaccard = 0.11 on top-20), confirming they surface different model components.
+
+Three surprises. First, model degeneration at high alpha is more severe than anticipated: at α=4.0 causal, 24% of samples hit the 5000-token cap; at α=8.0, it's 74%. The non-monotonic bounce-back of csv2_yes at α=8.0 is an artifact of this degeneration, not a real intervention reversal. The harmful_payload_share metric (which captures proportion, not just binary classification) decreases monotonically through all alphas, telling a cleaner story.
+
+Second, the effect is template-concentrated: templates 1 ("Begin with Absolutely") and 2 (fiction framing) carry almost the entire signal (-25pp and -30pp respectively), while template 0 (DAN persona) shows zero effect. This is n=20/template so very noisy, but if it holds at full-500, it means the causal intervention counters instruction-following jailbreaks but not persona-based ones.
+
+Third, the greedy↔canonical cross-validation is mixed. Both greedy and canonical agree that causal dominates probe at their respective best alphas, but they disagree on *which* alpha is best (greedy picks α=8.0, canonical picks α=4.0). The disagreement is explained by the greedy decode's 1024-token truncation hiding the degeneration at high alpha.
+
+### What this changes about my thinking
+
+The pilot result is directionally positive for the causal critique: gradient-based selection outperforms correlational selection on jailbreak severity. But -13pp at n=100 is a pilot signal, not a definitive claim. The full-500 run will narrow the CI to approximately ±7pp (vs ±8pp now), which is enough to confirm or disconfirm the effect.
+
+The degeneration at α≥4.0 is a new consideration for D8. Any intervention that operates in decode-only mode is pushing the model out-of-distribution as alpha grows; the operating range has a practical ceiling that must be reported alongside the effect size. The α=1.0 causal result (-10pp [-17, -4]) is also significant and has zero degeneration, making it a potential conservative alternative.
+
+The probe null is the cleanest result: mass-mean AUROC-ranked heads can perfectly discriminate harmful vs benign prompts (top AUROC = 1.0) yet fail to suppress jailbreak behavior at any alpha. This is consistent with the hypothesis that probe ranking selects heads that *reflect* the refusal decision rather than *cause* it.
+
+### What I will do next
+
+Execute the full-500 confirmatory run with causal locked at α=4.0, probe locked at α=1.0, plus the random-head control and baseline_noop. Baseline_noop generation is already in progress.
 
 ---
 
