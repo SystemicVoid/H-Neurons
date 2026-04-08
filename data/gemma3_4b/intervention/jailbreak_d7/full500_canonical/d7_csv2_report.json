@@ -1,0 +1,399 @@
+{
+  "baseline": {
+    "dir": "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/baseline_noop/csv2_evaluation",
+    "alpha": 1.0
+  },
+  "conditions": [
+    {
+      "name": "baseline",
+      "n": 500,
+      "empty_response_n": 0,
+      "csv2_yes": {
+        "estimate": 0.234,
+        "n_yes": 117,
+        "n": 500,
+        "ci": {
+          "lower": 0.1990046985940334,
+          "upper": 0.2730514505315124,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "C": {
+        "estimate": 0.89,
+        "ci": {
+          "lower": 0.798,
+          "upper": 0.986,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      },
+      "S": {
+        "estimate": 1.018,
+        "ci": {
+          "lower": 0.908,
+          "upper": 1.13,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      },
+      "V": {
+        "estimate": 0.78,
+        "ci": {
+          "lower": 0.7,
+          "upper": 0.86,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        },
+        "v_null_count": 244
+      },
+      "harmful_payload_share": {
+        "estimate": 0.2527706,
+        "ci": {
+          "lower": 0.22470297500000003,
+          "upper": 0.281408165,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      }
+    },
+    {
+      "name": "l1",
+      "n": 500,
+      "empty_response_n": 0,
+      "csv2_yes": {
+        "estimate": 0.274,
+        "n_yes": 137,
+        "n": 500,
+        "ci": {
+          "lower": 0.2367406256658206,
+          "upper": 0.3147055762228011,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "C": {
+        "estimate": 0.938,
+        "ci": {
+          "lower": 0.836,
+          "upper": 1.044,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      },
+      "S": {
+        "estimate": 1.072,
+        "ci": {
+          "lower": 0.952,
+          "upper": 1.196,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      },
+      "V": {
+        "estimate": 0.786,
+        "ci": {
+          "lower": 0.702,
+          "upper": 0.872,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        },
+        "v_null_count": 267
+      },
+      "harmful_payload_share": {
+        "estimate": 0.2622596,
+        "ci": {
+          "lower": 0.23152005,
+          "upper": 0.29426298,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      }
+    },
+    {
+      "name": "causal",
+      "n": 500,
+      "empty_response_n": 0,
+      "csv2_yes": {
+        "estimate": 0.144,
+        "n_yes": 72,
+        "n": 500,
+        "ci": {
+          "lower": 0.11593807411034975,
+          "upper": 0.17749045629827545,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "C": {
+        "estimate": 0.49,
+        "ci": {
+          "lower": 0.406,
+          "upper": 0.576,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      },
+      "S": {
+        "estimate": 0.562,
+        "ci": {
+          "lower": 0.464,
+          "upper": 0.666,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      },
+      "V": {
+        "estimate": 0.402,
+        "ci": {
+          "lower": 0.334,
+          "upper": 0.474,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        },
+        "v_null_count": 376
+      },
+      "harmful_payload_share": {
+        "estimate": 0.1031288,
+        "ci": {
+          "lower": 0.08336657,
+          "upper": 0.12404139499999996,
+          "level": 0.95,
+          "method": "bootstrap_percentile_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "iid_rows",
+          "interval": "percentile"
+        }
+      }
+    }
+  ],
+  "paired_vs_baseline": {
+    "l1": {
+      "n": 500,
+      "csv2_yes": {
+        "estimate_pp": 4.000000000000001,
+        "ci_pp": {
+          "lower": 0.6000000000000005,
+          "upper": 7.599999999999999,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "C": {
+        "estimate": 0.04799999999999993,
+        "ci": {
+          "lower": -0.028000000000000025,
+          "upper": 0.12404999999999938,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "S": {
+        "estimate": 0.05400000000000005,
+        "ci": {
+          "lower": -0.038000000000000034,
+          "upper": 0.1480499999999994,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "V": {
+        "estimate": 0.006000000000000005,
+        "ci": {
+          "lower": -0.06000000000000005,
+          "upper": 0.07399999999999995,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "harmful_payload_share": {
+        "estimate": 0.00948899999999997,
+        "ci": {
+          "lower": -0.0167038850000001,
+          "upper": 0.03685925500000002,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      }
+    },
+    "causal": {
+      "n": 500,
+      "csv2_yes": {
+        "estimate_pp": -9.000000000000002,
+        "ci_pp": {
+          "lower": -12.200000000000001,
+          "upper": -5.8,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "C": {
+        "estimate": -0.4,
+        "ci": {
+          "lower": -0.474,
+          "upper": -0.3279500000000007,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "S": {
+        "estimate": -0.45599999999999996,
+        "ci": {
+          "lower": -0.548,
+          "upper": -0.366,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "V": {
+        "estimate": -0.378,
+        "ci": {
+          "lower": -0.444,
+          "upper": -0.312,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "harmful_payload_share": {
+        "estimate": -0.1496418,
+        "ci": {
+          "lower": -0.17427052999999998,
+          "upper": -0.12526484000000004,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired_mean"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      }
+    }
+  }
+}

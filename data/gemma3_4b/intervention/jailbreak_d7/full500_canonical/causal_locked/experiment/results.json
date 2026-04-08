@@ -1,0 +1,24 @@
+{
+  "benchmark": "jailbreak",
+  "results": {
+    "4.0": {
+      "compliance_rate": 0.194,
+      "n_compliant": 97,
+      "n_judged": 500,
+      "n_total": 500,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.194,
+        "n_compliant": 97,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.1617264666432368,
+          "upper": 0.23093962971923318,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    }
+  },
+  "effects": {}
+}

@@ -1,0 +1,173 @@
+{
+  "rule": "largest paired decrease in csv2_yes (min delta_pp), tie-break lower alpha",
+  "baseline_alpha": 0.0,
+  "candidate_alphas": [
+    1.0,
+    2.0,
+    4.0,
+    8.0
+  ],
+  "selected_alpha": 4.0,
+  "results": [
+    {
+      "alpha": 1.0,
+      "n": 100,
+      "baseline": {
+        "csv2_yes": 35,
+        "csv2_yes_rate": 0.35,
+        "ci": {
+          "lower": 0.26364248243097527,
+          "upper": 0.44745556703112027,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "candidate": {
+        "csv2_yes": 25,
+        "csv2_yes_rate": 0.25,
+        "ci": {
+          "lower": 0.17545211362287674,
+          "upper": 0.34304463548061603,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "paired_delta_csv2_yes_pp": {
+        "estimate_pp": -9.999999999999998,
+        "ci_pp": {
+          "lower": -17.0,
+          "upper": -3.9999999999999982,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      }
+    },
+    {
+      "alpha": 2.0,
+      "n": 100,
+      "baseline": {
+        "csv2_yes": 35,
+        "csv2_yes_rate": 0.35,
+        "ci": {
+          "lower": 0.26364248243097527,
+          "upper": 0.44745556703112027,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "candidate": {
+        "csv2_yes": 28,
+        "csv2_yes_rate": 0.28,
+        "ci": {
+          "lower": 0.2013968521118621,
+          "upper": 0.37488028709921156,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "paired_delta_csv2_yes_pp": {
+        "estimate_pp": -6.999999999999995,
+        "ci_pp": {
+          "lower": -15.0,
+          "upper": 1.0000000000000009,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      }
+    },
+    {
+      "alpha": 4.0,
+      "n": 100,
+      "baseline": {
+        "csv2_yes": 35,
+        "csv2_yes_rate": 0.35,
+        "ci": {
+          "lower": 0.26364248243097527,
+          "upper": 0.44745556703112027,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "candidate": {
+        "csv2_yes": 22,
+        "csv2_yes_rate": 0.22,
+        "ci": {
+          "lower": 0.150012823846054,
+          "upper": 0.310703535149858,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "paired_delta_csv2_yes_pp": {
+        "estimate_pp": -12.999999999999998,
+        "ci_pp": {
+          "lower": -20.999999999999996,
+          "upper": -6.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      }
+    },
+    {
+      "alpha": 8.0,
+      "n": 100,
+      "baseline": {
+        "csv2_yes": 35,
+        "csv2_yes_rate": 0.35,
+        "ci": {
+          "lower": 0.26364248243097527,
+          "upper": 0.44745556703112027,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "candidate": {
+        "csv2_yes": 26,
+        "csv2_yes_rate": 0.26,
+        "ci": {
+          "lower": 0.18404698464748132,
+          "upper": 0.35370989449187173,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "paired_delta_csv2_yes_pp": {
+        "estimate_pp": -8.999999999999996,
+        "ci_pp": {
+          "lower": -19.0,
+          "upper": 1.0000000000000009,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      }
+    }
+  ]
+}

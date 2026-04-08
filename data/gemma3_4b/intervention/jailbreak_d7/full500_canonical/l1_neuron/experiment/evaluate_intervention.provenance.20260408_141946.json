@@ -1,0 +1,41 @@
+{
+  "args": {
+    "alphas": [
+      3.0
+    ],
+    "api_mode": "batch",
+    "batch_max_enqueued_tokens": null,
+    "benchmark": "jailbreak",
+    "input_dir": "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/l1_neuron/experiment",
+    "judge_model": "gpt-4o",
+    "prompt_cache_retention": null
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_intervention.py",
+    "--benchmark",
+    "jailbreak",
+    "--input_dir",
+    "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/l1_neuron/experiment",
+    "--alphas",
+    "3.0",
+    "--api-mode",
+    "batch"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_intervention.py --benchmark jailbreak --input_dir data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/l1_neuron/experiment --alphas 3.0 --api-mode batch",
+  "completed_at_utc": "2026-04-08T14:23:30.948997+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "33d2a694e96a00fa7df0564fc4cd24db53d412c1",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/l1_neuron/experiment",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/l1_neuron/experiment/results.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_intervention.py",
+  "started_at_utc": "2026-04-08T14:19:46.287392+00:00",
+  "status": "completed"
+}
