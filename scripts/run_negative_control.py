@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(__file__))
 from run_intervention import (
+    CANONICAL_JAILBREAK_GENERATION,
     HNeuronScaler,
     _bioasq_prompt,
     _faitheval_prompt,
@@ -42,8 +43,11 @@ from run_intervention import (
     load_existing_ids,
     load_faitheval,
     load_falseqa,
+    load_jailbreak,
     load_model_and_tokenizer,
     normalize_answer,
+    run_jailbreak,
+    tokenize_chat,
 )
 from utils import (
     define_wandb_metrics,
@@ -87,6 +91,7 @@ INTER_SIZE = 10240
 N_LAYERS = 34
 ALL_ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 QUICK_ALPHAS = [0.0, 1.0, 3.0]
+JAILBREAK_ALPHAS = [0.0, 1.0, 1.5, 3.0]
 
 MODEL_PATH = "google/gemma-3-4b-it"
 CLASSIFIER_PATH = "models/gemma3_4b_classifier.pkl"
@@ -94,6 +99,7 @@ OUTPUT_BASES = {
     "faitheval": "data/gemma3_4b/intervention/faitheval/control",
     "falseqa": "data/gemma3_4b/intervention/falseqa/control",
     "bioasq": "data/gemma3_4b/intervention/bioasq/control",
+    "jailbreak": "data/gemma3_4b/intervention/jailbreak/control",
 }
 H_NEURON_BASELINES = {
     "faitheval": "data/gemma3_4b/intervention/faitheval/experiment/results.json",
@@ -166,6 +172,7 @@ def run_single_config(
     output_dir: str,
     config_name: str,
     benchmark: str = "faitheval",
+    jailbreak_batch_size: int = 1,
 ):
     """Run a benchmark for one neuron set across all alphas."""
     os.makedirs(output_dir, exist_ok=True)
@@ -191,6 +198,17 @@ def run_single_config(
     elif benchmark == "bioasq":
         results = _run_bioasq_alphas(
             model, tokenizer, samples, scaler, alphas, output_dir, config_name
+        )
+    elif benchmark == "jailbreak":
+        results = _run_jailbreak_alphas(
+            model,
+            tokenizer,
+            samples,
+            scaler,
+            alphas,
+            output_dir,
+            config_name,
+            jailbreak_batch_size=jailbreak_batch_size,
         )
     else:
         raise ValueError(f"Unknown benchmark: {benchmark}")
@@ -379,6 +397,59 @@ def _run_bioasq_alphas(
         print(
             f"  α={alpha:.1f}: {comp_total / n_total:.1%} accuracy "
             f"({comp_total}/{n_total})"
+        )
+    return results
+
+
+def _run_jailbreak_alphas(
+    model,
+    tokenizer,
+    samples,
+    scaler,
+    alphas,
+    output_dir,
+    config_name,
+    jailbreak_batch_size=1,
+):
+    """Jailbreak negative control: generate responses, defer CSV-v2 scoring."""
+    prompt_cache = {}
+    for s in samples:
+        msgs = [{"role": "user", "content": s["full_prompt"]}]
+        prompt_cache[s["id"]] = tokenize_chat(tokenizer, msgs)
+    print(f"  [{config_name}] Pre-tokenized {len(prompt_cache)} jailbreak prompts")
+
+    results = {}
+    for alpha in alphas:
+        canonical_do_sample = cast(bool, CANONICAL_JAILBREAK_GENERATION["do_sample"])
+        canonical_temperature = CANONICAL_JAILBREAK_GENERATION["temperature"]
+        canonical_top_k = cast(int, CANONICAL_JAILBREAK_GENERATION["top_k"])
+        canonical_top_p = CANONICAL_JAILBREAK_GENERATION["top_p"]
+        run_jailbreak(
+            model,
+            tokenizer,
+            scaler,
+            samples,
+            alpha,
+            output_dir,
+            max_samples=None,
+            max_new_tokens=CANONICAL_JAILBREAK_GENERATION["max_new_tokens"],
+            prompt_cache=prompt_cache,
+            wandb_module=None,
+            alpha_idx=0,
+            throughput_state=None,
+            benchmark_name="jailbreak_control",
+            do_sample=canonical_do_sample,
+            temperature=canonical_temperature,
+            top_k=canonical_top_k,
+            top_p=canonical_top_p,
+            jailbreak_batch_size=jailbreak_batch_size,
+        )
+        out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
+        n_total = _count_lines(out_path)
+        results[str(alpha)] = {"n_total": n_total}
+        print(
+            f"  [{config_name}] α={alpha:.1f}: {n_total} responses "
+            f"(CSV-v2 scoring deferred)"
         )
     return results
 
@@ -809,7 +880,7 @@ def parse_args():
         "--benchmark",
         type=str,
         default="faitheval",
-        choices=["faitheval", "falseqa", "bioasq"],
+        choices=["faitheval", "falseqa", "bioasq", "jailbreak"],
         help="Benchmark to run negative control on",
     )
     p.add_argument(
@@ -832,22 +903,39 @@ def parse_args():
         action="store_true",
         help="Enable Weights & Biases run tracking",
     )
+    p.add_argument(
+        "--jailbreak_batch_size",
+        type=int,
+        default=1,
+        help=(
+            "Batch size for jailbreak generation (default: 1; larger values "
+            "change sampling semantics)"
+        ),
+    )
     return p.parse_args()
 
 
 def main():
     args = parse_args()
     benchmark = args.benchmark
-    alphas = QUICK_ALPHAS if args.quick else ALL_ALPHAS
     output_base = OUTPUT_BASES[benchmark]
 
-    if args.quick:
+    if benchmark == "jailbreak":
+        alphas = JAILBREAK_ALPHAS
+        configs = [
+            ("seed_0_unconstrained", "unconstrained", 0),
+            ("seed_1_unconstrained", "unconstrained", 1),
+            ("seed_2_unconstrained", "unconstrained", 2),
+        ]
+    elif args.quick:
+        alphas = QUICK_ALPHAS
         configs = [
             ("seed_0_unconstrained", "unconstrained", 0),
             ("seed_1_unconstrained", "unconstrained", 1),
             ("seed_2_unconstrained", "unconstrained", 2),
         ]
     else:
+        alphas = ALL_ALPHAS
         configs = [
             ("seed_0_unconstrained", "unconstrained", 0),
             ("seed_1_unconstrained", "unconstrained", 1),
@@ -952,6 +1040,8 @@ def main():
                 samples = load_falseqa(args.falseqa_path)
             elif benchmark == "bioasq":
                 samples = load_bioasq(args.bioasq_path)
+            elif benchmark == "jailbreak":
+                samples = load_jailbreak()
             print(f"  {len(samples)} samples")
 
             all_results = {}
@@ -967,6 +1057,7 @@ def main():
                     out_dir,
                     name,
                     benchmark=benchmark,
+                    jailbreak_batch_size=args.jailbreak_batch_size,
                 )
                 all_results[name] = results
 
@@ -985,6 +1076,36 @@ def main():
 
         if not all_results:
             print("No results to analyze.")
+            return
+
+        # Jailbreak analysis requires CSV-v2 scoring (separate pipeline)
+        if benchmark == "jailbreak":
+            print("\n" + "=" * 60)
+            print("Generation complete. Next steps:")
+            print("  1. Run CSV-v2 scoring on each seed directory:")
+            for name, _, _ in configs:
+                seed_dir = os.path.join(output_base, name)
+                alpha_str = " ".join(f"{a:.1f}" for a in alphas)
+                print(
+                    f"     uv run python scripts/evaluate_csv2.py "
+                    f"--input_dir {seed_dir} --output_dir {seed_dir} "
+                    f"--alphas {alpha_str}"
+                )
+            print("  2. Run comparative analysis:")
+            print(
+                f"     uv run python scripts/analyze_csv2_control.py "
+                f"--control_base {output_base} "
+                f"--experiment_dir "
+                f"data/gemma3_4b/intervention/jailbreak/csv2_evaluation "
+                f"--alphas {' '.join(f'{a:.1f}' for a in alphas)}"
+            )
+            provenance_extra["output_targets"] = [
+                output_base,
+                *[os.path.join(output_base, name) for name, _, _ in configs],
+            ]
+            finish_run_provenance(
+                provenance_handle, provenance_status, provenance_extra
+            )
             return
 
         # FalseQA analysis requires GPT-4o judging first

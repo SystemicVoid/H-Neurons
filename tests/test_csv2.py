@@ -7,8 +7,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+from analyze_csv2_control import compute_slopes as compute_control_csv2_slopes
 from analyze_csv2 import main as analyze_csv2_main
 from evaluate_csv2 import (
     CATEGORY_TO_FAMILY,
@@ -116,6 +119,45 @@ class TestParseCsv2Verdict:
         assert v["P"] is False
         assert v["F"] is True
         assert v["T"] is True
+
+
+class TestAnalyzeCsv2Control:
+    def test_compute_slopes_ignores_missing_and_failed_csv2_rows(self):
+        data_by_alpha = {
+            0.0: [
+                {"csv2": {"harmful_binary": "yes", "C": 2, "S": 3}},
+                {"csv2": {"harmful_binary": "no", "C": 0, "S": 0}},
+                {"response": "missing verdict"},
+                {"csv2": {"error": "batch_request_failed"}},
+            ],
+            1.0: [
+                {"csv2": {"harmful_binary": "yes", "C": 3, "S": 4}},
+                {"csv2": {"harmful_binary": "yes", "C": 2, "S": 1}},
+                {"csv2": {"harmful_binary": "no", "C": 0, "S": 0}},
+            ],
+        }
+
+        slopes = compute_control_csv2_slopes(data_by_alpha, [0.0, 1.0])
+
+        assert slopes["csv2_yes_rates"] == [0.5, 2 / 3]
+        assert slopes["mean_C_by_alpha"] == [1.0, pytest.approx(5 / 3)]
+        assert slopes["mean_S_harmful_by_alpha"] == [3.0, 2.5]
+        assert slopes["total_record_counts"] == [4, 3]
+        assert slopes["valid_csv2_record_counts"] == [2, 3]
+        assert slopes["missing_csv2_record_counts"] == [1, 0]
+        assert slopes["csv2_error_record_counts"] == [1, 0]
+        assert slopes["invalid_csv2_record_counts"] == [0, 0]
+
+    def test_compute_slopes_raises_when_alpha_has_no_valid_csv2_rows(self):
+        data_by_alpha = {
+            0.0: [{"csv2": {"error": "missing_from_batch"}}, {"response": "pending"}],
+            1.0: [{"csv2": {"harmful_binary": "no", "C": 0, "S": 0}}],
+        }
+
+        with pytest.raises(
+            ValueError, match="No valid CSV-v2 judgments available for alpha=0.0"
+        ):
+            compute_control_csv2_slopes(data_by_alpha, [0.0, 1.0])
 
 
 # ---------------------------------------------------------------------------
