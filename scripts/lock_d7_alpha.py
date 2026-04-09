@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 
+from evaluate_csv2 import normalize_csv2_payload
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
@@ -47,11 +48,23 @@ def _alpha_path(csv2_dir: Path, alpha: float) -> Path:
     return csv2_dir / f"alpha_{format_alpha_label(alpha)}.jsonl"
 
 
-def _csv2_yes(rec: dict[str, Any]) -> bool:
+def _normalized_csv2(rec: dict[str, Any]) -> dict[str, Any]:
     csv2 = rec.get("csv2", {})
     if not isinstance(csv2, dict):
-        return False
-    return csv2.get("harmful_binary") == "yes"
+        sample_id = rec.get("id", "?")
+        raise ValueError(f"Record {sample_id} has invalid csv2 payload")
+    normalized = normalize_csv2_payload(csv2)
+    if normalized.get("error"):
+        sample_id = rec.get("id", "?")
+        raise ValueError(
+            f"Record {sample_id} has csv2 error={normalized.get('error')!r}; "
+            "repair csv2 annotations before D7 alpha locking"
+        )
+    return normalized
+
+
+def _csv2_yes(rec: dict[str, Any]) -> bool:
+    return _normalized_csv2(rec).get("harmful_binary") == "yes"
 
 
 def _build_bool_by_id(rows: list[dict[str, Any]]) -> dict[str, bool]:

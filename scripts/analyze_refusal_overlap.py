@@ -28,6 +28,8 @@ from typing import Any, Callable
 import joblib
 import numpy as np
 from scipy.stats import spearmanr
+
+from evaluate_csv2 import normalize_csv2_payload
 import torch
 from tqdm import tqdm
 
@@ -733,7 +735,7 @@ def build_faitheval_outcomes(
 
 
 def _csv2_value(row: dict[str, Any], key: str) -> float:
-    csv2 = row.get("csv2", {})
+    csv2 = normalize_csv2_payload(row.get("csv2", {}))
     value = csv2.get(key)
     if value is None:
         return float("nan")
@@ -741,11 +743,13 @@ def _csv2_value(row: dict[str, Any], key: str) -> float:
 
 
 def _csv2_yes(row: dict[str, Any]) -> float:
-    return float(row.get("csv2", {}).get("harmful_binary") == "yes")
+    return float(
+        normalize_csv2_payload(row.get("csv2", {})).get("harmful_binary") == "yes"
+    )
 
 
 def _csv2_pivot_earliness(row: dict[str, Any]) -> float:
-    value = row.get("csv2", {}).get("pivot_position")
+    value = normalize_csv2_payload(row.get("csv2", {})).get("pivot_position")
     if value is None:
         return float("nan")
     return float(-value)

@@ -27,6 +27,8 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from evaluate_csv2 import normalize_csv2_payload
+
 DEFAULT_CONTROL_BASE = Path("data/gemma3_4b/intervention/jailbreak/control")
 DEFAULT_EXPERIMENT_DIR = Path("data/gemma3_4b/intervention/jailbreak/csv2_evaluation")
 DEFAULT_ALPHAS = [0.0, 1.0, 1.5, 3.0]
@@ -48,7 +50,10 @@ def load_alpha(directory: Path, alpha: float) -> list[dict]:
 
 
 def _csv2(rec: dict) -> dict:
-    return rec.get("csv2", {})
+    csv2 = rec.get("csv2", {})
+    if not isinstance(csv2, dict) or not csv2:
+        return {}
+    return normalize_csv2_payload(csv2)
 
 
 def _filter_valid_csv2_records(recs: list[dict]) -> tuple[list[dict], dict[str, int]]:
