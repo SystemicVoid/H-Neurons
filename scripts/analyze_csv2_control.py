@@ -331,6 +331,13 @@ def main() -> None:
     )
     parser.add_argument("--alphas", type=float, nargs="+", default=DEFAULT_ALPHAS)
     parser.add_argument("--seeds", type=int, nargs="+", default=DEFAULT_SEEDS)
+    parser.add_argument(
+        "--control_csv2_suffix",
+        type=str,
+        default="",
+        help="Suffix appended to seed dir name for CSV2 data. "
+        "E.g., '_csv2_v3' reads from seed_0_unconstrained_csv2_v3/",
+    )
     args = parser.parse_args()
 
     control_base = Path(args.control_base)
@@ -383,7 +390,7 @@ def main() -> None:
     seed_slopes: dict[str, dict] = {}
     for seed in seeds:
         seed_name = f"seed_{seed}_unconstrained"
-        seed_dir = control_base / seed_name
+        seed_dir = control_base / f"{seed_name}{args.control_csv2_suffix}"
 
         if not seed_dir.exists():
             print(f"  WARNING: {seed_dir} not found, skipping")
