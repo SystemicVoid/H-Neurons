@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+import csv2_v3_smoke_hardcases
 from analyze_concordance import gold_comparison
 from analyze_csv2_control import (
     build_output_paths,
@@ -653,3 +655,332 @@ class TestAnalyzeCsv2:
         assert "Loaded alpha=0.0" in out
         assert "Loaded alpha=2.0" in out
         assert "1.5" not in out
+
+
+class TestCsv2V3SmokeHardcases:
+    @staticmethod
+    def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as handle:
+            for row in rows:
+                handle.write(json.dumps(row) + "\n")
+
+    def test_build_smoke_subset_materializes_selected_rows(self, tmp_path: Path):
+        experiment_dir = tmp_path / "experiment"
+        legacy_dir = tmp_path / "legacy"
+        gold_path = tmp_path / "gold.jsonl"
+        output_dir = tmp_path / "subset"
+        manifest_path = output_dir / "manifest.json"
+
+        self._write_jsonl(
+            experiment_dir / "alpha_0.0.jsonl",
+            [
+                {
+                    "id": "case-a",
+                    "alpha": 0.0,
+                    "goal": "goal a",
+                    "category": "Malware/Hacking",
+                    "template_idx": 0,
+                    "response": "response a",
+                },
+                {
+                    "id": "skip-me",
+                    "alpha": 0.0,
+                    "goal": "goal skip",
+                    "category": "Malware/Hacking",
+                    "template_idx": 1,
+                    "response": "response skip",
+                },
+            ],
+        )
+        self._write_jsonl(
+            experiment_dir / "alpha_1.5.jsonl",
+            [
+                {
+                    "id": "case-b",
+                    "alpha": 1.5,
+                    "goal": "goal b",
+                    "category": "Fraud/Deception",
+                    "template_idx": 2,
+                    "response": "response b",
+                }
+            ],
+        )
+        self._write_jsonl(
+            legacy_dir / "alpha_0.0.jsonl",
+            [
+                {
+                    "id": "case-a",
+                    "alpha": 0.0,
+                    "response": "response a",
+                    "csv2": {
+                        "harmful_binary": "borderline",
+                        "R": True,
+                        "F": True,
+                        "T": False,
+                        "pivot_position": 0.42,
+                        "span_errors": 1,
+                    },
+                }
+            ],
+        )
+        self._write_jsonl(
+            legacy_dir / "alpha_1.5.jsonl",
+            [
+                {
+                    "id": "case-b",
+                    "alpha": 1.5,
+                    "response": "response b",
+                    "csv2": {
+                        "harmful_binary": "yes",
+                        "R": False,
+                        "F": True,
+                        "T": False,
+                        "pivot_position": 0.15,
+                        "span_errors": 0,
+                    },
+                }
+            ],
+        )
+        gold_path.write_text(
+            json.dumps({"id": "case-a", "alpha": 0.0, "human_label": "HARMFUL"}) + "\n",
+            encoding="utf-8",
+        )
+
+        selections = [
+            csv2_v3_smoke_hardcases.SmokeSelection(
+                group="gold_backbone",
+                prompt_id="case-a",
+                alpha=0.0,
+                selection_reason="gold",
+            ),
+            csv2_v3_smoke_hardcases.SmokeSelection(
+                group="extreme_pivot",
+                prompt_id="case-b",
+                alpha=1.5,
+                selection_reason="extreme",
+            ),
+        ]
+
+        manifest = csv2_v3_smoke_hardcases.build_smoke_subset(
+            experiment_dir=experiment_dir,
+            legacy_dir=legacy_dir,
+            gold_path=gold_path,
+            output_dir=output_dir,
+            manifest_path=manifest_path,
+            selection_spec=selections,
+        )
+
+        subset_alpha0 = [
+            json.loads(line)
+            for line in (output_dir / "alpha_0.0.jsonl").read_text().splitlines()
+            if line
+        ]
+        subset_alpha15 = [
+            json.loads(line)
+            for line in (output_dir / "alpha_1.5.jsonl").read_text().splitlines()
+            if line
+        ]
+        assert [row["id"] for row in subset_alpha0] == ["case-a"]
+        assert [row["id"] for row in subset_alpha15] == ["case-b"]
+        assert manifest["counts"]["total_records"] == 2
+        assert manifest["counts"]["gold_backed_records"] == 1
+        assert manifest["counts"]["group_counts"] == {
+            "gold_backbone": 1,
+            "extreme_pivot": 1,
+        }
+        first = manifest["selected_records"][0]
+        assert first["legacy_csv2"]["harmful_binary"] == "borderline"
+        assert first["legacy_csv2"]["R"] is True
+
+    def test_build_smoke_report_writes_audit_outputs(self, tmp_path: Path):
+        manifest_path = tmp_path / "manifest.json"
+        legacy_dir = tmp_path / "legacy"
+        gold_path = tmp_path / "gold.jsonl"
+        v3_dir = tmp_path / "v3"
+        output_dir = tmp_path / "audit"
+
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "selected_records": [
+                        {
+                            "group": "gold_backbone",
+                            "selection_reason": "gold",
+                            "id": "case-a",
+                            "alpha": 0.0,
+                            "category": "Malware/Hacking",
+                            "response_length": 100,
+                        },
+                        {
+                            "group": "extreme_pivot",
+                            "selection_reason": "extreme",
+                            "id": "case-b",
+                            "alpha": 1.5,
+                            "category": "Fraud/Deception",
+                            "response_length": 120,
+                        },
+                    ]
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self._write_jsonl(
+            legacy_dir / "alpha_0.0.jsonl",
+            [
+                {
+                    "id": "case-a",
+                    "alpha": 0.0,
+                    "response": "legacy response a",
+                    "csv2": {
+                        "harmful_binary": "borderline",
+                        "R": True,
+                        "F": True,
+                        "T": False,
+                        "pivot_position": 0.33,
+                    },
+                }
+            ],
+        )
+        self._write_jsonl(
+            legacy_dir / "alpha_1.5.jsonl",
+            [
+                {
+                    "id": "case-b",
+                    "alpha": 1.5,
+                    "response": "legacy response b",
+                    "csv2": {
+                        "harmful_binary": "yes",
+                        "R": False,
+                        "F": True,
+                        "T": False,
+                        "pivot_position": 0.05,
+                    },
+                }
+            ],
+        )
+        gold_path.write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {"id": "case-a", "alpha": 0.0, "human_label": "HARMFUL"}
+                    ),
+                    json.dumps({"id": "case-b", "alpha": 1.5, "human_label": "SAFE"}),
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self._write_jsonl(
+            v3_dir / "alpha_0.0.jsonl",
+            [
+                {
+                    "id": "case-a",
+                    "alpha": 0.0,
+                    "response": "v3 response a",
+                    "csv2": {
+                        "schema_version": "csv2_v3",
+                        "primary_outcome": "partial_compliance",
+                        "intent_match": 2,
+                        "harmful_binary": "yes",
+                        "C": 2,
+                        "S": 2,
+                        "V": 1,
+                        "R": True,
+                        "D": 2,
+                        "P": False,
+                        "F": True,
+                        "T": True,
+                        "harmful_spans": [{"start": 5, "end": 10, "valid": True}],
+                        "refusal_spans": [{"start": 0, "end": 4, "valid": True}],
+                        "pivot_span": {"start": 4, "end": 5, "valid": True},
+                        "span_errors": 0,
+                        "span_corrections": 0,
+                    },
+                }
+            ],
+        )
+        self._write_jsonl(
+            v3_dir / "alpha_1.5.jsonl",
+            [
+                {
+                    "id": "case-b",
+                    "alpha": 1.5,
+                    "response": "v3 response b",
+                    "csv2": {
+                        "schema_version": "csv2_v3",
+                        "primary_outcome": "refusal",
+                        "intent_match": 0,
+                        "harmful_binary": "no",
+                        "C": 0,
+                        "S": 0,
+                        "V": None,
+                        "R": True,
+                        "D": 2,
+                        "P": False,
+                        "F": False,
+                        "T": False,
+                        "harmful_spans": [],
+                        "refusal_spans": [
+                            {
+                                "start": None,
+                                "end": None,
+                                "valid": False,
+                                "start_quote": "I can't",
+                                "end_quote": "help with that",
+                            }
+                        ],
+                        "pivot_span": {
+                            "start": None,
+                            "end": None,
+                            "valid": False,
+                            "start_quote": "instead",
+                            "end_quote": "stay safe",
+                        },
+                        "span_errors": 2,
+                        "span_corrections": 0,
+                        "validation_errors": [
+                            "invalid_refusal_spans:1",
+                            "invalid_pivot_span",
+                        ],
+                    },
+                }
+            ],
+        )
+
+        outputs = csv2_v3_smoke_hardcases.build_smoke_report(
+            manifest_path=manifest_path,
+            legacy_dir=legacy_dir,
+            gold_path=gold_path,
+            v3_dir=v3_dir,
+            output_dir=output_dir,
+        )
+
+        with open(outputs["csv_path"], encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        assert len(rows) == 2
+        assert rows[0]["id"] == "case-a"
+        assert rows[0]["response_source"] == "v3"
+        assert rows[0]["response"] == "v3 response a"
+        assert rows[0]["has_pivot_span"] == "True"
+        assert rows[1]["v3_harmful_binary"] == "no"
+        assert rows[1]["response"] == "v3 response b"
+        assert rows[1]["has_refusal_spans"] == "False"
+        assert rows[1]["refusal_span_count"] == "0"
+        assert rows[1]["has_pivot_span"] == "False"
+        assert json.loads(rows[1]["v3_refusal_spans_json"])[0]["valid"] is False
+        assert json.loads(rows[1]["v3_pivot_span_json"])["valid"] is False
+
+        summary = json.loads(Path(outputs["summary_path"]).read_text(encoding="utf-8"))
+        assert summary["directional_match_gold_backed"] == {
+            "matched": 2,
+            "total_non_borderline": 2,
+        }
+        assert summary["span_coverage"]["with_refusal_spans"] == 1
+        assert summary["span_coverage"]["with_pivot_span"] == 1
+        assert summary["attention_rows"]["legacy_pivot_without_v3_pivot"] == [
+            {"id": "case-b", "alpha": 1.5}
+        ]
+        report_text = Path(outputs["report_path"]).read_text(encoding="utf-8")
+        assert "Directional gold agreement" in report_text
