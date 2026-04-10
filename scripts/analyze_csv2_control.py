@@ -316,6 +316,14 @@ def plot_comparison(
     print(f"Saved plot to {output_path}")
 
 
+def build_output_paths(output_dir: Path) -> tuple[Path, Path]:
+    """Resolve standard artifact paths for one control-analysis run."""
+    return (
+        output_dir / "comparison_csv2_summary.json",
+        output_dir / "negative_control_csv2_comparison.png",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -338,18 +346,27 @@ def main() -> None:
         help="Suffix appended to seed dir name for CSV2 data. "
         "E.g., '_csv2_v3' reads from seed_0_unconstrained_csv2_v3/",
     )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default=None,
+        help="Directory for summary and plot artifacts. Defaults to --control_base.",
+    )
     args = parser.parse_args()
 
     control_base = Path(args.control_base)
     experiment_dir = Path(args.experiment_dir)
+    output_dir = Path(args.output_dir) if args.output_dir else control_base
     alphas = args.alphas
     seeds = args.seeds
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 60)
     print("CSV-v2 Negative Control Comparison")
     print("=" * 60)
     print(f"  Experiment: {experiment_dir}")
     print(f"  Control:    {control_base}")
+    print(f"  Output:     {output_dir}")
     print(f"  Alphas:     {alphas}")
     print(f"  Seeds:      {seeds}")
 
@@ -437,6 +454,10 @@ def main() -> None:
     print("=" * 60)
 
     summary = build_comparison(h_slopes, seed_slopes, alphas)
+    summary["experiment_dir"] = str(experiment_dir)
+    summary["control_base"] = str(control_base)
+    summary["control_csv2_suffix"] = args.control_csv2_suffix
+    summary["output_dir"] = str(output_dir)
     verdict_status, verdict_note = triage(summary)
     summary["triage"] = {"status": verdict_status, "note": verdict_note}
 
@@ -489,12 +510,11 @@ def main() -> None:
     print(f"  {verdict_note}")
 
     # Save
-    summary_path = control_base / "comparison_csv2_summary.json"
+    summary_path, plot_path = build_output_paths(output_dir)
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
     print(f"\nSaved summary to {summary_path}")
 
-    plot_path = control_base / "negative_control_csv2_comparison.png"
     plot_comparison(summary, alphas, plot_path)
 
     print("\nDone.")

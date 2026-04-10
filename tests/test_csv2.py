@@ -11,7 +11,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from analyze_csv2_control import compute_slopes as compute_control_csv2_slopes
+from analyze_concordance import gold_comparison
+from analyze_csv2_control import (
+    build_output_paths,
+    compute_slopes as compute_control_csv2_slopes,
+    main as analyze_csv2_control_main,
+)
 from analyze_csv2 import main as analyze_csv2_main
 from evaluate_csv2 import (
     CATEGORY_TO_FAMILY,
@@ -204,6 +209,100 @@ class TestAnalyzeCsv2Control:
             ValueError, match="No valid CSV-v2 judgments available for alpha=0.0"
         ):
             compute_control_csv2_slopes(data_by_alpha, [0.0, 1.0])
+
+    def test_build_output_paths_uses_requested_output_dir(self, tmp_path: Path):
+        summary_path, plot_path = build_output_paths(tmp_path / "analysis_csv2_v3")
+
+        assert (
+            summary_path
+            == tmp_path / "analysis_csv2_v3" / "comparison_csv2_summary.json"
+        )
+        assert plot_path == (
+            tmp_path / "analysis_csv2_v3" / "negative_control_csv2_comparison.png"
+        )
+
+    def test_main_writes_artifacts_to_output_dir(self, monkeypatch, tmp_path: Path):
+        control_base = tmp_path / "control"
+        experiment_dir = tmp_path / "experiment"
+        output_dir = tmp_path / "analysis_csv2_v3"
+
+        for directory in (
+            control_base / "seed_0_unconstrained_csv2_v3",
+            experiment_dir,
+        ):
+            directory.mkdir(parents=True)
+
+        rows = [
+            {"id": "case-a", "csv2": {"harmful_binary": "no", "C": 0, "S": 0}},
+            {"id": "case-b", "csv2": {"harmful_binary": "yes", "C": 2, "S": 3}},
+        ]
+        for alpha in (0.0, 1.0):
+            payload = "\n".join(json.dumps(row) for row in rows) + "\n"
+            (experiment_dir / f"alpha_{alpha:.1f}.jsonl").write_text(payload)
+            (
+                control_base
+                / "seed_0_unconstrained_csv2_v3"
+                / f"alpha_{alpha:.1f}.jsonl"
+            ).write_text(payload)
+
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "analyze_csv2_control.py",
+                "--control_base",
+                str(control_base),
+                "--experiment_dir",
+                str(experiment_dir),
+                "--seeds",
+                "0",
+                "--alphas",
+                "0.0",
+                "1.0",
+                "--control_csv2_suffix",
+                "_csv2_v3",
+                "--output_dir",
+                str(output_dir),
+            ],
+        )
+
+        analyze_csv2_control_main()
+
+        summary_path, plot_path = build_output_paths(output_dir)
+        assert summary_path.exists()
+        assert plot_path.exists()
+        assert not (control_base / "comparison_csv2_summary.json").exists()
+        assert not (control_base / "negative_control_csv2_comparison.png").exists()
+
+
+class TestAnalyzeConcordance:
+    def test_gold_comparison_rejects_duplicate_id_alpha_keys(self, tmp_path: Path):
+        gold_path = tmp_path / "gold.jsonl"
+        gold_path.write_text(
+            json.dumps({"id": "case-a", "alpha": 1.0, "human_label": "HARMFUL"}) + "\n"
+        )
+
+        duplicate_records = [
+            {
+                "id": "case-a",
+                "alpha": 1.0,
+                "binary_harmful": True,
+                "v2_harmful": True,
+                "v3_harmful": True,
+            },
+            {
+                "id": "case-a",
+                "alpha": 1.0,
+                "binary_harmful": False,
+                "v2_harmful": False,
+                "v3_harmful": False,
+            },
+        ]
+
+        with pytest.raises(
+            ValueError, match="Gold comparison requires one record per \\(id, alpha\\)"
+        ):
+            gold_comparison(duplicate_records, gold_path)
 
 
 # ---------------------------------------------------------------------------

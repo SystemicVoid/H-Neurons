@@ -30,7 +30,9 @@ H_EXPERIMENT_DIR="data/gemma3_4b/intervention/jailbreak/experiment"
 H_CSV2_V2_DIR="data/gemma3_4b/intervention/jailbreak/csv2_evaluation"
 H_CSV2_V3_DIR="data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation"
 CONCORDANCE_DIR="${CONTROL_BASE}/concordance"
-ALPHAS="0.0 1.0 1.5 3.0"
+CSV2_CONTROL_V3_ANALYSIS_DIR="${CONTROL_BASE}/analysis_csv2_v3"
+CSV2_CONTROL_V2_ANALYSIS_DIR="${CONTROL_BASE}/analysis_csv2_v2"
+ALPHAS=(0.0 1.0 1.5 3.0)
 SEEDS=(0 1 2)
 
 # ── Logging ───────────────────────────────────────────────────────
@@ -46,14 +48,14 @@ ANALYSIS_LOG="$LOG_DIR/concordance_analysis_${TIMESTAMP}.log"
 
 echo "=========================================================="
 echo "Three-Judge Concordance Negative Control Pipeline"
-echo "$(date -Iseconds)"
+date -Iseconds
 echo "=========================================================="
 echo "Control base:     $CONTROL_BASE"
 echo "H-neuron exp:     $H_EXPERIMENT_DIR"
 echo "H-neuron CSV2 v2: $H_CSV2_V2_DIR (existing, preserved)"
 echo "H-neuron CSV2 v3: $H_CSV2_V3_DIR (new)"
 echo "Concordance:      $CONCORDANCE_DIR"
-echo "Alphas:           $ALPHAS"
+echo "Alphas:           ${ALPHAS[*]}"
 echo "Seeds:            ${SEEDS[*]}"
 echo ""
 
@@ -131,7 +133,7 @@ echo "[$(date -Iseconds)] Generation complete"
 for SEED in "${SEEDS[@]}"; do
     SEED_DIR="${CONTROL_BASE}/seed_${SEED}_unconstrained"
     if [ -d "$SEED_DIR" ]; then
-        for alpha in $ALPHAS; do
+        for alpha in "${ALPHAS[@]}"; do
             fpath="${SEED_DIR}/alpha_${alpha}.jsonl"
             if [ -f "$fpath" ]; then
                 lines=$(wc -l < "$fpath")
@@ -158,13 +160,12 @@ for SEED in "${SEEDS[@]}"; do
         uv run python scripts/evaluate_intervention.py \
             --benchmark jailbreak \
             --input_dir "$SEED_DIR" \
-            --alphas $ALPHAS \
+            --alphas "${ALPHAS[@]}" \
             --judge_model gpt-4o \
             --api-mode batch \
         2>&1 | tee -a "$BINARY_LOG"
 
-    # shellcheck disable=SC2086
-    verify_field "$SEED_DIR" "compliance" $ALPHAS
+    verify_field "$SEED_DIR" "compliance" "${ALPHAS[@]}"
     echo ""
 done
 
@@ -181,13 +182,12 @@ retry_eval "CSV2 v3 H-neurons" \
     uv run python scripts/evaluate_csv2.py \
         --input_dir "$H_EXPERIMENT_DIR" \
         --output_dir "$H_CSV2_V3_DIR" \
-        --alphas $ALPHAS \
+        --alphas "${ALPHAS[@]}" \
         --judge_model gpt-4o \
         --api-mode batch \
     2>&1 | tee -a "$CSV2_V3_H_LOG"
 
-# shellcheck disable=SC2086
-verify_field "$H_CSV2_V3_DIR" "csv2" $ALPHAS
+verify_field "$H_CSV2_V3_DIR" "csv2" "${ALPHAS[@]}"
 
 echo ""
 echo "[$(date -Iseconds)] H-neuron v3 scoring done"
@@ -208,13 +208,12 @@ for SEED in "${SEEDS[@]}"; do
         uv run python scripts/evaluate_csv2_v2.py \
             --input_dir "$SEED_DIR" \
             --output_dir "$V2_DIR" \
-            --alphas $ALPHAS \
+            --alphas "${ALPHAS[@]}" \
             --judge_model gpt-4o \
             --api_mode batch \
         2>&1 | tee -a "$CSV2_V2_CTRL_LOG"
 
-    # shellcheck disable=SC2086
-    verify_field "$V2_DIR" "csv2" $ALPHAS
+    verify_field "$V2_DIR" "csv2" "${ALPHAS[@]}"
     echo ""
 done
 
@@ -236,13 +235,12 @@ for SEED in "${SEEDS[@]}"; do
         uv run python scripts/evaluate_csv2.py \
             --input_dir "$SEED_DIR" \
             --output_dir "$V3_DIR" \
-            --alphas $ALPHAS \
+            --alphas "${ALPHAS[@]}" \
             --judge_model gpt-4o \
             --api-mode batch \
         2>&1 | tee -a "$CSV2_V3_CTRL_LOG"
 
-    # shellcheck disable=SC2086
-    verify_field "$V3_DIR" "csv2" $ALPHAS
+    verify_field "$V3_DIR" "csv2" "${ALPHAS[@]}"
     echo ""
 done
 
@@ -259,7 +257,8 @@ PYTHONUNBUFFERED=1 uv run python scripts/analyze_csv2_control.py \
     --control_base "$CONTROL_BASE" \
     --experiment_dir "$H_CSV2_V3_DIR" \
     --control_csv2_suffix "_csv2_v3" \
-    --alphas $ALPHAS \
+    --output_dir "$CSV2_CONTROL_V3_ANALYSIS_DIR" \
+    --alphas "${ALPHAS[@]}" \
     2>&1 | tee -a "$ANALYSIS_LOG"
 
 echo "[$(date -Iseconds)] V3 negative control analysis done"
@@ -275,7 +274,8 @@ PYTHONUNBUFFERED=1 uv run python scripts/analyze_csv2_control.py \
     --control_base "$CONTROL_BASE" \
     --experiment_dir "$H_CSV2_V2_DIR" \
     --control_csv2_suffix "_csv2_v2" \
-    --alphas $ALPHAS \
+    --output_dir "$CSV2_CONTROL_V2_ANALYSIS_DIR" \
+    --alphas "${ALPHAS[@]}" \
     2>&1 | tee -a "$ANALYSIS_LOG"
 
 echo "[$(date -Iseconds)] V2 negative control analysis done"
@@ -294,8 +294,8 @@ PYTHONUNBUFFERED=1 uv run python scripts/analyze_concordance.py \
     --h_neuron_csv2_v2_dir "$H_CSV2_V2_DIR" \
     --h_neuron_csv2_v3_dir "$H_CSV2_V3_DIR" \
     --control_base "$CONTROL_BASE" \
-    --control_seeds ${SEEDS[*]} \
-    --alphas $ALPHAS \
+    --control_seeds "${SEEDS[@]}" \
+    --alphas "${ALPHAS[@]}" \
     --gold_labels tests/gold_labels/jailbreak_cross_alpha_gold.jsonl \
     --output_dir "$CONCORDANCE_DIR" \
     2>&1 | tee -a "$ANALYSIS_LOG"
@@ -317,4 +317,6 @@ echo "Key outputs:"
 echo "  H-neuron v3:    $H_CSV2_V3_DIR"
 echo "  Control v2:     ${CONTROL_BASE}/seed_*_csv2_v2/"
 echo "  Control v3:     ${CONTROL_BASE}/seed_*_csv2_v3/"
+echo "  Analysis v3:    $CSV2_CONTROL_V3_ANALYSIS_DIR/comparison_csv2_summary.json"
+echo "  Analysis v2:    $CSV2_CONTROL_V2_ANALYSIS_DIR/comparison_csv2_summary.json"
 echo "  Concordance:    $CONCORDANCE_DIR/concordance_summary.json"

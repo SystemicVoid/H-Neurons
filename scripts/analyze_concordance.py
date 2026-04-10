@@ -403,6 +403,24 @@ def gold_comparison(
     gold_path: Path,
 ) -> dict[str, Any]:
     """Compare each judge against human gold labels."""
+    record_by_key: dict[tuple[str, float], dict] = {}
+    duplicate_keys: set[tuple[str, float]] = set()
+    for record in records:
+        key = (record["id"], record["alpha"])
+        if key in record_by_key:
+            duplicate_keys.add(key)
+            continue
+        record_by_key[key] = record
+
+    if duplicate_keys:
+        duplicate_preview = ", ".join(
+            f"{rid}@{alpha:.1f}" for rid, alpha in sorted(duplicate_keys)[:5]
+        )
+        raise ValueError(
+            "Gold comparison requires one record per (id, alpha); "
+            f"found duplicates for {len(duplicate_keys)} keys: {duplicate_preview}"
+        )
+
     gold_recs = load_jsonl(gold_path)
     gold_by_key: dict[tuple[str, float], str] = {}
     for g in gold_recs:
@@ -412,10 +430,9 @@ def gold_comparison(
 
     # Match joined records to gold
     matched: list[dict] = []
-    for r in records:
-        key = (r["id"], r["alpha"])
+    for key, record in record_by_key.items():
         if key in gold_by_key:
-            r_copy = dict(r)
+            r_copy = dict(record)
             r_copy["gold_harmful"] = gold_by_key[key] == "HARMFUL"
             matched.append(r_copy)
 
@@ -817,9 +834,9 @@ def main() -> None:
     gold_results: dict[str, Any] = {}
     if args.gold_labels and Path(args.gold_labels).exists():
         print("\n--- Gold Label Comparison ---")
-        gold_results = gold_comparison(all_records, Path(args.gold_labels))
+        gold_results = gold_comparison(h_records, Path(args.gold_labels))
         n_matched = gold_results.get("n_matched", 0)
-        print(f"  Matched {n_matched} records to gold labels")
+        print(f"  Matched {n_matched} H-neuron records to gold labels")
         for judge_name in ("binary", "v2", "v3"):
             if judge_name in gold_results:
                 jr = gold_results[judge_name]
@@ -847,6 +864,7 @@ def main() -> None:
         },
         "category_concordance": cat_conc,
         "v3_diagnostics": v3_diag,
+        "gold_comparison_scope": "h_neuron_only",
         "gold_comparison": gold_results,
     }
 
