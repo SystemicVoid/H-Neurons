@@ -43,15 +43,15 @@ fi
 
 PROMPT=$(
     cat <<EOF
-Verify the current OpenAI Tier 2 Batch queue limits for these models: ${TARGET_MODELS}.
+Verify the current OpenAI Tier 3 Batch queue limits for these models: ${TARGET_MODELS}.
 
 Requirements:
 - Use official OpenAI sources only: developers.openai.com and platform.openai.com.
 - Compare the verified values against the local registry in scripts/openai_batch.py.
-- If any local Tier 2 queue limit is stale, update only:
+- If any local Tier 3 queue limit is stale, update only:
   1. scripts/openai_batch.py
   2. docs/tier2-batch-size-adjustments.md
-- Keep the existing model-aware resolution logic intact. Only update the hardcoded Tier 2 values and verification note as needed.
+- Keep the existing model-aware resolution logic intact. Only update the hardcoded Tier 3 values and verification note as needed.
 - If nothing changed, do not edit files.
 - In the final response, list the verified limits and say whether local files changed.
 EOF

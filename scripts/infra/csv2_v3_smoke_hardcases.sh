@@ -70,7 +70,7 @@ echo "Report log:     $REPORT_LOG"
 echo ""
 
 if [ "${CODEX_VERIFY_OPENAI_LIMITS:-1}" = "1" ]; then
-    echo "Pre-flight: verifying OpenAI Batch Tier-2 limits via Codex CLI..."
+    echo "Pre-flight: verifying OpenAI Batch Tier-3 limits via Codex CLI..."
     scripts/infra/check_openai_batch_limits_via_codex.sh
 else
     echo "Pre-flight: skipping OpenAI Batch limit check (CODEX_VERIFY_OPENAI_LIMITS=0)"
