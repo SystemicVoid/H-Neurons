@@ -1,7 +1,7 @@
 # Optimising The Truthfulness Intervention — Act 3 Strategy
 
 **Date:** 2026-04-01
-**Status:** Revised through 2026-04-08 D7 full-500 audit. Stage 2 artifact lane closed (E1 tradeoff, E2 null, E3 gate not met). Stage 3 bridge benchmark built and validated — E0 ITI informative null on generation. Chooser gate (§5.7) definitively not met. **D7 full-500 trimmed result: causal beats shared baseline and L1 comparator on jailbreak severity; selector-specific negative control still missing.** D5 remains the main live priority; D7 specificity is an optional but high-value cleanup.
+**Status:** All five experimental stages reached terminal or near-terminal status (2026-04-01 to 2026-04-08). Stage 1 (cheap discriminators): specificity confirmed, scope locked to `first_3_tokens`. Stage 2 (artifact improvements): E1 tradeoff, E2 null, E3 gate not met. Stage 3 (bridge benchmark): built and validated, E0 ITI informative null. Stage 4 (chooser work): gate not met. Stage 5 (causal pilot): D7 full-500 trimmed complete, random-head control not yet run. See §10 for summary table. Strategic assessment produced 2026-04-11: [2026-04-11-strategic-assessment.md](./2026-04-11-strategic-assessment.md).
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)  
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
@@ -57,6 +57,8 @@ Implementation-only status: long GPU/judge execution has not been launched in th
 ---
 
 ## 0. Bottom Line
+
+> **Status (2026-04-11):** The five stage questions in §10 have been addressed by completed experiments. See §10 for the summary table linking each question to its terminal outcome and canonical report.
 
 1. We already have a D4-class intervention that beats H-neurons on the clean answer-selection axis.
 2. We do **not** yet have a D4-class intervention that is useful for free-form factual generation.
@@ -270,6 +272,8 @@ two cheaper discriminators:
 ---
 
 ## 4. Updated Research Question
+
+> **Status (2026-04-11):** This question has been addressed. Sub-hypotheses: (1) Specificity — confirmed direction-specific, not generic perturbation. (2) Scope — `first_3_tokens` locked; useful regularizer but does not fix generation (95% of rescued attempts are INCORRECT). (3) Artifact — E1 tradeoff, E2 null on both selector policies, E3 gate not met. (4) Selection — D7 causal heads outperform probe heads on jailbreak; no generation-side transfer tested. The overarching question ("can D4-style steering be made selective enough for generation?") is answered negatively within the ITI mass-mean framework tested here.
 
 The right question for the next sprint slice is:
 
@@ -758,10 +762,10 @@ The remaining active branches are D5 (externality audit) and D7 (causal pilot).
 9. ~~Bridge Phase 2 dev validation~~ **done (E0 ITI informative null):**
    [2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md)
 10. ~~Chooser work~~ **gate not met** (no live generation signal to amplify).
-11. **Run externality audit (D5).** ← next priority
+11. ~~**Run externality audit (D5).**~~ Deferred: existing cross-benchmark data may suffice.
 12. ~~Run causal head-selection pilot (D7).~~ **full-500 trimmed audit complete:**
     [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md) — causal beats shared baseline and L1 on the primary metric; selector-specific random-head control still missing.
-13. **Final synthesis (D8).**
+13. ~~**Final synthesis (D8).**~~ Strategic assessment produced ([2026-04-11-strategic-assessment.md](./2026-04-11-strategic-assessment.md)); paper drafting not yet started.
 
 ---
 
@@ -776,6 +780,8 @@ The remaining active branches are D5 (externality audit) and D7 (causal pilot).
 ---
 
 ## 9. Final Judgment
+
+> **Status (2026-04-11):** The three unknowns this judgment deferred to have been substantially addressed. **Specificity:** direction-specific (random-head control confirmed on SimpleQA). **Decode scope:** useful regularizer, not a fix (`first_3_tokens` locked; INCORRECT rate unchanged). **Component choice:** D7 causal heads outperform probe heads on jailbreak (-9.0pp vs null) at the benchmark level; random-head control for selector-specificity claim still missing. All stage results are summarized in §10.
 
 The most defensible update is:
 
@@ -792,3 +798,29 @@ It means they should be tried in the right order:
 
 That is the shortest path to an intervention that is genuinely better than
 H-neurons on the full sprint standard, not just on one clean MC benchmark.
+
+---
+
+## 10. Terminal Status Summary (2026-04-11)
+
+This strategy note guided the experiment-discovery phase from 2026-04-01 to 2026-04-08. All five stages reached terminal or near-terminal status:
+
+| Stage | Question | Terminal Status | Canonical Report |
+|---|---|---|---|
+| 1: Specificity + scope | Is the generation failure direction-specific? Is it scope-dependent? | Specificity confirmed. Scope is a regularizer, not a fix. `first_3_tokens` locked. | [Specificity](./2026-04-01-random-head-specificity-audit.md), [Scope](./2026-04-02-decode-scope-simpleqa-judge-results.md) |
+| 2: Artifact improvements | Can a better artifact fix generation? | E1 tradeoff, E2 null, E3 gate not met. Lane exhausted. | [E1](./2026-04-02-e1-truthfulqa-modernized-audit.md), [E2](./2026-04-04-e2-triviaqa-transfer-synthesis.md) |
+| 3: Bridge benchmark | Does a higher-headroom benchmark change the picture? | Built and validated. E0 ITI informative null (47% baseline, Δ = -1pp / -7pp). E1 α=8.0 formally significant (Δ = -9pp, p=0.016) — confirms method-level failure. | [Plan](./2026-04-03-bridge-benchmark-plan.md), [Phase 2](./2026-04-04-bridge-phase2-dev-results.md) |
+| 4: Chooser work | Is there signal for adaptive-α? | Gate not met. No live generation signal to amplify. | [Bridge Phase 2](./2026-04-04-bridge-phase2-dev-results.md) (§5.7 above) |
+| 5: Causal pilot | Does causal head selection outperform correlational? | D7 causal -9.0pp vs baseline on jailbreak. Probe null at every alpha (pilot100 scale; not completed at full-500). Random-head control not yet run. | [D7 full-500](./2026-04-08-d7-full500-audit.md), [Pilot](./2026-04-07-d7-causal-pilot-audit.md) |
+
+### Remaining open items (not addressed by this strategy note)
+
+- D7 random-head negative control — highest-value optional experiment for selector-specificity claim.
+- Seed 0 jailbreak control scoring — pending, already generated.
+- CSV v3 judge recalibration — smoke test identified calibration gap; 4th few-shot example needed before scaling.
+- D5 externality audit — deferred; assess whether D1/D4/D7 cross-benchmark divergences provide sufficient externality coverage before committing GPU time.
+- Capability mini-battery — not yet run for any intervention.
+
+### Pointer
+
+A strategic assessment for the BlueDot submission was produced on 2026-04-11: [2026-04-11-strategic-assessment.md](./2026-04-11-strategic-assessment.md). It proposes a paper framing and structure; that framing has not yet been reviewed against the full evidence base and should not be treated as settled.

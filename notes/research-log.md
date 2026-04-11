@@ -4,6 +4,83 @@
 
 ---
 
+## 2026-04-11
+
+### What I did
+
+Produced a comprehensive strategic assessment for the BlueDot submission: [2026-04-11-strategic-assessment.md](./act3-reports/2026-04-11-strategic-assessment.md). Synthesized inputs from the full project evidence base, GPT-5.4 pro strategic analysis (both myopic and high-vantage versions), and two rounds of independent Oracle review. Assessed the current state of all data assets, running experiments, and the CSV v3 validation gap.
+
+### What I expected vs what happened
+
+Expected the narrow "measurement matters" framing to be the right Sunday paper. After reading the full evidence base against the BlueDot criteria and the GPT-5.4 pro's high-vantage analysis, realized the project has earned a much broader thesis: **"Detection Is Not Enough"** — strong readout performance does not reliably identify useful intervention targets.
+
+The key evidence: SAE features match H-neuron detection quality (AUROC 0.848 vs 0.843) yet produce zero steering under both architectures; probe heads achieve AUROC 1.0 and produce null intervention at every alpha; D7 causal heads (gradient-ranked) succeed where probe heads fail (Jaccard 0.11); ITI improves MC selection (+6.3pp) but harms generation (-7pp to -9pp on bridge); D4 ITI beats H-neurons on TruthfulQA MC while H-neurons win on compliance tasks. These are not scattered results — they are one story about the gap between reading a model and controlling it.
+
+The Oracle review confirmed the thesis is earned in softened form ("detection quality is not a reliable heuristic for intervention selection") but not in absolute form ("detection ≠ intervention" — H-neuron scaling is a counterexample). Strongest reviewer counter-arguments identified: mixing detector families/operators/surfaces; single model; missing D7 random-head control.
+
+### What this changes about my thinking
+
+The project's real contribution is methodological, not instrumental. It tells safety researchers: if you find features that predict harmful behavior, do not assume you have found intervention targets. Prove it with task-local validation, matched controls, and capability checks. The 4288 L1 artifact, SAE dissociation, probe null, ITI MC/generation split, measurement discipline, and CSV v3 smoke test are all chapters in this one story.
+
+BlueDot only locks the title — artifacts can evolve for 2 weeks. This means the title should capture the broadest defensible framing, and the write-up can be refined with additional evidence (D7 random-head control, seed 0 scoring, minimal capability battery) during the artifact window.
+
+### What I will do next
+
+1. Lock the title: *Detection Is Not Enough: Strong Readouts Often Fail as Steering Targets in Gemma-3-4B-IT*
+2. Submit seed 0 jailbreak control (2000 rows, already generated) for batch scoring
+3. Begin drafting §3 (Main Result I: matched detection, divergent steering) as the paper's center of gravity
+
+---
+
+## 2026-04-10
+
+### What I did
+
+Ran the first CSV v3 hard-case smoke test on 30 intentionally adversarial records via OpenAI Batch API. Full audit: [2026-04-10-csv2-v3-smoke-test-audit.md](./act3-reports/2026-04-10-csv2-v3-smoke-test-audit.md).
+
+### What I expected vs what happened
+
+Expected v3's architectural improvements (refusal_spans, pivot_span, 5-way primary_outcome) to improve over legacy v2 on the cases where v2 was known-broken (borderlines, pivots, wrapper tags). What actually happened: v3 is *more* conservative than legacy. Gold agreement on the hard-case cohort is 37.5% (9/24), with 13 false negatives where human annotators called HARMFUL but v3 said no. Pivot detection went from bad (1/30 T=true in legacy) to worse (0/30 in v3). C/S/V axes collapsed from legacy's 4-value range into a binary switch: {0,0,null} or {3,3,2}.
+
+The root cause is a single calibration gap: the three few-shot examples don't model Gemma 3 4B's characteristic "refuse-then-educate" pattern. The judge sees heavy refusal framing and concludes "deflection" even when the response provides tactically specific harmful information underneath. This is a fourth archetype not represented in the current prompt. Legacy actually handled this better (calling it "borderline"), though legacy's borderline category had its own downstream problems.
+
+### What this changes about my thinking
+
+V3's *architecture* is correct — spans resolve, validation catches errors, the 5-way taxonomy is more informative than binary. But deploying the current prompt at scale would produce systematically conservative labels on exactly the cases that intervention science cares about. The [v2 root-cause analysis](../../csv2-v2-tagging-root-cause-analysis.md) recommendation to "validate v3 on a small slice first" proved its worth: it caught a ~$200 mistake before it happened.
+
+~~The gold labels also need attention: jbb_harmful_34_t0 appears mislabeled SAFE at two alphas where both legacy and v3 flag substantive compliance.~~ **Resolved 2026-04-11**: confirmed gold-label error. α=0.0 and α=1.5 should be HARMFUL (DAN persona bribery guide is substantive harmful content). α=3.0 stays SAFE (clean refusal). Relabel in Phase 2.
+
+### What I will do next
+
+1. Add a 4th few-shot example targeting the refuse-then-educate archetype.
+2. ~~Re-audit jbb_harmful_34_t0 gold labels.~~ **Done 2026-04-11**: both α=0.0 and α=1.5 confirmed HARMFUL. See smoke-test audit report §4.
+3. Re-run the smoke test with the calibrated prompt.
+4. Only if smoke test passes: proceed to full-scale canonical v3 re-evaluation.
+
+---
+
+## 2026-04-09
+
+> *Reconstructed from git history; not a contemporaneous entry.*
+
+### What I did
+
+Built three evaluation infrastructure pieces for the upcoming scoring phase. First, the CSV v3 structured jailbreak evaluator — implements the v3 rubric with `refusal_spans`, `pivot_span`, 5-way `primary_outcome` taxonomy (full_compliance, partial_compliance, deflection, refusal, ambiguous), and span validation against actual response text. Second, a three-judge concordance analysis system (`analyze_concordance.py`, `evaluate_csv2_v2.py`) for cross-validating binary judge, CSV-v2 graded, and CSV-v3 structured evaluations against each other and gold labels. Third, a concordance negative control pipeline that orchestrates all three judges for seed-controlled jailbreak runs, designed for the seed 0 control (2000 rows, already generated).
+
+### What I expected vs what happened
+
+Expected the v3 evaluator to be a straightforward rubric translation from the prompt design. The span-validation logic required more care than anticipated: v3 needs to verify that judge-reported spans actually appear in the response text, and the `primary_outcome` taxonomy interacts with the C/S/V axes in ways that required explicit resolution rules for edge cases (e.g., what C/S/V values are consistent with a "deflection" outcome). The concordance system was the largest piece of work — aligning three different judge outputs with gold labels required careful scoping of which labels applied to which conditions, leading to a same-day bug fix for gold-label scope and control output preservation.
+
+### What this changes about my thinking
+
+Having the v3 evaluator and concordance pipeline ready means both pending scoring tasks — the CSV v3 smoke test and the seed 0 jailbreak control — can be executed quickly. The v3 evaluator is untested on real data; the next step is a small validation run before committing to full-scale scoring. The concordance system adds a cross-validation layer that didn't exist before — it will surface cases where different judges disagree, rather than relying on a single judge as ground truth.
+
+### What I will do next
+
+Run the CSV v3 hard-case smoke test on ~30 adversarial records to validate the v3 rubric before scaling. Queue the seed 0 jailbreak control for batch scoring once the pipeline is verified.
+
+---
+
 ## 2026-04-08
 
 ### What I did
@@ -45,34 +122,6 @@ Use the new full-500 audit as the D7 canonical reference, update the sprint/cont
 
 ---
 
-## 2026-04-05
-
-### What I did
-
-Built the D7 causal pilot pipeline end-to-end — the sprint's one scoped causal experiment, testing whether gradient-based head selection outperforms the correlational (mass-mean) selector that E0/E1/E2 all used.
-
-The pipeline has five new components: (1) deterministic JBB paired manifest builder (pilot 100 / full 500, disjoint, seed-locked); (2) two new ITI extraction families (`iti_refusal_probe` and `iti_refusal_causal`) sharing a single activation surface but forking at ranking time; (3) causal head ranking via contrastive grad×activation on paired harmful/benign NLL objectives; (4) deterministic jailbreak decoding controls in `run_intervention.py`; (5) a resumable `systemd-inhibit` orchestrator (`d7_causal_pilot.sh`) for staged 100→500 execution. Supporting utilities: alpha-lock with paired sample-ID parity enforcement and tie-break to lower alpha, and paired CSV2 reporting (`csv2_yes`, `C`, `S`, `V`, payload share) with guardrails for missing/errored annotations.
-
-Test coverage: manifest determinism/disjointness/alignment, synthetic causal ranking, refusal-family artifact compatibility, jailbreak decode control defaults/overrides, paired-report parity/locking. Verified with `ruff check`, `pytest`, `ty check`, `shellcheck`, `audit_ci_coverage.py`. Minor fixes: renamed `DummyITIModel.forward` param `x→input_ids` for LSP compliance, added `--api_mode` underscore alias to eval harness.
-
-### What I expected vs what happened
-
-Expected the causal/probe split to require a deep pipeline fork. Instead, the design fell out cleanly: both families share the same extraction tensor and steering artifact contract, diverging only at ranking time. The causal ranker computes ∂log p(benign continuation)/∂z · z and ∂log p(harmful continuation)/∂z · z on the same harmful prompt and ranks by the difference — 2 forward + 2 backward passes per pair. The probe ranker uses the existing AUROC path. Everything downstream (sweep, lock, intervention, reporting) is family-agnostic.
-
-The implementation is execution-ready. Orchestrator stages are idempotent/resumable with failure-visible judge/CSV2 phases (removed silent `|| true` swallowing from earlier drafts).
-
-**Pre-registered framing constraints for D7 results.** Allowed: "non-correlational selector," "gradient-based selector," "proxy for refusal-relevant discrimination under paired objectives," "motivated by GCM's attribution patching but using a simpler single-prompt variant." Not allowed: "we performed attribution patching" (different method — no counterfactual patching), "we identified causal mediators of refusal" (no clean intervention), "we replicated GCM" (different formula, different experimental design).
-
-### What this changes about my thinking
-
-D7 is the sprint's last novel experiment before synthesis. Its outcome shapes D8's central claim in one of two ways. If gradient-based selection outperforms correlational selection on jailbreak severity (CSV2), it validates the critique that mass-mean probes conflate relevant and irrelevant heads — and suggests the ITI generation failures (E0/E1 on bridge, E0 on SimpleQA) might be partially rescued by better selection. If it doesn't outperform, D8 can confidently say the problem is deeper than head selection: the directions themselves are the bottleneck, not the heads carrying them. Either outcome closes the sprint cleanly.
-
-### What I will do next
-
-Execute the D7 pilot run (`scripts/infra/d7_causal_pilot.sh`) and add the resulting run entry to `notes/runs_to_analyse.md` once generation/judging completes.
-
----
-
 ## 2026-04-07
 
 ### What I did
@@ -100,6 +149,56 @@ The probe null is the cleanest result: mass-mean AUROC-ranked heads can perfectl
 ### What I will do next
 
 Execute the full-500 confirmatory run with causal locked at α=4.0, probe locked at α=1.0, plus the random-head control and baseline_noop. Baseline_noop generation is already in progress.
+
+---
+
+## 2026-04-06
+
+> *Reconstructed from git history; not a contemporaneous entry.*
+
+### What I did
+
+Built a reusable pipeline guard library for GPU pipeline orchestration (`scripts/lib/pipeline.py`) and migrated the D7 orchestrator (`d7_causal_pilot.sh`) to use it, replacing the ad-hoc guard logic with the shared library. Also fixed d7_monitor.sh paths for the canonical directory layout. The D7 pilot100 runs launched on Apr 5 continued overnight; evaluation and judging completed during this session.
+
+### What I expected vs what happened
+
+Expected the pipeline guard extraction to be a quick refactor. The library ended up at ~190 lines with its own test suite (244 lines), handling idempotency guards, stage gating, and failure visibility generically. The migration trimmed 23 lines from the D7 orchestrator but the guard library itself was a bigger piece of work than anticipated. The d7_monitor.sh path fix was a trivial correction exposed by the first real monitoring run.
+
+### What this changes about my thinking
+
+The pipeline guard library means future orchestrators (D5, any Phase 3 runs) won't need to reinvent the same idempotency/guard patterns. The D7 pilot data is now fully generated and judged; the next step is analysis, not infrastructure.
+
+### What I will do next
+
+Analyse the D7 pilot100 results for both causal and probe families. Check alpha-lock decisions, head overlap structure, and template-level heterogeneity before interpreting the full-500 data.
+
+---
+
+## 2026-04-05
+
+### What I did
+
+Built the D7 causal pilot pipeline end-to-end — the sprint's one scoped causal experiment, testing whether gradient-based head selection outperforms the correlational (mass-mean) selector that E0/E1/E2 all used.
+
+The pipeline has five new components: (1) deterministic JBB paired manifest builder (pilot 100 / full 500, disjoint, seed-locked); (2) two new ITI extraction families (`iti_refusal_probe` and `iti_refusal_causal`) sharing a single activation surface but forking at ranking time; (3) causal head ranking via contrastive grad×activation on paired harmful/benign NLL objectives; (4) deterministic jailbreak decoding controls in `run_intervention.py`; (5) a resumable `systemd-inhibit` orchestrator (`d7_causal_pilot.sh`) for staged 100→500 execution. Supporting utilities: alpha-lock with paired sample-ID parity enforcement and tie-break to lower alpha, and paired CSV2 reporting (`csv2_yes`, `C`, `S`, `V`, payload share) with guardrails for missing/errored annotations.
+
+Test coverage: manifest determinism/disjointness/alignment, synthetic causal ranking, refusal-family artifact compatibility, jailbreak decode control defaults/overrides, paired-report parity/locking. Verified with `ruff check`, `pytest`, `ty check`, `shellcheck`, `audit_ci_coverage.py`. Minor fixes: renamed `DummyITIModel.forward` param `x→input_ids` for LSP compliance, added `--api_mode` underscore alias to eval harness, switched hot inference paths to `torch.inference_mode()` to avoid unnecessary gradient tracking overhead during generation.
+
+### What I expected vs what happened
+
+Expected the causal/probe split to require a deep pipeline fork. Instead, the design fell out cleanly: both families share the same extraction tensor and steering artifact contract, diverging only at ranking time. The causal ranker computes ∂log p(benign continuation)/∂z · z and ∂log p(harmful continuation)/∂z · z on the same harmful prompt and ranks by the difference — 2 forward + 2 backward passes per pair. The probe ranker uses the existing AUROC path. Everything downstream (sweep, lock, intervention, reporting) is family-agnostic.
+
+The implementation is execution-ready. Orchestrator stages are idempotent/resumable with failure-visible judge/CSV2 phases (removed silent `|| true` swallowing from earlier drafts).
+
+**Pre-registered framing constraints for D7 results.** Allowed: "non-correlational selector," "gradient-based selector," "proxy for refusal-relevant discrimination under paired objectives," "motivated by GCM's attribution patching but using a simpler single-prompt variant." Not allowed: "we performed attribution patching" (different method — no counterfactual patching), "we identified causal mediators of refusal" (no clean intervention), "we replicated GCM" (different formula, different experimental design).
+
+### What this changes about my thinking
+
+D7 is the sprint's last novel experiment before synthesis. Its outcome shapes D8's central claim in one of two ways. If gradient-based selection outperforms correlational selection on jailbreak severity (CSV2), it validates the critique that mass-mean probes conflate relevant and irrelevant heads — and suggests the ITI generation failures (E0/E1 on bridge, E0 on SimpleQA) might be partially rescued by better selection. If it doesn't outperform, D8 can confidently say the problem is deeper than head selection: the directions themselves are the bottleneck, not the heads carrying them. Either outcome closes the sprint cleanly.
+
+### What I will do next
+
+Execute the D7 pilot run (`scripts/infra/d7_causal_pilot.sh`) and add the resulting run entry to `notes/runs_to_analyse.md` once generation/judging completes.
 
 ---
 
