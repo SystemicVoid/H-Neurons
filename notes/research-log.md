@@ -8,7 +8,7 @@
 
 ### What I did
 
-Produced a comprehensive strategic assessment for the BlueDot submission: [2026-04-11-strategic-assessment.md](./act3-reports/2026-04-11-strategic-assessment.md). Synthesized inputs from the full project evidence base, GPT-5.4 pro strategic analysis (both myopic and high-vantage versions), and two rounds of independent Oracle review. Assessed the current state of all data assets, running experiments, and the CSV v3 validation gap.
+Produced a comprehensive strategic assessment for the BlueDot submission: [2026-04-11-strategic-assessment.md](./act3-reports/2026-04-11-strategic-assessment.md). Synthesized inputs from the full project evidence base, GPT-5.4 pro strategic analysis (both myopic and high-vantage versions), and two rounds of independent of Amp's Oracle review. Assessed the current state of all data assets, running experiments, and the CSV v3 validation gap.
 
 ### What I expected vs what happened
 
@@ -60,8 +60,6 @@ V3's *architecture* is correct — spans resolve, validation catches errors, the
 ---
 
 ## 2026-04-09
-
-> *Reconstructed from git history; not a contemporaneous entry.*
 
 ### What I did
 
@@ -153,8 +151,6 @@ Execute the full-500 confirmatory run with causal locked at α=4.0, probe locked
 ---
 
 ## 2026-04-06
-
-> *Reconstructed from git history; not a contemporaneous entry.*
 
 ### What I did
 
