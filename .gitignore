@@ -71,7 +71,8 @@ good-practices/
 
 # code2prompt output
 prompt.txt
-prompts/
+prompts/*
+!prompts/workflows/
 
 # Personal scratch notes
 initial-setup-opus-notes.md
@@ -98,3 +99,6 @@ docs/write-up-bits.md
 # Archived docs (completed/closed investigation plans)
 docs/archive/
 nextsteps.md
+
+# Blog article (symlink to hugo-blog)
+hallucination-neurons.mdx
