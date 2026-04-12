@@ -92,6 +92,12 @@ docs/good-practices
 scratchpad.md
 notes/CLAUDE.md
 
+# Local convenience symlinks
+notes/act1-2-reports/
+
+# Codex config (unused)
+.codex
+
 # AI-generated research brainstorms (local refs only; see intervention_findings.md for final analysis)
 docs/extensions-ideas/
 docs/write-up-bits.md
