@@ -63,14 +63,8 @@ wandb/
 # Costs log for grant reporting
 costs/
 
-# Related work - papers
-papers/
-!papers/
-papers/*
-!papers/axbench-2501.17148.pdf
-!papers/axbench-2501.17148.md
-!papers/safer-or-luckier-2025.acl-long.970.pdf
-!papers/safer-or-luckier-2025.acl-long.970.md
+# Related work - papers (commit markdown conversions, not PDFs)
+papers/*.pdf
 
 # Good practices notes
 good-practices/
