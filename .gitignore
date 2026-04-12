@@ -65,6 +65,12 @@ costs/
 
 # Related work - papers
 papers/
+!papers/
+papers/*
+!papers/axbench-2501.17148.pdf
+!papers/axbench-2501.17148.md
+!papers/safer-or-luckier-2025.acl-long.970.pdf
+!papers/safer-or-luckier-2025.acl-long.970.md
 
 # Good practices notes
 good-practices/
@@ -97,6 +103,9 @@ notes/act1-2-reports/
 
 # Codex config (unused)
 .codex
+
+# Benchmark PDFs with markdown conversions (keep only .md)
+data/benchmarks/StrongREJECT-2402.10260v2.pdf
 
 # AI-generated research brainstorms (local refs only; see intervention_findings.md for final analysis)
 docs/extensions-ideas/
