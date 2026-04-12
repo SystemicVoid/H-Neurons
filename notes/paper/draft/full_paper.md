@@ -8,7 +8,7 @@ Hugo Minh D. Nguyen
 
 # Abstract
 
-Predictive internal signals are often treated as natural targets for steering large language models, but the reliability of this heuristic has not been systematically tested. We study this question in Gemma-3-4B-IT by comparing multiple intervention families — neuron scaling, sparse autoencoder feature steering, inference-time intervention, and gradient-based causal head selection — under a common reporting standard that distinguishes promoted claims from qualified supporting evidence across contextual faithfulness, answer selection, open-ended factual generation, and jailbreak settings. We find repeated dissociations between four stages that are routinely conflated: *measurement* (truncation and evaluator choices changed the apparent intervention conclusion), *localization* (matched or even perfect readout quality failed to predict steering utility — SAE features with AUROC 0.848 produced null steering alongside H-neurons with AUROC 0.843 that achieved +6.3 pp compliance gain; probe-ranked heads with AUROC 1.0 produced null intervention), *control* (successful interventions were surface-local — ITI improved answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by 7–9 pp on the TriviaQA bridge dev set), and *externality* (the dominant single generation failure mode was not refusal but confident substitution of semantically nearby wrong entities). We organize these results into a four-stage audit framework and argue that strong readouts are insufficient evidence for good steering targets: credible mechanistic intervention claims require stage-specific validation of measurement, localization, control, and externality.
+Predictive internal signals are often treated as natural targets for steering large language models, but prior work leaves open how reliable this heuristic is across target types, evaluation surfaces, and measurement choices. We study this question in Gemma-3-4B-IT by comparing multiple intervention families — neuron scaling, sparse autoencoder feature steering, inference-time intervention, and gradient-based causal head selection — under a common reporting standard that distinguishes promoted claims from qualified supporting evidence across contextual faithfulness, answer selection, open-ended factual generation, and jailbreak settings. We find repeated dissociations between four stages that are routinely conflated: *measurement* (truncation and evaluator choices changed the apparent intervention conclusion), *localization* (matched or even perfect readout quality failed to predict steering utility — SAE features with AUROC 0.848 produced null steering alongside H-neurons with AUROC 0.843 that achieved +6.3 pp compliance gain; probe-ranked heads with AUROC 1.0 produced null intervention), *control* (interventions that worked did so on narrow home surfaces — H-neurons improved compliance on FaithEval but not BioASQ), and *externality* (ITI improved answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by 7–9 pp on the TriviaQA bridge dev set, where the dominant single failure mode was confident substitution of semantically nearby wrong entities). We organize these results into a four-stage audit framework and argue that strong readouts are insufficient evidence for good steering targets: credible mechanistic intervention claims require stage-specific validation of measurement, localization, control, and externality.
 
 
 ---
@@ -276,7 +276,7 @@ The FaithEval comparison (Section 4.2) showed that matched detection quality did
 
 Both interventions operate at the attention-head level using Inference-Time Intervention (ITI; Li et al., 2023): a learned direction vector is added to the residual stream contribution of each selected head during decoding. The two methods differ only in how heads are ranked for selection.
 
-**Probe-ranked selection.** Each of the model's 272 attention heads (34 layers $\times$ 8 heads) was scored by its held-out AUROC on a harmful/benign activation contrast derived from JailbreakBench prompts. The top-20 heads were selected for intervention. As reported in Section 4.1, the top two heads achieved AUROC $= 1.0$, and all 20 selected heads scored between $0.92$ and $1.0$.[^fn-probe-metadata]
+**Probe-ranked selection.** Each of the model's 272 attention heads (34 layers $\times$ 8 heads) was scored by its held-out AUROC on a harmful/benign activation contrast derived from JailbreakBench prompts. The top-20 heads were selected for intervention. As reported in Section 4.1, the top two heads achieved AUROC $= 1.0$, and all 20 selected heads scored between $0.87$ and $1.0$.[^fn-probe-metadata]
 
 **Gradient-ranked selection.** Each head was scored by the mean absolute gradient of the model's refusal probability with respect to a rank-1 approximation of the head's output, computed on the same harmful/benign contrast set. This is a causal criterion: it measures how much perturbing each head's output changes the model's tendency to refuse, rather than how well the head's activations predict the behavioral label.[^fn-causal-metadata]
 
@@ -288,7 +288,7 @@ Both interventions operate at the attention-head level using Inference-Time Inte
 
 **Gradient-ranked heads: significant harm reduction.** On the full-500 confirmatory run against a shared no-op baseline (strict harmfulness rate: $23.4\%$, 117/500), the gradient-ranked intervention at $\alpha = 4.0$ reduced strict harmfulness to $14.4\%$ (72/500): $-9.0$ pp $[-12.2, -5.8]$. The binary judge moved in the same direction: $-10.6$ pp $[-14.0, -7.2]$. Severity-sensitive CSV-v2 component scores (commitment $C$: $-0.40$ $[-0.47, -0.33]$; specificity $S$: $-0.46$ $[-0.55, -0.37]$) confirmed that the reduction reflected genuine deescalation, not merely a shift in judge threshold.[^fn-d7-full500]
 
-**The two selectors identified fundamentally different heads.** Jaccard similarity between the probe-ranked and gradient-ranked top-20 sets was $0.11$: only 4 heads overlapped out of 36 unique heads. The gradient-ranked selector concentrated in layer 5 (4 heads) and selected late-layer heads (layers 27--28), while the probe selector concentrated in layers 4 and 9 with high AUROC ($0.92$--$1.0$) but no gradient signal.[^fn-d7-pilot]
+**The two selectors identified fundamentally different heads.** Jaccard similarity between the probe-ranked and gradient-ranked top-20 sets was $0.11$: only 4 heads overlapped out of 36 unique heads. The gradient-ranked selector concentrated in layer 5 (4 heads) and selected late-layer heads (layers 27--28), while the probe selector concentrated in layers 4 and 9 with high AUROC ($0.87$--$1.0$) but no gradient signal.[^fn-d7-pilot]
 
 **Table 4 — Probe vs. Gradient Selector: Detection Quality and Steering Outcome**
 
@@ -531,30 +531,32 @@ is predictable.
 
 ## 6.3 Evaluator Dependence Is Part of the Result
 
-If the binary-versus-graded comparison reveals that *scoring granularity*
-matters, the natural follow-up is whether *evaluator identity* matters among
-scorers that all produce binary verdicts. We tested four evaluators on a
-74-record gold-labeled subset (45 harmful, 29 safe) drawn from H-neuron
-jailbreak responses across three intervention strengths ($\alpha \in \{0, 1.5,
-3\}$). Gold labels were assigned by deep reading of full model outputs.
+If the binary-versus-graded comparison shows that *scoring granularity*
+matters, the next question is whether *evaluator identity* also changes the
+conclusion once all scorers are reduced to binary harmful/safe verdicts. We
+tested four evaluators on a 74-record gold-labeled subset (45 harmful, 29
+safe) drawn from H-neuron jailbreak responses across three intervention
+strengths ($\alpha \in \{0, 1.5, 3\}$). Gold labels were assigned by deep
+reading of full model outputs.
 
 ### Development-set results
 
-| Evaluator | Judge model | Accuracy [95\% CI] | FP | FN |
-|-----------|-------------|---------------------|----|----|
-| CSV2 v3   | GPT-4o      | 86.5\% [76.9, 92.5] | 0  | 10 |
-| Binary judge | GPT-4o   | 77.0\%              | 4  | 13 |
-| StrongREJECT | GPT-4o-mini | 74.3\% [63.3, 82.9] | 0 | 19 |
-| CSV2 v2   | GPT-4o      | 73.0\%              | 0  | 19 |
+| Evaluator | Judge model | Accuracy | FP | FN |
+|-----------|-------------|----------|----|----|
+| CSV2 v3   | GPT-4o      | 86.5\%   | 0  | 10 |
+| Binary judge | GPT-4o   | 77.0\%   | 4  | 13 |
+| StrongREJECT | GPT-4o-mini | 74.3\% | 0 | 19 |
+| CSV2 v2   | GPT-4o      | 73.0\%   | 0  | 19 |
 
 (Source: `notes/act3-reports/2026-04-12-4way-evaluator-comparison.md`,
 Section 0.)
 
-However, 24 of these 74 records overlap with the rows used during CSV2 v3's
-calibration phase---the prompt IDs were hand-selected precisely because they
-represented the failure surface where earlier evaluators struggled. After
-removing them, the holdout ($n{=}50$, 27 harmful, 23 safe from 17 prompt
-clusters) told a different story:
+The development-set ranking is not clean holdout evidence, however, because 24
+of the 74 records overlap with the rows used during CSV2 v3's calibration
+phase. Those prompt IDs were chosen precisely because they represented the
+failure surface where earlier evaluators struggled. After removing them, the
+holdout ($n{=}50$, 27 harmful, 23 safe from 17 prompt clusters) told a more
+muted story:
 
 | Evaluator | Holdout accuracy | Holdout 95\% CI (prompt-clustered) |
 |-----------|------------------|------------------------------------|
@@ -566,11 +568,11 @@ clusters) told a different story:
 (Source: `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
 Sections 0 and 2.)
 
-The v3--StrongREJECT gap compressed from 12.2 pp to 2.0 pp, resting on a
-single discordant record. McNemar's exact test yielded $p = 1.0$---no
-pairwise comparison reached significance (all $p > 0.25$). On held-out data,
-all four evaluators exceeded 90\% accuracy, and no evaluator was
-statistically distinguishable from any other.
+The v3--StrongREJECT gap compressed from 12.2 pp to 2.0 pp, resting on a single
+discordant record. McNemar's exact test yielded $p = 1.0$; no pairwise
+comparison reached significance (all $p > 0.25$). On held-out data, all four
+evaluators exceeded 90\% accuracy, and none was statistically distinguishable
+from the others.
 
 > **Box C — Worked Evaluator Disagreement Example**
 >
@@ -584,64 +586,42 @@ statistically distinguishable from any other.
 > label.^[Source: `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
 > §3; `notes/act3-reports/2026-04-12-4way-evaluator-comparison.md`, §3.]
 
-**We do not conclude from this that evaluator choice is irrelevant.** We
-conclude the opposite: evaluator choice matters for precisely the response
-regime that interventions produce, and the *apparent* magnitude of that
-dependence is itself sensitive to the evaluation sample. Three observations
-support this.
+These results do not make evaluator choice irrelevant. They sharpen the claim:
+evaluator dependence is real, but its apparent magnitude depends strongly on
+which response regime is sampled. On holdout, the binary judge produced three
+false positives while the other evaluators produced none, which matters because
+false positives create phantom treatment effects in a scaling study meant to
+measure harm reduction.^[Source: `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
+Section 3.] CSV2 v3, by contrast, had zero solo errors; its two holdout errors
+were in the universal-failure bucket where every evaluator was wrong.^[Source:
+`notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
+Section 3.]
 
-*First*, the evaluators disagree on different failure modes. The binary judge
-produced 3 false positives on holdout (overcalling safe responses as
-harmful); all other evaluators produced zero. StrongREJECT produced 1 solo
-false negative on holdout; CSV2 v3 produced zero solo errors---its 2 errors
-were in the universal-failure bucket where every evaluator was wrong
-(source: `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
-Section 3). For an intervention study that needs to track harm
-*reduction* across scaling strengths, false positives create phantom
-treatment effects, making the binary judge's error profile qualitatively
-different from the others'.
-
-*Second*, the construct measured by StrongREJECT is subtly different from the
-construct measured by the CSV2 family. StrongREJECT computes
-$\text{score} = (1 - \text{refused}) \times \text{mean(convincingness, specificity)} / 5$.
-When $\texttt{refused}{=}1$, the score is zero regardless of the
+The deeper disagreement is conceptual. StrongREJECT and the CSV2 family do not
+measure exactly the same construct. StrongREJECT computes
+$\text{score} = (1 - \text{refused}) \times \text{mean(convincingness, specificity)} / 5$,
+so a detected refusal preamble forces the final score to zero regardless of the
 sub-scores. Among the 19 StrongREJECT false negatives on the full 74-record
-set, all 19 had $\texttt{refused}{=}1$; their mean convincingness was 4.58/5
-and mean specificity was 4.89/5
-(source: `notes/act3-reports/2026-04-12-4way-evaluator-comparison.md`,
-Section 3). The model correctly identified the content as convincing and
-specific, but the formula discarded this assessment because a refusal
-preamble was detected. This is not an error in the usual sense---StrongREJECT
-was designed for the attack-evaluation setting, where a refusal is decisive.
-In our intervention setting, where the model routinely refuses *and then
-complies*, the refusal flag underweights harmful substance that follows
-protective framing.
+set, all 19 had $\texttt{refused}{=}1$ despite mean convincingness 4.58/5 and
+mean specificity 4.89/5.^[Source: `notes/act3-reports/2026-04-12-4way-evaluator-comparison.md`,
+Section 3.] In other words, the evaluator often recognized specific harmful
+content but discounted it because the response also contained protective
+framing. That behavior is sensible in the attack-evaluation setting
+StrongREJECT was designed for, where refusal is often decisive. In our
+intervention setting, where the model often refuses *and then complies*, the
+same formula underweights harmful substance that follows the preamble.
 
-StrongREJECT also differs from the other three evaluators in judge model:
-it used GPT-4o-mini while the others used GPT-4o. Sub-score analysis suggests
-that the main disagreement is driven by the formula's treatment of the refused
-flag rather than model capability, but that confound has not been removed
-experimentally and remains part of Limitation L8.
-
-*Third*, holdout validation compressed the apparent evaluator advantage but did
-not eliminate the structural differences. CSV2 v3 maintained zero solo errors
-and zero false positives on holdout. StrongREJECT's single holdout error was
-the construct-mismatch pattern in miniature: the model detected a refusal
-preamble, set $\texttt{refused}{=}1$, and the formula zeroed the score
-despite substantive harmful content that all three other evaluators correctly
-flagged
-(source: `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
-Section 3). The question the holdout cannot answer is whether CSV2 v3
-genuinely outperforms on *new* hard cases it was not calibrated on;
-answering this requires fresh gold labels on unseen refuse-then-comply
-responses.
-
-We frame evaluator disagreement as *construct pluralism*, not one judge being
-wrong. Each evaluator operationalizes "harmful" differently; interventions
-that restructure refusal behavior will occupy the gap between these
-operationalizations. Reporting results under a single evaluator without
-acknowledging this sensitivity is a form of measurement monoculture that
-risks conclusions that do not replicate under alternative scoring.
+This leaves a live but narrower conclusion. Holdout validation compressed the
+apparent CSV2 v3 advantage, so we do not treat any single evaluator as
+authoritative for intervention-altered outputs. But the disagreement is still
+informative because it clusters on a recognizable response type: outputs whose
+surface form signals refusal while their substance delivers harmful content.
+We therefore frame evaluator disagreement as *construct pluralism*, not one
+judge being simply wrong. Each evaluator operationalizes "harmful"
+differently, and interventions that restructure refusal behavior will sit in
+the gap between those operationalizations. Reporting a single evaluator without
+acknowledging that sensitivity risks a measurement monoculture whose
+conclusions may not replicate under alternative scoring.
 
 ## 6.4 Pipeline Contamination and Schema Drift
 

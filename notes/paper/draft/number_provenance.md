@@ -11,6 +11,7 @@ Every key quantitative claim in the paper traced to its canonical source.
 | H-neuron count | 38/348,160 | — | `data/gemma3_4b/pipeline/classifier_structure_summary.json` |
 | SAE feature AUROC | 0.848 | — | `data/gemma3_4b/pipeline/classifier_sae_summary.json` |
 | Probe head AUROC (gradient-selector comparison pilot) | 1.0 | — | `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md` §2.2 |
+| Probe top-20 AUROC range | 0.87–1.0 | — | `data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json` (`selected_head_manifest`, ranks 1–20) |
 
 ## FaithEval Dissociation (§4.2)
 
@@ -74,7 +75,9 @@ Every key quantitative claim in the paper traced to its canonical source.
 | Binary dev accuracy | 77.0% | — | same |
 | StrongREJECT dev accuracy | 74.3% | [63.3, 82.9] | same |
 | CSV2 v3 holdout accuracy | 96.0% | [0.90, 1.0] | `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md` §0 |
-| StrongREJECT holdout accuracy | 94.0% | — | same |
+| StrongREJECT holdout accuracy | 94.0% | [0.88, 1.0] | same |
+| CSV2 v2 holdout accuracy | 92.0% | [0.843, 0.980] | same |
+| Binary holdout accuracy | 90.0% | [0.80, 0.98] | same |
 | v3-SR gap (dev) | 12.2 pp | — | same |
 | v3-SR gap (holdout) | 2.0 pp | not significant | same |
 | Holdout n | 50 | — | same |

@@ -97,7 +97,7 @@ The FaithEval comparison (Section 4.2) showed that matched detection quality did
 
 Both interventions operate at the attention-head level using Inference-Time Intervention (ITI; Li et al., 2023): a learned direction vector is added to the residual stream contribution of each selected head during decoding. The two methods differ only in how heads are ranked for selection.
 
-**Probe-ranked selection.** Each of the model's 272 attention heads (34 layers $\times$ 8 heads) was scored by its held-out AUROC on a harmful/benign activation contrast derived from JailbreakBench prompts. The top-20 heads were selected for intervention. As reported in Section 4.1, the top two heads achieved AUROC $= 1.0$, and all 20 selected heads scored between $0.92$ and $1.0$.[^fn-probe-metadata]
+**Probe-ranked selection.** Each of the model's 272 attention heads (34 layers $\times$ 8 heads) was scored by its held-out AUROC on a harmful/benign activation contrast derived from JailbreakBench prompts. The top-20 heads were selected for intervention. As reported in Section 4.1, the top two heads achieved AUROC $= 1.0$, and all 20 selected heads scored between $0.87$ and $1.0$.[^fn-probe-metadata]
 
 **Gradient-ranked selection.** Each head was scored by the mean absolute gradient of the model's refusal probability with respect to a rank-1 approximation of the head's output, computed on the same harmful/benign contrast set. This is a causal criterion: it measures how much perturbing each head's output changes the model's tendency to refuse, rather than how well the head's activations predict the behavioral label.[^fn-causal-metadata]
 
@@ -109,7 +109,7 @@ Both interventions operate at the attention-head level using Inference-Time Inte
 
 **Gradient-ranked heads: significant harm reduction.** On the full-500 confirmatory run against a shared no-op baseline (strict harmfulness rate: $23.4\%$, 117/500), the gradient-ranked intervention at $\alpha = 4.0$ reduced strict harmfulness to $14.4\%$ (72/500): $-9.0$ pp $[-12.2, -5.8]$. The binary judge moved in the same direction: $-10.6$ pp $[-14.0, -7.2]$. Severity-sensitive CSV-v2 component scores (commitment $C$: $-0.40$ $[-0.47, -0.33]$; specificity $S$: $-0.46$ $[-0.55, -0.37]$) confirmed that the reduction reflected genuine deescalation, not merely a shift in judge threshold.[^fn-d7-full500]
 
-**The two selectors identified fundamentally different heads.** Jaccard similarity between the probe-ranked and gradient-ranked top-20 sets was $0.11$: only 4 heads overlapped out of 36 unique heads. The gradient-ranked selector concentrated in layer 5 (4 heads) and selected late-layer heads (layers 27--28), while the probe selector concentrated in layers 4 and 9 with high AUROC ($0.92$--$1.0$) but no gradient signal.[^fn-d7-pilot]
+**The two selectors identified fundamentally different heads.** Jaccard similarity between the probe-ranked and gradient-ranked top-20 sets was $0.11$: only 4 heads overlapped out of 36 unique heads. The gradient-ranked selector concentrated in layer 5 (4 heads) and selected late-layer heads (layers 27--28), while the probe selector concentrated in layers 4 and 9 with high AUROC ($0.87$--$1.0$) but no gradient signal.[^fn-d7-pilot]
 
 **Table 4 — Probe vs. Gradient Selector: Detection Quality and Steering Outcome**
 
