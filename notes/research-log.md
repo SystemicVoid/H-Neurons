@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-04-12 (late evening)
+
+### What I did
+
+**5. Seed-0 jailbreak negative control — scored and analysed.** Scored the seed-0 random-neuron control (38 random neurons, 500 prompts x 4 alphas) with binary judge then CSV-v2, matching the exact d7 evaluation order of operations. Both evaluators: gpt-4o batch mode, zero failures. Ran `analyze_csv2_control.py` for slopes and comparison, then supplementary bootstrap CIs and permutation testing. Report: [2026-04-12-seed0-jailbreak-control-audit.md](./act3-reports/2026-04-12-seed0-jailbreak-control-audit.md).
+
+### What I expected vs what happened
+
+Expected the control to be flat and the H-neuron slope to be significantly steeper. Both confirmed: control slope -0.47 pp/alpha [-1.42, +0.47], H-neuron slope +2.30 pp/alpha [+0.99, +3.58], slope difference +2.77 [+1.17, +4.42], permutation p=0.013.
+
+**The surprise was a pipeline contamination bug.** `analyze_csv2_control.py` imports `normalize_csv2_payload` from the current v3 evaluator, which silently reclassifies 97.7% of v2's "borderline" records as "yes" via the primary_outcome/intent_match derivation chain. This inflated csv2_yes rates from ~18-24% to ~48-52%, producing a wrong triage verdict ("review_specificity" instead of "specificity_supported"). Fixed with a 4-line schema-version check. This is the exact class of bug the mentor review warned about — "changing the ruler halfway through the argument" — but arising from a code dependency rather than a deliberate metric switch.
+
+Second surprise: baseline discrepancy at alpha=0.0 (control 24.2% vs H-neuron 18.8%, Wilson CIs do not overlap). Both conditions should be no-op at alpha=0. The gap is ~2.1 binomial SEs — marginally significant but explained by between-run sampling noise with temperature=0.7 decoding. The slope comparison is robust to this because it's within-condition.
+
+Third finding: severity polarization. H-neurons push borderline cases to the poles as alpha increases (borderline -73, yes +38, no +35). Random neurons show zero polarization (yes+borderline total unchanged at 245). This qualitative mechanistic signature is absent in the control and enriches the specificity finding beyond the csv2_yes rate.
+
+### What this changes about my thinking
+
+1. **H-neuron jailbreak specificity moves from "pending" to "single-seed confirmed."** The claim is no longer caveated as "benchmark-specific control unscored." It's now "seed-0 specificity confirmed, seeds 1-2 pending." The p-value (0.013) is strong enough to anchor a paper claim with qualification.
+
+2. **The v3 normalization bug is a cautionary tale for the measurement section.** Even analysis code — not just evaluation prompts — can silently corrupt the measurement. This should be noted in the companion measurement note as evidence that end-to-end pipeline verification (not just evaluator validation) is necessary.
+
+3. **Binary judge remains underpowered.** Both conditions show flat binary compliance (~30%). This confirms the MDE analysis: binary at n=500 cannot detect effects < ~6pp. The H-neuron binary Delta of +3.0pp (CI includes zero) is real but sub-MDE. This is direct evidence for the measurement discipline story.
+
+### What I will do next
+
+Seeds 1-2 scoring if needed for multi-seed robustness. v3 + StrongREJECT scoring if it's cheap (per mentor: "add v3 plus StrongREJECT if the pipeline makes that cheap"). Paper drafting takes priority over more scoring.
+
+---
+
 ## 2026-04-12 (evening)
 
 ### What I did

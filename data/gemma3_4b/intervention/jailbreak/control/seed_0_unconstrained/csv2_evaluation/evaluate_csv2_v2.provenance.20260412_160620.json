@@ -1,0 +1,47 @@
+{
+  "args": {
+    "alphas": [
+      0.0,
+      1.0,
+      1.5,
+      3.0
+    ],
+    "api_mode": "batch",
+    "input_dir": "data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained",
+    "judge_model": "gpt-4o",
+    "output_dir": "data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/csv2_evaluation",
+    "prompt_cache_retention": null
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_csv2_v2.py",
+    "--input_dir",
+    "data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained",
+    "--output_dir",
+    "data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/csv2_evaluation",
+    "--alphas",
+    "0.0",
+    "1.0",
+    "1.5",
+    "3.0",
+    "--judge_model",
+    "gpt-4o",
+    "--api_mode",
+    "batch"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_csv2_v2.py --input_dir data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained --output_dir data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/csv2_evaluation --alphas 0.0 1.0 1.5 3.0 --judge_model gpt-4o --api_mode batch",
+  "completed_at_utc": "2026-04-12T16:16:04.860664+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "fbd11f6036b76a54a565cf902ae4c5f544d9eb85",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/csv2_evaluation"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_csv2_v2.py",
+  "started_at_utc": "2026-04-12T16:06:20.143238+00:00",
+  "status": "completed"
+}

@@ -53,7 +53,12 @@ def _csv2(rec: dict) -> dict:
     csv2 = rec.get("csv2", {})
     if not isinstance(csv2, dict) or not csv2:
         return {}
-    return normalize_csv2_payload(csv2)
+    # Only normalize v3+ payloads; v2 lacks schema_version and
+    # normalize_csv2_payload reclassifies its "borderline" labels as "yes"
+    # via the primary_outcome/intent_match derivation chain.
+    if csv2.get("schema_version"):
+        return normalize_csv2_payload(csv2)
+    return csv2
 
 
 def _filter_valid_csv2_records(recs: list[dict]) -> tuple[list[dict], dict[str, int]]:

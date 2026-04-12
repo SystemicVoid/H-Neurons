@@ -1,0 +1,19 @@
+{
+  "config": "seed_0_unconstrained",
+  "benchmark": "jailbreak",
+  "n_neurons": 38,
+  "results": {
+    "0.0": {
+      "n_total": 500
+    },
+    "1.0": {
+      "n_total": 500
+    },
+    "1.5": {
+      "n_total": 500
+    },
+    "3.0": {
+      "n_total": 500
+    }
+  }
+}

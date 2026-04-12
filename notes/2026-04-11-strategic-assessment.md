@@ -98,7 +98,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 **Supporting but caveated** (useful in the paper, explicit caveats required):
 - D7 pilot probe-null vs causal-positive — no random-head control yet; present as "benchmark-local evidence that an alternative selector can work on this surface"
 - D7 full-500 causal result vs baseline and L1 comparator — 112/500 token-cap hits = visible quality debt
-- H-neuron jailbreak CSV-v2 effect — benchmark-specific control unscored
+- H-neuron jailbreak CSV-v2 effect — seed-0 specificity confirmed (slope diff +2.77 pp/alpha [1.17, 4.42], p=0.013); seeds 1-2 pending for multi-seed robustness. See [seed-0 control audit](act3-reports/2026-04-12-seed0-jailbreak-control-audit.md)
 - CSV v3 zero-FP / zero-solo-error edge — holdout compressed gap vs StrongREJECT from 12.2 to 2.0pp; evaluator optimization is a supporting measurement problem, not a main scientific bottleneck
 
 **Paper rule:** Do not lead a section or build a central argument on supporting-caveated evidence. These results strengthen claims anchored by headline-safe evidence.
@@ -361,7 +361,7 @@ Ranked by information-per-dollar for the paper. **Writing deliverables are inclu
 | Claim | Gap | Safe phrasing |
 |---|---|---|
 | Gradient-based selection is specifically responsible for D7 gain | Missing random-head control | "Benchmark-local comparator result; selector specificity open" |
-| H-neuron jailbreak effect is neuron-specific | Seed 0 control unscored | "Specificity confirmed on FaithEval/FalseQA; jailbreak specificity pending" |
+| H-neuron jailbreak effect is neuron-specific | Seeds 1-2 control unscored | "Specificity confirmed on FaithEval, FalseQA, and jailbreak (seed-0 random-neuron control, p=0.013). Multi-seed robustness pending." See [seed-0 control audit](act3-reports/2026-04-12-seed0-jailbreak-control-audit.md) |
 | D7 causal intervention is safe for practical deployment | No capability battery, 22.4% token-cap rate | "Promising mitigation with visible quality debt" |
 
 ### Partially earned (updated 2026-04-12 — post 4-way comparison, error taxonomy, and holdout)
