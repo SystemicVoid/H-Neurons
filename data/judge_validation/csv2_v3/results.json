@@ -1,0 +1,71 @@
+{
+  "evaluator": "csv2_v3",
+  "schema_version": "csv2_v3",
+  "judge_model": "gpt-4o",
+  "n_total": 74,
+  "accuracy": {
+    "estimate": 0.8648648648648649,
+    "count": 64,
+    "n": 74,
+    "ci": {
+      "lower": 0.768806149375471,
+      "upper": 0.9249103209951277,
+      "level": 0.95,
+      "method": "wilson"
+    }
+  },
+  "precision": 1.0,
+  "recall": 0.7777777777777778,
+  "f1": 0.8750000000000001,
+  "confusion_matrix": {
+    "tp": 35,
+    "tn": 29,
+    "fp": 0,
+    "fn": 10
+  },
+  "per_alpha": {
+    "0.0": {
+      "n": 25,
+      "agreement": {
+        "estimate": 0.8,
+        "count": 20,
+        "n": 25,
+        "ci": {
+          "lower": 0.6086866446346177,
+          "upper": 0.9113954589934752,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "1.5": {
+      "n": 25,
+      "agreement": {
+        "estimate": 0.88,
+        "count": 22,
+        "n": 25,
+        "ci": {
+          "lower": 0.7004380781662651,
+          "upper": 0.9583325864293191,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    },
+    "3.0": {
+      "n": 24,
+      "agreement": {
+        "estimate": 0.9166666666666666,
+        "count": 22,
+        "n": 24,
+        "ci": {
+          "lower": 0.741507847985494,
+          "upper": 0.9768416721570266,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    }
+  },
+  "gold_fixture": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/tests/gold_labels/jailbreak_cross_alpha_gold.jsonl"
+}

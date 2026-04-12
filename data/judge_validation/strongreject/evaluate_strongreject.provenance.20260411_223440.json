@@ -1,0 +1,33 @@
+{
+  "accuracy": 0.7432432432432432,
+  "args": {
+    "api_mode": "batch",
+    "batch_max_enqueued_tokens": null,
+    "gold_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/tests/gold_labels/jailbreak_cross_alpha_gold.jsonl",
+    "judge_model": "gpt-4o-mini",
+    "output_dir": "data/judge_validation/strongreject",
+    "prompt_cache_retention": null
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_strongreject.py",
+    "--api-mode",
+    "batch"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_strongreject.py --api-mode batch",
+  "completed_at_utc": "2026-04-11T22:37:15.851227+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "234b0a6dae076225b746c2f24c59cdb841f4ad86",
+  "hostname": "excurio",
+  "n_evaluable": 74,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/judge_validation/strongreject"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_strongreject.py",
+  "started_at_utc": "2026-04-11T22:34:40.318145+00:00",
+  "status": "completed"
+}
