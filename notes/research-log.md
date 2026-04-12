@@ -4,6 +4,58 @@
 
 ---
 
+## 2026-04-12
+
+### What I did
+
+Three pieces of work.
+
+**1. 4-way evaluator comparison.** CSV2 v3, CSV2 v2, StrongREJECT, and the legacy binary judge, all evaluated against the 74-record human gold set. Report: [2026-04-12-4way-evaluator-comparison.md](./act3-reports/2026-04-12-4way-evaluator-comparison.md).
+
+**2. Error taxonomy on residual errors.** Mentor-requested manual classification of 10 v3 FN + 4 binary FP into six categories (true evaluator miss, gold/rubric boundary, missing minimum harmful element, disclaimer overweighting, span-localization miss, genuinely ambiguous). Report: [error-taxonomy-v3-fn-binary-fp.md](../error-taxonomy-v3-fn-binary-fp.md).
+
+**3. Mentor feedback integration.** Received detailed mentor review that shifted framing on several axes. Integrated changes into both reports, 4-way comparison, and this log.
+
+### What I expected vs what happened
+
+**4-way comparison:** Expected the v3 advantage to come primarily from pivot detection (T flag). Partially correct — T flag is 7/7 on pivots vs SR 0/7, a useful mechanism sketch at small n. But most TP (33/35) are caught by C/S scoring as `substantive_compliance`. The StrongREJECT diagnosis was sharper than expected: all 19 FN have `refused=1` zeroing the score, despite convincingness 4.58/5 and specificity 4.89/5. A construct mismatch, not a model capability issue.
+
+**Error taxonomy:** The 10 v3 FN split roughly 5:3:1:1 — evaluator weakness (disclaimer overweighting, fictional wrapper blindness, one true miss on the lottery scam), gold-spec boundary disputes, one strong gold re-adjudication candidate, one genuinely ambiguous case. The 4 binary FP split 3:1 — three clear binary overcalls (topic-sensitivity without substance) and one possible gold error in the other direction (bribery guide labeled SAFE that binary and v2 correctly flag).
+
+**Mentor feedback — the biggest surprises:**
+
+1. **Development-set contamination.** The 74-record gold set overlaps with the 24 gold-backed rows used during v3 smoke/calibration. This is the single biggest framing issue I missed — 86.5% is promising dev-set evidence, not clean holdout validation. A true holdout comparison (removing calibration rows, stratified by prompt family) is the highest-priority follow-up.
+
+2. **Paired testing vs overlapping CIs.** Rows are paired evaluations, so CI overlap is the wrong inferential lens. McNemar on discordant counts would strengthen v3's case (p ≈ 0.039 vs binary). But prompt-level clustering (many rows share prompt IDs across alpha) weakens naive row-level certainty. Neither "obviously best" nor "CI overlap, so shrug."
+
+3. **Strategic positioning shift.** CSV2 v3 has earned a real role in the main paper (not exploratory). But it has not earned standalone-paper status. The stronger story: "careful, intervention-aware evaluation changes the scientific conclusion about steering." That slots into the flagship thesis (detector ≠ intervention target) as a measurement section, not a replacement.
+
+4. **Zero FP ≠ broad calibration.** SAFE examples are still responses to harmful prompts. "0 FP" means no overcall in that regime, not evaluator calibration on benign capability or over-refusal datasets.
+
+### What this changes about my thinking
+
+1. **v3 is the main evaluator for the Gemma intervention case study.** Not "strongest by every metric" — rather, best-performing on this curated gold set with the right construct for disclaimer-heavy intervention outputs. StrongREJECT stays as literature-legible comparator, binary as simple baseline.
+
+2. **The residual v3 failures are scientifically meaningful, not just noise.** Two specific failure families: "disclaimer discount" (5 records) and "fictional wrapper blindness" (3 records). These tell us where not to overclaim and suggest a specific improvement path: anchored harmful-element specs, not more prompt tinkering.
+
+3. **Non-monotonic cross-alpha gold labels warrant blind re-adjudication, not confident declarations of error.** Alpha can make outputs stranger, not just more harmful. But when non-monotonicity combines with a content assessment that reads as clear refusal (jbb_harmful_36_t4 α=3.0), the case for re-adjudication is strong.
+
+4. **The consensus-core subset is a robustness appendix, not the primary surface.** Reporting only consensus-core effects removes the cases where v3 is supposed to add value.
+
+5. **The 74-record result validates v3-as-binary-judge, not v3-as-full-structured-framework.** Field-level C/S/V/T auditing (~20-30 rows) is needed before those axes carry headline claims.
+
+### What I will do next
+
+Priority-ordered next actions (per mentor):
+1. Re-run evaluator comparison on true holdout (remove 24 calibration rows, stratify by prompt family)
+2. Blind-adjudicate the 10 v3 FN + 4 binary FP + 2-4 cross-alpha anomalies
+3. Re-run StrongREJECT with gpt-4o (~$5)
+4. Score seed 0 control with the same evaluator stack
+5. Minimal capability/over-refusal battery
+6. Tiny field-level audit of C/S/V/T (~20-30 rows)
+
+---
+
 ## 2026-04-11
 
 ### What I did
@@ -20,9 +72,8 @@ The Oracle review confirmed the thesis is earned in softened form ("detection qu
 
 ### What this changes about my thinking
 
-The project's real contribution is methodological, not instrumental. It tells safety researchers: if you find features that predict harmful behavior, do not assume you have found intervention targets. Prove it with task-local validation, matched controls, and capability checks. The 4288 L1 artifact, SAE dissociation, probe null, ITI MC/generation split, measurement discipline, and CSV v3 smoke test are all chapters in this one story.
-
-BlueDot only locks the title — artifacts can evolve for 2 weeks. This means the title should capture the broadest defensible framing, and the write-up can be refined with additional evidence (D7 random-head control, seed 0 scoring, minimal capability battery) during the artifact window.
+The project’s real contribution is methodological. It tells safety researchers: if you find features that predict harmful behavior, do not assume you have found intervention targets. Prove it with task-local validation, matched controls, and capability checks. The 4288 L1 artifact, SAE dissociation, probe null, ITI MC/generation split, measurement discipline, and CSV v3 smoke test are all chapters in this one story.
+Since we are close to deadline and about to receive further review, I want the title to capture the broadest defensible framing, and the write-up can be refined with additional evidence (D7 random-head control, seed 0 scoring, minimal capability battery). I thought limiting the write up scope to less than 10% of the research effort, would for the sake of a simpler story, miss the bulk of the effort and the recurring theme throughout all the experiments I ran. 
 
 ### What I will do next
 

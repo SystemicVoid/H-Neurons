@@ -5,7 +5,9 @@ This folder collects the CSV2/jailbreak planning context that was previously spl
 ## Read This First
 
 - Active execution plan: [csv2-v3-definitively-better-instrument-plan.md](../../csv2-v3-definitively-better-instrument-plan.md)
-- Empirical audit: [2026-04-10-csv2-v3-smoke-test-audit.md](../act3-reports/2026-04-10-csv2-v3-smoke-test-audit.md)
+- Empirical audit (pre-calibration): [2026-04-10-csv2-v3-smoke-test-audit.md](../act3-reports/2026-04-10-csv2-v3-smoke-test-audit.md)
+- **Canonical 4-way comparison (post-calibration):** [2026-04-12-4way-evaluator-comparison.md](../act3-reports/2026-04-12-4way-evaluator-comparison.md)
+- **Error taxonomy (v3 FN + binary FP):** [error-taxonomy-v3-fn-binary-fp.md](../../error-taxonomy-v3-fn-binary-fp.md)
 
 ## Background
 

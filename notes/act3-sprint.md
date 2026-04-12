@@ -11,6 +11,8 @@
 - Bridge Phase 2 dev results: [2026-04-04-bridge-phase2-dev-results.md](./act3-reports/2026-04-04-bridge-phase2-dev-results.md)
 - Strategic assessment (BlueDot submission): [2026-04-11-strategic-assessment.md](./act3-reports/2026-04-11-strategic-assessment.md)
 - CSV2 v3 smoke test audit: [2026-04-10-csv2-v3-smoke-test-audit.md](./act3-reports/2026-04-10-csv2-v3-smoke-test-audit.md)
+- 4-way evaluator comparison (canonical): [2026-04-12-4way-evaluator-comparison.md](./act3-reports/2026-04-12-4way-evaluator-comparison.md)
+- Error taxonomy (v3 FN + binary FP): [error-taxonomy-v3-fn-binary-fp.md](../error-taxonomy-v3-fn-binary-fp.md)
 - D7 full-500 audit (canonical): [2026-04-08-d7-full500-audit.md](./act3-reports/2026-04-08-d7-full500-audit.md)
 - D7 causal pilot audit: [2026-04-07-d7-causal-pilot-audit.md](./act3-reports/2026-04-07-d7-causal-pilot-audit.md)
 - E2 TriviaQA transfer closure: [2026-04-04-e2-triviaqa-transfer-synthesis.md](./act3-reports/2026-04-04-e2-triviaqa-transfer-synthesis.md)
@@ -68,13 +70,15 @@ Completed milestones (1-8) are listed for audit trail; active priorities start a
 11. ~~Run the refusal-orthogonalized mitigation check (D6) — conditional on D5 findings.~~ Deprioritized: D5 not yet run.
 12. ~~Write the final synthesis (D8).~~ Strategic assessment produced; paper drafting not yet started.
 
-### Current Priorities (2026-04-11)
+### Current Priorities (2026-04-12)
 
-1. Score seed 0 jailbreak control (2000 rows, already generated) — highest-value pending scoring job.
-2. Decide D7 random-head control: run (~1 GPU-day) or scope the causal-head claim as benchmark-local.
-3. Review strategic assessment against evidence base before committing to paper structure.
-4. Optional: patch CSV v3 judge prompt (4th few-shot example) + re-run 30-case smoke test.
-5. Optional: minimal capability battery for D7 causal α=4.0.
+1. **Re-run 4-way evaluator comparison on true holdout** — remove the 24 gold-backed smoke/calibration rows (ideally stratify by prompt family). Tests whether v3's 86.5% is real or partly calibration leakage.
+2. **Blind-adjudicate disputed gold labels** — 10 v3 FN + 4 binary FP + 2-4 cross-alpha anomalies. Present responses blind to alpha and evaluator output. ~20 records, ~2h.
+3. **Re-run StrongREJECT with gpt-4o** (~$5) — removes predictable judge-model confound.
+4. **Score seed 0 jailbreak control** (2000 rows, already generated) with v3 + StrongREJECT + binary — connects measurement to the selector-specificity science.
+5. Decide D7 random-head control: run (~1 GPU-day) or scope the causal-head claim as benchmark-local.
+6. Optional: minimal capability/over-refusal battery.
+7. Optional: tiny field-level audit of C/S/V/T (~20-30 rows) to determine if graded axes can headline.
 
 ## Dataset Status And Caveats
 
