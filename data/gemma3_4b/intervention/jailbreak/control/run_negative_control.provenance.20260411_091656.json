@@ -1,0 +1,39 @@
+{
+  "args": {
+    "analysis_only": false,
+    "benchmark": "jailbreak",
+    "bioasq_path": "data/benchmarks/bioasq13b_factoid.parquet",
+    "classifier_path": "models/gemma3_4b_classifier.pkl",
+    "device_map": "cuda:0",
+    "falseqa_path": "data/benchmarks/falseqa_test.csv",
+    "jailbreak_batch_size": 1,
+    "model_path": "google/gemma-3-4b-it",
+    "quick": false
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/run_negative_control.py",
+    "--benchmark",
+    "jailbreak",
+    "--jailbreak_batch_size",
+    "1"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/run_negative_control.py --benchmark jailbreak --jailbreak_batch_size 1",
+  "completed_at_utc": "2026-04-12T02:20:44.698388+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "error": "KeyboardInterrupt",
+  "git_dirty": false,
+  "git_sha": "c6782f93c5d0dfe6222e7b5eb0063bba597385c4",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/control",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/control/comparison_summary.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/control/negative_control_comparison.png"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "run_negative_control.py",
+  "started_at_utc": "2026-04-11T09:16:56.285028+00:00",
+  "status": "interrupted"
+}
