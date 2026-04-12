@@ -9,13 +9,13 @@
     "doi": "10.18653/v1/D19-1275",
     "url": "https://aclanthology.org/D19-1275/",
     "local_pdf": "papers/Designing and Interpreting Probes with Control Tasks-D19-1275.pdf",
-    "local_md": null,
+    "local_md": "papers/Designing and Interpreting Probes with Control Tasks-D19-1275.md",
     "acquired": true,
-    "md_converted": false,
+    "md_converted": true,
     "role": "Establishes probe accuracy != causal use (foundational). Control tasks show probes can achieve high accuracy for uninformative reasons.",
     "supports_claims": ["C01"],
     "tier": 1,
-    "notes": "PDF exists, needs pdf2md conversion"
+    "notes": "Already have markdown"
   },
   "elazar2021amnesic": {
     "id": "S02",
@@ -26,14 +26,14 @@
     "arxiv": "2006.00995",
     "doi": null,
     "url": "https://arxiv.org/abs/2006.00995",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/amnesic-probing-2006.00995.pdf",
+    "local_md": "papers/amnesic-probing-2006.00995.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Amnesic counterfactuals for causal probing. Shows probes can find info model doesn't use.",
     "supports_claims": ["C01"],
     "tier": 1,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "kumar2022probes": {
     "id": "S03",
@@ -44,14 +44,14 @@
     "arxiv": "2207.04153",
     "doi": null,
     "url": "https://arxiv.org/abs/2207.04153",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/probes-unreliable-2207.04153.pdf",
+    "local_md": "papers/probes-unreliable-2207.04153.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Theory+empirics: probes unreliable for concept removal. Concept removal setting, not LLM steering.",
     "supports_claims": ["C01"],
     "tier": 1,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "hase2023localization": {
     "id": "S04",
@@ -62,14 +62,14 @@
     "arxiv": "2301.04213",
     "doi": null,
     "url": "https://arxiv.org/abs/2301.04213",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/localization-vs-editing-2301.04213.pdf",
+    "local_md": "papers/localization-vs-editing-2301.04213.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Strongest precedent for localization->control break. Knowledge editing, not activation steering.",
     "supports_claims": ["C05", "C13"],
     "tier": 1,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "li2023iti": {
     "id": "S05",
@@ -98,14 +98,14 @@
     "arxiv": "2407.12404",
     "doi": null,
     "url": "https://arxiv.org/abs/2407.12404",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/reliable-steering-eval-2410.17245.pdf",
+    "local_md": "papers/reliable-steering-eval-2410.17245.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Per-sample variance and brittleness of steering vectors. Reliability evidence.",
     "supports_claims": ["C08"],
     "tier": 2,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "pres2024reliable": {
     "id": "S07",
@@ -116,14 +116,14 @@
     "arxiv": "2410.17245",
     "doi": null,
     "url": "https://arxiv.org/abs/2410.17245",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/predict-control-discrepancy-2411.04430.pdf",
+    "local_md": "papers/predict-control-discrepancy-2411.04430.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Format dependence of steering evaluation. MC vs generation gap in steering context.",
     "supports_claims": ["C08", "C12", "C13"],
     "tier": 2,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "bhalla2024unifying": {
     "id": "S08",
@@ -134,10 +134,10 @@
     "arxiv": "2411.04430",
     "doi": null,
     "url": "https://arxiv.org/abs/2411.04430",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/faitheval-2410.03727.pdf",
+    "local_md": "papers/faitheval-2410.03727.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Explicitly frames predict/control discrepancy. Several mech-interp methods underperform prompting.",
     "supports_claims": ["C02", "C14"],
     "tier": 2,
@@ -195,7 +195,7 @@
     "role": "Benchmark grounding for anchor case study 1 (FaithEval). Diagnostic faithfulness benchmark.",
     "supports_claims": [],
     "tier": 1,
-    "notes": "Need to acquire — benchmark paper for our main evaluation surface"
+    "notes": "Already have markdown"
   },
   "arad2025saes": {
     "id": "S12",
@@ -207,13 +207,13 @@
     "doi": "10.18653/v1/2025.emnlp-main.519",
     "url": "https://aclanthology.org/2025.emnlp-main.519/",
     "local_pdf": "papers/SAEs Are Good for Steering \u2013 If You Select the Right Features-2505.20063v2.pdf",
-    "local_md": null,
+    "local_md": "papers/SAEs Are Good for Steering – If You Select the Right Features-2505.20063v2.md",
     "acquired": true,
-    "md_converted": false,
+    "md_converted": true,
     "role": "Strongest near-direct prior. Input-vs-output feature selection for SAEs. ~2-3x steering improvement with output-score filtering.",
     "supports_claims": ["C02", "C03", "C07", "C14"],
     "tier": 1,
-    "notes": "PDF exists, needs pdf2md conversion"
+    "notes": "Already have markdown"
   },
   "wu2025axbench": {
     "id": "S13",
@@ -224,14 +224,14 @@
     "arxiv": null,
     "doi": null,
     "url": "https://openreview.net/forum?id=K2CckZjNy0",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/axbench-2501.17148.pdf",
+    "local_md": "papers/axbench-2501.17148.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Separates detection from steering. Simple baselines outperform SAEs on steering. Synthetic concepts on Gemma-2.",
     "supports_claims": ["C02", "C04", "C14"],
     "tier": 1,
-    "notes": "Need to acquire — ICML paper, may need OpenReview download"
+    "notes": "Downloaded via arXiv mirror and converted to markdown"
   },
   "chen2025safer": {
     "id": "S14",
@@ -242,14 +242,14 @@
     "arxiv": null,
     "doi": "10.18653/v1/2025.acl-long.970",
     "url": "https://aclanthology.org/2025.acl-long.970/",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/safer-or-luckier-2025.acl-long.970.pdf",
+    "local_md": "papers/safer-or-luckier-2025.acl-long.970.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "LLM judge artifacts in safety evaluation. Establishes generic measurement fragility.",
     "supports_claims": ["C11"],
     "tier": 1,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "huang2025guidedbench": {
     "id": "S15",
@@ -260,14 +260,14 @@
     "arxiv": "2502.16903",
     "doi": null,
     "url": "https://arxiv.org/abs/2502.16903",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/guidedbench-2502.16903.pdf",
+    "local_md": "papers/guidedbench-2502.16903.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Judge guidelines reduce variance. Supports measurement fragility claim.",
     "supports_claims": ["C11"],
     "tier": 2,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "eiras2025judge": {
     "id": "S16",
@@ -278,14 +278,14 @@
     "arxiv": "2503.04474",
     "doi": null,
     "url": "https://arxiv.org/abs/2503.04474",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
-    "role": "25x FNR variation across judges. Judge-robustness meta-evaluation.",
+    "local_pdf": "papers/know-thy-judge-2503.04474.pdf",
+    "local_md": "papers/know-thy-judge-2503.04474.md",
+    "acquired": true,
+    "md_converted": true,
+    "role": "Judge-robustness meta-evaluation. Presentation changes and output-level attacks can sharply change false-negative behavior.",
     "supports_claims": ["C11"],
     "tier": 2,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "gao2025hneurons": {
     "id": "S17",
@@ -314,10 +314,10 @@
     "arxiv": null,
     "doi": null,
     "url": "https://openreview.net/forum?id=teW4nIZ1gy",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/mat-steer-2502.12446.pdf",
+    "local_md": "papers/mat-steer-2502.12446.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Positive counterexample. Optimized steering vectors work for safety-relevant behaviors.",
     "supports_claims": ["C15"],
     "tier": 2,
@@ -339,7 +339,7 @@
     "role": "Positive counterexample with multi-attribute steering. More structured approach works.",
     "supports_claims": ["C15"],
     "tier": 2,
-    "notes": "Need to acquire"
+    "notes": "Already have markdown"
   },
   "opielka2026causality": {
     "id": "S20",
@@ -350,14 +350,14 @@
     "arxiv": "2602.22424",
     "doi": null,
     "url": "https://arxiv.org/abs/2602.22424",
-    "local_pdf": null,
-    "local_md": null,
-    "acquired": false,
-    "md_converted": false,
+    "local_pdf": "papers/causality-neq-invariance-2602.22424.pdf",
+    "local_md": "papers/causality-neq-invariance-2602.22424.md",
+    "acquired": true,
+    "md_converted": true,
     "role": "Format-dependent vectors. Orthogonal representations across MC/open-ended. Strong support for surface-locality.",
     "supports_claims": ["C08", "C13"],
     "tier": 1,
-    "notes": "Need to acquire — ICLR 2026 paper, important for externality argument"
+    "notes": "Already have markdown"
   },
   "yap2026behavioral": {
     "id": "S21",
