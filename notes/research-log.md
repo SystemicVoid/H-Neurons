@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-04-12 (evening)
+
+### What I did
+
+**4. Holdout evaluator validation.** Removed the 24 calibration-contaminated records (8 prompt IDs × 3 alphas) from the 4-way joined data and recomputed all metrics on the 50-record holdout (17 prompt IDs). Added McNemar's exact test for all 6 pairwise comparisons and prompt-clustered bootstrap 95% CIs. Report: [2026-04-12-4way-evaluator-holdout-validation.md](./act3-reports/2026-04-12-4way-evaluator-holdout-validation.md). Script: `scripts/analysis_holdout_evaluator.py`.
+
+### What I expected vs what happened
+
+Expected the holdout to narrow the v3-SR gap but preserve a meaningful advantage. The narrowing was much more extreme than expected: 12.2pp → 2.0pp, resting on a single discordant record (McNemar p=1.0). v3 still ranks first and has zero solo errors, but the "v3 clearly outperforms" narrative collapses on clean data. The dev set is doubly confounded — contaminated *and* enriched for hard cases by design — so the holdout cannot tell us whether v3 genuinely outperforms on new hard cases it wasn't calibrated on.
+
+### What this changes about my thinking
+
+1. **The paper should not lean on accuracy comparisons between evaluators.** Lead with v3's zero-FP and zero-solo-error properties (robust on holdout) and the structural construct-mismatch argument (mechanistic, from formula analysis). Do not lead with "86.5% vs 74.3%."
+
+2. **The evaluator choice probably doesn't change the main intervention findings.** With all four evaluators above 90% on holdout, the D7 causal-head story likely survives regardless of evaluator. This should be verified by running the control comparison (priority #4 in the original list).
+
+3. **The real gap is at the hard tail — and the hard tail needs new validation data.** 10-15 new refuse-then-comply responses, gold-labeled blind, tested against v3 and SR, would definitively settle whether v3's calibrated advantage transfers. Without that, the advantage is demonstrated on dev data only.
+
+### What I will do next
+
+Priorities 2-7 from the earlier list are unchanged. Priority 1 is now complete.
+
+---
+
 ## 2026-04-12
 
 ### What I did

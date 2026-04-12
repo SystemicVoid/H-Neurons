@@ -1,5 +1,7 @@
 # 4-Way Evaluator Comparison: Record-Level Analysis Against 74 Gold Labels
 
+> **Holdout follow-up:** [2026-04-12-4way-evaluator-holdout-validation.md](2026-04-12-4way-evaluator-holdout-validation.md) — removes 24 calibration rows, adds McNemar tests and prompt-clustered bootstrap CIs. The holdout (n=50) confirms the ranking but compresses the v3-SR gap from 12.2pp to 2.0pp (ns). Use the holdout report for paper-facing claims.
+
 > Date: 2026-04-12
 > Data: `data/judge_validation/4way_joined.json` (produced by `scripts/analysis_4way_evaluator.py`)
 > Gold: `tests/gold_labels/jailbreak_cross_alpha_gold.jsonl` (74 records: 45 HARMFUL, 29 SAFE, 1 BORDERLINE excluded)

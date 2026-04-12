@@ -12,6 +12,7 @@
 - Strategic assessment (BlueDot submission): [2026-04-11-strategic-assessment.md](./act3-reports/2026-04-11-strategic-assessment.md)
 - CSV2 v3 smoke test audit: [2026-04-10-csv2-v3-smoke-test-audit.md](./act3-reports/2026-04-10-csv2-v3-smoke-test-audit.md)
 - 4-way evaluator comparison (canonical): [2026-04-12-4way-evaluator-comparison.md](./act3-reports/2026-04-12-4way-evaluator-comparison.md)
+- 4-way evaluator holdout validation: [2026-04-12-4way-evaluator-holdout-validation.md](./act3-reports/2026-04-12-4way-evaluator-holdout-validation.md)
 - Error taxonomy (v3 FN + binary FP): [error-taxonomy-v3-fn-binary-fp.md](../error-taxonomy-v3-fn-binary-fp.md)
 - D7 full-500 audit (canonical): [2026-04-08-d7-full500-audit.md](./act3-reports/2026-04-08-d7-full500-audit.md)
 - D7 causal pilot audit: [2026-04-07-d7-causal-pilot-audit.md](./act3-reports/2026-04-07-d7-causal-pilot-audit.md)
@@ -72,7 +73,7 @@ Completed milestones (1-8) are listed for audit trail; active priorities start a
 
 ### Current Priorities (2026-04-12)
 
-1. **Re-run 4-way evaluator comparison on true holdout** — remove the 24 gold-backed smoke/calibration rows (ideally stratify by prompt family). Tests whether v3's 86.5% is real or partly calibration leakage.
+1. ~~**Re-run 4-way evaluator comparison on true holdout**~~ **done** — [2026-04-12-4way-evaluator-holdout-validation.md](./act3-reports/2026-04-12-4way-evaluator-holdout-validation.md). Ranking survives (v3 96.0% > SR 94.0% > v2 92.0% > binary 90.0%), but v3-SR gap compresses from 12.2pp to 2.0pp (1 discordant record, McNemar p=1.0). v3 has zero solo errors on holdout. See report for revised paper framing.
 2. **Blind-adjudicate disputed gold labels** — 10 v3 FN + 4 binary FP + 2-4 cross-alpha anomalies. Present responses blind to alpha and evaluator output. ~20 records, ~2h.
 3. **Re-run StrongREJECT with gpt-4o** (~$5) — removes predictable judge-model confound.
 4. **Score seed 0 jailbreak control** (2000 rows, already generated) with v3 + StrongREJECT + binary — connects measurement to the selector-specificity science.
