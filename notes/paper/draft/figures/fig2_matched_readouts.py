@@ -7,7 +7,7 @@ different intervention outcomes.
 
 Panel A: Detection quality (AUROC) for three methods.
 Panel B: FaithEval compliance dose-response for H-neurons vs SAE features
-         vs random neuron control.
+         vs random SAE feature control.
 Panel C: Jailbreak csv2_yes rates (full-500 D7 confirmatory run) for
          causal head intervention vs L1-neuron comparator vs shared baseline.
 
@@ -15,9 +15,9 @@ Data sources (all real, loaded from repo JSON):
   - data/gemma3_4b/pipeline/classifier_disjoint_summary.json
   - data/gemma3_4b/pipeline/classifier_sae_summary.json
   - data/gemma3_4b/intervention/faitheval/experiment/results.json
-  - data/gemma3_4b/intervention/faitheval/control/comparison_summary.json
   - data/gemma3_4b/intervention/faitheval_sae/experiment/results.json
   - data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json
+  - data/gemma3_4b/intervention/faitheval/control/comparison_summary.json
   - data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json
   - data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json
 
@@ -117,6 +117,9 @@ def load_all_data() -> dict:
     fe_sae = load_json(
         "data/gemma3_4b/intervention/faitheval_sae/experiment/results.json"
     )
+    fe_sae_ctrl = load_json(
+        "data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json"
+    )
 
     alphas_fe = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 
@@ -127,12 +130,10 @@ def load_all_data() -> dict:
     data["fe_sae_rates"] = fe_sae["effects"]["compliance_curve"]["rates"]
     data["fe_sae_ci"] = list(fe_sae["results"].values())
 
-    data["fe_random_rates"] = fe_neuron_ctrl["unconstrained_random"][
+    data["fe_random_rates"] = fe_sae_ctrl["random_sae_features"][
         "mean_compliance_rates"
     ]
-    data["fe_random_std"] = fe_neuron_ctrl["unconstrained_random"][
-        "std_compliance_rates"
-    ]
+    data["fe_random_std"] = fe_sae_ctrl["random_sae_features"]["std_compliance_rates"]
 
     # ------------------------------------------------------------------
     # Panel C: Jailbreak D7 full-500
@@ -293,7 +294,7 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
         ),
     )
 
-    # --- Random neuron control (mean +/- 1 SD across 5 seeds) ---
+    # --- Random SAE control (mean +/- 1 SD across 3 seeds) ---
     rand_rates = np.array(data["fe_random_rates"])
     rand_std = np.array(data["fe_random_std"])
 
@@ -313,7 +314,7 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
         marker="^",
         markersize=4,
         linestyle="--",
-        label="Random neurons (5 seeds)",
+        label="Random SAE features (3 seeds)",
         zorder=3,
     )
 

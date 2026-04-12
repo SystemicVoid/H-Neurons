@@ -27,6 +27,7 @@ Usage:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import matplotlib
@@ -77,57 +78,108 @@ plt.rcParams.update(
     }
 )
 
-# ===========================================================================
-# Hard-coded data (from canonical reports -- see docstring)
-# ===========================================================================
-
-# --- Panel A: Binary vs Graded (from control audit report) ---
-# Binary: H-neuron Delta(alpha=3 - alpha=0) = +3.0pp, CI includes zero
-# Graded: H-neuron slope = +2.30 pp/alpha [+0.99, +3.58]
-# Control binary delta = -1.0pp
-# Control graded slope = -0.47 pp/alpha [-1.42, +0.47]
-
-HN_BINARY_DELTA = 3.0
-HN_BINARY_CI = (-3.0, 9.0)  # CI includes zero (from report: "not significant")
-HN_GRADED_SLOPE_A = 2.30
-HN_GRADED_CI = (0.99, 3.58)
-RAND_BINARY_DELTA = -1.0
-RAND_BINARY_CI = (-7.0, 5.0)  # CI includes zero
-RAND_GRADED_SLOPE = -0.47
-RAND_GRADED_CI = (-1.42, 0.47)
-
 # --- Panel B: Evaluator accuracy (from 4-way reports) ---
 EVALUATOR_NAMES = ["CSV2 v3", "Binary", "StrongREJECT", "CSV2 v2"]
 DEV_ACCURACY = [86.5, 77.0, 74.3, 73.0]  # n=74
 HOLDOUT_ACCURACY = [96.0, 90.0, 94.0, 92.0]  # n=50
 
-# --- Panel C: csv2_yes rates vs alpha (from control audit) ---
-ALPHAS = np.array([0.0, 1.0, 1.5, 3.0])
-
-# H-neuron csv2_yes rates with Wilson 95% CIs
-HN_RATES = np.array([18.8, 24.6, 23.6, 26.4])
-HN_CI_LO = np.array([15.6, 21.0, 20.1, 22.7])
-HN_CI_HI = np.array([22.5, 28.6, 27.5, 30.4])
-
-# Random control csv2_yes rates with Wilson 95% CIs
-CTRL_RATES = np.array([24.2, 22.6, 22.4, 22.6])
-CTRL_CI_LO = np.array([20.7, 19.2, 19.0, 19.2])
-CTRL_CI_HI = np.array([28.1, 26.5, 26.3, 26.5])
-
-# Slope statistics
-HN_SLOPE = 2.30  # pp/alpha
-HN_SLOPE_CI = (0.99, 3.58)
-CTRL_SLOPE = -0.47
-CTRL_SLOPE_CI = (-1.42, 0.47)
-SLOPE_DIFF = 2.77  # pp/alpha
+HN_GRADED_CI = (0.99, 3.58)
+CTRL_GRADED_CI = (-1.42, 0.47)
 SLOPE_DIFF_CI = (1.17, 4.42)
 PERM_P = 0.013
+
+
+def load_json(rel_path: str) -> dict:
+    """Load a JSON file relative to repo root."""
+    with open(ROOT / rel_path) as f:
+        return json.load(f)
+
+
+def wilson_interval(
+    n_success: int, n_total: int, z: float = 1.96
+) -> tuple[float, float]:
+    """Wilson score interval in percentage points."""
+    if n_total == 0:
+        return 0.0, 0.0
+
+    phat = n_success / n_total
+    denom = 1 + z**2 / n_total
+    center = (phat + z**2 / (2 * n_total)) / denom
+    margin = z * np.sqrt((phat * (1 - phat) + z**2 / (4 * n_total)) / n_total) / denom
+    return (center - margin) * 100, (center + margin) * 100
+
+
+def load_measurement_data() -> dict:
+    """Load the canonical JSON-backed data for panels A and C."""
+    exp = load_json("data/gemma3_4b/intervention/jailbreak/experiment/results.json")
+    ctrl = load_json(
+        "data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/results.json"
+    )
+    csv2 = load_json(
+        "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_summary.json"
+    )
+
+    hn_binary_delta = (
+        exp["results"]["3.0"]["compliance"]["estimate"]
+        - exp["results"]["0.0"]["compliance"]["estimate"]
+    ) * 100
+    ctrl_binary_delta = (
+        ctrl["results"]["3.0"]["compliance"]["estimate"]
+        - ctrl["results"]["0.0"]["compliance"]["estimate"]
+    ) * 100
+
+    alphas = np.array(csv2["alphas"])
+    hn_counts = [
+        round(rate * total)
+        for rate, total in zip(
+            csv2["h_neuron"]["csv2_yes_rates"],
+            csv2["h_neuron"]["total_record_counts"],
+        )
+    ]
+    ctrl_counts = [
+        round(rate * total)
+        for rate, total in zip(
+            csv2["per_seed"]["seed_0_unconstrained"]["csv2_yes_rates"],
+            csv2["per_seed"]["seed_0_unconstrained"]["total_record_counts"],
+        )
+    ]
+
+    hn_ci = [
+        wilson_interval(n_yes, n_total)
+        for n_yes, n_total in zip(hn_counts, csv2["h_neuron"]["total_record_counts"])
+    ]
+    ctrl_ci = [
+        wilson_interval(n_yes, n_total)
+        for n_yes, n_total in zip(
+            ctrl_counts, csv2["per_seed"]["seed_0_unconstrained"]["total_record_counts"]
+        )
+    ]
+
+    return {
+        "hn_binary_delta": hn_binary_delta,
+        "ctrl_binary_delta": ctrl_binary_delta,
+        "hn_graded_slope": csv2["h_neuron"]["slope_csv2_yes_pp_per_alpha"],
+        "ctrl_graded_slope": csv2["per_seed"]["seed_0_unconstrained"][
+            "slope_csv2_yes_pp_per_alpha"
+        ],
+        "alphas": alphas,
+        "hn_rates": np.array(csv2["h_neuron"]["csv2_yes_rates"]) * 100,
+        "ctrl_rates": np.array(
+            csv2["per_seed"]["seed_0_unconstrained"]["csv2_yes_rates"]
+        )
+        * 100,
+        "hn_ci_lo": np.array([lo for lo, _ in hn_ci]),
+        "hn_ci_hi": np.array([hi for _, hi in hn_ci]),
+        "ctrl_ci_lo": np.array([lo for lo, _ in ctrl_ci]),
+        "ctrl_ci_hi": np.array([hi for _, hi in ctrl_ci]),
+        "slope_diff": csv2["comparison"]["gap_h_minus_random_mean_pp"],
+    }
 
 
 # ---------------------------------------------------------------------------
 # Panel A: Conclusion reversal -- binary vs graded evaluation
 # ---------------------------------------------------------------------------
-def draw_panel_a(ax: plt.Axes) -> None:
+def draw_panel_a(ax: plt.Axes, data: dict) -> None:
     """Show how switching from binary to graded evaluation reverses the
     statistical conclusion about H-neuron effects."""
 
@@ -136,25 +188,17 @@ def draw_panel_a(ax: plt.Axes) -> None:
     bar_width = 0.32
 
     # Binary judge (delta pp)
-    binary_vals = [HN_BINARY_DELTA, RAND_BINARY_DELTA]
-    binary_errs_lo = [
-        HN_BINARY_DELTA - HN_BINARY_CI[0],
-        RAND_BINARY_DELTA - RAND_BINARY_CI[0],
-    ]
-    binary_errs_hi = [
-        HN_BINARY_CI[1] - HN_BINARY_DELTA,
-        RAND_BINARY_CI[1] - RAND_BINARY_DELTA,
-    ]
+    binary_vals = [data["hn_binary_delta"], data["ctrl_binary_delta"]]
 
     # Graded (CSV-v2 slope pp/alpha)
-    graded_vals = [HN_GRADED_SLOPE_A, RAND_GRADED_SLOPE]
+    graded_vals = [data["hn_graded_slope"], data["ctrl_graded_slope"]]
     graded_errs_lo = [
-        HN_GRADED_SLOPE_A - HN_GRADED_CI[0],
-        RAND_GRADED_SLOPE - RAND_GRADED_CI[0],
+        data["hn_graded_slope"] - HN_GRADED_CI[0],
+        data["ctrl_graded_slope"] - CTRL_GRADED_CI[0],
     ]
     graded_errs_hi = [
-        HN_GRADED_CI[1] - HN_GRADED_SLOPE_A,
-        RAND_GRADED_CI[1] - RAND_GRADED_SLOPE,
+        HN_GRADED_CI[1] - data["hn_graded_slope"],
+        CTRL_GRADED_CI[1] - data["ctrl_graded_slope"],
     ]
 
     # Binary bars
@@ -162,12 +206,9 @@ def draw_panel_a(ax: plt.Axes) -> None:
         x - bar_width / 2,
         binary_vals,
         bar_width,
-        yerr=[binary_errs_lo, binary_errs_hi],
         color=C_RANDOM_FILL,
         edgecolor=C_RANDOM,
         linewidth=1.5,
-        capsize=4,
-        error_kw={"linewidth": 1.3, "color": SUBTITLE_COLOR},
         label="Binary judge (Delta pp)",
         zorder=3,
     )
@@ -194,7 +235,7 @@ def draw_panel_a(ax: plt.Axes) -> None:
     # Binary H-neuron: CI includes zero -> NOT significant
     ax.annotate(
         "CI includes 0\nn.s.",
-        xy=(0 - bar_width / 2, HN_BINARY_CI[1]),
+        xy=(0 - bar_width / 2, data["hn_binary_delta"]),
         xytext=(0 - bar_width / 2 - 0.15, 11.5),
         fontsize=7.5,
         ha="center",
@@ -361,53 +402,53 @@ def draw_panel_b(ax: plt.Axes) -> None:
 # ---------------------------------------------------------------------------
 # Panel C: Specificity control -- H-neurons vs random
 # ---------------------------------------------------------------------------
-def draw_panel_c(ax: plt.Axes) -> None:
+def draw_panel_c(ax: plt.Axes, data: dict) -> None:
     """Line plot of csv2_yes rate vs alpha with CIs for H-neurons and
     random control, annotated with slope difference and p-value."""
 
     # H-neuron curve
     ax.fill_between(
-        ALPHAS,
-        HN_CI_LO,
-        HN_CI_HI,
+        data["alphas"],
+        data["hn_ci_lo"],
+        data["hn_ci_hi"],
         alpha=0.18,
         color=C_HNEURON,
         zorder=2,
     )
     ax.plot(
-        ALPHAS,
-        HN_RATES,
+        data["alphas"],
+        data["hn_rates"],
         color=C_HNEURON,
         linewidth=2.2,
         marker="o",
         markersize=6,
-        label=f"H-neurons (38, seed-0): slope = +{HN_SLOPE:.2f} pp/$\\alpha$",
+        label=f"H-neurons (38, seed-0): slope = +{data['hn_graded_slope']:.2f} pp/$\\alpha$",
         zorder=4,
     )
 
     # Random control curve
     ax.fill_between(
-        ALPHAS,
-        CTRL_CI_LO,
-        CTRL_CI_HI,
+        data["alphas"],
+        data["ctrl_ci_lo"],
+        data["ctrl_ci_hi"],
         alpha=0.18,
         color=C_RANDOM,
         zorder=2,
     )
     ax.plot(
-        ALPHAS,
-        CTRL_RATES,
+        data["alphas"],
+        data["ctrl_rates"],
         color=C_RANDOM,
         linewidth=2.2,
         marker="s",
         markersize=6,
-        label=f"Random neurons (38, seed-0): slope = {CTRL_SLOPE:.2f} pp/$\\alpha$",
+        label=f"Random neurons (38, seed-0): slope = {data['ctrl_graded_slope']:.2f} pp/$\\alpha$",
         zorder=4,
     )
 
     # Fit lines (OLS slopes for visual reference)
-    hn_fit = np.polyfit(ALPHAS, HN_RATES, 1)
-    ctrl_fit = np.polyfit(ALPHAS, CTRL_RATES, 1)
+    hn_fit = np.polyfit(data["alphas"], data["hn_rates"], 1)
+    ctrl_fit = np.polyfit(data["alphas"], data["ctrl_rates"], 1)
     alpha_range = np.linspace(-0.1, 3.2, 100)
     ax.plot(
         alpha_range,
@@ -430,7 +471,7 @@ def draw_panel_c(ax: plt.Axes) -> None:
 
     # Annotation box: slope difference and p-value
     annotation_text = (
-        f"Slope difference: +{SLOPE_DIFF:.2f} pp/$\\alpha$\n"
+        f"Slope difference: +{data['slope_diff']:.2f} pp/$\\alpha$\n"
         f"95% CI: [{SLOPE_DIFF_CI[0]:.2f}, {SLOPE_DIFF_CI[1]:.2f}]\n"
         f"Permutation $p$ = {PERM_P:.3f}"
     )
@@ -455,7 +496,7 @@ def draw_panel_c(ax: plt.Axes) -> None:
     ax.set_ylabel("csv2_yes rate (%)", fontsize=9, fontweight="bold")
     ax.set_xlim(-0.2, 3.4)
     ax.set_ylim(12, 34)
-    ax.set_xticks(ALPHAS)
+    ax.set_xticks(data["alphas"])
     ax.set_title(
         "C. Specificity: H-neurons vs random control",
         fontsize=10.5,
@@ -482,12 +523,13 @@ def draw_panel_c(ax: plt.Axes) -> None:
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
+    data = load_measurement_data()
     fig, axes = plt.subplots(1, 3, figsize=(12, 4.5))
     fig.set_facecolor(BG_COLOR)
 
-    draw_panel_a(axes[0])
+    draw_panel_a(axes[0], data)
     draw_panel_b(axes[1])
-    draw_panel_c(axes[2])
+    draw_panel_c(axes[2], data)
 
     fig.suptitle(
         "Figure 4: How Measurement Choices Changed the Scientific Conclusion",
