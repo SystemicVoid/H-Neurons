@@ -7,6 +7,7 @@
 > Audit workbook: `data/gemma3_4b/intervention/jailbreak/csv2_v3_smoke_hardcases/audit/`
 > Prior analysis: [csv2-v2-tagging-root-cause-analysis.md](../jailbreak-csv2/background/csv2-v2-tagging-root-cause-analysis.md) (v2 weaknesses that motivated v3)
 > Integration plan: [csv2-v3-opus-contribution.md](../jailbreak-csv2/background/csv2-v3-opus-contribution.md) (validation roadmap)
+> **Superseded by:** [2026-04-12-4way-evaluator-comparison.md](2026-04-12-4way-evaluator-comparison.md) — full 74-record gold validation after v3 calibration fixes, with 4-way evaluator comparison. This smoke test used the pre-calibration v3 prompt; the 2026-04-12 report is the canonical accuracy assessment.
 
 ---
 
