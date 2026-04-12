@@ -24,9 +24,10 @@ condition), because its moderate effect size makes it sensitive to every
 measurement decision we examine. Where findings generalize beyond this
 experiment, we note it explicitly.
 
-Figure 4 collects the main measurement reversals from this section: binary
-versus graded scoring, evaluator disagreement, and specificity under matched
-controls.
+Figure 4 shows the three measurement reversals that matter for the paper's conclusions: binary versus graded scoring, evaluator calibration collapse on holdout, and the seed-0 specificity contrast.
+
+![Figure 4. Measurement choices changed the scientific conclusion.](figures/fig4_measurement.png)
+*Figure 4. Binary scoring obscures the jailbreak effect, holdout validation compresses the apparent evaluator gap, and the seed-0 random-neuron control shows that the graded H-neuron dose-response is steeper than the matched control.*
 
 ## 6.1 Truncation Hides Downstream Content
 

@@ -35,7 +35,7 @@ Interventions that help on one metric can harm others. Our bridge results show t
 
 ## 7.3 Theory of Change
 
-If adopted, these recommendations would change the practical workflow of mechanistic intervention research in three ways:
+If adopted, these recommendations would change evaluation practice in mechanistic intervention research in three ways:
 
 1. **Fewer inflated latent-control claims.** Researchers would no longer move directly from "this feature predicts behavior $X$" to "this feature is a good target for steering behavior $X$." The intermediate validation steps would catch the dissociations we document.
 
@@ -54,7 +54,7 @@ If adopted, these recommendations would change the practical workflow of mechani
 > | **Control** | Does intervention produce the intended behavioral change? | Dose-response curve on target surface; matched negative control (random component, random direction); effect size with CI |
 > | **Externality** | Does the effect transfer and not externalize? | Evaluation on at least one non-target surface; capability mini-battery; report harms and scope conditions explicitly |
 >
-> A claim that passes only one or two of these gates is a monitoring or localization result, not a steering result.
+> A result that clears only one or two of these gates is a monitoring or localization result, not a steering result.
 
 We present this framework as a methodological synthesis, not as an ontological
 claim that every experiment belongs to exactly one stage. Some evidence lines

@@ -38,8 +38,8 @@ Every key quantitative claim in the paper traced to its canonical source.
 |---|---|---|---|
 | ITI MC1 effect (pooled) | +6.3 pp | [+3.7, +8.9] | `notes/act3-reports/2026-04-01-priority-reruns-audit.md` §2 |
 | ITI MC2 effect (pooled) | +7.49 pp | [+5.28, +9.82] | same file |
-| SimpleQA compliance α=0 | 4.6% | [3.5, 6.1] | `notes/act3-reports/2026-04-01-priority-reruns-audit.md` §3b |
-| SimpleQA compliance α=8 | 2.8% | [1.9, 4.0] | same file |
+| SimpleQA correct-answer rate α=0 | 4.6% | [3.5, 6.1] | `notes/act3-reports/2026-04-01-priority-reruns-audit.md` §3b |
+| SimpleQA correct-answer rate α=8 | 2.8% | [1.9, 4.0] | same file |
 | SimpleQA attempt rate α=8 | 67.0% | — | same file |
 
 ## Bridge (§5.3)
@@ -60,6 +60,7 @@ Every key quantitative claim in the paper traced to its canonical source.
 | Claim | Value | CI | Source File |
 |---|---|---|---|
 | H-neuron binary delta | +3.0 pp | [includes zero] | `notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md` §1.2 |
+| H-neuron graded delta α=0→3 | +7.6 pp | [+2.6, +12.8] | same §0 |
 | H-neuron graded slope | +2.30 pp/α | [+0.99, +3.58] | same §2 |
 | Random control slope | -0.47 pp/α | [-1.42, +0.47] | same §2 |
 | Slope difference | +2.77 pp/α | [+1.17, +4.42] | same §2 |
@@ -93,5 +94,5 @@ Every key quantitative claim in the paper traced to its canonical source.
 | BioASQ effect | -0.06 pp | [-1.5, 1.4] | `data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md` |
 | BioASQ n | 1,600 | — | same |
 | BioASQ behavior change | 1,339/1,600 | — | same |
-| FalseQA effect | +4.8 pp | [1.3, 8.3] | `notes/measurement-blueprint.md` (canonical paper source; dedicated act3 report not yet written) |
-| FalseQA n | 687 | — | same |
+| FalseQA effect | +4.8 pp | [1.3, 8.3] | `data/gemma3_4b/intervention/falseqa/experiment/results.json`; `data/gemma3_4b/intervention/falseqa/falseqa_negative_control_audit.md` |
+| FalseQA n | 687 | — | `data/gemma3_4b/intervention/falseqa/experiment/results.json` |
