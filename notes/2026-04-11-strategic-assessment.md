@@ -1,9 +1,11 @@
 # Strategic Assessment — Sunday Title Lock + 2-Week Artifact Window
 
-> Date: 2026-04-11
+> Date: 2026-04-11 (revised 2026-04-12 post mentor review)
 > Purpose: Decision matrix, title recommendation, and execution strategy for BlueDot submission
-> Inputs: Full project evidence base, GPT-5.4 pro analysis (myopic + high-vantage), independent Oracle review (2 rounds), BlueDot evaluation criteria
+> Inputs: Full project evidence base, GPT-5.4 pro analysis (myopic + high-vantage), independent Oracle review (2 rounds), BlueDot evaluation criteria, mentor strategic review (2026-04-12), holdout evaluator comparison
 > Supersedes: earlier draft of this file (narrow framing)
+> Revision note: 2026-04-12 edits integrate mentor review corrections — priority reordering (writing > experimentation), evidence confidence tiering, D7 decision gate, holdout impact on evaluator claims, three-artifact packaging, bridge elevation, ruler-consistency for seed-0 scoring
+> Revision note (V2, 2026-04-12): deeper pass integrates V2 critique — four-stage scaffold (+ externality), evaluator panel over ruler-first, three anchor case studies, paper restructure (4-stage × 3-anchor), D7 default to supporting, bridge as second pillar, measurement promoted to co-equal claim
 
 ---
 
@@ -13,9 +15,15 @@
 
 > In Gemma-3-4B-IT, held-out detection quality did not reliably identify useful intervention targets: matched or even perfect readouts often failed to steer behavior, while successful interventions were narrow in scope or required a different selection criterion.
 
+Internally, this is a **case study in separating ~~three~~ four stages that are often conflated**: measurement of a feature → localization of that feature in the model → control of behavior via that feature → **externality** of that control across surfaces and tasks. The path from each stage to the next repeatedly breaks.
+
+> **V2 refinement (2026-04-12):** The flagship should not be a broad collage. It should be a **broad claim built from three deep anchor case studies**: (1) SAE vs H-neurons on FaithEval — the localization→control break, (2) ITI MC vs bridge generation with confident-wrong-substitution — the control→externality break, (3) jailbreak evaluation as measurement case study — the measurement→conclusion break. D7 and 4288 are powerful supporting evidence, not co-headliners.
+
 This thesis integrates ~80% of the project's work — the 4288 L1 artifact, verbosity confound, SAE detect-but-don't-steer, probe-head AUROC 1.0 null, causal-head positive result, ITI MC-vs-generation mismatch, BioASQ scope delimiter, H-neuron specificity controls, and the measurement discipline that caught multiple evaluation artifacts. It speaks directly to mech interp methodology, not just benchmark engineering.
 
 **Title to lock:** *Detection Is Not Enough: Strong Readouts Often Fail as Steering Targets in Gemma-3-4B-IT*
+
+**Current bottleneck (post mentor review, 2026-04-12):** The project is now bottlenecked by **writing and evidence hierarchy**, not raw experimentation. The editable submission link buys time for artifacts to evolve, but not for clarity to emerge. The highest-ROI moves are a real skeleton write-up and the two core paper sections — experiments run in parallel but do not gate writing.
 
 ---
 
@@ -71,9 +79,40 @@ The initial assessment was overly myopic — centering on CSV v3 validation and 
 | Working intervention | Where it works | Where it fails | Mechanism insight |
 |---|---|---|---|
 | H-neuron scaling | FaithEval (+6.3pp), FalseQA (+4.8pp), jailbreak count (+7.6pp) + severity | BioASQ (null) | Over-compliance lever, not truthfulness |
-| ITI E0 (TruthfulQA-sourced) | TruthfulQA MC (+6.3pp MC1, +7.49pp MC2) | SimpleQA generation (-31pp attempt rate at α=8), TriviaQA bridge (-7pp/-9pp) | Shifts probability mass among existing candidates; doesn't inject knowledge |
+| ITI E0 (TruthfulQA-sourced) | TruthfulQA MC (+6.3pp MC1, +7.49pp MC2) | SimpleQA generation (-31pp attempt rate at α=8), TriviaQA bridge (-7pp/-9pp) | Shifts probability mass among existing candidates; doesn't inject knowledge. **Bridge mechanism:** 5/10 flips are confident wrong-entity substitutions; E1 reproduces same wrong entities as E0 while only reducing rescue capacity — sharpest mechanistic diagnosis in the project |
 | D7 causal heads | Jailbreak csv2_yes (-9.0pp vs baseline) | — (not tested on other benchmarks) | Gradient-based selection finds different components than AUROC (Jaccard 0.11) |
 | ITI E0 vs H-neurons on TruthfulQA MC | ITI: +6.3pp MC1 | H-neurons: +0.9pp [-1.7, +3.5] MC1 (null) | Different methods win on different surfaces |
+
+### Evidence confidence overlay (post mentor review, 2026-04-12)
+
+The three layers above organize evidence thematically. Orthogonally, each result has a **confidence tier** that determines where it can appear in the paper:
+
+**Headline-safe** (can lead a section, no caveats needed):
+- H-neuron vs SAE dissociation on FaithEval — matched AUROC, divergent steering
+- Probe-head AUROC 1.0 null — most reviewer-resistant evidence
+- ITI MC improvement vs SimpleQA/TriviaQA bridge harm
+- Bridge benchmark's confident-wrong-substitution analysis — 5/10 flips are wrong-entity; identical across E0/E1
+- Measurement artifacts — truncation, binary-judge blind spots
+- H-neuron specificity controls on FaithEval and FalseQA
+
+**Supporting but caveated** (useful in the paper, explicit caveats required):
+- D7 pilot probe-null vs causal-positive — no random-head control yet; present as "benchmark-local evidence that an alternative selector can work on this surface"
+- D7 full-500 causal result vs baseline and L1 comparator — 112/500 token-cap hits = visible quality debt
+- H-neuron jailbreak CSV-v2 effect — benchmark-specific control unscored
+- CSV v3 zero-FP / zero-solo-error edge — holdout compressed gap vs StrongREJECT from 12.2 to 2.0pp; evaluator optimization is a supporting measurement problem, not a main scientific bottleneck
+
+**Paper rule:** Do not lead a section or build a central argument on supporting-caveated evidence. These results strengthen claims anchored by headline-safe evidence.
+
+> **V2 refinement (2026-04-12) — anchor case study designations:**
+> The flagship is built from **three deep anchor case studies**, each demonstrating a break between adjacent stages of the four-stage scaffold:
+>
+> | Anchor | Stage break | Headline-safe evidence | Supporting evidence |
+> |---|---|---|---|
+> | **1. SAE vs H-neurons on FaithEval** | Localization → Control | Matched AUROC, divergent steering; delta-only rules out reconstruction | 4288 artifact, verbosity confound (localization fragility); D7 selector choice |
+> | **2. ITI MC vs bridge generation** | Control → Externality | MC +6.3pp vs bridge -7pp/-9pp; confident wrong-entity substitution mechanism | H-neuron scope (FaithEval yes, BioASQ no); D4 vs D1 |
+> | **3. Jailbreak evaluation** | Measurement → Conclusion | Truncation artifact; binary-judge blind spots; graded vs binary reversal | Holdout compresses v3-SR gap; evaluator dependence is part of the result |
+>
+> D7 (selector-choice evidence) and 4288 (detector-interpretation evidence) are valuable supporting evidence within Anchors 1 and 3 respectively, not standalone pillars.
 
 ---
 
@@ -82,6 +121,12 @@ The initial assessment was overly myopic — centering on CSV v3 validation and 
 ### Earned (safe to claim)
 
 > Across multiple mechanistic methods in Gemma-3-4B-IT, predictive readout quality did not reliably identify components that could be successfully steered. When steering worked, it was narrow in scope or required a different selection criterion.
+
+~~The internal framing is a three-stage decomposition~~ → **V2 (2026-04-12): four-stage decomposition.** **Measurement** (can we trust the evaluation?), **localization** (where in the model does the feature live?), **control** (can we steer behavior by intervening there?), and **externality** (does the control transfer across surfaces and tasks?). Each transition breaks independently:
+
+- **Measurement → Localization:** Evaluation choices can reverse or compress conclusions (truncation artifact, binary-judge blind spots, v3-SR holdout gap collapse). You must trust your measurement before interpreting localization.
+- **Localization → Control:** Good localization doesn't guarantee control (SAE AUROC 0.848 matches H-neuron 0.843, yet SAE steering is null; probe heads reach AUROC 1.0, null intervention). 4288 artifact and verbosity confound show even localization *interpretation* is fragile.
+- **Control → Externality:** Successful control is surface-local, not universal (BioASQ null, ITI MC/generation split). The bridge benchmark reveals the failure is not mainly refusal but **confident wrong-entity substitution** — the intervention is active but indiscriminate.
 
 ### Not earned (do not claim)
 
@@ -117,7 +162,7 @@ H-neuron scaling is a detector-selected target that works on compliance tasks. F
 
 *"Without the random-head control, D7 could be a generic perturbation effect."*
 
-**Defense:** Present D7 as "promising benchmark-local evidence that selector choice matters" with the explicit limitation. The thesis survives even if D7 is demoted, because the SAE and probe-head nulls stand independently. Note: seed 0 neuron-mode jailbreak control (2000 rows) can be scored in the next 2 weeks, and the D7 random-head control can be run during the artifact window.
+**Defense:** Present D7 as "valuable but provisional: strong benchmark-local evidence, not yet a mechanism-clean flagship pillar." The thesis survives even if D7 is fully demoted, because the SAE and probe-head nulls stand independently. **Decision gate (§7):** either commit to running the random-head control + capability mini-battery (making D7 a clean pillar), or demote D7 to supporting-caveated evidence and stop inflating it into a selector-specificity result. Seed 0 neuron-mode jailbreak control (2000 rows) can be scored in the next 2 weeks regardless.
 
 ### Counter 4: "Single model"
 
@@ -127,7 +172,7 @@ H-neuron scaling is a detector-selected target that works on compliance tasks. F
 
 ---
 
-## 5. Title and Structure
+## 5. Title, Packaging, and Structure
 
 ### Recommended title to lock
 
@@ -137,37 +182,53 @@ Backup options:
 1. *From Readout to Control: Why Good Detectors Can Be Bad Steering Targets in Gemma-3-4B-IT*
 2. *Good Detectors, Poor Levers: Detection–Intervention Dissociations in Gemma-3-4B-IT*
 
-### Paper structure (3-claim design)
+### Three concentric artifacts (post mentor review, 2026-04-12)
 
-**§1. Introduction** — The practical assumption being tested: that features predicting harmful/false behavior make good intervention targets. One paragraph setup. (~300 words)
+The work is best packaged as **three separable deliverables**, not a single monolithic paper:
 
-**§2. Detection is real, but interpretation is fragile** — Establishes the detection base. H-neuron replication (AUROC 0.843, 76.5%). 4288 L1 artifact as a methodological warning. Verbosity confound as a readout caveat. (~1 page, deep dive in appendix)
+1. **Flagship paper** — *Detection Is Not Enough* / the broad methods paper about intervention science. This is the submission. Structure below.
+2. **Companion technical note** — Jailbreak measurement: truncation artifacts, binary-judge blind spots, and evaluator calibration discipline. Almost done; should be linkable as a supporting artifact. The flagship cites it for measurement rigor without re-explaining every audit inline.
+3. **Next-project / fellowship proposal** — From global truth steering to **selective truthfulness intervention**. The bridge benchmark provides the right label taxonomy: correct answers, confident wrong substitutions, evasion, and drift. Current evidence says global truth directions are too blunt; the natural sequel is a **conditional policy**: monitor answer-risk around the first decode steps, then abstain, rerank, or correct selectively. Alternative mech-interp framing: repurpose D7-style causal localization onto bridge correct-vs-wrong pairs (pointing causal machinery at factual generation, not refusal). ~~Architecture-aware local/global head split~~ → defer until bridge-grounded approach either works or fails (V2). This is future work and proposal fuel, not a deadline-week pivot.
 
-**§3. Main Result I: Strong detection does not guarantee steerability** — The paper's center of gravity.
-- §3A: H-neurons vs SAE features on FaithEval (matched AUROC, one steers, one doesn't)
-- §3B: Probe heads vs causal heads on jailbreak (AUROC 1.0 null vs gradient-ranked success)
-- Central synthesis table (§2 above)
+### Paper structure (~~3-claim~~ → 4-stage, 3-anchor design — V2, 2026-04-12)
+
+> **Structural principle (V2):** The flagship is not a broad collage of results. It is a broad claim built from **three deep anchor case studies**, organized by the **four-stage scaffold** (measurement → localization → control → externality). Each anchor demonstrates a break between adjacent stages.
+
+**§1. Introduction** — The practical assumption being tested: that features predicting harmful/false behavior make good intervention targets. The scaffold: **measurement, localization, control, and externality are separable empirical stages** that are routinely conflated. One paragraph setup + four-stage framing. (~300 words)
+
+**§2. Detection is real, but interpretation is fragile** — *Localization stage.* Establishes the detection base. H-neuron replication (AUROC 0.843, 76.5%). 4288 L1 artifact as a methodological warning. Verbosity confound as a readout caveat. (~1 page, deep dive in appendix)
+
+**§3. Anchor 1: Strong detection does not guarantee steerability** — *The localization→control break.* The paper's center of gravity.
+- §3A: **SAE vs H-neurons on FaithEval** — the deepest anchor. Matched AUROC (0.848 vs 0.843), divergent steering (+6.3pp vs null). Delta-only SAE rules out reconstruction noise. Most apples-to-apples comparison in the project.
+- §3B: **Probe heads vs causal heads on jailbreak** — independent confirmation. AUROC 1.0 null vs gradient-ranked -9.0pp, top-20 sets nearly disjoint (Jaccard 0.11).
+- D7 as **supporting evidence** (selector choice matters on this surface), explicitly caveated: no random-head control, 112/500 token-cap hits, quality debt visible.
+- Central synthesis table.
 (~2 pages)
 
-**§4. Main Result II: When steering works, it is narrow and surface-dependent** — Prevents "you only show negatives" critique.
-- H-neurons: compliance yes, BioASQ no. Count vs severity decomposition.
-- ITI: MC selection yes, generation no. Confident substitution mechanism.
-- D4 ITI beats H-neurons on MC — different methods win on different surfaces.
+**§4. Anchor 2: When steering works, it is narrow and mechanistically revealing** — *The control→externality break.* Prevents "you only show negatives" critique.
+- **Bridge benchmark confident-wrong-substitution as mechanistic centerpiece** — 5/10 flips are wrong-entity (Terry Hall→Horace Panter); E0 and E1 produce the same wrong entities; E1 mainly reduces rescue capacity. ~~Failure is mainly refusal~~ → failure is **indiscriminate redistribution over nearby factual candidates**. This is evidence the mass-mean ITI family is the wrong lever for free-form factual generation. Sharpest mechanistic diagnosis in the project.
+- H-neurons: compliance yes (FaithEval +6.3pp, FalseQA +4.8pp), BioASQ null. Even a working detector-selected target is task-local.
+- ITI: MC selection yes (+6.3pp MC1), generation harmful. Different evaluation surfaces disagree about the same intervention.
+- D4 ITI beats H-neurons on TruthfulQA MC — different methods win on different surfaces.
 (~1.5 pages)
 
-**§5. Measurement discipline as methodology contribution** — Brief.
+**§5. Anchor 3: Measurement choices change the scientific conclusion** — *The measurement→conclusion break.* ~~Brief summary; links to companion note~~ → **V2 (2026-04-12): promoted to co-equal claim.** Evaluator dependence is not a logistics problem to solve but **part of the scientific result** — scorer disagreement is evidence about measurement fragility.
 - Truncation artifact caught and fixed (256→5000 tok changes the jailbreak story)
-- CSV v3 smoke test caught calibration failure before $200 waste
-- Binary judge washes out signal that graded evaluation recovers
-(~0.5 page)
+- Binary judge washes out signal that graded evaluation recovers (+3.0pp CI includes zero vs +7.6pp)
+- CSV v3 holdout: gap vs StrongREJECT compressed from 12.2 to 2.0pp — evaluator flashiness is fragile
+- Links to **companion technical note** for full audit (~0.5-1 page in flagship; companion carries the depth)
 
 **§6. Implications for AI safety** — Cash out relevance.
 - Detection is useful for monitoring/diagnosis
 - Detection quality alone is a poor heuristic for control
 - Safety-relevant interventions need: task-local validation, matched negative controls, capability checks, ideally causal selection criteria
+- **Evaluator dependence means safety claims require multi-scorer robustness**, not trust in a single judge
 (~0.5 page)
 
-**§7. Limitations and future work** — Single model, missing D7 control, no capability battery, judge dependence, CSV v3 dev-set validation only (holdout pending). Future: truthfulness monitoring/RLFR direction, architecture-aware head selection (Gemma 3's 5:1 local/global attention). (~0.5 page)
+**§7. Limitations and future work** — Single model, missing D7 control, no capability battery, judge dependence.
+- Future: ~~truthfulness monitoring/RLFR direction~~ → **bridge-grounded selective truthfulness intervention** (V2). Current evidence says global truth directions are too blunt; the sequel is a conditional policy: monitor answer-risk → abstain, rerank, or correct selectively. Bridge labels provide the right taxonomy.
+- ~~Architecture-aware head selection (Gemma 3's 5:1 local/global attention)~~ → defer until bridge-grounded approach either works or fails.
+(~0.5 page)
 
 ### What goes in appendix/supplement (for 2-week artifact evolution)
 - Full 4288 deep dive (6 analyses)
@@ -177,6 +238,7 @@ Backup options:
 - Refusal-overlap analysis
 - CSV v3 smoke test full audit
 - Seed 0 control scoring results (if completed)
+- D7 full-500 token-cap and degeneration analysis
 
 ---
 
@@ -184,7 +246,7 @@ Backup options:
 
 | Criterion | How the broad thesis addresses it | Why it scores well |
 |---|---|---|
-| **Clarity and presentation** | One question ("Does good detection identify good intervention targets?"), one answer ("No, not reliably"), organized as 3 claims with a central table | Much clearer than a sprawling lab notebook; concrete examples (Terry Hall→Horace Panter, SAE null, probe AUROC 1.0 null) make abstract claims vivid |
+| **Clarity and presentation** | One question ("Does good detection identify good intervention targets?"), one answer ("No, not reliably"), organized as ~~3 claims~~ **4 stages × 3 anchor case studies** with a central synthesis table | Much clearer than a sprawling lab notebook; concrete examples (Terry Hall→Horace Panter, SAE null, probe AUROC 1.0 null) make abstract claims vivid |
 | **Relevance to AI safety** | Directly addresses: how should researchers select targets for safety interventions? Shows the tempting heuristic (use your best detector) is unreliable. Theory of change: prevents false confidence in "we found the safety neurons" claims | Core mech interp safety methodology, not just benchmark engineering |
 | **Project quality** | Multiple intervention methods compared fairly. Negative controls on two benchmarks. Evaluation artifacts caught and fixed. 4288 investigation shows care in interpretation. CSV v3 smoke test shows fiscal discipline. Honest limitations (missing D7 control, single model, no capability battery) | Demonstrates exactly the judgment and honesty the criteria reward |
 
@@ -192,55 +254,74 @@ Backup options:
 
 ## 7. Execution Plan — Title Lock + 2-Week Artifact Window
 
-### Phase 0: Today (hours 0-4)
+### Phase 0: Today (hours 0-6) — WRITING GATES EVERYTHING
+
+> **Principle (post mentor review):** The project is bottlenecked by writing and evidence hierarchy, not by experimentation. A missing experiment weakens one pillar; a missing write-up wastes all of them. Experiments run in parallel but do not gate writing milestones.
+
 1. **Lock the title** in the BlueDot form
-2. Submit seed 0 jailbreak control for batch scoring (binary judge + v2) — ~$10-15
-3. Lock the outline (§5 above) and figure/table list
+2. **Submit a real skeleton write-up** — not a placeholder. Must contain: abstract-level thesis, central synthesis table (§2 Layer 2), earned/not-earned box (§3/§10), and caveat language for D7, v3, and H-neuron jailbreak. The point: demonstrate scientific judgment even before extra results land
+3. **Launch seed 0 jailbreak control scoring** — ~~CSV-v2 first (ruler consistency)~~ → **V2 (2026-04-12): use a minimal evaluator panel**, because scorer dependence is itself part of the science. **v2 + v3 as the two load-bearing surfaces** (v2: historical claim metric; v3: best candidate for disclaimer-heavy outputs), **binary + StrongREJECT as sensitivity/legibility comparators**. If cost forces a cut, keep v2 + v3 and drop a simpler comparator first. Do **not** headline C/S/V/T field claims until the field audit is done
+4. Lock the outline (§5 above) and figure/table list
 
-### Phase 1: Weekend (hours 4-24)
-4. Draft §3 (Main Result I) — this is the paper's center of gravity
-5. Draft §4 (Main Result II) — ITI + H-neuron scope results
-6. Draft the central synthesis table
-7. Retrieve and integrate seed 0 control results if available
+### Phase 1: Weekend (hours 6-24) — CORE SECTIONS BEFORE MORE ANALYSIS
 
-### Phase 2: Week 1 (days 2-7)
-8. Draft §2 (Detection) and §5-7 (Measurement, Safety, Limitations)
-9. Build figures:
-   - Fig 1: FaithEval SAE vs H-neuron dose-response (matched AUROC, divergent steering)
-   - Fig 2: D7 jailbreak three-way comparison + probe null
-   - Fig 3: ITI MC improvement vs bridge generation damage
-   - Fig 4: Synthesis table (central exhibit)
-   - Fig 5: Seed 0 control slope vs H-neuron slope (if scored)
-10. **Optional high-value experiment**: D7 random-head negative control (~1 GPU-day)
-11. **Optional**: patch CSV v3 + re-run 30-case smoke test for appendix
+5. **Draft §3 (Anchor 1: localization→control break)** — this is the paper's center of gravity. Lead with SAE vs H-neuron on FaithEval as the deepest anchor; probe-head AUROC 1.0 null as independent confirmation. D7 as supporting evidence only
+6. **Draft §4 (Anchor 2: control→externality break)** — bridge confident-wrong-substitution as mechanistic centerpiece (not refusal — indiscriminate redistribution); ITI MC/generation split; H-neuron scope; D4-vs-D1 on TruthfulQA MC
+7. Draft the central synthesis table
+8. **Finish the companion measurement note** enough to be linkable — truncation, binary-judge blind spots, evaluator calibration discipline. The flagship cites it as supporting evidence rather than re-explaining every audit
+9. **Blind adjudication of disputed labels** (V2: concurrent with scoring) — cheap, high-integrity manual work. Strengthens the evaluator companion note and demonstrates scientific judgment. Keep to the curated disputed set; do not sprawl into bulk re-adjudication
+10. Retrieve and integrate seed 0 control results if available
 
-### Phase 3: Week 2 (days 8-14)
-12. Polish, record video demo if needed
-13. Build appendix/supplement with deep dives
-14. Integrate any additional control results
-15. Final consistency pass — every claim checked against §3's "earned/not earned" boundary
+### Phase 2: First 48 hours post-submission (days 2-3) — DECISION GATES
+
+11. **D7 decision gate — make a binary choice:**
+    > **V2 refinement (2026-04-12):** The default should be **supporting**, not neutral. D7 should not get another GPU day by default — it should earn centrality by remaining essential after you draft the actual paper sections. If the paper reads well without D7 as a headline, keep it supporting.
+    - **If D7 stays central (must be justified by paper draft):** run random-head negative control (~1 GPU-day) + minimal capability/over-refusal battery (100 factual QA + 100 instruction-following, ~2h GPU). D7 becomes a mechanism-clean pillar
+    - **If D7 is demoted (default):** present as benchmark-local comparator evidence with explicit caveats. Stop calling it a selector-specificity result. Thesis survives on SAE dissociation + probe null + ITI MC/gen mismatch
+12. **StrongREJECT gpt-4o rerun** (~$5) — objection-removal, not center-of-gravity science. Holdout tells us it is unlikely to change anything dramatically
+13. Draft §2 (Detection) and §5-7 (Measurement, Safety, Limitations)
+
+### Phase 3: Week 1-2 (days 4-14) — POLISH AND ADJUDICATION
+
+14. Build figures:
+    - Fig 1: FaithEval SAE vs H-neuron dose-response (matched AUROC, divergent steering)
+    - Fig 2: D7 jailbreak three-way comparison + probe null (if D7 stays central) or probe null standalone
+    - Fig 3: ITI MC improvement vs bridge generation damage (with confident-substitution callout)
+    - Fig 4: Synthesis table (central exhibit)
+    - Fig 5: Seed 0 control slope vs H-neuron slope (if scored)
+15. Build appendix/supplement with deep dives
+16. **Targeted claim-boundary adjudication** — not sprawling. Focus on the subset of label disputes that could actually change a claim boundary (bulk label work already done in Phase 1 step 9)
+17. **Optional**: small new hard-tail holdout of fresh refuse-then-educate cases for evaluator companion note (tests whether v3's calibrated edge transfers beyond tuning cases)
+18. Final consistency pass — every claim checked against §3's "earned/not-earned" boundary
 
 ---
 
 ## 8. The 2-Week Experiment Priority Stack
 
-Ranked by information-per-dollar for the paper:
+Ranked by information-per-dollar for the paper. **Writing deliverables are included** because the bottleneck is evidence hierarchy, not raw data.
 
-| Priority | Experiment | Cost | What it buys |
+| Priority | Deliverable | Cost | What it buys |
 |---|---|---|---|
-| 1 | Score seed 0 jailbreak control (already generated) | ~$10-15 API, ~3-6h | H-neuron jailbreak specificity evidence |
-| 2 | D7 random-head negative control | ~1 GPU-day | If null: D7 causal-head claim becomes much stronger. If not null: still informative, thesis survives on SAE/probe pillars |
-| 3 | Minimal capability battery for D7 causal α=4.0 | ~2h GPU (100 factual QA + 100 instruction-following) | "Safer without breaking the model" — or honest reporting of what breaks |
-| 4 | Patch CSV v3 + re-run 30-case smoke test | ~1h code + ~$0.30 API | Appendix showing validation discipline + potential fix |
-| 5 | Score seed 1 control (if generation finishes) | ~$10-15 API | Second specificity seed with error bars |
-| 6 | XSTest over-refusal check | ~$5 API | One safety dimension for D7 |
+| 0 | **Real skeleton write-up** (abstract, synthesis table, earned/not-earned box, caveat language) | ~4h writing | Demonstrates scientific judgment at submission; forces evidence hierarchy decisions now |
+| 1 | **Score seed 0 jailbreak control** — ~~CSV-v2 first~~ → **evaluator panel: v2 + v3 load-bearing, binary + SR as comparators** (V2). Scorer dependence is part of the science, not a logistics problem | ~$15-25 API, ~3-6h | H-neuron jailbreak specificity; evaluator robustness section built from panel disagreement |
+| 1b | **Blind adjudication of disputed labels** (concurrent with scoring) — curated disputed set only, not sprawling (V2) | ~2-3h manual | Strengthens evaluator companion note; demonstrates scientific judgment; clarifies gold-label anomalies |
+| 2 | **Draft two core flagship sections** (Anchor 1: localization→control; Anchor 2: control→externality) | ~8h writing | The sections that actually earn the broad thesis |
+| 3 | **Finish companion measurement note** (truncation, binary-judge blind spots, calibration discipline) | ~3h writing | Linkable artifact that signals rigor; flagship cites rather than re-explains |
+| 4 | D7 decision gate: random-head negative control (**only if paper draft requires D7 central — default: supporting**, V2) | ~1 GPU-day | If null: D7 becomes mechanism-clean flagship pillar. If not null: still informative, but demote. Do not let D7 eat writing time by default |
+| 5 | StrongREJECT gpt-4o rerun | ~$5 API | Objection-removal; holdout says unlikely to change conclusions |
+| 6 | Minimal capability battery for D7 causal α=4.0 (only if D7 stays central) | ~2h GPU | "Safer without breaking the model" — or honest reporting of what breaks |
+| 7 | Score seed 1 control (if generation finishes) | ~$10-15 API | Second specificity seed with error bars |
+| 8 | XSTest over-refusal check | ~$5 API | One safety dimension for D7 |
 
 ### What NOT to do in the 2-week window
-- Full CSV v3 redeploy on all main data (~$200, not validated)
+- Full CSV v3 redeploy on all main data (~$200, not validated; holdout compressed gap to 2.0pp — not justified)
 - Full random-control alpha sweep (3 seeds × 4 alphas × 500 prompts — overkill)
 - ~~StrongREJECT comparison code + scoring (nice-to-have but not thesis-critical)~~ **Updated 2026-04-12:** StrongREJECT comparison is done ([4-way report](act3-reports/2026-04-12-4way-evaluator-comparison.md)). Remaining: re-run with gpt-4o to remove judge-model confound (~$5).
+- Rescore D1/D3 with v3 as main pre-deadline move (v3 is a robustness layer, not the primary ruler)
+- Reopen E1/E2/E3, chooser work, or general truth-vector search (closed by own stop conditions)
 - IFEval-only capability story
 - Wrapper tags / pivot claims as headline
+- Pivot to truthfulness-monitoring project (best *next* program, not deadline-week identity crisis)
 
 ---
 
@@ -254,6 +335,8 @@ Ranked by information-per-dollar for the paper:
 | Internal jargon leaking | High | Clarity failure | Translation guide: D7→gradient-based causal intervention, csv2_yes→strict harmfulness rate, L1→original neuron-scaling method, AUROC→held-out discrimination quality |
 | 2-week experiments don't finish | Medium | Weaker paper | Thesis stands on SAE dissociation + probe null + ITI MC/gen mismatch even without D7 control |
 | Reviewer says "single model" | Medium | Scope limitation | Model name in title; cite Gao et al.'s 6-model replication; depth > breadth argument |
+| Writing bottleneck masks strong evidence | High | Submission is uncompelling or sprawling despite strong data | Skeleton today, two core sections before any new analysis. Editable link buys time but not clarity |
+| Holdout compresses evaluator advantage | Realized | v3-vs-SR gap dropped from 12.2 to 2.0pp on holdout; evaluator story becomes supporting, not central | Evaluator optimization is a measurement sub-problem; do not position v3 as a main contribution |
 
 ---
 
@@ -267,7 +350,7 @@ Ranked by information-per-dollar for the paper:
 | Perfect detection does not guarantee intervention | Probe heads AUROC 1.0, null at every alpha on jailbreak | Probe null |
 | A different selection criterion (gradient vs AUROC) identifies different components that steer differently | Causal heads -9.0pp vs probe null, Jaccard 0.11 | D7 comparison |
 | Successful steering is narrow: works on some tasks, not others | H-neurons: FaithEval/FalseQA/jailbreak yes, BioASQ no. ITI: MC yes, generation no | Scope evidence |
-| ITI generation failure is confident substitution, not refusal | 5/10 flips are wrong-entity substitutions; identical across E0/E1 | Bridge benchmark |
+| ITI generation failure is confident wrong-entity substitution, not refusal — sharpest mechanistic finding; evidence the mass-mean ITI family is the wrong lever for free-form factual generation | 5/10 flips are wrong-entity (e.g., Terry Hall→Horace Panter); E1 reproduces same wrong entities as E0 while only reducing rescue capacity. Failure is **indiscriminate redistribution** over nearby factual candidates, not mainly refusal or timid abstention (V2) | Bridge benchmark |
 | ITI beats H-neurons on MC selection; different methods win on different surfaces | ITI +6.3pp MC1 vs H-neuron +0.9pp (null) on same benchmark | D1 vs D4 |
 | Evaluation method changes conclusions | Binary judge null on jailbreak (+3.0pp, CI includes zero); graded v2 significant (+7.6pp); truncation artifact caught | Measurement discipline |
 | L1 weight magnitude is unreliable for neuron importance | 4288: 0/6 analyses support dominance; absent at C≤0.3 | 4288 investigation |
@@ -281,11 +364,11 @@ Ranked by information-per-dollar for the paper:
 | H-neuron jailbreak effect is neuron-specific | Seed 0 control unscored | "Specificity confirmed on FaithEval/FalseQA; jailbreak specificity pending" |
 | D7 causal intervention is safe for practical deployment | No capability battery, 22.4% token-cap rate | "Promising mitigation with visible quality debt" |
 
-### Partially earned (updated 2026-04-12 — post 4-way comparison + error taxonomy)
+### Partially earned (updated 2026-04-12 — post 4-way comparison, error taxonomy, and holdout)
 
 | Claim | Gap | Safe phrasing |
 |---|---|---|
-| CSV2 v3 is a useful evaluator for this response regime | 24/74 gold rows overlap with calibration set; holdout comparison pending; binary-level validation only (C/S/V/T field-level audit pending) | "On this curated Gemma-3-4B intervention gold set, v3 is the best-performing evaluator tested; true holdout confirmation is the highest-priority follow-up" |
+| CSV2 v3 is a useful evaluator for this response regime | Holdout compressed v3-vs-StrongREJECT gap from 12.2 to 2.0pp; all four evaluators >90% on holdout; holdout cannot validate superiority on new hard refuse-then-comply cases; evaluator optimization is now a supporting measurement problem, not the main scientific bottleneck | "On holdout, v3 is directionally best but the gap is small; evaluator choice matters most for hard-tail cases where v3's calibration edge is untested on fresh data" |
 | Intervention-aware evaluation changes the scientific conclusion | StrongREJECT uses gpt-4o-mini (confound); construct-mismatch analysis is analytical but gpt-4o rerun would strengthen | "Standard refusal-weighted evaluation undercounts harmful substance in disclaimer-heavy intervention outputs; a structured judge calibrated for refuse-then-comply reveals effects that other evaluators miss" |
 
 > See [4-way evaluator comparison](act3-reports/2026-04-12-4way-evaluator-comparison.md) and [error taxonomy](../error-taxonomy-v3-fn-binary-fp.md) for full evidence.
@@ -298,6 +381,9 @@ Ranked by information-per-dollar for the paper:
 | CSV v3 is a broadly validated evaluator | Dev-set overlap; single model/response family; binary validation only |
 | Results generalize beyond Gemma-3-4B-IT | Single model |
 | Causal selection is always superior to correlational selection | One benchmark, no control |
+| CSV v3 clearly outperforms StrongREJECT | Holdout compressed gap from 12.2 to 2.0pp; all four evaluators >90% on holdout; holdout cannot validate superiority on new hard cases |
+| ITI reveals the truthfulness circuit | What we have is narrower: mass-mean ITI helps MC selection but harms generation, likely by reshuffling probability mass among nearby candidates rather than adding knowledge |
+| We improved truthful generation | We did not. What we improved is understanding of *why* the tested mass-mean ITI family fails on generation: indiscriminate redistribution over nearby factual candidates, not refusal. The bridge's confident-wrong-substitution finding is a diagnostic, not a fix (V2) |
 
 ---
 
@@ -309,6 +395,8 @@ Ranked by information-per-dollar for the paper:
 
 **That is a real contribution. It tells people how not to fool themselves.**
 
-The 4288 artifact, the SAE null, the probe null, the ITI MC/generation split, the causal-head positive, and the measurement discipline — these are not scattered side quests. They are **one story about the gap between reading a model and controlling it.**
+The 4288 artifact, the SAE null, the probe null, the bridge confident-wrong-substitution mechanism, the ITI MC/generation split, the causal-head positive, and the measurement discipline — these are not scattered side quests. They are **one story about what goes wrong when researchers conflate measurement, localization, control, and externality.**
 
-Lock the title. Write the table. Tell the story.
+> **V2 (2026-04-12):** The strongest signal from a first project is not "I found a flashy effect." It is: **"I knew which effects were real, which ones were artifacts, which branches to kill, and what the next sharper question should be."** This project already contains that story. The job now is to make the write-up reflect it.
+
+Lock the title. Write the three anchors. Tell the four-stage story.
