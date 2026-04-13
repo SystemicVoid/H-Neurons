@@ -385,3 +385,33 @@ The "same heads, different directions" pattern — if it holds up with more over
 ### What I will do next
 
 Write the E2 transfer synthesis to formalize the closure, then pivot. The TriviaQA-transfer lane consumed four experiment-days (E2-A pipeline + audit, E2-B diagnostic + sidecars) and produced a clean, well-decomposed null. No further TriviaQA ITI variants are warranted. Next priorities: D5 (externality audit) and D7 (causal head selection).
+
+---
+
+## 2026-04-13
+
+### What I did
+
+Ran Bridge Phase 3: the one-shot test-set evaluation (n=500, held-out) of E0 ITI (paper-faithful, K=12, α=8.0) on TriviaQA open-ended factual generation. This was the frozen Phase 2 intervention applied to the untouched test split — no parameters were tuned on this data.
+
+Report: [2026-04-13-bridge-phase3-test-results.md](./act3-reports/2026-04-13-bridge-phase3-test-results.md)
+
+### What I expected vs what happened
+
+Expected the dev-set signal (−7pp adjudicated, CI touching zero) to either sharpen into significance or collapse. **It sharpened.** The test-set delta is −5.8pp [−8.8, −3.0], CI excludes zero, McNemar p=0.0002. Dev-to-test replication is remarkably tight: the point estimate sits within the dev CI, the flip ratio is stable (3.3:1 → 3.1:1), and baseline accuracy is comparable (47% → 45%).
+
+The failure-mode taxonomy scaled well. At dev scale, 5/10 R2W flips were wrong-entity substitution (50%). At test scale, 30/43 are wrong-entity (70%), with a secondary evasion/factual-denial mode emerging at 19% (8/43). The wrong-entity examples are vivid — "Trainspotting" → "Slumdog Millionaire" (same director, wrong film), "Ritchie Valens" → "J.P. Richardson" (same plane crash, wrong victim), "Little Dorrit" → "Bleak House" (same author, wrong novel). The intervention selects from the correct semantic neighborhood but picks the wrong member.
+
+The evasion mode is new at this scale: 8 cases where ITI causes the model to deny well-established factual premises ("He did not complete a Puccini opera" — he did, it's Turandot). This could reflect a "skepticism" component in the truthfulness direction that inappropriately suppresses confident factual assertions.
+
+### What this changes about my thinking
+
+The externality-break claim moves from "partially earned" to **earned**. This was Limitation L5 in the paper draft — the main hedge preventing us from stating the externality claim without qualification. That hedge is now removed.
+
+The failure-mode story is stronger than I expected. The 70% wrong-entity rate at scale, with such vivid same-neighborhood examples, makes the "indiscriminate probability mass redistribution" diagnosis paper-ready. The secondary evasion mode (19%) adds nuance — it's not just redistribution, there's also a skepticism-amplification pathway. Two distinct failure mechanisms, both flowing from the same intervention.
+
+The rescue cases (14/500 = 2.8% of all questions) mirror the damage mechanism: when the probability shift happens to land on the correct answer, it helps. This symmetry is the strongest behavioral evidence that the direction is indiscriminate — it's a perturbation, not an improvement.
+
+### What I will do next
+
+Update Section 5.3 of the paper draft to replace dev-set numbers with test-set numbers and remove the L5 hedge. Update the strategic assessment's earned/not-earned boundary for the externality-break claim.

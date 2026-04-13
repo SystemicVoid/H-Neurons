@@ -9,6 +9,7 @@
 - Strategy note (what to try next, stop/go gates): [optimise-intervention-ac3.md](./act3-reports/optimise-intervention-ac3.md)
 - TriviaQA bridge benchmark plan: [2026-04-03-bridge-benchmark-plan.md](./act3-reports/2026-04-03-bridge-benchmark-plan.md)
 - Bridge Phase 2 dev results: [2026-04-04-bridge-phase2-dev-results.md](./act3-reports/2026-04-04-bridge-phase2-dev-results.md)
+- **Bridge Phase 3 test results (canonical):** [2026-04-13-bridge-phase3-test-results.md](./act3-reports/2026-04-13-bridge-phase3-test-results.md)
 - Strategic assessment (BlueDot submission): [2026-04-11-strategic-assessment.md](./act3-reports/2026-04-11-strategic-assessment.md)
 - CSV2 v3 smoke test audit: [2026-04-10-csv2-v3-smoke-test-audit.md](./act3-reports/2026-04-10-csv2-v3-smoke-test-audit.md)
 - 4-way evaluator comparison (canonical): [2026-04-12-4way-evaluator-comparison.md](./act3-reports/2026-04-12-4way-evaluator-comparison.md)
@@ -67,6 +68,7 @@ Completed milestones (1-8) are listed for audit trail; active priorities start a
 6. ~~D3.5 refusal-overlap analysis.~~ **done / robustness-downgraded.**
 7. ~~Run Baseline C: truthfulness direction (D4).~~ **MC winner, generation null.** ITI E0 wins on MC selection but flat-to-harmful on SimpleQA and TriviaQA bridge. Artifact lane (E1 tradeoff, E2 null, E3 gate not met) and chooser lane (no generation signal) both stopped. Bridge benchmark built and validated (Phase 2 complete).
 8. ~~Bridge benchmark Phase 2 dev validation.~~ **done** — E0 ITI informative null. Benchmark ready for Phase 3 when a candidate warrants it.
+8b. ~~Bridge Phase 3 test-set run.~~ **done** — externality break confirmed. Δ adj −5.8pp [−8.8, −3.0], CI excludes zero, p=0.0002. [Report](./act3-reports/2026-04-13-bridge-phase3-test-results.md).
 9. ~~**Run the full externality audit across A, B, and C (D5).**~~ Deferred: assess whether existing cross-benchmark data suffices first.
 10. ~~**Close D7 specificity gap only if needed for synthesis/paper claim.**~~ D7 full-500 trimmed audit complete; random-head control remains the highest-value optional experiment.
 11. ~~Run the refusal-orthogonalized mitigation check (D6) — conditional on D5 findings.~~ Deprioritized: D5 not yet run.

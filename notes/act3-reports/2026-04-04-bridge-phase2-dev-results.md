@@ -1,5 +1,7 @@
 # TriviaQA Bridge Phase 2 Dev Results — 2026-04-04
 
+> **Superseded by:** [2026-04-13-bridge-phase3-test-results.md](./2026-04-13-bridge-phase3-test-results.md) (held-out test set, n=500, CIs exclude zero). This dev report remains the authoritative source for E0 vs E1 comparison (E1 not tested on test set), cross-alpha stability patterns, and the original failure-mode taxonomy. For the externality-break claim, cite the Phase 3 test report.
+
 > **Verdict: ITI does not improve factual generation on the bridge benchmark,
 > regardless of artifact quality. Both E0 (paper-faithful, K=12) and E1
 > (modernized, K=8) are harmful — E1 significantly so (p=0.016). The damage
