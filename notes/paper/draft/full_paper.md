@@ -2,7 +2,7 @@
 
 *A staged audit of measurement, localization, control, and externality in mechanistic intervention research.*
 
-Hugo Minh D. Nguyen
+Hugo Nguyen
 
 ---
 
