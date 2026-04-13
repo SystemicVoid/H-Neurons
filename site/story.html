@@ -32,6 +32,7 @@
     <span class="tag tag-coral">Core story</span>
     <h1>What still holds,<br>what got narrower,<br>and what decides the paper</h1>
     <!-- from: classifier_disjoint_accuracy -->
+    <!-- from: anti_compliance_delta_noop_to_3 -->
     <!-- from: anti_compliance_delta_0_to_3 -->
     <p class="subtitle" data-source="manual">
       Gao et al. (2025) claim that fewer than 0.1% of a language model's MLP neurons, dubbed "H-Neurons,"
@@ -40,9 +41,10 @@
       38 neurons out of <span data-classifier-bind="total-neurons">348,160</span> predict hallucination at
       <span data-classifier-bind="accuracy-value">76.5%</span> accuracy on fully held-out data
       (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>),
-      and amplifying them still produces a <span data-intervention-summary-bind="anti-delta-value">6.3pp</span>
-      compliance shift on anti-compliance FaithEval prompts from &alpha;=0.0 to &alpha;=3.0
-      (<span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span>).
+      and amplifying them produces a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span>
+      compliance gain above the no-op baseline on FaithEval
+      (<span data-intervention-summary-bind="anti-noop-delta-ci-text">95% CI 2.9-6.1pp</span>;
+      slope +2.09 pp/&alpha;).
       But replication also surfaced problems the paper doesn't discuss.
     </p>
     <p class="subtitle" style="margin-top: 1rem;" data-source="manual">
@@ -63,8 +65,8 @@
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Causal foothold</div>
-        <div class="value val-amber" data-intervention-summary-bind="anti-delta-value">6.3pp</div>
-        <div class="detail">Anti-compliance shift from &alpha;=0.0 to &alpha;=3.0 · <span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span></div>
+        <div class="value val-amber" data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</div>
+        <div class="detail">No-op→max compliance gain · <span data-intervention-summary-bind="anti-noop-delta-ci-text">95% CI 2.9-6.1pp</span> · slope +2.09 pp/&alpha;</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Main threat</div>
@@ -140,8 +142,8 @@
         <h3 style="color: var(--accent-amber);">Intervention still moves behavior</h3>
         <!-- from: standard_text_remap_alpha_3_rescored_rate -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          On anti-compliance FaithEval prompts, the sparse-detector intervention still produces a <span data-intervention-summary-bind="anti-delta-value">6.3pp</span> shift from &alpha;=0.0 to &alpha;=3.0
-          (<span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span>), and the standard-prompt contradiction weakens once the same &alpha;=3.0 point is read as
+          On anti-compliance FaithEval prompts, the sparse-detector intervention produces a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span> gain above the no-op baseline
+          (<span data-intervention-summary-bind="anti-noop-delta-ci-text">95% CI 2.9-6.1pp</span>; slope +2.09 pp/&alpha;), and the standard-prompt contradiction weakens once the same &alpha;=3.0 point is read as
           <span data-intervention-summary-bind="raw-alpha-three-value">63.6%</span> under raw MC-letter scoring
           (<span data-intervention-summary-bind="raw-alpha-three-ci-text">95% CI 60.6-66.5%</span>) and
           <span data-intervention-summary-bind="remap-value">72.1%</span> after strict answer-text remap on the full population
@@ -186,7 +188,7 @@
       <h3 style="color: var(--accent-coral);">Cross-benchmark consistency</h3>
       <p style="font-size: 14px; color: var(--text-secondary);">
         The same H-neurons shift compliance on FaithEval (context override), FalseQA (false premises),
-        and JailbreakBench (adversarial safety) &mdash; all three show endpoint effects of +4.8 to +6.3pp
+        and JailbreakBench (adversarial safety) &mdash; all three show positive dose-response slopes
         with bootstrap CIs excluding zero. This supports a general compliance circuit rather than a
         benchmark-specific artifact, though the JailbreakBench result carries extra caveats
         (stochastic generation, no negative control).

@@ -39,7 +39,7 @@
         <h3 style="color: var(--accent-teal);">Completed</h3>
         <p class="card-item"><strong>Detection replication:</strong> 38 H-neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy.</p>
         <p class="card-item"><strong>FaithEval intervention + negative control:</strong> 2.1 pp/&alpha; slope, H-neuron specificity confirmed (8 random seeds flat).</p>
-        <p class="card-item"><strong>FalseQA intervention + negative control:</strong> +4.8 pp endpoint, H-neuron specificity confirmed (3 random seeds flat).</p>
+        <p class="card-item"><strong>FalseQA intervention + negative control:</strong> slope +1.62 pp/&alpha; [0.52, 2.74], H-neuron specificity confirmed (3 random seeds flat).</p>
         <p class="card-item"><strong>CSV-v2 graded jailbreak evaluation:</strong> binary judge non-significant; graded judge recovers +7.6 pp severity escalation. V=3 harmful content nearly quadruples. 76% of the increase is ablation recovery, not amplification.</p>
         <p class="card-item"><strong>256-token truncation artifact:</strong> the original jailbreak slope (+6.2 pp) was a measurement artifact from truncated disclaimers. 5000-token rerun falsified it.</p>
         <p class="card-item"><strong>Refusal direction extraction (D2):</strong> difference-in-means on 128+128 contrastive set. Best layer 25, 98.4% val accuracy. Sanity gate passed.</p>
@@ -92,7 +92,7 @@
       <div class="step-card" data-status="OUR WORK">
         <h3>86% of the population is frozen. The real effect is 10x larger than the headline.</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The paper reports a 6.3pp compliance swing. But 60% of samples always comply and 26% never do
+          The no-op-to-max effect is +4.5pp [2.9, 6.1] (full sweep 6.3pp). But 60% of samples always comply and 26% never do
           regardless of scaling. The entire effect is driven by 138 swing samples (13.8%), where H-neuron
           amplification overrides prior knowledge in 68.1% of cases. The headline number
           is diluted by frozen populations the paper does not separate.
@@ -165,10 +165,12 @@
 
       <div class="step-card" data-status="REPLICATION">
         <h3>Same 38 neurons shift behavior across 3 different benchmarks</h3>
+        <!-- from: anti_compliance_delta_noop_to_3 -->
         <!-- from: anti_compliance_delta_0_to_3 -->
+        <!-- from: falseqa_delta_noop_to_3 -->
         <!-- from: falseqa_delta_0_to_3 -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          FaithEval (+6.3 pp) and FalseQA (+4.8 pp) show compliance increasing with H-neuron scaling,
+          FaithEval (+4.5 pp above no-op; slope +2.09 pp/&alpha;) and FalseQA (slope +1.62 pp/&alpha;) show compliance increasing with H-neuron scaling,
           both with independent negative controls confirming specificity.
           Jailbreak binary compliance is non-significant (+3.0 pp, CI includes zero), but CSV-v2
           graded judging reveals a monotonic severity escalation: the intervention does not create

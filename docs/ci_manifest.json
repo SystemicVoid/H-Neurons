@@ -161,6 +161,41 @@
       ]
     },
     {
+      "id": "anti_compliance_delta_noop_to_3",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/faitheval/experiment/results.json",
+        "path": [
+          "effects",
+          "compliance_curve",
+          "delta_noop_to_max_pp"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
       "id": "anti_compliance_slope",
       "status": "required",
       "kind": "estimate_with_ci",
@@ -548,6 +583,33 @@
       ]
     },
     {
+      "id": "falseqa_delta_noop_to_3",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/falseqa/experiment/results.json",
+        "path": [
+          "effects",
+          "compliance_curve",
+          "delta_noop_to_max_pp"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        },
+        {
+          "file": "data/gemma3_4b/pipeline/pipeline_report.md",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
       "id": "negative_control_random_slope_interval",
       "status": "required",
       "kind": "interval_only",
@@ -620,6 +682,29 @@
           "effects",
           "compliance_curve",
           "delta_0_to_max_pp"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "data/gemma3_4b/intervention_findings.md",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "jailbreak_compliance_delta_noop_to_3",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json",
+        "path": [
+          "effects",
+          "compliance_curve",
+          "delta_noop_to_max_pp"
         ]
       },
       "surfaces": [

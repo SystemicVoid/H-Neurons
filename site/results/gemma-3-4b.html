@@ -485,11 +485,12 @@ Answer:</code>
     <div class="chart-series-grid" id="populationValueGrid"></div>
 
     <div class="metrics-grid">
+      <!-- from: anti_compliance_delta_noop_to_3 -->
       <!-- from: anti_compliance_delta_0_to_3 -->
       <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Anti headline effect</div>
-        <div class="value val-teal" data-intervention-summary-bind="anti-delta-value">6.3pp</div>
-        <div class="detail">&alpha;=0.0 to &alpha;=3.0 · <span data-intervention-summary-bind="anti-delta-ci-text">95% CI 4.2-8.5pp</span></div>
+        <div class="label">No-op→max effect</div>
+        <div class="value val-teal" data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</div>
+        <div class="detail">&alpha;=1.0 to &alpha;=3.0 · <span data-intervention-summary-bind="anti-noop-delta-ci-text">95% CI 2.9-6.1pp</span> · slope +2.09 pp/&alpha;</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Anti swing samples</div>
@@ -523,8 +524,10 @@ Answer:</code>
   </div>
 </section>
 
+<!-- from: jailbreak_compliance_delta_noop_to_3 -->
 <!-- from: jailbreak_compliance_delta_0_to_3 -->
 <!-- from: jailbreak_compliance_slope -->
+<!-- from: falseqa_delta_noop_to_3 -->
 <!-- from: falseqa_delta_0_to_3 -->
 <section id="jailbreak">
   <div class="fade-in">
@@ -611,10 +614,10 @@ Answer:</code>
 <section id="cross-benchmark">
   <div class="fade-in">
     <span class="tag tag-teal">Cross-benchmark</span>
-    <h2>The effect replicates across three benchmarks at +4.8 to +6.3pp</h2>
+    <h2>The effect replicates across three benchmarks with positive dose-response slopes</h2>
     <p class="subtitle" data-source="manual">
       FaithEval (context override), FalseQA (false premises), and JailbreakBench (adversarial safety) all show
-      positive endpoint effects with bootstrap 95% CIs excluding zero.
+      positive dose-response slopes with bootstrap 95% CIs excluding zero.
     </p>
 
     <div class="chart-container" style="margin-top: 2rem;">
@@ -627,13 +630,13 @@ Answer:</code>
     <div class="metrics-grid" style="margin-top: 1.5rem;">
       <div class="metric-card" data-status="STABLE">
         <div class="label">FaithEval</div>
-        <div class="value val-teal" data-cross-benchmark-bind="faitheval-delta">+6.3pp</div>
-        <div class="detail"><span data-cross-benchmark-bind="faitheval-ci">95% CI 4.2-8.5pp</span> &middot; <span data-cross-benchmark-bind="faitheval-n">n=1,000</span> &middot; <span data-cross-benchmark-bind="faitheval-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="faitheval-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="faitheval-generation">Generation</span></div>
+        <div class="value val-teal" data-cross-benchmark-bind="faitheval-noop-delta">+4.5pp</div>
+        <div class="detail">No-op→max · <span data-cross-benchmark-bind="faitheval-noop-ci">95% CI 2.9-6.1pp</span> · slope +2.09 pp/&alpha; &middot; <span data-cross-benchmark-bind="faitheval-n">n=1,000</span> &middot; <span data-cross-benchmark-bind="faitheval-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="faitheval-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="faitheval-generation">Generation</span></div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">FalseQA</div>
-        <div class="value val-purple" data-cross-benchmark-bind="falseqa-delta">+4.8pp</div>
-        <div class="detail"><span data-cross-benchmark-bind="falseqa-ci">95% CI 1.3-8.3pp</span> &middot; <span data-cross-benchmark-bind="falseqa-n">n=687</span> &middot; <span data-cross-benchmark-bind="falseqa-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="falseqa-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="falseqa-generation">Generation</span></div>
+        <div class="value val-purple" data-cross-benchmark-bind="falseqa-slope">+1.62 pp/&alpha;</div>
+        <div class="detail">Slope · <span data-cross-benchmark-bind="falseqa-slope-ci">95% CI 0.52-2.74</span> &middot; <span data-cross-benchmark-bind="falseqa-n">n=687</span> &middot; <span data-cross-benchmark-bind="falseqa-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="falseqa-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="falseqa-generation">Generation</span></div>
       </div>
       <div class="metric-card" data-status="STABLE">
         <div class="label">JailbreakBench</div>

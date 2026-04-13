@@ -559,8 +559,9 @@ Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data p
 
 3. **Swing sample characterization:** What makes the α-sensitive samples special? The anti-compliance prompt yields 138 swing samples. The standard-prompt raw-parser count of 203 is now known to be contaminated by α=3.0 answer-text outputs being scored as resistant, so it should not be used until text-based scoring is extended across all α.
 
+<!-- from: falseqa_delta_noop_to_3 -->
 <!-- from: falseqa_delta_0_to_3 -->
-4. ~~**FalseQA is the natural next benchmark**~~ **DONE.** 687 samples × 7 α values, GPT-4o judged. Shows +4.8pp swing with paired-bootstrap 95% CI `[1.3, 8.3] pp` (69.6% [66.0, 72.9] → 74.4% [71.0, 77.5]), but the intermediate points are non-monotonic. Data: `data/gemma3_4b/intervention/falseqa/`. See [intervention_findings.md](intervention_findings.md) §1.3.
+4. ~~**FalseQA is the natural next benchmark**~~ **DONE.** 687 samples × 7 α values, GPT-4o judged. Slope +1.62 pp/α [0.52, 2.74]; no-op-to-max +2.5pp [-0.6, 5.5]; full-sweep +4.8pp [1.3, 8.3] (69.6% [66.0, 72.9] → 74.4% [71.0, 77.5]), but the intermediate points are non-monotonic. Data: `data/gemma3_4b/intervention/falseqa/`. See [intervention_findings.md](intervention_findings.md) §1.3.
 
 5. **Sycophancy needs a max_tokens fix** before running — paper uses 512 tokens for open-ended generation, our implementation uses 128 for turn 1.
 
@@ -572,6 +573,7 @@ Perfect monotonicity (Spearman ρ=1.0) sounds impressive, but with only 7 data p
 
 **Data:** `data/gemma3_4b/intervention/faitheval_standard/alpha_{0.0..3.0}.jsonl`, `data/gemma3_4b/intervention/faitheval_standard/results.json`
 
+<!-- from: anti_compliance_delta_noop_to_3 -->
 <!-- from: anti_compliance_delta_0_to_3 -->
 <!-- from: anti_compliance_slope -->
 <!-- from: standard_text_remap_alpha_3_rescored_rate -->

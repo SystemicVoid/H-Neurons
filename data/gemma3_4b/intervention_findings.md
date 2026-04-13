@@ -25,7 +25,7 @@ Prompt instructs the model to override misleading context with its own knowledge
 | 2.5 | 695 | 1,000 | 69.5% | [66.6, 72.3] |
 | 3.0 | 705 | 1,000 | 70.5% | [67.6, 73.2] |
 
-Endpoint effect from α=0.0 to α=3.0 is **+6.3 percentage points** with a paired-bootstrap 95% CI of **[4.2, 8.5] pp**. The fitted slope is **2.09 pp / α** with a paired-bootstrap 95% CI of **[1.38, 2.83] pp / α**.
+No-op-to-max effect (α=1.0 to α=3.0) is **+4.5 percentage points** with a paired-bootstrap 95% CI of **[2.9, 6.1] pp**. Full-sweep effect (α=0.0 to α=3.0, including ablation recovery) is **+6.3 pp** **[4.2, 8.5]**. The fitted slope is **2.09 pp / α** with a paired-bootstrap 95% CI of **[1.38, 2.83] pp / α**.
 
 Prompt template:
 ```
@@ -79,7 +79,7 @@ Tests acceptance of questions with false premises. Evaluation: GPT-4o binary jud
 | 2.5 | 508 | 687 | 73.9% | [70.5, 77.1] |
 | 3.0 | 511 | 687 | 74.4% | [71.0, 77.5] |
 
-Endpoint effect from α=0.0 to α=3.0 is **+4.8 pp** with a paired-bootstrap 95% CI of **[1.3, 8.3] pp**. The fitted slope is **1.62 pp / α** with a paired-bootstrap 95% CI of **[0.52, 2.74] pp / α**.
+No-op-to-max effect (α=1.0 to α=3.0) is **+2.5 pp** with a paired-bootstrap 95% CI of **[-0.6, 5.5] pp**. Full-sweep effect (α=0.0 to α=3.0, including ablation recovery) is **+4.8 pp** **[1.3, 8.3]**. The fitted slope is **1.62 pp / α** with a paired-bootstrap 95% CI of **[0.52, 2.74] pp / α**.
 
 Judge prompt:
 ```
@@ -144,7 +144,7 @@ Per-seed slopes (%/α): +0.21, +0.16, +0.15. Mean slope: **+0.17 %/α**. Mean Sp
 
 **Verdict: Scenario 1 — H-neuron specificity confirmed.** The interpretation guide (`docs/negative-control-experiment-prompt.md` §Interpretation Guide) lists five possible outcomes. The data matches Scenario 1 unambiguously.
 
-The H-neuron slope (2.09 pp / α, 95% CI [1.38, 2.83], 6.3 pp total swing, 95% CI [4.2, 8.5], ρ=1.0) sits far outside the empirical random-set slope interval of [-0.106, 0.164] pp / α. At α=3.0, the H-neuron rate of 70.5% also sits well above the random-set empirical interval of [65.8, 66.46]%. No random seed approaches the H-neuron trajectory. The 6.3 pp compliance swing is therefore not a generic perturbation artifact — it requires scaling *these specific* neurons.
+The H-neuron slope (2.09 pp / α, 95% CI [1.38, 2.83], no-op-to-max +4.5 pp [2.9, 6.1], full sweep 6.3 pp [4.2, 8.5], ρ=1.0) sits far outside the empirical random-set slope interval of [-0.106, 0.164] pp / α. At α=3.0, the H-neuron rate of 70.5% also sits well above the random-set empirical interval of [65.8, 66.46]%. No random seed approaches the H-neuron trajectory. The +4.5 pp no-op-to-max compliance gain is therefore not a generic perturbation artifact — it requires scaling *these specific* neurons.
 
 **Ablation side of the finding.** At α=0.0 the hook multiplies activations by zero, effectively ablating the selected neurons. H-neuron ablation drops compliance to 64.2% (from the ~66.0% unperturbed baseline), while ablating random neurons leaves compliance at ~66.0%. This is a two-sided specificity result: these neurons matter in both directions. Removing them reduces compliance; amplifying them increases it.
 
@@ -180,7 +180,7 @@ Per-seed slopes (pp/α): +0.40, +0.03, -0.42. Mean slope: **+0.00 pp/α**. H-neu
 
 **Ablation-side finding.** At α=0.0, H-neuron compliance drops to 69.6% (versus 71.9% at α=1.0, a -2.3pp ablation dip), while random ablation shows no effect (72.3% → 72.2% → 72.3%). This two-sided specificity mirrors the FaithEval result.
 
-**Swing analysis.** H-neuron scaling flips 22.3% of questions between α=0 and α=3 (net +4.8pp), versus only 8.7% for random (net +1.2pp). Notably, the questions flipped by ablation-recovery (α=0→1) are entirely disjoint from those flipped by amplification (α=1→3) — zero overlap — suggesting H-neurons affect at least two distinct subpopulations.
+**Swing analysis.** H-neuron scaling flips 22.3% of questions between α=0 and α=3 (full-sweep +4.8pp; no-op-to-max +2.5pp), versus only 8.7% for random (net +1.2pp). Notably, the questions flipped by ablation-recovery (α=0→1) are entirely disjoint from those flipped by amplification (α=1→3) — zero overlap — suggesting H-neurons affect at least two distinct subpopulations.
 
 **Response length.** H-neuron amplification shortens mean responses (930→848 chars, -9%), while random leaves them flat (~894). Shorter responses on false-premise questions suggest more confident premise acceptance with less hedging.
 
@@ -208,6 +208,7 @@ Tests harmful compliance on adversarial jailbreak prompts. Data: JailbreakBench 
 | 2.5 | 141 | 500 | 28.2% | [24.4, 32.3] |
 | 3.0 | 132 | 500 | 26.4% | [22.7, 30.4] |
 
+<!-- from: jailbreak_compliance_delta_noop_to_3 -->
 <!-- from: jailbreak_compliance_delta_0_to_3 -->
 ~~Endpoint effect from α=0.0 to α=3.0 is **+6.2 pp** with a paired-bootstrap 95% CI of **[2.4, 10.0] pp**. The fitted slope is **+2.14 pp/α** with a paired-bootstrap 95% CI of **[0.91, 3.39] pp/α**.~~
 
@@ -379,17 +380,19 @@ Per-neuron dominance (mean agg): **36/38 length-dominant**, 2/38 truth-dominant.
 
 ### Finding 1: H-neuron scaling causally increases over-compliance on FaithEval
 
+<!-- from: anti_compliance_delta_noop_to_3 -->
 <!-- from: anti_compliance_delta_0_to_3 -->
 <!-- from: anti_compliance_slope -->
 <!-- from: negative_control_random_slope_interval -->
-The anti-compliance FaithEval curve is perfectly monotonic (Spearman ρ=1.0) with a slope of **2.09 pp per unit α** (paired-bootstrap 95% CI **[1.38, 2.83]**) and a total swing of **+6.3 pp** from α=0 to α=3 (paired-bootstrap 95% CI **[4.2, 8.5]**).
+The anti-compliance FaithEval curve is perfectly monotonic (Spearman ρ=1.0) with a slope of **2.09 pp per unit α** (paired-bootstrap 95% CI **[1.38, 2.83]**). Relative to the α=1.0 no-op baseline, compliance at α=3.0 increased by **+4.5 pp** (paired-bootstrap 95% CI **[2.9, 6.1]**). The full α=0→3 sweep, including ablation recovery, spans **+6.3 pp** **[4.2, 8.5]**.
 
 This is the cleanest signal in the experiment: zero parse failures, deterministic evaluation, large sample, and perfectly monotonic response. The negative control rules out generic perturbation as the explanation: the H-neuron slope lies well outside the empirical random-set interval of **[-0.106, 0.164] pp / α**, and the α=3.0 H-neuron rate of **70.5%** lies well above the random-set interval of **[65.8, 66.46]%**. See §1.5 for full analysis.
 
 ### Finding 2: H-neuron scaling increases false-premise acceptance on FalseQA
 
+<!-- from: falseqa_delta_noop_to_3 -->
 <!-- from: falseqa_delta_0_to_3 -->
-FalseQA shows a **+4.8 pp** swing (69.6% → 74.4%) with a paired-bootstrap 95% CI of **[1.3, 8.3] pp**, plus a visible step-up between the low-α cluster (69.6-71.9%) and high-α cluster (73.9-75.0%). The trend is not monotonic — α=1.5 dips below α=1.0, and α=2.5 dips below α=2.0.
+FalseQA shows a dose-response slope of **+1.62 pp/α** **[0.52, 2.74]**. The no-op-to-max effect is **+2.5 pp** **[-0.6, 5.5]** (CI includes zero; full sweep α=0→3: **+4.8 pp** **[1.3, 8.3]**), plus a visible step-up between the low-α cluster (69.6-71.9%) and high-α cluster (73.9-75.0%). The trend is not monotonic — α=1.5 dips below α=1.0, and α=2.5 dips below α=2.0.
 
 This makes the benchmark informative but weaker than FaithEval anti-compliance. The endpoint CI clears zero, but the per-point Wilson intervals overlap substantially, so the result is best described as **suggestive evidence of the same mechanism**, not as a standalone clean dose-response proof. The likely source of roughness is GPT-4o judge variance on borderline responses. The FalseQA negative control (§1.6–1.7) confirms this effect is H-neuron-specific: random neurons produce a flat slope of 0.00 pp/α (interval [-0.40, +0.38]), well separated from the H-neuron slope of +1.55 pp/α.
 
@@ -412,6 +415,7 @@ The fact that the same 38 neurons (0.011% of the network) shift behavior on both
 
 ### Finding 5: H-neuron scaling increases both count and severity of jailbreak compliance — but through distinct mechanisms
 
+<!-- from: jailbreak_compliance_delta_noop_to_3 -->
 <!-- from: jailbreak_compliance_delta_0_to_3 -->
 ~~On JailbreakBench (100 adversarial behaviors × 5 templates), H-neuron amplification increases GPT-4o-judged harmful compliance from **20.2%** at α=0.0 to **28.6%** at α=1.5, yielding an endpoint effect of **+6.2 pp** [2.4, 10.0] and a slope of **+2.14 pp/α** [0.91, 3.39]. The CI excludes zero, confirming a real effect.~~
 
@@ -473,8 +477,8 @@ That stronger mediation story does **not** survive a cheap robustness check. Lay
 
 | Benchmark | n | Pointwise CI scale | Endpoint / slope CI | Interpretation |
 |-----------|---|--------------------|---------------------|----------------|
-| FaithEval anti-compliance | 1,000 | Wilson per-point CI about +/-3 pp | Δ = +6.3 pp [4.2, 8.5]; slope = 2.09 [1.38, 2.83] pp / α | Cleanly above noise |
-| FalseQA | 687 | Wilson per-point CI about +/-3.4 pp | Δ = +4.8 pp [1.3, 8.3]; slope = 1.62 [0.52, 2.74] pp / α | Suggestive, weaker than FaithEval |
+| FaithEval anti-compliance | 1,000 | Wilson per-point CI about +/-3 pp | Δ(no-op→max) = +4.5 pp [2.9, 6.1]; Δ(full sweep) = +6.3 pp [4.2, 8.5]; slope = 2.09 [1.38, 2.83] pp / α | Cleanly above noise |
+| FalseQA | 687 | Wilson per-point CI about +/-3.4 pp | Δ(no-op→max) = +2.5 pp [-0.6, 5.5]; Δ(full sweep) = +4.8 pp [1.3, 8.3]; slope = 1.62 [0.52, 2.74] pp / α | Slope significant; endpoint borderline |
 | ~~Jailbreak (256tok, legacy)~~ | ~~500~~ | ~~Wilson per-point CI about +/-4 pp~~ | ~~Δ = +6.2 pp [2.4, 10.0]; slope = 2.14 [0.91, 3.39] pp / α~~ | ~~Significant but plateaus at α=1.5~~ *(2026-03-25: truncation artifact)* |
 | Jailbreak (5000tok, binary) | 500 | Wilson per-point CI about +/-4 pp | Δ = +3.0 pp [−1.2, +7.2]; slope = 1.04 [−0.27, +2.35] pp / α | **Not significant — CI includes zero** |
 | Jailbreak (5000tok, CSV-v2 yes) | 500 | Wilson per-point CI about +/-4 pp | Δ = +7.6 pp [+3.6, +11.6]; slope = +2.30 pp / α | **Significant** under graded metric |
@@ -509,12 +513,12 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 
 ## 4. Summary
 
-| Benchmark | α=0 → α=3 | 95% CI | Monotonic? | Evaluator | Confounds |
-|-----------|-----------|--------|------------|-----------|-----------|
-| FaithEval (anti-compliance) | +6.3 pp | [4.2, 8.5] pp | Yes (ρ=1.0) | Regex letter match | None identified |
-| FaithEval (standard, raw) | -5.5 pp | [-8.1, -2.8] pp | No | Regex letter match | Parse failures scale with α |
-| FaithEval (standard, α=3 remap) | 72.1% level estimate | [69.2, 74.8]% | n/a | Strict answer-text remap | Only α=3.0 corrected so far |
-| FalseQA | +4.8 pp | [1.3, 8.3] pp | No | GPT-4o judge | Judge variance on borderline cases |
+| Benchmark | No-op→Max (α=1→3) | Full Sweep (α=0→3) | Slope | Monotonic? | Evaluator | Confounds |
+|-----------|-----------|--------|-------|------------|-----------|-----------|
+| FaithEval (anti-compliance) | +4.5 pp [2.9, 6.1] | +6.3 pp [4.2, 8.5] | +2.09 pp/α [1.38, 2.83] | Yes (ρ=1.0) | Regex letter match | None identified |
+| FaithEval (standard, raw) | — | -5.5 pp [-8.1, -2.8] | — | No | Regex letter match | Parse failures scale with α |
+| FaithEval (standard, α=3 remap) | — | 72.1% level estimate [69.2, 74.8]% | — | n/a | Strict answer-text remap | Only α=3.0 corrected so far |
+| FalseQA | +2.5 pp [-0.6, 5.5] | +4.8 pp [1.3, 8.3] | +1.62 pp/α [0.52, 2.74] | No | GPT-4o judge | Judge variance on borderline cases |
 | NC FaithEval unconstrained (5 seeds) | +0.02 pp / α mean | [-0.106, 0.164] pp / α | No | Regex letter match | Empirical random-set interval |
 | NC FaithEval layer-matched (3 seeds) | +0.17 pp / α mean | [0.151, 0.208] pp / α | No | Regex letter match | Small seed count; descriptive only |
 | ~~Jailbreak (256tok)~~ | ~~+6.2 pp~~ | ~~[2.4, 10.0] pp~~ | ~~No (ρ=0.679)~~ | ~~GPT-4o judge~~ | ~~No negative control; stochastic generation; template heterogeneity~~ *(truncation artifact)* |
