@@ -66,18 +66,15 @@ Scope: `notes/paper/draft/full_paper.md` (all sections, abstract through appendi
 
 **Verdict: Consistent.** Note: FaithEval H-neuron and ITI MC1 coincidentally share the same +6.3 pp value. Verify this does not confuse readers -- both are distinct experiments. The paper handles this correctly by always qualifying with the benchmark name.
 
-### Bridge E1 effect (target: -9.0 pp)
+### Bridge effect (updated 2026-04-13 — Phase 3 test set is now primary)
 
-| Location | Quoted value | Status |
-|---|---|---|
-| Abstract (L11) | `7-9 pp` (unsigned, as a range covering E0 and E1) | OK |
-| Claim ledger (L108) | `7 pp to -9 pp` | OK |
-| Section 5.3 (L354) | E0: `$-7.0$ pp [$-14.0$, 0.0]`; E1: `$-9.0$ pp [$-16.0$, $-3.0$]` | OK |
-| Section 5.4 (L376) | `$-7$ pp to $-9$ pp` | OK |
-| Section 7.1 (L700) | `$-7$ pp to $-9$ pp` | OK |
-| Section 8.2 (L781) | `$-7$ pp to $-9$ pp` | OK |
+**Primary number (test set):** E0 Δ adj −5.8 pp [−8.8, −3.0], p=0.0002. Source: `2026-04-13-bridge-phase3-test-results.md`.
 
-**Verdict: Consistent.** The abstract uses the unsigned "7--9 pp" phrasing while the body consistently uses signed values. This is acceptable for abstract brevity.
+**Dev-only number (E0/E1 comparison):** E1 Δ −9.0 pp [−16.0, −3.0], p=0.016. Source: `2026-04-04-bridge-phase2-dev-results.md`.
+
+All section files have been updated to use the test-set number as the primary bridge result. The E1 −9.0 pp remains as a dev-only supporting comparison. The previous "7–9 pp" range that mixed E0 dev and E1 dev is no longer used.
+
+**Verdict: Updated.** Re-verify cross-section consistency after full_paper.md is re-synced.
 
 ### Probe heads AUROC (target: 1.0)
 
@@ -241,7 +238,7 @@ Table 2 (L96) reports the H-neuron jailbreak effect as `+7.6 pp [3.6, 11.6]`. Th
 ### Missing cross-references (potential additions)
 
 - Section 4.4 (L298-310) discusses caveats about gradient-based selection but does not forward-reference §8 Limitation L6, which covers the same concern (missing random-head control). Adding a "see also L6 in §8" would be helpful.
-- Section 5.3 (L382) has an [UNCERTAINTY] tag about bridge dev-set limitation but does not cross-reference §8 Limitation L5, which addresses the same issue.
+- ~~Section 5.3 (L382) has an [UNCERTAINTY] tag about bridge dev-set limitation but does not cross-reference §8 Limitation L5, which addresses the same issue.~~ **Resolved 2026-04-13:** Section 5.3 rewritten with test-set data; [UNCERTAINTY] tag to be removed from full_paper.md.
 
 ---
 
@@ -263,12 +260,12 @@ Table 2 (L96) reports the H-neuron jailbreak effect as `+7.6 pp [3.6, 11.6]`. Th
 **Addressed in §8?** Same as Tag 1.
 **Status:** **Open placeholder.** Duplicate of Tag 1; both resolve when appendix letter is assigned.
 
-### Tag 3: Bridge dev-set limitation (L382)
+### Tag 3: Bridge dev-set limitation (L382) — **RESOLVED 2026-04-13**
 
-> "[UNCERTAINTY: Bridge results are on a dev set of $n = 100$. The test split ($n = 400$) has not yet been used for promoted candidates. The failure-mode taxonomy is based on manual analysis of 10 flips -- sufficient for qualitative characterization but not for population-level rate estimates. The 'confident wrong-entity substitution' label is a behavioral mechanism diagnosis, not an internal circuit-level explanation.]"
+> Original tag referenced dev-set limitation (n=100, test split not yet used, 10-flip taxonomy).
 
-**Addressed in §8?** Yes. Limitation L5 (L763) covers the bridge dev-set limitation directly: "Bridge test split not yet used for the promoted candidate." The qualitative vs. quantitative distinction is also addressed in §8.2 (L781).
-**Status:** **Properly addressed.**
+**Resolved by:** Phase 3 test-set results (n=500, CI excludes zero, p=0.0002). Section 5.3 rewritten with test-set numbers. L5 in §8 replaced with "failure-mode coding is single-rater" (the remaining bridge limitation). The [UNCERTAINTY] tag in full_paper.md should be removed or replaced during full_paper.md sync.
+**Status:** **Resolved.**
 
 ### Tag 4: StrongREJECT judge-model confound (L574-577)
 
@@ -290,7 +287,7 @@ Table 2 (L96) reports the H-neuron jailbreak effect as `+7.6 pp [3.6, 11.6]`. Th
 |---|---|---|---|---|
 | 1 | L186 | Appendix reference not assigned | No | Assign appendix letter |
 | 2 | L192 | Appendix letter (duplicate of #1) | No | Assign appendix letter |
-| 3 | L382 | Bridge dev-set limitation | Yes (L5) | None |
+| 3 | L382 | Bridge dev-set limitation | ~~Yes (L5)~~ **Resolved 2026-04-13** — test set run, L5 replaced | Remove [UNCERTAINTY] tag from full_paper.md |
 | 4 | L574 | StrongREJECT judge-model confound | Partially (L8 general) | Add GPT-4o-mini confound to L8 or new row |
 | 5 | L746 | Framework validation scope | Yes (L1) | None |
 

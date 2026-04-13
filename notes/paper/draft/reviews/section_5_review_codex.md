@@ -1,3 +1,7 @@
+**2026-04-13 update:** Bridge Phase 3 test results now available ([report](../../act3-reports/2026-04-13-bridge-phase3-test-results.md)). Source updated from Phase 2 dev to Phase 3 test. Key changes: 30/43 (70%) wrong-entity substitution (was 5/10), "wrong-entity substitution" without "confident", dev caveats now apply only to E0/E1 comparison. Several ISSUE items below are partially resolved by the test-set upgrade (bridge failure-mode language concern, bridge source traceability).
+
+---
+
 **ISSUE**
 
 - [section_5_case_study_II.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/paper/draft/section_5_case_study_II.md:7): the FaithEval citation is wrong. It points to [2026-03-31-sweep-analysis.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-03-31-sweep-analysis.md:1), which is an ITI TruthfulQA calibration sweep, not the H-neuron FaithEval result. The +6.3 pp FaithEval number is traceable to [week3-log.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/week3-log.md:23), but the random-control interval shown here also does not match the canonical value I could find (`+0.02 pp/α`, empirical interval `[-0.106, +0.164]` in [intervention_findings.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention_findings.md:141)), not `[-0.19, +0.23]`. This currently fails traceability.
