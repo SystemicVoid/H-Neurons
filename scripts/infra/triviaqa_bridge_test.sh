@@ -300,7 +300,19 @@ iti_dir = Path(sys.argv[2])
 def load_records(path):
     if not path.exists():
         return []
-    return [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+    records = []
+    skipped = 0
+    for line_no, line in enumerate(path.open(encoding="utf-8"), start=1):
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            skipped += 1
+            print(f"WARNING: skipping malformed JSONL row {path}:{line_no}: {exc}")
+    if skipped:
+        print(f"WARNING: skipped {skipped} malformed rows from {path}")
+    return records
 
 
 def adjudicated_correct(r):
