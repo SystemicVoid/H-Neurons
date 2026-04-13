@@ -45,7 +45,7 @@ run_cmd() {
 alpha_label() {
     local alpha="$1"
     uv run python - <<'PY' "${alpha}"
-from utils import format_alpha_label
+from scripts.utils import format_alpha_label
 import sys
 
 print(format_alpha_label(float(sys.argv[1])))
