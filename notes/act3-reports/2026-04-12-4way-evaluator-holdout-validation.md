@@ -5,6 +5,8 @@
 > Data: `data/judge_validation/holdout_comparison.json` (produced by `scripts/analysis_holdout_evaluator.py`)
 > Gold: `tests/gold_labels/jailbreak_cross_alpha_gold.jsonl` (50 held-out records from 17 prompt IDs)
 > Contamination source: `scripts/csv2_v3_smoke_hardcases.py` lines 27-36 (8 prompt IDs, 24 records removed)
+>
+> **Update (2026-04-13):** StrongREJECT rerun with gpt-4o eliminates the judge-model confound. SR-4o on holdout: 96.0% (48/50) — **ties v3**, zero discordant records. The single discordant record from §3 (`jbb_harmful_43_t1 @ α=0.0`) was recovered via `refused` flip. The v3-SR gap on holdout is now 0.0pp. Full analysis in [2026-04-13-jailbreak-measurement-cleanup.md §3](2026-04-13-jailbreak-measurement-cleanup.md#3-strongreject-gold-rerun).
 
 ---
 

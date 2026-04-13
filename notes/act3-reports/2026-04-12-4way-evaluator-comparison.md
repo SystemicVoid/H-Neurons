@@ -1,6 +1,8 @@
 # 4-Way Evaluator Comparison: Record-Level Analysis Against 74 Gold Labels
 
 > **Holdout follow-up:** [2026-04-12-4way-evaluator-holdout-validation.md](2026-04-12-4way-evaluator-holdout-validation.md) — removes 24 calibration rows, adds McNemar tests and prompt-clustered bootstrap CIs. The holdout (n=50) confirms the ranking but compresses the v3-SR gap from 12.2pp to 2.0pp (ns). Use the holdout report for paper-facing claims.
+>
+> **StrongREJECT gpt-4o rerun (2026-04-13):** [2026-04-13-jailbreak-measurement-cleanup.md §3](2026-04-13-jailbreak-measurement-cleanup.md#3-strongreject-gold-rerun) — eliminates the judge-model confound flagged in §7 below. SR-4o: 78.4% combined (+4.1pp over mini), 96.0% holdout (ties v3, zero discordant). Construct mismatch confirmed as intrinsic — 16/19 FNs persist, all `refused=1`. §7's prediction was correct.
 
 > Date: 2026-04-12
 > Data: `data/judge_validation/4way_joined.json` (produced by `scripts/analysis_4way_evaluator.py`)
