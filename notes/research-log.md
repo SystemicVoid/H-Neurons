@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-04-13
+
+### What I did
+
+**7. FaithEval slope-difference reporting path — audited end to end.** Reviewed the new FaithEval paired slope-difference pipeline from raw JSONL trajectories through exported site payloads, then wrote the canonical audit: [2026-04-13-faitheval-slope-difference-reporting-audit.md](./act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md).
+
+### What I expected vs what happened
+
+Expected the narrow reporting path to be mostly an export/plumbing check. It held up better than that. The pipeline did not just write plausible-looking JSON: the saved slope-difference summaries match the underlying 1000-item trajectories exactly, all 8 random-neuron controls align on the same sample IDs, and the site payload binds the new fields correctly.
+
+The main nuance is interpretive, not numerical. The new matched-readout result is strong enough for the reporting claim — neuron-minus-SAE slope difference **+1.93 pp/alpha [0.94, 2.92]** — but it should not silently replace the older delta-only SAE closure result. The full-replacement SAE comparison shows the committed site-facing readout is much weaker than the neuron intervention; the delta-only audit is still what rules out "it was just reconstruction noise." Those are adjacent claims, not interchangeable ones.
+
+Another useful clarification: the FaithEval random-control result is now stronger in the paired sense, not just in the old "random seeds look flat" sense. Every seed-specific paired slope difference is positive and every seed-specific CI excludes zero. That makes the specificity story cleaner to tell.
+
+### What this changes about my thinking
+
+1. **The FaithEval reporting path is publication-ready at the narrow claim level.** I no longer see it as "probably fine if the export wiring is right." The raw-data recheck and targeted tests make it robust enough to cite directly.
+
+2. **The paper should cite two SAE-related documents, not one.** The new audit owns the paired slope-difference reporting claim; the older SAE audit owns the stronger causal interpretation about reconstruction confounding being eliminated by delta-only steering.
+
+3. **Source-hierarchy discipline matters here.** Without a canonical paired-slope audit, the same numbers would drift across `intervention_findings.md`, the SAE audit, sprint notes, and site prose. This is exactly the kind of duplication that later produces paper inconsistencies.
+
+### What I will do next
+
+Use the new audit as the single source of truth for FaithEval paired slope-difference reporting, and keep broader SAE closure claims anchored to the older delta-only audit rather than re-explaining them from scratch in later docs.
+
+---
+
 ## 2026-04-12 (late evening)
 
 ### What I did

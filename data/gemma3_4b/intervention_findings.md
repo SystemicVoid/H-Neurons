@@ -5,7 +5,14 @@
 **Classifier:** 38 H-neurons via L1-regularised logistic regression (C=1.0, 3-vs-1 mode, AUROC 0.843, 95% CI [0.815, 0.870] on disjoint held-out answer-token evaluation, n=780; detection interpretation is partially confounded by response-form/length correlations — see Finding 7)
 **Reference:** Gao et al., "H-Neurons" (arXiv:2512.01797v2), Section 3 replication
 
-**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md), [sae_pipeline_audit.md](intervention/faitheval_sae/sae_pipeline_audit.md), [verbosity_confound_audit.md](intervention/verbosity_confound/verbosity_confound_audit.md), [refusal_overlap_audit.md](intervention/refusal_overlap/refusal_overlap_audit.md)
+**Related reports:** [pipeline_report.md](pipeline_report.md), [probe_transfer_audit.md](probing/bioasq13b_factoid/probe_transfer_audit.md), [bioasq_pipeline_audit.md](intervention/bioasq/bioasq_pipeline_audit.md), [falseqa_negative_control_audit.md](intervention/falseqa/falseqa_negative_control_audit.md), [jailbreak_interpretive_review.md](intervention/jailbreak/jailbreak_interpretive_review.md), [sae_pipeline_audit.md](intervention/faitheval_sae/sae_pipeline_audit.md), [verbosity_confound_audit.md](intervention/verbosity_confound/verbosity_confound_audit.md), [refusal_overlap_audit.md](intervention/refusal_overlap/refusal_overlap_audit.md), [2026-04-13-faitheval-slope-difference-reporting-audit.md](../../notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md)
+
+> **Update — 2026-04-13:** for the paired FaithEval slope-difference reporting
+> path (neuron-minus-SAE matched readout, neuron-minus-random paired controls,
+> export wiring, and site payload contract), use
+> [2026-04-13-faitheval-slope-difference-reporting-audit.md](../../notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md).
+> This file remains the project-level intervention synthesis; the new audit owns
+> the narrow reporting-path claim.
 
 ---
 

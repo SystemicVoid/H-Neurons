@@ -2,7 +2,16 @@
 
 **Date:** 2026-03-21
 **Model:** `google/gemma-3-4b-it`
-**Related reports:** [intervention_findings.md](../../intervention_findings.md), [sae_investigation_plan.md](../../../../docs/archive/sae_investigation_plan.md), [pipeline_report.md](../../pipeline/pipeline_report.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md)
+**Related reports:** [intervention_findings.md](../../intervention_findings.md), [sae_investigation_plan.md](../../../../docs/archive/sae_investigation_plan.md), [pipeline_report.md](../../pipeline/pipeline_report.md), [falseqa_negative_control_audit.md](../falseqa/falseqa_negative_control_audit.md), [2026-04-13-faitheval-slope-difference-reporting-audit.md](../../../../notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md)
+
+> **Update — 2026-04-13:** the later paired slope-difference reporting audit
+> ([2026-04-13-faitheval-slope-difference-reporting-audit.md](../../../../notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md))
+> confirms the site-facing matched-readout statement:
+> neuron-minus-SAE **+1.93 pp/α [0.94, 2.92]** on matched items, and
+> neuron-minus-random mean **+2.01 pp/α** across 8 paired control seeds.
+> Use that report for the narrow reporting-path claim. This audit still owns the
+> broader SAE closure argument, especially the delta-only result ruling out
+> reconstruction noise as the sole explanation.
 
 ---
 

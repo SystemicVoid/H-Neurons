@@ -24,7 +24,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from openai import APIConnectionError, APITimeoutError, OpenAI, RateLimitError
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    OpenAI,
+    PermissionDeniedError,
+    RateLimitError,
+)
 
 TERMINAL_STATUSES = frozenset({"completed", "failed", "expired", "cancelled"})
 DEFAULT_POLL_INTERVAL = 30
@@ -663,6 +670,12 @@ def resume_or_submit(
                     f"— resubmitting chunk"
                 )
                 _clear_state(state_path)
+        except (AuthenticationError, PermissionDeniedError):
+            # Auth/permission errors are NOT transient — resubmitting would
+            # just fail again (or worse, succeed and create a duplicate batch
+            # once the scope recovers).  Fail hard so the operator can fix
+            # the API key / project permissions and re-run safely.
+            raise
         except Exception as exc:
             print(
                 f"  Warning: resume failed ({exc}) — resubmitting",
