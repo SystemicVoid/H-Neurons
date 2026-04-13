@@ -15,11 +15,18 @@ from pathlib import Path
 
 import numpy as np
 
-from scripts.uncertainty import (
-    DEFAULT_BOOTSTRAP_RESAMPLES,
-    DEFAULT_BOOTSTRAP_SEED,
-    paired_bootstrap_slope_difference,
-)
+try:
+    from uncertainty import (
+        DEFAULT_BOOTSTRAP_RESAMPLES,
+        DEFAULT_BOOTSTRAP_SEED,
+        paired_bootstrap_slope_difference,
+    )
+except ModuleNotFoundError:
+    from scripts.uncertainty import (
+        DEFAULT_BOOTSTRAP_RESAMPLES,
+        DEFAULT_BOOTSTRAP_SEED,
+        paired_bootstrap_slope_difference,
+    )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -136,16 +143,18 @@ def compute_neuron_vs_random(
     alphas_arr = np.array(ALPHAS, dtype=float)
 
     per_seed = {}
+    missing_dirs: list[str] = []
+    misaligned_ids: list[str] = []
     for seed_name in CONTROL_SEEDS:
         seed_dir = CONTROL_BASE / seed_name
         if not seed_dir.exists():
-            print(f"Skipping {seed_name}: directory not found")
+            missing_dirs.append(seed_name)
             continue
 
         ctrl_ids, ctrl_traj = load_trajectories(seed_dir, ALPHAS)
         aligned = align_trajectories(neuron_ids, ctrl_ids, ctrl_traj)
         if aligned is None:
-            print(f"Skipping {seed_name}: incomplete item overlap")
+            misaligned_ids.append(seed_name)
             continue
         ctrl_traj = aligned
 
@@ -160,6 +169,23 @@ def compute_neuron_vs_random(
         result["comparison"] = f"neuron_minus_{seed_name}"
         result["n_items"] = len(neuron_ids)
         per_seed[seed_name] = result
+
+    problems: list[str] = []
+    if missing_dirs:
+        problems.append(
+            f"missing control directories: {', '.join(sorted(missing_dirs))}"
+        )
+    if misaligned_ids:
+        problems.append(
+            "control trajectories without full item overlap: "
+            f"{', '.join(sorted(misaligned_ids))}"
+        )
+    if problems:
+        raise ValueError(
+            "Cannot compute FaithEval control slope differences because "
+            + "; ".join(problems)
+            + "."
+        )
 
     # Aggregate across seeds
     diffs = [s["slope_difference_pp_per_alpha"]["estimate"] for s in per_seed.values()]
