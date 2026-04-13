@@ -14,6 +14,7 @@ import pytest
 from scripts.lib.pipeline import (
     _count_lines,
     check_stage_complete,
+    check_sentinel,
     log_run,
     main,
     manifest_count,
@@ -181,6 +182,26 @@ class TestLogRun:
 
 
 # ---------------------------------------------------------------------------
+# check_sentinel
+# ---------------------------------------------------------------------------
+
+
+class TestCheckSentinel:
+    def test_missing_returns_none(self, tmp_path: Path) -> None:
+        assert check_sentinel(tmp_path, "stop_after_pre_canary") is None
+
+    def test_present_without_reason_returns_empty_string(self, tmp_path: Path) -> None:
+        sentinel = tmp_path / "stop_after_pre_canary"
+        sentinel.write_text("")
+        assert check_sentinel(tmp_path, "stop_after_pre_canary") == ""
+
+    def test_present_with_reason_returns_trimmed_text(self, tmp_path: Path) -> None:
+        sentinel = tmp_path / "stop_after_pre_canary"
+        sentinel.write_text("pause after canary\n")
+        assert check_sentinel(tmp_path, "stop_after_pre_canary") == "pause after canary"
+
+
+# ---------------------------------------------------------------------------
 # CLI integration
 # ---------------------------------------------------------------------------
 
@@ -242,3 +263,32 @@ class TestCli:
         )
         assert rc == 0
         assert "data/foo" in (tmp_path / "notes" / "runs_to_analyse.md").read_text()
+
+    def test_check_sentinel_exit_0_and_prints_reason(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        (tmp_path / "stop_after_pre_canary").write_text("human review gate\n")
+        rc = main(
+            [
+                "check-sentinel",
+                "--dir",
+                str(tmp_path),
+                "--name",
+                "stop_after_pre_canary",
+            ]
+        )
+        assert rc == 0
+        captured = capsys.readouterr()
+        assert "human review gate" in captured.out
+
+    def test_check_sentinel_absent_exit_1(self, tmp_path: Path) -> None:
+        rc = main(
+            [
+                "check-sentinel",
+                "--dir",
+                str(tmp_path),
+                "--name",
+                "stop_after_pre_canary",
+            ]
+        )
+        assert rc == 1

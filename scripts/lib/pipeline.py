@@ -72,6 +72,16 @@ def gpu_preflight() -> None:
     subprocess.run(["nvitop", "-1"], check=False)
 
 
+# Incident: 2026-04-13 — measurement-cleanup runs needed a declarative
+# stop point between canary, full scoring, and follow-up judge blocks.
+def check_sentinel(directory: Path, name: str) -> str | None:
+    """Return sentinel reason text if a named stop file exists, else None."""
+    path = directory / name
+    if not path.exists():
+        return None
+    return path.read_text().strip()
+
+
 # Incident: forgotten runs_to_analyse entries cause analysed data to be
 # silently skipped or re-analysed. Standardise the format.
 def log_run(
@@ -136,6 +146,15 @@ def _cli_gpu_preflight(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _cli_check_sentinel(args: argparse.Namespace) -> int:
+    reason = check_sentinel(Path(args.dir), args.name)
+    if reason is None:
+        return 1
+    if reason:
+        print(reason)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="pipeline",
@@ -182,6 +201,16 @@ def main(argv: list[str] | None = None) -> int:
 
     gp = sub.add_parser("gpu-preflight", help="Print GPU status via nvitop")
     gp.set_defaults(func=_cli_gpu_preflight)
+
+    sentinel = sub.add_parser(
+        "check-sentinel",
+        help="Exit 0 if a named sentinel file exists, 1 otherwise",
+    )
+    sentinel.add_argument("--dir", required=True, help="Directory to search in")
+    sentinel.add_argument(
+        "--name", required=True, help="Sentinel filename to check for"
+    )
+    sentinel.set_defaults(func=_cli_check_sentinel)
 
     args = p.parse_args(argv)
     return args.func(args)

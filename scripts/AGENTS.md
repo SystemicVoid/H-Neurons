@@ -25,6 +25,14 @@ ${PIPELINE} manifest-count "${PILOT_IDS}" "${FULL_IDS}"
 # GPU health snapshot (non-fatal if nvitop missing)
 ${PIPELINE} gpu-preflight
 
+# Check whether an operator sentinel requests a clean stop between stages
+if ${PIPELINE} check-sentinel \
+    --dir "data/judge_validation/jailbreak_measurement_cleanup/sentinels" \
+    --name "stop_after_pre_canary"; then
+    echo "Stopping after pre-canary gate"
+    exit 0
+fi
+
 # Log a completed run to the analysis queue
 ${PIPELINE} log-run \
     --run-dir "data/gemma3_4b/intervention/jailbreak_d7/pilot100_canonical/causal/experiment" \
@@ -38,6 +46,7 @@ ${PIPELINE} log-run \
 | `check_stage_complete` | 2026-04-07: bash guard only checked file existence; power-off left alpha_8.0 at 68/100 lines, guard skipped re-generation |
 | `manifest_count` | Hardcoded sample counts that drift from actual manifests |
 | `gpu_preflight` | Launching on a busy GPU |
+| `check_sentinel` | Need to stop declaratively between expensive pipeline blocks without PID hunting |
 | `log_run` | Forgotten `runs_to_analyse.md` entries causing skipped or duplicate analysis |
 
 Tests: `tests/test_pipeline.py` (22 cases). Run `uv run pytest tests/test_pipeline.py`.
@@ -120,3 +129,22 @@ uv run python scripts/evaluate_intervention.py \
 # Log to analysis queue
 ${PIPELINE} log-run --run-dir "${OUTPUT_DIR}" --description "<benchmark + method + alphas>"
 ```
+
+## Jailbreak measurement cleanup workflow
+
+Use `scripts/infra/jailbreak_measurement_cleanup.sh` for the measurement-first rescore flow:
+
+- `pre-canary`: build deterministic first-20 subsets for H-neuron and seed-1 control, run sync CSV2 v3 on both subsets, then validate schema/join/parse behavior
+- `post-canary`: require a passing canary, then launch the two full CSV2 v3 batch rescoring jobs
+- `strongreject`: rerun the 74-record StrongREJECT gold comparison with `gpt-4o`
+- `all`: chain the three blocks in order
+
+State root: `data/judge_validation/jailbreak_measurement_cleanup/`
+
+Sentinel files live in `data/judge_validation/jailbreak_measurement_cleanup/sentinels/`:
+
+- `stop_after_pre_canary`
+- `stop_after_post_canary`
+- `stop_before_strongreject`
+
+The canary is mandatory. `post-canary` refuses to run until `canary_summary.json` reports `passed: true`.
