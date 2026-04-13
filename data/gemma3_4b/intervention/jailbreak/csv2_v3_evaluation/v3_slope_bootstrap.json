@@ -1,0 +1,51 @@
+{
+  "n_paired_samples": 459,
+  "alphas": [
+    0.0,
+    1.0,
+    1.5,
+    3.0
+  ],
+  "noop_alpha": 1.0,
+  "rates": [
+    0.3289760348583878,
+    0.33986928104575165,
+    0.3311546840958606,
+    0.3485838779956427
+  ],
+  "delta_0_to_max_pp": {
+    "estimate": 1.9607843137254943,
+    "ci": {
+      "lower": -2.396514161220048,
+      "upper": 6.318082788671026,
+      "level": 0.95,
+      "method": "bootstrap_percentile_paired"
+    }
+  },
+  "slope_pp_per_alpha": {
+    "estimate": 0.5984023238925177,
+    "ci": {
+      "lower": -0.8482207697893908,
+      "upper": 2.0159767610748025,
+      "level": 0.95,
+      "method": "bootstrap_percentile_paired"
+    }
+  },
+  "bootstrap": {
+    "n_resamples": 10000,
+    "seed": 42,
+    "confidence": 0.95,
+    "resampling": "paired_by_sample_id",
+    "interval": "percentile"
+  },
+  "delta_noop_to_max_pp": {
+    "estimate": 0.8714596949891074,
+    "noop_alpha": 1.0,
+    "ci": {
+      "lower": -2.8322440087145964,
+      "upper": 4.575163398692811,
+      "level": 0.95,
+      "method": "bootstrap_percentile_paired"
+    }
+  }
+}

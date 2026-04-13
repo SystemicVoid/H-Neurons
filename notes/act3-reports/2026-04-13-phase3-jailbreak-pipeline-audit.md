@@ -9,7 +9,8 @@
 > - `data/gemma3_4b/intervention/jailbreak/csv2_evaluation/` (H-neuron v2 results)
 > - `data/gemma3_4b/intervention/jailbreak/control/seed_1_unconstrained_csv2_v3/` (seed-1 v3 control)
 > - `data/gemma3_4b/intervention/jailbreak/control/concordance/concordance_summary.json`
-> - `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_summary.json`
+> - `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json` (v2, seed-0)
+> - `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v3_summary.json` (v3, seed-1)
 >
 > **Scripts reviewed:** `scripts/analyze_csv2.py`, `scripts/analyze_csv2_control.py`, `scripts/analyze_concordance.py`, `scripts/evaluate_csv2.py` (normalization chain), `scripts/uncertainty.py` (CI implementations)
 
@@ -78,6 +79,8 @@ The seed-0 v2 analysis ([prior report](2026-04-12-seed0-jailbreak-control-audit.
 
 **Recommendation:** Add bootstrap CI on the v3 slope, matching the methodology in the seed-0 v2 report. This doesn't need to be significant to serve the paper — "v3 slope is indistinguishable from zero, while v2 slope excludes zero" is *itself* the measurement-conclusion-break evidence.
 
+**Resolution (2026-04-13):** Bootstrap CI computed on the paired intersection (n=459 samples with valid csv2 in all 4 alphas). Slope: **+0.60 pp/alpha [−0.85, +2.02]** — CI includes zero. The point estimate shifted from +0.46 (unpaired OLS, variable denominators) to +0.60 (paired OLS, fixed denominator) due to the intersection filter; the qualitative conclusion is unchanged. Result saved to `data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation/v3_slope_bootstrap.json`. This confirms the predicted contrast: v2 slope +2.30 [+0.99, +3.58] excludes zero while v3 slope +0.60 [−0.85, +2.02] includes zero — the measurement-conclusion-break evidence for Anchor 3.
+
 ### C2 — Single-seed specificity test (HIGH)
 
 The v3 specificity comparison uses **only seed 1**. Seeds 0 and 2 exist as unconstrained control runs but were scored only with v2, not v3. The flag `h_exceeds_all_random: true` means "exceeds the one available seed," which has no statistical power.
@@ -95,6 +98,8 @@ The v3 analysis run wrote its output to the same `comparison_csv2_summary.json` 
 **Impact:** The seed-0 report's data reference is stale. If anyone re-reads that JSON expecting v2 data, they'll get v3 data.
 
 **Recommendation:** Add `--output_dir` with a version-specific path when running `analyze_csv2_control.py`. Archive the v2 summary to `comparison_csv2_v2_summary.json` if it's recoverable from git.
+
+**Resolution (2026-04-13):** Recovered v2 summary from git (commit 2d14dd5) as `comparison_csv2_v2_summary.json`. Renamed the v3 file to `comparison_csv2_v3_summary.json`. Updated the seed-0 report reference to point to the versioned v2 filename. Both files now coexist with unambiguous version suffixes.
 
 ### M1 — v2 normalization inconsistency between analysis scripts (MODERATE)
 
@@ -160,7 +165,7 @@ This is not evaluator error — it's a construct definition difference. v3 was d
 
 | Metric | Value | Statistical status |
 |---|---|---|
-| v3 slope (H-neuron) | +0.46 pp/alpha | **No CI computed; likely not significant** |
+| v3 slope (H-neuron) | +0.60 pp/alpha [−0.85, +2.02] | **CI includes zero; not significant** |
 | v3 slope (seed-1 control) | -0.34 pp/alpha | No CI computed |
 | v3 slope gap (H - control) | +0.80 pp/alpha | **No statistical test; n=1 control seed** |
 | v2 slope (H-neuron, from prior report) | +2.30 pp/alpha [+0.99, +3.58] | **Significant; CI excludes zero** |
@@ -184,7 +189,7 @@ This is not evaluator error — it's a construct definition difference. v3 was d
 ## 4. Uncertainties Remaining
 
 ### High uncertainty
-- **Is the v3 slope significantly different from zero?** Requires bootstrap CI on slope. Given overlapping per-point CIs, almost certainly not.
+- ~~**Is the v3 slope significantly different from zero?**~~ **Resolved:** +0.60 [−0.85, +2.02] pp/alpha — CI includes zero. Not significant. (n=459 paired samples.)
 - **Is the v3 H-neuron slope different from v3 control slopes?** Requires ≥2 more control seeds for a meaningful comparison.
 
 ### Medium uncertainty
@@ -200,13 +205,13 @@ This is not evaluator error — it's a construct definition difference. v3 was d
 
 ## 5. Actionable Next Steps (Ordered by Information Gained per Time)
 
-1. **Bootstrap CI on v3 slope** (~30 min). Reuse the paired_bootstrap machinery from uncertainty.py. This definitively frames the v3 slope as "indistinguishable from zero," which strengthens rather than weakens Anchor 3.
+1. ~~**Bootstrap CI on v3 slope**~~ **Done (2026-04-13).** Slope: +0.60 [−0.85, +2.02] pp/alpha — CI includes zero, confirming v3 is indistinguishable from zero. Data: `csv2_v3_evaluation/v3_slope_bootstrap.json`.
 
 2. **Score seeds 0 and 2 with v3** (~$15 API cost, ~1 hr wall time). Enables the multi-seed permutation test for v3 specificity. Without this, the v3 specificity claim rests on the v2 evidence.
 
 3. **Sensitivity analysis on v3 errors** (~15 min). Compute harmful rates with all errors classified as harmful, then all as safe. Bounds the maximum bias from error attrition.
 
-4. **Archive v2 `comparison_csv2_summary.json`** (~5 min). Recover from git and save as `comparison_csv2_v2_summary.json`. Prevents stale-reference bugs in the seed-0 report.
+4. ~~**Archive v2 `comparison_csv2_summary.json`**~~ **Done (2026-04-13).** Recovered as `comparison_csv2_v2_summary.json`; v3 renamed to `comparison_csv2_v3_summary.json`; seed-0 report reference updated.
 
 5. **Guard `analyze_csv2.py` against v2 data** (~10 min). Add the same schema-version check used in `analyze_csv2_control.py` to prevent silent inflation when run on v2 defaults.
 
@@ -216,7 +221,7 @@ This is not evaluator error — it's a construct definition difference. v3 was d
 
 | Paper claim | Supported by Phase 3? | Caveat |
 |---|---|---|
-| v3 slope flatter than v2 | **Yes** — 0.46 vs 2.30 pp/alpha | v3 slope lacks CI; comparison is descriptive |
+| v3 slope flatter than v2 | **Yes** — +0.60 [−0.85, +2.02] vs +2.30 [+0.99, +3.58] pp/alpha | v3 CI includes zero; v2 CI excludes zero — inferential contrast now supported |
 | Measurement choices change conclusions | **Yes, strongly** — same outputs, different evaluator, different slope magnitude (possibly different sign) | Delta sign disagreement at α=1.5 is noise-level; frame as "sign is evaluator-dependent at small effect sizes" |
 | H-neuron specificity on jailbreak | **Partially** — v2 specificity p=0.013 is strong; v3 specificity has n=1 seed | v3 specificity claim requires more seeds or explicit reliance on v2 evidence |
 | v3 agrees more with binary than v2 does | **Yes** — κ=0.829 vs κ=0.765 | This is a construct-alignment statement: v3's primary_outcome taxonomy aligns better with binary harmful/safe than v2's borderline-inclusive scheme |
@@ -231,6 +236,8 @@ This is not evaluator error — it's a construct definition difference. v3 was d
 | H-neuron v3 evaluation | `data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation/alpha_{0.0,1.0,1.5,3.0}.jsonl` | csv2_v3 | ✓ rates, errors, schema |
 | H-neuron v2 evaluation | `data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_{0.0,1.0,1.5,3.0}.jsonl` | legacy (no version) | ✓ borderline counts |
 | Seed-1 v3 control | `data/gemma3_4b/intervention/jailbreak/control/seed_1_unconstrained_csv2_v3/alpha_{0.0,1.0,1.5,3.0}.jsonl` | csv2_v3 | ✓ rates |
-| Comparison summary | `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_summary.json` | — | ✓ (now contains v3 data; v2 data overwritten) |
+| Comparison summary (v2) | `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json` | — | ✓ (recovered from git; seed-0) |
+| Comparison summary (v3) | `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v3_summary.json` | — | ✓ (seed-1) |
+| v3 slope bootstrap | `data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation/v3_slope_bootstrap.json` | — | ✓ (n=459 paired) |
 | Concordance summary | `data/gemma3_4b/intervention/jailbreak/control/concordance/concordance_summary.json` | — | ✓ (H-neuron only; n_control=0) |
 | Delta stability | `data/gemma3_4b/intervention/jailbreak/control/concordance/delta_stability.json` | — | ✓ |

@@ -7,7 +7,7 @@
 **Date:** 2026-04-12
 **Data root:** `data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/`
 **H-neuron reference:** `data/gemma3_4b/intervention/jailbreak/csv2_evaluation/`
-**Comparison summary:** `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_summary.json`
+**Comparison summary:** `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json`
 **Plot:** `data/gemma3_4b/intervention/jailbreak/control/negative_control_csv2_comparison.png`
 **Model:** `google/gemma-3-4b-it`
 **Control:** 38 random neurons (seed 0, `neuron_indices.json`) vs 38 H-neurons (L1 probe, deterministic)
