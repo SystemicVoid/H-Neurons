@@ -4,7 +4,36 @@
 
 ---
 
-## 2026-04-13
+## 2026-04-13 (evening)
+
+### What I did
+
+**8. Phase 3 jailbreak pipeline audit — v3 slopes, specificity, and concordance scripts reviewed end to end.** Deep audit of the three analysis pipelines producing Phase 3 jailbreak numbers: `analyze_csv2.py` (v3 slopes), `analyze_csv2_control.py` (v3 specificity comparison), and `analyze_concordance.py` (three-judge concordance). Verified raw data counts, traced normalization chains, checked statistical methodology. Report: [2026-04-13-phase3-jailbreak-pipeline-audit.md](./act3-reports/2026-04-13-phase3-jailbreak-pipeline-audit.md).
+
+### What I expected vs what happened
+
+Expected the v3 pipeline to be structurally sound (matching the v2 pipeline already audited). It is — Wilson CIs correct, OLS slopes verified, concordance joining logic clean. But the audit surfaced two high-severity issues and several moderate ones.
+
+**Main surprise: the v3 slope has no statistical test.** The seed-0 v2 analysis computed bootstrap CIs on the slope (+2.30 [+0.99, +3.58]) and a permutation test (p=0.013). No equivalent was done for v3. The v3 slope (+0.46 pp/alpha) sits under per-point CIs of ±4pp and is almost certainly not significant. The specificity comparison uses a single control seed with no permutation test — "exceeds all random seeds" means "exceeds one seed."
+
+**Second surprise: the concordance has zero control data.** The three-way join requires `seed_N_unconstrained_csv2_v2` directories that don't exist. All 1957 concordance records are H-neuron only. This doesn't invalidate the evaluator-agreement analysis but means we can't check whether agreement differs between conditions.
+
+**Third finding: the delta sign disagreement at alpha=1.5 is noise.** The v3 delta is -0.0006 (0.06pp). All three judges agree the effect is near-zero; they disagree only on which side of zero a noise-level measurement falls.
+
+### What this changes about my thinking
+
+1. **The v3 slope flattening is real evidence but needs reframing.** The slope compression from v2 (+2.30) to v3 (+0.46) on identical model outputs is itself the strongest Anchor 3 evidence: measurement choices change conclusions. But "v3 shows a dose-response" is not supportable without a slope CI. The correct framing: "v3 slope is indistinguishable from zero while v2 slope excludes zero — the measured effect magnitude depends on how you define harmful."
+
+2. **v3 specificity rests on v2 evidence.** The single-seed v3 comparison cannot support a standalone specificity claim. Either score seeds 0 and 2 with v3, or cite the v2 specificity result with a cross-reference noting the evaluator is different.
+
+3. **The comparison_csv2_summary.json was overwritten by the v3 run.** The seed-0 v2 report references that file but it now contains v3 data. Need to archive the v2 version before the stale reference causes confusion.
+
+### What I will do next
+
+Bootstrap CI on v3 slope is the highest-value 30-minute task — it definitively frames the slope as "indistinguishable from zero," which strengthens the Anchor 3 argument. Then assess whether scoring seeds 0+2 with v3 is needed for the paper or whether v2 specificity evidence suffices.
+
+
+## 2026-04-13 (afternoon)
 
 ### What I did
 
