@@ -7,7 +7,8 @@ different intervention outcomes.
 
 Panel A: Detection quality (AUROC) for three methods.
 Panel B: FaithEval compliance dose-response for H-neurons vs SAE features
-         vs random SAE feature control.
+         vs random SAE feature control, annotated with the paired
+         neuron-minus-SAE slope difference.
 Panel C: Jailbreak csv2_yes rates (full-500 D7 confirmatory run) for
          causal head intervention vs L1-neuron comparator vs shared baseline.
 
@@ -17,6 +18,7 @@ Data sources (all real, loaded from repo JSON):
   - data/gemma3_4b/intervention/faitheval/experiment/results.json
   - data/gemma3_4b/intervention/faitheval_sae/experiment/results.json
   - data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json
+  - data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json
   - data/gemma3_4b/intervention/faitheval/control/comparison_summary.json
   - data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json
   - data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json
@@ -120,6 +122,9 @@ def load_all_data() -> dict:
     fe_sae_ctrl = load_json(
         "data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json"
     )
+    fe_sae_slope_diff = load_json(
+        "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json"
+    )
 
     alphas_fe = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 
@@ -134,6 +139,10 @@ def load_all_data() -> dict:
         "mean_compliance_rates"
     ]
     data["fe_random_std"] = fe_sae_ctrl["random_sae_features"]["std_compliance_rates"]
+    data["fe_slope_diff_estimate"] = fe_sae_slope_diff["slope_difference_pp_per_alpha"][
+        "estimate"
+    ]
+    data["fe_slope_diff_ci"] = fe_sae_slope_diff["slope_difference_pp_per_alpha"]["ci"]
 
     # ------------------------------------------------------------------
     # Panel C: Jailbreak D7 full-500
@@ -338,6 +347,29 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
         color=C_SAE,
         ha="center",
         arrowprops=dict(arrowstyle="->", color=C_SAE, linewidth=0.8),
+    )
+
+    slope_diff = data["fe_slope_diff_estimate"]
+    slope_diff_ci = data["fe_slope_diff_ci"]
+    ax.text(
+        0.03,
+        0.97,
+        "paired "
+        + r"$\Delta$"
+        + f" slope = {slope_diff:+.2f} pp/$\\alpha$\n"
+        + "95% CI "
+        + f"[{slope_diff_ci['lower']:+.2f}, {slope_diff_ci['upper']:+.2f}]",
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=7.3,
+        color=TITLE_COLOR,
+        bbox=dict(
+            boxstyle="round,pad=0.28",
+            facecolor="white",
+            edgecolor="#D4DCE3",
+            alpha=0.95,
+        ),
     )
 
     ax.set_xlabel("Scaling factor (\u03b1)", fontsize=10, fontweight="bold")

@@ -8,7 +8,7 @@ This paper tests the readout-to-steering heuristic empirically in Gemma-3-4B-IT.
 
 1. **Measurement** — Can we trust the evaluation? Truncation artifacts, binary-versus-graded scoring, and evaluator construct mismatch each changed the scientific conclusion about whether an intervention worked (§6).
 
-2. **Localization** — Does the readout identify causally relevant components? SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843) yet produced null steering on the same benchmark. Probe-ranked heads achieved perfect discrimination (AUROC 1.0) yet null intervention (§4).
+2. **Localization** — Does the readout identify causally relevant components? SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843), yet in the committed full-replacement FaithEval comparison they did not translate into useful control while H-neurons did. Probe-ranked heads achieved perfect discrimination (AUROC 1.0) yet null intervention (§4).
 
 3. **Control** — Does intervention produce the intended behavioral change? When it did, the effect was narrow: H-neurons improved compliance on FaithEval but not on BioASQ; ITI improved answer selection but not open-ended generation (§5).
 

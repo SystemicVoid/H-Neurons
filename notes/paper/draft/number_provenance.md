@@ -22,9 +22,9 @@ Every key quantitative claim in the paper traced to its canonical source.
 | H-neuron FaithEval full sweep (α=0→3) | +6.3 pp | [4.2, 8.5] | `data/gemma3_4b/intervention/faitheval/experiment/results.json` (`delta_0_to_max_pp`) |
 | SAE H-features slope | +0.16 pp/α | [-0.51, 0.84] | `data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json` |
 | SAE random slope | +0.59 pp/α | — | same file |
-| Neuron-minus-SAE slope difference | +1.93 pp/α | [+0.94, +2.92] | `data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json` |
-| Neuron-minus-SAE permutation p | <0.001 (4/50,000) | — | same file |
-| Neuron-minus-random slope difference range | +1.89 to +2.20 pp/α | all CIs exclude zero | `data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json` |
+| Neuron-minus-SAE slope difference | +1.93 pp/α | [+0.94, +2.92] | Canonical audit: `notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md`; underlying summary: `data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json` |
+| Neuron-minus-SAE permutation p | <0.001 (4/50,000) | — | same audit + underlying summary |
+| Neuron-minus-random slope difference range | +1.89 to +2.20 pp/α | all CIs exclude zero | Canonical audit: `notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md`; underlying summary: `data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json` |
 | FaithEval n | 1,000 | — | `notes/measurement-blueprint.md` |
 
 ## Gradient-Selector Jailbreak Comparison (§4.3)

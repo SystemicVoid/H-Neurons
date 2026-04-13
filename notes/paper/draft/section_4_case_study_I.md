@@ -29,7 +29,7 @@ The intervention targets examined below were selected through held-out predictiv
 
 ## 4.2 Magnitude-Ranked Neurons vs. SAE Features on FaithEval
 
-This comparison is the paper's cleanest single experiment. Both methods achieve matched detection quality on the same benchmark, same model, and same behavioral construct (context-grounding compliance on FaithEval, $n = 1{,}000$). The only difference is the representational basis for intervention: neurons in the feed-forward network's down-projection input space versus features in a sparse autoencoder's latent space.
+This comparison is the paper's cleanest single experiment. Both methods achieve matched detection quality on the same benchmark, same model, and same behavioral construct (context-grounding compliance on FaithEval, $n = 1{,}000$). The comparison is matched on readout quality and evaluation surface, but the intervention families still differ in representational basis, operator form, auxiliary machinery, and layer coverage: neurons in the feed-forward network's down-projection input space versus features in a sparse autoencoder's latent space.
 
 ### Setup
 
@@ -59,7 +59,7 @@ Wilson 95% CIs shown for neurons and SAE H-features ($n = 1{,}000$). $\alpha = 1
 
 **SAE feature steering was indistinguishable from zero.** The H-feature compliance slope was $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$ — the confidence interval includes zero. The Spearman correlation was $\rho = 0.18$ (no monotonic trend). Random SAE features (266 features drawn from zero-weight classifier positions, 3 seeds) produced a mean slope of $+0.59$ pp/$\alpha$ $[0.54, 0.64]$.[^fn-sae-comparison]
 
-**The slope difference confirms the divergence.** The neuron-minus-SAE slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (paired bootstrap 95% CI, 10,000 resamples, same 1,000 items; permutation $p < 0.001$, 4/50,000 permutations $\geq$ observed gap).[^fn-slope-diff] The confidence interval excludes zero, confirming that the neuron dose-response was significantly steeper than the SAE dose-response on the same evaluation surface.
+**The slope difference confirms the divergence.** The neuron-minus-SAE slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (paired bootstrap 95% CI, 10,000 resamples, same 1,000 items; directional permutation $p < 0.001$, 4/50,000 permutations $\geq$ observed gap).[^fn-slope-diff] The confidence interval excludes zero, confirming that the neuron dose-response was significantly steeper than the SAE dose-response on the same evaluation surface. This paired slope-difference result is the paper's anchor reporting claim for the FaithEval neuron-versus-SAE comparison.[^fn-slope-diff]
 
 The distinction between the two SAE null summaries matters for cross-document consistency. The main full-sweep result reported in this paper is the $+0.16$ pp/$\alpha$ null above; the $+0.12$ pp/$\alpha$ figure reported later refers to the delta-only control that removes reconstruction error as an explanation for the null.
 
@@ -71,7 +71,7 @@ A natural objection is that the SAE's lossy reconstruction (relative L2 error $=
 
 The delta-only H-feature slope was $+0.12$ pp/$\alpha$, and the delta-only random slope was $-0.09$ pp/$\alpha$ — both indistinguishable from zero. The neuron baseline on the same three-alpha subset was $+2.12$ pp/$\alpha$. The delta-only architecture also eliminated the ${\sim}8$--$9$ pp compliance shift caused by lossy reconstruction (all non-identity alphas had produced elevated compliance regardless of feature selection under the full-replacement architecture) and reduced parse failures from $1.4$--$2.3\%$ to zero.[^fn-sae-delta]
 
-This rules out reconstruction error as the primary confounder. The SAE steering null reflects genuine feature-space misalignment: features that correlate with hallucination in static activation readouts do not causally control compliance when manipulated through the SAE's encode-modify-decode pathway.
+This rules out reconstruction error as the primary confounder for the null in this setup. The direct result is narrower than a general statement about SAE features: this SAE configuration and encode-modify-decode operator did not translate matched readout quality into useful control on FaithEval. Feature-space misalignment remains a plausible interpretation, but the delta-only result is the relevant evidence for ruling out reconstruction noise rather than the paired slope-difference result itself.
 
 ### Neuron Specificity Is Confirmed by Negative Controls
 
@@ -83,15 +83,15 @@ The H-neuron slope of $+2.09$ pp/$\alpha$ exceeds the maximum observed random sl
 
 ### Summary
 
-Detection quality was matched: AUROC $0.843$ (neurons) versus $0.848$ (SAE features). Steering diverged completely: $+2.09$ pp/$\alpha$ $[1.38, 2.83]$ versus $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$; the slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (permutation $p < 0.001$). The failure was not attributable to reconstruction error (delta-only architecture confirmed the null) or to generic perturbation effects (8 random-neuron seeds confirmed specificity, all slope-difference CIs excluding zero). Matched readout quality did not predict matched intervention utility.
+Detection quality was matched: AUROC $0.843$ (neurons) versus $0.848$ (SAE features). Steering diverged completely: $+2.09$ pp/$\alpha$ $[1.38, 2.83]$ versus $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$; the paired slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (directional permutation $p < 0.001$). The narrow reporting claim is therefore strong: on matched FaithEval items, the committed H-neuron intervention produced a steeper compliance slope than the committed full-replacement SAE intervention. The broader causal interpretation still rests on the delta-only control ruling out reconstruction error as the primary confound, while the 8 random-neuron seeds establish neuron specificity. Matched readout quality did not predict matched intervention utility.
 
 [^fn-faitheval-results]: `data/gemma3_4b/intervention/faitheval/experiment/results.json`; slope and delta CIs from paired bootstrap (10,000 resamples, seed 42).
 [^fn-sae-comparison]: `data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json`.
 [^fn-sae-audit-finding2]: `data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md`, Finding 2.
 [^fn-sae-delta]: `data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md`, Confound 1; data in `data/gemma3_4b/intervention/faitheval_sae_delta/`.
 [^fn-faitheval-control]: `data/gemma3_4b/intervention/faitheval/control/comparison_summary.json`; 5 unconstrained seeds (slopes: $+0.17$, $-0.00$, $-0.07$, $-0.11$, $+0.11$ pp/$\alpha$) and 3 layer-matched seeds (slopes: $+0.21$, $+0.16$, $+0.15$ pp/$\alpha$).
-[^fn-slope-diff]: `data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json`; paired bootstrap (10,000 resamples, seed 42) and permutation test (50,000 permutations, seed 43).
-[^fn-slope-diff-ctrl]: `data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json`; per-seed paired bootstrap slope differences (10,000 resamples each, seed 42) and permutation tests (50,000 permutations each).
+[^fn-slope-diff]: Canonical audit: `notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md`; underlying paired summary: `data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json` (paired bootstrap, 10,000 resamples, seed 42; directional permutation test, 50,000 permutations, seed 43).
+[^fn-slope-diff-ctrl]: Canonical audit: `notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md`; underlying per-seed paired summaries: `data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json` (10,000 bootstrap resamples each, 50,000 permutations each).
 
 ## 4.3 Probe-Ranked Heads vs. Gradient-Ranked Heads on Jailbreak
 
