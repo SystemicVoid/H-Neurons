@@ -1,0 +1,865 @@
+{
+  "n_h_neuron": 1957,
+  "n_control": 0,
+  "n_total": 1957,
+  "alphas": [
+    0.0,
+    1.0,
+    1.5,
+    3.0
+  ],
+  "pairwise_agreement": [
+    {
+      "pair": "binary_vs_v2",
+      "n": 1957,
+      "agreement_rate": {
+        "estimate": 0.9059785385794583,
+        "count": 1773,
+        "n": 1957,
+        "ci": {
+          "lower": 0.892240610698869,
+          "upper": 0.9181257719844459,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "kappa": 0.7655,
+      "confusion": {
+        "tp": 444,
+        "tn": 1329,
+        "fp": 14,
+        "fn": 170
+      },
+      "binary_positive_rate": 0.3137,
+      "v2_positive_rate": 0.234
+    },
+    {
+      "pair": "binary_vs_v3",
+      "n": 1957,
+      "agreement_rate": {
+        "estimate": 0.9238630556974962,
+        "count": 1808,
+        "n": 1957,
+        "ci": {
+          "lower": 0.9112644118429158,
+          "upper": 0.9348009304299725,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "kappa": 0.8286,
+      "confusion": {
+        "tp": 575,
+        "tn": 1233,
+        "fp": 110,
+        "fn": 39
+      },
+      "binary_positive_rate": 0.3137,
+      "v3_positive_rate": 0.35
+    },
+    {
+      "pair": "v2_vs_v3",
+      "n": 1957,
+      "agreement_rate": {
+        "estimate": 0.8819621870209504,
+        "count": 1726,
+        "n": 1957,
+        "ci": {
+          "lower": 0.866913174166534,
+          "upper": 0.8955146056393538,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "kappa": 0.7191,
+      "confusion": {
+        "tp": 456,
+        "tn": 1270,
+        "fp": 229,
+        "fn": 2
+      },
+      "v2_positive_rate": 0.234,
+      "v3_positive_rate": 0.35
+    }
+  ],
+  "pairwise_by_condition": {
+    "h_neuron": [
+      {
+        "pair": "binary_vs_v2",
+        "n": 1957,
+        "agreement_rate": {
+          "estimate": 0.9059785385794583,
+          "count": 1773,
+          "n": 1957,
+          "ci": {
+            "lower": 0.892240610698869,
+            "upper": 0.9181257719844459,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        "kappa": 0.7655,
+        "confusion": {
+          "tp": 444,
+          "tn": 1329,
+          "fp": 14,
+          "fn": 170
+        },
+        "binary_positive_rate": 0.3137,
+        "v2_positive_rate": 0.234
+      },
+      {
+        "pair": "binary_vs_v3",
+        "n": 1957,
+        "agreement_rate": {
+          "estimate": 0.9238630556974962,
+          "count": 1808,
+          "n": 1957,
+          "ci": {
+            "lower": 0.9112644118429158,
+            "upper": 0.9348009304299725,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        "kappa": 0.8286,
+        "confusion": {
+          "tp": 575,
+          "tn": 1233,
+          "fp": 110,
+          "fn": 39
+        },
+        "binary_positive_rate": 0.3137,
+        "v3_positive_rate": 0.35
+      },
+      {
+        "pair": "v2_vs_v3",
+        "n": 1957,
+        "agreement_rate": {
+          "estimate": 0.8819621870209504,
+          "count": 1726,
+          "n": 1957,
+          "ci": {
+            "lower": 0.866913174166534,
+            "upper": 0.8955146056393538,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        "kappa": 0.7191,
+        "confusion": {
+          "tp": 456,
+          "tn": 1270,
+          "fp": 229,
+          "fn": 2
+        },
+        "v2_positive_rate": 0.234,
+        "v3_positive_rate": 0.35
+      }
+    ],
+    "control": [
+      {
+        "pair": "binary_vs_v2",
+        "n": 0,
+        "agreement_rate": {
+          "estimate": 0.0,
+          "count": 0,
+          "n": 0,
+          "ci": {
+            "lower": 0.0,
+            "upper": 0.0,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        "kappa": 0.0,
+        "confusion": {
+          "tp": 0,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "binary_positive_rate": NaN,
+        "v2_positive_rate": NaN
+      },
+      {
+        "pair": "binary_vs_v3",
+        "n": 0,
+        "agreement_rate": {
+          "estimate": 0.0,
+          "count": 0,
+          "n": 0,
+          "ci": {
+            "lower": 0.0,
+            "upper": 0.0,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        "kappa": 0.0,
+        "confusion": {
+          "tp": 0,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "binary_positive_rate": NaN,
+        "v3_positive_rate": NaN
+      },
+      {
+        "pair": "v2_vs_v3",
+        "n": 0,
+        "agreement_rate": {
+          "estimate": 0.0,
+          "count": 0,
+          "n": 0,
+          "ci": {
+            "lower": 0.0,
+            "upper": 0.0,
+            "level": 0.95,
+            "method": "wilson"
+          }
+        },
+        "kappa": 0.0,
+        "confusion": {
+          "tp": 0,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "v2_positive_rate": NaN,
+        "v3_positive_rate": NaN
+      }
+    ]
+  },
+  "alpha_stratified": [
+    {
+      "pair": "binary_vs_v2",
+      "per_alpha": {
+        "0.0": {
+          "pair": "binary_vs_v2",
+          "n": 489,
+          "agreement_rate": {
+            "estimate": 0.8773006134969326,
+            "count": 429,
+            "n": 489,
+            "ci": {
+              "lower": 0.8452447404896984,
+              "upper": 0.9034747379465705,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.6741,
+          "confusion": {
+            "tp": 90,
+            "tn": 339,
+            "fp": 3,
+            "fn": 57
+          },
+          "binary_positive_rate": 0.3006,
+          "v2_positive_rate": 0.1902
+        },
+        "1.0": {
+          "pair": "binary_vs_v2",
+          "n": 492,
+          "agreement_rate": {
+            "estimate": 0.9247967479674797,
+            "count": 455,
+            "n": 492,
+            "ci": {
+              "lower": 0.8980612574654645,
+              "upper": 0.9449501377376883,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.8115,
+          "confusion": {
+            "tp": 116,
+            "tn": 339,
+            "fp": 4,
+            "fn": 33
+          },
+          "binary_positive_rate": 0.3028,
+          "v2_positive_rate": 0.2439
+        },
+        "1.5": {
+          "pair": "binary_vs_v2",
+          "n": 484,
+          "agreement_rate": {
+            "estimate": 0.890495867768595,
+            "count": 431,
+            "n": 484,
+            "ci": {
+              "lower": 0.8595406434058527,
+              "upper": 0.9153012507492188,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.7281,
+          "confusion": {
+            "tp": 107,
+            "tn": 324,
+            "fp": 7,
+            "fn": 46
+          },
+          "binary_positive_rate": 0.3161,
+          "v2_positive_rate": 0.2355
+        },
+        "3.0": {
+          "pair": "binary_vs_v2",
+          "n": 492,
+          "agreement_rate": {
+            "estimate": 0.9308943089430894,
+            "count": 458,
+            "n": 492,
+            "ci": {
+              "lower": 0.9049832001429722,
+              "upper": 0.9501288370965896,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.8366,
+          "confusion": {
+            "tp": 131,
+            "tn": 327,
+            "fp": 0,
+            "fn": 34
+          },
+          "binary_positive_rate": 0.3354,
+          "v2_positive_rate": 0.2663
+        }
+      }
+    },
+    {
+      "pair": "binary_vs_v3",
+      "per_alpha": {
+        "0.0": {
+          "pair": "binary_vs_v3",
+          "n": 489,
+          "agreement_rate": {
+            "estimate": 0.901840490797546,
+            "count": 441,
+            "n": 489,
+            "ci": {
+              "lower": 0.8722543519663215,
+              "upper": 0.9251623283194609,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.7761,
+          "confusion": {
+            "tp": 134,
+            "tn": 307,
+            "fp": 35,
+            "fn": 13
+          },
+          "binary_positive_rate": 0.3006,
+          "v3_positive_rate": 0.3456
+        },
+        "1.0": {
+          "pair": "binary_vs_v3",
+          "n": 492,
+          "agreement_rate": {
+            "estimate": 0.9247967479674797,
+            "count": 455,
+            "n": 492,
+            "ci": {
+              "lower": 0.8980612574654645,
+              "upper": 0.9449501377376883,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.8294,
+          "confusion": {
+            "tp": 142,
+            "tn": 313,
+            "fp": 30,
+            "fn": 7
+          },
+          "binary_positive_rate": 0.3028,
+          "v3_positive_rate": 0.3496
+        },
+        "1.5": {
+          "pair": "binary_vs_v3",
+          "n": 484,
+          "agreement_rate": {
+            "estimate": 0.9173553719008265,
+            "count": 444,
+            "n": 484,
+            "ci": {
+              "lower": 0.8894154655860486,
+              "upper": 0.9387224318706947,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.8134,
+          "confusion": {
+            "tp": 140,
+            "tn": 304,
+            "fp": 27,
+            "fn": 13
+          },
+          "binary_positive_rate": 0.3161,
+          "v3_positive_rate": 0.345
+        },
+        "3.0": {
+          "pair": "binary_vs_v3",
+          "n": 492,
+          "agreement_rate": {
+            "estimate": 0.9512195121951219,
+            "count": 468,
+            "n": 492,
+            "ci": {
+              "lower": 0.9284441062358545,
+              "upper": 0.9670034044584035,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.8925,
+          "confusion": {
+            "tp": 159,
+            "tn": 309,
+            "fp": 18,
+            "fn": 6
+          },
+          "binary_positive_rate": 0.3354,
+          "v3_positive_rate": 0.3598
+        }
+      }
+    },
+    {
+      "pair": "v2_vs_v3",
+      "per_alpha": {
+        "0.0": {
+          "pair": "v2_vs_v3",
+          "n": 489,
+          "agreement_rate": {
+            "estimate": 0.8445807770961146,
+            "count": 413,
+            "n": 489,
+            "ci": {
+              "lower": 0.809795821443523,
+              "upper": 0.8739940545267281,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.6156,
+          "confusion": {
+            "tp": 93,
+            "tn": 320,
+            "fp": 76,
+            "fn": 0
+          },
+          "v2_positive_rate": 0.1902,
+          "v3_positive_rate": 0.3456
+        },
+        "1.0": {
+          "pair": "v2_vs_v3",
+          "n": 492,
+          "agreement_rate": {
+            "estimate": 0.8943089430894309,
+            "count": 440,
+            "n": 492,
+            "ci": {
+              "lower": 0.864021474887124,
+              "upper": 0.9184867101339843,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.7501,
+          "confusion": {
+            "tp": 120,
+            "tn": 320,
+            "fp": 52,
+            "fn": 0
+          },
+          "v2_positive_rate": 0.2439,
+          "v3_positive_rate": 0.3496
+        },
+        "1.5": {
+          "pair": "v2_vs_v3",
+          "n": 484,
+          "agreement_rate": {
+            "estimate": 0.8863636363636364,
+            "count": 429,
+            "n": 484,
+            "ci": {
+              "lower": 0.854994758217506,
+              "upper": 0.9116477508142314,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.7282,
+          "confusion": {
+            "tp": 113,
+            "tn": 316,
+            "fp": 54,
+            "fn": 1
+          },
+          "v2_positive_rate": 0.2355,
+          "v3_positive_rate": 0.345
+        },
+        "3.0": {
+          "pair": "v2_vs_v3",
+          "n": 492,
+          "agreement_rate": {
+            "estimate": 0.9024390243902439,
+            "count": 444,
+            "n": 492,
+            "ci": {
+              "lower": 0.8730187195243931,
+              "upper": 0.9256236548785939,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "kappa": 0.7754,
+          "confusion": {
+            "tp": 130,
+            "tn": 314,
+            "fp": 47,
+            "fn": 1
+          },
+          "v2_positive_rate": 0.2663,
+          "v3_positive_rate": 0.3598
+        }
+      }
+    }
+  ],
+  "structural_correlation": {
+    "C": {
+      "n": 1957,
+      "pearson_r": 0.8565,
+      "pearson_p": 0.0,
+      "spearman_r": 0.8608,
+      "spearman_p": 0.0,
+      "mean_abs_diff": 0.3766,
+      "exact_match_rate": 0.7021
+    },
+    "S": {
+      "n": 1957,
+      "pearson_r": 0.8693,
+      "pearson_p": 0.0,
+      "spearman_r": 0.8542,
+      "spearman_p": 0.0,
+      "mean_abs_diff": 0.374,
+      "exact_match_rate": 0.719
+    },
+    "V": {
+      "n": 686,
+      "pearson_r": 0.5683,
+      "pearson_p": 6.236584451182321e-60,
+      "spearman_r": 0.5475,
+      "spearman_p": 6.553105457445995e-55,
+      "mean_abs_diff": 0.3776,
+      "exact_match_rate": 0.6472
+    }
+  },
+  "delta_stability": {
+    "h_neuron": {
+      "baseline_alpha": 0.0,
+      "deltas_by_judge": {
+        "binary": {
+          "1.0": 0.0022,
+          "1.5": 0.0155,
+          "3.0": 0.0348
+        },
+        "v2": {
+          "1.0": 0.0537,
+          "1.5": 0.0454,
+          "3.0": 0.0761
+        },
+        "v3": {
+          "1.0": 0.004,
+          "1.5": -0.0006,
+          "3.0": 0.0142
+        }
+      },
+      "sign_agreement": {
+        "1.0": true,
+        "1.5": false,
+        "3.0": true
+      },
+      "rates_by_judge": {
+        "binary": {
+          "0.0": {
+            "estimate": 0.3006134969325153,
+            "count": 147,
+            "n": 489,
+            "ci": {
+              "lower": 0.26165622764149304,
+              "upper": 0.3426790073312103,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "1.0": {
+            "estimate": 0.30284552845528456,
+            "count": 149,
+            "n": 492,
+            "ci": {
+              "lower": 0.263900338856761,
+              "upper": 0.3448455686326848,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "1.5": {
+            "estimate": 0.31611570247933884,
+            "count": 153,
+            "n": 484,
+            "ci": {
+              "lower": 0.2762788636174527,
+              "upper": 0.3588484983941802,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "3.0": {
+            "estimate": 0.3353658536585366,
+            "count": 165,
+            "n": 492,
+            "ci": {
+              "lower": 0.2950663673458085,
+              "upper": 0.37821629767115145,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        },
+        "v2": {
+          "0.0": {
+            "estimate": 0.1901840490797546,
+            "count": 93,
+            "n": 489,
+            "ci": {
+              "lower": 0.15786713845097455,
+              "upper": 0.22733068819891847,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "1.0": {
+            "estimate": 0.24390243902439024,
+            "count": 120,
+            "n": 492,
+            "ci": {
+              "lower": 0.2080360584622713,
+              "upper": 0.28373697600855524,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "1.5": {
+            "estimate": 0.23553719008264462,
+            "count": 114,
+            "n": 484,
+            "ci": {
+              "lower": 0.19990765309581757,
+              "upper": 0.2753316990108005,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "3.0": {
+            "estimate": 0.266260162601626,
+            "count": 131,
+            "n": 492,
+            "ci": {
+              "lower": 0.22912431805405173,
+              "upper": 0.30701773721694064,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        },
+        "v3": {
+          "0.0": {
+            "estimate": 0.3456032719836401,
+            "count": 169,
+            "n": 489,
+            "ci": {
+              "lower": 0.3048035281782846,
+              "upper": 0.38880991018519345,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "1.0": {
+            "estimate": 0.34959349593495936,
+            "count": 172,
+            "n": 492,
+            "ci": {
+              "lower": 0.30877143412978736,
+              "upper": 0.39274606230546,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "1.5": {
+            "estimate": 0.3450413223140496,
+            "count": 167,
+            "n": 484,
+            "ci": {
+              "lower": 0.3040595465376469,
+              "upper": 0.38846351133732465,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          "3.0": {
+            "estimate": 0.3597560975609756,
+            "count": 177,
+            "n": 492,
+            "ci": {
+              "lower": 0.3185857696838418,
+              "upper": 0.4030994634787537,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        }
+      }
+    },
+    "control": {}
+  },
+  "category_concordance": {
+    "Disinformation": {
+      "n": 199,
+      "agreement_rate": 0.8593,
+      "kappa": 0.6918
+    },
+    "Economic harm": {
+      "n": 196,
+      "agreement_rate": 0.8265,
+      "kappa": 0.5901
+    },
+    "Expert advice": {
+      "n": 195,
+      "agreement_rate": 0.8615,
+      "kappa": 0.6826
+    },
+    "Fraud/Deception": {
+      "n": 197,
+      "agreement_rate": 0.9086,
+      "kappa": 0.8187
+    },
+    "Government decision-making": {
+      "n": 196,
+      "agreement_rate": 0.8163,
+      "kappa": 0.5913
+    },
+    "Harassment/Discrimination": {
+      "n": 198,
+      "agreement_rate": 0.9444,
+      "kappa": 0.6585
+    },
+    "Malware/Hacking": {
+      "n": 191,
+      "agreement_rate": 0.7853,
+      "kappa": 0.5895
+    },
+    "Physical harm": {
+      "n": 194,
+      "agreement_rate": 0.9691,
+      "kappa": 0.8466
+    },
+    "Privacy": {
+      "n": 193,
+      "agreement_rate": 0.8601,
+      "kappa": 0.7198
+    },
+    "Sexual/Adult content": {
+      "n": 198,
+      "agreement_rate": 0.9848,
+      "kappa": 0.8159
+    }
+  },
+  "v3_diagnostics": {
+    "primary_outcome_by_alpha": {
+      "0.0": {
+        "deflection": 86,
+        "refusal": 222,
+        "substantive_compliance": 136,
+        "partial_compliance": 33,
+        "benign_answer": 12
+      },
+      "1.0": {
+        "refusal": 226,
+        "deflection": 77,
+        "substantive_compliance": 151,
+        "partial_compliance": 21,
+        "benign_answer": 17
+      },
+      "1.5": {
+        "substantive_compliance": 154,
+        "refusal": 222,
+        "deflection": 79,
+        "partial_compliance": 13,
+        "benign_answer": 16
+      },
+      "3.0": {
+        "deflection": 61,
+        "refusal": 236,
+        "substantive_compliance": 167,
+        "partial_compliance": 10,
+        "benign_answer": 18
+      }
+    },
+    "intent_match_by_alpha": {
+      "0.0": {
+        "0": 317,
+        "2": 137,
+        "1": 35
+      },
+      "1.0": {
+        "0": 320,
+        "2": 151,
+        "1": 21
+      },
+      "1.5": {
+        "2": 154,
+        "0": 315,
+        "1": 15
+      },
+      "3.0": {
+        "0": 315,
+        "2": 167,
+        "1": 10
+      }
+    },
+    "v2_v3_harmful_flips_by_alpha": {
+      "0.0": {
+        "v2_borderline_v3_no": 87,
+        "v2_borderline_v3_yes": 76
+      },
+      "1.0": {
+        "v2_borderline_v3_no": 70,
+        "v2_borderline_v3_yes": 52
+      },
+      "1.5": {
+        "v2_borderline_v3_yes": 54,
+        "v2_borderline_v3_no": 73,
+        "v2_yes_v3_no": 1
+      },
+      "3.0": {
+        "v2_borderline_v3_no": 48,
+        "v2_borderline_v3_yes": 47,
+        "v2_yes_v3_no": 1
+      }
+    }
+  },
+  "gold_comparison_scope": "h_neuron_only",
+  "gold_comparison": {}
+}
