@@ -1205,6 +1205,39 @@ class TestTruthfulqaMetrics:
         assert result["attempt_rate"] == 0.5
         assert result["n_attempted"] == 1
 
+    def test_aggregate_results_skips_noop_delta_when_noop_alpha_not_run(self, tmp_path):
+        output_dir = tmp_path / "direction_without_noop"
+        output_dir.mkdir()
+
+        rows_by_alpha = {
+            0.5: [
+                {"id": "sample_a", "compliance": False},
+                {"id": "sample_b", "compliance": False},
+            ],
+            1.0: [
+                {"id": "sample_a", "compliance": False},
+                {"id": "sample_b", "compliance": True},
+            ],
+            2.0: [
+                {"id": "sample_a", "compliance": True},
+                {"id": "sample_b", "compliance": True},
+            ],
+        }
+        for alpha, rows in rows_by_alpha.items():
+            (output_dir / f"alpha_{alpha:.1f}.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in rows) + "\n"
+            )
+
+        aggregation = aggregate_results(
+            str(output_dir),
+            [0.5, 1.0, 2.0],
+            noop_alpha=0.0,
+        )
+
+        effects = aggregation["effects"]["compliance_curve"]
+        assert effects["delta_0_to_max_pp"]["estimate"] == pytest.approx(100.0)
+        assert "delta_noop_to_max_pp" not in effects
+
     def test_aggregate_results_prefers_judge_grade_for_triviaqa_attempts(
         self, tmp_path
     ):

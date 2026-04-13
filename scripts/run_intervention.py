@@ -3249,6 +3249,14 @@ def aggregate_results(
     effects = {}
     if len(rows_by_alpha) >= 2:
         ordered_alphas = [alpha for alpha in alphas if alpha in rows_by_alpha]
+        resolved_noop_alpha = next(
+            (
+                alpha
+                for alpha in ordered_alphas
+                if noop_alpha is not None and np.isclose(alpha, noop_alpha)
+            ),
+            None,
+        )
         reference_ids = {rec["id"] for rec in rows_by_alpha[ordered_alphas[0]]}
         matched = all(
             {rec["id"] for rec in rows_by_alpha[alpha]} == reference_ids
@@ -3274,7 +3282,7 @@ def aggregate_results(
             effects["compliance_curve"] = paired_bootstrap_curve_effects(
                 trajectories,
                 np.array(ordered_alphas, dtype=float),
-                noop_alpha=noop_alpha,
+                noop_alpha=resolved_noop_alpha,
                 n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
                 seed=DEFAULT_BOOTSTRAP_SEED,
             )
@@ -3300,7 +3308,7 @@ def aggregate_results(
                 effects["parse_failure_curve"] = paired_bootstrap_curve_effects(
                     parse_trajectories,
                     np.array(ordered_alphas, dtype=float),
-                    noop_alpha=noop_alpha,
+                    noop_alpha=resolved_noop_alpha,
                     n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
                     seed=DEFAULT_BOOTSTRAP_SEED,
                 )

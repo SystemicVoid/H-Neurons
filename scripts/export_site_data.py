@@ -1282,7 +1282,8 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
         result_alphas = sorted_result_alphas(res)
         baseline = res[alpha_key(result_alphas[0])]
         endpoint = res[alpha_key(result_alphas[-1])]
-        return {
+        delta_noop_pp = eff.get("delta_noop_to_max_pp")
+        entry = {
             "name": name,
             "n_per_alpha": baseline["n_total"],
             "baseline_pct": as_pct(baseline["compliance_rate"]),
@@ -1297,6 +1298,9 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
             "evaluator": evaluator,
             "generation": generation,
         }
+        if delta_noop_pp is not None:
+            entry["delta_noop_pp"] = delta_noop_pp
+        return entry
 
     cross_benchmark = {
         "benchmarks": [

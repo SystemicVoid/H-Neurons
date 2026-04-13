@@ -519,21 +519,21 @@ All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `M
 | FaithEval (standard, raw) | — | -5.5 pp [-8.1, -2.8] | — | No | Regex letter match | Parse failures scale with α |
 | FaithEval (standard, α=3 remap) | — | 72.1% level estimate [69.2, 74.8]% | — | n/a | Strict answer-text remap | Only α=3.0 corrected so far |
 | FalseQA | +2.5 pp [-0.6, 5.5] | +4.8 pp [1.3, 8.3] | +1.62 pp/α [0.52, 2.74] | No | GPT-4o judge | Judge variance on borderline cases |
-| NC FaithEval unconstrained (5 seeds) | +0.02 pp / α mean | [-0.106, 0.164] pp / α | No | Regex letter match | Empirical random-set interval |
-| NC FaithEval layer-matched (3 seeds) | +0.17 pp / α mean | [0.151, 0.208] pp / α | No | Regex letter match | Small seed count; descriptive only |
-| ~~Jailbreak (256tok)~~ | ~~+6.2 pp~~ | ~~[2.4, 10.0] pp~~ | ~~No (ρ=0.679)~~ | ~~GPT-4o judge~~ | ~~No negative control; stochastic generation; template heterogeneity~~ *(truncation artifact)* |
-| Jailbreak (5000tok, binary) | +3.0 pp | [−1.2, +7.2] pp | N/A | GPT-4o judge | **Not significant**; noise floor washes out signal |
-| **Jailbreak (5000tok, CSV-v2 yes)** | **+7.6 pp** | **[+3.6, +11.6] pp** | No (non-monotonic at α=1.0→1.5) | GPT-4o CSV-v2 judge | **Significant**; 76% of count effect is ablation recovery |
-| Jailbreak CSV-v2 severity (V, S≥1) | mean V: +0.31 | — | Yes (monotonic) | GPT-4o CSV-v2 judge | V=3 rate quadruples; amplification-driven |
-| Jailbreak CSV-v2 payload share (C≥2) | +0.148 | — | Yes (monotonic) | GPT-4o CSV-v2 spans | Payload share 58%→73%; pivot recedes 16%→10% |
-| NC FalseQA unconstrained (3 seeds) | +0.00 pp / α mean | [-0.40, 0.38] pp / α | No | GPT-4o judge | Quick mode; 3-seed interval |
-| SAE H-features (FaithEval) | -2.4 pp | [-4.9, 0.1] pp | No (ρ=0.18) | Regex letter match | Lossy encode/decode dominates; slope CI contains zero |
-| SAE random features (3 seeds) | +0.59 pp / α mean | [0.54, 0.64] pp / α | No | Regex letter match | Lossy encode/decode; feature-independent baseline |
-| SAE delta-only H-features | +0.12 pp / α | — | — | Regex letter match | Reconstruction error cancelled; slope ≈ 0 |
-| SAE delta-only random (1 seed) | -0.09 pp / α | — | — | Regex letter match | Reconstruction error cancelled; slope ≈ 0 |
-| D3.5 refusal-overlap audit | canonical gap: -0.018; subspace gap: +0.036 | canonical: [-0.031, -0.013], subspace: [+0.025, +0.039] | No | Residual-stream overlap + matched null | Real overlap, but signal collapses when layer 33 is removed |
-| Verbosity confound (mean agg) | truth d=-0.50, length d=-1.86 | — | — | CETT activation readout | Length dominates truth 3.7:1; A_verbosity verdict |
-| Verbosity confound (max agg) | truth d=-0.27, length d=+4.28 | — | — | CETT activation readout | Length dominates truth 16:1; A_verbosity verdict |
+| NC FaithEval unconstrained (5 seeds) | — | — | +0.02 pp / α mean [-0.106, 0.164] | No | Regex letter match | Empirical random-set interval |
+| NC FaithEval layer-matched (3 seeds) | — | — | +0.17 pp / α mean [0.151, 0.208] | No | Regex letter match | Small seed count; descriptive only |
+| ~~Jailbreak (256tok)~~ | ~~+6.2 pp [2.4, 10.0]~~ | ~~—~~ | ~~+2.14 pp / α [0.91, 3.39]~~ | ~~No (ρ=0.679)~~ | ~~GPT-4o judge~~ | ~~No negative control; stochastic generation; template heterogeneity~~ *(truncation artifact)* |
+| Jailbreak (5000tok, binary) | +3.0 pp [−1.2, +7.2] | — | +1.04 pp / α [−0.27, +2.35] | N/A | GPT-4o judge | **Not significant**; noise floor washes out signal |
+| **Jailbreak (5000tok, CSV-v2 yes)** | **+7.6 pp [+3.6, +11.6]** | — | **+2.30 pp / α** | No (non-monotonic at α=1.0→1.5) | GPT-4o CSV-v2 judge | **Significant**; 76% of count effect is ablation recovery |
+| Jailbreak CSV-v2 severity (V, S≥1) | mean V: +0.31 | — | — | Yes (monotonic) | GPT-4o CSV-v2 judge | V=3 rate quadruples; amplification-driven |
+| Jailbreak CSV-v2 payload share (C≥2) | +0.148 | — | — | Yes (monotonic) | GPT-4o CSV-v2 spans | Payload share 58%→73%; pivot recedes 16%→10% |
+| NC FalseQA unconstrained (3 seeds) | — | — | +0.00 pp / α mean [-0.40, 0.38] | No | GPT-4o judge | Quick mode; 3-seed interval |
+| SAE H-features (FaithEval) | -2.4 pp [-4.9, 0.1] | — | 0.16 pp / α [-0.51, 0.84] | No (ρ=0.18) | Regex letter match | Lossy encode/decode dominates; slope CI contains zero |
+| SAE random features (3 seeds) | — | — | +0.59 pp / α mean [0.54, 0.64] | No | Regex letter match | Lossy encode/decode; feature-independent baseline |
+| SAE delta-only H-features | — | — | +0.12 pp / α | — | Regex letter match | Reconstruction error cancelled; slope ≈ 0 |
+| SAE delta-only random (1 seed) | — | — | -0.09 pp / α | — | Regex letter match | Reconstruction error cancelled; slope ≈ 0 |
+| D3.5 refusal-overlap audit | canonical gap: -0.018; subspace gap: +0.036 | canonical: [-0.031, -0.013], subspace: [+0.025, +0.039] | — | — | Residual-stream overlap + matched null | Real overlap, but signal collapses when layer 33 is removed |
+| Verbosity confound (mean agg) | truth d=-0.50, length d=-1.86 | — | — | — | CETT activation readout | Length dominates truth 3.7:1; A_verbosity verdict |
+| Verbosity confound (max agg) | truth d=-0.27, length d=+4.28 | — | — | — | CETT activation readout | Length dominates truth 16:1; A_verbosity verdict |
 
 The core causal claim holds: amplifying these 38 H-neurons increases over-compliance behavior, and the effect is specific to H-neurons (not a generic perturbation artifact) on the two benchmarks with negative controls (FaithEval and FalseQA). The robust local evidence covers FaithEval (letter-extraction scoring immune to raw length confounding, plus negative controls ruling out indirect response-style channels) and FalseQA (with independent negative control). Jailbreak now shows a **significant same-direction effect under CSV-v2 graded evaluation** (+7.6pp [+3.6, +11.6] for harmful count, plus monotonic severity escalation across V, S, payload share, and pivot position), but remains provisional pending a benchmark-specific negative control. The 4-alpha CSV-v2 data reveals a structural decomposition: the count effect is dominated by ablation recovery (α=0→1), while severity escalation is continuously amplification-driven (monotonic across α=1→3). The standard-prompt apparent drop is an evaluator parsing artifact, not a real behavioral reversal. SAE feature-space steering does not replicate the neuron-level effect under either full-replacement or delta-only architectures; the failure is fundamental feature-space misalignment, not reconstruction noise (Finding 6). A separate D3.5 refusal-overlap audit found real overlap with refusal geometry versus a matched null, but the explanatory signal is too concentrated in layer 33 to justify changing D4 scope yet.
 

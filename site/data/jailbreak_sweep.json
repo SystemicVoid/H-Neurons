@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-01",
+  "generated_at": "2026-04-13",
   "generated_by": "scripts/export_site_data.py",
   "benchmark": "jailbreak",
   "model": "google/gemma-3-4b-it",
@@ -712,7 +712,17 @@
         "negative_control": "available",
         "monotonic": true,
         "evaluator": "MC-letter extraction",
-        "generation": "greedy"
+        "generation": "greedy",
+        "delta_noop_pp": {
+          "estimate": 4.499999999999993,
+          "noop_alpha": 1.0,
+          "ci": {
+            "lower": 2.9000000000000026,
+            "upper": 6.099999999999994,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        }
       },
       {
         "name": "FalseQA",
@@ -740,7 +750,17 @@
         "negative_control": "available",
         "monotonic": false,
         "evaluator": "GPT-4o binary judge",
-        "generation": "greedy"
+        "generation": "greedy",
+        "delta_noop_pp": {
+          "estimate": 2.4745269286754024,
+          "noop_alpha": 1.0,
+          "ci": {
+            "lower": -0.5822416302765698,
+            "upper": 5.5312954876273634,
+            "level": 0.95,
+            "method": "bootstrap_percentile_paired"
+          }
+        }
       },
       {
         "name": "JailbreakBench",

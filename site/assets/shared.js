@@ -354,6 +354,7 @@
 
   function hydrateInterventionSummary(summary) {
     const antiEffects = summary.series.anti_compliance.effects;
+    const antiNoopEffect = antiEffects.delta_noop_to_max_pp ?? antiEffects.delta_0_to_max_pp;
     const standardRawAlphaThree = summary.series.standard_raw.points.find(
       (point) => point.alpha === 3.0,
     );
@@ -381,6 +382,16 @@
       'data-intervention-summary-bind',
       'anti-delta-ci-text',
       formatPpCiText(antiEffects.delta_0_to_max_pp.ci),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'anti-noop-delta-value',
+      formatSignedPp(antiNoopEffect.estimate),
+    );
+    setBoundText(
+      'data-intervention-summary-bind',
+      'anti-noop-delta-ci-text',
+      formatPpCiText(antiNoopEffect.ci),
     );
     setBoundText(
       'data-intervention-summary-bind',
@@ -681,9 +692,16 @@
 
     benchmarks.forEach((bench) => {
       const key = bench.name.toLowerCase().replace(/[^a-z]/g, '');
+      const delta = bench.delta_pp;
+      const noopDelta = bench.delta_noop_pp ?? delta;
+      const slope = bench.slope_pp_per_alpha;
+
       setBoundText('data-cross-benchmark-bind', `${key}-delta`, formatSignedPp(bench.delta_pp.estimate));
       setBoundText('data-cross-benchmark-bind', `${key}-ci`, formatPpCiText(bench.delta_pp.ci));
-      setBoundText('data-cross-benchmark-bind', `${key}-slope`, formatPpPerAlpha(bench.slope_pp_per_alpha.estimate));
+      setBoundText('data-cross-benchmark-bind', `${key}-noop-delta`, formatSignedPp(noopDelta.estimate));
+      setBoundText('data-cross-benchmark-bind', `${key}-noop-ci`, formatPpCiText(noopDelta.ci));
+      setBoundText('data-cross-benchmark-bind', `${key}-slope`, formatPpPerAlpha(slope.estimate));
+      setBoundText('data-cross-benchmark-bind', `${key}-slope-ci`, formatPpCiText(slope.ci));
       setBoundText('data-cross-benchmark-bind', `${key}-n`, `n=${bench.n_per_alpha.toLocaleString()}`);
       setBoundText(
         'data-cross-benchmark-bind',
