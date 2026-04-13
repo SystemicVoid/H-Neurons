@@ -61,6 +61,61 @@ def test_paired_bootstrap_curve_effects_reports_positive_delta_for_increasing_cu
     assert summary["slope_pp_per_alpha"]["estimate"] > 0
 
 
+def test_noop_to_max_delta_uses_correct_baseline():
+    trajectories = np.array(
+        [
+            [0, 0, 1],
+            [0, 1, 1],
+            [0, 0, 0],
+            [1, 1, 1],
+        ],
+        dtype=bool,
+    )
+    alphas = np.array([0.0, 1.0, 2.0])
+
+    summary = paired_bootstrap_curve_effects(
+        trajectories,
+        alphas,
+        noop_alpha=1.0,
+        n_resamples=500,
+        seed=3,
+    )
+
+    # noop-to-max should equal (rate at alpha=2) - (rate at alpha=1)
+    rates = trajectories.mean(axis=0)
+    expected = (rates[2] - rates[1]) * 100.0
+    assert summary["delta_noop_to_max_pp"]["estimate"] == pytest.approx(expected)
+    assert summary["delta_noop_to_max_pp"]["noop_alpha"] == 1.0
+    # noop-to-max must be smaller than 0-to-max (ablation recovery excluded)
+    assert (
+        summary["delta_noop_to_max_pp"]["estimate"]
+        < summary["delta_0_to_max_pp"]["estimate"]
+    )
+    ci = summary["delta_noop_to_max_pp"]["ci"]
+    assert ci["lower"] <= summary["delta_noop_to_max_pp"]["estimate"] <= ci["upper"]
+
+
+def test_without_noop_alpha_omits_field():
+    trajectories = np.array([[0, 1], [1, 1]], dtype=bool)
+    alphas = np.array([0.0, 1.0])
+
+    summary = paired_bootstrap_curve_effects(
+        trajectories, alphas, n_resamples=100, seed=1
+    )
+
+    assert "delta_noop_to_max_pp" not in summary
+
+
+def test_invalid_noop_alpha_raises():
+    trajectories = np.array([[0, 1], [1, 1]], dtype=bool)
+    alphas = np.array([0.0, 1.0])
+
+    with pytest.raises(ValueError, match="noop_alpha=99.0"):
+        paired_bootstrap_curve_effects(
+            trajectories, alphas, noop_alpha=99.0, n_resamples=100, seed=1
+        )
+
+
 def test_paired_bootstrap_binary_rate_difference_reports_expected_point_estimate():
     baseline = np.array([0, 0, 1, 1], dtype=bool)
     comparison = np.array([0, 1, 1, 1], dtype=bool)

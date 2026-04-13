@@ -269,6 +269,7 @@ def paired_bootstrap_curve_effects(
     trajectories: np.ndarray,
     alphas: np.ndarray,
     *,
+    noop_alpha: float | None = None,
     confidence: float = DEFAULT_CONFIDENCE,
     n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
     seed: int = DEFAULT_BOOTSTRAP_SEED,
@@ -282,21 +283,39 @@ def paired_bootstrap_curve_effects(
     if trajectories.shape[1] != len(alphas):
         raise ValueError("trajectories second dimension must match alphas length")
 
+    noop_idx: int | None = None
+    if noop_alpha is not None:
+        matches = np.flatnonzero(np.isclose(alphas, noop_alpha))
+        if len(matches) != 1:
+            raise ValueError(
+                f"noop_alpha={noop_alpha} must match exactly one entry in alphas; "
+                f"found {len(matches)} matches"
+            )
+        noop_idx = int(matches[0])
+
     rates = trajectories.mean(axis=0)
     slope = np.polyfit(alphas, rates * 100.0, 1)[0]
     delta = (rates[-1] - rates[0]) * 100.0
+    noop_delta = (rates[-1] - rates[noop_idx]) * 100.0 if noop_idx is not None else None
 
     n_samples = trajectories.shape[0]
     rng = np.random.default_rng(seed)
     slope_samples = np.empty(n_resamples, dtype=float)
     delta_samples = np.empty(n_resamples, dtype=float)
+    noop_delta_samples = (
+        np.empty(n_resamples, dtype=float) if noop_idx is not None else None
+    )
     for sample_idx in range(n_resamples):
         indices = rng.choice(n_samples, size=n_samples, replace=True)
         sample_rates = trajectories[indices].mean(axis=0)
         slope_samples[sample_idx] = np.polyfit(alphas, sample_rates * 100.0, 1)[0]
         delta_samples[sample_idx] = (sample_rates[-1] - sample_rates[0]) * 100.0
+        if noop_delta_samples is not None:
+            noop_delta_samples[sample_idx] = (
+                sample_rates[-1] - sample_rates[noop_idx]
+            ) * 100.0
 
-    return {
+    result = {
         "rates": rates.tolist(),
         "delta_0_to_max_pp": {
             "estimate": float(delta),
@@ -322,3 +341,18 @@ def paired_bootstrap_curve_effects(
             "interval": "percentile",
         },
     }
+
+    if noop_alpha is not None:
+        # noop_idx, noop_delta, noop_delta_samples are guaranteed set when noop_alpha is
+        assert noop_delta is not None and noop_delta_samples is not None
+        result["delta_noop_to_max_pp"] = {
+            "estimate": float(noop_delta),
+            "noop_alpha": float(noop_alpha),
+            "ci": percentile_interval(
+                noop_delta_samples,
+                confidence,
+                method="bootstrap_percentile_paired",
+            ).to_dict(),
+        }
+
+    return result
