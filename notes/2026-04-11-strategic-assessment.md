@@ -98,7 +98,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 **Supporting but caveated** (useful in the paper, explicit caveats required):
 - D7 pilot probe-null vs causal-positive — no random-head control yet; present as "benchmark-local evidence that an alternative selector can work on this surface"
 - D7 full-500 causal result vs baseline and L1 comparator — 112/500 token-cap hits = visible quality debt
-- H-neuron jailbreak CSV-v2 effect — seed-0 specificity confirmed (slope diff +2.77 pp/alpha [1.17, 4.42], p=0.013); seeds 1-2 pending for multi-seed robustness. See [seed-0 control audit](act3-reports/2026-04-12-seed0-jailbreak-control-audit.md)
+- H-neuron jailbreak CSV-v2 effect — seed-0 specificity confirmed (slope diff +2.77 pp/alpha [1.17, 4.42], p=0.013); seeds 1-2 pending for multi-seed robustness. See [seed-0 control audit](act3-reports/2026-04-12-seed0-jailbreak-control-audit.md). V3 binary slope non-significant (+0.46 [-1.46, +2.41]), but v3 severity-shift (substantive_compliance +2.00 [+0.11, +3.87]) is marginally significant; see [v2-v3 paired comparison](act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md)
 - CSV v3 zero-FP / zero-solo-error edge — holdout compressed gap vs StrongREJECT from 12.2 to 2.0pp; evaluator optimization is a supporting measurement problem, not a main scientific bottleneck
 
 **Paper rule:** Do not lead a section or build a central argument on supporting-caveated evidence. These results strengthen claims anchored by headline-safe evidence.
@@ -110,7 +110,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 > |---|---|---|---|
 > | **1. SAE vs H-neurons on FaithEval** | Localization → Control | Matched AUROC, divergent steering; delta-only rules out reconstruction | 4288 artifact, verbosity confound (localization fragility); D7 selector choice |
 > | **2. ITI MC vs bridge generation** | Control → Externality | MC +6.3pp vs bridge −5.8pp [−8.8, −3.0] on locked test set; wrong-entity substitution (30/43) | H-neuron scope (FaithEval yes, BioASQ no); D4 vs D1 |
-> | **3. Jailbreak evaluation** | Measurement → Conclusion | Truncation artifact; binary-judge blind spots; graded vs binary reversal | Holdout compresses v3-SR gap; evaluator dependence is part of the result |
+> | **3. Jailbreak evaluation** | Measurement → Conclusion | Truncation artifact; binary-judge blind spots; v2-v3 slope compression (2.30→0.46 on same outputs, mechanism transparent) | Holdout compresses v3-SR gap; severity-shift (substantive_compliance +2.00 pp/α, marginal); evaluator dependence is part of the result. See [v2-v3 paired comparison](act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md) |
 >
 > D7 (selector-choice evidence) and 4288 (detector-interpretation evidence) are valuable supporting evidence within Anchors 1 and 3 respectively, not standalone pillars.
 

@@ -1,5 +1,7 @@
 # Phase 3 Jailbreak Analysis Pipeline Audit — 2026-04-13
 
+> **Note (2026-04-13):** The interpretation and statistical analysis in §3 has been superseded by the [v2-v3 paired evaluator comparison](2026-04-13-v2-v3-paired-evaluator-comparison.md), which adds bootstrap CIs on the v3 slope, the severity-shift finding (substantive_compliance dose-response), and a complete transition-matrix decomposition. The data verification (§1) and issue inventory (§2) here remain canonical.
+
 > **Scope:** Scientific audit of three analysis pipelines producing the Phase 3 jailbreak results: `analyze_csv2.py` (v3 slopes), `analyze_csv2_control.py` (specificity comparison), and `analyze_concordance.py` (three-judge concordance).
 >
 > **Prior work:** [seed-0 jailbreak control audit](2026-04-12-seed0-jailbreak-control-audit.md) (v2 specificity, owns slope-difference CI), [jailbreak measurement cleanup](2026-04-13-jailbreak-measurement-cleanup.md) (canary, StrongREJECT rerun), [4-way evaluator holdout validation](2026-04-12-4way-evaluator-holdout-validation.md) (v3 accuracy validation)

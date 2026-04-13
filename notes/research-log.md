@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-04-13 (late evening)
+
+### What I did
+
+**9. V2 vs V3 paired evaluator comparison — the full Anchor 3 analysis.** Deep paired analysis of H-neuron 38 data scored by both v2 and v3 evaluators on the same model outputs, plus seed-1 v3 control for specificity. Computed bootstrap CIs on all v3 slopes, built the complete ID-level transition matrix, and decomposed the slope compression mechanism. Report: [2026-04-13-v2-v3-paired-evaluator-comparison.md](./act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md).
+
+### What I expected vs what happened
+
+Expected the v3 slope CI to include zero (confirming the pipeline audit's prediction). It does: +0.46 pp/alpha [-1.46, +2.41]. The measurement-changes-conclusions framing holds cleanly. But the bigger surprise came from the v3 primary_outcome taxonomy.
+
+**The severity-shift finding changes the story.** The v3 harmful_binary rate is flat, but substantive_compliance increases significantly: +2.00 pp/alpha [+0.11, +3.87], CI excludes zero. The intervention isn't crossing the harmful/safe boundary — it's intensifying severity within the harmful population. Partial compliance → substantive compliance. Deflection → refusal. The dose-response exists, but at a different measurement level than v2's binary metric captures.
+
+The slope compression mechanism is now fully transparent: v2_yes increases by +38 records from α=0→3, but the number of borderlines that v3 absorbs into "yes" decreases by -29 (because the intervention polarizes borderlines away from the middle). Net v3_yes increase: +8 records. The 88% slope compression (2.30 → 0.46) is entirely explained by this arithmetic. The reclassification rate itself is alpha-stable (42-50%), confirming the compression is driven by polarization, not by v3 behaving differently at different alphas.
+
+The transition matrix is remarkably clean: zero v2-no → v3-yes flips across all 1957 records. Only 2 v2-yes → v3-no flips. All 229 discordant records are v2-borderline → v3-yes — construct expansion, not evaluator error.
+
+### What this changes about my thinking
+
+1. **Anchor 3 gains a third level.** The original framing ("same outputs, different evaluator, different conclusion") was level 1. The mechanism transparency (borderline absorption + polarization) was level 2. The severity-shift finding adds level 3: the evaluator doesn't just change the magnitude of the conclusion — it changes the *type* of conclusion that's detectable. This is a methodological insight about measurement granularity, not just an observation about evaluator disagreement.
+
+2. **The severity-shift claim is fragile.** The substantive_compliance slope CI lower bound is +0.11 — barely excludes zero. A different bootstrap seed could flip this. For the paper, this needs a caveat (marginally significant, single model, single control seed). It's directionally strong but not headline-safe without replication.
+
+3. **V3 specificity still rests on v2 evidence.** The v3 binary slope gap CI includes zero (+0.80 [-2.00, +3.58]). The substantive_compliance gap CI barely excludes zero (+2.72 [+0.02, +5.44]). Scoring seed-0 with v3 would strengthen or weaken both claims and is the highest-value remaining experiment.
+
+### What I will do next
+
+Scoring seed-0 with v3 is the clear next step — it enables paired v2-v3 on control data *and* multi-seed specificity testing. For the paper, the three-level Anchor 3 framing is ready to draft. The severity-shift finding should appear as supporting evidence with explicit caveats, not as a headline claim.
+
+---
+
 ## 2026-04-13 (evening)
 
 ### What I did
