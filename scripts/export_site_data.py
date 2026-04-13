@@ -354,7 +354,9 @@ def build_binary_trajectory_effects(base_dir: Path, field: str) -> dict[str, Any
         ],
         dtype=bool,
     )
-    return paired_bootstrap_curve_effects(trajectories, np.array(ALPHAS, dtype=float))
+    return paired_bootstrap_curve_effects(
+        trajectories, np.array(ALPHAS, dtype=float), noop_alpha=1.0
+    )
 
 
 def build_parse_failure_effects(base_dir: Path) -> dict[str, Any]:
@@ -372,7 +374,9 @@ def build_parse_failure_effects(base_dir: Path) -> dict[str, Any]:
         ],
         dtype=bool,
     )
-    return paired_bootstrap_curve_effects(trajectories, np.array(ALPHAS, dtype=float))
+    return paired_bootstrap_curve_effects(
+        trajectories, np.array(ALPHAS, dtype=float), noop_alpha=1.0
+    )
 
 
 def build_selected_h_neuron_structure(

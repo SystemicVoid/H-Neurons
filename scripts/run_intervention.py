@@ -3124,7 +3124,12 @@ def _triviaqa_bridge_pairwise_effects(
 # ---------------------------------------------------------------------------
 
 
-def aggregate_results(output_dir, alphas, baseline_alpha: float | None = None):
+def aggregate_results(
+    output_dir,
+    alphas,
+    baseline_alpha: float | None = None,
+    noop_alpha: float | None = None,
+):
     """Read all alpha files and compute compliance rates."""
     results = {}
     throughput = {"by_alpha": {}}
@@ -3269,6 +3274,7 @@ def aggregate_results(output_dir, alphas, baseline_alpha: float | None = None):
             effects["compliance_curve"] = paired_bootstrap_curve_effects(
                 trajectories,
                 np.array(ordered_alphas, dtype=float),
+                noop_alpha=noop_alpha,
                 n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
                 seed=DEFAULT_BOOTSTRAP_SEED,
             )
@@ -3294,6 +3300,7 @@ def aggregate_results(output_dir, alphas, baseline_alpha: float | None = None):
                 effects["parse_failure_curve"] = paired_bootstrap_curve_effects(
                     parse_trajectories,
                     np.array(ordered_alphas, dtype=float),
+                    noop_alpha=noop_alpha,
                     n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
                     seed=DEFAULT_BOOTSTRAP_SEED,
                 )
@@ -4083,6 +4090,7 @@ def main():
             output_dir,
             args.alphas,
             baseline_alpha=bridge_baseline_alpha,
+            noop_alpha=NOOP_ALPHA_BY_INTERVENTION_MODE.get(args.intervention_mode),
         )
 
         # Save summary
