@@ -2,15 +2,16 @@
 Figure 3: Surface-Local Control and Bridge Failure Modes.
 
 Shows that ITI's MC truthfulness gain does not transfer to free-form
-generation: confident wrong-entity substitution is the dominant failure mode.
+generation: wrong-entity substitution is the dominant failure mode.
 
 Panel A: Grouped bar chart of ITI effect across task types (MC vs generation).
-Panel B: Taxonomy of right-to-wrong flips at E0 alpha=8 on TriviaQA bridge.
+Panel B: Taxonomy of right-to-wrong flips at E0 alpha=8 on TriviaQA bridge test set.
 Panel C: Text table of substitution examples showing entity-swap pattern.
 
 Data sources (from audited reports):
   - notes/act3-reports/2026-04-01-priority-reruns-audit.md (ITI MC1 & SimpleQA)
-  - notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md (bridge results)
+  - notes/act3-reports/2026-04-13-bridge-phase3-test-results.md (bridge test-set results)
+  - notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md (E1 dev-only comparison)
 
 Usage:
     uv run python notes/paper/draft/figures/fig3_bridge_failure.py
@@ -97,49 +98,49 @@ PANEL_A_DATA = [
         "direction": "negative",
     },
     {
-        "label": "TriviaQA bridge\n(E1 \u03b1=8)",
-        "delta": -9.0,
-        "ci_lo": -16.0,
+        "label": "TriviaQA bridge\n(E0 \u03b1=8, test)",
+        "delta": -5.8,
+        "ci_lo": -8.8,
         "ci_hi": -3.0,
         "direction": "negative",
     },
 ]
 
-# Panel B: Flip taxonomy from bridge report section 4.2
-# (10 right-to-wrong flips at E0 alpha=8.0)
+# Panel B: Flip taxonomy from Phase 3 test report section 5.1
+# (43 right-to-wrong flips at E0 alpha=8.0 on held-out test set)
 FLIP_TAXONOMY = [
-    ("Substitution", 5, C_SUBSTITUTION),
-    ("Verbosity", 3, C_VERBOSITY),
-    ("Evasion", 1, C_EVASION),
-    ("Other", 1, C_OTHER),
+    ("Wrong-entity\nsubstitution", 30, C_SUBSTITUTION),
+    ("Evasion /\nfactual denial", 8, C_EVASION),
+    ("Verbosity /\ndilution", 3, C_VERBOSITY),
+    ("Formal\nrefusal", 2, C_OTHER),
 ]
 
-# Panel C: Substitution examples from bridge report section 4.2
+# Panel C: Substitution examples from Phase 3 test report section 5.2
 SUBSTITUTION_EXAMPLES = [
     (
-        "Lewis Carroll hunting poem?",
-        '"Hunting of the Snark"',
-        '"Hunting for a caucus-race"',
+        "Danny Boyle 1996 film?",
+        '"Trainspotting"',
+        '"Slumdog Millionaire" (same director)',
     ),
     (
-        "Lead singer of The Specials?",
-        '"Terry Hall"',
-        '"Horace Panter" (bassist)',
+        "Third musician in 1959 crash?",
+        '"Ritchie Valens"',
+        '"J.P. Richardson" (same crash)',
     ),
     (
-        "Microcephaly = abnormally small __?",
-        '"Head size"',
-        '"Brain size"',
+        "Family Guy spin-off character?",
+        '"Cleveland Brown"',
+        '"Peter Griffin" (same show)',
     ),
     (
-        "WWII coin gambling game?",
-        '"Two-up"',
-        '"Nimble Nick"',
+        "Dickens: Merdle & Sparkler?",
+        '"Little Dorrit"',
+        '"Bleak House" (same author)',
     ),
     (
-        "Scottish paper with Broons/Wullie?",
-        '"The Sunday Post"',
-        '"The Scotsman"',
+        "DC comic introducing Superman?",
+        '"Action Comics"',
+        '"Detective Comics" (same publisher)',
     ),
 ]
 
@@ -270,9 +271,9 @@ def draw_panel_b(ax: plt.Axes) -> None:
     ax.set_yticklabels(labels, fontsize=9.5)
     ax.invert_yaxis()
 
-    ax.set_xlabel("Count (n=10 flips)", fontsize=9.5, fontweight="bold")
+    ax.set_xlabel("Count (n=43 flips)", fontsize=9.5, fontweight="bold")
     ax.set_title(
-        "B. Right-to-wrong flip taxonomy\n     (E0 \u03b1=8, TriviaQA bridge)",
+        "B. Right-to-wrong flip taxonomy\n     (E0 \u03b1=8, bridge test set, n=500)",
         fontsize=11,
         fontweight="bold",
         color=TITLE_COLOR,
@@ -280,7 +281,7 @@ def draw_panel_b(ax: plt.Axes) -> None:
         pad=10,
     )
 
-    ax.set_xlim(0, 7.0)
+    ax.set_xlim(0, 38.0)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(axis="x", labelsize=8.5)

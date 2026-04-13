@@ -41,8 +41,8 @@ ANCHORS = [
     ),
     (
         "Anchor 2: ITI MC +6.3 pp vs bridge\n"
-        "\u22127 pp; confident wrong-entity\n"
-        "substitution"
+        "\u22125.8 pp [\u22128.8, \u22123.0]; wrong-entity\n"
+        "substitution (30/43)"
     ),
 ]
 
