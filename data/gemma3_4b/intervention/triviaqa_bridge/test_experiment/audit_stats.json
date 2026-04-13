@@ -1,0 +1,51 @@
+{
+  "audit_seed": 42,
+  "match_audit_fraction": 0.2,
+  "match_audit_min": 30,
+  "n_nonmatch_candidates": 301,
+  "n_match_candidates": 189,
+  "match_audit_target_n": 37,
+  "nonmatch_judged": 301,
+  "nonmatch_recovered": 26,
+  "match_audited": 37,
+  "match_disagree": 0,
+  "audit_disagree_rate_nonmatches": 0.0864,
+  "audit_disagree_rate_matches": 0.0,
+  "per_alpha": {
+    "1.0": {
+      "n_nonmatch_candidates": 301,
+      "n_match_candidates": 189,
+      "match_audit_target_n": 37,
+      "nonmatch_judged": 301,
+      "nonmatch_recovered": 26,
+      "match_audited": 37,
+      "match_disagree": 0,
+      "audit_disagree_rate_nonmatches": 0.0864,
+      "audit_disagree_rate_matches": 0.0
+    }
+  },
+  "pilot_gate": {
+    "required_match_n": 20,
+    "required_nonmatch_n": 20,
+    "agreement_threshold": 0.9,
+    "by_alpha": {
+      "1.0": {
+        "status": "ready",
+        "required_match_n": 20,
+        "required_nonmatch_n": 20,
+        "required_total_n": 40,
+        "available_match_n": 20,
+        "available_nonmatch_n": 20,
+        "completed_match_n": 20,
+        "completed_nonmatch_n": 20,
+        "completed_total_n": 40,
+        "agree_match_n": 20,
+        "agree_nonmatch_n": 19,
+        "agree_total_n": 39,
+        "agreement_rate": 0.975,
+        "agreement_threshold": 0.9,
+        "passes_agreement_threshold": true
+      }
+    }
+  }
+}

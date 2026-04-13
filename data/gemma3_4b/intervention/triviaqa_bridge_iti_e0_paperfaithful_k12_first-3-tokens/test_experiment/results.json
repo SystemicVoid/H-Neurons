@@ -1,0 +1,92 @@
+{
+  "benchmark": "triviaqa_bridge",
+  "results": {
+    "8.0": {
+      "compliance_rate": 0.392,
+      "n_compliant": 196,
+      "n_judged": 500,
+      "n_total": 500,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.392,
+        "n_compliant": 196,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.3501873777896792,
+          "upper": 0.4354594797500162,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "deterministic_accuracy_rate": 0.352,
+      "n_deterministic_correct": 176,
+      "deterministic_accuracy": {
+        "estimate": 0.352,
+        "n_deterministic_correct": 176,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.31141084189074275,
+          "upper": 0.39484596288587676,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "attempt_rate": 0.984,
+      "n_attempted": 492,
+      "attempt": {
+        "estimate": 0.984,
+        "n_attempted": 492,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.9687488914666058,
+          "upper": 0.9918707469666117,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "not_attempted_rate": 0.016,
+      "n_not_attempted": 8,
+      "not_attempted": {
+        "estimate": 0.016,
+        "n_not_attempted": 8,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.008129253033388312,
+          "upper": 0.031251108533394266,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "precision_given_attempt_rate": 0.3984,
+      "precision_given_attempt": {
+        "estimate": 0.3983739837398374,
+        "n_correct": 196,
+        "n_attempted": 492,
+        "ci": {
+          "lower": 0.35606323440724186,
+          "upper": 0.44225939831927663,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "nonmatch_judged": 324,
+      "nonmatch_recovered": 20,
+      "audit_disagree_rate_nonmatches": 0.0617,
+      "match_audited": 33,
+      "match_disagree": 0,
+      "audit_disagree_rate_matches": 0.0,
+      "metric_name": "deterministic_accuracy",
+      "metric_mean": 0.352,
+      "metric_std": 0.477594
+    }
+  },
+  "effects": {
+    "baseline_alpha": 8.0,
+    "paired_against_baseline": {
+      "status": "blocked_no_comparisons",
+      "baseline_alpha": 8.0,
+      "comparisons": {}
+    }
+  },
+  "baseline_alpha": 0.0
+}
