@@ -27,7 +27,7 @@ Each evaluation surface in this study measures a specific behavioral construct. 
 |---|---|---|---|---|---|
 | TruthfulQA MC1/MC2 | Answer selection under a constrained candidate set | Cleanest answer-selection surface; ITI achieves +6.3 pp MC1 | Deterministic MC scoring | MC1 accuracy | Does not measure open-ended generation; a model can select correct answers without being able to generate them |
 | TriviaQA bridge | Short-form factual generation accuracy | Primary generation surface (dev baseline 47.0% adjudicated); reveals confident wrong-entity substitution failure mode | Adjudicated fact-match accuracy + deterministic floor | Adjudicated accuracy | Dev-set results only ($n = 100$); test split not yet used for the main ITI configuration |
-| FaithEval | Context-resistance under anti-compliance prompting | Compliance/anti-compliance diagnostic; H-neurons achieve +6.3 pp | Compliance scoring (counterfactual chosen = misleading answer chosen) | Compliance rate | Measures a credulity lever — acceptance of context even against explicit instruction — not standard truthfulness |
+| FaithEval | Context-resistance under anti-compliance prompting | Compliance/anti-compliance diagnostic; H-neurons achieve +4.5 pp above no-op (slope +2.1 pp/$\alpha$) | Compliance scoring (counterfactual chosen = misleading answer chosen) | Compliance rate | Measures a credulity lever — acceptance of context even against explicit instruction — not standard truthfulness |
 | FalseQA | Resistance to false presuppositions in questions | Validates H-neuron scaling on a second compliance surface ($n = 687$) | Compliance scoring | Compliance rate | Smaller sample; effects below ${\sim}4$ pp may not reach significance |
 | JailbreakBench | Harmful compliance under adversarial prompting | Tests whether steering succeeds on a refusal-adjacent domain ($n = 500$) | Graded harmful severity (CSV-v2) | Strict harmfulness rate (graded) | Binary evaluation is underpowered (MDE ${\sim}6$ pp); truncation artifacts and evaluator construct mismatch are documented in §6 |
 | BioASQ | Domain-specific factual QA (biomedical) | Scope test for H-neuron portability; result is null | Factual accuracy | Accuracy | H-neurons are task-local; null here establishes that working interventions do not generalize universally |
@@ -51,17 +51,16 @@ We define what counts as a headline-safe steering claim in this study. The six r
 
 **Table 2 — Minimum Detectable Effect by Benchmark**
 
-| Benchmark | $n$ | Primary Metric | Observed H-neuron Effect | MDE (paired, 80% power) | Status |
-|---|---|---|---|---|---|
-| FaithEval | 1,000 | Compliance rate | +6.3 pp [4.2, 8.5] | ${\sim}3$ pp | Well-powered |
-| FalseQA | 687 | Compliance rate | +4.8 pp [1.3, 8.3] | ${\sim}4$ pp | Borderline |
-| JailbreakBench | 500 | Strict harmfulness rate | +7.6 pp [2.6, 12.8] at $\alpha = 0 \rightarrow 3$ | ${\sim}5$ pp | Graded well-powered; binary underpowered |
-| BioASQ | 1,600 | Accuracy | $-0.06$ pp [$-1.5$, 1.4] | ${\sim}2$ pp | Well-powered null |
+| Benchmark | $n$ | Primary Metric | Observed H-neuron Effect (no-op to max) | Slope | MDE (paired, 80% power) | Status |
+|---|---|---|---|---|---|---|
+| FaithEval | 1,000 | Compliance rate | +4.5 pp [2.9, 6.1] | +2.09 pp/$\alpha$ [1.38, 2.83] | ${\sim}3$ pp | Well-powered |
+| FalseQA | 687 | Compliance rate | +2.5 pp [$-0.6$, 5.5] | +1.62 pp/$\alpha$ [0.52, 2.74] | ${\sim}4$ pp | Slope significant; endpoint borderline |
+| JailbreakBench | 500 | Strict harmfulness rate | +7.6 pp [2.6, 12.8] ($\alpha = 0 \rightarrow 3$ full sweep)[^fn-jailbreak-graded-baseline] | +2.30 pp/$\alpha$ [0.99, 3.58] | ${\sim}5$ pp | Graded well-powered; binary underpowered |
+| BioASQ | 1,600 | Accuracy | $-0.06$ pp [$-1.5$, 1.4] | — | ${\sim}2$ pp | Well-powered null |
 
-For JailbreakBench, Table 2 reports the total change from $\alpha = 0$ to
-$\alpha = 3$ for the same seed-0 graded experiment that Section 6 summarizes as
-a per-$\alpha$ slope (+$2.30$ pp/$\alpha$); the two statistics describe the
-same dose-response at different resolutions.
+Effect sizes in the "no-op to max" column report the change from the $\alpha = 1.0$ identity baseline (unperturbed model) to the maximum scaling factor. Slopes are from ordinary least squares fits across the full alpha grid with paired bootstrap 95% CIs (10,000 resamples).
+
+[^fn-jailbreak-graded-baseline]: The JailbreakBench graded metric is reported as the full $\alpha = 0 \rightarrow 3$ sweep because the no-op-to-max value for this metric has not been recomputed from the CSV-v2 evaluation pipeline. Section 6 uses the slope ($+2.30$ pp/$\alpha$) as the primary effect size.
 
 ## 2.4 Claim Ledger
 
@@ -72,7 +71,7 @@ We state upfront what this paper claims, what it suggests with caveats, and what
 The following claims are supported by the strongest evidence in this study and can be stated without additional qualification:
 
 - Strong predictive readouts were **not sufficient evidence** for useful steering targets. Matched or even perfect readout performance did not reliably predict intervention success. <!-- H-neuron vs SAE: AUROC 0.843 vs 0.848, divergent steering; Probe heads: AUROC 1.0, null intervention -->
-- When interventions did work, their effects were often **surface-local** rather than generally transferable. <!-- ITI: +6.3 pp MC1 vs −7 pp to −9 pp on generation; H-neurons: +6.3 pp FaithEval, null on BioASQ -->
+- When interventions did work, their effects were often **surface-local** rather than generally transferable. <!-- ITI: +6.3 pp MC1 vs −7 pp to −9 pp on generation; H-neurons: +4.5 pp FaithEval above no-op, null on BioASQ -->
 - Measurement choices — truncation depth and binary versus graded scoring — **materially altered** the inferred intervention conclusion on the same underlying data. <!-- Binary judge null vs graded significant on same data -->
 
 ### Qualified claims (valid with explicit caveats)

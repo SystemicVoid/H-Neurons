@@ -18,7 +18,8 @@ Every key quantitative claim in the paper traced to its canonical source.
 | Claim | Value | CI | Source File |
 |---|---|---|---|
 | H-neuron FaithEval slope | +2.09 pp/α | [1.38, 2.83] | `data/gemma3_4b/intervention/faitheval/control/comparison_summary.json` |
-| H-neuron FaithEval effect at α=3 | +6.3 pp | [4.2, 8.5] | `data/gemma3_4b/intervention/faitheval/experiment/results.json` |
+| H-neuron FaithEval no-op→max (α=1→3) | +4.5 pp | [2.9, 6.1] | `data/gemma3_4b/intervention/faitheval/experiment/results.json` (`delta_noop_to_max_pp`) |
+| H-neuron FaithEval full sweep (α=0→3) | +6.3 pp | [4.2, 8.5] | `data/gemma3_4b/intervention/faitheval/experiment/results.json` (`delta_0_to_max_pp`) |
 | SAE H-features slope | +0.16 pp/α | [-0.51, 0.84] | `data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json` |
 | SAE random slope | +0.59 pp/α | — | same file |
 | FaithEval n | 1,000 | — | `notes/measurement-blueprint.md` |
@@ -97,5 +98,6 @@ Every key quantitative claim in the paper traced to its canonical source.
 | BioASQ effect | -0.06 pp | [-1.5, 1.4] | `data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md` |
 | BioASQ n | 1,600 | — | same |
 | BioASQ behavior change | 1,339/1,600 | — | same |
-| FalseQA effect | +4.8 pp | [1.3, 8.3] | `data/gemma3_4b/intervention/falseqa/experiment/results.json`; `data/gemma3_4b/intervention/falseqa/falseqa_negative_control_audit.md` |
+| FalseQA no-op→max (α=1→3) | +2.5 pp | [-0.6, 5.5] | `data/gemma3_4b/intervention/falseqa/experiment/results.json` (`delta_noop_to_max_pp`) |
+| FalseQA full sweep (α=0→3) | +4.8 pp | [1.3, 8.3] | `data/gemma3_4b/intervention/falseqa/experiment/results.json` (`delta_0_to_max_pp`); `data/gemma3_4b/intervention/falseqa/falseqa_negative_control_audit.md` |
 | FalseQA n | 687 | — | `data/gemma3_4b/intervention/falseqa/experiment/results.json` |

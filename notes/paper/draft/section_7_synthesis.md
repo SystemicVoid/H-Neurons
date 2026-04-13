@@ -10,7 +10,7 @@ The four stages — **measurement**, **localization**, **control**, and **extern
 
 - **Localization → Control.** A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843) yet produced null steering on the same benchmark (§4.2). Probe-ranked attention heads achieved perfect discrimination (AUROC 1.0) yet null intervention on jailbreak (§4.3). The localization-to-control transition broke even under conditions designed to give the readout every advantage.
 
-- **Control → Externality.** An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-7$ pp to $-9$ pp on the TriviaQA bridge dev set, with the dominant failure mode being confident substitution of wrong entities rather than refusal or abstention (§5.3; Limitation L5). H-neurons improved compliance on FaithEval (+6.3 pp) but produced a null effect on BioASQ factoid QA (§5.1).
+- **Control → Externality.** An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-7$ pp to $-9$ pp on the TriviaQA bridge dev set, with the dominant failure mode being confident substitution of wrong entities rather than refusal or abstention (§5.3; Limitation L5). H-neurons improved compliance on FaithEval (+4.5 pp above no-op) but produced a null effect on BioASQ factoid QA (§5.1).
 
 Each stage transition is a distinct empirical claim. Passing one does not license claims about the next.
 
