@@ -35,7 +35,9 @@
       "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_2.5.jsonl",
       "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_3.0.jsonl",
       "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_3.0_parse_failure_remap_summary.json",
-      "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"
+      "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json",
+      "data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json",
+      "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json"
     ],
     "notes": [
       "Standard-prompt parse failures and parseable-subset rates are derived from committed per-alpha JSONL rows because results.json only stores raw compliance totals.",
@@ -669,7 +671,292 @@
         "level": 0.95,
         "method": "empirical_random_set_percentile"
       }
+    },
+    "paired_slope_difference": {
+      "label": "H-neurons minus random controls",
+      "source_file": "data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json",
+      "per_seed": {
+        "seed_0_unconstrained": {
+          "slope_a_pp_per_alpha": 2.0928571428571416,
+          "slope_b_pp_per_alpha": 0.17142857142857082,
+          "slope_difference_pp_per_alpha": {
+            "estimate": 1.9214285714285713,
+            "ci": {
+              "lower": 1.1785714285714286,
+              "upper": 2.685714285714286,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            }
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile"
+          },
+          "permutation_test": {
+            "p_value": 1.999960000799984e-05,
+            "n_extreme": 0,
+            "n_permutations": 50000,
+            "alternative": "one_sided_greater"
+          },
+          "comparison": "neuron_minus_seed_0_unconstrained",
+          "n_items": 1000
+        },
+        "seed_1_unconstrained": {
+          "slope_a_pp_per_alpha": 2.0928571428571416,
+          "slope_b_pp_per_alpha": 2.0301221021717147e-15,
+          "slope_difference_pp_per_alpha": {
+            "estimate": 2.092857142857143,
+            "ci": {
+              "lower": 1.3714285714285712,
+              "upper": 2.85,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            }
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile"
+          },
+          "permutation_test": {
+            "p_value": 1.999960000799984e-05,
+            "n_extreme": 0,
+            "n_permutations": 50000,
+            "alternative": "one_sided_greater"
+          },
+          "comparison": "neuron_minus_seed_1_unconstrained",
+          "n_items": 1000
+        },
+        "seed_2_unconstrained": {
+          "slope_a_pp_per_alpha": 2.0928571428571416,
+          "slope_b_pp_per_alpha": -0.07142857142857142,
+          "slope_difference_pp_per_alpha": {
+            "estimate": 2.164285714285714,
+            "ci": {
+              "lower": 1.3928571428571428,
+              "upper": 2.942857142857142,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            }
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile"
+          },
+          "permutation_test": {
+            "p_value": 1.999960000799984e-05,
+            "n_extreme": 0,
+            "n_permutations": 50000,
+            "alternative": "one_sided_greater"
+          },
+          "comparison": "neuron_minus_seed_2_unconstrained",
+          "n_items": 1000
+        },
+        "seed_3_unconstrained": {
+          "slope_a_pp_per_alpha": 2.0928571428571416,
+          "slope_b_pp_per_alpha": -0.10714285714286019,
+          "slope_difference_pp_per_alpha": {
+            "estimate": 2.1999999999999997,
+            "ci": {
+              "lower": 1.45,
+              "upper": 2.9428571428571426,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            }
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile"
+          },
+          "permutation_test": {
+            "p_value": 1.999960000799984e-05,
+            "n_extreme": 0,
+            "n_permutations": 50000,
+            "alternative": "one_sided_greater"
+          },
+          "comparison": "neuron_minus_seed_3_unconstrained",
+          "n_items": 1000
+        },
+        "seed_4_unconstrained": {
+          "slope_a_pp_per_alpha": 2.0928571428571416,
+          "slope_b_pp_per_alpha": 0.11428571428571287,
+          "slope_difference_pp_per_alpha": {
+            "estimate": 1.9785714285714282,
+            "ci": {
+              "lower": 1.2214285714285715,
+              "upper": 2.742857142857143,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            }
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile"
+          },
+          "permutation_test": {
+            "p_value": 1.999960000799984e-05,
+            "n_extreme": 0,
+            "n_permutations": 50000,
+            "alternative": "one_sided_greater"
+          },
+          "comparison": "neuron_minus_seed_4_unconstrained",
+          "n_items": 1000
+        },
+        "seed_0_layer_matched": {
+          "slope_a_pp_per_alpha": 2.0928571428571416,
+          "slope_b_pp_per_alpha": 0.20714285714285552,
+          "slope_difference_pp_per_alpha": {
+            "estimate": 1.8857142857142857,
+            "ci": {
+              "lower": 1.1571428571428573,
+              "upper": 2.6142857142857148,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            }
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile"
+          },
+          "permutation_test": {
+            "p_value": 1.999960000799984e-05,
+            "n_extreme": 0,
+            "n_permutations": 50000,
+            "alternative": "one_sided_greater"
+          },
+          "comparison": "neuron_minus_seed_0_layer_matched",
+          "n_items": 1000
+        },
+        "seed_1_layer_matched": {
+          "slope_a_pp_per_alpha": 2.0928571428571416,
+          "slope_b_pp_per_alpha": 0.16428571428571206,
+          "slope_difference_pp_per_alpha": {
+            "estimate": 1.9285714285714288,
+            "ci": {
+              "lower": 1.1857142857142857,
+              "upper": 2.7071428571428564,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            }
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile"
+          },
+          "permutation_test": {
+            "p_value": 1.999960000799984e-05,
+            "n_extreme": 0,
+            "n_permutations": 50000,
+            "alternative": "one_sided_greater"
+          },
+          "comparison": "neuron_minus_seed_1_layer_matched",
+          "n_items": 1000
+        },
+        "seed_2_layer_matched": {
+          "slope_a_pp_per_alpha": 2.0928571428571416,
+          "slope_b_pp_per_alpha": 0.14999999999999858,
+          "slope_difference_pp_per_alpha": {
+            "estimate": 1.942857142857143,
+            "ci": {
+              "lower": 1.1926785714285728,
+              "upper": 2.6999999999999997,
+              "level": 0.95,
+              "method": "bootstrap_percentile_paired"
+            }
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile"
+          },
+          "permutation_test": {
+            "p_value": 1.999960000799984e-05,
+            "n_extreme": 0,
+            "n_permutations": 50000,
+            "alternative": "one_sided_greater"
+          },
+          "comparison": "neuron_minus_seed_2_layer_matched",
+          "n_items": 1000
+        }
+      },
+      "aggregate": {
+        "mean_slope_difference": 2.0142857142857142,
+        "min_slope_difference": 1.8857142857142857,
+        "max_slope_difference": 2.1999999999999997,
+        "n_seeds": 8
+      },
+      "alphas": [
+        0.0,
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0
+      ]
     }
+  },
+  "matched_readout_comparison": {
+    "label": "H-neurons vs SAE h-features",
+    "status": "available",
+    "source_file": "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json",
+    "slope_a_pp_per_alpha": 2.0928571428571416,
+    "slope_b_pp_per_alpha": 0.16428571428571306,
+    "slope_difference_pp_per_alpha": {
+      "estimate": 1.9285714285714286,
+      "ci": {
+        "lower": 0.9426785714285727,
+        "upper": 2.9214285714285713,
+        "level": 0.95,
+        "method": "bootstrap_percentile_paired"
+      }
+    },
+    "bootstrap": {
+      "n_resamples": 10000,
+      "seed": 42,
+      "confidence": 0.95,
+      "resampling": "paired_by_sample_id",
+      "interval": "percentile"
+    },
+    "permutation_test": {
+      "p_value": 9.99980000399992e-05,
+      "n_extreme": 4,
+      "n_permutations": 50000,
+      "alternative": "one_sided_greater"
+    },
+    "comparison": "neuron_minus_sae",
+    "n_items": 1000,
+    "alphas": [
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0
+    ]
   },
   "population": {
     "anti_compliance": {

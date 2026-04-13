@@ -794,7 +794,12 @@
           "slope_difference_pp_per_alpha"
         ]
       },
-      "surfaces": []
+      "surfaces": [
+        {
+          "file": "site/progress/week-02-claims-airtight.html",
+          "mode": "comment"
+        }
+      ]
     }
   ]
 }

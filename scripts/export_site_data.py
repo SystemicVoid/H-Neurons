@@ -1007,9 +1007,19 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
         repo_root
         / "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"
     )
+    random_slope_difference_summary_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json"
+    )
+    sae_slope_difference_summary_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json"
+    )
     anti_results = load_json(find_results_json(anti_dir))
     standard_results = load_json(find_results_json(standard_dir))
     negative_control_summary = load_json(negative_control_summary_path)
+    random_slope_difference_summary = load_json(random_slope_difference_summary_path)
+    sae_slope_difference_summary = load_json(sae_slope_difference_summary_path)
     remap_summary = load_json(
         standard_dir / "alpha_3.0_parse_failure_remap_summary.json"
     )
@@ -1040,6 +1050,8 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
         "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_3.0.jsonl",
         "data/gemma3_4b/intervention/faitheval_standard/experiment/alpha_3.0_parse_failure_remap_summary.json",
         "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json",
+        "data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json",
+        "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json",
     ]
 
     return {
@@ -1159,6 +1171,17 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
             "comparison_to_h_neurons": negative_control_summary[
                 "comparison_to_h_neurons"
             ],
+            "paired_slope_difference": {
+                "label": "H-neurons minus random controls",
+                "source_file": "data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json",
+                **random_slope_difference_summary,
+            },
+        },
+        "matched_readout_comparison": {
+            "label": "H-neurons vs SAE h-features",
+            "status": "available",
+            "source_file": "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json",
+            **sae_slope_difference_summary,
         },
         "population": {
             "anti_compliance": {
