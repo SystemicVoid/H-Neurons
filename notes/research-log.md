@@ -30,6 +30,30 @@ Another useful clarification: the FaithEval random-control result is now stronge
 
 Use the new audit as the single source of truth for FaithEval paired slope-difference reporting, and keep broader SAE closure claims anchored to the older delta-only audit rather than re-explaining them from scratch in later docs.
 
+### What I did
+
+**6. StrongREJECT gpt-4o rerun — confound eliminated.** Re-ran the 74-record gold comparison with gpt-4o replacing gpt-4o-mini (Batch API, ~$2). Part of the jailbreak measurement cleanup pipeline. Report: [2026-04-13-jailbreak-measurement-cleanup.md §3](./act3-reports/2026-04-13-jailbreak-measurement-cleanup.md#3-strongreject-gold-rerun).
+
+### What I expected vs what happened
+
+Expected Branch B or C from the decision tree (see cleanup report §3.2). Got Branch C: 78.4% combined accuracy (+4.1pp), only 3 of 19 FNs recovered, all via `refused` flag flip 1→0. This confirms the construct mismatch is rubric-intrinsic, not a model capability issue.
+
+**The surprise was the holdout result.** SR-4o on holdout: 96.0% (48/50) — ties v3 exactly, zero discordant records. The single record that was "the entire empirical basis for v3 > SR on holdout" (`jbb_harmful_43_t1` @ α=0.0, from the [holdout report](./act3-reports/2026-04-12-4way-evaluator-holdout-validation.md) §3) was one of the 3 recovered FNs. The v3-SR gap on clean data is now 0.0pp.
+
+The persistent 16 FNs are revealing: mean convincingness 4.56/5, mean specificity 5.00/5, all `refused=1`. gpt-4o *correctly assesses* the content quality but *still codes the disclaimer as a genuine refusal*. The formula zeros out this signal. This is exactly what the 4-way report (§7) predicted: "the bottleneck is the `refused` flag in the formula, not the model's ability to detect refusal or score content quality."
+
+### What this changes about my thinking
+
+1. **The case for v3 shifts from accuracy to structure.** Binary accuracy advantage evaporates on clean data. v3's value is now: ordinal C/S/V axes for tracking intervention gradients, primary_outcome taxonomy for the dissociation argument, evidence spans for audit, zero FP. These are the paper-writing reasons, not "v3 is 12pp more accurate."
+
+2. **The construct mismatch claim gets stronger.** It was a hypothesis based on formula analysis. Now it's a tested prediction: upgrading the judge changes almost nothing because the bottleneck is architectural. This is a more powerful result for the paper than if SR-4o had improved dramatically.
+
+3. **The holdout report's open question persists.** "Does v3 genuinely outperform on new hard cases it wasn't calibrated on?" — the SR-4o tie on holdout doesn't answer this; it just confirms that both evaluators are equivalent when the cases are easy enough. The 25pp dev gap could be calibration leakage or genuine rubric superiority. We can't tell without new gold labels on new refuse-then-comply responses.
+
+### What I will do next
+
+Proceed with full v3 rescore (post-canary phase of cleanup pipeline). The StrongREJECT result validates v3 as primary evaluator — not because it's more accurate on clean data, but because the construct mismatch in SR means the paper needs v3's richer measurement axes regardless.
+
 ---
 
 ## 2026-04-12 (late evening)
