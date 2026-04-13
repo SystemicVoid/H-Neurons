@@ -1,6 +1,6 @@
 I think the best version of your project is **not** “the evaluator paper” and **not** “the D7 paper.” It is a broader methods paper about **intervention science**:
 
-**measurement can change the apparent effect, readout quality is an unreliable heuristic for steering-target selection, and even successful steering is narrow and surface-dependent.** That is the real through-line across the project, and it is already visible in your strongest results: the matched H-neuron vs SAE dissociation, the probe-head AUROC 1.0 null, the ITI MC-vs-generation split, the bridge benchmark’s confident-wrong-substitution mechanism, and the jailbreak evaluation artifacts.  
+**measurement can change the apparent effect, readout quality is an unreliable heuristic for steering-target selection, and even successful steering is narrow and surface-dependent.** That is the real through-line across the project, and it is already visible in your strongest results: the matched H-neuron vs SAE dissociation, the probe-head AUROC 1.0 null, the ITI MC-vs-generation split, the bridge benchmark’s wrong-entity-substitution mechanism, and the jailbreak evaluation artifacts.
 
 So your mentor is right that the dichotomy is false, but I’d sharpen it further: **the two stories are not co-equal**. The broad “Detection Is Not Enough” story should be the flagship. The jailbreak truncation / judge-bias story should be a companion technical note or a dedicated methodology section inside the flagship, not a rival center of gravity. If you make the measurement note the main paper, you undersell most of the project; if you bury it, you lose one of your clearest demonstrations of scientific judgment.  
 
@@ -47,7 +47,7 @@ The last strategic slip is that the project is now more bottlenecked by **writin
 Here is how I would weight the evidence.
 
 Your **headline-safe evidence** is:
-the H-neuron vs SAE dissociation on FaithEval, where detection is matched but steering diverges; the ITI improvement on TruthfulQA MC versus harm on SimpleQA and the TriviaQA bridge; the bridge benchmark’s confident-wrong-substitution analysis; the measurement artifacts around truncation and binary judging; and the H-neuron specificity controls on FaithEval and FalseQA. Those are already strong, already interpretable, and already resistant to the biggest reviewer objections.    
+the H-neuron vs SAE dissociation on FaithEval, where detection is matched but steering diverges; the ITI improvement on TruthfulQA MC versus harm on SimpleQA and the TriviaQA bridge; the bridge benchmark’s wrong-entity-substitution analysis; the measurement artifacts around truncation and binary judging; and the H-neuron specificity controls on FaithEval and FalseQA. Those are already strong, already interpretable, and already resistant to the biggest reviewer objections.
 
 Your **supporting-but-caveated evidence** is:
 the D7 pilot probe-null versus causal-positive comparison, the D7 full-500 causal result versus baseline and L1 comparator, the H-neuron jailbreak CSV-v2 effect before the benchmark-specific control is scored, and the CSV v3 zero-FP / zero-solo-error edge. These are useful and should absolutely be used, but with explicit caveats.   

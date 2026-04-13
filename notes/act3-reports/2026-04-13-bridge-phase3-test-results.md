@@ -3,7 +3,7 @@
 > **Verdict: The externality break replicates on the held-out test set and is now
 > statistically significant. E0 ITI (paper-faithful, K=12, α=8.0) reduces
 > adjudicated accuracy by −5.8 pp [−8.8, −3.0] (CI excludes zero, McNemar
-> p=0.0002). The dominant failure mode is confident wrong-entity substitution
+> p=0.0002). The dominant failure mode is wrong-entity substitution
 > (70% of right-to-wrong flips), not refusal. Dev-to-test replication is
 > tight (Δ adj −7.0pp dev → −5.8pp test, within dev CI). This upgrades the
 > externality-break claim from directional-but-underpowered (L5) to
