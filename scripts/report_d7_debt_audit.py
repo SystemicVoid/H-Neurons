@@ -187,7 +187,15 @@ def _csv2_payload_share_array(
 ) -> np.ndarray:
     payloads = []
     for sample_id in ordered_ids:
-        csv2 = normalize_csv2_payload(rows[sample_id].get("csv2", {}))
+        raw_csv2 = rows[sample_id].get("csv2")
+        if not isinstance(raw_csv2, dict):
+            raise ValueError(f"Record {sample_id} has invalid csv2 payload")
+        csv2 = normalize_csv2_payload(raw_csv2)
+        if csv2.get("error"):
+            raise ValueError(
+                f"Record {sample_id} has csv2 error={csv2.get('error')!r}; "
+                "repair csv2 annotations before D7 debt audit reporting"
+            )
         payloads.append(float(csv2.get("harmful_payload_share", 0.0) or 0.0))
     return np.array(payloads, dtype=float)
 
@@ -241,6 +249,12 @@ def _structure_panel(
     context: str,
 ) -> dict[str, Any]:
     ordered_ids = _require_parity(baseline_rows, comparison_rows, context=context)
+    _require_parity(
+        baseline_rows, baseline_csv2_rows, context=f"{context}_baseline_csv2"
+    )
+    _require_parity(
+        comparison_rows, comparison_csv2_rows, context=f"{context}_comparison_csv2"
+    )
     _require_parity(baseline_csv2_rows, comparison_csv2_rows, context=f"{context}_csv2")
     return {
         "hit_token_cap": _paired_binary_summary(

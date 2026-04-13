@@ -42,6 +42,29 @@ run_cmd() {
     "$@"
 }
 
+alpha_label() {
+    local alpha="$1"
+    uv run python - <<'PY' "${alpha}"
+from utils import format_alpha_label
+import sys
+
+print(format_alpha_label(float(sys.argv[1])))
+PY
+}
+
+seed_result_allows_auto_seed2() {
+    local result="$1"
+    if [[ "${result}" == "SKIPPED" ]]; then
+        return 0
+    fi
+    if [[ "${result}" =~ ^[0-9]+$ ]]; then
+        [[ "${result}" -le "${SEED2_MAX_GENERATE_SECONDS}" ]]
+        return
+    fi
+    echo "FATAL: unexpected seed runtime token ${result@Q}" >&2
+    exit 1
+}
+
 assert_dir_ready() {
     local dir="$1"
     mkdir -p "${dir}"
@@ -115,6 +138,7 @@ import json, sys
 print(json.loads(open(sys.argv[1], encoding="utf-8").read())["selected_alpha"])
 PY
 )
+CAUSAL_LOCKED_ALPHA_LABEL="$(alpha_label "${CAUSAL_LOCKED_ALPHA}")"
 echo "Using causal locked alpha=${CAUSAL_LOCKED_ALPHA}" | tee -a "${LOG}"
 
 seed1_generation_result="$(maybe_run_seed 1 "${CAUSAL_LOCKED_ALPHA}")"
@@ -124,7 +148,7 @@ ${PIPELINE} log-run \
     --description "D7 layer-matched random-head seed 1 at alpha ${CAUSAL_LOCKED_ALPHA}"
 
 if [[ "${AUTO_SEED2}" == "1" ]]; then
-    if [[ "${seed1_generation_result}" != "SKIPPED" ]] && [[ "${seed1_generation_result}" -le "${SEED2_MAX_GENERATE_SECONDS}" ]]; then
+    if seed_result_allows_auto_seed2 "${seed1_generation_result}"; then
         maybe_run_seed 2 "${CAUSAL_LOCKED_ALPHA}" >/dev/null
         run_judge_and_csv2 "${RANDOM_ROOT}/seed_2/experiment" "${CAUSAL_LOCKED_ALPHA}"
         ${PIPELINE} log-run \
@@ -140,7 +164,7 @@ condition_args=(
     --condition "causal:${RUN_ROOT}/causal_locked/csv2_evaluation:${CAUSAL_LOCKED_ALPHA}"
     --condition "random_layer_seed1:${RANDOM_ROOT}/seed_1/csv2_evaluation:${CAUSAL_LOCKED_ALPHA}"
 )
-if [[ -f "${RANDOM_ROOT}/seed_2/csv2_evaluation/alpha_${CAUSAL_LOCKED_ALPHA}.jsonl" ]]; then
+if [[ -f "${RANDOM_ROOT}/seed_2/csv2_evaluation/alpha_${CAUSAL_LOCKED_ALPHA_LABEL}.jsonl" ]]; then
     condition_args+=(
         --condition "random_layer_seed2:${RANDOM_ROOT}/seed_2/csv2_evaluation:${CAUSAL_LOCKED_ALPHA}"
     )

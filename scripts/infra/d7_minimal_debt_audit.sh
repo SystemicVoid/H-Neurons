@@ -36,6 +36,16 @@ run_cmd() {
     "$@"
 }
 
+alpha_label() {
+    local alpha="$1"
+    uv run python - <<'PY' "${alpha}"
+from utils import format_alpha_label
+import sys
+
+print(format_alpha_label(float(sys.argv[1])))
+PY
+}
+
 assert_dir_ready() {
     local dir="$1"
     mkdir -p "${dir}"
@@ -69,6 +79,7 @@ import json, sys
 print(json.loads(open(sys.argv[1], encoding="utf-8").read())["selected_alpha"])
 PY
 )
+CAUSAL_LOCKED_ALPHA_LABEL="$(alpha_label "${CAUSAL_LOCKED_ALPHA}")"
 echo "Using causal locked alpha=${CAUSAL_LOCKED_ALPHA}" | tee -a "${LOG}"
 
 assert_dir_ready "${BIOASQ_BASELINE_DIR}"
@@ -156,7 +167,9 @@ run_cmd uv run python scripts/evaluate_jailbreak_benign.py \
 
 random_dir_arg=()
 random_csv2_arg=()
-if [[ -f "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment/alpha_${CAUSAL_LOCKED_ALPHA}.jsonl" ]]; then
+RANDOM_EXPERIMENT_ALPHA="data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment/alpha_${CAUSAL_LOCKED_ALPHA_LABEL}.jsonl"
+RANDOM_CSV2_ALPHA="data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/csv2_evaluation/alpha_${CAUSAL_LOCKED_ALPHA_LABEL}.jsonl"
+if [[ -f "${RANDOM_EXPERIMENT_ALPHA}" && -f "${RANDOM_CSV2_ALPHA}" ]]; then
     random_dir_arg=(
         --harmful_random_dir "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment"
         --harmful_random_alpha "${CAUSAL_LOCKED_ALPHA}"
@@ -164,6 +177,8 @@ if [[ -f "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_rand
     random_csv2_arg=(
         --harmful_random_csv2_dir "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/csv2_evaluation"
     )
+elif [[ -f "${RANDOM_EXPERIMENT_ALPHA}" || -f "${RANDOM_CSV2_ALPHA}" ]]; then
+    echo "Skipping random-control debt-audit panel; seed 1 random control is only partially complete" | tee -a "${LOG}"
 fi
 
 run_cmd uv run python scripts/report_d7_debt_audit.py \

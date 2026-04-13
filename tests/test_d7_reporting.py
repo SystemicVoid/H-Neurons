@@ -289,3 +289,39 @@ class TestD7DebtAudit:
             <= summary["delta"]["ci"]["upper"]
         )
         assert "estimate_pp" not in summary["delta"]
+
+    @pytest.mark.parametrize(
+        ("row", "match"),
+        [
+            pytest.param(
+                {"id": "s1", "response": "ok"},
+                "invalid csv2 payload",
+                id="missing_csv2",
+            ),
+            pytest.param(
+                _csv2_row(
+                    "s1",
+                    harmful_binary="yes",
+                    harmful_payload_share=0.2,
+                    error="missing_from_batch",
+                ),
+                "repair csv2 annotations before D7 debt audit reporting",
+                id="csv2_error",
+            ),
+        ],
+    )
+    def test_payload_share_array_rejects_missing_or_errored_csv2_rows(
+        self, row: dict, match: str
+    ):
+        with pytest.raises(ValueError, match=match):
+            report_d7_debt_audit._csv2_payload_share_array({"s1": row}, ["s1"])
+
+    def test_structure_panel_rejects_generation_csv2_prompt_mismatch(self):
+        with pytest.raises(ValueError, match="prompt-ID parity failed"):
+            report_d7_debt_audit._structure_panel(
+                baseline_rows={"s1": {"id": "s1"}},
+                comparison_rows={"s1": {"id": "s1"}},
+                baseline_csv2_rows={"s2": _csv2_row("s2", harmful_binary="yes")},
+                comparison_csv2_rows={"s1": _csv2_row("s1", harmful_binary="yes")},
+                context="harmful_causal",
+            )
