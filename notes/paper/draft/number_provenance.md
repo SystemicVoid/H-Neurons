@@ -46,16 +46,29 @@ Every key quantitative claim in the paper traced to its canonical source.
 
 ## Bridge (§5.3)
 
+### Test set (primary) — source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`
+
 | Claim | Value | CI | Source File |
 |---|---|---|---|
-| Bridge baseline accuracy | 47.0% adj | [37.5, 56.7] | `notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md` §2.1 |
-| E0 α=8 delta | -7.0 pp | [-14.0, 0.0] | same §2.2 |
-| E1 α=8 delta | -9.0 pp | [-16.0, -3.0] | same §2.2 |
-| E1 McNemar p | 0.016 | — | same §2.2 |
-| Right-to-wrong flips (E0 α=8) | 10 | — | same §2.3 |
-| Wrong-to-right rescues (E0) | 3 | — | same §2.3 |
-| Substitution mode count | 5/10 | — | same §4.2 |
-| Dev set n | 100 | — | same §1 |
+| Bridge baseline accuracy | 45.0% adj | [40.7, 49.4] | Phase 3 report §2.1 |
+| E0 α=8 delta (adj) | -5.8 pp | [-8.8, -3.0] | Phase 3 report §2.2 |
+| E0 α=8 delta (det) | -4.6 pp | [-7.6, -1.6] | Phase 3 report §2.2 |
+| McNemar p | 0.0002 | — | Phase 3 report §2.2 |
+| Right-to-wrong flips (E0 α=8) | 43 | — | Phase 3 report §2.3 |
+| Wrong-to-right rescues (E0) | 14 | — | Phase 3 report §2.3 |
+| Wrong-entity substitution mode | 30/43 (70%) | — | Phase 3 report §5.1 |
+| Evasion/denial mode | 8/43 (19%) | — | Phase 3 report §5.1 |
+| Test set n | 500 | — | Phase 3 report §1 |
+| NOT_ATTEMPTED (baseline / ITI) | 2 / 8 | — | Phase 3 report §7 |
+
+### Dev set (E0/E1 comparison only) — source: `notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md`
+
+| Claim | Value | CI | Source File |
+|---|---|---|---|
+| E1 α=8 delta | -9.0 pp | [-16.0, -3.0] | Phase 2 report §2.2 |
+| E1 McNemar p | 0.016 | — | Phase 2 report §2.2 |
+| E0/E1 same damaged questions | 10/10 | — | Phase 2 report §2.3 |
+| Dev set n | 100 | — | Phase 2 report §1 |
 
 ## Jailbreak Measurement (§6)
 
