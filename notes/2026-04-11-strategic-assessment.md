@@ -17,7 +17,7 @@
 
 Internally, this is a **case study in separating ~~three~~ four stages that are often conflated**: measurement of a feature → localization of that feature in the model → control of behavior via that feature → **externality** of that control across surfaces and tasks. The path from each stage to the next repeatedly breaks.
 
-> **V2 refinement (2026-04-12):** The flagship should not be a broad collage. It should be a **broad claim built from three deep anchor case studies**: (1) SAE vs H-neurons on FaithEval — the localization→control break, (2) ITI MC vs bridge generation with confident-wrong-substitution — the control→externality break, (3) jailbreak evaluation as measurement case study — the measurement→conclusion break. D7 and 4288 are powerful supporting evidence, not co-headliners.
+> **V2 refinement (2026-04-12):** The flagship should not be a broad collage. It should be a **broad claim built from three deep anchor case studies**: (1) SAE vs H-neurons on FaithEval — the localization→control break, (2) ITI MC vs bridge generation with wrong-entity substitution — the control→externality break, (3) jailbreak evaluation as measurement case study — the measurement→conclusion break. D7 and 4288 are powerful supporting evidence, not co-headliners.
 
 This thesis integrates ~80% of the project's work — the 4288 L1 artifact, verbosity confound, SAE detect-but-don't-steer, probe-head AUROC 1.0 null, causal-head positive result, ITI MC-vs-generation mismatch, BioASQ scope delimiter, H-neuron specificity controls, and the measurement discipline that caught multiple evaluation artifacts. It speaks directly to mech interp methodology, not just benchmark engineering.
 
@@ -79,7 +79,7 @@ The initial assessment was overly myopic — centering on CSV v3 validation and 
 | Working intervention | Where it works | Where it fails | Mechanism insight |
 |---|---|---|---|
 | H-neuron scaling | FaithEval (+6.3pp), FalseQA (+4.8pp), jailbreak count (+7.6pp) + severity | BioASQ (null) | Over-compliance lever, not truthfulness |
-| ITI E0 (TruthfulQA-sourced) | TruthfulQA MC (+6.3pp MC1, +7.49pp MC2) | SimpleQA generation (-31pp attempt rate at α=8), TriviaQA bridge (-7pp/-9pp) | Shifts probability mass among existing candidates; doesn't inject knowledge. **Bridge mechanism:** 5/10 flips are confident wrong-entity substitutions; E1 reproduces same wrong entities as E0 while only reducing rescue capacity — sharpest mechanistic diagnosis in the project |
+| ITI E0 (TruthfulQA-sourced) | TruthfulQA MC (+6.3pp MC1, +7.49pp MC2) | SimpleQA generation (-31pp attempt rate at α=8), TriviaQA bridge (−5.8pp [−8.8, −3.0] test set) | Shifts probability mass among existing candidates; doesn't inject knowledge. **Bridge mechanism:** 30/43 (70%) flips are wrong-entity substitutions on held-out test set; dev showed E1 reproduces same wrong entities as E0 while only reducing rescue capacity — sharpest mechanistic diagnosis in the project |
 | D7 causal heads | Jailbreak csv2_yes (-9.0pp vs baseline) | — (not tested on other benchmarks) | Gradient-based selection finds different components than AUROC (Jaccard 0.11) |
 | ITI E0 vs H-neurons on TruthfulQA MC | ITI: +6.3pp MC1 | H-neurons: +0.9pp [-1.7, +3.5] MC1 (null) | Different methods win on different surfaces |
 
@@ -91,7 +91,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 - H-neuron vs SAE dissociation on FaithEval — matched AUROC, divergent steering
 - Probe-head AUROC 1.0 null — most reviewer-resistant evidence
 - ITI MC improvement vs SimpleQA/TriviaQA bridge harm
-- Bridge benchmark's confident-wrong-substitution analysis — 5/10 flips are wrong-entity; identical across E0/E1
+- Bridge benchmark wrong-entity substitution analysis — 30/43 (70%) R2W flips on held-out test set (n=500, CI excludes zero); dev showed E0/E1 damage same questions
 - Measurement artifacts — truncation, binary-judge blind spots
 - H-neuron specificity controls on FaithEval and FalseQA
 
@@ -109,7 +109,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 > | Anchor | Stage break | Headline-safe evidence | Supporting evidence |
 > |---|---|---|---|
 > | **1. SAE vs H-neurons on FaithEval** | Localization → Control | Matched AUROC, divergent steering; delta-only rules out reconstruction | 4288 artifact, verbosity confound (localization fragility); D7 selector choice |
-> | **2. ITI MC vs bridge generation** | Control → Externality | MC +6.3pp vs bridge -7pp/-9pp; confident wrong-entity substitution mechanism | H-neuron scope (FaithEval yes, BioASQ no); D4 vs D1 |
+> | **2. ITI MC vs bridge generation** | Control → Externality | MC +6.3pp vs bridge −5.8pp [−8.8, −3.0] on locked test set; wrong-entity substitution (30/43) | H-neuron scope (FaithEval yes, BioASQ no); D4 vs D1 |
 > | **3. Jailbreak evaluation** | Measurement → Conclusion | Truncation artifact; binary-judge blind spots; graded vs binary reversal | Holdout compresses v3-SR gap; evaluator dependence is part of the result |
 >
 > D7 (selector-choice evidence) and 4288 (detector-interpretation evidence) are valuable supporting evidence within Anchors 1 and 3 respectively, not standalone pillars.
@@ -126,7 +126,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 
 - **Measurement → Localization:** Evaluation choices can reverse or compress conclusions (truncation artifact, binary-judge blind spots, v3-SR holdout gap collapse). You must trust your measurement before interpreting localization.
 - **Localization → Control:** Good localization doesn't guarantee control (SAE AUROC 0.848 matches H-neuron 0.843, yet SAE steering is null; probe heads reach AUROC 1.0, null intervention). 4288 artifact and verbosity confound show even localization *interpretation* is fragile.
-- **Control → Externality:** Successful control is surface-local, not universal (BioASQ null, ITI MC/generation split). The bridge benchmark reveals the failure is not mainly refusal but **confident wrong-entity substitution** — the intervention is active but indiscriminate.
+- **Control → Externality:** Successful control is surface-local, not universal (BioASQ null, ITI MC/generation split). The bridge benchmark reveals the failure is not primarily explained by refusal or grading loss but by **wrong-entity substitution** (30/43 R2W flips on held-out test set, CI excludes zero) — the intervention is active but indiscriminate.
 
 ### Not earned (do not claim)
 
@@ -188,7 +188,7 @@ The work is best packaged as **three separable deliverables**, not a single mono
 
 1. **Flagship paper** — *Detection Is Not Enough* / the broad methods paper about intervention science. This is the submission. Structure below.
 2. **Companion technical note** — Jailbreak measurement: truncation artifacts, binary-judge blind spots, and evaluator calibration discipline. Almost done; should be linkable as a supporting artifact. The flagship cites it for measurement rigor without re-explaining every audit inline.
-3. **Next-project / fellowship proposal** — From global truth steering to **selective truthfulness intervention**. The bridge benchmark provides the right label taxonomy: correct answers, confident wrong substitutions, evasion, and drift. Current evidence says global truth directions are too blunt; the natural sequel is a **conditional policy**: monitor answer-risk around the first decode steps, then abstain, rerank, or correct selectively. Alternative mech-interp framing: repurpose D7-style causal localization onto bridge correct-vs-wrong pairs (pointing causal machinery at factual generation, not refusal). ~~Architecture-aware local/global head split~~ → defer until bridge-grounded approach either works or fails (V2). This is future work and proposal fuel, not a deadline-week pivot.
+3. **Next-project / fellowship proposal** — From global truth steering to **selective truthfulness intervention**. The bridge benchmark provides the right label taxonomy: correct answers, wrong-entity substitutions, evasion/denial, and drift. Current evidence says global truth directions are too blunt; the natural sequel is a **conditional policy**: monitor answer-risk around the first decode steps, then abstain, rerank, or correct selectively. Alternative mech-interp framing: repurpose D7-style causal localization onto bridge correct-vs-wrong pairs (pointing causal machinery at factual generation, not refusal). ~~Architecture-aware local/global head split~~ → defer until bridge-grounded approach either works or fails (V2). This is future work and proposal fuel, not a deadline-week pivot.
 
 ### Paper structure (~~3-claim~~ → 4-stage, 3-anchor design — V2, 2026-04-12)
 
@@ -206,7 +206,7 @@ The work is best packaged as **three separable deliverables**, not a single mono
 (~2 pages)
 
 **§4. Anchor 2: When steering works, it is narrow and mechanistically revealing** — *The control→externality break.* Prevents "you only show negatives" critique.
-- **Bridge benchmark confident-wrong-substitution as mechanistic centerpiece** — 5/10 flips are wrong-entity (Terry Hall→Horace Panter); E0 and E1 produce the same wrong entities; E1 mainly reduces rescue capacity. ~~Failure is mainly refusal~~ → failure is **indiscriminate redistribution over nearby factual candidates**. This is evidence the mass-mean ITI family is the wrong lever for free-form factual generation. Sharpest mechanistic diagnosis in the project.
+- **Bridge benchmark wrong-entity substitution as mechanistic centerpiece** — 30/43 (70%) R2W flips on held-out test set (n=500, CI excludes zero) are wrong-entity substitutions (e.g., "Trainspotting" → "Slumdog Millionaire"); dev showed E0 and E1 produce the same wrong entities; E1 mainly reduces rescue capacity. ~~Failure is mainly refusal~~ → failure is **consistent with coarse reweighting toward nearby but wrong candidates**. This is evidence the mass-mean ITI family is the wrong lever for free-form factual generation. Sharpest mechanistic diagnosis in the project.
 - H-neurons: compliance yes (FaithEval +6.3pp, FalseQA +4.8pp), BioASQ null. Even a working detector-selected target is task-local.
 - ITI: MC selection yes (+6.3pp MC1), generation harmful. Different evaluation surfaces disagree about the same intervention.
 - D4 ITI beats H-neurons on TruthfulQA MC — different methods win on different surfaces.
@@ -266,7 +266,7 @@ The work is best packaged as **three separable deliverables**, not a single mono
 ### Phase 1: Weekend (hours 6-24) — CORE SECTIONS BEFORE MORE ANALYSIS
 
 5. **Draft §3 (Anchor 1: localization→control break)** — this is the paper's center of gravity. Lead with SAE vs H-neuron on FaithEval as the deepest anchor; probe-head AUROC 1.0 null as independent confirmation. D7 as supporting evidence only
-6. **Draft §4 (Anchor 2: control→externality break)** — bridge confident-wrong-substitution as mechanistic centerpiece (not refusal — indiscriminate redistribution); ITI MC/generation split; H-neuron scope; D4-vs-D1 on TruthfulQA MC
+6. **Draft §4 (Anchor 2: control→externality break)** — bridge wrong-entity substitution as mechanistic centerpiece (not refusal — indiscriminate redistribution); ITI MC/generation split; H-neuron scope; D4-vs-D1 on TruthfulQA MC
 7. Draft the central synthesis table
 8. **Finish the companion measurement note** enough to be linkable — truncation, binary-judge blind spots, evaluator calibration discipline. The flagship cites it as supporting evidence rather than re-explaining every audit
 9. **Blind adjudication of disputed labels** (V2: concurrent with scoring) — cheap, high-integrity manual work. Strengthens the evaluator companion note and demonstrates scientific judgment. Keep to the curated disputed set; do not sprawl into bulk re-adjudication
@@ -286,7 +286,7 @@ The work is best packaged as **three separable deliverables**, not a single mono
 14. Build figures:
     - Fig 1: FaithEval SAE vs H-neuron dose-response (matched AUROC, divergent steering)
     - Fig 2: D7 jailbreak three-way comparison + probe null (if D7 stays central) or probe null standalone
-    - Fig 3: ITI MC improvement vs bridge generation damage (with confident-substitution callout)
+    - Fig 3: ITI MC improvement vs bridge generation damage (with wrong-entity-substitution callout)
     - Fig 4: Synthesis table (central exhibit)
     - Fig 5: Seed 0 control slope vs H-neuron slope (if scored)
 15. Build appendix/supplement with deep dives
@@ -350,7 +350,7 @@ Ranked by information-per-dollar for the paper. **Writing deliverables are inclu
 | Perfect detection does not guarantee intervention | Probe heads AUROC 1.0, null at every alpha on jailbreak | Probe null |
 | A different selection criterion (gradient vs AUROC) identifies different components that steer differently | Causal heads -9.0pp vs probe null, Jaccard 0.11 | D7 comparison |
 | Successful steering is narrow: works on some tasks, not others | H-neurons: FaithEval/FalseQA/jailbreak yes, BioASQ no. ITI: MC yes, generation no | Scope evidence |
-| ITI generation failure is confident wrong-entity substitution, not refusal — sharpest mechanistic finding; evidence the mass-mean ITI family is the wrong lever for free-form factual generation | 5/10 flips are wrong-entity (e.g., Terry Hall→Horace Panter); E1 reproduces same wrong entities as E0 while only reducing rescue capacity. Failure is **indiscriminate redistribution** over nearby factual candidates, not mainly refusal or timid abstention (V2) | Bridge benchmark |
+| ITI generation failure is wrong-entity substitution, not refusal — sharpest mechanistic finding; evidence the mass-mean ITI family is the wrong lever for free-form factual generation | 30/43 (70%) R2W flips on held-out test set are wrong-entity substitutions; dev showed E1 reproduces same wrong entities as E0 while only reducing rescue capacity. Failure is **consistent with coarse reweighting toward nearby but wrong candidates**, not mainly refusal or timid abstention (V2) | Bridge benchmark |
 | ITI beats H-neurons on MC selection; different methods win on different surfaces | ITI +6.3pp MC1 vs H-neuron +0.9pp (null) on same benchmark | D1 vs D4 |
 | Evaluation method changes conclusions | Binary judge null on jailbreak (+3.0pp, CI includes zero); graded v2 significant (+7.6pp); truncation artifact caught | Measurement discipline |
 | L1 weight magnitude is unreliable for neuron importance | 4288: 0/6 analyses support dominance; absent at C≤0.3 | 4288 investigation |
@@ -383,7 +383,7 @@ Ranked by information-per-dollar for the paper. **Writing deliverables are inclu
 | Causal selection is always superior to correlational selection | One benchmark, no control |
 | CSV v3 clearly outperforms StrongREJECT | Holdout compressed gap from 12.2 to 2.0pp; all four evaluators >90% on holdout; holdout cannot validate superiority on new hard cases |
 | ITI reveals the truthfulness circuit | What we have is narrower: mass-mean ITI helps MC selection but harms generation, likely by reshuffling probability mass among nearby candidates rather than adding knowledge |
-| We improved truthful generation | We did not. What we improved is understanding of *why* the tested mass-mean ITI family fails on generation: indiscriminate redistribution over nearby factual candidates, not refusal. The bridge's confident-wrong-substitution finding is a diagnostic, not a fix (V2) |
+| We improved truthful generation | We did not. What we improved is understanding of *why* the tested mass-mean ITI family fails on generation: indiscriminate redistribution over nearby factual candidates, not refusal. The bridge's wrong-entity-substitution finding is a diagnostic, not a fix (V2) |
 
 ---
 
@@ -395,7 +395,7 @@ Ranked by information-per-dollar for the paper. **Writing deliverables are inclu
 
 **That is a real contribution. It tells people how not to fool themselves.**
 
-The 4288 artifact, the SAE null, the probe null, the bridge confident-wrong-substitution mechanism, the ITI MC/generation split, the causal-head positive, and the measurement discipline — these are not scattered side quests. They are **one story about what goes wrong when researchers conflate measurement, localization, control, and externality.**
+The 4288 artifact, the SAE null, the probe null, the bridge wrong-entity-substitution mechanism, the ITI MC/generation split, the causal-head positive, and the measurement discipline — these are not scattered side quests. They are **one story about what goes wrong when researchers conflate measurement, localization, control, and externality.**
 
 > **V2 (2026-04-12):** The strongest signal from a first project is not "I found a flashy effect." It is: **"I knew which effects were real, which ones were artifacts, which branches to kill, and what the next sharper question should be."** This project already contains that story. The job now is to make the write-up reflect it.
 

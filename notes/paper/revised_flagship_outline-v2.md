@@ -119,7 +119,7 @@ These belong in the paper with explicit caveats.
 - **H-neuron jailbreak specificity is supported, but only at single-seed strength so far.**
 - **D7 provides benchmark-local evidence that selector choice matters, but not yet selector-specific proof.**
 - **v3 appears useful for this output regime, but its headline advantage over StrongREJECT shrank substantially on holdout.**
-- **Bridge “confident wrong substitution” is a strong behavioral diagnosis, but the test split has not yet been used for a promoted candidate.**
+- ~~Bridge “confident wrong substitution” is a strong behavioral diagnosis, but the test split has not yet been used for a promoted candidate.~~ **Resolved 2026-04-13:** Bridge Phase 3 test-set results (n=500, CI excludes zero, p=0.0002) now headline-safe. See headline-safe list above.
 
 ### Do not claim
 
@@ -689,7 +689,7 @@ Be plain here. No flourish, no spin.
 - SAE layer coverage is partial;
 - D7 random-head control missing;
 - D7 capability / over-refusal battery missing;
-- bridge promoted candidate has not yet been run on the final test split;
+- ~~bridge promoted candidate has not yet been run on the final test split;~~ **Resolved 2026-04-13:** Phase 3 test set (n=500) run; CI excludes zero, p=0.0002. Remaining bridge limitation: failure-mode coding is single-rater.
 - jailbreak specificity is only scored for seed 0;
 - evaluator dependence remains a live uncertainty;
 - stochastic generation complicates per-item flip analysis;
@@ -1022,7 +1022,7 @@ unless you actually have circuit evidence.
 
 You can use this as a drafting template.
 
-> Predictive internal signals are often treated as natural targets for steering large language models, but the reliability of this heuristic remains unclear. We study this question in Gemma-3-4B-IT by comparing multiple intervention families under a shared evaluation contract across answer-selection, open-ended factual generation, and jailbreak settings. We find repeated dissociations between measurement, localization, control, and externality: matched or even perfect readouts often fail to yield useful steering targets; when interventions do work, their effects are narrow and surface-dependent; and evaluation choices can materially change the apparent conclusion. The clearest cases are a matched-detection but divergent-steering comparison between H-neurons and SAE features, an answer-selection / generation split for ITI explained by confident wrong substitution on a bridge benchmark, and a jailbreak case where truncation and judge choice alter the inferred effect. These results suggest that held-out readout quality is an unreliable heuristic for intervention target selection, and that mechanistic safety claims require task-local validation, matched controls, evaluator robustness checks, and externality reporting.
+> Predictive internal signals are often treated as natural targets for steering large language models, but the reliability of this heuristic remains unclear. We study this question in Gemma-3-4B-IT by comparing multiple intervention families under a shared evaluation contract across answer-selection, open-ended factual generation, and jailbreak settings. We find repeated dissociations between measurement, localization, control, and externality: matched or even perfect readouts often fail to yield useful steering targets; when interventions do work, their effects are narrow and surface-dependent; and evaluation choices can materially change the apparent conclusion. The clearest cases are a matched-detection but divergent-steering comparison between H-neurons and SAE features, an answer-selection / generation split for ITI explained by wrong-entity substitution on a locked bridge test set, and a jailbreak case where truncation and judge choice alter the inferred effect. These results suggest that held-out readout quality is an unreliable heuristic for intervention target selection, and that mechanistic safety claims require task-local validation, matched controls, evaluator robustness checks, and externality reporting.
 
 ---
 
