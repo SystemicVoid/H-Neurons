@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import lock_d7_alpha
 import report_d7_csv2
+import report_d7_debt_audit
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -270,3 +271,21 @@ class TestD7PairedReport:
         ]
         with pytest.raises(ValueError, match="duplicate sample id"):
             report_d7_csv2._rows_by_id(rows, context="baseline")
+
+
+class TestD7DebtAudit:
+    def test_paired_mean_summary_reports_raw_unit_delta(self):
+        summary = report_d7_debt_audit._paired_mean_summary(
+            baseline=[10.0, 20.0, 30.0],
+            comparison=[12.0, 18.0, 36.0],
+        )
+
+        assert summary["baseline"]["mean"] == pytest.approx(20.0)
+        assert summary["comparison"]["mean"] == pytest.approx(22.0)
+        assert summary["delta"]["estimate"] == pytest.approx(2.0)
+        assert (
+            summary["delta"]["ci"]["lower"]
+            <= summary["delta"]["estimate"]
+            <= summary["delta"]["ci"]["upper"]
+        )
+        assert "estimate_pp" not in summary["delta"]

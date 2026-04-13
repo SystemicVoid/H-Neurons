@@ -3613,8 +3613,11 @@ def parse_args(argv: list[str] | None = None):
         "--iti_selection_strategy",
         type=str,
         default="ranked",
-        choices=["ranked", "random"],
-        help="Ranked heads or random matched-K heads (negative control).",
+        choices=["ranked", "random", "layer_matched_random"],
+        help=(
+            "Head selection policy: ranked, random matched-K from the ranked pool, "
+            "or random with the ranked top-K per-layer profile matched exactly."
+        ),
     )
     p.add_argument(
         "--iti_random_seed",

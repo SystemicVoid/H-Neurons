@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import extract_truthfulness_iti as iti_extract
 from evaluate_intervention import parse_simpleqa_verdict
-from intervene_iti import ITIHeadScaler
+from intervene_iti import ITIHeadScaler, select_ranked_heads
 
 
 class StubTokenizer:
@@ -554,6 +554,177 @@ class TestD7CausalRanking:
 
 
 class TestITIHeadScaler:
+    def test_layer_matched_random_preserves_ranked_top_k_layer_profile(self):
+        artifact = {
+            "family": "iti_refusal_causal",
+            "n_layers": 3,
+            "n_attention_heads": 4,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 0,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 4.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 3.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 1,
+                    "head": 0,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 2.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 1,
+                    "head": 1,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 1.5,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 1,
+                    "head": 2,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 1,
+                    "head": 3,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 0.9,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 2,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 0.85,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 3,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 0.75,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 2,
+                    "head": 0,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 0.8,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 2,
+                    "head": 1,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 0.7,
+                    "direction": [1.0, 0.0],
+                },
+            ],
+        }
+
+        selected = select_ranked_heads(
+            artifact,
+            family="iti_refusal_causal",
+            k=4,
+            selection_strategy="layer_matched_random",
+            random_seed=7,
+        )
+        selected_again = select_ranked_heads(
+            artifact,
+            family="iti_refusal_causal",
+            k=4,
+            selection_strategy="layer_matched_random",
+            random_seed=7,
+        )
+
+        assert [(item["layer"], item["head"]) for item in selected] == [
+            (item["layer"], item["head"]) for item in selected_again
+        ]
+        assert [item["layer"] for item in selected].count(0) == 2
+        assert [item["layer"] for item in selected].count(1) == 2
+        assert [item["layer"] for item in selected].count(2) == 0
+        assert {(item["layer"], item["head"]) for item in selected}.isdisjoint(
+            {(0, 0), (0, 1), (1, 0), (1, 1)}
+        )
+
+    def test_layer_matched_random_rejects_layers_without_held_out_controls(self):
+        artifact = {
+            "family": "iti_refusal_causal",
+            "n_layers": 2,
+            "n_attention_heads": 2,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 0,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 4.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 3.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 1,
+                    "head": 0,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.5,
+                    "balanced_accuracy": 0.5,
+                    "sigma": 2.0,
+                    "direction": [1.0, 0.0],
+                },
+            ],
+        }
+
+        with pytest.raises(ValueError, match="excluding ranked top-2"):
+            select_ranked_heads(
+                artifact,
+                family="iti_refusal_causal",
+                k=2,
+                selection_strategy="layer_matched_random",
+                random_seed=7,
+            )
+
     def test_accepts_refusal_probe_artifact_family(self):
         model = DummyITIModel()
         artifact = {
@@ -870,6 +1041,93 @@ class TestITIHeadScaler:
         )
 
         assert applied_sigma_total == pytest.approx(6.0)
+
+        scaler.remove()
+
+    def test_layer_matched_random_head_control_rescales_sigma_to_match_ranked_total_norm(
+        self,
+    ):
+        model = DummyITIModel()
+        artifact = {
+            "family": "iti_refusal_causal",
+            "n_layers": 1,
+            "n_attention_heads": 6,
+            "head_dim": 2,
+            "ranked_heads": [
+                {
+                    "layer": 0,
+                    "head": 0,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.95,
+                    "balanced_accuracy": 0.95,
+                    "sigma": 4.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 1,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.9,
+                    "balanced_accuracy": 0.9,
+                    "sigma": 2.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 0,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.85,
+                    "balanced_accuracy": 0.85,
+                    "sigma": 1.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 2,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.8,
+                    "balanced_accuracy": 0.8,
+                    "sigma": 3.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 3,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.75,
+                    "balanced_accuracy": 0.75,
+                    "sigma": 5.0,
+                    "direction": [1.0, 0.0],
+                },
+                {
+                    "layer": 0,
+                    "head": 4,
+                    "position_summary": "last_answer_token",
+                    "auroc": 0.7,
+                    "balanced_accuracy": 0.7,
+                    "sigma": 6.0,
+                    "direction": [1.0, 0.0],
+                },
+            ],
+        }
+        scaler = ITIHeadScaler(
+            model,
+            artifact,
+            torch.device("cpu"),
+            family=None,
+            k=3,
+            selection_strategy="layer_matched_random",
+            random_seed=3,
+            collect_debug_stats=True,
+        )
+
+        applied_sigma_total = sum(
+            item["applied_sigma"]
+            for layer_items in scaler._selected_by_layer.values()
+            for item in layer_items
+        )
+
+        assert applied_sigma_total == pytest.approx(7.0)
 
         scaler.remove()
 

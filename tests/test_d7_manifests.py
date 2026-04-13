@@ -55,7 +55,9 @@ def test_manifest_builder_is_deterministic_for_fixed_seed() -> None:
 
     assert payload_a["extraction_harmful_ids"] == payload_b["extraction_harmful_ids"]
     assert payload_a["pilot_harmful_ids"] == payload_b["pilot_harmful_ids"]
+    assert payload_a["pilot_benign_ids"] == payload_b["pilot_benign_ids"]
     assert payload_a["full_harmful_ids"] == payload_b["full_harmful_ids"]
+    assert payload_a["full_benign_ids"] == payload_b["full_benign_ids"]
 
 
 def test_manifest_builder_enforces_disjoint_extraction_and_pilot_behaviors() -> None:
@@ -81,7 +83,9 @@ def test_manifest_builder_enforces_disjoint_extraction_and_pilot_behaviors() -> 
     assert payload["splits"]["disjoint_pilot_vs_full"] is True
     assert len(payload["extraction_pairs"]) == 50
     assert len(payload["pilot_harmful_ids"]) == 100
+    assert len(payload["pilot_benign_ids"]) == 100
     assert len(payload["full_harmful_ids"]) == 500
+    assert len(payload["full_benign_ids"]) == 500
 
 
 def test_manifest_builder_rejects_full_size_larger_than_non_pilot_pool() -> None:
@@ -130,6 +134,38 @@ def test_extraction_pairs_preserve_harmful_benign_alignment() -> None:
         assert b_split == "benign"
         assert h_index == b_index == pair["behavior_index"]
         assert h_template == b_template == pair["template_idx"]
+
+
+def test_pilot_and_full_benign_manifests_match_harmful_shapes() -> None:
+    harmful, benign = _fake_maps()
+    payload = d7_manifest.build_d7_jbb_manifest_payload(
+        harmful_by_index=harmful,
+        benign_by_index=benign,
+        seed=42,
+        extraction_behaviors=10,
+        pilot_behaviors=20,
+        full_behaviors=100,
+        n_templates=5,
+        extraction_val_behaviors=2,
+    )
+
+    for harmful_id, benign_id in zip(
+        payload["pilot_harmful_ids"], payload["pilot_benign_ids"], strict=True
+    ):
+        h_split, h_index, h_template = d7_manifest._parse_jbb_sample_id(harmful_id)
+        b_split, b_index, b_template = d7_manifest._parse_jbb_sample_id(benign_id)
+        assert h_split == "harmful"
+        assert b_split == "benign"
+        assert (h_index, h_template) == (b_index, b_template)
+
+    for harmful_id, benign_id in zip(
+        payload["full_harmful_ids"], payload["full_benign_ids"], strict=True
+    ):
+        h_split, h_index, h_template = d7_manifest._parse_jbb_sample_id(harmful_id)
+        b_split, b_index, b_template = d7_manifest._parse_jbb_sample_id(benign_id)
+        assert h_split == "harmful"
+        assert b_split == "benign"
+        assert (h_index, h_template) == (b_index, b_template)
 
 
 def test_jailbreak_templates_parity() -> None:

@@ -9,6 +9,7 @@ slots, and lets ``o_proj`` mix the modified heads normally.
 
 from __future__ import annotations
 
+from collections import Counter
 import random
 import time
 from pathlib import Path
@@ -82,8 +83,35 @@ def select_ranked_heads(
         rng = random.Random(random_seed)
         chosen = rng.sample(ranked_heads, k)
         return sorted(chosen, key=lambda item: (item["layer"], item["head"]))
+    if selection_strategy == "layer_matched_random":
+        rng = random.Random(random_seed)
+        ranked_top_k = ranked_heads[:k]
+        layer_profile = Counter(int(item["layer"]) for item in ranked_top_k)
+        ranked_top_k_keys = {
+            (int(item["layer"]), int(item["head"])) for item in ranked_top_k
+        }
+        heads_by_layer: dict[int, list[dict[str, Any]]] = {}
+        for item in ranked_heads:
+            layer_idx = int(item["layer"])
+            head_idx = int(item["head"])
+            if (layer_idx, head_idx) in ranked_top_k_keys:
+                continue
+            heads_by_layer.setdefault(layer_idx, []).append(item)
+
+        chosen: list[dict[str, Any]] = []
+        for layer_idx, layer_k in sorted(layer_profile.items()):
+            available = heads_by_layer.get(layer_idx, [])
+            if layer_k > len(available):
+                raise ValueError(
+                    "Cannot sample layer-matched random heads: "
+                    f"layer {layer_idx} needs {layer_k} held-out heads but only "
+                    f"{len(available)} remain after excluding ranked top-{k}"
+                )
+            chosen.extend(rng.sample(available, layer_k))
+        return sorted(chosen, key=lambda item: (item["layer"], item["head"]))
     raise ValueError(
-        f"selection_strategy must be 'ranked' or 'random', got {selection_strategy!r}"
+        "selection_strategy must be 'ranked', 'random', or "
+        f"'layer_matched_random', got {selection_strategy!r}"
     )
 
 
@@ -139,7 +167,7 @@ class ITIHeadScaler:
         selected_sigma_total = sum(float(item["sigma"]) for item in self.selected_heads)
         self._random_sigma_scale = 1.0
         if (
-            self.selection_strategy == "random"
+            self.selection_strategy in {"random", "layer_matched_random"}
             and selected_sigma_total > 1e-8
             and self._baseline_sigma_total > 0.0
         ):

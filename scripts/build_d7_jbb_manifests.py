@@ -4,8 +4,10 @@
 Outputs:
 - extraction pairs JSONL (50 paired harmful/benign prompts = 10 behaviors x 5 templates)
 - extraction harmful IDs JSON (for optional generation audits)
-- pilot harmful IDs JSON (100 prompts = 20 behaviors x 5 templates, disjoint from extraction)
-- full harmful IDs JSON (full_behaviors x n_templates prompts, disjoint from pilot)
+- pilot harmful/benign ID JSONs (100 prompts = 20 behaviors x 5 templates,
+  disjoint from extraction)
+- full harmful/benign ID JSONs (full_behaviors x n_templates prompts, disjoint
+  from pilot)
 - metadata JSON with split fingerprints and parity checks
 """
 
@@ -298,8 +300,18 @@ def build_d7_jbb_manifest_payload(
         for index in pilot_indices
         for template_idx in range(n_templates)
     ]
+    pilot_benign_ids = [
+        _sample_id(split="benign", index=index, template_idx=template_idx)
+        for index in pilot_indices
+        for template_idx in range(n_templates)
+    ]
     full_harmful_ids = [
         _sample_id(split="harmful", index=index, template_idx=template_idx)
+        for index in full_indices
+        for template_idx in range(n_templates)
+    ]
+    full_benign_ids = [
+        _sample_id(split="benign", index=index, template_idx=template_idx)
         for index in full_indices
         for template_idx in range(n_templates)
     ]
@@ -308,8 +320,12 @@ def build_d7_jbb_manifest_payload(
         raise ValueError("Unexpected extraction pair count")
     if len(pilot_harmful_ids) != pilot_behaviors * n_templates:
         raise ValueError("Unexpected pilot prompt count")
+    if len(pilot_benign_ids) != pilot_behaviors * n_templates:
+        raise ValueError("Unexpected pilot benign prompt count")
     if len(full_harmful_ids) != full_behaviors * n_templates:
         raise ValueError("Unexpected full prompt count")
+    if len(full_benign_ids) != full_behaviors * n_templates:
+        raise ValueError("Unexpected full benign prompt count")
 
     extraction_behavior_set = set(extraction_indices)
     pilot_behavior_set = set(pilot_indices)
@@ -326,7 +342,9 @@ def build_d7_jbb_manifest_payload(
         "extraction_harmful_ids": extraction_harmful_ids,
         "extraction_benign_ids": extraction_benign_ids,
         "pilot_harmful_ids": pilot_harmful_ids,
+        "pilot_benign_ids": pilot_benign_ids,
         "full_harmful_ids": full_harmful_ids,
+        "full_benign_ids": full_benign_ids,
         "splits": {
             "extraction_behavior_indices": extraction_indices,
             "pilot_behavior_indices": pilot_indices,
@@ -365,9 +383,17 @@ def main() -> None:
         args.output_dir
         / f"jbb_d7_pilot_harmful{args.pilot_behaviors * args.n_templates}_seed{args.seed}.json"
     )
+    pilot_benign_ids_path = (
+        args.output_dir
+        / f"jbb_d7_pilot_benign{args.pilot_behaviors * args.n_templates}_seed{args.seed}.json"
+    )
     full_ids_path = (
         args.output_dir
         / f"jbb_d7_full_harmful{args.full_behaviors * args.n_templates}_seed{args.seed}.json"
+    )
+    full_benign_ids_path = (
+        args.output_dir
+        / f"jbb_d7_full_benign{args.full_behaviors * args.n_templates}_seed{args.seed}.json"
     )
     metadata_path = args.output_dir / f"jbb_d7_metadata_seed{args.seed}.json"
 
@@ -378,7 +404,9 @@ def main() -> None:
             str(extraction_pairs_path),
             str(extraction_harmful_ids_path),
             str(pilot_ids_path),
+            str(pilot_benign_ids_path),
             str(full_ids_path),
+            str(full_benign_ids_path),
             str(metadata_path),
         ],
         primary_target_is_dir=True,
@@ -406,8 +434,14 @@ def main() -> None:
         pilot_ids_path.write_text(
             json_dumps(payload["pilot_harmful_ids"]), encoding="utf-8"
         )
+        pilot_benign_ids_path.write_text(
+            json_dumps(payload["pilot_benign_ids"]), encoding="utf-8"
+        )
         full_ids_path.write_text(
             json_dumps(payload["full_harmful_ids"]), encoding="utf-8"
+        )
+        full_benign_ids_path.write_text(
+            json_dumps(payload["full_benign_ids"]), encoding="utf-8"
         )
 
         metadata = {
@@ -417,14 +451,18 @@ def main() -> None:
                 "n_behaviors_total": len(harmful_by_index),
                 "n_extraction_pairs": len(payload["extraction_pairs"]),
                 "n_pilot_prompts": len(payload["pilot_harmful_ids"]),
+                "n_pilot_benign_prompts": len(payload["pilot_benign_ids"]),
                 "n_full_prompts": len(payload["full_harmful_ids"]),
+                "n_full_benign_prompts": len(payload["full_benign_ids"]),
             },
             "fingerprints": {
                 "extraction_harmful_ids": fingerprint_ids(
                     payload["extraction_harmful_ids"]
                 ),
                 "pilot_harmful_ids": fingerprint_ids(payload["pilot_harmful_ids"]),
+                "pilot_benign_ids": fingerprint_ids(payload["pilot_benign_ids"]),
                 "full_harmful_ids": fingerprint_ids(payload["full_harmful_ids"]),
+                "full_benign_ids": fingerprint_ids(payload["full_benign_ids"]),
                 "extraction_behavior_indices": fingerprint_ids(
                     [str(v) for v in payload["splits"]["extraction_behavior_indices"]]
                 ),
@@ -437,18 +475,24 @@ def main() -> None:
                 "extraction_pairs": str(extraction_pairs_path),
                 "extraction_harmful_ids": str(extraction_harmful_ids_path),
                 "pilot_harmful_ids": str(pilot_ids_path),
+                "pilot_benign_ids": str(pilot_benign_ids_path),
                 "full_harmful_ids": str(full_ids_path),
+                "full_benign_ids": str(full_benign_ids_path),
             },
         }
         metadata_path.write_text(json_dumps(metadata), encoding="utf-8")
 
         provenance_extra["record_count"] = len(payload["extraction_pairs"])
         provenance_extra["pilot_n"] = len(payload["pilot_harmful_ids"])
+        provenance_extra["pilot_benign_n"] = len(payload["pilot_benign_ids"])
         provenance_extra["full_n"] = len(payload["full_harmful_ids"])
+        provenance_extra["full_benign_n"] = len(payload["full_benign_ids"])
 
         print(f"Wrote extraction pairs: {extraction_pairs_path}")
         print(f"Wrote pilot manifest:   {pilot_ids_path}")
+        print(f"Wrote pilot benign:     {pilot_benign_ids_path}")
         print(f"Wrote full manifest:    {full_ids_path}")
+        print(f"Wrote full benign:      {full_benign_ids_path}")
         print(f"Wrote metadata:         {metadata_path}")
     except BaseException as exc:
         provenance_status = provenance_status_for_exception(exc)
