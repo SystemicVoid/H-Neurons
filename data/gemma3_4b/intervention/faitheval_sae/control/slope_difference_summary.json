@@ -1,0 +1,37 @@
+{
+  "slope_a_pp_per_alpha": 2.0928571428571416,
+  "slope_b_pp_per_alpha": 0.16428571428571306,
+  "slope_difference_pp_per_alpha": {
+    "estimate": 1.9285714285714286,
+    "ci": {
+      "lower": 0.9426785714285727,
+      "upper": 2.9214285714285713,
+      "level": 0.95,
+      "method": "bootstrap_percentile_paired"
+    }
+  },
+  "bootstrap": {
+    "n_resamples": 10000,
+    "seed": 42,
+    "confidence": 0.95,
+    "resampling": "paired_by_sample_id",
+    "interval": "percentile"
+  },
+  "permutation_test": {
+    "p_value": 9.99980000399992e-05,
+    "n_extreme": 4,
+    "n_permutations": 50000,
+    "alternative": "one_sided_greater"
+  },
+  "comparison": "neuron_minus_sae",
+  "n_items": 1000,
+  "alphas": [
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0
+  ]
+}

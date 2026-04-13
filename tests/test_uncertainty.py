@@ -4,6 +4,7 @@ import pytest
 from scripts.uncertainty import (
     paired_bootstrap_binary_rate_difference,
     paired_bootstrap_curve_effects,
+    paired_bootstrap_slope_difference,
     stratified_bootstrap_classifier_metrics,
     wilson_interval,
 )
@@ -131,3 +132,59 @@ def test_paired_bootstrap_binary_rate_difference_reports_expected_point_estimate
     assert (
         summary["ci_pp"]["lower"] <= summary["estimate_pp"] <= summary["ci_pp"]["upper"]
     )
+
+
+def test_slope_difference_detects_known_divergence():
+    # Condition A has increasing compliance; condition B is flat
+    rng = np.random.default_rng(99)
+    n = 200
+    alphas = np.array([0.0, 1.0, 2.0, 3.0])
+    traj_a = np.zeros((n, 4), dtype=bool)
+    traj_b = np.zeros((n, 4), dtype=bool)
+    for j, a in enumerate(alphas):
+        traj_a[:, j] = rng.random(n) < (0.5 + 0.1 * a)
+        traj_b[:, j] = rng.random(n) < 0.5
+
+    result = paired_bootstrap_slope_difference(
+        traj_a, traj_b, alphas, n_resamples=500, seed=7
+    )
+
+    diff = result["slope_difference_pp_per_alpha"]
+    assert diff["estimate"] > 0
+    assert diff["ci"]["lower"] > 0  # CI should exclude zero
+
+
+def test_slope_difference_near_zero_for_identical_conditions():
+    rng = np.random.default_rng(42)
+    n = 100
+    alphas = np.array([0.0, 1.0, 2.0])
+    traj = (rng.random((n, 3)) < 0.5).astype(bool)
+
+    result = paired_bootstrap_slope_difference(
+        traj, traj, alphas, n_resamples=500, seed=3
+    )
+
+    assert result["slope_difference_pp_per_alpha"]["estimate"] == pytest.approx(0.0)
+
+
+def test_slope_difference_permutation_test_null():
+    # Identical conditions → permutation p should be large
+    rng = np.random.default_rng(42)
+    n = 80
+    alphas = np.array([0.0, 1.0, 2.0])
+    traj = (rng.random((n, 3)) < 0.5).astype(bool)
+
+    result = paired_bootstrap_slope_difference(
+        traj, traj, alphas, n_resamples=200, seed=5, permutation_resamples=500
+    )
+
+    assert result["permutation_test"]["p_value"] >= 0.3
+
+
+def test_slope_difference_shape_mismatch_raises():
+    traj_a = np.ones((10, 3), dtype=bool)
+    traj_b = np.ones((8, 3), dtype=bool)
+    alphas = np.array([0.0, 1.0, 2.0])
+
+    with pytest.raises(ValueError, match="same shape"):
+        paired_bootstrap_slope_difference(traj_a, traj_b, alphas)

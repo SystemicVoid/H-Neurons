@@ -356,3 +356,97 @@ def paired_bootstrap_curve_effects(
         }
 
     return result
+
+
+def paired_bootstrap_slope_difference(
+    trajectories_a: np.ndarray,
+    trajectories_b: np.ndarray,
+    alphas: np.ndarray,
+    *,
+    confidence: float = DEFAULT_CONFIDENCE,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    permutation_resamples: int = 0,
+) -> dict[str, Any]:
+    """Bootstrap CI on the slope difference (A minus B) for paired trajectory data.
+
+    Both trajectory matrices must have the same items in the same order,
+    enabling paired resampling that preserves item-level covariance.
+
+    When *permutation_resamples* > 0, a permutation test shuffles condition
+    labels per item to build a null distribution of slope differences.
+    """
+    trajectories_a = np.asarray(trajectories_a, dtype=bool)
+    trajectories_b = np.asarray(trajectories_b, dtype=bool)
+    alphas = np.asarray(alphas, dtype=float)
+
+    if trajectories_a.shape != trajectories_b.shape:
+        raise ValueError("trajectories_a and trajectories_b must have the same shape")
+    if trajectories_a.ndim != 2:
+        raise ValueError("trajectories must be 2D arrays (n_samples, n_alphas)")
+    if trajectories_a.shape[1] != len(alphas):
+        raise ValueError("trajectories second dimension must match alphas length")
+
+    n_samples = trajectories_a.shape[0]
+
+    # Direct OLS on the difference trajectory: slope(a-b) == slope(a) - slope(b)
+    diff_traj = trajectories_a.astype(float) - trajectories_b.astype(float)
+    x_centered = alphas - alphas.mean()
+    ss_x = float((x_centered**2).sum())
+
+    def _ols_slope(rates_pp: np.ndarray) -> float:
+        return float((x_centered * (rates_pp - rates_pp.mean())).sum() / ss_x)
+
+    # Point estimates
+    rates_a = trajectories_a.mean(axis=0) * 100.0
+    rates_b = trajectories_b.mean(axis=0) * 100.0
+    slope_a = _ols_slope(rates_a)
+    slope_b = _ols_slope(rates_b)
+    diff_rates = diff_traj.mean(axis=0) * 100.0
+    observed_diff = _ols_slope(diff_rates)
+
+    # Paired bootstrap
+    rng = np.random.default_rng(seed)
+    diff_samples = np.empty(n_resamples, dtype=float)
+    for sample_idx in range(n_resamples):
+        idx = rng.choice(n_samples, size=n_samples, replace=True)
+        dr = diff_traj[idx].mean(axis=0) * 100.0
+        diff_samples[sample_idx] = _ols_slope(dr)
+
+    ci = percentile_interval(
+        diff_samples, confidence, method="bootstrap_percentile_paired"
+    )
+
+    result: dict[str, Any] = {
+        "slope_a_pp_per_alpha": float(slope_a),
+        "slope_b_pp_per_alpha": float(slope_b),
+        "slope_difference_pp_per_alpha": {
+            "estimate": float(observed_diff),
+            "ci": ci.to_dict(),
+        },
+        "bootstrap": {
+            "n_resamples": int(n_resamples),
+            "seed": int(seed),
+            "confidence": float(confidence),
+            "resampling": "paired_by_sample_id",
+            "interval": "percentile",
+        },
+    }
+
+    # Permutation test: flip condition labels per item via sign flip on diff
+    if permutation_resamples > 0:
+        perm_rng = np.random.default_rng(seed + 1)
+        n_extreme = 0
+        for _ in range(permutation_resamples):
+            signs = np.where(perm_rng.random(n_samples) < 0.5, -1.0, 1.0)
+            dr = (signs[:, None] * diff_traj).mean(axis=0) * 100.0
+            if _ols_slope(dr) >= observed_diff:
+                n_extreme += 1
+        result["permutation_test"] = {
+            "p_value": float((n_extreme + 1) / (permutation_resamples + 1)),
+            "n_extreme": int(n_extreme),
+            "n_permutations": int(permutation_resamples),
+            "alternative": "one_sided_greater",
+        }
+
+    return result
