@@ -202,6 +202,8 @@ def cohens_kappa(y1: np.ndarray, y2: np.ndarray) -> float:
 
 def confusion_matrix_2x2(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, int]:
     """Compute 2x2 confusion matrix counts."""
+    y_true = np.asarray(y_true, dtype=bool)
+    y_pred = np.asarray(y_pred, dtype=bool)
     tp = int(np.sum(y_true & y_pred))
     tn = int(np.sum(~y_true & ~y_pred))
     fp = int(np.sum(~y_true & y_pred))
