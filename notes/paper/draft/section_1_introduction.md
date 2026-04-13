@@ -12,7 +12,7 @@ This paper tests the readout-to-steering heuristic empirically in Gemma-3-4B-IT.
 
 3. **Control** — Does intervention produce the intended behavioral change? When it did, the effect was narrow: H-neurons improved compliance on FaithEval but not on BioASQ; ITI improved answer selection but not open-ended generation (§5).
 
-4. **Externality** — Does the effect transfer without causing harm? The TriviaQA bridge benchmark revealed that ITI does not merely degrade generation — it redistributes probability mass toward semantically nearby but wrong entities, producing confident factual substitutions rather than refusals (§5.3).
+4. **Externality** — Does the effect transfer without causing harm? The TriviaQA bridge benchmark revealed that ITI does not merely degrade generation — it produces substitutions consistent with coarse reweighting toward nearby but wrong candidates rather than refusal (§5.3).
 
 These results suggest that strong readouts are insufficient evidence for good steering targets and that credible mechanistic intervention claims require stage-specific validation. We organize these observations into a four-stage audit framework — measurement, localization, control, externality — and distill five concrete recommendations for researchers evaluating intervention claims (§7).
 
@@ -21,4 +21,4 @@ Figure 1 shows the four-stage scaffold and places the paper's three anchor case 
 ![Figure 1. Four-stage audit scaffold.](figures/fig1_four_stage_scaffold.png)
 *Figure 1. The paper's three anchor case studies map onto failures at the measurement→localization, localization→control, and control→externality transitions.*
 
-**Contributions.** (1) A cross-method empirical dissociation between readout quality and steering utility, centered on a matched-detection comparison between magnitude-ranked neurons and SAE features on FaithEval and supplemented by a selector-level contrast on jailbreak. (2) An externality analysis showing that steering gains on answer-selection benchmarks do not transfer to open-ended generation, with a specific failure-mode diagnosis (confident wrong-entity substitution). (3) A staged audit framework and checklist for evaluating the credibility of mechanistic intervention claims.
+**Contributions.** (1) A cross-method empirical dissociation between readout quality and steering utility, centered on a matched-detection comparison between magnitude-ranked neurons and SAE features on FaithEval and supplemented by a selector-level contrast on jailbreak. (2) An externality analysis showing that steering gains on answer-selection benchmarks do not transfer to open-ended generation, with a specific failure-mode diagnosis (wrong-entity substitution). (3) A staged audit framework and checklist for evaluating the credibility of mechanistic intervention claims.

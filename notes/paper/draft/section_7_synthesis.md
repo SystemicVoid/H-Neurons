@@ -10,7 +10,7 @@ The four stages — **measurement**, **localization**, **control**, and **extern
 
 - **Localization → Control.** A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843) yet produced null steering on the same benchmark (§4.2). Probe-ranked attention heads achieved perfect discrimination (AUROC 1.0) yet null intervention on jailbreak (§4.3). The localization-to-control transition broke even under conditions designed to give the readout every advantage.
 
-- **Control → Externality.** An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-7$ pp to $-9$ pp on the TriviaQA bridge dev set, with the dominant failure mode being confident substitution of wrong entities rather than refusal or abstention (§5.3; Limitation L5). H-neurons improved compliance on FaithEval (+4.5 pp above no-op) but produced a null effect on BioASQ factoid QA (§5.1).
+- **Control → Externality.** An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-5.8$ pp [$-8.8$, $-3.0$] on the TriviaQA bridge test set ($n = 500$, CI excludes zero), with the dominant failure mode being substitution of wrong entities rather than refusal or abstention (§5.3). H-neurons improved compliance on FaithEval (+4.5 pp above no-op) but produced a null effect on BioASQ factoid QA (§5.1).
 
 Each stage transition is a distinct empirical claim. Passing one does not license claims about the next.
 
@@ -31,7 +31,7 @@ With hundreds of thousands of neurons, thousands of SAE features, or hundreds of
 When an intervention changes the surface form of model outputs — for example, shifting from clean refusal to refuse-then-comply patterns — different evaluators may reach different conclusions about the same outputs. This is not noise; it reflects genuine construct mismatch (§6.3). Report evaluator agreement rates, use holdout validation to separate calibration artifacts from genuine performance differences, and do not rely on a single evaluation rubric for claims about interventions that alter output style.
 
 **Recommendation 5: Report externality and quality debt as first-class outcomes.**
-Interventions that help on one metric can harm others. Our bridge results show that the harm is not always generic degradation — it can be a specific, interpretable failure mode (confident factual substitution; §5.3). Report cross-surface effects, capability impacts, and residual quality issues (such as token-cap limitations or response-format distortions) alongside the target-behavior result, not as footnotes.
+Interventions that help on one metric can harm others. Our bridge results show that the harm is not always generic degradation — it can be a specific, interpretable failure mode (factual substitution; §5.3). Report cross-surface effects, capability impacts, and residual quality issues (such as token-cap limitations or response-format distortions) alongside the target-behavior result, not as footnotes.
 
 ## 7.3 Theory of Change
 

@@ -23,23 +23,27 @@ The contrast is stark: on a constrained answer-selection task (TruthfulQA MC), t
 
 ## 5.3 Bridge: The Sharpest Behavioral Diagnosis
 
-The TriviaQA bridge benchmark (dev set, $n = 100$, baseline adjudicated accuracy 47.0%) provides the most informative externality result because it reveals a specific behavioral failure mode, not just a score drop.
+The TriviaQA bridge benchmark (held-out test set, $n = 500$, baseline adjudicated accuracy 45.0%) provides the most informative externality result because it reveals a specific behavioral failure mode, not just a score drop. The test set was evaluated under a one-shot frozen protocol: all parameters were locked from Phase 2 dev results, the test manifest was generated at split time, and a pipeline guard prevented re-running. No parameters were tuned on test data.^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §§1, 2.1.]
 
-**The intervention is active, not simply suppressive.** On this dev split, at $\alpha = 8.0$, the original ITI variant (E0, paper-faithful, $K = 12$) reduces adjudicated accuracy by $-7.0$ pp [$-14.0$, 0.0], with 10 right-to-wrong flips against 3 wrong-to-right rescues (net $-7$, McNemar $p = 0.096$). The updated variant (E1, $K = 8$) is worse: $-9.0$ pp [$-16.0$, $-3.0$], with 10 right-to-wrong flips against only 1 rescue (net $-9$, McNemar $p = 0.016$, CI excludes zero).^[Source: `notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md`, §2.2.]
+**The intervention is active, not simply suppressive.** At $\alpha = 8.0$, the paper-faithful ITI variant (E0, $K = 12$) reduces adjudicated accuracy by $-5.8$ pp [$-8.8$, $-3.0$] (CI excludes zero), with 43 right-to-wrong flips against 14 wrong-to-right rescues (net $-29$, McNemar $p = 0.0002$).^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §§2.2-2.3.] Both the primary (adjudicated) and floor (deterministic) accuracy deltas exclude zero ($-5.8$ pp [$-8.8$, $-3.0$] and $-4.6$ pp [$-7.6$, $-1.6$] respectively), ruling out a grading artifact as the explanation for the observed harm.
 
-**The failure is not mainly refusal.** NOT\_ATTEMPTED counts increase only from 1 to 3 across the alpha range. The dominant failure mode is not refusal or abstention.
+**The observed harm is not primarily explained by refusal or grading loss.** NOT\_ATTEMPTED counts increase from 2 to 8, a statistically significant but small effect (1.2 pp). Formal refusal accounts for only 2 of 43 right-to-wrong flips (5%). The dominant damage is factual corruption, not silence.^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §§2.1, 5.1.]
 
-**The dominant single failure mode is confident wrong-entity substitution.** Of the 10 right-to-wrong flips at E0 $\alpha = 8.0$, five (50%) are substitutions where the model replaces a correct factual answer with a different, confidently wrong entity:^[Source: `notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md`, §4.2.]
+**The dominant single failure mode is wrong-entity substitution.** Of the 43 right-to-wrong flips at E0 $\alpha = 8.0$, 30 (70%) are substitutions where the model replaces a correct factual answer with a different entity from the same semantic neighborhood:^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §5.2.]
 
 | Question | Baseline (correct) | ITI $\alpha = 8$ (wrong) |
 |---|---|---|
-| Lewis Carroll hunting poem? | "Hunting for a Snark" | "Hunting for a caucus-race" |
-| Lead singer of The Specials? | "Terry Hall" | "Horace Panter" (bassist) |
-| Microcephaly = abnormally small \_\_? | "Head size" | "Brain size" |
-| WWII coin gambling game? | "Two-up" | "Nimble Nick" |
-| Scottish paper with Broons/Wullie? | "The Sunday Post" | "The Scotsman" |
+| Danny Boyle 1996 film? | "Trainspotting" | "Slumdog Millionaire" (same director) |
+| Third musician in 1959 crash? | "Ritchie Valens" | "J.P. Richardson" (same crash) |
+| Family Guy spin-off character? | "Cleveland Brown" | "Peter Griffin" (same show) |
+| Dickens novel with Merdle & Sparkler? | "Little Dorrit" | "Bleak House" (same author) |
+| DC comic introducing Superman? | "Action Comics" | "Detective Comics" (same publisher) |
 
-The substitutions are semantically close: a different band member, a related anatomical term, a different Scottish newspaper. This pattern is consistent with the truthfulness direction redistributing probability mass over nearby factual candidates rather than suppressing generation entirely.
+This pattern is consistent with coarse reweighting toward nearby but wrong candidates rather than suppression of generation. The failure-mode taxonomy is based on single-rater manual classification; the qualitative pattern is robust (50% at dev scale, 70% at test scale), but we treat the exact shares as approximate.
+
+**A secondary failure mode is factual denial.** Eight of 43 R2W flips (19%) involve the model asserting that well-established facts are uncertain or false (e.g., "He did not complete a Puccini opera" — the answer is Turandot). This is qualitatively different from wrong-entity substitution and may reflect a skepticism component in the truthfulness direction that inappropriately suppresses confident factual assertions.^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §5.3.]
+
+**The 14 wrong-to-right rescues are informative.** The rescue mechanism mirrors the damage mechanism: in these cases the same probability shift happened to land on the correct entity. This bidirectional pattern supports an indiscriminate redistribution interpretation — the direction does not encode knowledge of which answer is correct; it perturbs the distribution, sometimes helpfully but more often harmfully.^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §6.]
 
 > **Box B — Worked Bridge Rescue Example**
 >
@@ -52,12 +56,14 @@ The substitutions are semantically close: a different band member, a related ana
 > surface.^[Source: `notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md`,
 > §4.1.]
 
-**The failure is reproducible across intervention variants.** Both E0 and E1 produce exactly 10 right-to-wrong flips at $\alpha = 8.0$, sharing the same set of damaged questions.^[Source: `notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md`, §2.3.] The flip asymmetry structure is stable: both variants damage the same subpopulation, differing only in rescue capacity (E0 rescues 3, E1 rescues 1). This suggests the failure is driven by the intervention family's interaction with the model's factual retrieval, not by idiosyncratic properties of a single direction variant.
+**The failure is reproducible across intervention variants.** On the dev split ($n = 100$), both E0 and E1 produced exactly 10 right-to-wrong flips at $\alpha = 8.0$, damaging the same set of questions (E0 rescues 3, E1 rescues 1). E1 ($K = 8$) showed a larger deficit ($-9.0$ pp [$-16.0$, $-3.0$], McNemar $p = 0.016$); E1 was not run on the test set.^[Source: `notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md`, §2.3.] This suggests the failure is driven by the intervention family's interaction with the model's factual retrieval, not by idiosyncratic properties of a single direction variant.
 
-**Three additional failure modes account for the remaining flips:** verbosity-induced answer loss (3/10; the model elaborates past the target answer), evasion (1/10; the model describes instead of answering), and paraphrase drift (1/10).
+**Three additional failure modes account for the remaining 13 R2W flips:** evasion / factual denial (8/43, 19%), answer dilution from verbosity (3/43, 7%), and formal refusal (2/43, 5%).^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §5.1.]
 
 ## 5.4 Externality as First-Class Evidence
 
-The bridge result makes the externality point at section level: the same ITI direction that improves TruthfulQA MC1 by +6.3 pp still harms nearby generation surfaces, and on the bridge dev set that harm most often appears as wrong-entity substitution rather than generic refusal. The H-neuron scope boundary reinforces the same lesson from a different direction: an intervention that works on compliance-adjacent surfaces (FaithEval, FalseQA, jailbreak) produces zero effect on BioASQ, indicating a narrow over-compliance lever rather than general truthfulness improvement.
+The same ITI direction that improves TruthfulQA multiple-choice performance degrades held-out open-ended factual generation, primarily through right-to-wrong factual substitutions rather than refusal. This dissociation is between constrained answer selection and open-ended exact factual generation — not merely between MC and generation formats. The bridge result also helps explain *why* constrained selection can improve while open-ended generation worsens: a coarse direction that re-ranks candidate plausibility can help when the correct answer is already present in a small candidate set, but harms when the model must retrieve and emit the exact entity in an open vocabulary setting.
 
-These bridge estimates remain dev-set point estimates: the main ITI configuration has not yet been run on the held-out test split ($n = 400$), and the failure-mode taxonomy is based on manual analysis of 10 flips, so we use it for qualitative diagnosis rather than population-rate estimation (Limitation L5). We use "confident wrong-entity substitution" as a behavioral diagnosis, not as a claim about the internal circuit mechanism.
+The H-neuron scope boundary reinforces the same lesson from a different direction: an intervention that works on compliance-adjacent surfaces (FaithEval, FalseQA, jailbreak) produces zero effect on BioASQ, indicating a narrow over-compliance lever rather than general truthfulness improvement.
+
+We use "wrong-entity substitution" as a behavioral diagnosis, not as a claim about the internal circuit mechanism.

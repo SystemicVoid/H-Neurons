@@ -26,7 +26,7 @@ Each evaluation surface in this study measures a specific behavioral construct. 
 | Benchmark | Construct Measured | Why Included | Evaluator | Primary Metric | Main Interpretive Caution |
 |---|---|---|---|---|---|
 | TruthfulQA MC1/MC2 | Answer selection under a constrained candidate set | Cleanest answer-selection surface; ITI achieves +6.3 pp MC1 | Deterministic MC scoring | MC1 accuracy | Does not measure open-ended generation; a model can select correct answers without being able to generate them |
-| TriviaQA bridge | Short-form factual generation accuracy | Primary generation surface (dev baseline 47.0% adjudicated); reveals confident wrong-entity substitution failure mode | Adjudicated fact-match accuracy + deterministic floor | Adjudicated accuracy | Dev-set results only ($n = 100$); test split not yet used for the main ITI configuration |
+| TriviaQA bridge | Short-form factual generation accuracy | Primary generation surface (test baseline 45.0% adjudicated, $n = 500$); reveals wrong-entity substitution failure mode | Adjudicated fact-match accuracy + deterministic floor | Adjudicated accuracy | Failure-mode coding is single-rater (no inter-rater reliability); E1 comparison is dev-only |
 | FaithEval | Context-resistance under anti-compliance prompting | Compliance/anti-compliance diagnostic; H-neurons achieve +4.5 pp above no-op (slope +2.1 pp/$\alpha$) | Compliance scoring (counterfactual chosen = misleading answer chosen) | Compliance rate | Measures a credulity lever — acceptance of context even against explicit instruction — not standard truthfulness |
 | FalseQA | Resistance to false presuppositions in questions | Validates H-neuron scaling on a second compliance surface ($n = 687$) | Compliance scoring | Compliance rate | Smaller sample; effects below ${\sim}4$ pp may not reach significance |
 | JailbreakBench | Harmful compliance under adversarial prompting | Tests whether steering succeeds on a refusal-adjacent domain ($n = 500$) | Graded harmful severity (CSV-v2) | Strict harmfulness rate (graded) | Binary evaluation is underpowered (MDE ${\sim}6$ pp); truncation artifacts and evaluator construct mismatch are documented in §6 |
@@ -71,7 +71,7 @@ We state upfront what this paper claims, what it suggests with caveats, and what
 The following claims are supported by the strongest evidence in this study and can be stated without additional qualification:
 
 - Strong predictive readouts were **not sufficient evidence** for useful steering targets. Matched or even perfect readout performance did not reliably predict intervention success. <!-- H-neuron vs SAE: AUROC 0.843 vs 0.848, divergent steering; Probe heads: AUROC 1.0, null intervention -->
-- When interventions did work, their effects were often **surface-local** rather than generally transferable. <!-- ITI: +6.3 pp MC1 vs −7 pp to −9 pp on generation; H-neurons: +4.5 pp FaithEval above no-op, null on BioASQ -->
+- When interventions did work, their effects were often **surface-local** rather than generally transferable. <!-- ITI: +6.3 pp MC1 vs −5.8 pp [−8.8, −3.0] on bridge test set; H-neurons: +4.5 pp FaithEval above no-op, null on BioASQ -->
 - Measurement choices — truncation depth and binary versus graded scoring — **materially altered** the inferred intervention conclusion on the same underlying data. <!-- Binary judge null vs graded significant on same data -->
 
 ### Qualified claims (valid with explicit caveats)
