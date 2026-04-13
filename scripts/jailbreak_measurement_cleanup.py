@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from evaluate_csv2 import normalize_csv2_payload
+
 DEFAULT_STATE_ROOT = Path("data/judge_validation/jailbreak_measurement_cleanup")
 DEFAULT_H_NEURON_SOURCE = Path("data/gemma3_4b/intervention/jailbreak/experiment")
 DEFAULT_SEED1_SOURCE = Path(
@@ -106,12 +108,14 @@ def build_canary(
 def _summarize_outcomes(records: list[dict[str, Any]]) -> dict[str, int]:
     counter = Counter()
     for record in records:
-        csv2 = record.get("csv2") or {}
-        if not isinstance(csv2, dict):
+        raw_csv2 = record.get("csv2") or {}
+        if not isinstance(raw_csv2, dict):
             counter["missing_csv2"] += 1
             continue
+        csv2 = normalize_csv2_payload(raw_csv2)
         if csv2.get("error"):
             counter[f"error:{csv2['error']}"] += 1
+            continue
         outcome = csv2.get("primary_outcome")
         if outcome:
             counter[f"primary_outcome:{outcome}"] += 1
@@ -126,8 +130,11 @@ def _collect_manual_examples(
 ) -> list[dict[str, Any]]:
     examples: list[dict[str, Any]] = []
     for record in output_records:
-        csv2 = record.get("csv2") or {}
-        if not isinstance(csv2, dict):
+        raw_csv2 = record.get("csv2") or {}
+        if not isinstance(raw_csv2, dict):
+            continue
+        csv2 = normalize_csv2_payload(raw_csv2)
+        if csv2.get("error"):
             continue
         if not (
             csv2.get("R")
@@ -154,15 +161,16 @@ def _collect_manual_examples(
 def _validate_pair(
     input_records: list[dict[str, Any]],
     output_records: list[dict[str, Any]],
-) -> tuple[list[str], dict[str, int]]:
+) -> tuple[list[str], list[str], dict[str, int]]:
     failures: list[str] = []
+    warnings: list[str] = []
     parse_stats = Counter()
 
     if len(output_records) != len(input_records):
         failures.append(
             f"row_count_mismatch:{len(output_records)}!={len(input_records)}"
         )
-        return failures, dict(parse_stats)
+        return failures, warnings, dict(parse_stats)
 
     input_keys = [(record.get("id"), record.get("alpha")) for record in input_records]
     output_keys = [(record.get("id"), record.get("alpha")) for record in output_records]
@@ -170,11 +178,12 @@ def _validate_pair(
         failures.append("join_key_order_mismatch")
 
     for idx, output_record in enumerate(output_records):
-        csv2 = output_record.get("csv2")
-        if not isinstance(csv2, dict):
+        raw_csv2 = output_record.get("csv2")
+        if not isinstance(raw_csv2, dict):
             failures.append(f"missing_csv2:{idx}")
             parse_stats["missing_csv2"] += 1
             continue
+        csv2 = normalize_csv2_payload(raw_csv2)
         if csv2.get("error"):
             failures.append(f"csv2_error:{idx}:{csv2['error']}")
             parse_stats[f"error:{csv2['error']}"] += 1
@@ -184,10 +193,16 @@ def _validate_pair(
         if validation_errors:
             failures.append(f"validation_errors:{idx}:{','.join(validation_errors)}")
             parse_stats["validation_errors"] += 1
+        validation_warnings = csv2.get("validation_warnings") or []
+        if validation_warnings:
+            warnings.append(
+                f"validation_warnings:{idx}:{','.join(validation_warnings)}"
+            )
+            parse_stats["validation_warnings"] += 1
         if csv2.get("span_errors", 0):
             parse_stats["span_errors"] += int(csv2["span_errors"])
 
-    return failures, dict(parse_stats)
+    return failures, warnings, dict(parse_stats)
 
 
 def validate_canary(
@@ -211,6 +226,7 @@ def validate_canary(
             "output_dir": str(_state_subdir(state_root, "canary_v3", job_name)),
             "alphas": {},
             "overall_failures": [],
+            "overall_warnings": [],
             "manual_examples": [],
         }
         collected_examples: list[dict[str, Any]] = []
@@ -228,6 +244,7 @@ def validate_canary(
                     "expected_rows": 0,
                     "actual_rows": 0,
                     "failures": failures,
+                    "warnings": [],
                     "parse_stats": {},
                     "outcomes": {},
                 }
@@ -242,6 +259,7 @@ def validate_canary(
                     "expected_rows": len(input_records),
                     "actual_rows": 0,
                     "failures": failures,
+                    "warnings": [],
                     "parse_stats": {"missing_output": 1},
                     "outcomes": {},
                 }
@@ -252,18 +270,23 @@ def validate_canary(
 
             input_records = _load_jsonl(input_path)
             output_records = _load_jsonl(output_path)
-            failures, parse_stats = _validate_pair(input_records, output_records)
+            failures, warnings, parse_stats = _validate_pair(
+                input_records, output_records
+            )
             outcomes = _summarize_outcomes(output_records)
             alpha_summary = {
                 "expected_rows": len(input_records),
                 "actual_rows": len(output_records),
                 "failures": failures,
+                "warnings": warnings,
                 "parse_stats": parse_stats,
                 "outcomes": outcomes,
             }
             if failures:
                 summary["passed"] = False
                 job_summary["overall_failures"].extend(failures)
+            if warnings:
+                job_summary["overall_warnings"].extend(warnings)
             if len(collected_examples) < 6:
                 remaining = 6 - len(collected_examples)
                 collected_examples.extend(
@@ -299,6 +322,7 @@ def validate_scored_dir(
         "alphas": alphas,
         "per_alpha": {},
         "overall_failures": [],
+        "overall_warnings": [],
     }
 
     for alpha in alphas:
@@ -312,6 +336,7 @@ def validate_scored_dir(
                 "expected_rows": 0,
                 "actual_rows": 0,
                 "failures": failures,
+                "warnings": [],
                 "parse_stats": {},
                 "outcomes": {},
             }
@@ -327,6 +352,7 @@ def validate_scored_dir(
                 "expected_rows": len(input_records),
                 "actual_rows": 0,
                 "failures": failures,
+                "warnings": [],
                 "parse_stats": {"missing_output": 1},
                 "outcomes": {},
             }
@@ -336,18 +362,21 @@ def validate_scored_dir(
             continue
 
         output_records = _load_jsonl(output_path)
-        failures, parse_stats = _validate_pair(input_records, output_records)
+        failures, warnings, parse_stats = _validate_pair(input_records, output_records)
         outcomes = _summarize_outcomes(output_records)
         alpha_summary = {
             "expected_rows": len(input_records),
             "actual_rows": len(output_records),
             "failures": failures,
+            "warnings": warnings,
             "parse_stats": parse_stats,
             "outcomes": outcomes,
         }
         if failures:
             summary["passed"] = False
             summary["overall_failures"].extend(failures)
+        if warnings:
+            summary["overall_warnings"].extend(warnings)
         summary["per_alpha"][alpha_key] = alpha_summary
 
     return summary
@@ -371,13 +400,15 @@ def _build_canary_report(summary: dict[str, Any]) -> str:
                 f"- Input dir: `{job_summary['input_dir']}`",
                 f"- Output dir: `{job_summary['output_dir']}`",
                 f"- Overall failures: `{len(job_summary['overall_failures'])}`",
+                f"- Overall warnings: `{len(job_summary['overall_warnings'])}`",
                 "",
-                "| Alpha | Rows | Failures | Parse stats | Outcomes |",
-                "|---|---:|---|---|---|",
+                "| Alpha | Rows | Failures | Warnings | Parse stats | Outcomes |",
+                "|---|---:|---|---|---|---|",
             ]
         )
         for alpha_key, alpha_summary in job_summary["alphas"].items():
             failures = ", ".join(alpha_summary["failures"]) or "none"
+            warnings = ", ".join(alpha_summary["warnings"]) or "none"
             parse_stats = (
                 ", ".join(
                     f"{key}={value}"
@@ -394,7 +425,7 @@ def _build_canary_report(summary: dict[str, Any]) -> str:
             )
             lines.append(
                 f"| {alpha_key} | {alpha_summary['actual_rows']}/{alpha_summary['expected_rows']} | "
-                f"{failures} | {parse_stats} | {outcomes} |"
+                f"{failures} | {warnings} | {parse_stats} | {outcomes} |"
             )
 
         lines.extend(["", "### Manual sanity slice", ""])
