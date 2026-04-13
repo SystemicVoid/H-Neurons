@@ -59,6 +59,8 @@ Wilson 95% CIs shown for neurons and SAE H-features ($n = 1{,}000$). $\alpha = 1
 
 **SAE feature steering was indistinguishable from zero.** The H-feature compliance slope was $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$ — the confidence interval includes zero. The Spearman correlation was $\rho = 0.18$ (no monotonic trend). Random SAE features (266 features drawn from zero-weight classifier positions, 3 seeds) produced a mean slope of $+0.59$ pp/$\alpha$ $[0.54, 0.64]$.[^fn-sae-comparison]
 
+**The slope difference confirms the divergence.** The neuron-minus-SAE slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (paired bootstrap 95% CI, 10,000 resamples, same 1,000 items; permutation $p < 0.001$, 4/50,000 permutations $\geq$ observed gap).[^fn-slope-diff] The confidence interval excludes zero, confirming that the neuron dose-response was significantly steeper than the SAE dose-response on the same evaluation surface.
+
 The distinction between the two SAE null summaries matters for cross-document consistency. The main full-sweep result reported in this paper is the $+0.16$ pp/$\alpha$ null above; the $+0.12$ pp/$\alpha$ figure reported later refers to the delta-only control that removes reconstruction error as an explanation for the null.
 
 **H-features performed worse than random features at $\alpha = 3.0$.** At the highest scaling factor, classifier-selected SAE features yielded $69.9\%$ compliance versus $74.6\%$ for random SAE features — a $-4.7$ pp difference in the wrong direction. If the 266 selected features encoded the compliance mechanism, amplifying them should have produced larger gains than amplifying random features. The reversal is consistent with over-amplification of compliance-correlated but causally irrelevant features disrupting the decode reconstruction.[^fn-sae-audit-finding2]
@@ -77,17 +79,19 @@ To establish that the neuron dose-response reflects the specific identity of the
 
 All 8 random seeds produced null compliance slopes. The mean unconstrained-random slope was $+0.02$ pp/$\alpha$ $[-0.11, 0.16]$ (95% empirical percentile interval across 5 seeds), and the mean layer-matched slope was $+0.17$ pp/$\alpha$ $[0.15, 0.21]$. No random seed produced a monotonic dose-response. At $\alpha = 3.0$, the H-neuron compliance rate ($70.5\%$) exceeded the 95th percentile of the random distribution ($65.8$--$66.5\%$).[^fn-faitheval-control]
 
-The H-neuron slope of $+2.09$ pp/$\alpha$ exceeds the maximum observed random slope ($+0.21$ pp/$\alpha$, layer-matched seed 0) by an order of magnitude. The intervention effect is neuron-specific, not a property of generic 38-neuron perturbations at this scale.
+The H-neuron slope of $+2.09$ pp/$\alpha$ exceeds the maximum observed random slope ($+0.21$ pp/$\alpha$, layer-matched seed 0) by an order of magnitude. Paired bootstrap slope differences (neuron minus random, same 1,000 items) ranged from $+1.89$ to $+2.20$ pp/$\alpha$ across all 8 seeds, with every CI excluding zero and every permutation $p < 0.001$.[^fn-slope-diff-ctrl] The intervention effect is neuron-specific, not a property of generic 38-neuron perturbations at this scale.
 
 ### Summary
 
-Detection quality was matched: AUROC $0.843$ (neurons) versus $0.848$ (SAE features). Steering diverged completely: $+2.09$ pp/$\alpha$ $[1.38, 2.83]$ versus $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$. The failure was not attributable to reconstruction error (delta-only architecture confirmed the null) or to generic perturbation effects (8 random-neuron seeds confirmed specificity). Matched readout quality did not predict matched intervention utility.
+Detection quality was matched: AUROC $0.843$ (neurons) versus $0.848$ (SAE features). Steering diverged completely: $+2.09$ pp/$\alpha$ $[1.38, 2.83]$ versus $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$; the slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (permutation $p < 0.001$). The failure was not attributable to reconstruction error (delta-only architecture confirmed the null) or to generic perturbation effects (8 random-neuron seeds confirmed specificity, all slope-difference CIs excluding zero). Matched readout quality did not predict matched intervention utility.
 
 [^fn-faitheval-results]: `data/gemma3_4b/intervention/faitheval/experiment/results.json`; slope and delta CIs from paired bootstrap (10,000 resamples, seed 42).
 [^fn-sae-comparison]: `data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json`.
 [^fn-sae-audit-finding2]: `data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md`, Finding 2.
 [^fn-sae-delta]: `data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md`, Confound 1; data in `data/gemma3_4b/intervention/faitheval_sae_delta/`.
 [^fn-faitheval-control]: `data/gemma3_4b/intervention/faitheval/control/comparison_summary.json`; 5 unconstrained seeds (slopes: $+0.17$, $-0.00$, $-0.07$, $-0.11$, $+0.11$ pp/$\alpha$) and 3 layer-matched seeds (slopes: $+0.21$, $+0.16$, $+0.15$ pp/$\alpha$).
+[^fn-slope-diff]: `data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json`; paired bootstrap (10,000 resamples, seed 42) and permutation test (50,000 permutations, seed 43).
+[^fn-slope-diff-ctrl]: `data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json`; per-seed paired bootstrap slope differences (10,000 resamples each, seed 42) and permutation tests (50,000 permutations each).
 
 ## 4.3 Probe-Ranked Heads vs. Gradient-Ranked Heads on Jailbreak
 
@@ -151,10 +155,10 @@ For the purpose of this paper's thesis, the gradient-ranked result functions as 
 
 **Table 5 — Summary of Detection-Steering Dissociations**
 
-| Comparison | Detection | Steering | Control evidence | Lesson |
-|---|---|---|---|---|
-| Neurons vs. SAE features (FaithEval) | AUROC $0.843$ vs. $0.848$ | $+2.09$ pp/$\alpha$ $[1.38, 2.83]$ vs. $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$ | 8-seed neuron null; delta-only SAE null | Matched detection, divergent steering |
-| Probe vs. gradient heads (jailbreak) | AUROC ${\geq}0.92$ (top-20) vs. not assessed | Best $-2$ pp $[-10, +6]$ vs. $-9.0$ pp $[-12.2, -5.8]$ | Probe null is clean; gradient lacks random-head control | Perfect detection, zero intervention |
+| Comparison | Detection | Steering | Slope difference | Control evidence | Lesson |
+|---|---|---|---|---|---|
+| Neurons vs. SAE features (FaithEval) | AUROC $0.843$ vs. $0.848$ | $+2.09$ pp/$\alpha$ $[1.38, 2.83]$ vs. $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$ | $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$, $p < 0.001$ | 8-seed neuron null; delta-only SAE null | Matched detection, divergent steering |
+| Probe vs. gradient heads (jailbreak) | AUROC ${\geq}0.92$ (top-20) vs. not assessed | Best $-2$ pp $[-10, +6]$ vs. $-9.0$ pp $[-12.2, -5.8]$ | Not applicable (asymmetric design)[^fn-asym] | Probe null is clean; gradient lacks random-head control | Perfect detection, zero intervention |
 
 Two patterns emerge from Table 5, and both are necessary for the paper's claim.
 
@@ -163,3 +167,5 @@ First, detection quality did not predict steering success. The SAE probe matched
 Second, the failures were not caused by the absence of signal — they were caused by the wrong *kind* of signal. The distinction between components that *read out* a behavioral state and components that *control* it is not captured by held-out discriminative performance. Magnitude-ranked neurons happened to lie in the causal path for FaithEval compliance; SAE features of matched detection quality did not. Gradient-ranked attention heads lay in the causal path for jailbreak refusal; probe-ranked heads of superior detection quality did not.
 
 The positive counterexample is important: magnitude-ranked neurons *did* steer FaithEval compliance ($+4.5$ pp $[2.9, 6.1]$ above the no-op baseline at $\alpha = 3.0$; slope $+2.09$ pp/$\alpha$), with specificity confirmed against 8 random-neuron seeds. The thesis is not that detection-based targets never work. It is that detection quality alone is an unreliable heuristic for identifying when they will.
+
+[^fn-asym]: The probe-ranked and gradient-ranked selectors were evaluated at different sample sizes ($n = 100$ vs. $n = 500$) and different alpha grids, so a formal paired slope-difference test is not applicable. The inferential contrast rests on one effect being null (CI includes zero) while the other is significant (CI excludes zero).

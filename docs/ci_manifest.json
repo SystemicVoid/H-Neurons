@@ -783,6 +783,18 @@
         ]
       },
       "surfaces": []
+    },
+    {
+      "id": "faitheval_neuron_sae_slope_difference",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json",
+        "path": [
+          "slope_difference_pp_per_alpha"
+        ]
+      },
+      "surfaces": []
     }
   ]
 }
