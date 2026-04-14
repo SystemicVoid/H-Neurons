@@ -1,0 +1,41 @@
+{
+  "args": {
+    "alphas": [
+      4.0
+    ],
+    "api_mode": "batch",
+    "batch_max_enqueued_tokens": null,
+    "benchmark": "jailbreak",
+    "input_dir": "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment",
+    "judge_model": "gpt-4o",
+    "prompt_cache_retention": null
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_intervention.py",
+    "--benchmark",
+    "jailbreak",
+    "--input_dir",
+    "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment",
+    "--alphas",
+    "4.0",
+    "--api-mode",
+    "batch"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_intervention.py --benchmark jailbreak --input_dir data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment --alphas 4.0 --api-mode batch",
+  "completed_at_utc": "2026-04-14T13:50:42.871182+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "e31768752d772720d6ff36248c8477dcbbf08c30",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment/results.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_intervention.py",
+  "started_at_utc": "2026-04-14T13:44:31.975992+00:00",
+  "status": "completed"
+}

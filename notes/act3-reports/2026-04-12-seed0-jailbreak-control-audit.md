@@ -2,7 +2,7 @@
 
 > **Status: canonical for seed-0 jailbreak control conclusions.** Seeds 1-2 generated but not yet scored; this report covers seed-0 only.
 >
-> **H-neuron reference:** [D7 full-500 audit](./2026-04-08-d7-full500-audit.md) owns D7 causal-head claims. This report owns the H-neuron *scaling* specificity claim on jailbreak.
+> **H-neuron reference:** [2026-04-14 D7 full500 current-state audit](./2026-04-14-d7-full500-current-state-audit.md) owns current D7 causal-head claims. This report owns the H-neuron *scaling* specificity claim on jailbreak.
 
 **Date:** 2026-04-12
 **Data root:** `data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/`
