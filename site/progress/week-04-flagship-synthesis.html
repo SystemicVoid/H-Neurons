@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 4: Flagship Synthesis | H-Neurons</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital,wght@0,400;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="../index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="../index.html">Overview</a>
+        <a href="../story.html">Core Story</a>
+        <a href="../results/gemma-3-4b.html">Results</a>
+        <a href="../methods.html">Methods</a>
+        <a href="../extensions.html">Extensions</a>
+        <a class="active" href="index.html">Progress</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-purple">Progress &mdash; April 8&ndash;13</span>
+    <h1>Week 4:<br>Flagship<br>Synthesis</h1>
+    <p class="subtitle" data-source="manual">
+      This week reframed the project around a broader methods thesis:
+      strong readouts do not reliably identify steerable targets.
+    </p>
+    <p class="subtitle" data-source="manual">
+      The argument now uses three anchor case studies and explicit confidence tiers,
+      so caveated evidence no longer carries headline claims by accident.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2.5rem;" data-source="manual">
+      <div class="metric-card">
+        <div class="label">Anchor case studies</div>
+        <div class="value val-teal">3</div>
+        <div class="detail">SAE vs H-neurons, bridge externality, jailbreak measurement</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Headline-safe anchors</div>
+        <div class="value val-teal">2</div>
+        <div class="detail">SAE dissociation and bridge externality replication</div>
+      </div>
+      <!-- from: bridge_phase3_adjudicated_delta -->
+      <div class="metric-card">
+        <div class="label">Load-bearing bridge result</div>
+        <div class="value val-coral" data-bridge-bind="adjudicated-delta">-5.8pp</div>
+        <div class="detail">TriviaQA test-set delta (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>), <span data-bridge-bind="mcnemar-p">p=0.0002</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Largest caveat</div>
+        <div class="value val-amber" style="font-size: 1.2rem;">Selector specificity</div>
+        <div class="detail">Jailbreak and D7 still need cleaner matched controls</div>
+      </div>
+    </div>
+
+    <div class="section-links">
+      <a class="section-link section-link-cta" href="#meeting-question">Start Here</a>
+      <a class="section-link" href="#anchors">Three anchors</a>
+      <a class="section-link" href="#jailbreak">Measurement case</a>
+      <a class="section-link" href="#status">Confidence tiers</a>
+      <a class="section-link" href="#next">Decision gates</a>
+    </div>
+  </div>
+</section>
+
+<section id="meeting-question" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Start Here</span>
+    <h2>What is now the safest flagship claim?</h2>
+    <p class="subtitle" data-source="manual">
+      The strongest claim is no longer benchmark-specific.
+      It is methodological: measurement, localization, control, and externality can break at different stages.
+    </p>
+
+    <div class="next-steps" style="margin-top: 1.5rem;">
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Localization &rarr; control can break</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          SAE and H-neurons read out hallucination similarly well, but only one steers FaithEval behavior.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Control &rarr; externality can break</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          ITI improves constrained MC truthfulness but harms open-ended factual generation on held-out TriviaQA.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Measurement &rarr; conclusion can break</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Jailbreak effect size and significance move when evaluator definitions change, even on identical outputs.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="anchors">
+  <div class="fade-in">
+    <span class="tag tag-teal">Anchor map</span>
+    <h2>Three anchor case studies for the paper skeleton</h2>
+    <p class="subtitle" data-source="manual">
+      Two anchors are headline-safe and one is supporting-caveated.
+      This separation protects the core argument from overreach.
+    </p>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Anchor 1 &mdash; SAE vs H-neurons (headline-safe)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          <!-- from: classifier_sae_auroc -->
+          <!-- from: classifier_disjoint_auroc -->
+          Matched detection quality (AUROC <span data-classifier-sae-bind="auc-value">0.848</span>, <span data-classifier-sae-bind="auc-ci-text">95% CI 0.820-0.874</span>
+          vs <span data-classifier-bind="auc-value">0.843</span>, <span data-classifier-bind="auc-ci-text">95% CI 0.815-0.870</span>) with divergent steering outcomes.
+          Delta-only SAE remains null, so this is not just reconstruction noise.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Anchor 2 &mdash; ITI bridge externality (headline-safe)</h3>
+        <!-- from: bridge_phase3_wrong_entity_share -->
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Held-out test confirms a negative transfer: adjudicated accuracy drops by <span data-bridge-bind="adjudicated-delta">-5.8pp</span>
+          (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>).
+          Most damage is wrong-entity substitution (<span data-bridge-bind="wrong-entity-count">30</span>/<span data-bridge-bind="right-to-wrong-count">43</span> right-to-wrong flips), not refusal collapse.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Anchor 3 &mdash; Jailbreak measurement (supporting-caveated)</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Paired v2-v3 analysis explains why binary slope conclusions diverge.
+          Severity-level outcomes remain informative, but specificity robustness is not yet as clean as FaithEval/FalseQA.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="jailbreak" class="short">
+  <div class="fade-in">
+    <span class="tag tag-coral">Measurement case</span>
+    <h2>Jailbreak shifted from headline result to caveated supporting evidence</h2>
+    <p class="subtitle" data-source="manual">
+      The effect did not disappear; it moved measurement level.
+      v2 emphasizes binary harmful slope, while v3 emphasizes severity composition.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 1.5rem;">
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">v2 harmful slope</div>
+        <!-- from: jailbreak_v2_binary_slope -->
+        <div class="value val-coral" data-jailbreak-summary-bind="v2-binary-slope">+2.30 pp/&alpha;</div>
+        <div class="detail"><span data-jailbreak-summary-bind="v2-binary-slope-ci">95% CI 0.99-3.58pp</span></div>
+      </div>
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">v3 harmful slope</div>
+        <!-- from: jailbreak_v3_binary_slope -->
+        <div class="value val-amber" data-jailbreak-summary-bind="v3-binary-slope">+0.46 pp/&alpha;</div>
+        <div class="detail"><span data-jailbreak-summary-bind="v3-binary-slope-ci">95% CI -1.46-2.41pp</span></div>
+      </div>
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">v3 substantive slope</div>
+        <!-- from: jailbreak_v3_substantive_compliance_slope -->
+        <div class="value val-teal" data-jailbreak-summary-bind="v3-substantive-slope">+2.00 pp/&alpha;</div>
+        <div class="detail"><span data-jailbreak-summary-bind="v3-substantive-slope-ci">95% CI 0.11-3.87pp</span></div>
+      </div>
+      <div class="metric-card" data-status="STABLE">
+        <div class="label">Holdout discriminator</div>
+        <!-- from: jailbreak_holdout_v3_accuracy -->
+        <!-- from: jailbreak_holdout_strongreject_4o_accuracy -->
+        <!-- from: jailbreak_holdout_v3_sr_discordant_records -->
+        <div class="value val-purple"><span data-jailbreak-summary-bind="holdout-v3-accuracy">96.0%</span> / <span data-jailbreak-summary-bind="holdout-strongreject-accuracy">96.0%</span></div>
+        <div class="detail">n=<span data-jailbreak-summary-bind="holdout-n-records">50</span>; v3 <span data-jailbreak-summary-bind="holdout-v3-accuracy-ci">95% CI 90.0-100.0%</span>; SR-4o <span data-jailbreak-summary-bind="holdout-strongreject-accuracy-ci">95% CI 90.0-100.0%</span>; <span data-jailbreak-summary-bind="holdout-discordant-count">0</span> discordant</div>
+      </div>
+    </div>
+
+    <div class="insight-box" style="margin-top: 1.5rem;">
+      <strong>Interpretation:</strong> evaluator dependence is itself a result.
+      The pipeline can detect the same behavioral shift at different abstraction levels, so claims must specify the measurement level explicitly.
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">Research principle</div>
+  <p class="ref-text">
+    A result can be real and still be caveated.
+    Separating headline-safe from supporting evidence raises clarity without discarding useful data.
+  </p>
+</div>
+
+<section id="status">
+  <div class="fade-in">
+    <span class="tag tag-purple">Confidence tiers</span>
+    <h2>What is load-bearing today vs still provisional</h2>
+
+    <div class="roadmap-table-shell" style="margin-top: 1.5rem;">
+      <table class="roadmap-table">
+        <thead>
+          <tr>
+            <th>Branch</th>
+            <th>Tier</th>
+            <th>Evidence status</th>
+            <th>Main caveat</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>SAE vs H-neurons</strong></td>
+            <td><span class="status-pill status-complete">Headline-safe</span></td>
+            <td>Matched detection, divergent steering, null survives architecture variants</td>
+            <td>Single-model scope</td>
+          </tr>
+          <tr>
+            <td><strong>ITI bridge externality</strong></td>
+            <td><span class="status-pill status-complete">Headline-safe</span></td>
+            <td>Held-out test CI excludes zero; wrong-entity substitutions dominate damage</td>
+            <td>Failure-mode coding is manual taxonomy, not formal adjudication protocol</td>
+          </tr>
+          <tr>
+            <td><strong>Jailbreak evaluator analysis</strong></td>
+            <td><span class="status-pill status-ready">Supporting, caveated</span></td>
+            <td>Paired v2-v3 mechanism is explicit; severity shift remains detectable</td>
+            <td>Specificity power limited by control design</td>
+          </tr>
+          <tr>
+            <td><strong>D7 causal-head branch</strong></td>
+            <td><span class="status-pill status-ready">Supporting, caveated</span></td>
+            <td>Full-500 benchmark win over baseline and L1 comparator</td>
+            <td>No random-head control and visible token-cap debt</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="next" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Decision gates</span>
+    <h2>Highest-ROI next moves</h2>
+    <p class="subtitle" data-source="manual">
+      If time is limited, prioritize caveat-closing controls over new exploratory branches.
+    </p>
+
+    <div class="next-steps">
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">1</div>
+        <h3>Close jailbreak control gap</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Add matched evaluator-control coverage so specificity claims are not tied to single-seed comparisons.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
+        <h3>Finish D7 selector checks</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Run random-head control and a minimal capability battery before treating D7 as a mechanism-level pillar.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">3</div>
+        <h3>Design selective truthfulness pilot</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Use bridge failure taxonomy to test conditional interventions that target wrong-entity substitution risk directly.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  H-Neurons Week 4 &mdash; Flagship synthesis &mdash; <a href="../index.html">Back to overview</a>
+</footer>
+
+<script src="../assets/shared.js"></script>
+
+</body>
+</html>

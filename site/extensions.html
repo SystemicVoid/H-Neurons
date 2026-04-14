@@ -30,133 +30,145 @@
 <section id="hero">
   <div class="fade-in">
     <span class="tag tag-amber">Extensions</span>
-    <h1>Extension directions for the next<br>mechanism questions</h1>
+    <h1>Open questions and caveats for the<br>flagship thesis</h1>
     <p class="subtitle" data-source="manual">
-      This page tracks the follow-on experiments that extend the Gemma baseline replication.
-      It focuses on the near-term directions with the clearest hypotheses, the strongest scientific payoff, and the cheapest falsifiers.
+      This page is no longer a sprint tracker. It is a decision map for what is already strong,
+      what is still caveated, and what evidence would actually change the core thesis.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
       <div class="metric-card" data-status="STABLE">
-        <div class="label">Tracked workstreams</div>
-        <div class="value val-teal">4</div>
-        <div class="detail">1 active, 1 pending, 1 complete, 1 closed</div>
+        <div class="label">Anchor case studies</div>
+        <div class="value val-teal">3</div>
+        <div class="detail">SAE vs H-neurons, ITI bridge externality, jailbreak measurement</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Active frontier</div>
-        <div class="value val-amber" style="font-size: 1.3rem;">Jailbreak</div>
-        <div class="detail">Canonical 5000-token rerun + judge calibration in progress</div>
+        <div class="label">Strongest unresolved caveat</div>
+        <div class="value val-amber" style="font-size: 1.3rem;">Jailbreak specificity</div>
+        <div class="detail">Evaluator dependence is mapped; paired-control robustness is still thin</div>
       </div>
       <div class="metric-card" data-status="STABLE">
-        <div class="label">SAE steering</div>
-        <div class="value val-coral" style="font-size: 1.3rem;">Closed</div>
-        <div class="detail">Null result confirmed under both steering architectures</div>
+        <div class="label">Detection-control dissociation</div>
+        <div class="value val-coral" style="font-size: 1.3rem;">Robust</div>
+        <div class="detail">SAE AUROC 0.848 with steering null under both tested architectures</div>
       </div>
       <div class="metric-card" data-status="STABLE">
-        <div class="label">Swing analysis</div>
-        <div class="value val-teal" style="font-size: 1.3rem;">Complete</div>
-        <div class="detail"><span data-swing-bind="rc-pct-display">68.1%</span> knowledge override &middot; <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">deep dive</a></div>
+        <div class="label">Externality break</div>
+        <!-- from: bridge_phase3_adjudicated_delta -->
+        <div class="value val-teal" style="font-size: 1.3rem;" data-bridge-bind="adjudicated-delta">-5.8pp</div>
+        <div class="detail">TriviaQA bridge test: adjudicated delta (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>), wrong-entity substitutions dominate</div>
       </div>
     </div>
 
     <div class="section-links">
-      <a class="section-link" href="#roadmap">Roadmap table</a>
-      <a class="section-link" href="#priority">Execution order</a>
-      <a class="section-link" href="#workstreams">Top workstreams</a>
-      <a class="section-link" href="#decision">Decision points</a>
+      <a class="section-link" href="#roadmap">Question map</a>
+      <a class="section-link" href="#priority">Caveat order</a>
+      <a class="section-link" href="#workstreams">Branch details</a>
+      <a class="section-link" href="#decision">Decision gates</a>
     </div>
   </div>
 </section>
 
 <section id="roadmap">
   <div class="fade-in">
-    <span class="tag tag-teal">Roadmap table</span>
-    <h2>Current extension directions and their status</h2>
+    <span class="tag tag-teal">Question map</span>
+    <h2>Open questions and caveats by evidence branch</h2>
     <p class="subtitle" data-source="manual">
-      One active extension, one pending falsifier, one completed analysis, one closed null result, and one planned future direction.
+      April 8&ndash;13 turned the project into a confidence-tier problem: two anchors are headline-safe,
+      one anchor is scientifically valuable but caveated, and future extensions should be judged by whether they reduce those caveats.
     </p>
 
     <div class="roadmap-table-shell">
       <table class="roadmap-table">
         <thead>
           <tr>
-            <th>Workstream</th>
-            <th>Status</th>
-            <th>Why it matters</th>
-            <th>Current state / next step</th>
+            <th>Branch</th>
+            <th>Confidence tier</th>
+            <th>What we now know</th>
+            <th>What still blocks a stronger claim</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Jailbreak methodology extension</strong></td>
-            <td><span class="status-pill status-active">Active</span></td>
-            <td>The original paper uses Shen et al. templates with a 256-token cap. Our extension uses JailbreakBench (Chao et al., NeurIPS 2024) with a 5000-token budget, structured GPT-4o judge, and gold-label calibration &mdash; a methodologically stronger evaluation of the same H-neuron safety claim.</td>
-            <td>Canonical 5000-token rerun in progress. Gold-label review prepared for &alpha;=1.5 and &alpha;=3.0. Preliminary 256-token sweep showed +6.2pp [2.4, 10.0]. Highest-priority gap: jailbreak negative control.</td>
+            <td><strong>Jailbreak measurement + specificity</strong></td>
+            <td><span class="status-pill status-ready">Supporting, caveated</span></td>
+            <!-- from: jailbreak_v2_binary_slope -->
+            <!-- from: jailbreak_v3_binary_slope -->
+            <!-- from: jailbreak_v3_substantive_compliance_slope -->
+            <td>Paired evaluator audit: v2 harmful slope <span data-jailbreak-summary-bind="v2-binary-slope">2.30pp/α</span> (<span data-jailbreak-summary-bind="v2-binary-slope-ci">95% CI 0.99-3.58pp</span>), v3 binary slope <span data-jailbreak-summary-bind="v3-binary-slope">0.46pp/α</span> (<span data-jailbreak-summary-bind="v3-binary-slope-ci">95% CI -1.46-2.41pp</span>), v3 substantive-compliance slope <span data-jailbreak-summary-bind="v3-substantive-slope">2.00pp/α</span> (<span data-jailbreak-summary-bind="v3-substantive-slope-ci">95% CI 0.11-3.87pp</span>).</td>
+            <td>No paired v2-v3 control set and only single-seed v3 random control. Strong enough for a measurement-case-study claim, not for a clean universal specificity headline.</td>
           </tr>
           <tr>
-            <td><strong>Suppressive neuron investigation</strong></td>
-            <td><span class="status-pill status-ready">Pending</span></td>
-            <td>The ignored negative-weight set may be a natural truthfulness circuit, which is a cleaner safety narrative than merely suppressing bad behavior.</td>
-            <td>Check whether the 38 negative-weight neurons remain stable across C in {0.3, 1.0, 3.0, 10.0}. If a core subset survives, run the inverse intervention. Cheap falsifier: 10 min CPU + 3-4 hours GPU.</td>
+            <td><strong>D7 causal-head mitigation</strong></td>
+            <td><span class="status-pill status-ready">Supporting, caveated</span></td>
+            <!-- from: d7_causal_csv2_yes_delta -->
+            <!-- from: d7_l1_csv2_yes_delta -->
+            <td>Full-500 trimmed confirmatory run: csv2_yes drops by <span data-d7-bind="causal-delta">-9.0pp</span> (<span data-d7-bind="causal-delta-ci">95% CI -12.2--5.8pp</span>) vs baseline, while L1 comparator increases harm (<span data-d7-bind="l1-delta">+4.0pp</span>; <span data-d7-bind="l1-delta-ci">95% CI 0.6-7.6pp</span>).</td>
+            <!-- from: d7_causal_token_cap_hits -->
+            <td>Random-head negative control is missing and <span data-d7-bind="token-cap-hits">112</span>/500 outputs hit token cap. Treat as benchmark-local win, not selector-specific closure.</td>
           </tr>
           <tr>
-            <td><strong>Swing sample characterization</strong></td>
-            <td><span class="status-pill status-complete">Complete</span></td>
-            <td><span data-swing-bind="rc-pct-display">68.1%</span> of swing samples (<span data-swing-bind="rc-count">94</span>/<span data-intervention-summary-bind="swing-count">138</span>) show R&rarr;C knowledge override; <span data-swing-bind="cr-pct-display">23.2%</span> show the beneficial C&rarr;R pattern. Surface features do not predict swing status.</td>
-            <td>Complete. Results integrated into the site. <a href="deep-dives/swing-characterization.html">See the deep dive.</a></td>
+            <td><strong>ITI bridge externality</strong></td>
+            <td><span class="status-pill status-complete">Headline-safe</span></td>
+            <!-- from: bridge_phase3_wrong_entity_share -->
+            <td>Held-out test confirms externality break: <span data-bridge-bind="adjudicated-delta">-5.8pp</span> adjudicated accuracy (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>), <span data-bridge-bind="mcnemar-p">p=0.0002</span>. <span data-bridge-bind="wrong-entity-share">70.0%</span> of right-to-wrong flips are wrong-entity substitutions.</td>
+            <td>Mechanistic interpretation is behavioral rather than circuit-level. Formal multi-rater coding could tighten failure-mode percentages.</td>
           </tr>
           <tr>
-            <td><strong>SAE feature-space steering</strong></td>
-            <td><span class="status-pill" style="background: var(--accent-coral-dim); color: var(--accent-coral);">Closed</span></td>
-            <td>Tested whether SAE feature-space steering could replicate or improve on neuron-level compliance effects. <strong>Null result:</strong> H-feature slope 0.16 pp/&alpha; (CI contains zero), delta-only slope 0.12 pp/&alpha;. The failure is fundamental feature-space misalignment, not reconstruction noise.</td>
-            <td>Definitively closed. Both full-replacement and delta-only architectures produce null slopes. Detection-steering dissociation confirmed (AUROC 0.848 detection, zero steering). <a href="results/gemma-3-4b.html">See results.</a></td>
+            <td><strong>SAE vs H-neuron dissociation</strong></td>
+            <td><span class="status-pill status-complete">Headline-safe</span></td>
+            <td><!-- from: classifier_sae_auroc -->
+            <!-- from: classifier_disjoint_auroc -->
+            Matched detection quality (AUROC <span data-classifier-sae-bind="auc-value">0.848</span>, <span data-classifier-sae-bind="auc-ci-text">95% CI 0.820-0.874</span>
+            for SAE vs <span data-classifier-bind="auc-value">0.843</span>, <span data-classifier-bind="auc-ci-text">95% CI 0.815-0.870</span> for H-neurons), but SAE steering is null in both full-replacement and delta-only tests.</td>
+            <td>No major blocker. Remaining work is narrative integration, not rescue experimentation.</td>
           </tr>
           <tr>
-            <td><strong>Deceptive behavior exploration</strong></td>
-            <td><span class="status-pill" style="background: var(--surface-2); color: var(--text-secondary);">Planned</span></td>
-            <td>Extends beyond the paper's over-compliance framing to test whether H-neurons correlate with deceptive model behaviors &mdash; a stronger and more novel safety claim than compliance alone.</td>
-            <td>Not started. Depends on completing jailbreak extension and establishing the methodology for deception-specific evaluation.</td>
+            <td><strong>Selective truthfulness / deception extension</strong></td>
+            <td><span class="status-pill" style="background: var(--surface-2); color: var(--text-secondary);">Hypothesis</span></td>
+            <td>Bridge taxonomy suggests global truth steering is too blunt; conditional interventions may be a better target for novelty.</td>
+            <td>No direct experiment yet. Needs a scoped protocol before it can move from concept to evidence.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="insight-box">
-      <strong>Note on scope:</strong> Jailbreak and Sycophancy are not extensions of the original paper &mdash; Gao et al. already include both as 2 of their 4 intervention benchmarks.
-      What is an extension is our choice of JailbreakBench (different benchmark, longer budget, structured judge) and the planned deceptive-behavior exploration.
+      <strong>Scope note:</strong> the core thesis now lives at the methods level:
+      detection, localization, control, and externality are separable stages. Extensions should be judged by which stage-break they clarify, not by raw run count.
     </div>
   </div>
 </section>
 
 <section id="priority" class="short">
   <div class="fade-in">
-    <span class="tag tag-purple">Execution order</span>
-    <h2>Current priority order reflects what is actually in flight</h2>
+    <span class="tag tag-purple">Caveat order</span>
+    <h2>Priority is now caveat-reduction, not benchmark accumulation</h2>
     <p class="subtitle" data-source="manual">
-      The active work is measurement hardening on the safety benchmark.
-      The pending work is the cheapest causal falsifier on the suppressive-neuron side.
+      The next best experiment is the one that upgrades a supporting claim to headline-safe.
+      Everything else is optional polish.
     </p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
         <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">1</div>
-        <h3>Complete jailbreak canonical rerun + negative control</h3>
+        <h3>Close jailbreak specificity with matched controls</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The 5000-token JailbreakBench rerun is in progress. Once complete, the jailbreak negative control is the highest-priority missing control across all benchmarks.
+          Run the missing control surface needed for evaluator-robust specificity, then report binary and severity-level outcomes together.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">2</div>
-        <h3>Suppressive neuron stability check</h3>
+        <h3>Resolve D7 selector-specificity gap</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Check whether the 38 negative-weight neurons remain stable across C values. If a core subset survives, it becomes the cheapest route to an inverse-intervention story. 10 min CPU.
+          Add random-head controls and a minimal capability check so D7 can be cited as more than a benchmark-local mitigation.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
         <div class="step-icon" style="background: var(--accent-purple-dim); color: var(--accent-purple);">3</div>
-        <h3>Deceptive behavior exploration (future)</h3>
+        <h3>Prototype selective truthfulness branch</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Extending beyond over-compliance to deception-correlated circuits is the next novel direction, once the current safety benchmark is solid.
+          Use bridge failure modes (wrong-entity substitutions and factual denial) to design a conditional intervention objective, not another global knob.
         </p>
       </div>
     </div>
@@ -166,77 +178,75 @@
 <div class="reflection">
   <div class="ref-label">What changed</div>
   <p class="ref-text">
-    SAE feature-space steering was previously the main sprint. It produced a null result under both tested architectures and is now closed.
-    The active frontier shifted to measurement hardening on the safety benchmark (jailbreak) and future deceptive-behavior exploration.
+    The project moved from "what should we run next?" to "which caveat still threatens the thesis?".
+    April 8&ndash;13 evidence made that tradeoff explicit.
   </p>
 </div>
 
 <section id="workstreams">
   <div class="fade-in">
-    <span class="tag tag-coral">Workstream details</span>
-    <h2>Each branch addresses a different gap in the current evidence</h2>
+    <span class="tag tag-coral">Branch details</span>
+    <h2>Each branch now plays a specific role in the argument</h2>
     <p class="subtitle" data-source="manual">
-      The active work hardens the safety benchmark measurement. The pending work tests whether there is an inverse truthfulness handle. The closed SAE line produced a scientifically valuable null result.
+      The flagship thesis does not need every branch to be positive.
+      It needs each branch to answer a different stage-break question cleanly.
     </p>
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Jailbreak methodology extension (active)</h3>
+        <h3 style="color: var(--accent-amber);">Jailbreak measurement branch (caveated)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The original paper uses Shen et al. templates with a 256-token cap. Our extension uses JailbreakBench (Chao et al., NeurIPS 2024) with a 5000-token budget, structured GPT-4o judge with few-shot rubric, and gold-label calibration.
-          The preliminary 256-token sweep showed +6.2pp [2.4, 10.0] with a plateau at &alpha;=1.5.
-          The canonical 5000-token rerun addresses truncation bias identified in the preliminary data.
-          No negative control yet &mdash; this is the highest-priority missing control.
+          The key result is not "one true slope." It is that evaluation level changes the conclusion:
+          v2 binary reads a positive slope, v3 binary compresses it, and v3 primary-outcome taxonomy recovers a severity shift.
+          This is valuable Anchor-3 evidence, but specificity still needs stronger paired controls.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">Suppressive neuron investigation (pending)</h3>
+        <h3 style="color: var(--accent-coral);">D7 causal branch (promising but provisional)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Best route to turning the story from "suppress bad behavior" into "amplify a native truthfulness circuit," if the negative-weight set proves stable and causal.
-          Cheapest falsifier: C-sweep stability check (10 min CPU).
+          Full-500 results are directionally strong on jailbreak, but selector-specificity is not established without random-head controls.
+          Treat this as supporting evidence for "alternative selectors can work on this surface," not as a settled mechanism claim.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Swing sample characterization (complete)</h3>
+        <h3 style="color: var(--accent-teal);">Bridge externality branch (load-bearing)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Resolved: H-neurons mostly override genuine knowledge (<span data-swing-bind="rc-pct-display">68.1%</span> R&rarr;C), not just appropriate uncertainty.
-          Surface features do not predict swing status; the mechanism is internal.
-          <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">See the deep dive.</a>
+          This is the cleanest control-to-externality break in the repo:
+          a direction that helps TruthfulQA MC harms open-ended TriviaQA generation, mostly by wrong-entity substitutions.
+          It upgrades externality risk from anecdote to statistically supported evidence.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral); opacity: 0.7;">
-        <h3 style="color: var(--accent-coral);">SAE feature-space steering (closed &mdash; null result)</h3>
+        <h3 style="color: var(--accent-coral);">SAE branch (closed, still central)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Tested whether SAE feature-space steering could replicate neuron-level compliance effects.
-          H-feature slope: 0.16 pp/&alpha; (CI [-0.51, 0.84], contains zero). Delta-only: 0.12 pp/&alpha;.
-          Neuron baseline: 2.09 pp/&alpha;.
-          The failure is fundamental feature-space misalignment, not reconstruction noise.
-          SAE detection matches neuron detection (AUROC 0.848 vs 0.843), confirming a detection-steering dissociation.
+          The null is not dead weight. It is the clearest localization-to-control break:
+          matched readout quality, divergent intervention outcomes.
+          This remains one of the most reviewer-resistant pieces of the full thesis.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <h3 style="color: var(--accent-purple);">Deceptive behavior exploration (planned)</h3>
+        <h3 style="color: var(--accent-purple);">Future novelty branch (not yet evidenced)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Extends beyond the paper's over-compliance framing to test whether H-neurons correlate with deceptive model behaviors.
-          This is a stronger and more novel safety claim than compliance alone, but depends on completing the jailbreak extension first and establishing deception-specific evaluation methodology.
-          Not yet underway.
+          Deceptive-behavior exploration stays in future-work scope until there is a concrete protocol and at least one disconfirmable pilot.
+          Right now it is a hypothesis generator, not a results branch.
         </p>
       </div>
     </div>
 
     <div class="comparison" style="margin-top: 2rem;">
       <div class="compare-card highlight" style="text-align: left;">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Active extension</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);">Jailbreak methodology</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Most upgraded by April 13 data</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Measurement-level interpretation</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Different benchmark choice (JailbreakBench), longer token budget, structured judge, gold-label calibration &mdash; a methodologically stronger evaluation of the paper's safety claim.
+          The paired v2-v3 analysis turns evaluator disagreement into an explained mechanism:
+          conclusions move because borderline mass is handled differently, not because one pipeline is random noise.
         </div>
       </div>
       <div class="compare-card" style="text-align: left; border-color: var(--accent-purple);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Next novel direction</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-purple);">Deceptive behaviors</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Most important remaining caveat</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-purple);">Specificity controls</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Moving from over-compliance to deception is the strongest remaining extension for a novel safety contribution.
+          D7 random-head controls and stronger jailbreak paired controls matter more for paper credibility than adding another exploratory benchmark.
         </div>
       </div>
     </div>
@@ -245,39 +255,39 @@
 
 <section id="decision" class="short">
   <div class="fade-in">
-    <span class="tag tag-teal">Decision points</span>
-    <h2>The next decision depends on the jailbreak rerun outcome</h2>
+    <span class="tag tag-teal">Decision gates</span>
+    <h2>What would actually change the thesis now</h2>
     <p class="subtitle" data-source="manual">
-      Once the canonical 5000-token jailbreak sweep and its negative control are complete, the project will have three benchmarks with confirmed H-neuron specificity (FaithEval, FalseQA, Jailbreak) or will need to explain why jailbreak differs.
+      The flagship can already stand on two headline-safe anchors plus one caveated measurement anchor.
+      The next decision is whether to spend remaining budget on caveat closure or on novelty exploration.
     </p>
 
     <div class="comparison" style="margin-top: 2rem;">
       <div class="compare-card highlight" style="text-align: left;">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">If jailbreak negative control confirms specificity</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Strongest cross-benchmark story</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">If control gaps are closed cleanly</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Stronger causal selection story</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Three independent benchmarks (FaithEval, FalseQA, Jailbreak) all showing H-neuron-specific compliance effects. The suppressive-neuron investigation and deceptive-behavior exploration become the next frontier.
+          The paper can argue not only that stage breaks exist, but that alternative selectors can be demonstrated as specific rather than benchmark-local.
         </div>
       </div>
       <div class="compare-card" style="text-align: left; border-color: var(--accent-coral);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">If jailbreak negative control shows generic perturbation</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-coral);">Narrower safety claim</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">If caveats remain unresolved</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-coral);">Still publishable, narrower claims</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          The H-neuron compliance story would hold for factual over-compliance (FaithEval, FalseQA) but not extend to safety refusal. Still publishable, but a weaker cross-benchmark narrative.
+          The central thesis remains valid (good readouts often fail as steering targets), but D7 and jailbreak specificity stay as supporting evidence instead of pillars.
         </div>
       </div>
     </div>
 
     <div class="insight-box" data-status="NEW">
-      <strong>Lesson from SAE:</strong> the SAE steering line was previously the main sprint.
-      It produced a scientifically valuable null result &mdash; features that detect hallucination do not causally control it in SAE space.
-      This detection-steering dissociation is itself a finding worth reporting, and it redirected the project toward measurement hardening rather than mechanism decomposition.
+      <strong>Why this framing is different:</strong> this page now separates "interesting" from "load-bearing."
+      The safest writing strategy is to lead with headline-safe anchors and use caveated branches to show scope, not to carry the core claim.
     </div>
   </div>
 </section>
 
 <footer>
-  H-Neurons Extension Directions &mdash; Gemma 3 4B &mdash; March 2026<br>
+  H-Neurons Extension Directions &mdash; Gemma 3 4B &mdash; April 2026<br>
   Core interpretation: <a href="story.html">Core Story</a> &middot; Stable evidence: <a href="results/gemma-3-4b.html">Results</a>
 </footer>
 

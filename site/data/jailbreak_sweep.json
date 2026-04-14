@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-13",
+  "generated_at": "2026-04-14",
   "generated_by": "scripts/export_site_data.py",
   "benchmark": "jailbreak",
   "model": "google/gemma-3-4b-it",
@@ -19,7 +19,19 @@
       "data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.5.jsonl",
       "data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl",
       "data/gemma3_4b/intervention/faitheval/experiment/results.json",
-      "data/gemma3_4b/intervention/falseqa/experiment/results.json"
+      "data/gemma3_4b/intervention/falseqa/experiment/results.json",
+      "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json",
+      "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v3_summary.json",
+      "data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation/v3_slope_bootstrap.json",
+      "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl",
+      "data/judge_validation/csv2_v3/alpha_0.0.jsonl",
+      "data/judge_validation/csv2_v3/alpha_1.5.jsonl",
+      "data/judge_validation/csv2_v3/alpha_3.0.jsonl",
+      "data/judge_validation/strongreject/results.json",
+      "data/judge_validation/strongreject/alpha_0.0.jsonl",
+      "data/judge_validation/strongreject/alpha_1.5.jsonl",
+      "data/judge_validation/strongreject/alpha_3.0.jsonl",
+      "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md"
     ],
     "notes": [
       "Jailbreak responses use stochastic generation (temperature=0.7, do_sample=true), so per-item outcomes are not exactly reproducible.",
@@ -122,6 +134,113 @@
       "is_monotonic": true,
       "is_strictly_increasing": true,
       "description": "Strictly increasing across the 4 exported \u03b1 values (Spearman \u03c1=1.000, p<0.001)."
+    }
+  },
+  "measurement": {
+    "public_claim": "The current publication-safe jailbreak result is evaluator dependence: binary v2 shows a significant slope, binary v3 does not, and v3 recovers the signal mainly as a severity shift.",
+    "paired_evaluator_comparison": {
+      "source_report": "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md",
+      "binary_v2_slope": {
+        "estimate": 2.3,
+        "ci": {
+          "lower": 0.99,
+          "upper": 3.58,
+          "level": 0.95,
+          "method": "report_percentile_ci"
+        }
+      },
+      "binary_v3_slope": {
+        "estimate": 0.46,
+        "ci": {
+          "lower": -1.46,
+          "upper": 2.41,
+          "level": 0.95,
+          "method": "report_percentile_ci"
+        }
+      },
+      "binary_v3_slope_bootstrap": {
+        "estimate": 0.5984023238925177,
+        "ci": {
+          "lower": -0.8482207697893908,
+          "upper": 2.0159767610748025,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
+      },
+      "substantive_compliance_v3_slope": {
+        "estimate": 2.0,
+        "ci": {
+          "lower": 0.11,
+          "upper": 3.87,
+          "level": 0.95,
+          "method": "report_percentile_ci"
+        }
+      },
+      "v2_control_gap_pp_per_alpha": {
+        "estimate": 2.77
+      },
+      "v3_single_seed_control_gap_pp_per_alpha": {
+        "estimate": 0.8
+      }
+    },
+    "strongreject_holdout": {
+      "status": "tie_with_v3_on_holdout",
+      "source_files": [
+        "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl",
+        "data/judge_validation/csv2_v3/alpha_0.0.jsonl",
+        "data/judge_validation/csv2_v3/alpha_1.5.jsonl",
+        "data/judge_validation/csv2_v3/alpha_3.0.jsonl",
+        "data/judge_validation/strongreject/alpha_0.0.jsonl",
+        "data/judge_validation/strongreject/alpha_1.5.jsonl",
+        "data/judge_validation/strongreject/alpha_3.0.jsonl"
+      ],
+      "holdout_n_records": 50,
+      "holdout_n_prompt_ids": 17,
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "cluster_by_prompt_id",
+        "interval": "percentile"
+      },
+      "v3_accuracy": {
+        "estimate": 0.96,
+        "count": 48,
+        "n": 50,
+        "ci": {
+          "lower": 0.9,
+          "upper": 1.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_cluster_by_prompt_id"
+        }
+      },
+      "strongreject_4o_accuracy": {
+        "estimate": 0.96,
+        "count": 48,
+        "n": 50,
+        "ci": {
+          "lower": 0.9,
+          "upper": 1.0,
+          "level": 0.95,
+          "method": "bootstrap_percentile_cluster_by_prompt_id"
+        }
+      },
+      "v3_accuracy_pct": 96.0,
+      "strongreject_4o_accuracy_pct": 96.0,
+      "discordant_correctness_count": 0,
+      "error_sets_match": true,
+      "overall_accuracy": {
+        "estimate": 0.7837837837837838,
+        "count": 58,
+        "n": 74,
+        "ci": {
+          "lower": 0.6772627498746149,
+          "upper": 0.8622954834409498,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "judge_model": "gpt-4o"
     }
   },
   "by_template": {
@@ -681,8 +800,8 @@
     "caveat": "Per-item compliance outcomes are not exactly reproducible across runs due to stochastic decoding."
   },
   "negative_control": {
-    "status": "not_available",
-    "note": "No negative control experiment (random-neuron baseline) has been run for JailbreakBench."
+    "status": "multi_seed_missing",
+    "note": "The legacy v2 analysis has a seed-0 specificity control and the v3 analysis has a single seed-1 control, but the current public framing still lacks a multi-seed control on the same evaluator/claim surface."
   },
   "cross_benchmark": {
     "benchmarks": [
@@ -785,11 +904,12 @@
             "method": "bootstrap_percentile_paired"
           }
         },
-        "negative_control": "not_available",
+        "negative_control": "partial_v2_seed0_only",
         "monotonic": true,
-        "evaluator": "GPT-4o safety judge",
+        "evaluator": "GPT-4o binary judge",
         "generation": "stochastic (T=0.7)"
       }
-    ]
+    ],
+    "interpretation_caveat": "FaithEval and FalseQA remain specificity-hardened benchmark stories. JailbreakBench now belongs in the measurement anchor: v2 shows a binary slope, v3 compresses the binary effect, and the publication-safe reading is a severity shift with evaluator dependence and incomplete control coverage."
   }
 }

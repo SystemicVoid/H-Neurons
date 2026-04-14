@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-14",
+  "generated_by": "scripts/export_site_data.py",
+  "benchmark": "triviaqa_bridge_phase3",
+  "model": "google/gemma-3-4b-it",
+  "source_files": [
+    "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/results.json",
+    "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/results.json",
+    "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/audit_stats.json",
+    "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/audit_stats.json",
+    "notes/act3-reports/2026-04-13-bridge-phase3-test-results.md"
+  ],
+  "verdict": "The externality break replicates on the held-out test set and is now\n> statistically significant.",
+  "conditions": {
+    "baseline": {
+      "compliance_rate": 0.45,
+      "n_compliant": 225,
+      "n_judged": 500,
+      "n_total": 500,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.45,
+        "n_compliant": 225,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.4069396517813318,
+          "upper": 0.49382278226482357,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "deterministic_accuracy_rate": 0.398,
+      "n_deterministic_correct": 199,
+      "deterministic_accuracy": {
+        "estimate": 0.398,
+        "n_deterministic_correct": 199,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.35602997790389446,
+          "upper": 0.4415253875502624,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "attempt_rate": 0.996,
+      "n_attempted": 498,
+      "attempt": {
+        "estimate": 0.996,
+        "n_attempted": 498,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.9855342847848231,
+          "upper": 0.9989023694773173,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "not_attempted_rate": 0.004,
+      "n_not_attempted": 2,
+      "not_attempted": {
+        "estimate": 0.004,
+        "n_not_attempted": 2,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.0010976305226827931,
+          "upper": 0.014465715215177033,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "precision_given_attempt_rate": 0.4518,
+      "precision_given_attempt": {
+        "estimate": 0.45180722891566266,
+        "n_correct": 225,
+        "n_attempted": 498,
+        "ci": {
+          "lower": 0.4086325998569601,
+          "upper": 0.4957196628819576,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "nonmatch_judged": 301,
+      "nonmatch_recovered": 26,
+      "audit_disagree_rate_nonmatches": 0.0864,
+      "match_audited": 37,
+      "match_disagree": 0,
+      "audit_disagree_rate_matches": 0.0,
+      "metric_name": "deterministic_accuracy",
+      "metric_mean": 0.398,
+      "metric_std": 0.489485
+    },
+    "iti_e0_alpha_8": {
+      "compliance_rate": 0.392,
+      "n_compliant": 196,
+      "n_judged": 500,
+      "n_total": 500,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.392,
+        "n_compliant": 196,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.3501873777896792,
+          "upper": 0.4354594797500162,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "deterministic_accuracy_rate": 0.352,
+      "n_deterministic_correct": 176,
+      "deterministic_accuracy": {
+        "estimate": 0.352,
+        "n_deterministic_correct": 176,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.31141084189074275,
+          "upper": 0.39484596288587676,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "attempt_rate": 0.984,
+      "n_attempted": 492,
+      "attempt": {
+        "estimate": 0.984,
+        "n_attempted": 492,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.9687488914666058,
+          "upper": 0.9918707469666117,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "not_attempted_rate": 0.016,
+      "n_not_attempted": 8,
+      "not_attempted": {
+        "estimate": 0.016,
+        "n_not_attempted": 8,
+        "n_total": 500,
+        "ci": {
+          "lower": 0.008129253033388312,
+          "upper": 0.031251108533394266,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "precision_given_attempt_rate": 0.3984,
+      "precision_given_attempt": {
+        "estimate": 0.3983739837398374,
+        "n_correct": 196,
+        "n_attempted": 492,
+        "ci": {
+          "lower": 0.35606323440724186,
+          "upper": 0.44225939831927663,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "nonmatch_judged": 324,
+      "nonmatch_recovered": 20,
+      "audit_disagree_rate_nonmatches": 0.0617,
+      "match_audited": 33,
+      "match_disagree": 0,
+      "audit_disagree_rate_matches": 0.0,
+      "metric_name": "deterministic_accuracy",
+      "metric_mean": 0.352,
+      "metric_std": 0.477594
+    }
+  },
+  "effects": {
+    "adjudicated_accuracy_delta_pp": {
+      "estimate": -5.8,
+      "ci": {
+        "lower": -8.8,
+        "upper": -3.0,
+        "level": 0.95,
+        "method": "report_percentile_ci"
+      }
+    },
+    "deterministic_accuracy_delta_pp": {
+      "estimate": -4.6,
+      "ci": {
+        "lower": -7.6,
+        "upper": -1.6,
+        "level": 0.95,
+        "method": "report_percentile_ci"
+      }
+    },
+    "attempt_rate_delta_pp": {
+      "estimate": -1.2,
+      "ci": {
+        "lower": -2.4,
+        "upper": -0.2,
+        "level": 0.95,
+        "method": "report_percentile_ci"
+      }
+    },
+    "mcnemar_p": 0.0002
+  },
+  "flip_table": {
+    "base_correct_iti_correct": 182,
+    "base_correct_iti_wrong": 43,
+    "base_wrong_iti_correct": 14,
+    "base_wrong_iti_wrong": 261
+  },
+  "failure_modes": {
+    "wrong_entity_substitution": {
+      "count": 30,
+      "share_pct": 70.0
+    }
+  },
+  "audit": {
+    "baseline_match_disagree_rate": 0.0,
+    "iti_match_disagree_rate": 0.0,
+    "baseline_nonmatch_recovery_rate": 0.0864,
+    "iti_nonmatch_recovery_rate": 0.0617
+  }
+}

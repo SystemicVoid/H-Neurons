@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>H-Neurons | Gemma 3 4B Overview</title>
+<title>Detection Is Not Enough | Gemma 3 4B Overview</title>
 <link rel="stylesheet" href="assets/shared.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital,wght@0,400;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -29,180 +29,167 @@
 
 <section id="hero">
   <div class="fade-in">
-    <h1>H-Neurons &mdash; Gemma 3 4B</h1>
+    <h1>Detection Is Not Enough</h1>
     <p class="subtitle" data-source="manual">
-      Replication, methodological critique, and safety extensions.
+      A broader Gemma 3 4B thesis: measurement, localization, control, and externality are separable stages,
+      and strong readouts often fail as steering targets. H-neurons remain the paper-faithful first anchor, not the whole story.
     </p>
 
     <div class="next-steps" style="margin-top: 2.5rem;">
+      <!-- from: classifier_disjoint_accuracy -->
+      <!-- from: anti_compliance_delta_noop_to_3 -->
+      <!-- from: top_neuron_supporting_tests -->
+      <!-- from: top_neuron_total_tests -->
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Completed</h3>
-        <p class="card-item"><strong>Detection replication:</strong> 38 H-neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy.</p>
-        <p class="card-item"><strong>FaithEval intervention + negative control:</strong> 2.1 pp/&alpha; slope, H-neuron specificity confirmed (8 random seeds flat).</p>
-        <p class="card-item"><strong>FalseQA intervention + negative control:</strong> slope +1.62 pp/&alpha; [0.52, 2.74], H-neuron specificity confirmed (3 random seeds flat).</p>
-        <p class="card-item"><strong>CSV-v2 graded jailbreak evaluation:</strong> binary judge non-significant; graded judge recovers +7.6 pp severity escalation. V=3 harmful content nearly quadruples. 76% of the increase is ablation recovery, not amplification.</p>
-        <p class="card-item"><strong>256-token truncation artifact:</strong> the original jailbreak slope (+6.2 pp) was a measurement artifact from truncated disclaimers. 5000-token rerun falsified it.</p>
-        <p class="card-item"><strong>Refusal direction extraction (D2):</strong> difference-in-means on 128+128 contrastive set. Best layer 25, 98.4% val accuracy. Sanity gate passed.</p>
-        <p class="card-item"><strong>Refusal-direction ablation (D3):</strong> narrow usable window at &beta;=0.02 (+4.2 pp), cliff at &beta;=0.03 with catastrophic answer-option bias (B at 58%).</p>
-        <p class="card-item"><strong>Refusal-overlap audit (D3.5):</strong> H-neuron intervention overlaps refusal geometry above null, but mediation signal is dominated by layer 33. Live hypothesis, not settled mechanism.</p>
-        <p class="card-item"><strong>Top-neuron investigation:</strong> neuron 4288 is an L1 artifact (0/6 tests).</p>
-        <p class="card-item"><strong>SAE steering:</strong> closed, null result under both full-replacement and delta-only architectures.</p>
-        <p class="card-item"><strong>Swing characterization:</strong> 68.1% knowledge override in the &alpha;-sensitive subpopulation.</p>
+        <h3 style="color: var(--accent-teal);">Anchor 1</h3>
+        <p class="card-item"><strong>H-neuron replication still holds:</strong> 38 neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy, and a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span> FaithEval gain above no-op.</p>
+        <p class="card-item"><strong>Specificity was tested:</strong> random-neuron intervention controls stay flat on FaithEval and FalseQA.</p>
+        <!-- from: top_neuron_broader_detector_positive_neurons -->
+        <!-- from: top_neuron_broader_detector_c_value -->
+        <p class="card-item"><strong>Interpretation got narrower:</strong> the 4288 top-neuron story failed 0/6 cross-checks, and the stronger mechanism hypothesis is distributed rather than singular.</p>
+        <p class="card-item"><strong>Why this anchor matters:</strong> it establishes a real localization and control foothold before the broader thesis asks where that foothold breaks.</p>
       </div>
+      <!-- from: bridge_phase3_adjudicated_delta -->
+      <!-- from: bridge_phase3_wrong_entity_share -->
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Active</h3>
-        <p class="card-item"><strong>D4 &mdash; truthfulness direction baseline:</strong> residual-stream direction produced a null result on FaithEval. Deciding between richer contrastive data, head-level ITI, or accepting the negative result.</p>
-        <p class="card-item"><strong>Capability battery (D0.5):</strong> IFEval + perplexity needed for all baselines. Blocks D1 completion and D5.</p>
-        <p class="card-item"><strong>Jailbreak negative control:</strong> highest-priority missing specificity check for the safety externality story.</p>
+        <h3 style="color: var(--accent-amber);">Anchor 2</h3>
+        <p class="card-item"><strong>Control does not guarantee transfer:</strong> the bridge benchmark now shows a held-out externality break.</p>
+        <p class="card-item"><strong>Locked test result:</strong> ITI reduces adjudicated accuracy by <span data-bridge-bind="adjudicated-delta">-5.8pp</span> (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>) on 500 held-out TriviaQA items.</p>
+        <p class="card-item"><strong>Dominant failure mode:</strong> <span data-bridge-bind="wrong-entity-share">70.0%</span> of right-to-wrong flips are wrong-entity substitutions, not refusal.</p>
+        <p class="card-item"><strong>Project consequence:</strong> an intervention can help on one evaluation surface and still corrupt free-form factual generation.</p>
       </div>
+      <!-- from: jailbreak_v2_binary_slope -->
+      <!-- from: jailbreak_v3_binary_slope -->
+      <!-- from: jailbreak_v3_substantive_compliance_slope -->
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <h3 style="color: var(--accent-purple);">Remaining planned work</h3>
-        <p class="card-item"><strong>D5 &mdash; full externality audit:</strong> jailbreak severity drift, capability drift, and response-structure shifts across all three baselines.</p>
-        <p class="card-item"><strong>D6 &mdash; refusal-orthogonalized steering:</strong> project out the refusal-overlap component and compare before/after tradeoff.</p>
-        <p class="card-item"><strong>D7 &mdash; scoped causal pilot:</strong> contrastive grad&times;activation head ranking on 50-prompt extraction set to compare gradient-based head ranking against L1-probe-selected neurons.</p>
-        <p class="card-item"><strong>D8 &mdash; final synthesis:</strong> close the sprint with a steering protocol &mdash; graded evaluation, externality audit, comparator suite, and one causal check.</p>
+        <h3 style="color: var(--accent-purple);">Anchor 3</h3>
+        <p class="card-item"><strong>Measurement changes conclusions:</strong> the original 256-token jailbreak slope was a truncation artifact.</p>
+        <p class="card-item"><strong>Paired v2-v3 audit:</strong> v2 shows a significant binary slope, while v3 compresses the binary slope but recovers a significant severity shift at the substantive-compliance level.</p>
+        <p class="card-item"><strong>Why v3 stays primary:</strong> not because it once led on held-out accuracy, but because it supplies the taxonomy and granularity the paper needs without introducing false positives on the gold set.</p>
+        <p class="card-item"><strong>Project consequence:</strong> evaluator dependence is part of the scientific result, not just reporting overhead.</p>
       </div>
+      <!-- from: d7_causal_csv2_yes_delta -->
+      <!-- from: d7_l1_csv2_yes_delta -->
+      <!-- from: d7_causal_token_cap_hits -->
       <div class="step-card" style="border-left: 3px solid var(--accent-rose);">
-        <h3 style="color: var(--accent-rose);">Research frontiers</h3>
-        <p class="card-item"><strong>Refusal-overlap mechanism:</strong> D3.5 found real overlap but it collapses without layer 33. Is this a bridge layer, a single-neuron artifact, or general fragility?</p>
-        <p class="card-item"><strong>Causal vs. correlational selection:</strong> D7 tests whether gradient-based ranking selects different components than L1 probing &mdash; and whether the gradient-selected set steers better.</p>
-        <p class="card-item"><strong>Detector &ne; intervention target:</strong> SAE features detect hallucination but cannot steer it. Does the same dissociation apply to the 38-neuron probe vs. direction-level features?</p>
-        <p class="card-item"><strong>Suppressive neuron investigation:</strong> the paper&rsquo;s 38 negative-weight neurons remain untested. Cheapest path to an inverse-intervention story.</p>
+        <h3 style="color: var(--accent-rose);">Boundary of the claim</h3>
+        <p class="card-item"><strong>D7 is supporting evidence:</strong> the locked causal head set beats baseline and the L1 comparator on this jailbreak surface, but selector-specificity is still unproven without the planned random-head control.</p>
+        <p class="card-item"><strong>v3 is not pitched as universally superior:</strong> the holdout rerun closed the old StrongREJECT gap, so the rationale is measurement quality, not outdated superiority language.</p>
+        <p class="card-item"><strong>Single-model scope remains explicit:</strong> the site is framed as a Gemma 3 4B case study in intervention science.</p>
       </div>
     </div>
 
     <div class="section-links" style="margin-top: 2rem;">
-      <a class="section-link section-link-cta" href="progress/week-03-act3-comparative-sprint.html">Latest weekly report</a>
+      <a class="section-link section-link-cta" href="progress/week-04-flagship-synthesis.html">Latest weekly report</a>
       <a class="section-link" href="#snapshot">Key findings</a>
       <a class="section-link" href="story.html">Core story</a>
-      <a class="section-link" href="extensions.html">Extensions</a>
+      <a class="section-link" href="methods.html">Methods</a>
     </div>
   </div>
 </section>
-
-
 
 <section id="snapshot">
   <div class="fade-in">
     <h2>Key findings</h2>
 
     <div class="next-steps">
-
-      <!-- from: anti_compliance_swing_share -->
-      <div class="step-card" data-status="OUR WORK">
-        <h3>86% of the population is frozen. The real effect is 10x larger than the headline.</h3>
+      <div class="step-card" data-status="THESIS">
+        <h3>The project is now about stage breaks, not one neuron set</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The no-op-to-max effect is +4.5pp [2.9, 6.1] (full sweep 6.3pp). But 60% of samples always comply and 26% never do
-          regardless of scaling. The entire effect is driven by 138 swing samples (13.8%), where H-neuron
-          amplification overrides prior knowledge in 68.1% of cases. The headline number
-          is diluted by frozen populations the paper does not separate.
+          The stable pattern across the April evidence is broader than H-neurons alone: measurement, localization,
+          control, and externality come apart. Good readouts do not reliably identify good steering targets,
+          and even successful interventions stay narrow unless validated on multiple surfaces.
         </p>
-        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#population">Population breakdown</a></p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="story.html#claim">Read the thesis</a></p>
       </div>
 
-      <!-- from: top_neuron_total_tests -->
-      <!-- from: top_neuron_broader_detector_c_value -->
+      <div class="step-card" data-status="ANCHOR 1">
+        <h3>H-neurons still earn the first anchor</h3>
+        <!-- from: classifier_disjoint_accuracy -->
+        <!-- from: anti_compliance_delta_noop_to_3 -->
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The paper-faithful sparse baseline survives the hard checks: <span data-classifier-bind="accuracy-value">76.5%</span> held-out accuracy
+          (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>), a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span>
+          FaithEval gain above no-op, and flat random-neuron intervention controls. What narrowed is the interpretation,
+          not the existence of signal.
+        </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#cross-benchmark">Open H-neuron results</a></p>
+      </div>
+
       <div class="step-card" data-status="OUR WORK">
         <h3>The paper's #1 neuron is an L1 regularization artifact</h3>
         <!-- from: top_neuron_supporting_tests -->
+        <!-- from: top_neuron_total_tests -->
         <!-- from: top_neuron_broader_detector_positive_neurons -->
+        <!-- from: top_neuron_broader_detector_c_value -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Neuron (20, 4288) has 1.65x the classifier weight of the runner-up but scores 0/6
-          on independent importance tests. The real best single predictor is L13:N833
-          (AUC 0.703 vs 0.590). At C=3.0 the signal spreads across 219 neurons and accuracy
-          rises to 80.5%. L1 weight is not a reliable proxy for neuron importance.
+          Neuron (20, 4288) has 1.65x the classifier weight of the runner-up but scores 0/6 on independent checks.
+          By C=3.0 the signal is spread across 219 positive-weight neurons and accuracy rises to 80.5%.
+          Sparse bookkeeping is not the same thing as mechanistic centrality.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#surprise">Six-test investigation</a></p>
       </div>
 
-      <!-- from: negative_control_random_slope_interval -->
-      <div class="step-card" data-status="OUR WORK">
-        <h3>H-neuron specificity confirmed with per-alpha negative controls the paper never ran</h3>
+      <div class="step-card" data-status="ANCHOR 2">
+        <h3>When steering transfers badly, it fails by picking the wrong nearby fact</h3>
+        <!-- from: bridge_phase3_adjudicated_delta -->
+        <!-- from: bridge_phase3_wrong_entity_share -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The original paper compares H-neuron vs random-neuron <em>detection</em> classifiers
-          but runs no random-neuron control on the <em>intervention</em> experiments.
-          We ran 8 random-neuron sets (38 neurons each) across every alpha on FaithEval and 3 on FalseQA.
-          Random slopes: [-0.11, 0.16] pp/&alpha;. H-neuron slope: 2.09 pp/&alpha;.
-          The effect is specific to these neurons, not a generic perturbation artifact.
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#cross-benchmark">Negative control data</a></p>
-      </div>
-
-      <div class="step-card" data-status="OUR WORK">
-        <h3>Binary jailbreak judges miss the real safety story. Graded judging recovers it.</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          The original 256-token jailbreak slope (+6.2 pp) was a truncation artifact &mdash; the model was cut off
-          mid-disclaimer, creating alpha-dependent false positives. A 5000-token rerun produced a non-significant
-          binary slope (+3.0 pp, CI includes zero). But CSV-v2 graded judging separates genuine compliance (C&ge;2)
-          from disclaimer-wrapped discussion (C=1, constant ~60-response noise floor). The real effect:
-          V=3 polished harmful content nearly quadruples (3.8%&rarr;14.0%), payload share rises from 21%&rarr;26%,
-          and pivot position recedes from 16%&rarr;10% of response length.
-          76% of the count increase is ablation recovery (&alpha;=0&rarr;1), not amplification.
+          The held-out bridge benchmark upgrades the externality claim to publication-grade evidence:
+          E0 ITI lowers adjudicated accuracy by <span data-bridge-bind="adjudicated-delta">-5.8pp</span>
+          (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>) on 500 locked test questions,
+          with <span data-bridge-bind="mcnemar-p">p=0.0002</span>. The damage is mostly active corruption, not abstention:
+          <span data-bridge-bind="wrong-entity-count">30</span> of <span data-bridge-bind="right-to-wrong-count">43</span> right-to-wrong flips
+          (<span data-bridge-bind="wrong-entity-share">70.0%</span>) are wrong-entity substitutions.
         </p>
       </div>
 
-      <div class="step-card" data-status="OUR WORK">
-        <h3>Refusal-direction ablation has a cliff, not a curve</h3>
+      <div class="step-card" data-status="ANCHOR 3">
+        <h3>Jailbreak evaluation is now a measurement case study, not just a binary-rate story</h3>
+        <!-- from: jailbreak_v2_binary_slope -->
+        <!-- from: jailbreak_v3_binary_slope -->
+        <!-- from: jailbreak_v3_substantive_compliance_slope -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          All-layer refusal-direction ablation on FaithEval has one usable point (&beta;=0.02, +4.2 pp)
-          before a catastrophic cliff at &beta;=0.03 (&minus;14.9 pp). The collapse is not a parser failure &mdash;
-          it is answer-option bias: output B jumps from 28% to 58%, while C and D compliance drops to 22%
-          and 29%. For MCQ steering evaluations, output-distribution checks matter more than parse-failure rates.
+          The 256-token binary headline was falsified by a 5000-token rerun. On paired outputs, v2 reports a
+          <span data-jailbreak-summary-bind="v2-binary-slope">2.30pp/α</span> binary slope while v3 compresses the same binary slope to
+          <span data-jailbreak-summary-bind="v3-binary-slope">0.46pp/α</span>, but v3 recovers a
+          <span data-jailbreak-summary-bind="v3-substantive-slope">2.00pp/α</span> substantive-compliance shift.
+          The effect survives at the right level of granularity.
         </p>
       </div>
 
-      <!-- from: standard_text_remap_alpha_3_rescored_rate -->
-      <div class="step-card" data-status="OUR WORK">
-        <h3>SAE features detect hallucination but cannot steer it</h3>
+      <div class="step-card" data-status="SUPPORTING">
+        <h3>D7 is promising benchmark-local evidence, not a finished mechanism claim</h3>
+        <!-- from: d7_causal_csv2_yes_delta -->
+        <!-- from: d7_l1_csv2_yes_delta -->
+        <!-- from: d7_causal_token_cap_hits -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          An SAE probe matches neuron-level detection (AUROC 0.848 vs 0.843), but both
-          full-replacement and delta-only steering produce zero compliance slope (0.16 and 0.12 pp/&alpha;).
-          Features that correlate with a behavior in static activations do not necessarily
-          causally control it. This detection-steering dissociation is novel.
+          The trimmed full-500 comparison shows the locked causal head intervention reducing `csv2_yes`
+          by <span data-d7-bind="causal-delta">-9.0pp</span> (<span data-d7-bind="causal-delta-ci">95% CI -12.2--5.8pp</span>)
+          while the L1 comparator increases it by <span data-d7-bind="l1-delta">+4.0pp</span>
+          (<span data-d7-bind="l1-delta-ci">95% CI 0.6-7.6pp</span>).
+          But the planned random-head control was skipped, and <span data-d7-bind="token-cap-hits">112</span>/500 outputs hit the token cap,
+          so this stays in the supporting layer rather than the headline layer.
         </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="extensions.html#workstreams">SAE closed-out details</a></p>
+        <p style="margin-top: 1rem;"><a class="button-link secondary" href="extensions.html#workstreams">See supporting workstreams</a></p>
       </div>
 
-      <div class="step-card" data-status="REPLICATION">
-        <h3>Same 38 neurons shift behavior across 3 different benchmarks</h3>
-        <!-- from: anti_compliance_delta_noop_to_3 -->
-        <!-- from: anti_compliance_delta_0_to_3 -->
-        <!-- from: falseqa_delta_noop_to_3 -->
-        <!-- from: falseqa_delta_0_to_3 -->
+      <div class="step-card" data-status="METHOD">
+        <h3>Measurement discipline changed the project's claims more than new model scale did</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          FaithEval (+4.5 pp above no-op; slope +2.09 pp/&alpha;) and FalseQA (slope +1.62 pp/&alpha;) show compliance increasing with H-neuron scaling,
-          both with independent negative controls confirming specificity.
-          Jailbreak binary compliance is non-significant (+3.0 pp, CI includes zero), but CSV-v2
-          graded judging reveals a monotonic severity escalation: the intervention does not create
-          more jailbreaks, it makes existing ones structurally worse.
-          0.011% of the network, consistent causal role across qualitatively different tasks.
+          April 8-13 turned multiple attractive stories into narrower ones: D7 lost selector-specific language,
+          v3 lost outdated holdout-superiority framing, and jailbreak binary counts gave way to a severity story.
+          That is a methodological win, not a retreat.
         </p>
-        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#cross-benchmark">Cross-benchmark results</a></p>
+        <p style="margin-top: 1rem;"><a class="button-link secondary" href="methods.html#evaluation">Open the evaluation contract</a></p>
       </div>
-
-      <!-- from: classifier_overlap_accuracy -->
-      <div class="step-card" data-status="OUR WORK">
-        <h3>Detection signal survives a truly disjoint test</h3>
-        <!-- from: classifier_disjoint_accuracy -->
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          The paper's TriviaQA evaluation had 66.3% train/test overlap (independently
-          sampled splits from small pools). We built a 0%-overlap disjoint test set.
-          Accuracy: <span data-classifier-bind="accuracy-value">76.5%</span> [73.6, 79.5],
-          actually closer to the paper's 76.9% than the inflated 77.7% from the overlapping split.
-          The signal is real, not leakage.
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Classifier results</a></p>
-      </div>
-
     </div>
   </div>
 </section>
 
-
-
 <footer>
-  H-Neurons Overview | Gemma 3 4B | March 2026<br>
-  Stable findings: <a href="results/gemma-3-4b.html">Gemma 3 4B Results</a> &middot; Future directions: <a href="extensions.html">Extensions</a>
+  Detection Is Not Enough | Gemma 3 4B | April 2026<br>
+  Stable evidence: <a href="results/gemma-3-4b.html">Results</a> &middot; Argument: <a href="story.html">Core Story</a> &middot; Measurement contract: <a href="methods.html">Methods</a>
 </footer>
 
 <script src="assets/shared.js"></script>

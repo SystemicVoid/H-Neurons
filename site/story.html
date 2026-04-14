@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Core Story | H-Neurons</title>
+<title>Core Story | Detection Is Not Enough</title>
 <link rel="stylesheet" href="assets/shared.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital,wght@0,400;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -30,57 +30,51 @@
 <section id="hero">
   <div class="fade-in">
     <span class="tag tag-coral">Core story</span>
-    <h1>What still holds,<br>what got narrower,<br>and what decides the paper</h1>
-    <!-- from: classifier_disjoint_accuracy -->
-    <!-- from: anti_compliance_delta_noop_to_3 -->
-    <!-- from: anti_compliance_delta_0_to_3 -->
+    <h1>A broader thesis,<br>built from three anchors,<br>inside one Gemma case study</h1>
     <p class="subtitle" data-source="manual">
-      Gao et al. (2025) claim that fewer than 0.1% of a language model's MLP neurons, dubbed "H-Neurons,"
-      reliably predict hallucination and causally drive over-compliance when amplified.
-      We replicated their pipeline on Gemma&nbsp;3 4B-IT and confirmed the core signal:
-      38 neurons out of <span data-classifier-bind="total-neurons">348,160</span> predict hallucination at
-      <span data-classifier-bind="accuracy-value">76.5%</span> accuracy on fully held-out data
-      (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>),
-      and amplifying them produces a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span>
-      compliance gain above the no-op baseline on FaithEval
-      (<span data-intervention-summary-bind="anti-noop-delta-ci-text">95% CI 2.9-6.1pp</span>;
-      slope +2.09 pp/&alpha;).
-      But replication also surfaced problems the paper doesn't discuss.
+      The strongest project claim is now cross-method and publication-facing:
+      in Gemma 3 4B-IT, measurement, localization, control, and externality repeatedly come apart.
+      Strong readouts often fail as steering targets, and successful steering remains narrow unless tested across surfaces.
     </p>
     <p class="subtitle" style="margin-top: 1rem;" data-source="manual">
-      The current best reading is that Gemma does contain a distributed hallucination-related detector that predicts errors on a clean split and causally shifts FaithEval behavior when amplified.
-      What got narrower is the interpretation: the sparse 38-neuron set is a useful replication baseline, but not clean evidence for a single obedience circuit or a unique hub neuron.
+      H-neurons still matter, but as Anchor 1. They establish that a sparse detector can survive a clean held-out split and move behavior.
+      The broader thesis comes from what happens next: interpretation fragility, transfer failures, and evaluator choices that materially change the conclusion.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
-      <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Current object</div>
-        <div class="value val-teal" style="font-size: 1.35rem;">Distributed detector</div>
-        <div class="detail"><span data-classifier-bind="selected-count">38</span>-neuron sparse baseline, broader <span data-top-neuron-bind="broader-detector-count">219</span>-neuron mechanism candidate</div>
+      <div class="metric-card" data-status="THESIS">
+        <div class="label">Project claim</div>
+        <div class="value val-teal" style="font-size: 1.2rem;">Stage breaks</div>
+        <div class="detail">Measurement, localization, control, and externality must be tested separately</div>
       </div>
-      <div class="metric-card" data-status="STABLE">
-        <div class="label">Strongest signal</div>
+      <!-- from: classifier_disjoint_accuracy -->
+      <div class="metric-card" data-status="ANCHOR 1">
+        <div class="label">Replication anchor</div>
         <div class="value val-purple" data-classifier-bind="accuracy-value">76.5%</div>
-        <div class="detail">Clean held-out classifier accuracy <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></div>
+        <div class="detail">Clean held-out H-neuron detector accuracy <span data-classifier-bind="accuracy-ci-bracket">[73.6, 79.5]</span></div>
       </div>
-      <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Causal foothold</div>
-        <div class="value val-amber" data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</div>
-        <div class="detail">No-op→max compliance gain · <span data-intervention-summary-bind="anti-noop-delta-ci-text">95% CI 2.9-6.1pp</span> · slope +2.09 pp/&alpha;</div>
+      <!-- from: bridge_phase3_adjudicated_delta -->
+      <div class="metric-card" data-status="ANCHOR 2">
+        <div class="label">Externality anchor</div>
+        <div class="value val-amber" style="font-size: 1.2rem;" data-bridge-bind="adjudicated-delta">-5.8pp</div>
+        <div class="detail">ITI bridge hit on held-out TriviaQA test (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>)</div>
       </div>
-      <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Main threat</div>
-        <div class="value val-coral" style="font-size: 1.35rem;">Measurement drift</div>
-        <div class="detail">Prompt/evaluator mismatch and sparse-credit artifacts</div>
+      <!-- from: jailbreak_v2_binary_slope -->
+      <!-- from: jailbreak_v3_binary_slope -->
+      <!-- from: jailbreak_v3_substantive_compliance_slope -->
+      <div class="metric-card" data-status="ANCHOR 3">
+        <div class="label">Measurement anchor</div>
+        <div class="value val-coral" style="font-size: 1.2rem;">v2 != v3</div>
+        <div class="detail">Binary slope compression hides a severity shift that v3 recovers</div>
       </div>
     </div>
 
     <div class="section-links">
       <a class="section-link" href="#claim">Current claim</a>
-      <a class="section-link" href="#evidence">Strongest evidence</a>
-      <a class="section-link" href="#threat">Biggest threat</a>
-      <a class="section-link" href="#falsify">Falsification</a>
-      <a class="section-link" href="#decision">Next decision</a>
+      <a class="section-link" href="#anchor1">Anchor 1</a>
+      <a class="section-link" href="#anchor2">Anchor 2</a>
+      <a class="section-link" href="#anchor3">Anchor 3</a>
+      <a class="section-link" href="#boundary">Boundary</a>
     </div>
   </div>
 </section>
@@ -88,79 +82,88 @@
 <section id="claim" class="short">
   <div class="fade-in">
     <span class="tag tag-teal">1. Current claim</span>
-    <h2>Gemma appears to have a real hallucination-related direction, but it looks distributed rather than singular</h2>
+    <h2>Predictive readout quality did not reliably identify useful intervention targets</h2>
     <p class="subtitle" data-source="manual">
-      The safe version of the claim is narrower than the first sparse-detector headline.
-      The project can defend "a small set of neurons predicts hallucination and shifting that direction changes behavior."
-      It cannot currently defend "one top neuron is the mechanism" or "the intervention is a pure obedience dial."
+      The thesis is intentionally narrower than "detectors are useless" and broader than "H-neurons replicate."
+      Across the methods in this repo, good readouts did not consistently become good levers.
+      When control worked, it was benchmark-local, surface-local, or vulnerable to measurement choice.
     </p>
 
     <div class="comparison" style="margin-top: 2rem;">
       <div class="compare-card highlight" style="text-align: left;">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">What survives</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Predictive + causal signal</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">What is earned</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Detection is not enough</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Clean classification remains strong, early-layer concentration is real, and amplifying the detected direction moves FaithEval behavior.
+          H-neurons, SAE features, probe heads, ITI, and D7 together support a practical methodological claim:
+          selection quality and steering quality must be validated separately.
         </div>
       </div>
       <div class="compare-card" style="text-align: left; border-color: var(--accent-coral);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">What got withdrawn</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-coral);">Single-hub story</div>
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">What is not earned</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-coral);">Universal rankings</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          The tracked 4288 verdict is <span data-top-neuron-bind="support-count-display">0/6</span>, so it does not survive the cross-checks needed for a unique control-node interpretation.
+          The site does not claim that detector-selected targets never work, that causal selection is always better,
+          or that v3 is globally superior to every other evaluator.
         </div>
       </div>
     </div>
 
     <div class="insight-box">
-      <strong>Working analogy:</strong> the sparse detector is more like a shortlist produced by a strict editor than a full cast list.
-      It tells you where real signal exists, but not that the first boldfaced name is the whole story.
+      <strong>Working picture:</strong> a detector is more like a map than a steering wheel.
+      It can tell you where signal lives without guaranteeing that turning there will move the system the way you want.
     </div>
   </div>
 </section>
 
-<section id="evidence">
+<section id="anchor1">
   <div class="fade-in">
-    <span class="tag tag-purple">2. Strongest evidence</span>
-    <h2>Three pieces of evidence carry most of the narrative weight</h2>
+    <span class="tag tag-purple">2. Anchor 1</span>
+    <h2>H-neurons remain the replication baseline, but they no longer carry the whole mechanism story</h2>
     <p class="subtitle" data-source="manual">
-      The strongest support comes from the clean detector result, the intervention trend once measurement mismatch is accounted for, and the negative result on the 4288 hub story.
+      This anchor establishes that the project is not built on pure null results.
+      A sparse detector survives the clean split, shifts FaithEval behavior, and passes intervention specificity checks.
+      The same anchor also taught the project where interpretation can go wrong.
     </p>
 
     <div class="next-steps" style="margin-top: 1.5rem;">
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Clean detector result</h3>
-        <!-- from: classifier_disjoint_accuracy -->
-        <!-- from: classifier_overlap_accuracy -->
+        <h3 style="color: var(--accent-teal);">What survived replication</h3>
+        <!-- from: anti_compliance_delta_noop_to_3 -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The <span data-classifier-bind="accuracy-value">76.5%</span> disjoint-test accuracy
-          (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>) is the core replication anchor because it stays within <span data-classifier-bind="accuracy-drop-value">1.1pp</span> of the overlap estimate instead of collapsing once memorization pressure is removed.
+          The core paper-faithful object is still real:
+          <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy
+          (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>),
+          <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span> no-op to max on FaithEval
+          (<span data-intervention-summary-bind="anti-noop-delta-ci-text">95% CI 2.9-6.1pp</span>),
+          plus flat random-neuron intervention slopes on FaithEval and FalseQA.
         </p>
-        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Open the results ledger</a></p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#results">Open the replication ledger</a></p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Intervention still moves behavior</h3>
-        <!-- from: standard_text_remap_alpha_3_rescored_rate -->
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          On anti-compliance FaithEval prompts, the sparse-detector intervention produces a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span> gain above the no-op baseline
-          (<span data-intervention-summary-bind="anti-noop-delta-ci-text">95% CI 2.9-6.1pp</span>; slope +2.09 pp/&alpha;), and the standard-prompt contradiction weakens once the same &alpha;=3.0 point is read as
-          <span data-intervention-summary-bind="raw-alpha-three-value">63.6%</span> under raw MC-letter scoring
-          (<span data-intervention-summary-bind="raw-alpha-three-ci-text">95% CI 60.6-66.5%</span>) and
-          <span data-intervention-summary-bind="remap-value">72.1%</span> after strict answer-text remap on the full population
-          (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>).
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#intervention">Open intervention evidence</a></p>
-      </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">The flashy counterclaim failed</h3>
+        <h3 style="color: var(--accent-amber);">What narrowed</h3>
         <!-- from: top_neuron_supporting_tests -->
         <!-- from: top_neuron_total_tests -->
         <!-- from: top_neuron_broader_detector_positive_neurons -->
         <!-- from: top_neuron_broader_detector_c_value -->
-        <p style="font-size: 14px; color: var(--text-secondary);" data-top-neuron-bind="takeaway-card-text">
-          The six-test verdict is 0/6: L1 weight ranking overstates individual top-neuron importance, and by C=3.0 the signal is spread across 219 positive-weight neurons.
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The top-neuron story did not survive. Neuron 4288 fails 0/6 importance checks, and by C=3.0 the
+          signal spreads across 219 positive-weight neurons. The safe interpretation is a distributed
+          hallucination-related detector, not a single control node.
         </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="deep-dives/neuron-4288.html">Open the deep dive</a></p>
+        <p style="margin-top: 1rem;"><a class="button-link secondary" href="deep-dives/neuron-4288.html">Open the 4288 deep dive</a></p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Why this anchor is still only Anchor 1</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          <!-- from: classifier_sae_auroc -->
+          <!-- from: classifier_disjoint_auroc -->
+          The strategic assessment elevated the cleaner dissociation result:
+          SAE features match H-neuron detection quality within uncertainty
+          (AUROC <span data-classifier-sae-bind="auc-value">0.848</span>, <span data-classifier-sae-bind="auc-ci-text">95% CI 0.820-0.874</span>
+          vs <span data-classifier-bind="auc-value">0.843</span>, <span data-classifier-bind="auc-ci-text">95% CI 0.815-0.870</span>)
+          yet steer at essentially zero slope.
+          That is the sharper localization-to-control break. H-neurons provide the working baseline that makes the null comparison meaningful.
+        </p>
       </div>
     </div>
 
@@ -168,164 +171,162 @@
       <div class="metric-card" data-status="STABLE">
         <div class="label">Early-layer concentration</div>
         <div class="value val-coral" data-classifier-structure-bind="early-pct">47%</div>
-        <div class="detail"><span data-classifier-structure-bind="early-count">18</span> of <span data-classifier-bind="selected-count">38</span> H-Neurons appear in layers 0-10</div>
-      </div>
-      <div class="metric-card" data-status="PROVISIONAL">
-        <div class="label">Corrected standard point</div>
-        <!-- from: standard_text_remap_alpha_3_rescored_rate -->
-        <div class="value val-amber" data-intervention-summary-bind="remap-value">72.1%</div>
-        <div class="detail">Strict answer-text remap at &alpha;=3.0 (<span data-intervention-summary-bind="remap-ci-text">95% CI 69.2-74.8%</span>)</div>
+        <div class="detail"><span data-classifier-structure-bind="early-count">18</span> of <span data-classifier-bind="selected-count">38</span> H-neurons are in layers 0-10</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Swing population</div>
         <!-- from: anti_compliance_swing_share -->
         <div class="value val-purple" data-intervention-summary-bind="swing-share-value">13.8%</div>
-        <div class="detail"><span data-intervention-summary-bind="swing-share-value">13.8%</span> swing share <span data-intervention-summary-bind="swing-share-ci-bracket">[11.8, 16.1]</span></div>
+        <div class="detail"><span data-intervention-summary-bind="swing-share-value">13.8%</span> of samples drive most of the intervention effect</div>
       </div>
-    </div>
-
-    <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
-      <h3 style="color: var(--accent-coral);">Cross-benchmark consistency</h3>
-      <p style="font-size: 14px; color: var(--text-secondary);">
-        The same H-neurons shift compliance on FaithEval (context override), FalseQA (false premises),
-        and JailbreakBench (adversarial safety) &mdash; all three show positive dose-response slopes
-        with bootstrap CIs excluding zero. This supports a general compliance circuit rather than a
-        benchmark-specific artifact, though the JailbreakBench result carries extra caveats
-        (stochastic generation, no negative control).
-      </p>
-      <p style="margin-top: 1rem;"><a class="button-link secondary" href="results/gemma-3-4b.html#cross-benchmark">Open the cross-benchmark comparison</a></p>
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">Mechanism object</div>
+        <div class="value val-amber" style="font-size: 1.1rem;">Distributed</div>
+        <div class="detail">38-neuron sparse baseline, 219-neuron broader detector candidate</div>
+      </div>
     </div>
   </div>
 </section>
 
-<div class="reflection">
-  <div class="ref-label">Narrative discipline</div>
-  <p class="ref-text">
-    The story improves when the claims are sorted by weight-bearing capacity.
-    A clean held-out detector result is structural steel.
-    A dramatic single-neuron weight is stage lighting.
-  </p>
-</div>
-
-<section id="threat" class="short">
+<section id="anchor2">
   <div class="fade-in">
-    <span class="tag tag-coral">3. Biggest threat</span>
-    <h2>The main remaining risk is measurement error masquerading as mechanism</h2>
+    <span class="tag tag-amber">3. Anchor 2</span>
+    <h2>Even successful control can break at the externality stage</h2>
     <p class="subtitle" data-source="manual">
-      Two issues can still distort the narrative if they are not kept explicit.
-      First, the standard FaithEval prompt asks for exact answer text while the raw evaluator prefers option letters.
-      Second, a sparse linear model can over-credit one representative neuron inside a correlated group.
+      The bridge benchmark is the clearest test of whether an intervention that helps on one surface
+      stays helpful when the task changes from multiple-choice truthfulness to free-form factual generation.
+      It does not.
     </p>
 
     <div class="next-steps" style="margin-top: 1.5rem;">
-      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Prompt/evaluator mismatch</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Held-out test result</h3>
+        <!-- from: bridge_phase3_adjudicated_delta -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          If the model becomes more willing to output the exact answer text, the raw MC-letter score can fall even while semantic compliance rises. That is a ruler problem, not necessarily a behavior problem.
+          The locked 500-question bridge test shows E0 ITI reducing adjudicated accuracy by <span data-bridge-bind="adjudicated-delta">-5.8pp</span>
+          (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>), with <span data-bridge-bind="mcnemar-p">p=0.0002</span>. Dev and test agree on direction and approximate magnitude,
+          so this is no longer a directional pilot result.
         </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="methods.html#prompting">Open the measurement contract</a></p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Dominant failure mode</h3>
+        <!-- from: bridge_phase3_wrong_entity_share -->
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          The intervention usually does not refuse. It answers with the wrong nearby fact.
+          On the held-out test set, <span data-bridge-bind="wrong-entity-count">30</span> of <span data-bridge-bind="right-to-wrong-count">43</span> right-to-wrong flips (<span data-bridge-bind="wrong-entity-share">70.0%</span>) are wrong-entity substitutions,
+          such as swapping one film, person, or title for another from the same semantic neighborhood.
+        </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">Sparse-credit distortion</h3>
+        <h3 style="color: var(--accent-coral);">Why this matters to the thesis</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          L1 sparsity can make a correlated feature family look like one superstar neuron. That is why the detector object and the top-neuron object must stay conceptually separate.
+          This is the control-to-externality break in its cleanest form.
+          The intervention is active, but indiscriminate: it reweights candidate answers without knowing which candidate is correct.
+          That is a stronger diagnosis than a generic "performance went down" story.
         </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="deep-dives/neuron-4288.html#rationale">Open the artifact rationale</a></p>
       </div>
     </div>
 
-    <div class="insight-box" data-status="PROVISIONAL">
-      <strong>Why this is the biggest threat:</strong> both failure modes can manufacture a clean-sounding story from a messy underlying process.
-      They do not destroy the result outright, but they can quietly change what the result means.
+    <div class="reflection" style="margin-top: 1.5rem;">
+      <div class="ref-label">Anchor 2</div>
+      <p class="ref-text">
+        The bridge result acts like a road test after a clean engine-bench result.
+        The component can pass the controlled lab setting and still steer the full system into the wrong lane once the task becomes open-ended.
+      </p>
     </div>
   </div>
 </section>
 
-<section id="falsify">
+<section id="anchor3" class="short">
   <div class="fade-in">
-    <span class="tag tag-amber">4. What would falsify it</span>
-    <h2>The current claim should be easy to kill if it is wrong</h2>
-    <p class="subtitle">
-      A strong mechanistic claim needs explicit failure conditions.
-      These are the concrete observations that would force the paper story to downgrade or rewrite itself.
+    <span class="tag tag-coral">4. Anchor 3</span>
+    <h2>Measurement choices changed the jailbreak conclusion</h2>
+    <p class="subtitle" data-source="manual">
+      The evaluator story is now a scientific case study in its own right.
+      The project first found a false positive caused by truncation, then showed that two evaluators can disagree on the same outputs
+      in a way that is mechanically explainable rather than mysterious.
     </p>
 
     <div class="next-steps" style="margin-top: 1.5rem;">
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">1</div>
-        <h3>All-&alpha; text rescoring erases the standard trend</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          If the corrected standard curve stays flat or turns noisy after full answer-text rescoring, the current "causal shift plus measurement confound" reading loses much of its force.
-        </p>
-      </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">2</div>
-        <h3>Random-neuron controls reproduce the slope &mdash; tested, survived</h3>
-        <!-- from: negative_control_random_slope_interval -->
+        <h3 style="color: var(--accent-teal);">Artifact removed</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Eight random-neuron seeds (5 unconstrained + 3 layer-matched) on FaithEval anti-compliance produce a pooled slope interval of [-0.11, 0.16] pp/&alpha;, well separated from the H-neuron slope of 2.09 pp/&alpha; [1.38, 2.83].
-          Three additional seeds on FalseQA confirm the same pattern (random slope 0.00 pp/&alpha;).
-          H-neuron specificity is confirmed on both benchmarks.
+          The original 256-token jailbreak slope was a truncation artifact. Once outputs were rerun to 5000 tokens,
+          the old "binary jailbreak rate rises" story no longer held as a clean headline.
         </p>
       </div>
-      <div class="step-card">
-        <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">3</div>
-        <h3>The second model fails the same clean split</h3>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Paired evaluator result</h3>
+        <!-- from: jailbreak_v2_binary_slope -->
+        <!-- from: jailbreak_v3_binary_slope -->
+        <!-- from: jailbreak_v3_substantive_compliance_slope -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          If Mistral or Llama does not reproduce a usable held-out detector, the paper story becomes Gemma-specific rather than a broader replication of the Gao et al. phenomenon.
+          On the same H-neuron outputs, v2 reports a harmful-binary slope of <span data-jailbreak-summary-bind="v2-binary-slope">2.30pp/α</span>
+          (<span data-jailbreak-summary-bind="v2-binary-slope-ci">95% CI 0.99-3.58pp</span>), while v3 reports
+          <span data-jailbreak-summary-bind="v3-binary-slope">0.46pp/α</span>
+          (<span data-jailbreak-summary-bind="v3-binary-slope-ci">95% CI -1.46-2.41pp</span>). But v3's primary-outcome taxonomy recovers the underlying
+          severity shift as substantive compliance rising by <span data-jailbreak-summary-bind="v3-substantive-slope">2.00pp/α</span>
+          (<span data-jailbreak-summary-bind="v3-substantive-slope-ci">95% CI 0.11-3.87pp</span>).
         </p>
       </div>
-      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">4</div>
-        <h3>Swing samples reduce to formatting artifacts &mdash; tested, survived</h3>
-        <!-- from: anti_compliance_swing_rc_share -->
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Current evaluator rationale</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The <a href="deep-dives/swing-characterization.html" style="color: var(--accent-teal);">swing characterization</a> shows that <span data-swing-bind="rc-pct-display">68.1%</span> of swing samples (<span data-swing-bind="rc-count">94</span>/<span data-intervention-summary-bind="swing-count">138</span>; <span data-swing-bind="rc-ci">[59.9, 75.3]</span>) exhibit genuine R&rarr;C knowledge override, not formatting drift.
-          Surface features do not predict swing status.
-          This falsification condition was tested and the claim survived: the swing population reflects real belief-following behavior.
+          <!-- from: jailbreak_holdout_v3_accuracy -->
+          <!-- from: jailbreak_holdout_strongreject_4o_accuracy -->
+          <!-- from: jailbreak_holdout_v3_sr_discordant_records -->
+          After the StrongREJECT gpt-4o rerun, v3 is no longer presented as better on held-out accuracy.
+          On the <span data-jailbreak-summary-bind="holdout-n-records">50</span>-record holdout, v3 scores
+          <span data-jailbreak-summary-bind="holdout-v3-accuracy">96.0%</span> (<span data-jailbreak-summary-bind="holdout-v3-accuracy-ci">95% CI 90.0-100.0%</span>)
+          and StrongREJECT-4o also scores <span data-jailbreak-summary-bind="holdout-strongreject-accuracy">96.0%</span>
+          (<span data-jailbreak-summary-bind="holdout-strongreject-accuracy-ci">95% CI 90.0-100.0%</span>), with
+          <span data-jailbreak-summary-bind="holdout-discordant-count">0</span> discordant records.
+          v3 stays primary because it separates refusal, deflection, partial compliance, and substantive compliance without introducing false positives.
         </p>
       </div>
     </div>
   </div>
 </section>
 
-<section id="decision" class="short">
+<section id="boundary">
   <div class="fade-in">
-    <span class="tag tag-purple">5. Next paper-level decision</span>
-    <h2>Should the paper anchor on the sparse replication object or the broader mechanism object?</h2>
+    <span class="tag tag-purple">5. Boundary of the paper</span>
+    <h2>Headline-safe versus supporting evidence now matters more than breadth</h2>
     <p class="subtitle" data-source="manual">
-      This is the main choice that affects framing, follow-up experiments, and how much emphasis the paper puts on faithfulness versus mechanism coverage.
-      The tradeoff is not abstract: it changes which detector becomes the protagonist of the whole project.
+      The strategic assessment's main discipline was evidence hierarchy.
+      Some results can lead sections. Others strengthen the picture but should not carry the project alone.
     </p>
 
     <div class="comparison" style="margin-top: 2rem;">
-      <div class="compare-card" style="text-align: left; border-color: var(--accent-amber);">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Option A</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);"><span data-classifier-bind="selected-count">38</span>-neuron sparse baseline</div>
+      <div class="compare-card highlight" style="text-align: left;">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Headline-safe</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Two anchors</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Best if the paper wants the cleanest one-line replication of Gao et al. and a compact intervention object, even though the top-neuron story had to be narrowed.
+          H-neuron replication plus localization limits, and the bridge externality break on the held-out test set,
+          can carry central narrative weight.
         </div>
       </div>
-      <div class="compare-card highlight" style="text-align: left;">
-        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Option B</div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);"><span data-top-neuron-bind="broader-detector-count">219</span>-neuron distributed detector</div>
+      <div class="compare-card" style="text-align: left; border-color: var(--accent-amber);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Supporting-caveated</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);">Anchor 3, D7, and v3 margins</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          Best if the paper wants the most defensible mechanistic object, because by C=<span data-top-neuron-bind="broader-detector-c-value">3.0</span> the signal is spread across a broader detector and is less vulnerable to mistaking sparse bookkeeping for causal centrality.
+          Jailbreak measurement audits matter, but evaluator dependence and incomplete control coverage keep them out of the headline-safe bucket.
+          D7's benchmark-local win is real, but selector-specificity is still open without a random-head control.
+          v3's value is measurement structure and zero-false-positive behavior, not a broad claim of evaluator dominance.
         </div>
       </div>
     </div>
 
     <div class="insight-box">
-      <strong>Recommended framing:</strong> keep the 38-neuron set as the paper-faithful replication baseline, but treat the distributed detector as the stronger mechanism hypothesis.
-      That is the same move as reporting both a faithful baseline model and a stronger ablation model in a systems paper:
-      one keeps the comparison honest, the other tells you what the system is actually doing.
+      <strong>Practical editorial rule:</strong> lead with what would still survive if the most flattering optional result disappeared.
+      That is why the site now anchors on the three April case studies instead of one expanding H-neuron claim.
     </div>
   </div>
 </section>
 
 <footer>
-  H-Neurons Core Story &mdash; Gemma 3 4B &mdash; March 2026<br>
-  Stable evidence lives in <a href="results/gemma-3-4b.html">Results</a>, with supporting context in <a href="methods.html">Methods</a> and next bets in <a href="extensions.html">Extensions</a>
+  Detection Is Not Enough &mdash; Gemma 3 4B &mdash; April 2026<br>
+  Stable evidence lives in <a href="results/gemma-3-4b.html">Results</a>, with measurement details in <a href="methods.html">Methods</a>
 </footer>
 
 <script src="assets/shared.js"></script>

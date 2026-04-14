@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
+import copy
 import hashlib
 import json
 import re
@@ -16,9 +18,23 @@ import numpy as np
 from scipy.stats import spearmanr
 
 try:
-    from uncertainty import build_rate_summary, paired_bootstrap_curve_effects
+    from uncertainty import (
+        DEFAULT_BOOTSTRAP_RESAMPLES,
+        DEFAULT_BOOTSTRAP_SEED,
+        DEFAULT_CONFIDENCE,
+        build_rate_summary,
+        paired_bootstrap_curve_effects,
+        percentile_interval,
+    )
 except ModuleNotFoundError:
-    from scripts.uncertainty import build_rate_summary, paired_bootstrap_curve_effects
+    from scripts.uncertainty import (
+        DEFAULT_BOOTSTRAP_RESAMPLES,
+        DEFAULT_BOOTSTRAP_SEED,
+        DEFAULT_CONFIDENCE,
+        build_rate_summary,
+        paired_bootstrap_curve_effects,
+        percentile_interval,
+    )
 
 
 ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
@@ -40,10 +56,27 @@ TOP_NEURON_ARTIFACT_TEST_SLUGS = (
 FALSEQA_NEGATIVE_CONTROL_STATUS = "available"
 JAILBREAK_DECODING_TEMPERATURE = 0.7
 JAILBREAK_GENERATION_LABEL = f"stochastic (T={JAILBREAK_DECODING_TEMPERATURE:.1f})"
+JAILBREAK_HOLDOUT_CONTAMINATED_IDS = frozenset(
+    {
+        "jbb_harmful_62_t2",
+        "jbb_harmful_97_t0",
+        "jbb_harmful_14_t3",
+        "jbb_harmful_91_t4",
+        "jbb_harmful_36_t4",
+        "jbb_harmful_34_t0",
+        "jbb_harmful_19_t0",
+        "jbb_harmful_3_t2",
+    }
+)
+JAILBREAK_HOLDOUT_ALPHAS = (0.0, 1.5, 3.0)
 
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text())
+
+
+def load_text(path: Path) -> str:
+    return path.read_text()
 
 
 def find_results_json(experiment_dir: Path) -> Path:
@@ -70,6 +103,29 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
+def normalize_report_text(text: str) -> str:
+    return text.replace("−", "-").replace("–", "-").replace("—", "-")
+
+
+def require_report_match(text: str, pattern: str, label: str) -> re.Match[str]:
+    match = re.search(pattern, text, flags=re.MULTILINE | re.DOTALL)
+    if match is None:
+        raise ValueError(f"Could not parse {label} from report text.")
+    return match
+
+
+def pp_summary(estimate: float, lower: float, upper: float) -> dict[str, Any]:
+    return {
+        "estimate": estimate,
+        "ci": {
+            "lower": lower,
+            "upper": upper,
+            "level": 0.95,
+            "method": "report_percentile_ci",
+        },
+    }
+
+
 def alpha_key(alpha: float) -> str:
     return f"{alpha:.1f}"
 
@@ -85,6 +141,163 @@ def as_pct(rate: float) -> float:
 def count_jsonl_rows(path: Path) -> int:
     with path.open() as handle:
         return sum(1 for line in handle if line.strip())
+
+
+def load_rows_by_key(
+    base_dir: Path,
+    alphas: tuple[float, ...],
+) -> dict[tuple[str, float], dict[str, Any]]:
+    rows_by_key: dict[tuple[str, float], dict[str, Any]] = {}
+    for alpha in alphas:
+        for row in load_jsonl(base_dir / f"alpha_{alpha:.1f}.jsonl"):
+            rows_by_key[(row["id"], float(row["alpha"]))] = row
+    return rows_by_key
+
+
+def gold_label_to_bool(label: str) -> bool:
+    if label == "HARMFUL":
+        return True
+    if label == "SAFE":
+        return False
+    raise ValueError(f"Unsupported gold label: {label}")
+
+
+def build_cluster_bootstrap_accuracy_summary(
+    records: list[dict[str, Any]],
+    prediction_key: str,
+    *,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    confidence: float = DEFAULT_CONFIDENCE,
+) -> dict[str, Any]:
+    grouped_correctness: dict[str, list[float]] = defaultdict(list)
+    correct_count = 0
+    total = 0
+
+    for record in records:
+        correct = float(record[prediction_key] == record["gold"])
+        grouped_correctness[record["id"]].append(correct)
+        correct_count += int(correct)
+        total += 1
+
+    if total == 0:
+        raise ValueError("Cannot build holdout accuracy summary from zero records.")
+
+    cluster_ids = np.array(sorted(grouped_correctness), dtype=object)
+    rng = np.random.default_rng(seed)
+    samples = np.empty(n_resamples, dtype=float)
+
+    for sample_idx in range(n_resamples):
+        sampled_ids = rng.choice(cluster_ids, size=len(cluster_ids), replace=True)
+        sample_correctness = [
+            value
+            for cluster_id in sampled_ids
+            for value in grouped_correctness[str(cluster_id)]
+        ]
+        samples[sample_idx] = float(np.mean(sample_correctness))
+
+    interval = percentile_interval(
+        samples,
+        confidence,
+        method="bootstrap_percentile_cluster_by_prompt_id",
+    )
+    return {
+        "estimate": correct_count / total,
+        "count": correct_count,
+        "n": total,
+        "ci": interval.to_dict(),
+    }
+
+
+def build_jailbreak_holdout_summary(repo_root: Path) -> dict[str, Any]:
+    gold_rows = load_jsonl(
+        repo_root / "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl"
+    )
+    csv2_v3_rows = load_rows_by_key(
+        repo_root / "data/judge_validation/csv2_v3",
+        JAILBREAK_HOLDOUT_ALPHAS,
+    )
+    strongreject_rows = load_rows_by_key(
+        repo_root / "data/judge_validation/strongreject",
+        JAILBREAK_HOLDOUT_ALPHAS,
+    )
+
+    joined_rows: list[dict[str, Any]] = []
+    for gold_row in gold_rows:
+        human_label = gold_row["human_label"]
+        if human_label not in {"HARMFUL", "SAFE"}:
+            continue
+
+        key = (gold_row["id"], float(gold_row["alpha"]))
+        csv2_row = csv2_v3_rows.get(key)
+        strongreject_row = strongreject_rows.get(key)
+        if csv2_row is None or strongreject_row is None:
+            raise KeyError(f"Missing holdout evaluator row for {key!r}")
+
+        joined_rows.append(
+            {
+                "id": gold_row["id"],
+                "alpha": float(gold_row["alpha"]),
+                "gold": gold_label_to_bool(human_label),
+                "csv2v3": csv2_row["csv2"]["harmful_binary"] == "yes",
+                "strongreject_4o": (
+                    strongreject_row["strongreject"]["harmful_binary"] == "yes"
+                ),
+            }
+        )
+
+    holdout_rows = [
+        row
+        for row in joined_rows
+        if row["id"] not in JAILBREAK_HOLDOUT_CONTAMINATED_IDS
+    ]
+
+    v3_summary = build_cluster_bootstrap_accuracy_summary(holdout_rows, "csv2v3")
+    strongreject_summary = build_cluster_bootstrap_accuracy_summary(
+        holdout_rows, "strongreject_4o"
+    )
+    v3_errors = {
+        (row["id"], row["alpha"])
+        for row in holdout_rows
+        if row["csv2v3"] != row["gold"]
+    }
+    strongreject_errors = {
+        (row["id"], row["alpha"])
+        for row in holdout_rows
+        if row["strongreject_4o"] != row["gold"]
+    }
+    discordant_correctness_count = sum(
+        (row["csv2v3"] == row["gold"]) != (row["strongreject_4o"] == row["gold"])
+        for row in holdout_rows
+    )
+
+    return {
+        "status": "tie_with_v3_on_holdout",
+        "source_files": [
+            "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl",
+            "data/judge_validation/csv2_v3/alpha_0.0.jsonl",
+            "data/judge_validation/csv2_v3/alpha_1.5.jsonl",
+            "data/judge_validation/csv2_v3/alpha_3.0.jsonl",
+            "data/judge_validation/strongreject/alpha_0.0.jsonl",
+            "data/judge_validation/strongreject/alpha_1.5.jsonl",
+            "data/judge_validation/strongreject/alpha_3.0.jsonl",
+        ],
+        "holdout_n_records": len(holdout_rows),
+        "holdout_n_prompt_ids": len({row["id"] for row in holdout_rows}),
+        "bootstrap": {
+            "n_resamples": DEFAULT_BOOTSTRAP_RESAMPLES,
+            "seed": DEFAULT_BOOTSTRAP_SEED,
+            "confidence": DEFAULT_CONFIDENCE,
+            "resampling": "cluster_by_prompt_id",
+            "interval": "percentile",
+        },
+        "v3_accuracy": v3_summary,
+        "strongreject_4o_accuracy": strongreject_summary,
+        "v3_accuracy_pct": as_pct(v3_summary["estimate"]),
+        "strongreject_4o_accuracy_pct": as_pct(strongreject_summary["estimate"]),
+        "discordant_correctness_count": discordant_correctness_count,
+        "error_sets_match": v3_errors == strongreject_errors,
+    }
 
 
 def with_pct(summary: dict[str, Any], estimate_key: str = "estimate") -> dict[str, Any]:
@@ -733,9 +946,11 @@ def build_classifier_site_payload(
     overlap_summary_path = (
         repo_root / "data/gemma3_4b/pipeline/classifier_overlap_summary.json"
     )
+    sae_summary_path = repo_root / "data/gemma3_4b/pipeline/classifier_sae_summary.json"
     qids_path = repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json"
     summary = load_json(disjoint_summary_path)
     overlap_summary = load_json(overlap_summary_path)
+    sae_summary = load_json(sae_summary_path)
     disjoint_qids = load_json(qids_path)
     tracked_structure_summary = load_classifier_structure_summary(
         repo_root, classifier_structure_summary_path
@@ -766,6 +981,7 @@ def build_classifier_site_payload(
         )
     evaluation = summary["evaluation"]
     overlap_evaluation = overlap_summary["evaluation"]
+    sae_evaluation = sae_summary["evaluation"]
     disjoint_sampled_n = sum(len(ids) for ids in disjoint_qids.values())
     return {
         "schema_version": 2,
@@ -775,6 +991,7 @@ def build_classifier_site_payload(
         "source_files": [
             "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
             "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
+            "data/gemma3_4b/pipeline/classifier_sae_summary.json",
             "data/gemma3_4b/pipeline/test_qids_disjoint.json",
             classifier_structure_summary_path.as_posix(),
             top_neuron_artifact_summary_path.as_posix(),
@@ -790,6 +1007,14 @@ def build_classifier_site_payload(
         "metrics": evaluation["metrics"],
         "bootstrap": evaluation["bootstrap"],
         "confusion_matrix": evaluation["confusion_matrix"],
+        "sae": {
+            "n_examples": sae_evaluation["n_examples"],
+            "n_positive": sae_evaluation["n_positive"],
+            "n_negative": sae_evaluation["n_negative"],
+            "metrics": sae_evaluation["metrics"],
+            "bootstrap": sae_evaluation["bootstrap"],
+            "confusion_matrix": sae_evaluation["confusion_matrix"],
+        },
         "overlap": {
             "n_examples": overlap_evaluation["n_examples"],
             "n_positive": overlap_evaluation["n_positive"],
@@ -1207,10 +1432,34 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
     jailbreak_dir = repo_root / "data/gemma3_4b/intervention/jailbreak/experiment"
     faitheval_dir = repo_root / "data/gemma3_4b/intervention/faitheval/experiment"
     falseqa_dir = repo_root / "data/gemma3_4b/intervention/falseqa/experiment"
+    v2_comparison_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json"
+    )
+    v3_comparison_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v3_summary.json"
+    )
+    v3_bootstrap_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation/v3_slope_bootstrap.json"
+    )
+    paired_report_path = (
+        repo_root / "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md"
+    )
+    strongreject_results_path = (
+        repo_root / "data/judge_validation/strongreject/results.json"
+    )
 
     jailbreak_results = load_json(find_results_json(jailbreak_dir))
     faitheval_results = load_json(find_results_json(faitheval_dir))
     falseqa_results = load_json(find_results_json(falseqa_dir))
+    v2_comparison = load_json(v2_comparison_path)
+    v3_comparison = load_json(v3_comparison_path)
+    v3_bootstrap = load_json(v3_bootstrap_path)
+    strongreject_results = load_json(strongreject_results_path)
+    paired_report = normalize_report_text(load_text(paired_report_path))
+    holdout_summary = build_jailbreak_holdout_summary(repo_root)
 
     jailbreak_alphas = sorted_result_alphas(jailbreak_results["results"])
 
@@ -1325,7 +1574,7 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
             entry["delta_noop_pp"] = delta_noop_pp
         return entry
 
-    cross_benchmark = {
+    cross_benchmark: dict[str, Any] = {
         "benchmarks": [
             _benchmark_entry(
                 "FaithEval",
@@ -1344,13 +1593,34 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
             _benchmark_entry(
                 "JailbreakBench",
                 jailbreak_results,
-                negative_control="not_available",
-                evaluator="GPT-4o safety judge",
+                negative_control="partial_v2_seed0_only",
+                evaluator="GPT-4o binary judge",
                 generation=JAILBREAK_GENERATION_LABEL,
             ),
         ]
     }
+    cross_benchmark["interpretation_caveat"] = (
+        "FaithEval and FalseQA remain specificity-hardened benchmark stories. "
+        "JailbreakBench now belongs in the measurement anchor: v2 shows a binary slope, "
+        "v3 compresses the binary effect, and the publication-safe reading is a severity "
+        "shift with evaluator dependence and incomplete control coverage."
+    )
 
+    v2_binary_slope_match = require_report_match(
+        paired_report,
+        r"\| harmful_binary slope \(H-neuron\) \| \*\*v2\*\* \| \*\*([+-]?\d+\.\d+) pp/alpha\*\* \| \*\*\[([+-]?\d+\.\d+), ([+-]?\d+\.\d+)\]\*\*",
+        "jailbreak v2 binary slope",
+    )
+    v3_binary_slope_match = require_report_match(
+        paired_report,
+        r"\| harmful_binary slope \(H-neuron\) \| v3 \| ([+-]?\d+\.\d+) pp/alpha \| \[([+-]?\d+\.\d+), ([+-]?\d+\.\d+)\]",
+        "jailbreak v3 binary slope",
+    )
+    substantive_slope_match = require_report_match(
+        paired_report,
+        r"\| \*\*substantive_compliance slope \(H-neuron\)\*\* \| \*\*v3\*\* \| \*\*([+-]?\d+\.\d+) pp/alpha\*\* \| \*\*\[([+-]?\d+\.\d+), ([+-]?\d+\.\d+)\]\*\*",
+        "jailbreak v3 substantive slope",
+    )
     # --- Source files ---
     source_files = (
         [
@@ -1363,6 +1633,18 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
         + [
             "data/gemma3_4b/intervention/faitheval/experiment/results.json",
             "data/gemma3_4b/intervention/falseqa/experiment/results.json",
+            "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json",
+            "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v3_summary.json",
+            "data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation/v3_slope_bootstrap.json",
+            "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl",
+            "data/judge_validation/csv2_v3/alpha_0.0.jsonl",
+            "data/judge_validation/csv2_v3/alpha_1.5.jsonl",
+            "data/judge_validation/csv2_v3/alpha_3.0.jsonl",
+            "data/judge_validation/strongreject/results.json",
+            "data/judge_validation/strongreject/alpha_0.0.jsonl",
+            "data/judge_validation/strongreject/alpha_1.5.jsonl",
+            "data/judge_validation/strongreject/alpha_3.0.jsonl",
+            "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md",
         ]
     )
 
@@ -1395,6 +1677,47 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
             "points": points,
             "monotonicity": monotonicity,
         },
+        "measurement": {
+            "public_claim": (
+                "The current publication-safe jailbreak result is evaluator dependence: "
+                "binary v2 shows a significant slope, binary v3 does not, and v3 recovers "
+                "the signal mainly as a severity shift."
+            ),
+            "paired_evaluator_comparison": {
+                "source_report": "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md",
+                "binary_v2_slope": pp_summary(
+                    float(v2_binary_slope_match.group(1)),
+                    float(v2_binary_slope_match.group(2)),
+                    float(v2_binary_slope_match.group(3)),
+                ),
+                "binary_v3_slope": pp_summary(
+                    float(v3_binary_slope_match.group(1)),
+                    float(v3_binary_slope_match.group(2)),
+                    float(v3_binary_slope_match.group(3)),
+                ),
+                "binary_v3_slope_bootstrap": v3_bootstrap["slope_pp_per_alpha"],
+                "substantive_compliance_v3_slope": pp_summary(
+                    float(substantive_slope_match.group(1)),
+                    float(substantive_slope_match.group(2)),
+                    float(substantive_slope_match.group(3)),
+                ),
+                "v2_control_gap_pp_per_alpha": {
+                    "estimate": v2_comparison["comparison"][
+                        "gap_h_minus_random_mean_pp"
+                    ],
+                },
+                "v3_single_seed_control_gap_pp_per_alpha": {
+                    "estimate": v3_comparison["comparison"][
+                        "gap_h_minus_random_mean_pp"
+                    ],
+                },
+            },
+            "strongreject_holdout": {
+                **holdout_summary,
+                "overall_accuracy": strongreject_results["accuracy"],
+                "judge_model": strongreject_results["judge_model"],
+            },
+        },
         "by_template": by_template,
         "by_category": by_category,
         "stochastic_generation": {
@@ -1405,10 +1728,192 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
             "caveat": "Per-item compliance outcomes are not exactly reproducible across runs due to stochastic decoding.",
         },
         "negative_control": {
-            "status": "not_available",
-            "note": "No negative control experiment (random-neuron baseline) has been run for JailbreakBench.",
+            "status": "multi_seed_missing",
+            "note": (
+                "The legacy v2 analysis has a seed-0 specificity control and the v3 analysis "
+                "has a single seed-1 control, but the current public framing still lacks a "
+                "multi-seed control on the same evaluator/claim surface."
+            ),
         },
         "cross_benchmark": cross_benchmark,
+    }
+
+
+def build_bridge_phase3_payload(repo_root: Path) -> dict[str, Any]:
+    """Build the held-out Bridge Phase 3 summary payload."""
+    baseline_results_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/results.json"
+    )
+    iti_results_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/results.json"
+    )
+    baseline_audit_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/audit_stats.json"
+    )
+    iti_audit_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/audit_stats.json"
+    )
+    report_path = (
+        repo_root / "notes/act3-reports/2026-04-13-bridge-phase3-test-results.md"
+    )
+
+    baseline_results = load_json(baseline_results_path)
+    iti_results = load_json(iti_results_path)
+    baseline_audit = load_json(baseline_audit_path)
+    iti_audit = load_json(iti_audit_path)
+    report = normalize_report_text(load_text(report_path))
+
+    primary_delta = require_report_match(
+        report,
+        r"adjudicated accuracy by (-?[0-9.]+) pp \[(-?[0-9.]+), (-?[0-9.]+)\][\s>]*\(CI excludes zero, McNemar[\s>]*p=([0-9.]+)\)",
+        "bridge primary delta",
+    )
+    deterministic_delta = require_report_match(
+        report,
+        r"\| Deterministic accuracy \| (-?[0-9.]+)% \| \[(-?[0-9.]+)%, (-?[0-9.]+)%\] \| \*\*YES\*\* \|",
+        "bridge deterministic delta",
+    )
+    attempt_delta = require_report_match(
+        report,
+        r"\| Attempt rate \| (-?[0-9.]+)% \| \[(-?[0-9.]+)%, (-?[0-9.]+)%\] \| \*\*YES\*\* \|",
+        "bridge attempt delta",
+    )
+    flip_table = require_report_match(
+        report,
+        r"\| \*\*Base correct\*\* \| (\d+) \| (\d+) \| \d+ \|\n\| \*\*Base wrong\*\* \| (\d+) \| (\d+) \| \d+ \|",
+        "bridge flip table",
+    )
+    wrong_entity = require_report_match(
+        report,
+        r"\| \*\*Wrong-entity substitution\*\* \| (\d+) \| (\d+)% \|",
+        "bridge wrong-entity share",
+    )
+    verdict = require_report_match(
+        report,
+        r"\*\*Verdict: ([^.]+\.)",
+        "bridge verdict",
+    )
+
+    baseline_row = baseline_results["results"]["1.0"]
+    iti_row = iti_results["results"]["8.0"]
+
+    return {
+        "schema_version": 1,
+        "generated_at": date.today().isoformat(),
+        "generated_by": "scripts/export_site_data.py",
+        "benchmark": "triviaqa_bridge_phase3",
+        "model": "google/gemma-3-4b-it",
+        "source_files": [
+            "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/results.json",
+            "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/results.json",
+            "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/audit_stats.json",
+            "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/audit_stats.json",
+            "notes/act3-reports/2026-04-13-bridge-phase3-test-results.md",
+        ],
+        "verdict": verdict.group(1),
+        "conditions": {
+            "baseline": baseline_row,
+            "iti_e0_alpha_8": iti_row,
+        },
+        "effects": {
+            "adjudicated_accuracy_delta_pp": pp_summary(
+                float(primary_delta.group(1)),
+                float(primary_delta.group(2)),
+                float(primary_delta.group(3)),
+            ),
+            "deterministic_accuracy_delta_pp": pp_summary(
+                float(deterministic_delta.group(1)),
+                float(deterministic_delta.group(2)),
+                float(deterministic_delta.group(3)),
+            ),
+            "attempt_rate_delta_pp": pp_summary(
+                float(attempt_delta.group(1)),
+                float(attempt_delta.group(2)),
+                float(attempt_delta.group(3)),
+            ),
+            "mcnemar_p": float(primary_delta.group(4)),
+        },
+        "flip_table": {
+            "base_correct_iti_correct": int(flip_table.group(1)),
+            "base_correct_iti_wrong": int(flip_table.group(2)),
+            "base_wrong_iti_correct": int(flip_table.group(3)),
+            "base_wrong_iti_wrong": int(flip_table.group(4)),
+        },
+        "failure_modes": {
+            "wrong_entity_substitution": {
+                "count": int(wrong_entity.group(1)),
+                "share_pct": float(wrong_entity.group(2)),
+            }
+        },
+        "audit": {
+            "baseline_match_disagree_rate": baseline_audit[
+                "audit_disagree_rate_matches"
+            ],
+            "iti_match_disagree_rate": iti_audit["audit_disagree_rate_matches"],
+            "baseline_nonmatch_recovery_rate": baseline_audit[
+                "audit_disagree_rate_nonmatches"
+            ],
+            "iti_nonmatch_recovery_rate": iti_audit["audit_disagree_rate_nonmatches"],
+        },
+    }
+
+
+def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
+    """Build the D7 full-500 benchmark-local comparison payload."""
+    summary_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json"
+    )
+    report_path = repo_root / "notes/act3-reports/2026-04-08-d7-full500-audit.md"
+
+    summary = load_json(summary_path)
+    report = normalize_report_text(load_text(report_path))
+    conditions = {condition["name"]: condition for condition in summary["conditions"]}
+    token_cap_match = require_report_match(
+        report,
+        r"Token-cap hits are real for causal: \*\*(\d+)/(\d+)\*\* \(([0-9.]+)%\)",
+        "D7 causal token-cap hits",
+    )
+
+    paired_vs_baseline = copy.deepcopy(summary["paired_vs_baseline"])
+    for comparator in ("l1", "causal"):
+        csv2_yes = paired_vs_baseline.get(comparator, {}).get("csv2_yes")
+        if isinstance(csv2_yes, dict):
+            if "estimate_pp" in csv2_yes and "estimate" not in csv2_yes:
+                csv2_yes["estimate"] = csv2_yes["estimate_pp"]
+            if "ci_pp" in csv2_yes and "ci" not in csv2_yes:
+                csv2_yes["ci"] = copy.deepcopy(csv2_yes["ci_pp"])
+
+    return {
+        "schema_version": 1,
+        "generated_at": date.today().isoformat(),
+        "generated_by": "scripts/export_site_data.py",
+        "benchmark": "jailbreak_d7_full500",
+        "model": "google/gemma-3-4b-it",
+        "source_files": [
+            "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json",
+            "notes/act3-reports/2026-04-08-d7-full500-audit.md",
+        ],
+        "claim_status": "benchmark_local_supporting_evidence",
+        "caveat": (
+            "D7 is a benchmark-local supporting result: the random-head control is still "
+            "missing, and the causal run carries visible token-cap debt."
+        ),
+        "conditions": {
+            "baseline": conditions["baseline"],
+            "l1": conditions["l1"],
+            "causal": conditions["causal"],
+        },
+        "paired_vs_baseline": paired_vs_baseline,
+        "token_cap": {
+            "causal_hits": int(token_cap_match.group(1)),
+            "causal_total": int(token_cap_match.group(2)),
+            "causal_share_pct": float(token_cap_match.group(3)),
+        },
     }
 
 
@@ -1541,6 +2046,18 @@ def main() -> None:
         help="Output path for exported jailbreak intervention sweep site data.",
     )
     parser.add_argument(
+        "--bridge-output",
+        type=Path,
+        default=Path("site/data/bridge_phase3.json"),
+        help="Output path for exported Bridge Phase 3 site data.",
+    )
+    parser.add_argument(
+        "--d7-output",
+        type=Path,
+        default=Path("site/data/d7_comparison.json"),
+        help="Output path for exported D7 comparison site data.",
+    )
+    parser.add_argument(
         "--classifier-structure-summary-output",
         type=Path,
         default=CLASSIFIER_STRUCTURE_SUMMARY_PATH,
@@ -1613,6 +2130,16 @@ def main() -> None:
         jailbreak_output_path = repo_root / args.jailbreak_output
         jailbreak_output_path.parent.mkdir(parents=True, exist_ok=True)
         jailbreak_output_path.write_text(json.dumps(jailbreak_payload, indent=2) + "\n")
+
+    bridge_payload = build_bridge_phase3_payload(repo_root)
+    bridge_output_path = repo_root / args.bridge_output
+    bridge_output_path.parent.mkdir(parents=True, exist_ok=True)
+    bridge_output_path.write_text(json.dumps(bridge_payload, indent=2) + "\n")
+
+    d7_payload = build_d7_comparison_payload(repo_root)
+    d7_output_path = repo_root / args.d7_output
+    d7_output_path.parent.mkdir(parents=True, exist_ok=True)
+    d7_output_path.write_text(json.dumps(d7_payload, indent=2) + "\n")
 
 
 if __name__ == "__main__":

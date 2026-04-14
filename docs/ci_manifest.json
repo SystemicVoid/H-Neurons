@@ -18,6 +18,9 @@
     "site/results/gemma-3-4b.html",
     "site/methods.html",
     "site/extensions.html",
+    "site/progress/index.html",
+    "site/progress/week-03-act3-comparative-sprint.html",
+    "site/progress/week-04-flagship-synthesis.html",
     "site/deep-dives/neuron-4288.html",
     "site/deep-dives/swing-characterization.html",
     "data/gemma3_4b/pipeline/pipeline_report.md",
@@ -40,7 +43,6 @@
     },
     {"type": "intervention_result", "file": "data/gemma3_4b/intervention/faitheval/experiment/results.json",               "label": "faitheval_anti",   "model": "gemma3_4b"},
     {"type": "intervention_result", "file": "data/gemma3_4b/intervention/falseqa/experiment/results.json",                 "label": "falseqa",          "model": "gemma3_4b"},
-    {"type": "intervention_result", "file": "data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json", "label": "jailbreak_legacy", "model": "gemma3_4b"},
     {"type": "site_intervention",   "file": "site/data/intervention_sweep.json"},
     {"type": "negative_control",    "file": "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"}
   ],
@@ -58,14 +60,6 @@
         ]
       },
       "surfaces": [
-        {
-          "file": "site/index.html",
-          "mode": "comment"
-        },
-        {
-          "file": "site/story.html",
-          "mode": "comment"
-        },
         {
           "file": "site/results/gemma-3-4b.html",
           "mode": "comment"
@@ -94,14 +88,6 @@
       },
       "surfaces": [
         {
-          "file": "site/index.html",
-          "mode": "comment"
-        },
-        {
-          "file": "site/story.html",
-          "mode": "comment"
-        },
-        {
           "file": "site/results/gemma-3-4b.html",
           "mode": "comment"
         },
@@ -126,6 +112,33 @@
       "surfaces": []
     },
     {
+      "id": "classifier_disjoint_auroc",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
+        "path": [
+          "evaluation",
+          "metrics",
+          "auroc"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
       "id": "anti_compliance_delta_0_to_3",
       "status": "required",
       "kind": "estimate_with_ci",
@@ -138,14 +151,6 @@
         ]
       },
       "surfaces": [
-        {
-          "file": "site/index.html",
-          "mode": "comment"
-        },
-        {
-          "file": "site/story.html",
-          "mode": "comment"
-        },
         {
           "file": "site/results/gemma-3-4b.html",
           "mode": "comment"
@@ -232,10 +237,6 @@
       },
       "surfaces": [
         {
-          "file": "site/index.html",
-          "mode": "comment"
-        },
-        {
           "file": "site/story.html",
           "mode": "comment"
         }
@@ -253,10 +254,6 @@
         ]
       },
       "surfaces": [
-        {
-          "file": "site/story.html",
-          "mode": "comment"
-        },
         {
           "file": "site/results/gemma-3-4b.html",
           "mode": "comment"
@@ -318,14 +315,6 @@
         ]
       },
       "surfaces": [
-        {
-          "file": "site/index.html",
-          "mode": "comment"
-        },
-        {
-          "file": "site/story.html",
-          "mode": "comment"
-        },
         {
           "file": "site/results/gemma-3-4b.html",
           "mode": "comment"
@@ -677,7 +666,7 @@
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json",
+        "file": "data/gemma3_4b/intervention/jailbreak/experiment/results.json",
         "path": [
           "effects",
           "compliance_curve",
@@ -697,33 +686,15 @@
     },
     {
       "id": "jailbreak_compliance_delta_noop_to_3",
-      "status": "required",
-      "kind": "estimate_with_ci",
-      "source": {
-        "file": "data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json",
-        "path": [
-          "effects",
-          "compliance_curve",
-          "delta_noop_to_max_pp"
-        ]
-      },
-      "surfaces": [
-        {
-          "file": "data/gemma3_4b/intervention_findings.md",
-          "mode": "comment"
-        },
-        {
-          "file": "site/results/gemma-3-4b.html",
-          "mode": "comment"
-        }
-      ]
+      "status": "blocked_data",
+      "reason": "current_committed_jailbreak_rerun_has_no_noop_baseline_delta"
     },
     {
       "id": "jailbreak_compliance_slope",
       "status": "required",
       "kind": "estimate_with_ci",
       "source": {
-        "file": "data/gemma3_4b/intervention/jailbreak/experiment_256tok_legacy/results.json",
+        "file": "data/gemma3_4b/intervention/jailbreak/experiment/results.json",
         "path": [
           "effects",
           "compliance_curve",
@@ -733,6 +704,240 @@
       "surfaces": [
         {
           "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "bridge_phase3_adjudicated_delta",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/bridge_phase3.json",
+        "path": [
+          "effects",
+          "adjudicated_accuracy_delta_pp"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "bridge_phase3_wrong_entity_share",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "site/data/bridge_phase3.json",
+        "path": [
+          "failure_modes",
+          "wrong_entity_substitution",
+          "share_pct"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "jailbreak_v2_binary_slope",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/jailbreak_sweep.json",
+        "path": [
+          "measurement",
+          "paired_evaluator_comparison",
+          "binary_v2_slope"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "jailbreak_v3_binary_slope",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/jailbreak_sweep.json",
+        "path": [
+          "measurement",
+          "paired_evaluator_comparison",
+          "binary_v3_slope"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "jailbreak_v3_substantive_compliance_slope",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/jailbreak_sweep.json",
+        "path": [
+          "measurement",
+          "paired_evaluator_comparison",
+          "substantive_compliance_v3_slope"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "d7_causal_csv2_yes_delta",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/d7_comparison.json",
+        "path": [
+          "paired_vs_baseline",
+          "causal",
+          "csv2_yes"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "d7_l1_csv2_yes_delta",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/d7_comparison.json",
+        "path": [
+          "paired_vs_baseline",
+          "l1",
+          "csv2_yes"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "d7_causal_token_cap_hits",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "site/data/d7_comparison.json",
+        "path": [
+          "token_cap",
+          "causal_hits"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/index.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
           "mode": "comment"
         }
       ]
@@ -754,7 +959,20 @@
           "auroc"
         ]
       },
-      "surfaces": []
+      "surfaces": [
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/extensions.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
     },
     {
       "id": "classifier_sae_accuracy",
@@ -769,6 +987,87 @@
         ]
       },
       "surfaces": []
+    },
+    {
+      "id": "jailbreak_holdout_v3_accuracy",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/jailbreak_sweep.json",
+        "path": [
+          "measurement",
+          "strongreject_holdout",
+          "v3_accuracy"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/methods.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "jailbreak_holdout_strongreject_4o_accuracy",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "site/data/jailbreak_sweep.json",
+        "path": [
+          "measurement",
+          "strongreject_holdout",
+          "strongreject_4o_accuracy"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/methods.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
+    },
+    {
+      "id": "jailbreak_holdout_v3_sr_discordant_records",
+      "status": "required",
+      "kind": "descriptive_value",
+      "source": {
+        "file": "site/data/jailbreak_sweep.json",
+        "path": [
+          "measurement",
+          "strongreject_holdout",
+          "discordant_correctness_count"
+        ]
+      },
+      "surfaces": [
+        {
+          "file": "site/story.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/methods.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        }
+      ]
     },
     {
       "id": "classifier_sae_1v1_auroc",

@@ -527,47 +527,49 @@ Answer:</code>
 <!-- from: jailbreak_compliance_delta_noop_to_3 -->
 <!-- from: jailbreak_compliance_delta_0_to_3 -->
 <!-- from: jailbreak_compliance_slope -->
+<!-- from: jailbreak_v2_binary_slope -->
+<!-- from: jailbreak_v3_binary_slope -->
+<!-- from: jailbreak_v3_substantive_compliance_slope -->
 <!-- from: falseqa_delta_noop_to_3 -->
 <!-- from: falseqa_delta_0_to_3 -->
 <section id="jailbreak">
   <div class="fade-in">
     <span class="tag tag-coral">Jailbreak safety</span>
-    <h2>H-neuron scaling shifts jailbreak compliance by <span data-jailbreak-summary-bind="delta-value">+6.2pp</span></h2>
+    <h2>Jailbreak effects are evaluator-dependent, not a single endpoint-delta story</h2>
     <p class="subtitle" data-source="manual">
-      100 behaviors &times; 5 templates &times; 7 alpha values = 3,500 responses scored by GPT-4o.
-      The same H-neurons that shift FaithEval context-override behavior also increase compliance with adversarial safety prompts.
+      April 13 paired analysis on the same 500-prompt outputs showed a real shift, but where it appears depends on the evaluator:
+      v2 reports a positive harmful-binary slope, while v3 places the stronger signal in severity (<span style="font-family: var(--font-mono);">substantive_compliance</span>) rather than binary harmful rate.
     </p>
 
     <div class="metrics-grid" style="margin-top: 1.5rem;">
-      <div class="metric-card" data-status="STABLE">
-        <div class="label">Benchmark</div>
-        <div class="value" style="font-size: 1.1rem;">JailbreakBench</div>
-        <div class="detail">500 prompts &middot; GPT-4o judge</div>
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">v2 harmful_binary slope</div>
+        <div class="value val-coral" data-jailbreak-summary-bind="v2-binary-slope">+2.30 pp/&alpha;</div>
+        <div class="detail"><span data-jailbreak-summary-bind="v2-binary-slope-ci">95% CI 0.99-3.58pp</span> &middot; CI excludes zero</div>
       </div>
-      <div class="metric-card" data-status="STABLE">
-        <div class="label">Baseline (&alpha;=0.0)</div>
-        <div class="value val-coral" data-jailbreak-bind="baseline-value">20.2%</div>
-        <div class="detail" data-jailbreak-bind="baseline-detail">&alpha;=0.0 compliance</div>
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">v3 harmful_binary slope</div>
+        <div class="value val-amber" data-jailbreak-summary-bind="v3-binary-slope">+0.46 pp/&alpha;</div>
+        <div class="detail"><span data-jailbreak-summary-bind="v3-binary-slope-ci">95% CI -1.46-2.41pp</span> &middot; CI includes zero</div>
       </div>
-      <div class="metric-card" data-status="STABLE">
-        <div class="label">Endpoint effect</div>
-        <div class="value val-coral" data-jailbreak-bind="endpoint-value">26.4%</div>
-        <div class="detail" data-jailbreak-bind="endpoint-detail">+6.2pp from &alpha;=0.0&rarr;3.0</div>
+      <div class="metric-card" data-status="PROVISIONAL">
+        <div class="label">v3 substantive_compliance slope</div>
+        <div class="value val-teal" data-jailbreak-summary-bind="v3-substantive-slope">+2.00 pp/&alpha;</div>
+        <div class="detail"><span data-jailbreak-summary-bind="v3-substantive-slope-ci">95% CI 0.11-3.87pp</span> &middot; severity shift signal</div>
       </div>
       <div class="metric-card" data-status="ARTIFACT">
-        <div class="label">Negative control</div>
-        <div class="value" style="font-size: 1rem; color: var(--text-secondary);" data-jailbreak-bind="negative-control-value">Loading...</div>
-        <div class="detail" data-jailbreak-bind="negative-control-detail">Loading control provenance...</div>
+        <div class="label">v3 seed-1 random control</div>
+        <div class="value" style="font-size: 1rem; color: var(--text-secondary);">-0.34 pp/&alpha;</div>
+        <div class="detail">95% CI [-2.28, +1.61] &middot; single-seed caveat</div>
       </div>
     </div>
 
     <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
       <h3 style="color: var(--accent-coral);">Interpretive caveats</h3>
       <p style="font-size: 14px; color: var(--text-secondary);">
-        <strong>No negative control:</strong> Without a random-neuron baseline we cannot rule out that any 38-neuron set would produce a similar shift.
-        <span data-jailbreak-bind="negative-control-comparison">Loading cross-benchmark control context...</span><br>
-        <strong>Stochastic generation:</strong> <span data-jailbreak-bind="stochastic-generation-detail">Loading generation provenance...</span><br>
-        <strong>Monotonicity check:</strong> <span data-jailbreak-summary-bind="monotonicity-description">Loading monotonicity summary...</span>
+        <strong>Evaluator dependence is structural:</strong> the paired v2-v3 slope compression is mostly borderline-case reclassification, not a random scoring glitch.<br>
+        <strong>Specificity is still incomplete:</strong> v3 control evidence is currently single-seed and there is no paired v2-v3 control set for a cleaner evaluator-isolated comparison.<br>
+        <strong>Generation caveat remains:</strong> jailbreak runs are stochastic and should be treated as benchmark-supporting evidence, not as a standalone mechanistic proof.
       </p>
     </div>
 
@@ -575,8 +577,8 @@ Answer:</code>
       <canvas id="jailbreakAggregateChart"></canvas>
     </div>
     <div class="chart-chip-row" style="margin-top: 0.5rem;">
-      <span class="chart-chip" data-jailbreak-bind="aggregate-chart-n">n=500 prompts per &alpha;</span>
-      <span class="chart-chip" data-jailbreak-bind="aggregate-chart-ci">Effect: +6.2pp (95% CI [2.4, 10.0]pp)</span>
+      <span class="chart-chip">n=500 prompts per &alpha; across 4 alphas</span>
+      <span class="chart-chip">Legacy aggregate visual kept for continuity; load-bearing claims use the April 13 paired evaluator audit</span>
     </div>
     <div id="jailbreakAggregateValueGrid" class="chart-series-grid" style="margin-top: 0.75rem;"></div>
   </div>
@@ -614,10 +616,10 @@ Answer:</code>
 <section id="cross-benchmark">
   <div class="fade-in">
     <span class="tag tag-teal">Cross-benchmark</span>
-    <h2>The effect replicates across three benchmarks with positive dose-response slopes</h2>
+    <h2>Cross-benchmark direction is consistent, but certainty is uneven</h2>
     <p class="subtitle" data-source="manual">
-      FaithEval (context override), FalseQA (false premises), and JailbreakBench (adversarial safety) all show
-      positive dose-response slopes with bootstrap 95% CIs excluding zero.
+      FaithEval and FalseQA have cleaner specificity controls and stable positive effects.
+      JailbreakBench still supports the broader compliance story, but its binary slope conclusion depends on evaluator design and should be treated as provisional.
     </p>
 
     <div class="chart-container" style="margin-top: 2rem;">
@@ -638,19 +640,18 @@ Answer:</code>
         <div class="value val-purple" data-cross-benchmark-bind="falseqa-slope">+1.62 pp/&alpha;</div>
         <div class="detail">Slope · <span data-cross-benchmark-bind="falseqa-slope-ci">95% CI 0.52-2.74</span> &middot; <span data-cross-benchmark-bind="falseqa-n">n=687</span> &middot; <span data-cross-benchmark-bind="falseqa-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="falseqa-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="falseqa-generation">Generation</span></div>
       </div>
-      <div class="metric-card" data-status="STABLE">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">JailbreakBench</div>
-        <div class="value val-coral" data-cross-benchmark-bind="jailbreakbench-delta">+6.2pp</div>
-        <div class="detail"><span data-cross-benchmark-bind="jailbreakbench-ci">95% CI 2.4-10.0pp</span> &middot; <span data-cross-benchmark-bind="jailbreakbench-n">n=500</span> &middot; <span data-cross-benchmark-bind="jailbreakbench-negative-control">Negative control</span> &middot; <span data-cross-benchmark-bind="jailbreakbench-evaluator">Evaluator</span> &middot; <span data-cross-benchmark-bind="jailbreakbench-generation">Generation</span></div>
+        <div class="value val-coral" style="font-size: 1.1rem;">Evaluator-dependent</div>
+        <div class="detail">v2 harmful slope <span data-jailbreak-summary-bind="v2-binary-slope">2.30pp/α</span> (<span data-jailbreak-summary-bind="v2-binary-slope-ci">95% CI 0.99-3.58pp</span>) vs v3 binary <span data-jailbreak-summary-bind="v3-binary-slope">0.46pp/α</span> (<span data-jailbreak-summary-bind="v3-binary-slope-ci">95% CI -1.46-2.41pp</span>); v3 substantive <span data-jailbreak-summary-bind="v3-substantive-slope">2.00pp/α</span> (<span data-jailbreak-summary-bind="v3-substantive-slope-ci">95% CI 0.11-3.87pp</span>) &middot; single-seed control caveat</div>
       </div>
     </div>
 
     <div class="step-card" style="border-left: 3px solid var(--accent-teal); margin-top: 1.5rem;">
       <h3 style="color: var(--accent-teal);">Interpretation</h3>
       <p style="font-size: 14px; color: var(--text-secondary);">
-        The direction is consistent: scaling H-neurons shifts the model toward compliance regardless of domain.
-        This supports the "general compliance circuit" interpretation over a FaithEval-specific artifact.
-        <span data-cross-benchmark-bind="interpretation-caveat">Loading replication caveat...</span>
+        The safest cross-benchmark claim is directional: H-neuron scaling moves the model toward compliance-oriented behavior on multiple surfaces.
+        The strongest confidence sits on FaithEval and FalseQA. Jailbreak currently strengthens the narrative through severity and measurement-case-study evidence, not through a single settled binary slope.
       </p>
     </div>
   </div>
@@ -695,10 +696,8 @@ Answer:</code>
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">5</div>
         <h3>Jailbreak results extend the picture &mdash; with caveats</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The same H-neurons shift JailbreakBench compliance by <span data-jailbreak-summary-bind="delta-value">+6.2pp</span>
-          (<span data-jailbreak-summary-bind="delta-ci-text">95% CI 2.4-10.0pp</span>),
-          and all three benchmarks show CIs excluding zero. But stochastic generation, no negative control,
-          and a non-monotonic dose-response mean this is supporting evidence, not a standalone proof.
+          The jailbreak result is now measurement-conditional: v2 shows a positive binary slope, v3 binary is uncertain, and v3 severity-level outcomes still rise with alpha.
+          This keeps jailbreak in the evidence stack as a useful case study in measurement and externality, but not as a clean "all slopes exclude zero" headline.
         </p>
       </div>
     </div>
@@ -706,7 +705,7 @@ Answer:</code>
 </section>
 
 <footer>
-  H-Neurons Stable Results &mdash; Gemma 3 4B &mdash; March 2026<br>
+  H-Neurons Stable Results &mdash; Gemma 3 4B &mdash; April 2026<br>
   Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a> &middot; Future directions: <a href="../extensions.html">Extensions</a>
 </footer>
 

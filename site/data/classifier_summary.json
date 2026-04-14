@@ -1,11 +1,12 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-04-13",
+  "generated_at": "2026-04-14",
   "generated_by": "scripts/export_site_data.py",
   "model": "google/gemma-3-4b-it",
   "source_files": [
     "data/gemma3_4b/pipeline/classifier_disjoint_summary.json",
     "data/gemma3_4b/pipeline/classifier_overlap_summary.json",
+    "data/gemma3_4b/pipeline/classifier_sae_summary.json",
     "data/gemma3_4b/pipeline/test_qids_disjoint.json",
     "data/gemma3_4b/pipeline/classifier_structure_summary.json",
     "data/gemma3_4b/pipeline/neuron_4288_summary.json"
@@ -422,6 +423,80 @@
     "tn": 301,
     "fp": 90,
     "fn": 93
+  },
+  "sae": {
+    "n_examples": 782,
+    "n_positive": 391,
+    "n_negative": 391,
+    "metrics": {
+      "accuracy": {
+        "estimate": 0.7723785166240409,
+        "ci": {
+          "lower": 0.7429667519181585,
+          "upper": 0.8017902813299232,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "balanced_accuracy": {
+        "estimate": 0.7723785166240409,
+        "ci": {
+          "lower": 0.7429667519181585,
+          "upper": 0.8017902813299234,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "precision": {
+        "estimate": 0.7766233766233767,
+        "ci": {
+          "lower": 0.7430007456975215,
+          "upper": 0.8110258092738407,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "recall": {
+        "estimate": 0.7647058823529411,
+        "ci": {
+          "lower": 0.7212276214833759,
+          "upper": 0.8056265984654731,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "f1": {
+        "estimate": 0.770618556701031,
+        "ci": {
+          "lower": 0.7394094993581515,
+          "upper": 0.8010204081632653,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      },
+      "auroc": {
+        "estimate": 0.8476527495241397,
+        "ci": {
+          "lower": 0.8201792570692238,
+          "upper": 0.8741269353287852,
+          "level": 0.95,
+          "method": "bootstrap_percentile_stratified"
+        }
+      }
+    },
+    "bootstrap": {
+      "n_resamples": 10000,
+      "seed": 42,
+      "confidence": 0.95,
+      "resampling": "stratified_by_label",
+      "interval": "percentile"
+    },
+    "confusion_matrix": {
+      "tp": 299,
+      "tn": 305,
+      "fp": 86,
+      "fn": 92
+    }
   },
   "overlap": {
     "n_examples": 1993,

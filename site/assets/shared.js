@@ -187,6 +187,7 @@
     const recall = summary.metrics.recall;
     const f1 = summary.metrics.f1;
     const auroc = summary.metrics.auroc;
+    const saeAuroc = summary.sae?.metrics?.auroc;
     const overlapAccuracy = summary.overlap.metrics.accuracy;
 
     setBoundText('data-classifier-bind', 'selected-count', summary.selected_h_neurons.toLocaleString());
@@ -202,6 +203,10 @@
     setBoundText('data-classifier-bind', 'accuracy-ci-bracket', formatRateCiBracket(accuracy.ci));
     setBoundText('data-classifier-bind', 'auc-value', formatDecimal(auroc.estimate));
     setBoundText('data-classifier-bind', 'auc-ci-text', formatDecimalCiText(auroc.ci));
+    if (saeAuroc) {
+      setBoundText('data-classifier-sae-bind', 'auc-value', formatDecimal(saeAuroc.estimate));
+      setBoundText('data-classifier-sae-bind', 'auc-ci-text', formatDecimalCiText(saeAuroc.ci));
+    }
     setBoundText('data-classifier-bind', 'precision-value', formatRatePercent(precision.estimate));
     setBoundText('data-classifier-bind', 'precision-ci-text', formatRateCiText(precision.ci));
     setBoundText('data-classifier-bind', 'recall-value', formatRatePercent(recall.estimate));
@@ -478,6 +483,8 @@
     const endpoint = agg.points[agg.points.length - 1];
     const effects = agg.effects;
     const mono = agg.monotonicity;
+    const measurement = summary.measurement?.paired_evaluator_comparison;
+    const holdout = summary.measurement?.strongreject_holdout;
 
     setBoundText('data-jailbreak-summary-bind', 'baseline-value', formatPercent(baseline.compliance_pct));
     setBoundText('data-jailbreak-summary-bind', 'baseline-ci-text', formatRateCiText(baseline.ci));
@@ -495,6 +502,136 @@
       'monotonicity-description',
       mono.description,
     );
+
+    if (measurement) {
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'v2-binary-slope',
+        formatPpPerAlpha(measurement.binary_v2_slope.estimate, 2),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'v2-binary-slope-ci',
+        formatPpCiText(measurement.binary_v2_slope.ci, 2),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'v3-binary-slope',
+        formatPpPerAlpha(measurement.binary_v3_slope.estimate, 2),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'v3-binary-slope-ci',
+        formatPpCiText(measurement.binary_v3_slope.ci, 2),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'v3-substantive-slope',
+        formatPpPerAlpha(measurement.substantive_compliance_v3_slope.estimate, 2),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'v3-substantive-slope-ci',
+        formatPpCiText(measurement.substantive_compliance_v3_slope.ci, 2),
+      );
+    }
+
+    if (holdout) {
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'holdout-v3-accuracy',
+        formatRatePercent(holdout.v3_accuracy.estimate),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'holdout-strongreject-accuracy',
+        formatRatePercent(holdout.strongreject_4o_accuracy.estimate),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'holdout-v3-accuracy-ci',
+        formatRateCiText(holdout.v3_accuracy.ci),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'holdout-strongreject-accuracy-ci',
+        formatRateCiText(holdout.strongreject_4o_accuracy.ci),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'holdout-n-records',
+        holdout.holdout_n_records.toLocaleString(),
+      );
+      setBoundText(
+        'data-jailbreak-summary-bind',
+        'holdout-discordant-count',
+        holdout.discordant_correctness_count.toLocaleString(),
+      );
+    }
+  }
+
+  function hydrateBridgePhase3(summary) {
+    const baseline = summary.conditions.baseline;
+    const iti = summary.conditions.iti_e0_alpha_8;
+    const adjudicated = summary.effects.adjudicated_accuracy_delta_pp;
+    const deterministic = summary.effects.deterministic_accuracy_delta_pp;
+    const attempt = summary.effects.attempt_rate_delta_pp;
+    const wrongEntity = summary.failure_modes.wrong_entity_substitution;
+    const flips = summary.flip_table;
+
+    setBoundText('data-bridge-bind', 'verdict', summary.verdict);
+    setBoundText('data-bridge-bind', 'baseline-adj-accuracy', formatRatePercent(baseline.compliance.estimate));
+    setBoundText('data-bridge-bind', 'baseline-adj-ci', formatRateCiText(baseline.compliance.ci));
+    setBoundText('data-bridge-bind', 'iti-adj-accuracy', formatRatePercent(iti.compliance.estimate));
+    setBoundText('data-bridge-bind', 'iti-adj-ci', formatRateCiText(iti.compliance.ci));
+    setBoundText('data-bridge-bind', 'adjudicated-delta', formatSignedPp(adjudicated.estimate));
+    setBoundText('data-bridge-bind', 'adjudicated-delta-ci', formatPpCiText(adjudicated.ci));
+    setBoundText('data-bridge-bind', 'deterministic-delta', formatSignedPp(deterministic.estimate));
+    setBoundText('data-bridge-bind', 'deterministic-delta-ci', formatPpCiText(deterministic.ci));
+    setBoundText('data-bridge-bind', 'attempt-delta', formatSignedPp(attempt.estimate));
+    setBoundText('data-bridge-bind', 'attempt-delta-ci', formatPpCiText(attempt.ci));
+    setBoundText('data-bridge-bind', 'mcnemar-p', formatPValue(summary.effects.mcnemar_p, 4));
+    setBoundText('data-bridge-bind', 'wrong-entity-count', wrongEntity.count.toLocaleString());
+    setBoundText('data-bridge-bind', 'wrong-entity-share', formatPercent(wrongEntity.share_pct));
+    setBoundText('data-bridge-bind', 'right-to-wrong-count', flips.base_correct_iti_wrong.toLocaleString());
+    setBoundText('data-bridge-bind', 'wrong-to-right-count', flips.base_wrong_iti_correct.toLocaleString());
+  }
+
+  function hydrateD7Comparison(summary) {
+    const baseline = summary.conditions.baseline;
+    const l1 = summary.conditions.l1;
+    const causal = summary.conditions.causal;
+    const l1Delta = summary.paired_vs_baseline.l1.csv2_yes;
+    const causalDelta = summary.paired_vs_baseline.causal.csv2_yes;
+
+    setBoundText('data-d7-bind', 'baseline-yes', formatRatePercent(baseline.csv2_yes.estimate));
+    setBoundText('data-d7-bind', 'baseline-yes-ci', formatRateCiText(baseline.csv2_yes.ci));
+    setBoundText('data-d7-bind', 'l1-yes', formatRatePercent(l1.csv2_yes.estimate));
+    setBoundText('data-d7-bind', 'l1-yes-ci', formatRateCiText(l1.csv2_yes.ci));
+    setBoundText('data-d7-bind', 'causal-yes', formatRatePercent(causal.csv2_yes.estimate));
+    setBoundText('data-d7-bind', 'causal-yes-ci', formatRateCiText(causal.csv2_yes.ci));
+    setBoundText('data-d7-bind', 'l1-delta', formatSignedPp(l1Delta.estimate_pp));
+    setBoundText(
+      'data-d7-bind',
+      'l1-delta-ci',
+      formatPpCiText({
+        lower: l1Delta.ci_pp.lower,
+        upper: l1Delta.ci_pp.upper,
+      }),
+    );
+    setBoundText('data-d7-bind', 'causal-delta', formatSignedPp(causalDelta.estimate_pp));
+    setBoundText(
+      'data-d7-bind',
+      'causal-delta-ci',
+      formatPpCiText({
+        lower: causalDelta.ci_pp.lower,
+        upper: causalDelta.ci_pp.upper,
+      }),
+    );
+    setBoundText('data-d7-bind', 'token-cap-hits', summary.token_cap.causal_hits.toLocaleString());
+    setBoundText('data-d7-bind', 'token-cap-share', formatPercent(summary.token_cap.causal_share_pct));
+    setBoundText('data-d7-bind', 'caveat', summary.caveat);
+    setBoundText('data-d7-bind', 'claim-status', summary.claim_status.replaceAll('_', ' '));
   }
 
   function hydratePipelineSummary(summary) {
@@ -712,13 +849,19 @@
       setBoundText('data-cross-benchmark-bind', `${key}-generation`, `Generation: ${bench.generation}`);
     });
 
+    const interpretationCaveat = summary.cross_benchmark?.interpretation_caveat;
+    if (interpretationCaveat) {
+      setBoundText('data-cross-benchmark-bind', 'interpretation-caveat', interpretationCaveat);
+      return;
+    }
+
     const jailbreakBench = benchmarks.find((b) => b.name === 'JailbreakBench');
     const sampling = summary.stochastic_generation?.sampling;
     if (jailbreakBench && sampling) {
       setBoundText(
         'data-cross-benchmark-bind',
         'interpretation-caveat',
-        `${jailbreakBench.name} is still the only benchmark here without its own negative control, and it uses stochastic decoding (T=${sampling.temperature.toFixed(1)}); replication strength varies by benchmark.`,
+        `${jailbreakBench.name} uses stochastic decoding (T=${sampling.temperature.toFixed(1)}), and its public-safe claim now depends on evaluator choice more than on a single binary slope.`,
       );
     }
   }
@@ -726,6 +869,7 @@
   async function hydrateSiteSummaryBindings() {
     const classifierNeeded =
       hasBinding('data-classifier-bind') ||
+      hasBinding('data-classifier-sae-bind') ||
       hasBinding('data-classifier-structure-bind') ||
       hasBinding('data-top-neuron-bind');
     const interventionNeeded = hasBinding('data-intervention-summary-bind');
@@ -733,8 +877,18 @@
     const pipelineNeeded = hasBinding('data-pipeline-bind');
     const jailbreakNeeded =
       hasBinding('data-jailbreak-summary-bind') || hasBinding('data-cross-benchmark-bind');
+    const bridgeNeeded = hasBinding('data-bridge-bind');
+    const d7Needed = hasBinding('data-d7-bind');
 
-    if (!classifierNeeded && !interventionNeeded && !swingNeeded && !pipelineNeeded && !jailbreakNeeded) {
+    if (
+      !classifierNeeded &&
+      !interventionNeeded &&
+      !swingNeeded &&
+      !pipelineNeeded &&
+      !jailbreakNeeded &&
+      !bridgeNeeded &&
+      !d7Needed
+    ) {
       return;
     }
 
@@ -809,6 +963,32 @@
               hydrateCrossBenchmarkBindings(summary);
             }
           }),
+      );
+    }
+
+    if (bridgeNeeded) {
+      requests.push(
+        fetch(new URL('../data/bridge_phase3.json', sharedScriptUrl))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to load bridge Phase 3 data: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((summary) => hydrateBridgePhase3(summary)),
+      );
+    }
+
+    if (d7Needed) {
+      requests.push(
+        fetch(new URL('../data/d7_comparison.json', sharedScriptUrl))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to load D7 comparison data: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((summary) => hydrateD7Comparison(summary)),
       );
     }
 
