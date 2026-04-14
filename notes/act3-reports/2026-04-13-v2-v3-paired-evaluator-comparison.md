@@ -145,7 +145,7 @@ From α=0.0 to α=3.0:
 - Absorbed borderlines decrease by **-29 records** (fewer borderlines to absorb at high alpha)
 - Net v3_yes increase: **+8 records** (the compressed v3 signal)
 
-**The 88% slope compression (2.30 → 0.46 pp/alpha) is entirely explained by the declining number of borderline absorptions at higher alphas.** The intervention reduces the borderline population (polarization), and v3 absorbs fewer of them into the "yes" category at high alpha than at baseline.
+**The ~~88%~~ 80% slope compression (2.30 → 0.46 pp/alpha) [corrected 2026-04-14: (2.30−0.46)/2.30 = 80%] is entirely explained by the declining number of borderline absorptions at higher alphas.** The intervention reduces the borderline population (polarization), and v3 absorbs fewer of them into the "yes" category at high alpha than at baseline.
 
 ### 4.2 Borderline reclassification rate is alpha-stable
 

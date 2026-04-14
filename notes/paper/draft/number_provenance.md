@@ -89,7 +89,7 @@ Every key quantitative claim in the paper traced to its canonical source.
 | Claim | Value | CI | Source File |
 |---|---|---|---|
 | v3 harmful_binary slope (H-neuron) | +0.46 pp/α | [-1.46, +2.41] | v2-v3 comparison §3.1 |
-| Slope compression | 80% (2.30 → 0.46) | — | v2-v3 comparison §4.1 (note: source report says "88%" but the arithmetic from reported slopes is (2.30−0.46)/2.30 = 80%) |
+| Slope compression | 80% (2.30 → 0.46) | — | v2-v3 comparison §4.1 (source report corrected 2026-04-14 from "88%" to 80%; arithmetic: (2.30−0.46)/2.30 = 80%) |
 | v3 substantive_compliance slope (H-neuron) | +2.00 pp/α | [+0.11, +3.87] | v2-v3 comparison §3.3 |
 | v3 substantive_compliance slope (seed-1 control) | -0.72 pp/α | [-2.58, +1.19] | v2-v3 comparison §7.2 |
 | Severity-shift gap (H minus ctrl) | +2.72 pp/α | [+0.02, +5.44] | v2-v3 comparison §3.3 |
