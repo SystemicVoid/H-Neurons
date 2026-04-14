@@ -8,6 +8,11 @@
   "data_root": "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical",
   "source_files": [
     "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json",
+    "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/baseline_noop/experiment/alpha_1.0.jsonl",
+    "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/l1_neuron/experiment/alpha_3.0.jsonl",
+    "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_locked/experiment/alpha_4.0.jsonl",
+    "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_random_head_layer_matched/seed_1/experiment/alpha_4.0.jsonl",
+    "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/probe_locked/experiment/alpha_1.0.jsonl",
     "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/baseline_noop/csv2_evaluation/alpha_1.0.jsonl",
     "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/l1_neuron/csv2_evaluation/alpha_3.0.jsonl",
     "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_locked/csv2_evaluation/alpha_4.0.jsonl",

@@ -375,7 +375,7 @@ Main limitations:
 
 * single model
 * H-neuron selection is a good detector-selection baseline but not fully identical to the paper’s full selection rule
-* D7 random-head control missing
+* D7 full-500 panel remains mixed-ruler and not mechanism-clean
 * D7 capability / over-refusal battery missing
 * bridge benchmark test split not yet used for a promoted candidate
 * v3 hard-tail advantage not independently validated on new cases

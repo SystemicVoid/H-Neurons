@@ -7,7 +7,7 @@
 >
 > **Historical report preserved:** [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md)
 >
-> **Important exclusion:** `probe_locked` is not part of the evidence base here. As of April 14, 2026 it has 201/500 generated rows and no judge/CSV2 outputs, so it is non-evidential until scored.
+> **Important exclusion:** `probe_locked` is not part of the evidence base here. This note captures the April 14, 2026 pre-probe state, when `probe_locked` was only partially generated and had no judge/CSV2 outputs, so it was non-evidential at the time.
 
 **Date:** 2026-04-14  
 **Data root:** `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/`  
@@ -34,7 +34,7 @@
   - 500/500 prompt IDs match baseline
   - 8 CSV2 rows carry explicit errors (`7 invalid_evidence_spans`, `1 parse_failed`)
   - excluding those 8 rows barely changes the random rate (**37.2% -> 37.0%**) or the causal-vs-random gap (**12.4 pp -> 12.0 pp**)
-- `probe_locked` remains incomplete and excluded from conclusions.
+- `probe_locked` was still incomplete and excluded from conclusions at the time of this pre-probe note.
 
 ### Interpretation
 
@@ -59,7 +59,7 @@ The random-head control now provides **partial** support for head-identity speci
 | `causal_locked` | complete | 500 | judged + CSV2-scored | yes |
 | `causal_random_head_layer_matched/seed_1` | complete | 500 | judged + CSV2-scored | yes |
 | `causal_random_head_layer_matched/seed_2` | absent | 0 | not run | no |
-| `probe_locked` | incomplete | 181 | generation only; no judge/CSV2 | no |
+| `probe_locked` | incomplete at time of note | partial generation only | generation only; no judge/CSV2 | no |
 
 ### 1.2 Prompt parity
 
@@ -207,7 +207,7 @@ So the random-head branch is not just “new data.” It is new data on a newer 
 1. **“L1 worsens baseline” is no longer stable.** It is true on the April 8 legacy panel and false on current normalized strict harmfulness.
 2. **“The random-head control is missing” is false.** The right statement is now “single-seed layer-matched random-head control exists, but D7 is still not fully closed.”
 3. **“Selector specificity is solved” is not earned.** The random control is supportive, but not decisive enough for a mechanism-clean claim.
-4. **“Full-500 probe null versus causal positive” is not available.** The probe branch is still incomplete at 181/500 rows and must stay out of present conclusions.
+4. **“Full-500 probe null versus causal positive” is not available in this pre-probe note.** At the time, the probe branch was still incomplete and had to stay out of the conclusions recorded here.
 
 ## 7. Interpretation
 

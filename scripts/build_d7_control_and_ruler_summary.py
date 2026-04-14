@@ -497,6 +497,9 @@ def _artifact_status(current_panel: dict[str, Any]) -> dict[str, Any]:
 def build_summary() -> dict[str, Any]:
     historical_panel = _historical_panel_summary()
     current_panel, _ = _current_panel_summary()
+    current_condition_sources = [
+        str(spec.experiment_path) for spec in CURRENT_CONDITIONS
+    ] + [str(spec.csv2_path) for spec in CURRENT_CONDITIONS]
     return {
         "schema_version": 1,
         "generated_at": date.today().isoformat(),
@@ -507,14 +510,7 @@ def build_summary() -> dict[str, Any]:
         "data_root": str(RUN_ROOT),
         "source_files": [
             str(RUN_ROOT / "d7_csv2_report.json"),
-            str(RUN_ROOT / "baseline_noop/csv2_evaluation/alpha_1.0.jsonl"),
-            str(RUN_ROOT / "l1_neuron/csv2_evaluation/alpha_3.0.jsonl"),
-            str(RUN_ROOT / "causal_locked/csv2_evaluation/alpha_4.0.jsonl"),
-            str(
-                RUN_ROOT
-                / "causal_random_head_layer_matched/seed_1/csv2_evaluation/alpha_4.0.jsonl"
-            ),
-            str(RUN_ROOT / "probe_locked/csv2_evaluation/alpha_1.0.jsonl"),
+            *current_condition_sources,
             "notes/act3-reports/2026-04-08-d7-full500-audit.md",
             "notes/act3-reports/2026-04-14-d7-control-and-ruler-audit.md",
             "notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md",
