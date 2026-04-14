@@ -29,15 +29,15 @@
 
 <section id="hero">
   <div class="fade-in">
-    <span class="tag tag-purple">Progress &mdash; April 8&ndash;13</span>
+    <span class="tag tag-purple">Progress &mdash; April 8&ndash;14</span>
     <h1>Week 4:<br>Flagship<br>Synthesis</h1>
     <p class="subtitle" data-source="manual">
-      This week reframed the project around a broader methods thesis:
+      This synthesis reframed the project around a broader methods thesis:
       strong readouts do not reliably identify steerable targets.
     </p>
     <p class="subtitle" data-source="manual">
       The argument now uses three anchor case studies and explicit confidence tiers,
-      so caveated evidence no longer carries headline claims by accident.
+      and the April 14 D7 follow-up makes the supporting-evidence boundary sharper rather than broader.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;" data-source="manual">
@@ -60,7 +60,7 @@
       <div class="metric-card">
         <div class="label">Largest caveat</div>
         <div class="value val-amber" style="font-size: 1.2rem;">Selector specificity</div>
-        <div class="detail">Jailbreak and D7 still need cleaner matched controls</div>
+        <div class="detail">Jailbreak still needs paired controls; D7 now has a single-seed control but not closure</div>
       </div>
     </div>
 
@@ -68,6 +68,7 @@
       <a class="section-link section-link-cta" href="#meeting-question">Start Here</a>
       <a class="section-link" href="#anchors">Three anchors</a>
       <a class="section-link" href="#jailbreak">Measurement case</a>
+      <a class="section-link" href="#d7-follow-up">D7 follow-up</a>
       <a class="section-link" href="#status">Confidence tiers</a>
       <a class="section-link" href="#next">Decision gates</a>
     </div>
@@ -139,7 +140,7 @@
         <h3 style="color: var(--accent-amber);">Anchor 3 &mdash; Jailbreak measurement (supporting-caveated)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           Paired v2-v3 analysis explains why binary slope conclusions diverge.
-          Severity-level outcomes remain informative, but specificity robustness is not yet as clean as FaithEval/FalseQA.
+          v2 binary is positive, v3 binary is uncertain, and v3 substantive-compliance still rises; specificity robustness is not yet as clean as FaithEval/FalseQA.
         </p>
       </div>
     </div>
@@ -152,7 +153,7 @@
     <h2>Jailbreak shifted from headline result to caveated supporting evidence</h2>
     <p class="subtitle" data-source="manual">
       The effect did not disappear; it moved measurement level.
-      v2 emphasizes binary harmful slope, while v3 emphasizes severity composition.
+      v2 emphasizes a positive binary harmful slope, while v3 leaves the binary slope uncertain but still shows a severity-composition shift.
     </p>
 
     <div class="metrics-grid" style="margin-top: 1.5rem;">
@@ -174,7 +175,7 @@
         <div class="value val-teal" data-jailbreak-summary-bind="v3-substantive-slope">+2.00 pp/&alpha;</div>
         <div class="detail"><span data-jailbreak-summary-bind="v3-substantive-slope-ci">95% CI 0.11-3.87pp</span></div>
       </div>
-      <div class="metric-card" data-status="STABLE">
+      <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Holdout discriminator</div>
         <!-- from: jailbreak_holdout_v3_accuracy -->
         <!-- from: jailbreak_holdout_strongreject_4o_accuracy -->
@@ -186,7 +187,65 @@
 
     <div class="insight-box" style="margin-top: 1.5rem;">
       <strong>Interpretation:</strong> evaluator dependence is itself a result.
-      The pipeline can detect the same behavioral shift at different abstraction levels, so claims must specify the measurement level explicitly.
+      v3 stays primary for taxonomy and zero-false-positive behavior, not for holdout superiority, and specificity still lacks a paired v2-v3 control set plus more than a single-seed random control.
+    </div>
+  </div>
+</section>
+
+<section id="d7-follow-up" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">April 14 follow-up</span>
+    <h2>D7 now has a dual-panel read: historical legacy panel plus a current control follow-up</h2>
+    <p class="subtitle" data-source="manual">
+      The April 8 panel remains historical provenance. The April 14 update adds a layer-matched random-head control,
+      which improves the control story but does not turn D7 into selector-specific closure.
+    </p>
+
+    <div class="comparison" style="margin-top: 2rem;">
+      <div class="compare-card highlight" style="text-align: left;">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">April 8 legacy panel</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-coral);">Historical but still informative</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          <!-- from: d7_causal_csv2_yes_delta -->
+          <!-- from: d7_l1_csv2_yes_delta -->
+          On the frozen legacy ruler, the locked causal branch lowers <span style="font-family: var(--font-mono);">csv2_yes</span> by
+          <span data-d7-bind="causal-delta">-9.0pp</span> (<span data-d7-bind="causal-delta-ci">95% CI -12.2--5.8pp</span>) versus baseline,
+          while the L1 comparator moves the wrong way by <span data-d7-bind="l1-delta">+4.0pp</span>
+          (<span data-d7-bind="l1-delta-ci">95% CI 0.6-7.6pp</span>). That panel stays on the site as dated provenance, not as the active D7 headline.
+        </div>
+      </div>
+      <div class="compare-card" style="text-align: left; border-color: var(--accent-amber);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">April 14 control follow-up</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-amber);">Better control coverage, still not clean closure</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          <!-- from: d7_random_vs_causal_strict_harm_delta -->
+          On the current normalization stack, the layer-matched random-head seed remains <span data-d7-april14-bind="random-vs-causal-delta">+12.4pp</span>
+          more harmful than causal on strict harmfulness (<span data-d7-april14-bind="random-vs-causal-delta-ci">95% CI 8.0-16.8pp</span>).
+          Causal still looks strongest among completed D7 branches, but the comparison is mixed-ruler and single-seed rather than mechanism-clean closure.
+        </div>
+      </div>
+    </div>
+
+    <div class="next-steps" style="margin-top: 1.5rem;">
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">What improved</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          "Random-head control missing" is now stale. A layer-matched random-head control exists, and it points in the same broad direction as the older panel: causal remains the strongest completed branch.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">What still blocks closure</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          <!-- from: d7_causal_token_cap_hits -->
+          The April 14 follow-up is mixed-ruler, only one random seed is available, and the causal branch still has visible token-cap debt (<span data-d7-bind="token-cap-hits">112</span>/500 outputs hit cap). That is enough for supporting evidence, not for selector-specific or mechanism-clean closure.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Editorial consequence</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          D7 moves from "control missing" to "partial control support." That is a real upgrade, but it still belongs under the supporting tier rather than the flagship pillar tier.
+        </p>
+      </div>
     </div>
   </div>
 </section>
@@ -230,14 +289,14 @@
           <tr>
             <td><strong>Jailbreak evaluator analysis</strong></td>
             <td><span class="status-pill status-ready">Supporting, caveated</span></td>
-            <td>Paired v2-v3 mechanism is explicit; severity shift remains detectable</td>
-            <td>Specificity power limited by control design</td>
+            <td>Paired v2-v3 mechanism is explicit; v3 binary is uncertain but severity shift remains detectable</td>
+            <td>No paired v2-v3 control set and only a single-seed v3 random control</td>
           </tr>
           <tr>
             <td><strong>D7 causal-head branch</strong></td>
             <td><span class="status-pill status-ready">Supporting, caveated</span></td>
-            <td>Full-500 benchmark win over baseline and L1 comparator</td>
-            <td>No random-head control and visible token-cap debt</td>
+            <td>April 8 legacy win plus April 14 random-head follow-up still leave causal strongest among completed branches</td>
+            <td>Mixed-ruler, single-seed control and visible token-cap debt</td>
           </tr>
         </tbody>
       </table>
@@ -258,14 +317,14 @@
         <div class="step-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">1</div>
         <h3>Close jailbreak control gap</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Add matched evaluator-control coverage so specificity claims are not tied to single-seed comparisons.
+          Add matched evaluator-control coverage so specificity claims are not tied to missing paired controls and a single-seed comparison.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
         <div class="step-icon" style="background: var(--accent-coral-dim); color: var(--accent-coral);">2</div>
         <h3>Finish D7 selector checks</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Run random-head control and a minimal capability battery before treating D7 as a mechanism-level pillar.
+          Add another matched random-head seed, finish the probe branch, and run a minimal capability battery before treating D7 as a mechanism-level pillar.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">

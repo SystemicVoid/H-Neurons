@@ -79,6 +79,12 @@ def load_text(path: Path) -> str:
     return path.read_text()
 
 
+def require_existing_path(path: Path, label: str) -> Path:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing {label}: {path}")
+    return path
+
+
 def find_results_json(experiment_dir: Path) -> Path:
     """Return the results JSON for an experiment directory.
 
@@ -123,6 +129,81 @@ def pp_summary(estimate: float, lower: float, upper: float) -> dict[str, Any]:
             "level": 0.95,
             "method": "report_percentile_ci",
         },
+    }
+
+
+def add_percent_point_aliases(metric: dict[str, Any]) -> dict[str, Any]:
+    metric_copy = copy.deepcopy(metric)
+    if "estimate_pp" in metric_copy and "estimate" not in metric_copy:
+        metric_copy["estimate"] = metric_copy["estimate_pp"]
+    if "ci_pp" in metric_copy and "ci" not in metric_copy:
+        metric_copy["ci"] = copy.deepcopy(metric_copy["ci_pp"])
+    return metric_copy
+
+
+def add_delta_aliases(metrics: dict[str, Any]) -> dict[str, Any]:
+    return {
+        metric_name: (
+            add_percent_point_aliases(metric_value)
+            if isinstance(metric_value, dict)
+            else copy.deepcopy(metric_value)
+        )
+        for metric_name, metric_value in metrics.items()
+    }
+
+
+def index_conditions_by_name(
+    conditions: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    return {condition["name"]: condition for condition in conditions}
+
+
+def invert_interval(interval: dict[str, Any]) -> dict[str, Any]:
+    interval_copy = copy.deepcopy(interval)
+    lower = float(interval_copy["lower"])
+    upper = float(interval_copy["upper"])
+    interval_copy["lower"] = -upper
+    interval_copy["upper"] = -lower
+    return interval_copy
+
+
+def invert_transition_counts(metric: dict[str, Any]) -> dict[str, Any]:
+    transitions = metric.get("transitions")
+    if not isinstance(transitions, dict):
+        return {}
+    return {
+        "harmful_to_not_harmful": int(transitions.get("not_harmful_to_harmful", 0)),
+        "not_harmful_to_harmful": int(transitions.get("harmful_to_not_harmful", 0)),
+    }
+
+
+def invert_delta_metric(metric: dict[str, Any]) -> dict[str, Any]:
+    metric_copy = copy.deepcopy(metric)
+    if "estimate_pp" in metric_copy:
+        metric_copy["estimate_pp"] = -float(metric_copy["estimate_pp"])
+    elif "estimate" in metric_copy:
+        metric_copy["estimate"] = -float(metric_copy["estimate"])
+
+    if "ci_pp" in metric_copy:
+        metric_copy["ci_pp"] = invert_interval(metric_copy["ci_pp"])
+    elif "ci" in metric_copy:
+        metric_copy["ci"] = invert_interval(metric_copy["ci"])
+
+    inverted_transitions = invert_transition_counts(metric_copy)
+    if inverted_transitions:
+        metric_copy["transitions"] = inverted_transitions
+
+    return add_percent_point_aliases(metric_copy)
+
+
+def invert_delta_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    return {
+        metric_name: (
+            invert_delta_metric(metric_value)
+            if isinstance(metric_value, dict)
+            else copy.deepcopy(metric_value)
+        )
+        for metric_name, metric_value in metrics.items()
     }
 
 
@@ -1864,29 +1945,121 @@ def build_bridge_phase3_payload(repo_root: Path) -> dict[str, Any]:
 
 def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
     """Build the D7 full-500 benchmark-local comparison payload."""
-    summary_path = (
+    legacy_summary_path = (
         repo_root
         / "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json"
     )
-    report_path = repo_root / "notes/act3-reports/2026-04-08-d7-full500-audit.md"
-
-    summary = load_json(summary_path)
-    report = normalize_report_text(load_text(report_path))
-    conditions = {condition["name"]: condition for condition in summary["conditions"]}
-    token_cap_match = require_report_match(
-        report,
-        r"Token-cap hits are real for causal: \*\*(\d+)/(\d+)\*\* \(([0-9.]+)%\)",
-        "D7 causal token-cap hits",
+    current_summary_path = (
+        repo_root
+        / "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json"
+    )
+    legacy_report_path = repo_root / "notes/act3-reports/2026-04-08-d7-full500-audit.md"
+    current_report_path = require_existing_path(
+        repo_root / "notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md",
+        "D7 full500 current-state audit note",
     )
 
-    paired_vs_baseline = copy.deepcopy(summary["paired_vs_baseline"])
-    for comparator in ("l1", "causal"):
-        csv2_yes = paired_vs_baseline.get(comparator, {}).get("csv2_yes")
-        if isinstance(csv2_yes, dict):
-            if "estimate_pp" in csv2_yes and "estimate" not in csv2_yes:
-                csv2_yes["estimate"] = csv2_yes["estimate_pp"]
-            if "ci_pp" in csv2_yes and "ci" not in csv2_yes:
-                csv2_yes["ci"] = copy.deepcopy(csv2_yes["ci_pp"])
+    legacy_summary = load_json(legacy_summary_path)
+    legacy_conditions = index_conditions_by_name(legacy_summary["conditions"])
+    legacy_report_text = normalize_report_text(load_text(legacy_report_path))
+    causal_token_cap_match = require_report_match(
+        legacy_report_text,
+        r"Token-cap hits are real for causal:\s*\*\*(\d+)/(\d+)\*\*\s*\(([\d.]+)%\)",
+        "April 8 D7 causal token-cap summary",
+    )
+    current_summary = load_json(current_summary_path)
+    historical_panel = current_summary["historical_panel"]
+    current_panel = current_summary["current_panel"]
+    artifact_status = current_summary["artifact_status"]
+    paired_vs_baseline = {
+        comparator: add_delta_aliases(metrics)
+        for comparator, metrics in legacy_summary["paired_vs_baseline"].items()
+    }
+    random_seed1_status = artifact_status["causal_random_head_layer_matched"]["seed_1"]
+    random_seed2_status = artifact_status["causal_random_head_layer_matched"]["seed_2"]
+    probe_status = artifact_status["probe_locked"]
+    random_seed1_condition = current_panel["conditions"]["random_layer_seed1"]
+    probe_condition = current_panel["conditions"]["probe"]
+    random_seed1_errors = copy.deepcopy(random_seed1_condition["csv2_errors"])
+    random_seed1_errors["clean_row_count"] = int(
+        random_seed1_condition["strict_harmfulness_normalized_clean_rows"]["n"]
+    )
+    random_seed1_errors["total_row_count"] = int(
+        random_seed1_condition["strict_harmfulness_normalized"]["n"]
+    )
+    probe_errors = copy.deepcopy(probe_condition["csv2_errors"])
+    probe_errors["clean_row_count"] = int(
+        probe_condition["strict_harmfulness_normalized_clean_rows"]["n"]
+    )
+    probe_errors["total_row_count"] = int(
+        probe_condition["strict_harmfulness_normalized"]["n"]
+    )
+
+    current_state_namespace = {
+        "date": "2026-04-14",
+        "claim_status": "benchmark_local_supporting_mixed_ruler",
+        "headline": (
+            "D7 current state: the causal branch is still the strongest completed "
+            "full-500 condition, outperforming the available probe and layer-matched "
+            "random branches on the current normalized panel."
+        ),
+        "caveat": (
+            "Interpret D7 as mixed-ruler supporting evidence, not a mechanism-clean "
+            "closure: the random control is single-seed, both random and probe carry "
+            "CSV2 span-validation errors, and only the April 8 baseline/L1/causal panel "
+            "exists on the legacy ruler."
+        ),
+        "source_files": [
+            "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json",
+            str(current_report_path.relative_to(repo_root)),
+        ],
+        "mixed_ruler_status": {
+            "status": "mixed_ruler_reconciliation",
+            "historical_panel_status": "historical_provenance_only",
+            "description": current_panel["description"],
+        },
+        "control": {
+            "availability": "available_single_seed_only",
+            "status": "single_seed_mixed_ruler_error_bearing",
+            "seed_1": copy.deepcopy(random_seed1_status),
+            "seed_2": copy.deepcopy(random_seed2_status),
+        },
+        "probe": {
+            "status": probe_status["status"],
+            "experiment_row_count": int(probe_status["experiment_row_count"]),
+            "csv2_path": probe_status["csv2_path"],
+            "included_in_current_claim": True,
+        },
+        "ruler_drift": copy.deepcopy(current_summary["ruler_drift"]),
+        "random_seed1_csv2_error_burden": random_seed1_errors,
+        "probe_csv2_error_burden": probe_errors,
+        "current_panel": {
+            "description": current_panel["description"],
+            "conditions": copy.deepcopy(current_panel["conditions"]),
+            "deltas_vs_baseline": {
+                comparator: add_delta_aliases(metrics)
+                for comparator, metrics in current_panel["paired_vs_baseline"].items()
+            },
+            "direct_random_layer_seed1_vs_causal": add_delta_aliases(
+                current_panel["direct_comparisons"]["random_layer_seed1_vs_causal"]
+            ),
+            "direct_causal_vs_random_layer_seed1": invert_delta_metrics(
+                current_panel["direct_comparisons"]["random_layer_seed1_vs_causal"]
+            ),
+            "direct_probe_vs_causal": add_delta_aliases(
+                current_panel["direct_comparisons"]["probe_vs_causal"]
+            ),
+            "direct_causal_vs_probe": invert_delta_metrics(
+                current_panel["direct_comparisons"]["probe_vs_causal"]
+            ),
+            "direct_probe_vs_random_layer_seed1": add_delta_aliases(
+                current_panel["direct_comparisons"]["probe_vs_random_layer_seed1"]
+            ),
+            "direct_random_layer_seed1_vs_probe": invert_delta_metrics(
+                current_panel["direct_comparisons"]["probe_vs_random_layer_seed1"]
+            ),
+        },
+    }
 
     return {
         "schema_version": 1,
@@ -1895,25 +2068,49 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         "benchmark": "jailbreak_d7_full500",
         "model": "google/gemma-3-4b-it",
         "source_files": [
-            "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json",
-            "notes/act3-reports/2026-04-08-d7-full500-audit.md",
+            str(legacy_summary_path.relative_to(repo_root)),
+            str(legacy_report_path.relative_to(repo_root)),
+            str(current_summary_path.relative_to(repo_root)),
+            str(current_report_path.relative_to(repo_root)),
+            "notes/act3-reports/2026-04-14-d7-control-and-ruler-audit.md",
         ],
         "claim_status": "benchmark_local_supporting_evidence",
         "caveat": (
-            "D7 is a benchmark-local supporting result: the random-head control is still "
-            "missing, and the causal run carries visible token-cap debt."
+            "D7 is a benchmark-local supporting result on a mixed-ruler current-state "
+            "panel: causal is the strongest completed branch, but selector specificity "
+            "is still not mechanism-clean because the random control is single-seed and "
+            "the probe/random branches carry CSV2 error debt."
         ),
+        "headline": current_state_namespace["headline"],
         "conditions": {
-            "baseline": conditions["baseline"],
-            "l1": conditions["l1"],
-            "causal": conditions["causal"],
+            "baseline": copy.deepcopy(legacy_conditions["baseline"]),
+            "l1": copy.deepcopy(legacy_conditions["l1"]),
+            "causal": copy.deepcopy(legacy_conditions["causal"]),
         },
         "paired_vs_baseline": paired_vs_baseline,
-        "token_cap": {
-            "causal_hits": int(token_cap_match.group(1)),
-            "causal_total": int(token_cap_match.group(2)),
-            "causal_share_pct": float(token_cap_match.group(3)),
+        "direct_comparisons": {
+            comparison: add_delta_aliases(metrics)
+            for comparison, metrics in current_panel["direct_comparisons"].items()
         },
+        "token_cap": {
+            "causal_hits": int(causal_token_cap_match.group(1)),
+            "causal_total": int(causal_token_cap_match.group(2)),
+            "causal_share_pct": float(causal_token_cap_match.group(3)),
+        },
+        "historical_april_8": {
+            "source_files": [
+                str(legacy_summary_path.relative_to(repo_root)),
+                str(legacy_report_path.relative_to(repo_root)),
+            ],
+            "conditions": copy.deepcopy(historical_panel["conditions"]),
+            "paired_vs_baseline": {
+                comparator: add_delta_aliases(metrics)
+                for comparator, metrics in historical_panel[
+                    "paired_vs_baseline"
+                ].items()
+            },
+        },
+        "current_state": current_state_namespace,
     }
 
 

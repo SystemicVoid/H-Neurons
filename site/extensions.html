@@ -74,7 +74,7 @@
     <span class="tag tag-teal">Question map</span>
     <h2>Open questions and caveats by evidence branch</h2>
     <p class="subtitle" data-source="manual">
-      April 8&ndash;13 turned the project into a confidence-tier problem: two anchors are headline-safe,
+      April 8&ndash;14 turned the project into a confidence-tier problem: two anchors are headline-safe,
       one anchor is scientifically valuable but caveated, and future extensions should be judged by whether they reduce those caveats.
     </p>
 
@@ -103,9 +103,10 @@
             <td><span class="status-pill status-ready">Supporting, caveated</span></td>
             <!-- from: d7_causal_csv2_yes_delta -->
             <!-- from: d7_l1_csv2_yes_delta -->
-            <td>Full-500 trimmed confirmatory run: csv2_yes drops by <span data-d7-bind="causal-delta">-9.0pp</span> (<span data-d7-bind="causal-delta-ci">95% CI -12.2--5.8pp</span>) vs baseline, while L1 comparator increases harm (<span data-d7-bind="l1-delta">+4.0pp</span>; <span data-d7-bind="l1-delta-ci">95% CI 0.6-7.6pp</span>).</td>
+            <!-- from: d7_random_vs_causal_strict_harm_delta -->
+            <td>April 8 legacy panel: csv2_yes drops by <span data-d7-bind="causal-delta">-9.0pp</span> (<span data-d7-bind="causal-delta-ci">95% CI -12.2--5.8pp</span>) vs baseline, while L1 comparator increases harm (<span data-d7-bind="l1-delta">+4.0pp</span>; <span data-d7-bind="l1-delta-ci">95% CI 0.6-7.6pp</span>). April 14 adds a layer-matched random-head control, and the random seed remains <span data-d7-april14-bind="random-vs-causal-delta">+12.4pp</span> more harmful than causal on strict harmfulness (<span data-d7-april14-bind="random-vs-causal-delta-ci">95% CI 8.0-16.8pp</span>).</td>
             <!-- from: d7_causal_token_cap_hits -->
-            <td>Random-head negative control is missing and <span data-d7-bind="token-cap-hits">112</span>/500 outputs hit token cap. Treat as benchmark-local win, not selector-specific closure.</td>
+            <td>Evidence is still mixed-ruler, single-seed, and token-cap-limited (<span data-d7-bind="token-cap-hits">112</span>/500 causal outputs hit cap). Seed 2 is absent and the probe branch is not yet evidential, so treat this as benchmark-local support, not selector-specific closure.</td>
           </tr>
           <tr>
             <td><strong>ITI bridge externality</strong></td>
@@ -161,7 +162,7 @@
         <div class="step-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">2</div>
         <h3>Resolve D7 selector-specificity gap</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Add random-head controls and a minimal capability check so D7 can be cited as more than a benchmark-local mitigation.
+          Add at least one more matched random-head seed and a minimal capability check so D7 can be cited as more than a benchmark-local mitigation.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
@@ -179,7 +180,7 @@
   <div class="ref-label">What changed</div>
   <p class="ref-text">
     The project moved from "what should we run next?" to "which caveat still threatens the thesis?".
-    April 8&ndash;13 evidence made that tradeoff explicit.
+    April 8&ndash;14 evidence made that tradeoff explicit.
   </p>
 </div>
 
@@ -204,8 +205,8 @@
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
         <h3 style="color: var(--accent-coral);">D7 causal branch (promising but provisional)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          Full-500 results are directionally strong on jailbreak, but selector-specificity is not established without random-head controls.
-          Treat this as supporting evidence for "alternative selectors can work on this surface," not as a settled mechanism claim.
+          The April 8 legacy panel and April 14 follow-up still point the same way: the locked causal branch looks strongest among completed D7 conditions.
+          But the evidence is mixed-ruler, single-seed, and token-cap-limited, so treat this as supporting evidence for "alternative selectors can work on this surface," not as a settled mechanism claim.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
@@ -246,7 +247,7 @@
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Most important remaining caveat</div>
         <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-purple);">Specificity controls</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          D7 random-head controls and stronger jailbreak paired controls matter more for paper credibility than adding another exploratory benchmark.
+          A second D7 random-head seed and stronger jailbreak paired controls matter more for paper credibility than adding another exploratory benchmark.
         </div>
       </div>
     </div>
@@ -267,7 +268,7 @@
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">If control gaps are closed cleanly</div>
         <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-teal);">Stronger causal selection story</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          The paper can argue not only that stage breaks exist, but that alternative selectors can be demonstrated as specific rather than benchmark-local.
+          The paper can argue not only that stage breaks exist, but that alternative selectors are at least partially control-supported rather than purely benchmark-local.
         </div>
       </div>
       <div class="compare-card" style="text-align: left; border-color: var(--accent-coral);">

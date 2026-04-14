@@ -141,6 +141,20 @@
     return `95% CI ${ci.lower.toFixed(digits)}-${ci.upper.toFixed(digits)}pp`;
   }
 
+  function formatStatusLabel(value) {
+    return typeof value === 'string' ? value.replaceAll('_', ' ') : '';
+  }
+
+  function formatCountSummary(counts) {
+    const entries = Object.entries(counts ?? {});
+    if (entries.length === 0) {
+      return 'none';
+    }
+    return entries
+      .map(([label, count]) => `${label.replaceAll('_', ' ')}: ${count}`)
+      .join(', ');
+  }
+
   function formatIntervalText(interval, unit = '', digits = 1, label = '95% interval') {
     return `${label} ${interval.lower.toFixed(digits)}-${interval.upper.toFixed(digits)}${unit}`;
   }
@@ -601,15 +615,18 @@
     const baseline = summary.conditions.baseline;
     const l1 = summary.conditions.l1;
     const causal = summary.conditions.causal;
+    const baselineRate = baseline.csv2_yes;
+    const l1Rate = l1.csv2_yes;
+    const causalRate = causal.csv2_yes;
     const l1Delta = summary.paired_vs_baseline.l1.csv2_yes;
     const causalDelta = summary.paired_vs_baseline.causal.csv2_yes;
 
-    setBoundText('data-d7-bind', 'baseline-yes', formatRatePercent(baseline.csv2_yes.estimate));
-    setBoundText('data-d7-bind', 'baseline-yes-ci', formatRateCiText(baseline.csv2_yes.ci));
-    setBoundText('data-d7-bind', 'l1-yes', formatRatePercent(l1.csv2_yes.estimate));
-    setBoundText('data-d7-bind', 'l1-yes-ci', formatRateCiText(l1.csv2_yes.ci));
-    setBoundText('data-d7-bind', 'causal-yes', formatRatePercent(causal.csv2_yes.estimate));
-    setBoundText('data-d7-bind', 'causal-yes-ci', formatRateCiText(causal.csv2_yes.ci));
+    setBoundText('data-d7-bind', 'baseline-yes', formatRatePercent(baselineRate.estimate));
+    setBoundText('data-d7-bind', 'baseline-yes-ci', formatRateCiText(baselineRate.ci));
+    setBoundText('data-d7-bind', 'l1-yes', formatRatePercent(l1Rate.estimate));
+    setBoundText('data-d7-bind', 'l1-yes-ci', formatRateCiText(l1Rate.ci));
+    setBoundText('data-d7-bind', 'causal-yes', formatRatePercent(causalRate.estimate));
+    setBoundText('data-d7-bind', 'causal-yes-ci', formatRateCiText(causalRate.ci));
     setBoundText('data-d7-bind', 'l1-delta', formatSignedPp(l1Delta.estimate_pp));
     setBoundText(
       'data-d7-bind',
@@ -630,8 +647,195 @@
     );
     setBoundText('data-d7-bind', 'token-cap-hits', summary.token_cap.causal_hits.toLocaleString());
     setBoundText('data-d7-bind', 'token-cap-share', formatPercent(summary.token_cap.causal_share_pct));
+    setBoundText('data-d7-bind', 'headline', summary.headline);
     setBoundText('data-d7-bind', 'caveat', summary.caveat);
     setBoundText('data-d7-bind', 'claim-status', summary.claim_status.replaceAll('_', ' '));
+  }
+
+  function hydrateD7April14(summary) {
+    const currentState = summary.current_state;
+    if (!currentState) {
+      return;
+    }
+
+    const currentPanel = currentState.current_panel;
+    const conditions = currentPanel.conditions;
+    const baseline = conditions.baseline.strict_harmfulness_normalized;
+    const l1 = conditions.l1.strict_harmfulness_normalized;
+    const causal = conditions.causal.strict_harmfulness_normalized;
+    const random = conditions.random_layer_seed1.strict_harmfulness_normalized;
+    const probe = conditions.probe.strict_harmfulness_normalized;
+    const l1Delta = currentPanel.deltas_vs_baseline.l1.strict_harmfulness_normalized;
+    const causalDelta = currentPanel.deltas_vs_baseline.causal.strict_harmfulness_normalized;
+    const randomDelta = currentPanel.deltas_vs_baseline.random_layer_seed1.strict_harmfulness_normalized;
+    const probeDelta = currentPanel.deltas_vs_baseline.probe.strict_harmfulness_normalized;
+    const randomBinaryDelta = currentPanel.deltas_vs_baseline.random_layer_seed1.binary_harmful;
+    const randomVsCausal = currentPanel.direct_random_layer_seed1_vs_causal.strict_harmfulness_normalized;
+    const causalVsRandom = currentPanel.direct_causal_vs_random_layer_seed1.strict_harmfulness_normalized;
+    const causalVsRandomBinary = currentPanel.direct_causal_vs_random_layer_seed1.binary_harmful;
+    const causalVsProbe = currentPanel.direct_causal_vs_probe.strict_harmfulness_normalized;
+
+    setBoundText('data-d7-april14-bind', 'headline', currentState.headline);
+    setBoundText('data-d7-april14-bind', 'caveat', currentState.caveat);
+    setBoundText('data-d7-april14-bind', 'claim-status', formatStatusLabel(currentState.claim_status));
+    setBoundText(
+      'data-d7-april14-bind',
+      'mixed-ruler-status',
+      formatStatusLabel(currentState.mixed_ruler_status.status),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'mixed-ruler-description',
+      currentState.mixed_ruler_status.description,
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'control-availability',
+      formatStatusLabel(currentState.control.availability),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'control-status',
+      formatStatusLabel(currentState.control.status),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'control-seed1-status',
+      formatStatusLabel(currentState.control.seed_1.status),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'control-seed2-status',
+      formatStatusLabel(currentState.control.seed_2.status),
+    );
+    setBoundText('data-d7-april14-bind', 'probe-status', formatStatusLabel(currentState.probe.status));
+    setBoundText(
+      'data-d7-april14-bind',
+      'probe-rows',
+      currentState.probe.experiment_row_count.toLocaleString(),
+    );
+    setBoundText('data-d7-april14-bind', 'baseline-current-strict', formatRatePercent(baseline.estimate));
+    setBoundText('data-d7-april14-bind', 'baseline-current-strict-ci', formatRateCiText(baseline.ci));
+    setBoundText('data-d7-april14-bind', 'l1-current-strict', formatRatePercent(l1.estimate));
+    setBoundText('data-d7-april14-bind', 'l1-current-strict-ci', formatRateCiText(l1.ci));
+    setBoundText('data-d7-april14-bind', 'causal-current-strict', formatRatePercent(causal.estimate));
+    setBoundText('data-d7-april14-bind', 'causal-current-strict-ci', formatRateCiText(causal.ci));
+    setBoundText('data-d7-april14-bind', 'random-current-strict', formatRatePercent(random.estimate));
+    setBoundText('data-d7-april14-bind', 'random-current-strict-ci', formatRateCiText(random.ci));
+    setBoundText('data-d7-april14-bind', 'probe-current-strict', formatRatePercent(probe.estimate));
+    setBoundText('data-d7-april14-bind', 'probe-current-strict-ci', formatRateCiText(probe.ci));
+    setBoundText('data-d7-april14-bind', 'l1-current-delta', formatSignedPp(l1Delta.estimate_pp));
+    setBoundText('data-d7-april14-bind', 'l1-current-delta-ci', formatPpCiText(l1Delta.ci_pp));
+    setBoundText(
+      'data-d7-april14-bind',
+      'causal-current-delta',
+      formatSignedPp(causalDelta.estimate_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'causal-current-delta-ci',
+      formatPpCiText(causalDelta.ci_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-current-delta',
+      formatSignedPp(randomDelta.estimate_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-current-delta-ci',
+      formatPpCiText(randomDelta.ci_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'probe-current-delta',
+      formatSignedPp(probeDelta.estimate_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'probe-current-delta-ci',
+      formatPpCiText(probeDelta.ci_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-binary-delta',
+      formatSignedPp(randomBinaryDelta.estimate_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-binary-delta-ci',
+      formatPpCiText(randomBinaryDelta.ci_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'causal-vs-random-delta',
+      formatSignedPp(causalVsRandom.estimate_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'causal-vs-random-delta-ci',
+      formatPpCiText(causalVsRandom.ci_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'causal-vs-random-binary',
+      formatSignedPp(causalVsRandomBinary.estimate_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'causal-vs-random-binary-ci',
+      formatPpCiText(causalVsRandomBinary.ci_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'causal-vs-probe-delta',
+      formatSignedPp(causalVsProbe.estimate_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'causal-vs-probe-delta-ci',
+      formatPpCiText(causalVsProbe.ci_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-vs-causal-delta',
+      formatSignedPp(randomVsCausal.estimate_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-vs-causal-delta-ci',
+      formatPpCiText(randomVsCausal.ci_pp),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-error-count',
+      currentState.random_seed1_csv2_error_burden.count.toLocaleString(),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-error-types',
+      formatCountSummary(currentState.random_seed1_csv2_error_burden.types),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'random-clean-rows',
+      currentState.random_seed1_csv2_error_burden.clean_row_count.toLocaleString(),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'probe-error-count',
+      currentState.probe_csv2_error_burden.count.toLocaleString(),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'probe-error-types',
+      formatCountSummary(currentState.probe_csv2_error_burden.types),
+    );
+    setBoundText(
+      'data-d7-april14-bind',
+      'probe-clean-rows',
+      currentState.probe_csv2_error_burden.clean_row_count.toLocaleString(),
+    );
   }
 
   function hydratePipelineSummary(summary) {
@@ -878,7 +1082,7 @@
     const jailbreakNeeded =
       hasBinding('data-jailbreak-summary-bind') || hasBinding('data-cross-benchmark-bind');
     const bridgeNeeded = hasBinding('data-bridge-bind');
-    const d7Needed = hasBinding('data-d7-bind');
+    const d7Needed = hasBinding('data-d7-bind') || hasBinding('data-d7-april14-bind');
 
     if (
       !classifierNeeded &&
@@ -988,7 +1192,14 @@
             }
             return response.json();
           })
-          .then((summary) => hydrateD7Comparison(summary)),
+          .then((summary) => {
+            if (hasBinding('data-d7-bind')) {
+              hydrateD7Comparison(summary);
+            }
+            if (hasBinding('data-d7-april14-bind')) {
+              hydrateD7April14(summary);
+            }
+          }),
       );
     }
 

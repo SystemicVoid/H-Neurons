@@ -64,16 +64,17 @@
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
         <h3 style="color: var(--accent-purple);">Anchor 3</h3>
         <p class="card-item"><strong>Measurement changes conclusions:</strong> the original 256-token jailbreak slope was a truncation artifact.</p>
-        <p class="card-item"><strong>Paired v2-v3 audit:</strong> v2 shows a significant binary slope, while v3 compresses the binary slope but recovers a significant severity shift at the substantive-compliance level.</p>
+        <p class="card-item"><strong>Paired v2-v3 audit:</strong> v2 shows a positive binary slope, v3 binary is uncertain, and v3 still recovers a substantive-compliance rise.</p>
         <p class="card-item"><strong>Why v3 stays primary:</strong> not because it once led on held-out accuracy, but because it supplies the taxonomy and granularity the paper needs without introducing false positives on the gold set.</p>
         <p class="card-item"><strong>Project consequence:</strong> evaluator dependence is part of the scientific result, not just reporting overhead.</p>
       </div>
       <!-- from: d7_causal_csv2_yes_delta -->
       <!-- from: d7_l1_csv2_yes_delta -->
       <!-- from: d7_causal_token_cap_hits -->
+      <!-- from: d7_random_vs_causal_strict_harm_delta -->
       <div class="step-card" style="border-left: 3px solid var(--accent-rose);">
         <h3 style="color: var(--accent-rose);">Boundary of the claim</h3>
-        <p class="card-item"><strong>D7 is supporting evidence:</strong> the locked causal head set beats baseline and the L1 comparator on this jailbreak surface, but selector-specificity is still unproven without the planned random-head control.</p>
+        <p class="card-item"><strong>D7 is supporting evidence:</strong> the April 8 legacy panel stays historical, and on the April 14 current panel the layer-matched random-head seed remains <span data-d7-april14-bind="random-vs-causal-delta">+12.4pp</span> more harmful than causal on strict harmfulness (<span data-d7-april14-bind="random-vs-causal-delta-ci">95% CI 8.0-16.8pp</span>).</p>
         <p class="card-item"><strong>v3 is not pitched as universally superior:</strong> the holdout rerun closed the old StrongREJECT gap, so the rationale is measurement quality, not outdated superiority language.</p>
         <p class="card-item"><strong>Single-model scope remains explicit:</strong> the site is framed as a Gemma 3 4B case study in intervention science.</p>
       </div>
@@ -154,7 +155,7 @@
           <span data-jailbreak-summary-bind="v2-binary-slope">2.30pp/α</span> binary slope while v3 compresses the same binary slope to
           <span data-jailbreak-summary-bind="v3-binary-slope">0.46pp/α</span>, but v3 recovers a
           <span data-jailbreak-summary-bind="v3-substantive-slope">2.00pp/α</span> substantive-compliance shift.
-          The effect survives at the right level of granularity.
+          v3 stays primary for taxonomy and zero-false-positive behavior, while specificity remains limited by missing paired controls and a single-seed random control.
         </p>
       </div>
 
@@ -164,12 +165,11 @@
         <!-- from: d7_l1_csv2_yes_delta -->
         <!-- from: d7_causal_token_cap_hits -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The trimmed full-500 comparison shows the locked causal head intervention reducing `csv2_yes`
+          The April 8 legacy panel still shows the locked causal head intervention reducing `csv2_yes`
           by <span data-d7-bind="causal-delta">-9.0pp</span> (<span data-d7-bind="causal-delta-ci">95% CI -12.2--5.8pp</span>)
           while the L1 comparator increases it by <span data-d7-bind="l1-delta">+4.0pp</span>
           (<span data-d7-bind="l1-delta-ci">95% CI 0.6-7.6pp</span>).
-          But the planned random-head control was skipped, and <span data-d7-bind="token-cap-hits">112</span>/500 outputs hit the token cap,
-          so this stays in the supporting layer rather than the headline layer.
+          The April 14 follow-up adds a layer-matched random-head control, but the evidence remains mixed-ruler, single-seed, error-bearing, and token-cap-limited (<span data-d7-bind="token-cap-hits">112</span>/500 causal outputs hit cap), so this stays supporting rather than selector-specific closure.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link secondary" href="extensions.html#workstreams">See supporting workstreams</a></p>
       </div>
@@ -177,7 +177,7 @@
       <div class="step-card" data-status="METHOD">
         <h3>Measurement discipline changed the project's claims more than new model scale did</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          April 8-13 turned multiple attractive stories into narrower ones: D7 lost selector-specific language,
+          April 8-14 turned multiple attractive stories into narrower ones: D7 lost selector-specific language,
           v3 lost outdated holdout-superiority framing, and jailbreak binary counts gave way to a severity story.
           That is a methodological win, not a retreat.
         </p>

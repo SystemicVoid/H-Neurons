@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -73,13 +74,133 @@ def test_build_bridge_phase3_payload_exports_externality_break():
 def test_build_d7_comparison_payload_exports_benchmark_local_caveat():
     repo_root = Path(__file__).resolve().parents[1]
     payload = build_d7_comparison_payload(repo_root)
+    legacy_summary = json.loads(
+        (
+            repo_root
+            / "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json"
+        ).read_text()
+    )
+    legacy_conditions = {
+        condition["name"]: condition for condition in legacy_summary["conditions"]
+    }
 
     assert payload["claim_status"] == "benchmark_local_supporting_evidence"
+    assert (
+        payload["caveat"]
+        == "D7 is a benchmark-local supporting result on a mixed-ruler current-state "
+        "panel: causal is the strongest completed branch, but selector specificity "
+        "is still not mechanism-clean because the random control is single-seed and "
+        "the probe/random branches carry CSV2 error debt."
+    )
+    assert (
+        "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json"
+        in payload["source_files"]
+    )
+    assert payload["headline"] == (
+        "D7 current state: the causal branch is still the strongest completed "
+        "full-500 condition, outperforming the available probe and layer-matched "
+        "random branches on the current normalized panel."
+    )
+    assert payload["conditions"] == {
+        "baseline": legacy_conditions["baseline"],
+        "l1": legacy_conditions["l1"],
+        "causal": legacy_conditions["causal"],
+    }
     assert payload["paired_vs_baseline"]["causal"]["csv2_yes"][
         "estimate_pp"
+    ] == pytest.approx(-9.0)
+    assert payload["paired_vs_baseline"]["causal"]["csv2_yes"][
+        "estimate"
     ] == pytest.approx(-9.0)
     assert payload["paired_vs_baseline"]["l1"]["csv2_yes"][
         "estimate_pp"
     ] == pytest.approx(4.0)
     assert payload["token_cap"]["causal_hits"] == 112
-    assert payload["token_cap"]["causal_share_pct"] == 22.4
+    assert payload["token_cap"]["causal_share_pct"] == pytest.approx(22.4)
+    assert payload["direct_comparisons"]["probe_vs_causal"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(10.0)
+
+
+def test_build_d7_comparison_payload_exports_current_state_namespace():
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = build_d7_comparison_payload(repo_root)
+    current_state = payload["current_state"]
+
+    assert current_state["claim_status"] == "benchmark_local_supporting_mixed_ruler"
+    assert (
+        current_state["headline"]
+        == "D7 current state: the causal branch is still the strongest completed "
+        "full-500 condition, outperforming the available probe and layer-matched "
+        "random branches on the current normalized panel."
+    )
+    assert (
+        current_state["caveat"]
+        == "Interpret D7 as mixed-ruler supporting evidence, not a mechanism-clean "
+        "closure: the random control is single-seed, both random and probe carry "
+        "CSV2 span-validation errors, and only the April 8 baseline/L1/causal panel "
+        "exists on the legacy ruler."
+    )
+    assert current_state["mixed_ruler_status"]["status"] == "mixed_ruler_reconciliation"
+    assert current_state["control"]["availability"] == "available_single_seed_only"
+    assert (
+        current_state["control"]["seed_1"]["status"] == "complete_scored_error_bearing"
+    )
+    assert current_state["control"]["seed_2"]["status"] == "absent"
+    assert current_state["probe"]["status"] == "complete_scored_error_bearing"
+    assert current_state["probe"]["experiment_row_count"] == 500
+    assert current_state["probe"]["included_in_current_claim"] is True
+    assert (
+        "notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md"
+        in current_state["source_files"]
+    )
+    assert current_state["current_panel"]["direct_random_layer_seed1_vs_causal"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(12.4)
+
+    current_panel = current_state["current_panel"]
+    assert current_panel["conditions"]["random_layer_seed1"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pct"] == pytest.approx(37.2)
+    assert current_panel["conditions"]["probe"]["strict_harmfulness_normalized"][
+        "estimate_pct"
+    ] == pytest.approx(34.8)
+    assert current_panel["deltas_vs_baseline"]["l1"]["strict_harmfulness_normalized"][
+        "estimate_pp"
+    ] == pytest.approx(-4.8)
+    assert current_panel["deltas_vs_baseline"]["causal"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-26.8)
+    assert current_panel["deltas_vs_baseline"]["random_layer_seed1"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-14.4)
+    assert current_panel["deltas_vs_baseline"]["random_layer_seed1"]["binary_harmful"][
+        "estimate_pp"
+    ] == pytest.approx(6.6)
+    assert current_panel["deltas_vs_baseline"]["probe"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-16.8)
+    assert current_panel["direct_causal_vs_random_layer_seed1"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-12.4)
+    assert current_panel["direct_causal_vs_random_layer_seed1"]["binary_harmful"][
+        "estimate_pp"
+    ] == pytest.approx(-17.2)
+    assert current_panel["direct_causal_vs_probe"]["strict_harmfulness_normalized"][
+        "estimate_pp"
+    ] == pytest.approx(-10.0)
+    assert current_panel["direct_probe_vs_random_layer_seed1"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-2.4)
+
+    error_burden = current_state["random_seed1_csv2_error_burden"]
+    assert error_burden["count"] == 8
+    assert error_burden["types"] == {"invalid_evidence_spans": 7, "parse_failed": 1}
+    assert error_burden["clean_row_count"] == 492
+    assert error_burden["total_row_count"] == 500
+
+    probe_error_burden = current_state["probe_csv2_error_burden"]
+    assert probe_error_burden["count"] == 12
+    assert probe_error_burden["types"] == {"invalid_evidence_spans": 12}
+    assert probe_error_burden["clean_row_count"] == 488
+    assert probe_error_burden["total_row_count"] == 500
