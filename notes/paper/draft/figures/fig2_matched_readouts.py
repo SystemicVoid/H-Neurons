@@ -9,8 +9,8 @@ Panel A: Detection quality (AUROC) for three methods.
 Panel B: FaithEval compliance dose-response for H-neurons vs SAE features
          vs random SAE feature control, annotated with the paired
          neuron-minus-SAE slope difference.
-Panel C: Jailbreak csv2_yes rates (full-500 D7 confirmatory run) for
-         causal head intervention vs L1-neuron comparator vs shared baseline.
+Panel C: Jailbreak strict harmfulness rates on the current full-500 D7
+         panel for baseline vs random-head vs probe-head vs causal-head ITI.
 
 Data sources (all real, loaded from repo JSON):
   - data/gemma3_4b/pipeline/classifier_disjoint_summary.json
@@ -20,7 +20,7 @@ Data sources (all real, loaded from repo JSON):
   - data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json
   - data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json
   - data/gemma3_4b/intervention/faitheval/control/comparison_summary.json
-  - data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json
+  - data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json
   - data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json
 
 Usage:
@@ -148,10 +148,11 @@ def load_all_data() -> dict:
     # Panel C: Jailbreak D7 full-500
     # ------------------------------------------------------------------
     d7 = load_json(
-        "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_csv2_report.json"
+        "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json"
     )
-    data["d7_conditions"] = d7["conditions"]
-    data["d7_paired"] = d7["paired_vs_baseline"]
+    data["d7_conditions"] = d7["current_panel"]["conditions"]
+    data["d7_paired"] = d7["current_panel"]["paired_vs_baseline"]
+    data["d7_direct"] = d7["current_panel"]["direct_comparisons"]
 
     return data
 
@@ -404,27 +405,37 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
 # Panel C: Jailbreak D7 -- full-500 confirmatory results
 # ---------------------------------------------------------------------------
 def draw_panel_c(ax: plt.Axes, data: dict) -> None:
-    """Bar chart of csv2_yes rates for baseline / L1 / causal (D7 full-500)."""
+    """Bar chart of current-state D7 strict harmfulness for four selector rows."""
     conditions = data["d7_conditions"]
     paired = data["d7_paired"]
 
-    # Extract csv2_yes rates (as percentages)
-    names_raw = [c["name"] for c in conditions]
-    rates = [c["csv2_yes"]["estimate"] * 100 for c in conditions]
-    ci_lo = [c["csv2_yes"]["ci"]["lower"] * 100 for c in conditions]
-    ci_hi = [c["csv2_yes"]["ci"]["upper"] * 100 for c in conditions]
+    order = ["baseline", "random_layer_seed1", "probe", "causal"]
+    names_raw = order
+    rates = [
+        conditions[name]["strict_harmfulness_normalized"]["estimate_pct"]
+        for name in order
+    ]
+    ci_lo = [
+        conditions[name]["strict_harmfulness_normalized"]["ci"]["lower"] * 100
+        for name in order
+    ]
+    ci_hi = [
+        conditions[name]["strict_harmfulness_normalized"]["ci"]["upper"] * 100
+        for name in order
+    ]
     errors_lo = [r - lo for r, lo in zip(rates, ci_lo)]
     errors_hi = [hi - r for r, hi in zip(rates, ci_hi)]
 
     # Paper-facing names
     display_names = {
         "baseline": "Baseline\n(no-op)",
-        "l1": "L1-neuron\nscaling (\u03b1=3)",
+        "random_layer_seed1": "Random-head\nITI (\u03b1=4)",
+        "probe": "Probe-head\nITI (\u03b1=1)",
         "causal": "Causal-head\nITI (\u03b1=4)",
     }
     labels = [display_names.get(n, n) for n in names_raw]
-    fill_colors = [C_RANDOM_FILL, C_SAE_FILL, C_HNEURON_FILL]
-    edge_colors = [C_BASELINE, C_L1, C_CAUSAL]
+    fill_colors = [C_RANDOM_FILL, "#F6EEE8", C_SAE_FILL, C_HNEURON_FILL]
+    edge_colors = [C_BASELINE, "#8B6B5D", C_L1, C_CAUSAL]
 
     x = np.arange(len(labels))
     bars = ax.bar(
@@ -454,13 +465,34 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
         )
 
     # Paired effect annotations with CI
-    # L1 vs baseline: +4.0pp (worsens)
-    l1_delta = paired["l1"]["csv2_yes"]["estimate_pp"]
-    l1_ci = paired["l1"]["csv2_yes"]["ci_pp"]
+    random_delta = paired["random_layer_seed1"]["strict_harmfulness_normalized"][
+        "estimate_pp"
+    ]
+    random_ci = paired["random_layer_seed1"]["strict_harmfulness_normalized"]["ci_pp"]
     ax.text(
         1,
         rates[1] + errors_hi[1] + 5.0,
-        f"+{l1_delta:.1f} pp [{l1_ci['lower']:+.1f}, {l1_ci['upper']:+.1f}]",
+        f"{random_delta:.1f} pp [{random_ci['lower']:.1f}, {random_ci['upper']:.1f}]",
+        ha="center",
+        va="bottom",
+        fontsize=7.5,
+        color="#8B6B5D",
+        fontweight="bold",
+        bbox=dict(
+            boxstyle="round,pad=0.25",
+            facecolor="#F6EEE8",
+            edgecolor="#8B6B5D",
+            linewidth=0.6,
+            alpha=0.9,
+        ),
+    )
+
+    probe_delta = paired["probe"]["strict_harmfulness_normalized"]["estimate_pp"]
+    probe_ci = paired["probe"]["strict_harmfulness_normalized"]["ci_pp"]
+    ax.text(
+        2,
+        rates[2] + errors_hi[2] + 5.0,
+        f"{probe_delta:.1f} pp [{probe_ci['lower']:.1f}, {probe_ci['upper']:.1f}]",
         ha="center",
         va="bottom",
         fontsize=7.5,
@@ -475,12 +507,11 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
         ),
     )
 
-    # Causal vs baseline: -9.0pp (improves)
-    causal_delta = paired["causal"]["csv2_yes"]["estimate_pp"]
-    causal_ci = paired["causal"]["csv2_yes"]["ci_pp"]
+    causal_delta = paired["causal"]["strict_harmfulness_normalized"]["estimate_pp"]
+    causal_ci = paired["causal"]["strict_harmfulness_normalized"]["ci_pp"]
     ax.text(
-        2,
-        rates[2] + errors_hi[2] + 5.0,
+        3,
+        rates[3] + errors_hi[3] + 5.0,
         f"{causal_delta:.1f} pp [{causal_ci['lower']:.1f}, {causal_ci['upper']:.1f}]",
         ha="center",
         va="bottom",
@@ -496,18 +527,37 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
         ),
     )
 
+    direct = data["d7_direct"]["probe_vs_causal"]["strict_harmfulness_normalized"]
+    ax.text(
+        0.03,
+        0.97,
+        f"causal vs probe = {-direct['estimate_pp']:.1f} pp\n"
+        f"95% CI [{-direct['ci_pp']['upper']:.1f}, {-direct['ci_pp']['lower']:.1f}]",
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=7.3,
+        color=TITLE_COLOR,
+        bbox=dict(
+            boxstyle="round,pad=0.28",
+            facecolor="white",
+            edgecolor="#D4DCE3",
+            alpha=0.95,
+        ),
+    )
+
     # Reference line at baseline
     ax.axhline(
         rates[0], color=C_BASELINE, linewidth=0.8, linestyle=":", alpha=0.5, zorder=1
     )
 
     ax.set_ylabel(
-        "Strict harmfulness rate (%)\n(csv2_yes, n=500)",
+        "Strict harmfulness rate (%)\n(normalized current-state panel, n=500)",
         fontsize=9.5,
         fontweight="bold",
     )
     ax.set_title(
-        "C. Jailbreak: opposite outcomes",
+        "C. Jailbreak: selector-level divergence",
         fontsize=11,
         fontweight="bold",
         color=TITLE_COLOR,
@@ -517,7 +567,7 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
 
-    ax.set_ylim(0, 45)
+    ax.set_ylim(0, 60)
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)

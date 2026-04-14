@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-04-14
+
+### What I did
+
+Closed the remaining D7 analysis gap and rewrote the D7 source hierarchy around a single current-state report: [2026-04-14-d7-full500-current-state-audit.md](./act3-reports/2026-04-14-d7-full500-current-state-audit.md). Extended the D7 summary builder to emit a new machine-readable source of truth at `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json`, integrated the newly scored full-500 `probe_locked` branch and the layer-matched random-head seed-1 branch, added supersession notes to the older D7 reports, and updated the live context files to point at the new audit instead of the April 8 trimmed report.
+
+### What I expected vs what happened
+
+Expected the new `probe_locked` run either to preserve the pilot's clean probe-null story or to collapse the D7 comparison entirely. What actually happened is more informative and messier. On the current normalized strict-harmfulness panel, the ordering is strong and stable in one direction: baseline 51.6%, L1 comparator 46.8%, random layer-matched seed 1 37.2%, probe 34.8%, causal 24.8%. So causal remains the strongest completed branch, and the April 8 bottom-line claim that selector choice matters on this benchmark survives scrutiny.
+
+But the mechanism-clean story did **not** get simpler. The current panel is mixed-ruler rather than cleanly matched to the April 8 legacy panel. Both the random and probe branches contain explicit CSV2 span-validation errors (8 and 12 respectively), and the causal branch still has 112/500 token-cap hits. Probe no longer supports the stronger full-500 statement "null at every alpha"; the clean probe-null remains the pilot result, while the full-500 probe branch is better understood as weaker than causal on the normalized panel and ambiguous on binary harmfulness.
+
+### What this changes about my thinking
+
+D7 is now in a better and narrower place. It is stronger than "unfinished" and weaker than "selector-specific proof." The right paper-facing framing is:
+
+- pilot probe-null remains the cleanest selector-side evidence;
+- full-500 D7 is supportive but mixed-ruler;
+- causal outperforms the available probe and random branches on the current normalized panel;
+- selector specificity is still not mechanism-clean.
+
+That shift matters beyond the D7 note itself. Leaving the April 8 audit as the live canonical reference would now overstate some claims and understate others, which is exactly how source drift creeps into sprint notes, paper prose, and the site.
+
+### What I will do next
+
+Keep all live D7 references anchored to the 2026-04-14 current-state audit unless a statement is explicitly historical provenance from April 8. Any stronger D7 claim now needs to earn its way past the mixed-ruler/error-bearing caveats rather than inheriting authority from the earlier trimmed audit.
+
+---
+
 ## 2026-04-13 (late evening)
 
 ### What I did

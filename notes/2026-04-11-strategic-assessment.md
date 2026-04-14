@@ -67,7 +67,7 @@ The initial assessment was overly myopic — centering on CSV v3 validation and 
 | Comparison | Detection | Steering | Control | Lesson |
 |---|---|---|---|---|
 | **H-neurons vs SAE features on FaithEval** | AUROC 0.843 vs 0.848 | +6.3pp [4.2, 8.5] vs **null** (0.12pp/α) | H: 8-seed null; SAE: delta-only confirms null | Matched detection, divergent steering |
-| **Probe heads vs causal heads on jailbreak** | AUROC 1.0 vs gradient-ranked | null at every alpha vs **-9.0pp [-12.2, -5.8]** | Probe: clean null; Causal: missing random-head | Perfect detection ≠ intervention |
+| **Probe heads vs causal heads on jailbreak** | AUROC 1.0 vs gradient-ranked | Pilot: probe null at every alpha vs causal positive. Current full-500 mixed-ruler panel: probe 34.8%, random 37.2%, causal **24.8%** strict harmfulness (baseline 51.6%) | Pilot probe-null is clean; full-500 panel is mixed-ruler, error-bearing, and still has causal token-cap debt | Perfect detection still does not guarantee the strongest intervention |
 | **ITI MC vs ITI generation** | Works for selection | +6.3pp MC1 vs **-7pp to -9pp on generation** | Random-head: no attempt collapse | Steering is surface-local, not universal |
 | **H-neurons on BioASQ** | (same 38 neurons) | -0.06pp [-1.5, 1.4] | — | Even working targets are task-local |
 | **Residual-stream truthfulness direction** | 71.5% separation | Null, then hard degeneration | — | Detection threshold exists below which steering fails |
@@ -96,7 +96,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 - H-neuron specificity controls on FaithEval and FalseQA
 
 **Supporting but caveated** (useful in the paper, explicit caveats required):
-- D7 pilot probe-null vs causal-positive — no random-head control yet; present as "benchmark-local evidence that an alternative selector can work on this surface"
+- D7 pilot probe-null plus the current full-500 mixed-ruler panel — present as "benchmark-local evidence that selector choice matters on this surface," not as mechanism-clean proof
 - D7 full-500 causal result vs baseline and L1 comparator — 112/500 token-cap hits = visible quality debt
 - H-neuron jailbreak CSV-v2 effect — seed-0 specificity confirmed (slope diff +2.77 pp/alpha [1.17, 4.42], p=0.013); seeds 1-2 pending for multi-seed robustness. See [seed-0 control audit](act3-reports/2026-04-12-seed0-jailbreak-control-audit.md). V3 binary slope non-significant (+0.46 [-1.46, +2.41]), but v3 severity-shift (substantive_compliance +2.00 [+0.11, +3.87]) is marginally significant; see [v2-v3 paired comparison](act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md)
 - CSV v3 zero-FP / zero-solo-error edge — holdout compressed gap vs StrongREJECT from 12.2 to 2.0pp; evaluator optimization is a supporting measurement problem, not a main scientific bottleneck
@@ -132,7 +132,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 
 - "Detection and intervention are fundamentally different" (too absolute; H-neurons are detector-selected and work)
 - "Probe-selected components are non-causal" (we show they don't steer, not that they're acausal)
-- "Causal selection is always better" (D7 random-head control is missing)
+- "Causal selection is always better" (D7 remains benchmark-local and mixed-ruler; the current probe/random comparisons are supportive, not mechanism-clean)
 
 ### How to handle the H-neuron counterexample
 
@@ -160,9 +160,9 @@ H-neuron scaling is a detector-selected target that works on compliance tasks. F
 
 ### Counter 3: "D7 is missing its control"
 
-*"Without the random-head control, D7 could be a generic perturbation effect."*
+*"Even after the new runs, D7 is still not mechanism-clean. The random and probe branches are error-bearing, and the causal branch has visible quality debt."*
 
-**Defense:** Present D7 as "valuable but provisional: strong benchmark-local evidence, not yet a mechanism-clean flagship pillar." The thesis survives even if D7 is fully demoted, because the SAE and probe-head nulls stand independently. **Decision gate (§7):** either commit to running the random-head control + capability mini-battery (making D7 a clean pillar), or demote D7 to supporting-caveated evidence and stop inflating it into a selector-specificity result. Seed 0 neuron-mode jailbreak control (2000 rows) can be scored in the next 2 weeks regardless.
+**Defense:** Present D7 as "valuable but provisional: benchmark-local supporting evidence, not a mechanism-clean flagship pillar." The thesis survives even if D7 is fully demoted, because the SAE and probe-head nulls stand independently. The updated current-state audit helps by ruling out the stale "probe incomplete / random missing" objection, but it does **not** eliminate the need for caveats: the probe/random comparisons are mixed-ruler and the causal branch still carries quality debt. Seed 0 neuron-mode jailbreak control (2000 rows) can be scored in the next 2 weeks regardless.
 
 ### Counter 4: "Single model"
 
@@ -201,7 +201,7 @@ The work is best packaged as **three separable deliverables**, not a single mono
 **§3. Anchor 1: Strong detection does not guarantee steerability** — *The localization→control break.* The paper's center of gravity.
 - §3A: **SAE vs H-neurons on FaithEval** — the deepest anchor. Matched AUROC (0.848 vs 0.843), divergent steering (+6.3pp vs null). Delta-only SAE rules out reconstruction noise. Most apples-to-apples comparison in the project.
 - §3B: **Probe heads vs causal heads on jailbreak** — independent confirmation. AUROC 1.0 null vs gradient-ranked -9.0pp, top-20 sets nearly disjoint (Jaccard 0.11).
-- D7 as **supporting evidence** (selector choice matters on this surface), explicitly caveated: no random-head control, 112/500 token-cap hits, quality debt visible.
+- D7 as **supporting evidence** (selector choice matters on this surface), explicitly caveated: current full-500 panel is mixed-ruler, probe/random branches are error-bearing, and the causal branch still has 112/500 token-cap hits.
 - Central synthesis table.
 (~2 pages)
 
@@ -330,7 +330,7 @@ Ranked by information-per-dollar for the paper. **Writing deliverables are inclu
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | Narrative sprawl from integrating too many results | High | Loses clarity (criterion 1) | One question, one table, three claims. If it doesn't answer "does detection predict steerability?", cut it |
-| Overclaiming D7 specificity | Medium | Loses credibility (criterion 3) | Always pair with "benchmark-local, random-head control missing" |
+| Overclaiming D7 specificity | Medium | Loses credibility (criterion 3) | Always pair with "benchmark-local, mixed-ruler, not mechanism-clean" |
 | H-neuron positive result undermines thesis | Low | Thesis already accounts for it | Frame as "detection quality is not a reliable heuristic" not "detection never works" |
 | Internal jargon leaking | High | Clarity failure | Translation guide: D7→gradient-based causal intervention, csv2_yes→strict harmfulness rate, L1→original neuron-scaling method, AUROC→held-out discrimination quality |
 | 2-week experiments don't finish | Medium | Weaker paper | Thesis stands on SAE dissociation + probe null + ITI MC/gen mismatch even without D7 control |
@@ -360,7 +360,7 @@ Ranked by information-per-dollar for the paper. **Writing deliverables are inclu
 
 | Claim | Gap | Safe phrasing |
 |---|---|---|
-| Gradient-based selection is specifically responsible for D7 gain | Missing random-head control | "Benchmark-local comparator result; selector specificity open" |
+| Gradient-based selection is specifically responsible for D7 gain | Current evidence is mixed-ruler and error-bearing, not mechanism-clean | "Benchmark-local comparator result; current normalized panel favors causal over available probe/random branches, but selector specificity remains open" |
 | H-neuron jailbreak effect is neuron-specific | Seeds 1-2 control unscored | "Specificity confirmed on FaithEval, FalseQA, and jailbreak (seed-0 random-neuron control, p=0.013). Multi-seed robustness pending." See [seed-0 control audit](act3-reports/2026-04-12-seed0-jailbreak-control-audit.md) |
 | D7 causal intervention is safe for practical deployment | No capability battery, 22.4% token-cap rate | "Promising mitigation with visible quality debt" |
 

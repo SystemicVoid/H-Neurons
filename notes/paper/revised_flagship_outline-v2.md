@@ -19,7 +19,7 @@ That said, it still needs a harder evidence hierarchy and a few structural corre
 ### What should change
 
 1. **D7 should be demoted one notch in the paper structure.**  
-   It is valuable, but not central enough yet to carry the main thesis. As of the latest project state, D7 is best used as supporting evidence that selector choice can matter on this benchmark surface, not as the flagship proof that causal selection beats correlational selection. The missing random-head control, incomplete full-500 probe branch, and visible token-cap / quality debt keep it below the strongest evidence tier.
+   It is valuable, but not central enough yet to carry the main thesis. As of the latest project state, D7 is best used as supporting evidence that selector choice can matter on this benchmark surface, not as the flagship proof that causal selection beats correlational selection. The current full-500 panel is stronger than before because probe and layer-matched random branches now exist, but it is still mixed-ruler, error-bearing, and visibly quality-costly, so it remains below the strongest evidence tier.
 
 2. **The bridge benchmark should be promoted.**  
    The bridge result is not just “generation failed again.” It reveals a concrete failure mode: **confident wrong substitution**, often with the same wrong entity reproduced across E0 and E1. That is deeper science than another benchmark delta. This deserves to be one of the paper’s main pillars.
@@ -687,7 +687,7 @@ Be plain here. No flourish, no spin.
 - single model;
 - H-neuron selection is a detector baseline, not the original paper’s full selection rule;
 - SAE layer coverage is partial;
-- D7 random-head control missing;
+- D7 current-state panel is mixed-ruler rather than mechanism-clean;
 - D7 capability / over-refusal battery missing;
 - ~~bridge promoted candidate has not yet been run on the final test split;~~ **Resolved 2026-04-13:** Phase 3 test set (n=500) run; CI excludes zero, p=0.0002. Remaining bridge limitation: failure-mode coding is single-rater.
 - jailbreak specificity is only scored for seed 0;
@@ -715,7 +715,7 @@ This should be tighter than the current outline.
 Only list items that change a claim boundary.
 
 - score seeds 1–2 for jailbreak control;
-- D7 random-head control **if and only if** D7 stays central after drafting;
+- same-ruler D7 cleanup or follow-up control work **if and only if** D7 stays central after drafting;
 - minimal capability / over-refusal check for D7 if retained centrally;
 - blind adjudication of disputed evaluator cases;
 - StrongREJECT gpt-4o rerun if still open;

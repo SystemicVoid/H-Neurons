@@ -76,7 +76,7 @@ The following claims are supported by the strongest evidence in this study and c
 
 ### Qualified claims (valid with explicit caveats)
 
-- Gradient-based causal selection identified different intervention targets than probe-based selection, with large behavioral divergence on jailbreak. *Caveat: no random-head negative control; benchmark-local evidence only.* <!-- Pilot + full-500 selector comparison; Jaccard 0.11 -->
+- Gradient-based causal selection identified different intervention targets than probe-based selection, with large behavioral divergence on jailbreak. *Caveat: the clean pilot result is benchmark-local, and the newer full-500 panel is mixed-ruler rather than mechanism-clean.* <!-- Pilot + current-state full-500 selector comparison; Jaccard 0.11 -->
 - H-neuron specificity on jailbreak is supported at single-seed strength. *Caveat: slope difference +2.77 pp/$\alpha$ [1.17, 4.42], $p = 0.013$; seeds 1–2 pending.* <!-- Seed-0 control audit -->
 - A structured evaluator calibrated for refuse-then-comply patterns achieved higher accuracy than alternatives on a dev set of jailbreak outputs from this intervention regime. *Caveat: holdout validation compressed the apparent advantage from 12.2 pp to 2.0 pp (not significant); 24 of 74 dev-set records overlap with calibration data; judge-model confound not yet removed.* <!-- 4-way evaluator comparison + holdout validation -->
 - The v3 ordinal evaluator revealed a **severity-level dose-response** — substantive compliance increased with scaling ($+2.00$ pp/$\alpha$ $[+0.11, +3.87]$) — that was invisible at the binary level. *Caveat: single-seed result; severity-shift gap CI lower bound barely excludes zero ($+0.02$); replication with additional control seeds pending.* <!-- v2-v3 paired comparison §§3.3, 5, 7 -->
@@ -85,7 +85,7 @@ The following claims are supported by the strongest evidence in this study and c
 
 - We do not claim that detectors fail as a class. H-neurons are detector-selected targets that work on compliance surfaces.
 - We do not claim that SAEs are poor steering mediators in general. We tested one configuration on one benchmark.
-- We do not claim that causal selectors outperform correlational selectors in general. The missing random-head control prevents this.
+- We do not claim that causal selectors outperform correlational selectors in general. The current D7 evidence is still mixed-ruler and not mechanism-clean enough for that.
 - We do not claim that evaluator dependence is a novel discovery. We claim that evaluator choices changed the conclusion in this specific mechanistic intervention setting.
 - We do not claim that these findings generalize beyond Gemma-3-4B-IT. The model name is in the title for this reason.
 - We do not claim that CSV-v3 is a broadly validated evaluator, or that it clearly outperforms StrongREJECT outside this specific response regime.

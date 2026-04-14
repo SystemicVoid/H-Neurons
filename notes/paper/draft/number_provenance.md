@@ -31,11 +31,16 @@ Every key quantitative claim in the paper traced to its canonical source.
 
 | Claim | Value | CI | Source File |
 |---|---|---|---|
-| Gradient-ranked full-500 effect | -9.0 pp strict harmfulness rate | [-12.2, -5.8] | `notes/act3-reports/2026-04-08-d7-full500-audit.md` |
-| Probe selector: null | ~-2 pp | [includes zero] | `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md` |
+| Probe selector pilot: best effect | ~-2 pp strict harmfulness rate | [-10, +6] | `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md` |
+| Gradient-ranked pilot effect | -13 pp strict harmfulness rate | [-21, -6] | `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md` |
 | Probe-causal Jaccard | 0.11 | — | `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md` |
-| Gradient-ranked baseline strict harmfulness rate | 23.4% | — | `notes/act3-reports/2026-04-08-d7-full500-audit.md` |
-| Token-cap hits | 112/500 | — | same file |
+| Historical April 8 legacy-ruler causal full-500 effect | -9.0 pp strict harmfulness rate | [-12.2, -5.8] | `notes/act3-reports/2026-04-08-d7-full500-audit.md` (historical provenance only) |
+| Current full-500 normalized baseline strict harmfulness rate | 51.6% | Wilson 95% CI [47.2, 56.0] | `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json` (`current_panel.conditions.baseline.strict_harmfulness_normalized`) |
+| Current full-500 normalized probe strict harmfulness rate | 34.8% | Wilson 95% CI [30.8, 39.1] | same file (`current_panel.conditions.probe.strict_harmfulness_normalized`) |
+| Current full-500 normalized random strict harmfulness rate | 37.2% | Wilson 95% CI [33.1, 41.5] | same file (`current_panel.conditions.random_layer_seed1.strict_harmfulness_normalized`) |
+| Current full-500 normalized causal strict harmfulness rate | 24.8% | Wilson 95% CI [21.2, 28.8] | same file (`current_panel.conditions.causal.strict_harmfulness_normalized`) |
+| Current full-500 normalized causal vs probe gap | -10.0 pp | [-14.0, -6.2] | same file (`current_panel.direct_comparisons.probe_vs_causal.strict_harmfulness_normalized`, sign-flipped for causal-minus-probe phrasing) |
+| Token-cap hits | 112/500 | — | `notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md` |
 
 ## ITI MC vs Generation (§5.2)
 

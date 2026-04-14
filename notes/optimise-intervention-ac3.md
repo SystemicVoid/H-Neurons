@@ -1,12 +1,13 @@
 # Optimising The Truthfulness Intervention — Act 3 Strategy
 
 **Date:** 2026-04-01
-**Status:** All five experimental stages reached terminal or near-terminal status (2026-04-01 to 2026-04-08). Stage 1 (cheap discriminators): specificity confirmed, scope locked to `first_3_tokens`. Stage 2 (artifact improvements): E1 tradeoff, E2 null, E3 gate not met. Stage 3 (bridge benchmark): built and validated, E0 ITI informative null. Stage 4 (chooser work): gate not met. Stage 5 (causal pilot): D7 full-500 trimmed complete, random-head control not yet run. See §10 for summary table. Strategic assessment produced 2026-04-11: [2026-04-11-strategic-assessment.md](./2026-04-11-strategic-assessment.md).
+**Status:** All five experimental stages reached terminal or near-terminal status (2026-04-01 to 2026-04-14). Stage 1 (cheap discriminators): specificity confirmed, scope locked to `first_3_tokens`. Stage 2 (artifact improvements): E1 tradeoff, E2 null, E3 gate not met. Stage 3 (bridge benchmark): built and validated, E0 ITI informative null. Stage 4 (chooser work): gate not met. Stage 5 (causal pilot): D7 current-state audit complete. The current D7 story is benchmark-local and mixed-ruler: causal remains the strongest completed branch, but selector specificity is still not mechanism-clean. See [2026-04-14-d7-full500-current-state-audit.md](./act3-reports/2026-04-14-d7-full500-current-state-audit.md) and §10 for the frozen terminal summary.
 **Model:** Gemma-3-4B-IT (`google/gemma-3-4b-it`)  
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
 > This file is the strategy note for "what to try next."
 > Current result facts live in:
+> - [2026-04-14-d7-full500-current-state-audit.md](./2026-04-14-d7-full500-current-state-audit.md)
 > - [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md)
 > - [2026-04-07-d7-causal-pilot-audit.md](./2026-04-07-d7-causal-pilot-audit.md)
 > - [2026-04-01-priority-reruns-audit.md](./2026-04-01-priority-reruns-audit.md)
@@ -17,9 +18,18 @@
 > - [act3-sprint.md](../act3-sprint.md)
 > - [measurement-blueprint.md](../measurement-blueprint.md)
 
+### Update — 2026-04-14 (D7 full-500 current-state audit)
+
+The canonical D7 report is now [2026-04-14-d7-full500-current-state-audit.md](./2026-04-14-d7-full500-current-state-audit.md). The machine-readable source of truth is `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json`.
+
+- **Current normalized strict harmfulness panel:** baseline 51.6%, L1 comparator 46.8%, random layer-matched seed 1 37.2%, probe 34.8%, causal 24.8%.
+- **Paired deltas vs baseline:** L1 `-4.8 pp` `[-8.8, -1.0]`; random `-14.4 pp` `[-19.0, -9.8]`; probe `-16.8 pp` `[-20.8, -12.8]`; causal `-26.8 pp` `[-31.0, -22.6]`.
+- **Current interpretation:** causal is still the strongest completed branch, but the panel is mixed-ruler rather than mechanism-clean. Probe and random now exist at full-500, both carry explicit CSV2 span-validation errors, and the causal branch still has 112/500 token-cap hits.
+- **Most defensible use:** D7 now supports a stronger benchmark-local selector-choice claim than the April 8 trimmed audit did, but it still should not be presented as clean proof that gradient-based selection is specifically causal in a mechanism-clean sense.
+
 ### Update — 2026-04-08 (D7 full-500 trimmed audit)
 
-The canonical D7 report is now [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md).
+Historical note only. Current D7 claims should cite [2026-04-14-d7-full500-current-state-audit.md](./2026-04-14-d7-full500-current-state-audit.md).
 
 - **Shared baseline:** 23.4% `csv2_yes` (117/500).
 - **L1-neuron comparator:** 27.4% `csv2_yes`, paired **+4.0 pp** **[+0.6, +7.6]** versus baseline.
@@ -763,8 +773,8 @@ The remaining active branches are D5 (externality audit) and D7 (causal pilot).
    [2026-04-04-bridge-phase2-dev-results.md](./2026-04-04-bridge-phase2-dev-results.md)
 10. ~~Chooser work~~ **gate not met** (no live generation signal to amplify).
 11. ~~**Run externality audit (D5).**~~ Deferred: existing cross-benchmark data may suffice.
-12. ~~Run causal head-selection pilot (D7).~~ **full-500 trimmed audit complete:**
-    [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md) — causal beats shared baseline and L1 on the primary metric; selector-specific random-head control still missing.
+12. ~~Run causal head-selection pilot (D7).~~ **current-state audit complete:**
+    [2026-04-14-d7-full500-current-state-audit.md](./2026-04-14-d7-full500-current-state-audit.md) — causal is the strongest completed branch on the normalized strict-harmfulness panel, but the result remains benchmark-local and mixed-ruler rather than mechanism-clean.
 13. ~~**Final synthesis (D8).**~~ Strategic assessment produced ([2026-04-11-strategic-assessment.md](./2026-04-11-strategic-assessment.md)); paper drafting not yet started.
 
 ---
@@ -781,7 +791,7 @@ The remaining active branches are D5 (externality audit) and D7 (causal pilot).
 
 ## 9. Final Judgment
 
-> **Status (2026-04-11):** The three unknowns this judgment deferred to have been substantially addressed. **Specificity:** direction-specific (random-head control confirmed on SimpleQA). **Decode scope:** useful regularizer, not a fix (`first_3_tokens` locked; INCORRECT rate unchanged). **Component choice:** D7 causal heads outperform probe heads on jailbreak (-9.0pp vs null) at the benchmark level; random-head control for selector-specificity claim still missing. All stage results are summarized in §10.
+> **Status (updated 2026-04-14):** The three unknowns this judgment deferred to have been substantially addressed. **Specificity:** direction-specific (random-head control confirmed on SimpleQA). **Decode scope:** useful regularizer, not a fix (`first_3_tokens` locked; INCORRECT rate unchanged). **Component choice:** the D7 current-state panel now includes probe and random full-500 branches, and causal remains the strongest completed branch on normalized strict harmfulness (24.8% vs probe 34.8%, random 37.2%, baseline 51.6%). But because the panel is mixed-ruler, error-bearing, and quality-costly, it still supports only a benchmark-local selector-choice claim. All stage results are summarized in §10.
 
 The most defensible update is:
 
@@ -802,6 +812,8 @@ H-neurons on the full sprint standard, not just on one clean MC benchmark.
 ---
 
 ## 10. Terminal Status Summary (2026-04-11)
+
+> Historical snapshot only. The D7 row below reflects the 2026-04-11 state; current D7 claims are superseded by [2026-04-14-d7-full500-current-state-audit.md](./2026-04-14-d7-full500-current-state-audit.md).
 
 This strategy note guided the experiment-discovery phase from 2026-04-01 to 2026-04-08. All five stages reached terminal or near-terminal status:
 
