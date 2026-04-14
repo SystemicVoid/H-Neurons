@@ -72,7 +72,7 @@ The following claims are supported by the strongest evidence in this study and c
 
 - Strong predictive readouts were **not sufficient evidence** for useful steering targets. Matched or even perfect readout performance did not reliably predict intervention success. <!-- H-neuron vs SAE: AUROC 0.843 vs 0.848, divergent steering; Probe heads: AUROC 1.0, null intervention -->
 - When interventions did work, their effects were often **surface-local** rather than generally transferable. <!-- ITI: +6.3 pp MC1 vs −5.8 pp [−8.8, −3.0] on bridge test set; H-neurons: +4.5 pp FaithEval above no-op, null on BioASQ -->
-- Measurement choices — truncation depth and binary versus graded scoring — **materially altered** the inferred intervention conclusion on the same underlying data. <!-- Binary judge null vs graded significant on same data -->
+- Measurement choices — truncation depth, binary versus graded scoring, and ordinal severity resolution — **materially altered** the inferred intervention conclusion on the same underlying data. <!-- Binary judge null vs graded significant on same data; v3 ordinal taxonomy revealed severity-shift dose-response invisible at binary level -->
 
 ### Qualified claims (valid with explicit caveats)
 

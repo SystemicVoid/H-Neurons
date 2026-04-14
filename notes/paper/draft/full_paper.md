@@ -116,13 +116,14 @@ The following claims are supported by the strongest evidence in this study and c
 
 - Strong predictive readouts were **not sufficient evidence** for useful steering targets. Matched or even perfect readout performance did not reliably predict intervention success. <!-- H-neuron vs SAE: AUROC 0.843 vs 0.848, divergent steering; Probe heads: AUROC 1.0, null intervention -->
 - When interventions did work, their effects were often **surface-local** rather than generally transferable. <!-- ITI: +6.3 pp MC1 vs −5.8 pp [−8.8, −3.0] on bridge test set; H-neurons: +4.5 pp FaithEval above no-op, null on BioASQ -->
-- Measurement choices — truncation depth and binary versus graded scoring — **materially altered** the inferred intervention conclusion on the same underlying data. <!-- Binary judge null vs graded significant on same data -->
+- Measurement choices — truncation depth, binary versus graded scoring, and ordinal severity resolution — **materially altered** the inferred intervention conclusion on the same underlying data. <!-- Binary judge null vs graded significant on same data; v3 ordinal taxonomy revealed severity-shift dose-response invisible at binary level -->
 
 ### Qualified claims (valid with explicit caveats)
 
 - Gradient-based causal selection identified different intervention targets than probe-based selection, with large behavioral divergence on jailbreak. *Caveat: no random-head negative control; benchmark-local evidence only.* <!-- Pilot + full-500 selector comparison; Jaccard 0.11 -->
 - H-neuron specificity on jailbreak is supported at single-seed strength. *Caveat: slope difference +2.77 pp/$\alpha$ [1.17, 4.42], $p = 0.013$; seeds 1–2 pending.* <!-- Seed-0 control audit -->
 - A structured evaluator calibrated for refuse-then-comply patterns achieved higher accuracy than alternatives on a dev set of jailbreak outputs from this intervention regime. *Caveat: holdout validation compressed the apparent advantage from 12.2 pp to 2.0 pp (not significant); 24 of 74 dev-set records overlap with calibration data; judge-model confound not yet removed.* <!-- 4-way evaluator comparison + holdout validation -->
+- The v3 ordinal evaluator revealed a **severity-level dose-response** — substantive compliance increased with scaling ($+2.00$ pp/$\alpha$ $[+0.11, +3.87]$) — that was invisible at the binary level. *Caveat: single-seed result; severity-shift gap CI lower bound barely excludes zero ($+0.02$); replication with additional control seeds pending.* <!-- v2-v3 paired comparison §§3.3, 5, 7 -->
 
 ### Claims we do not make
 
