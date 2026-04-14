@@ -30,7 +30,7 @@
 
 <section id="hero">
   <div class="fade-in">
-    <span class="tag tag-coral">Deep dive</span>
+    <span class="tag tag-coral">Anchor 1 appendix</span>
     <h1>Swing Characterization:<br>What the 14% Reveals</h1>
     <p class="subtitle">
       Of 1,000 FaithEval samples, only 138 respond to H-neuron scaling.
@@ -38,6 +38,12 @@
       how much structural features predict swing status, and whether knowledge override or
       uncertainty resolution dominates.
     </p>
+    <div class="insight-box" style="margin-top: 1.5rem;">
+      <strong>Appendix note:</strong> this page is preserved as Anchor 1 support for the H-neuron replication case.
+      For the current project-level thesis and confidence-tier framing, start from
+      <a href="../story.html" style="color: var(--accent-coral);">Core Story</a> or
+      <a href="../results/gemma-3-4b.html#population" style="color: var(--accent-coral);">the population analysis summary</a>.
+    </div>
 
     <div class="metrics-grid" style="margin-top: 2rem;">
       <div class="metric-card" data-status="NEW">
@@ -162,6 +168,7 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="label">R&rarr;C by &alpha; &le; 1.5</div>
+        <!-- from: swing_transition_rc_early_share_le_1_5 -->
         <div class="value val-coral" data-swing-bind="rc-early-pct">63.8%</div>
         <div class="detail"><span data-swing-bind="rc-early-count">60/94</span> &middot; 95% CI <span data-swing-bind="rc-early-ci">[53.8, 72.8]</span></div>
       </div>
@@ -203,6 +210,7 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="label">Held-out AUROC</div>
+        <!-- from: swing_structural_predictability_auroc -->
         <div class="value val-coral" style="font-size: 1.3rem;" data-swing-bind="structural-auroc">0.54</div>
         <div class="detail">95% CI <span data-swing-bind="structural-auroc-ci">[--, --]</span> &middot; <span data-swing-bind="structural-auroc-p">perm p=--</span></div>
       </div>
@@ -320,8 +328,8 @@
 </section>
 
 <footer>
-  H-Neurons Deep Dive &mdash; Swing Characterization &mdash; March 2026<br>
-  Based on <a href="https://arxiv.org/abs/2512.01797v2" target="_blank">Gao et al., 2025</a> &middot; Back to <a href="../results/gemma-3-4b.html#population">Population analysis</a> &middot; Future directions: <a href="../extensions.html">Extensions</a>
+  H-Neurons Anchor 1 Appendix &mdash; Swing Characterization &mdash; updated April 2026<br>
+  Back to <a href="../story.html#anchor1">Anchor 1</a> &middot; Population summary: <a href="../results/gemma-3-4b.html#population">Results</a> &middot; Caveat map: <a href="../extensions.html">Extensions</a>
 </footer>
 
 <script src="../assets/shared.js"></script>
