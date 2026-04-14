@@ -5,7 +5,7 @@ The previous section established that strong readouts do not reliably identify u
 Figure 3 shows the bridge result at a glance: answer-selection gains on TruthfulQA coexist with generation damage on nearby factual surfaces, and the largest single failure mode is wrong-entity substitution.
 
 ![Figure 3. Surface-local control and bridge failure modes.](figures/fig3_bridge_failure.png)
-*Figure 3. TruthfulQA answer-selection gains do not transfer to generation: the bridge benchmark shows net damage, and the dominant single failure mode is wrong-entity substitution rather than refusal.*
+*Figure 3. TruthfulQA answer-selection gains do not transfer to generation: the bridge benchmark shows net damage, and the most frequent manually diagnosed failure mode is wrong-entity substitution rather than refusal.*
 
 ## 5.1 Positive Results Exist, but Are Task-Local
 
@@ -29,7 +29,7 @@ The TriviaQA bridge benchmark (held-out test set, $n = 500$, baseline adjudicate
 
 **The observed harm is not primarily explained by refusal or grading loss.** NOT\_ATTEMPTED counts increase from 2 to 8, a statistically significant but small effect (1.2 pp). Formal refusal accounts for only 2 of 43 right-to-wrong flips (5%). The dominant damage is factual corruption, not silence.^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §§2.1, 5.1.]
 
-**The dominant single failure mode is wrong-entity substitution.** Of the 43 right-to-wrong flips at E0 $\alpha = 8.0$, 30 (70%) are substitutions where the model replaces a correct factual answer with a different entity from the same semantic neighborhood:^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §5.2.]
+**The most frequent manually diagnosed failure mode is wrong-entity substitution.** Of the 43 right-to-wrong flips at E0 $\alpha = 8.0$, 30 (70%) are substitutions where the model replaces a correct factual answer with a different entity from the same semantic neighborhood:^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §5.2.]
 
 | Question | Baseline (correct) | ITI $\alpha = 8$ (wrong) |
 |---|---|---|
