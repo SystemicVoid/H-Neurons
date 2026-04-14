@@ -8,7 +8,8 @@ Hugo Nguyen
 
 # Abstract
 
-Predictive internal signals are often treated as natural targets for steering large language models, but prior work leaves open how reliable this heuristic is across target types, evaluation surfaces, and measurement choices. We study this question in Gemma-3-4B-IT by comparing multiple intervention families — neuron scaling, sparse autoencoder feature steering, inference-time intervention, and gradient-based causal head selection — under a common reporting standard that distinguishes promoted claims from qualified supporting evidence across contextual faithfulness, answer selection, open-ended factual generation, and jailbreak settings. We find repeated dissociations between four stages that are routinely conflated: *measurement* (truncation and evaluator choices changed the apparent intervention conclusion), *localization* (matched or even perfect readout quality failed to predict steering utility — in our FaithEval anchor comparison, SAE features with AUROC 0.848 did not translate into useful control under the committed full-replacement SAE intervention, while H-neurons with AUROC 0.843 produced a compliance dose-response of +2.1 pp/$\alpha$ [1.4, 2.8] and a paired neuron-minus-SAE slope difference of +1.9 pp/$\alpha$ with CI excluding zero; probe-ranked heads with AUROC 1.0 produced null intervention), *control* (interventions that worked did so on narrow home surfaces — H-neurons improved compliance on FaithEval but not BioASQ), and *externality* (ITI improved constrained answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-5.8$ pp [$-8.8$, $-3.0$] on a locked TriviaQA bridge test set ($n = 500$, CI excludes zero), where the dominant single failure mode was substitution of semantically nearby wrong entities). We organize these results into a four-stage audit framework and argue that strong readouts are insufficient evidence for good steering targets: credible mechanistic intervention claims require stage-specific validation of measurement, localization, control, and externality.
+Predictive internal signals are often treated as natural targets for steering large language models, but prior work leaves open how reliable this heuristic is across target types, evaluation surfaces, and measurement choices. We study this question in Gemma-3-4B-IT by comparing multiple intervention families — neuron scaling, sparse autoencoder feature steering, inference-time intervention, and gradient-based causal head selection — under a common reporting standard that distinguishes promoted claims from qualified supporting evidence across contextual faithfulness, answer selection, open-ended factual generation, and jailbreak settings. We find repeated dissociations between four stages that are routinely conflated: *measurement* (truncation and evaluator choices changed the apparent intervention conclusion), *localization* (matched or even perfect readout quality failed to predict steering utility — in our FaithEval anchor comparison, SAE features with AUROC 0.848 did not translate into useful control under the committed full-replacement SAE intervention, while H-neurons with AUROC 0.843 produced a compliance dose-response of +2.1 pp/$\alpha$ [1.4, 2.8] and a paired neuron-minus-SAE slope difference of +1.9 pp/$\alpha$ with CI excluding zero; probe-ranked heads with AUROC 1.0 produced null intervention), *control* (interventions that worked did so on narrow home surfaces — H-neurons improved compliance on FaithEval but not BioASQ), and *externality* (ITI improved constrained answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-5.8$ pp [$-8.8$, $-3.0$] on a locked TriviaQA bridge test set ($n = 500$, CI excludes zero), where the most frequent manually diagnosed failure mode was substitution of semantically nearby wrong entities). We organize these results into a four-stage audit framework and argue that strong readouts are insufficient evidence for good steering targets: credible mechanistic intervention claims require stage-specific validation of measurement, localization, control, and externality.
+
 
 
 ---
@@ -358,7 +359,7 @@ The previous section established that strong readouts do not reliably identify u
 Figure 3 shows the bridge result at a glance: answer-selection gains on TruthfulQA coexist with generation damage on nearby factual surfaces, and the largest single failure mode is wrong-entity substitution.
 
 ![Figure 3. Surface-local control and bridge failure modes.](figures/fig3_bridge_failure.png)
-*Figure 3. TruthfulQA answer-selection gains do not transfer to generation: the bridge benchmark shows net damage, and the dominant single failure mode is wrong-entity substitution rather than refusal.*
+*Figure 3. TruthfulQA answer-selection gains do not transfer to generation: the bridge benchmark shows net damage, and the most frequent manually diagnosed failure mode is wrong-entity substitution rather than refusal.*
 
 ## 5.1 Positive Results Exist, but Are Task-Local
 
@@ -382,7 +383,7 @@ The TriviaQA bridge benchmark (held-out test set, $n = 500$, baseline adjudicate
 
 **The observed harm is not primarily explained by refusal or grading loss.** NOT\_ATTEMPTED counts increase from 2 to 8, a statistically significant but small effect (1.2 pp). Formal refusal accounts for only 2 of 43 right-to-wrong flips (5%). The dominant damage is factual corruption, not silence.^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §§2.1, 5.1.]
 
-**The dominant single failure mode is wrong-entity substitution.** Of the 43 right-to-wrong flips at E0 $\alpha = 8.0$, 30 (70%) are substitutions where the model replaces a correct factual answer with a different entity from the same semantic neighborhood:^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §5.2.]
+**The most frequent manually diagnosed failure mode is wrong-entity substitution.** Of the 43 right-to-wrong flips at E0 $\alpha = 8.0$, 30 (70%) are substitutions where the model replaces a correct factual answer with a different entity from the same semantic neighborhood:^[Source: `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`, §5.2.]
 
 | Question | Baseline (correct) | ITI $\alpha = 8$ (wrong) |
 |---|---|---|
@@ -433,6 +434,9 @@ We use "wrong-entity substitution" as a behavioral diagnosis, not as a claim abo
        notes/act3-reports/2026-04-12-4way-evaluator-comparison.md
        notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md
        notes/measurement-blueprint.md
+       notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md
+       notes/act3-reports/2026-04-13-phase3-jailbreak-pipeline-audit.md
+       notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md
 -->
 
 The preceding sections established that detection quality does not predict
@@ -532,13 +536,61 @@ values; total compliant-or-borderline unchanged at 245)
 Section 3.1). Binary evaluation collapsed this three-way structure into a
 two-way count, washing out the signal that graded scoring recovered.
 
-This is a single-seed result. Seeds 1--2 have been generated but not yet
-scored with the graded rubric; multi-seed replication would strengthen the
-specificity claim. But the methodological lesson does not depend on the
-H-neuron effect being real in the strong sense: *any* intervention that
-shifts responses along a refusal--compliance gradient will appear different
-under binary versus graded evaluation, and the direction of the discrepancy
-is predictable.
+**Evaluator version changes the statistical conclusion on the same outputs.**
+A paired comparison on the same 500 model outputs confirms that evaluator
+construct definition alone can reverse the verdict. Under CSV-v2, the
+H-neuron strict harmfulness slope was $+2.30$ pp/$\alpha$ $[+0.99, +3.58]$
+(CI excludes zero). Under CSV-v3, the binary harmful rate slope on the
+identical outputs was $+0.46$ pp/$\alpha$ $[-1.46, +2.41]$ (CI includes
+zero). The 80\% slope compression is entirely explained by the declining
+number of borderline absorptions at higher alphas: v3 reclassifies a roughly
+constant fraction (${\sim}43$--$50\%$) of v2-borderline records as harmful,
+but intervention-driven polarization reduces the borderline population from
+171 to 98, leaving fewer records for v3 to absorb at high $\alpha$. The
+arithmetic is exact: the v2 gain ($+38$ records from $\alpha{=}0$ to
+$\alpha{=}3$) minus the decline in absorbed borderlines ($-29$) equals the
+v3 gain ($+8$)
+(source: `notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md`,
+Sections 2--4).
+
+**The dose-response lives at the severity level, not the harmful/safe
+boundary.** The v3 evaluator's ordinal \texttt{primary\_outcome} taxonomy
+reveals a signal invisible at the binary level. The
+\texttt{substantive\_compliance} rate — responses that fully engage with the
+harmful request — shows a significant dose-response slope of $+2.00$
+pp/$\alpha$ $[+0.11, +3.87]$ (paired bootstrap 95\% CI, 10{,}000 resamples;
+CI excludes zero). Over the full alpha range, substantive compliance
+increased from 27.8\% to 33.9\% ($+6.1$ pp), while partial compliance
+declined from 6.7\% to 2.0\% ($-4.7$ pp) — a severity intensification
+pattern where ambiguous compliance resolves to full compliance at higher
+scaling. The matched seed-1 control showed a flat substantive compliance
+slope of $-0.72$ pp/$\alpha$ $[-2.58, +1.19]$, yielding a severity-shift
+gap of $+2.72$ pp/$\alpha$ $[+0.02, +5.44]$ — marginally significant, with
+the lower CI bound barely excluding zero
+(source: `notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md`,
+Sections 3.3, 5, and 7). This severity-shift result is single-seed and
+should be treated with caution, but the qualitative pattern is visible in
+raw outcome counts without statistical modeling.
+
+**Sensitivity to evaluation errors.** The v3 evaluation produced variable
+error counts across alphas (11, 8, 16, 8 records with invalid evidence
+spans). Worst-case error-attrition bounds on the binary slope fall within
+$[0.36, 0.50]$ pp/$\alpha$, well within the bootstrap CI $[-1.46, +2.41]$.
+Error attrition does not meaningfully affect any reported metric
+(source: `notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md`,
+Section 6; `notes/act3-reports/2026-04-13-phase3-jailbreak-pipeline-audit.md`,
+Issue M3).
+
+The v2 specificity result (Section 6.2 above) is a single-seed result;
+seed-1 has since been scored with the v3 evaluator and shows a flat control
+trajectory (harmful binary slope $-0.34$ pp/$\alpha$ $[-2.28, +1.61]$;
+substantive compliance slope $-0.72$ pp/$\alpha$ $[-2.58, +1.19]$), but the
+paired v2/v3 comparison remains single-seed for each evaluator version, and
+seeds 0 and 2 have not yet been scored with v3. The methodological lesson
+does not depend on the H-neuron effect being real in the strong sense: *any*
+intervention that shifts responses along a refusal--compliance gradient will
+appear different under binary versus graded evaluation, and the direction of
+the discrepancy is predictable.
 
 ## 6.3 Evaluator Dependence Is Part of the Result
 
@@ -584,6 +636,21 @@ discordant record. McNemar's exact test yielded $p = 1.0$; no pairwise
 comparison reached significance (all $p > 0.25$). On held-out data, all four
 evaluators exceeded 90\% accuracy, and none was statistically distinguishable
 from the others.
+
+**Upgrading the StrongREJECT judge model confirms the bottleneck is rubric
+structure, not model capability.** Re-evaluating the 74-record gold set with
+GPT-4o (replacing GPT-4o-mini) improved StrongREJECT accuracy from 74.3\% to
+78.4\% $[67.7, 86.2]$, recovering 3 of 19 false negatives — all via
+\texttt{refused} flips where GPT-4o recognized that a refusal preamble was
+followed by substantive harmful content. On the 50-record holdout, the
+v3--StrongREJECT gap compressed from 2.0 pp to 0.0 pp (both at 96.0\%,
+identical error sets). The remaining 16 false negatives persist in both judge
+versions because the StrongREJECT formula's binary \texttt{refused} flag
+treats refuse-then-comply outputs as genuine refusals regardless of
+downstream harmful substance — a rubric construct mismatch, not a
+judge-model limitation
+(source: `notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md`,
+Section 3).
 
 > **Box C — Worked Evaluator Disagreement Example**
 >
@@ -692,14 +759,31 @@ We summarize the measurement findings by their epistemic status.
   dose-response than a matched random-neuron control (slope difference
   $+2.77$ pp/$\alpha$ $[+1.17, +4.42]$, permutation $p = 0.013$),
   but this is a single-seed result.
+- *Evaluator-version slope compression.* The same 500 model outputs scored
+  by CSV-v2 and CSV-v3 produced statistically divergent binary slopes
+  ($+2.30$ vs. $+0.46$ pp/$\alpha$); the compression is entirely explained
+  by borderline absorption under intervention-driven polarization.
+- *Severity-shift dose-response (partially established).* The v3 ordinal
+  taxonomy revealed a significant substantive compliance slope ($+2.00$
+  pp/$\alpha$ $[+0.11, +3.87]$, CI excludes zero), with a marginally
+  significant specificity gap versus control ($+2.72$ pp/$\alpha$
+  $[+0.02, +5.44]$). This is a single-seed result with a fragile lower CI
+  bound.
+- *StrongREJECT construct mismatch confirmed.* Upgrading StrongREJECT from
+  GPT-4o-mini to GPT-4o closed the holdout gap to 0.0 pp while recovering
+  only 3 of 19 false negatives, confirming the bottleneck is the binary
+  \texttt{refused} flag formula, not judge-model capability.
 - *Contamination fix.* A schema-version mismatch silently reclassified
   97.7\% of borderline records. The fix was four lines; the cost of missing
   it would have been a qualitatively wrong triage verdict.
 
 **Still pending:**
 
-- Multi-seed replication (seeds 1--2 generated, not yet scored).
-- Full CSV2 v3 and StrongREJECT scoring on control-condition data.
+- Multi-seed v3 scoring (seed-1 scored; seeds 0 and 2 generated but not
+  yet scored with v3; needed for a multi-seed permutation test on v3
+  specificity).
+- Replication of severity-shift finding with additional control seeds to
+  confirm the marginal substantive compliance gap.
 - Fresh hard-case gold labels for an uncontaminated test of evaluator
   advantages on new refuse-then-comply responses.
 - Field-level audit of CSV2 v3 ordinal components (C, S, V, T) against
@@ -710,9 +794,11 @@ We summarize the measurement findings by their epistemic status.
 In this setting, measurement choices were not clerical details; they changed
 what the project would have concluded about whether an intervention worked.
 A 256-token generation cap would have hidden the harmful payload.
-Binary scoring would have returned a null result. A single evaluator---any of
-the four we tested---would have left the construct-sensitivity of the
-conclusion invisible. And a schema mismatch in four lines of pipeline code
+Binary scoring would have returned a null result, and an ordinal evaluator
+that stopped at the binary level would have missed a dose-response that lives
+at severity rather than at the harmful/safe boundary. A single
+evaluator---any of the four we tested---would have left the
+construct-sensitivity of the conclusion invisible. And a schema mismatch in four lines of pipeline code
 would have reversed the triage verdict. Each of these measurement decisions
 interacts with intervention-altered response structure: longer refusal
 preambles, graded compliance, and evaluator-specific operationalizations of
@@ -735,7 +821,7 @@ The four stages — **measurement**, **localization**, **control**, and **extern
 
 - **Localization → Control.** A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843), yet in the committed full-replacement FaithEval comparison they did not translate into useful control while H-neurons did (§4.2). Probe-ranked attention heads achieved perfect discrimination (AUROC 1.0) yet null intervention on jailbreak (§4.3). The localization-to-control transition broke even under conditions designed to give the readout every advantage.
 
-- **Control → Externality.** An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-5.8$ pp [$-8.8$, $-3.0$] on the TriviaQA bridge test set ($n = 500$, CI excludes zero), with the dominant failure mode being substitution of wrong entities rather than refusal or abstention (§5.3). H-neurons improved compliance on FaithEval (+4.5 pp above no-op) but produced a null effect on BioASQ factoid QA (§5.1).
+- **Control → Externality.** An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-5.8$ pp [$-8.8$, $-3.0$] on the TriviaQA bridge test set ($n = 500$, CI excludes zero), with the most frequent manually diagnosed failure mode being substitution of wrong entities rather than refusal or abstention (§5.3). H-neurons improved compliance on FaithEval (+4.5 pp above no-op) but produced a null effect on BioASQ factoid QA (§5.1).
 
 Each stage transition is a distinct empirical claim. Passing one does not license claims about the next.
 

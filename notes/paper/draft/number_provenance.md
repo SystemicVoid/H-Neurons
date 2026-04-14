@@ -84,6 +84,29 @@ Every key quantitative claim in the paper traced to its canonical source.
 | Slope difference | +2.77 pp/α | [+1.17, +4.42] | same §2 |
 | Permutation p-value | 0.013 | — | same §2 |
 
+### V2-V3 Paired Comparison (§6.2) — source: `notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md`
+
+| Claim | Value | CI | Source File |
+|---|---|---|---|
+| v3 harmful_binary slope (H-neuron) | +0.46 pp/α | [-1.46, +2.41] | v2-v3 comparison §3.1 |
+| Slope compression | 80% (2.30 → 0.46) | — | v2-v3 comparison §4.1 (note: source report says "88%" but the arithmetic from reported slopes is (2.30−0.46)/2.30 = 80%) |
+| v3 substantive_compliance slope (H-neuron) | +2.00 pp/α | [+0.11, +3.87] | v2-v3 comparison §3.3 |
+| v3 substantive_compliance slope (seed-1 control) | -0.72 pp/α | [-2.58, +1.19] | v2-v3 comparison §7.2 |
+| Severity-shift gap (H minus ctrl) | +2.72 pp/α | [+0.02, +5.44] | v2-v3 comparison §3.3 |
+| v3 harmful_binary slope (seed-1 control) | -0.34 pp/α | [-2.28, +1.61] | v2-v3 comparison §7.1 |
+| Error attrition worst-case bounds | [0.36, 0.50] pp/α | — | v2-v3 comparison §6 |
+| Partial→substantive shift (α=0→3) | +6.1 pp | — | v2-v3 comparison §5.1 |
+
+### StrongREJECT GPT-4o Upgrade (§6.3) — source: `notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md`
+
+| Claim | Value | CI | Source File |
+|---|---|---|---|
+| SR gpt-4o accuracy | 78.4% | [67.7, 86.2] | cleanup §3.2 |
+| SR gpt-4o-mini accuracy (prior) | 74.3% | [63.3, 82.9] | 4-way comparison §0 |
+| Holdout gap after upgrade | 0.0 pp | — | cleanup §3.4 |
+| FNs recovered by model upgrade | 3 of 19 | — | cleanup §3.2 |
+| Persistent FNs | 16 (all refused=1) | — | cleanup §3.3 |
+
 ## Evaluator Comparison (§6.3)
 
 | Claim | Value | CI | Source File |
