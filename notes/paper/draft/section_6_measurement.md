@@ -2,7 +2,8 @@
 
 <!-- Anchor 3 of the four-stage scaffold: Measurement → Conclusion break.
      Source files (canonical for all numbers):
-       notes/act3-reports/2026-04-08-d7-full500-audit.md
+       notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md
+       notes/act3-reports/2026-04-08-d7-full500-audit.md  (historical provenance)
        notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md
        notes/act3-reports/2026-04-12-4way-evaluator-comparison.md
        notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md
@@ -51,13 +52,16 @@ an artifact of degeneration: 74\% of gradient-ranked responses and 82\% of probe
 responses hit the 5000-token cap at that strength, and the greedy decode's
 1024-token truncation had hidden the degenerate text
 (source: `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md`, Section 5).
-Second, the full-generation confirmatory run ($n{=}500$) found 112/500
-(22.4\%) of causal responses hitting the token cap at $\alpha{=}4.0$, but
-these cap-hit responses were overwhelmingly safe: 97/112 were scored safe
-rather than strictly harmful, with mean harmful payload share of 0.0192
-(source: `notes/act3-reports/2026-04-08-d7-full500-audit.md`, Section 4.2).
-The causal safety effect survived restriction to the non-cap subset:
-$-9.8$ pp $[-13.7, -5.9]$.
+Second, the live current-state full-500 selector audit still shows visible
+token-cap debt on the causal branch: 112/500 (22.4\%) responses hit the
+5000-token cap at $\alpha{=}4.0$ (source:
+`notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md`,
+Sections 0 and 3.1). The historical April 8 audit remains the provenance
+source for the cap-hit breakdown: among those 112 rows, 97 were scored safe
+rather than strictly harmful, with mean harmful payload share 0.0192, and
+the causal safety effect survived restriction to the non-cap subset at
+$-9.8$ pp $[-13.7, -5.9]$ (source:
+`notes/act3-reports/2026-04-08-d7-full500-audit.md`, Section 4.2).
 
 The truncation artifact is not exotic. Any intervention that alters
 generation length---through refusal elaboration, repetitive hedging, or

@@ -1,0 +1,55 @@
+{
+  "sources": [
+    {
+      "path": "front_matter.md"
+    },
+    {
+      "path": "abstract.md",
+      "expected_heading": "# Abstract"
+    },
+    {
+      "path": "section_1_introduction.md",
+      "expected_heading": "# 1. Introduction"
+    },
+    {
+      "path": "section_2_scope_constructs.md",
+      "expected_heading": "# 2. Scope, Constructs, and Evaluation Contract"
+    },
+    {
+      "path": "section_3_related_work.md",
+      "expected_heading": "# 3. Related Work and Novelty Boundary"
+    },
+    {
+      "path": "section_4_case_study_I.md",
+      "expected_heading": "# 4. Case Study I: From Localization to Control"
+    },
+    {
+      "path": "section_5_case_study_II.md",
+      "expected_heading": "# 5. Case Study II — Control Is Surface-Local and Can Externalize"
+    },
+    {
+      "path": "section_6_measurement.md",
+      "expected_heading": "# 6. Measurement Choices Changed the Scientific Conclusion"
+    },
+    {
+      "path": "section_7_synthesis.md",
+      "expected_heading": "# 7. Synthesis — A Four-Stage Audit Framework for Intervention Claims"
+    },
+    {
+      "path": "section_8_limitations.md",
+      "expected_heading": "# 8. Limitations and External Validity"
+    },
+    {
+      "path": "section_9_conclusion.md",
+      "expected_heading": "# 9. Conclusion"
+    },
+    {
+      "path": "references.md",
+      "expected_heading": "# References"
+    },
+    {
+      "path": "appendix.md",
+      "expected_heading": "# Appendix"
+    }
+  ]
+}

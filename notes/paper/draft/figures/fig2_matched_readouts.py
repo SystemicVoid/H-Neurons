@@ -9,8 +9,9 @@ Panel A: Detection quality (AUROC) for three methods.
 Panel B: FaithEval compliance dose-response for H-neurons vs SAE features
          vs random SAE feature control, annotated with the paired
          neuron-minus-SAE slope difference.
-Panel C: Jailbreak strict harmfulness rates on the current full-500 D7
-         panel for baseline vs random-head vs probe-head vs causal-head ITI.
+Panel C: Jailbreak strict harmfulness rates on the normalized full-500
+         panel for baseline vs matched-random, probe-selected, and
+         gradient-selected head interventions.
 
 Data sources (all real, loaded from repo JSON):
   - data/gemma3_4b/pipeline/classifier_disjoint_summary.json
@@ -145,7 +146,7 @@ def load_all_data() -> dict:
     data["fe_slope_diff_ci"] = fe_sae_slope_diff["slope_difference_pp_per_alpha"]["ci"]
 
     # ------------------------------------------------------------------
-    # Panel C: Jailbreak D7 full-500
+    # Panel C: Full-500 jailbreak comparator panel
     # ------------------------------------------------------------------
     d7 = load_json(
         "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json"
@@ -165,7 +166,7 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
     methods = [
         "H-neurons\n(38 neurons)",
         "SAE features\n(266 features)",
-        "Probe heads\n(D7, top-20)",
+        "Probe heads\n(jailbreak, top-20)",
     ]
     aurocs = [
         data["auroc_hneuron"],
@@ -402,10 +403,10 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Panel C: Jailbreak D7 -- full-500 confirmatory results
+# Panel C: Full-500 jailbreak comparator results
 # ---------------------------------------------------------------------------
 def draw_panel_c(ax: plt.Axes, data: dict) -> None:
-    """Bar chart of current-state D7 strict harmfulness for four selector rows."""
+    """Bar chart of strict harmfulness on the normalized full-500 jailbreak panel."""
     conditions = data["d7_conditions"]
     paired = data["d7_paired"]
 
@@ -429,9 +430,9 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
     # Paper-facing names
     display_names = {
         "baseline": "Baseline\n(no-op)",
-        "random_layer_seed1": "Random-head\nITI (\u03b1=4)",
-        "probe": "Probe-head\nITI (\u03b1=1)",
-        "causal": "Causal-head\nITI (\u03b1=4)",
+        "random_layer_seed1": "Matched random\nheads (\u03b1=4)",
+        "probe": "Probe-selected\nheads (\u03b1=1)",
+        "causal": "Gradient-selected\nheads (\u03b1=4)",
     }
     labels = [display_names.get(n, n) for n in names_raw]
     fill_colors = [C_RANDOM_FILL, "#F6EEE8", C_SAE_FILL, C_HNEURON_FILL]
@@ -531,7 +532,7 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
     ax.text(
         0.03,
         0.97,
-        f"causal vs probe = {-direct['estimate_pp']:.1f} pp\n"
+        f"gradient vs probe = {-direct['estimate_pp']:.1f} pp\n"
         f"95% CI [{-direct['ci_pp']['upper']:.1f}, {-direct['ci_pp']['lower']:.1f}]",
         transform=ax.transAxes,
         ha="left",
@@ -552,7 +553,7 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
     )
 
     ax.set_ylabel(
-        "Strict harmfulness rate (%)\n(normalized current-state panel, n=500)",
+        "Strict harmfulness rate (%)\n(normalized full-500 panel, n=500)",
         fontsize=9.5,
         fontweight="bold",
     )

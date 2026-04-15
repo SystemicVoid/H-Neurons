@@ -1,3 +1,9 @@
+<!--
+Generated file: do not edit directly.
+Edit notes/paper/draft source shards and rebuild with:
+  uv run python scripts/build_full_paper.py
+-->
+
 # Finding the Signal, Losing the Wheel: The Paradox of Internal Readouts in Gemma-3-4B-IT
 
 *A staged audit of measurement, localization, control, and externality in mechanistic intervention research.*
@@ -9,8 +15,6 @@ Hugo Nguyen
 # Abstract
 
 Predictive internal signals are often treated as natural targets for steering large language models, but prior work leaves open how reliable this heuristic is across target types, evaluation surfaces, and measurement choices. We study this question in Gemma-3-4B-IT by comparing multiple intervention families — neuron scaling, sparse autoencoder feature steering, inference-time intervention, and gradient-based causal head selection — under a common reporting standard that distinguishes promoted claims from qualified supporting evidence across contextual faithfulness, answer selection, open-ended factual generation, and jailbreak settings. We find repeated dissociations between four stages that are routinely conflated: *measurement* (truncation and evaluator choices changed the apparent intervention conclusion), *localization* (matched or even perfect readout quality failed to predict steering utility — in our FaithEval anchor comparison, SAE features with AUROC 0.848 did not translate into useful control under the committed full-replacement SAE intervention, while H-neurons with AUROC 0.843 produced a compliance dose-response of +2.1 pp/$\alpha$ [1.4, 2.8] and a paired neuron-minus-SAE slope difference of +1.9 pp/$\alpha$ with CI excluding zero; probe-ranked heads with AUROC 1.0 produced null intervention), *control* (interventions that worked did so on narrow home surfaces — H-neurons improved compliance on FaithEval but not BioASQ), and *externality* (ITI improved constrained answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-5.8$ pp [$-8.8$, $-3.0$] on a locked TriviaQA bridge test set ($n = 500$, CI excludes zero), where the most frequent manually diagnosed failure mode was substitution of semantically nearby wrong entities). We organize these results into a four-stage audit framework and argue that strong readouts are insufficient evidence for good steering targets: credible mechanistic intervention claims require stage-specific validation of measurement, localization, control, and externality.
-
-
 
 ---
 
@@ -38,9 +42,6 @@ Figure 1 shows the four-stage scaffold and places the paper's three anchor case 
 *Figure 1. The paper's three anchor case studies map onto failures at the measurement→localization, localization→control, and control→externality transitions.*
 
 **Contributions.** (1) A cross-method empirical dissociation between readout quality and steering utility, centered on a matched-detection comparison between magnitude-ranked neurons and SAE features on FaithEval and supplemented by a selector-level contrast on jailbreak. (2) An externality analysis showing that steering gains on answer-selection benchmarks do not transfer to open-ended generation, with a specific failure-mode diagnosis (wrong-entity substitution). (3) A staged audit framework and checklist for evaluating the credibility of mechanistic intervention claims.
-
-
----
 
 # 2. Scope, Constructs, and Evaluation Contract
 
@@ -120,7 +121,7 @@ The following claims are supported by the strongest evidence in this study and c
 
 ### Qualified claims (valid with explicit caveats)
 
-- Gradient-based causal selection identified different intervention targets than probe-based selection, with large behavioral divergence on jailbreak. *Caveat: the clean pilot result is benchmark-local, and the newer full-500 panel is mixed-ruler rather than mechanism-clean.* <!-- Pilot + current-state full-500 selector comparison; Jaccard 0.11 -->
+- Gradient-based causal selection identified different intervention targets than probe-based selection, with large behavioral divergence on jailbreak. *Caveat: the clean pilot result is benchmark-local, and the current full-500 selector-comparison panel remains mixed-ruler, single-seed on the random branch, and error-bearing on the non-causal comparators rather than mechanism-clean.* <!-- Pilot + current-state full-500 selector comparison; Jaccard 0.11 -->
 - H-neuron specificity on jailbreak is supported at single-seed strength. *Caveat: slope difference +2.77 pp/$\alpha$ [1.17, 4.42], $p = 0.013$; seeds 1–2 pending.* <!-- Seed-0 control audit -->
 - A structured evaluator calibrated for refuse-then-comply patterns achieved higher accuracy than alternatives on a dev set of jailbreak outputs from this intervention regime. *Caveat: holdout validation compressed the apparent advantage from 12.2 pp to 2.0 pp (not significant); 24 of 74 dev-set records overlap with calibration data; judge-model confound not yet removed.* <!-- 4-way evaluator comparison + holdout validation -->
 - The v3 ordinal evaluator revealed a **severity-level dose-response** — substantive compliance increased with scaling ($+2.00$ pp/$\alpha$ $[+0.11, +3.87]$) — that was invisible at the binary level. *Caveat: single-seed result; severity-shift gap CI lower bound barely excludes zero ($+0.02$); replication with additional control seeds pending.* <!-- v2-v3 paired comparison §§3.3, 5, 7 -->
@@ -129,15 +130,12 @@ The following claims are supported by the strongest evidence in this study and c
 
 - We do not claim that detectors fail as a class. H-neurons are detector-selected targets that work on compliance surfaces.
 - We do not claim that SAEs are poor steering mediators in general. We tested one configuration on one benchmark.
-- We do not claim that causal selectors outperform correlational selectors in general. The current D7 evidence is still mixed-ruler and not mechanism-clean enough for that.
+- We do not claim that causal selectors outperform correlational selectors in general. The current jailbreak selector-comparison evidence is still mixed-ruler and not mechanism-clean enough for that.
 - We do not claim that evaluator dependence is a novel discovery. We claim that evaluator choices changed the conclusion in this specific mechanistic intervention setting.
 - We do not claim that these findings generalize beyond Gemma-3-4B-IT. The model name is in the title for this reason.
 - We do not claim that CSV-v3 is a broadly validated evaluator, or that it clearly outperforms StrongREJECT outside this specific response regime.
 - We do not claim that ITI improved truthful generation. ITI improved answer selection; it harmed generation on every tested surface.
 - We do not claim that probe-selected components are non-causal. We show they do not steer behavior in our setting, not that they lack causal function.
-
-
----
 
 # 3. Related Work and Novelty Boundary
 
@@ -175,19 +173,16 @@ The paper sits at the intersection of four threads that have not previously been
 
 **Positive counterexamples are part of our claim, not an exception to it.** Some detector- or direction-selected interventions work remarkably well. Arditi et al. (2024) showed that refusal in chat models is mediated by a single direction that reliably modulates refusal behavior. Gao et al. (2025) showed that an extremely sparse neuron subset ($<$0.1\% of total neurons) can both detect hallucination and causally modulate over-compliance. Nguyen et al. (2025) showed that multi-attribute targeted intervention can outperform standard ITI baselines in settings where uniform steering creates attribute conflicts. These successes do not undermine the concern — they sharpen it. The question is not whether readouts ever identify useful targets, but whether readout quality alone is sufficient evidence that a target will be useful. The case study in the following sections shows that it is not.
 
-
----
-
 # 4. Case Study I: From Localization to Control
 
 This section presents the paper's core empirical contribution: across two intervention families and two evaluation surfaces in Gemma-3-4B-IT, strong or even perfect predictive readouts did not reliably identify useful steering targets. The failure was not the absence of signal, but the unreliability of signal quality as a target-selection heuristic.
 
-We organize the evidence from cleanest to most informative. Section 4.1 establishes that the readouts under study are genuine held-out signals, not strawmen. Section 4.2 presents the sharpest single experiment: matched detection quality between magnitude-ranked neurons and SAE features, with divergent steering outcomes. Section 4.3 presents the cleanest selector-level contrast: on the pilot jailbreak run, perfect probe-head discrimination yields zero intervention effect while a gradient-ranked selector produces a significant reduction in harmfulness. Section 4.4 then updates that selector story with the newer full-500 D7 current-state panel, where causal remains the strongest completed branch but only under mixed-ruler, explicitly caveated conditions.
+We organize the evidence from cleanest to most informative. Section 4.1 establishes that the readouts under study are genuine held-out signals, not strawmen. Section 4.2 presents the sharpest single experiment: matched detection quality between magnitude-ranked neurons and SAE features, with divergent steering outcomes. Section 4.3 presents the cleanest selector-level contrast: on the pilot jailbreak run, perfect probe-head discrimination yields zero intervention effect while a gradient-ranked selector produces a significant reduction in harmfulness. Section 4.4 then updates that selector story with the newer full-500 jailbreak panel, where gradient-ranked selection remains the strongest completed branch but only as benchmark-local, mixed-ruler supporting evidence rather than mechanism-clean closure.
 
 Figure 2 shows the two strongest control dissociations side by side: matched H-neuron/SAE detection on FaithEval with divergent steering, and a jailbreak selector contrast where changing the selector changes the outcome.
 
 ![Figure 2. Matched readouts, divergent control.](figures/fig2_matched_readouts.png)
-*Figure 2. Panel A shows matched detection quality; Panel B shows neuron steering rising while SAE steering stays flat relative to SAE-random controls; Panel C shows the current full-500 selector comparison on jailbreak, where causal is strongest but the panel remains mixed-ruler.*
+*Figure 2. Panel A shows matched detection quality; Panel B shows neuron steering rising while SAE steering stays flat relative to SAE-random controls; Panel C shows the current full-500 jailbreak selector comparison, where gradient-ranked selection is strongest but the panel remains mixed-ruler.*
 
 ## 4.1 The Readouts Are Real
 
@@ -285,13 +280,13 @@ Both interventions operate at the attention-head level using Inference-Time Inte
 
 **Gradient-ranked selection.** Each head was scored by the mean absolute gradient of the model's refusal probability with respect to a rank-1 approximation of the head's output, computed on the same harmful/benign contrast set. This is a causal criterion: it measures how much perturbing each head's output changes the model's tendency to refuse, rather than how well the head's activations predict the behavioral label.[^fn-causal-metadata]
 
-**Evaluation.** Both selectors were tested at matched intervention strength ($k = 20$ heads). The cleanest selector-to-selector comparison comes from the pilot ($n = 100$), where both probe-ranked and gradient-ranked heads were swept across $\alpha \in \{0.0, 1.0, 2.0, 4.0, 8.0\}$ under the same evaluation stack. The primary metric there was strict harmfulness rate: the proportion of responses judged as unambiguously harmful under CSV-v2 graded severity scoring (Bhalla et al., 2024).[^fn-d7-pilot] The newer full-500 D7 evidence is handled separately in Section 4.4 because the completed current-state panel is informative but mixed-ruler: legacy L1 and causal were reported on the April 8 panel, while probe and layer-matched random were later added under a normalized current-state summary.[^fn-d7-full500]
+**Evaluation.** Both selectors were tested at matched intervention strength ($k = 20$ heads). The cleanest selector-to-selector comparison comes from the pilot ($n = 100$), where both probe-ranked and gradient-ranked heads were swept across $\alpha \in \{0.0, 1.0, 2.0, 4.0, 8.0\}$ under the same evaluation stack. The primary metric there was strict harmfulness rate: the proportion of responses judged as unambiguously harmful under CSV-v2 graded severity scoring (Bhalla et al., 2024).[^fn-d7-pilot] The newer full-500 jailbreak evidence is handled separately in Section 4.4 because the completed current-state panel is informative but mixed-ruler: legacy L1 and causal were reported on the April 8 panel, while probe and layer-matched random were later added under a normalized current-state summary.[^fn-d7-full500]
 
 ### Results
 
 **Probe-ranked heads: null at every alpha.** On the pilot, the best probe intervention produced a $-2$ pp change in strict harmfulness rate $[-10, +6]$ (paired bootstrap 95% CI, $n = 100$). At $\alpha = 8.0$, the probe intervention *increased* harmful compliance by $+6$ pp (from 30 to 36 strictly harmful responses, with $+12$ pp $[+3, +21]$ on binary judge compliance), accompanied by 82\% of responses hitting the 5,000-token generation cap — consistent with model degeneration rather than genuine behavioral change.[^fn-d7-pilot]
 
-**Gradient-ranked heads: significant harm reduction on the matched pilot.** On the same pilot, the gradient-ranked selector at $\alpha = 4.0$ reduced strict harmfulness by $-13$ pp $[-21, -6]$ (paired bootstrap 95% CI, $n = 100$). This is the cleanest apples-to-apples selector result in the D7 family because both selectors were evaluated on the same sample, alpha grid, and ruler.[^fn-d7-pilot]
+**Gradient-ranked heads: significant harm reduction on the matched pilot.** On the same pilot, the gradient-ranked selector at $\alpha = 4.0$ reduced strict harmfulness by $-13$ pp $[-21, -6]$ (paired bootstrap 95% CI, $n = 100$). This is the cleanest apples-to-apples selector result in this jailbreak comparison because both selectors were evaluated on the same sample, alpha grid, and ruler.[^fn-d7-pilot]
 
 **The two selectors identified fundamentally different heads.** Jaccard similarity between the probe-ranked and gradient-ranked top-20 sets was $0.11$: only 4 heads overlapped out of 36 unique heads. The gradient-ranked selector concentrated in layer 5 (4 heads) and selected late-layer heads (layers 27--28), while the probe selector concentrated in layers 4 and 9 with high AUROC ($0.87$--$1.0$) but no gradient signal.[^fn-d7-pilot]
 
@@ -317,19 +312,19 @@ The result is consistent with a distinction between components that *encode* a b
 [^fn-d7-pilot]: `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md`; probe results from pilot ($n = 100$), 5 alphas.
 [^fn-d7-full500]: Canonical current-state audit: `notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md`; machine-readable summary: `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json`. Historical April 8 legacy-ruler provenance remains in `notes/act3-reports/2026-04-08-d7-full500-audit.md`.
 
-## 4.4 Gradient-Based Selection as Supporting Comparator
+## 4.4 Gradient-Based Selection as a Supporting Comparator
 
-The gradient-ranked result in Section 4.3 demonstrates that an alternative selection criterion can produce significant behavioral change where probe-based selection failed on the matched pilot. The newer full-500 D7 current-state audit strengthens the practical comparator story while also adding new sources of uncertainty. This makes the result valuable as supporting evidence, but still not strong enough to carry a clean standalone claim about selector-specific causality.
+The gradient-ranked result in Section 4.3 demonstrates that an alternative selection criterion can produce significant behavioral change where probe-based selection failed on the matched pilot. The newer full-500 jailbreak audit extends that comparator story in the same direction, but only with additional uncertainty. We therefore treat it as benchmark-local supporting evidence, not as a clean standalone claim that gradient-based selection resolves the selector question.
 
-**Caveat 1: The full-500 panel is mixed-ruler, not mechanism-clean.** The old April 8 caveat was "random-head control missing." That specific objection is now obsolete: the current-state D7 audit includes both a layer-matched random-head seed and a completed full-500 probe branch. But the replacement is not a clean selector-specificity panel. The historical April 8 legacy-ruler panel reported baseline $23.4\%$, L1 $27.4\%$, and causal $14.4\%$ strict harmfulness. The newer normalized current-state panel reports baseline $51.6\%$, L1 $46.8\%$, random $37.2\%$, probe $34.8\%$, and causal $24.8\%$. On that normalized panel, causal remains the strongest completed branch, beating probe by $10.0$ pp $[6.2, 14.0]$ and random by $12.4$ pp $[8.0, 16.8]$.[^fn-d7-full500] But because the branches do not all share the same ruler history, this is supporting mixed-ruler evidence rather than clean selector-specific proof.
+**Caveat 1: The full-500 panel is mixed-ruler, not mechanism-clean.** The old April 8 caveat was "random-head control missing." That specific objection is now obsolete: the current-state audit now includes both a layer-matched random-head seed and a completed full-500 probe branch. But the replacement is still not a clean selector-specificity panel. The historical April 8 legacy-ruler panel reported baseline $23.4\%$, L1 $27.4\%$, and causal $14.4\%$ strict harmfulness. The newer normalized current-state panel reports baseline $51.6\%$, L1 $46.8\%$, random $37.2\%$, probe $34.8\%$, and causal $24.8\%$. On that normalized panel, causal remains the strongest completed branch, beating probe by $10.0$ pp $[6.2, 14.0]$ and random by $12.4$ pp $[8.0, 16.8]$.[^fn-d7-full500] But because the branches do not all share the same ruler history, this remains mixed-ruler supporting evidence rather than clean selector-specific proof.
 
-**Caveat 2: Probe and random are now present at full scale, but both are error-bearing.** The current-state audit identified explicit CSV2 span-validation errors in both added branches: 8 for the layer-matched random seed and 12 for the probe branch. Clean-row sensitivity analysis did not reverse the rank ordering, which is reassuring, but these are still not pristine evaluator outputs. The pilot probe-null therefore remains the cleanest evidence that the AUROC-ranked selector can fail even when the intervention family itself is capable.[^fn-d7-pilot][^fn-d7-full500]
+**Caveat 2: Probe and random are now present at full scale, but both are error-bearing.** The current-state audit identified explicit graded-rubric span-validation errors in both added branches: 8 for the layer-matched random seed and 12 for the probe branch. Clean-row sensitivity analysis did not reverse the rank ordering, which is reassuring, but these are still not pristine evaluator outputs. The pilot probe-null therefore remains the cleanest evidence that the AUROC-ranked selector can fail even when the intervention family itself is capable.[^fn-d7-pilot][^fn-d7-full500]
 
 **Caveat 3: Model degeneration and benchmark locality remain visible.** At $\alpha = 4.0$, 112 of 500 gradient-ranked responses (22.4%) hit the 5,000-token generation cap, compared to 0% at baseline. The current-state audit judged this more consistent with verbose refusal drift than with hidden harmfulness, but it is still real quality debt that must be reported alongside the safety gain.[^fn-d7-full500] And the gradient-ranked intervention remains benchmark-local: it has been tested only on JailbreakBench, not on other behavioral surfaces such as factual accuracy or instruction following.
 
-**What the comparator does establish.** Despite these caveats, the D7 evidence serves two roles in the paper's argument. First, it confirms that the probe-null is not an artifact of the ITI intervention family being inherently incapable on this benchmark: the same intervention architecture, applied to different heads, produced a significant effect on the pilot and remained the strongest completed branch on the current full-500 normalized panel. Second, the low Jaccard overlap (0.11) between selectors demonstrates that the two ranking criteria surface genuinely different model components — the behavioral divergence follows from a component-selection divergence, not from a superficial implementation difference.
+**What the comparator does establish.** Despite these caveats, the jailbreak comparator evidence serves two roles in the paper's argument. First, it confirms that the probe-null is not an artifact of the ITI intervention family being inherently incapable on this benchmark: the same intervention architecture, applied to different heads, produced a significant effect on the pilot and remained the strongest completed branch on the current full-500 normalized panel. Second, the low Jaccard overlap (0.11) between selectors demonstrates that the two ranking criteria surface genuinely different model components — the behavioral divergence follows from a component-selection divergence, not from a superficial implementation difference.
 
-For the purpose of this paper's thesis, the gradient-ranked result functions as an existence proof: on this benchmark and generation surface, a causally motivated selection criterion identified targets that a discriminative criterion missed. We do not claim that gradient-based selection is universally superior; the current full-500 evidence is still mixed-ruler and not mechanism-clean enough for that.
+For the purpose of this paper's thesis, the gradient-ranked result functions as an existence proof: on this benchmark and generation surface, a causally motivated selection criterion identified targets that a discriminative criterion missed. We do not claim that gradient-based selection is universally superior, or that this benchmark-local comparator closes the mechanism question; the current full-500 evidence is still mixed-ruler and not mechanism-clean enough for that.
 
 ## 4.5 Synthesis
 
@@ -349,9 +344,6 @@ Second, the failures were not caused by the absence of signal — they were caus
 The positive counterexample is important: magnitude-ranked neurons *did* steer FaithEval compliance ($+4.5$ pp $[2.9, 6.1]$ above the no-op baseline at $\alpha = 3.0$; slope $+2.09$ pp/$\alpha$), with specificity confirmed against 8 random-neuron seeds. The thesis is not that detection-based targets never work. It is that detection quality alone is an unreliable heuristic for identifying when they will.
 
 [^fn-asym]: The clean pilot selector comparison is matched within $n = 100$. The later full-500 comparison is not a formal paired slope-difference design because it combines historical and current-state panels with different ruler histories. The inferential contrast therefore rests on one result being a clean pilot null and the later full-500 panel remaining directionally consistent but more caveated.
-
-
----
 
 # 5. Case Study II — Control Is Surface-Local and Can Externalize
 
@@ -423,15 +415,12 @@ The H-neuron scope boundary reinforces the same lesson from a different directio
 
 We use "wrong-entity substitution" as a behavioral diagnosis, not as a claim about the internal circuit mechanism.
 
-
----
-
 # 6. Measurement Choices Changed the Scientific Conclusion
 
 <!-- Anchor 3 of the four-stage scaffold: Measurement → Conclusion break.
      Source files (canonical for all numbers):
        notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md
-       notes/act3-reports/2026-04-08-d7-full500-audit.md
+       notes/act3-reports/2026-04-08-d7-full500-audit.md  (historical provenance)
        notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md
        notes/act3-reports/2026-04-12-4way-evaluator-comparison.md
        notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md
@@ -480,13 +469,16 @@ an artifact of degeneration: 74\% of gradient-ranked responses and 82\% of probe
 responses hit the 5000-token cap at that strength, and the greedy decode's
 1024-token truncation had hidden the degenerate text
 (source: `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md`, Section 5).
-Second, the historical full-generation confirmatory run ($n{=}500$) found 112/500
-(22.4\%) of causal responses hitting the token cap at $\alpha{=}4.0$, but
-these cap-hit responses were overwhelmingly safe: 97/112 were scored safe
-rather than strictly harmful, with mean harmful payload share of 0.0192
-(source: historical legacy-ruler audit `notes/act3-reports/2026-04-08-d7-full500-audit.md`, Section 4.2).
-The causal safety effect survived restriction to the non-cap subset:
-$-9.8$ pp $[-13.7, -5.9]$.
+Second, the live current-state full-500 selector audit still shows visible
+token-cap debt on the causal branch: 112/500 (22.4\%) responses hit the
+5000-token cap at $\alpha{=}4.0$ (source:
+`notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md`,
+Sections 0 and 3.1). The historical April 8 audit remains the provenance
+source for the cap-hit breakdown: among those 112 rows, 97 were scored safe
+rather than strictly harmful, with mean harmful payload share 0.0192, and
+the causal safety effect survived restriction to the non-cap subset at
+$-9.8$ pp $[-13.7, -5.9]$ (source:
+`notes/act3-reports/2026-04-08-d7-full500-audit.md`, Section 4.2).
 
 The truncation artifact is not exotic. Any intervention that alters
 generation length---through refusal elaboration, repetitive hedging, or
@@ -808,9 +800,6 @@ preambles, graded compliance, and evaluator-specific operationalizations of
 intervention reshapes model behavior. For intervention research that aims to
 make safety claims, the measurement stack is part of the result.
 
-
----
-
 # 7. Synthesis — A Four-Stage Audit Framework for Intervention Claims
 
 The preceding case studies demonstrated repeated dissociations between stages that are often treated as a single inferential step: matched readouts diverged from steering outcomes (§4), successful steering did not transfer across evaluation surfaces (§5), and measurement choices materially altered the apparent conclusion (§6). These failures share a common structure: each occurs at a transition between adjacent empirical stages. We synthesize these observations into five practical recommendations and a compact checklist for evaluating mechanistic intervention claims.
@@ -838,7 +827,7 @@ Readout quality — whether measured by AUROC, accuracy, or probe coefficient ma
 Answer-selection benchmarks and open-ended generation benchmarks measure different constructs, and intervention effects do not transfer reliably between them (§5.2–5.3). If the goal is to improve factual generation, evaluate on a factual generation benchmark. If the goal is to reduce harmful compliance, evaluate on graded harmful-compliance metrics, not binary proxies (§6.2). Match the evaluation surface to the deployment-relevant behavior.
 
 **Recommendation 3: Use matched negative controls when selecting from many comparable components.**
-With hundreds of thousands of neurons, thousands of SAE features, or hundreds of attention heads to choose from, post-hoc selection creates a multiple-comparisons problem. Multi-seed random-neuron controls (as used for H-neuron FaithEval specificity) or random-direction baselines are necessary to establish that the observed effect is component-specific rather than a generic perturbation artifact. When controls are absent, the claim should be marked as provisional (as with our gradient-based causal intervention in §4.4).
+With hundreds of thousands of neurons, thousands of SAE features, or hundreds of attention heads to choose from, post-hoc selection creates a multiple-comparisons problem. Multi-seed random-neuron controls (as used for H-neuron FaithEval specificity) or random-direction baselines are necessary to establish that the observed effect is component-specific rather than a generic perturbation artifact. Partial controls still matter, but they do not close the question on their own: in our jailbreak selector comparison (§4.4), the layer-matched random branch and full-500 probe branch are informative supporting evidence, yet the panel remains mixed-ruler, single-seed on the random branch, and error-bearing on the non-causal comparators, so the selector-specific claim stays provisional rather than headline-safe.
 
 **Recommendation 4: Treat evaluator disagreement as information when interventions alter style or refusal structure.**
 When an intervention changes the surface form of model outputs — for example, shifting from clean refusal to refuse-then-comply patterns — different evaluators may reach different conclusions about the same outputs. This is not noise; it reflects genuine construct mismatch (§6.3). Report evaluator agreement rates, use holdout validation to separate calibration artifacts from genuine performance differences, and do not rely on a single evaluation rubric for claims about interventions that alter output style.
@@ -875,9 +864,6 @@ span multiple gates, and the framework is validated here only by a single
 case study in Gemma-3-4B-IT. Its utility for other models and intervention
 families remains to be tested.
 
-
----
-
 # 8. Limitations and External Validity
 
 We organize limitations into three categories: those that constrain the thesis itself, those that constrain the scope of evidence behind it, and those that affect estimated effect sizes. Table 6 provides a compact summary; the paragraphs below contextualize the most consequential entries.
@@ -891,7 +877,7 @@ We organize limitations into three categories: those that constrain the thesis i
 | L3 | **H-neuron selection is a detector baseline, not a full reproduction.** We replicated the neuron-selection procedure of Gao et al. (2025) on Gemma-3-4B-IT, not their full experimental pipeline or model family. | H-neuron effect sizes and their comparability to the original work. | Scope | A full-pipeline replication is outside the scope of this paper; we treat H-neurons as a strong detector-selected baseline rather than claiming equivalence with the originating study. |
 | L4 | **SAE layer coverage is partial.** SAE feature steering was tested with one SAE width at a subset of available layers. | The SAE steering null (§4.2). A different SAE width, training procedure, or layer selection could yield non-null results. | Scope | Broader SAE sweep; the delta-only control rules out reconstruction noise as the explanation for the null, but does not rule out insufficient layer coverage. |
 | L5 | **Bridge failure-mode coding is single-rater.** The wrong-entity substitution taxonomy (§5.3) is based on single-rater manual classification of 43 R2W flips without inter-rater reliability. | Bridge failure-mode shares (the "dominant mode" claim is qualitative). | Scope | Blind independent coding of all 43 R2W flips by a second rater; report Cohen $\kappa$. |
-| L6 | **Gradient-based D7 evidence is still not mechanism-clean.** The updated full-500 D7 panel now includes probe and layer-matched random branches, but the comparison is mixed-ruler rather than fully matched, the probe/random branches contain explicit CSV2 errors, and the causal branch still has visible token-cap debt. | Selector specificity for the gradient-based result. The observed ordering supports a benchmark-local comparator claim, but it still cannot cleanly isolate component-specific causality. | Thesis (for selector-specificity sub-claim only) | Run or reconstruct a same-ruler D7 comparison with clean probe/random scoring and a minimal capability/over-refusal battery. This limitation is why §4.4 presents the result as supporting evidence with explicit caveats rather than a headline finding. |
+| L6 | **Gradient-based jailbreak selector evidence is still not mechanism-clean.** The updated full-500 selector-comparison panel now includes probe and layer-matched random branches, but the comparison is mixed-ruler rather than fully matched, the probe/random branches contain explicit CSV2 errors, and the causal branch still has visible token-cap debt. | Selector specificity for the gradient-based result. The observed ordering supports a benchmark-local comparator claim, but it still cannot cleanly isolate component-specific causality. | Thesis (for selector-specificity sub-claim only) | Run or reconstruct a same-ruler selector comparison with clean probe/random scoring and a minimal capability/over-refusal battery. This limitation is why §4.4 presents the result as supporting evidence with explicit caveats rather than a headline finding. |
 | L7 | **Jailbreak specificity is single-seed.** The random-neuron negative control for H-neuron jailbreak intervention has been confirmed on seed 0 ($p = 0.013$); seeds 1 and 2 are pending. | H-neuron jailbreak specificity. The effect may be less robust than the single-seed $p$-value suggests. | Effect size | Score seeds 1 and 2 against the same evaluator panel. FaithEval and FalseQA specificity are multi-seed and robust; jailbreak is the remaining single-seed surface. |
 | L8 | **Evaluator uncertainty remains live.** Holdout validation compressed the CSV-v3 advantage over StrongREJECT from 12.2 pp to 2.0 pp. All four evaluators exceed 90% agreement on the holdout, but the hard-tail cases where evaluators disagree most are precisely the intervention-altered outputs where accuracy matters most. StrongREJECT also uses GPT-4o-mini while the other evaluators use GPT-4o, so a judge-model confound remains entangled with formula differences. | Jailbreak effect-size estimates (§6); any claim about evaluator superiority. | Effect size | Multi-evaluator reporting with explicit disagreement analysis; a fresh hard-tail holdout to test calibration transfer; matched-model evaluator rerun to separate formula effects from judge-model effects. We report evaluator dependence as part of the scientific result (§6) rather than treating it as a resolved methods problem. |
 | L9 | **Answer-token confound audit is incomplete.** Not all benchmarks have been checked for position-based artifacts in answer-token extraction. | Any benchmark-specific effect size where unaudited answer extraction could inflate or deflate the intervention signal. | Effect size | Systematic position-artifact audit across all evaluation surfaces. |
@@ -910,12 +896,9 @@ The remaining limitations (L3--L9) constrain the precision or generality of indi
 
 The bridge externality result is now confirmed on the held-out test set ($n = 500$, CI excludes zero, McNemar $p = 0.0002$). The remaining limitation (L5) is that failure-mode coding is single-rater: 30 of 43 right-to-wrong flips were classified as wrong-entity substitution, but formal inter-rater reliability was not assessed. The qualitative pattern is stable across splits (50% dev $\rightarrow$ 70% test), but we treat the exact shares as approximate.
 
-The D7-specific limitation (L6) is now narrower and more subtle than it was in the April 8 audit. The crude "random-head control missing" criticism no longer applies: the current-state panel does include a layer-matched random branch and a completed full-500 probe branch. But that does not make the selector comparison clean. The current panel mixes ruler histories, carries explicit evaluator errors on the probe/random branches, and still shows 112/500 causal token-cap hits. That is why the paper treats D7 as benchmark-local supporting evidence rather than as a selector-specific flagship pillar.
+The jailbreak selector-comparison limitation (L6) is now narrower and more subtle than it was in the April 8 audit. The crude "random-head control missing" criticism no longer applies: the April 14 current-state panel does include a layer-matched random branch and a completed full-500 probe branch, while the April 8 audit remains historical provenance rather than the live source. But that does not make the selector comparison clean. The current panel mixes ruler histories, carries explicit evaluator errors on the probe/random branches, and still shows 112/500 causal token-cap hits. That is why the paper treats this result as benchmark-local supporting evidence rather than as a selector-specific flagship pillar.
 
 The evaluator-uncertainty limitation (L8) is by design part of the scientific contribution rather than a weakness we hope to resolve before submission. Our central claim in §6 is that evaluator choice materially affects intervention conclusions. The holdout compression of the CSV-v3 advantage demonstrates exactly this: an evaluator that appeared substantially better on the development set showed only a marginal edge on held-out data. We report multi-evaluator results throughout the jailbreak analysis and treat scorer disagreement as information. The limitation is that we cannot declare any single evaluator authoritative for intervention-altered outputs, which means our jailbreak effect-size estimates carry irreducible evaluator-dependent uncertainty. This uncertainty is partly conceptual and partly experimental: StrongREJECT's refusal-zeroing formula reflects a different measurement construct, and its use of GPT-4o-mini rather than GPT-4o means the formula effect is not perfectly separated from judge-model choice. We state this explicitly rather than resolving it by fiat.
-
-
----
 
 # 9. Conclusion
 
@@ -924,7 +907,6 @@ We tested a widespread heuristic in mechanistic intervention research — that f
 These findings do not imply that detection-based target selection never works. H-neurons, detector-selected through classification performance, produced clear compliance effects on multiple surfaces. The refusal direction literature demonstrates reliable single-axis steering. The thesis is *heuristic unreliability*, not impossibility: readout quality alone is insufficient for identifying good intervention targets, and the gap between readout quality and steering utility is large enough to invalidate the implicit assumption that one predicts the other.
 
 The four-stage audit framework — measurement, localization, control, externality — provides a practical decomposition for evaluating mechanistic intervention claims. Each stage is a distinct empirical gate with its own evidence requirements. Passing one gate does not license claims about the next. We hope this framework helps the field move from "we found a feature that predicts behavior $X$" toward "we have stage-specific evidence that intervening on this feature usefully changes behavior $X$, on the surfaces we care about, without unacceptable externalities."
-
 
 ---
 

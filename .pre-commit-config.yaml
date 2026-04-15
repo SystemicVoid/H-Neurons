@@ -31,3 +31,9 @@ repos:
         entry: uv run python scripts/audit_ci_coverage.py
         language: system
         pass_filenames: false
+
+      - id: build-full-paper-check
+        name: full paper build check
+        entry: uv run python scripts/build_full_paper.py --check
+        language: system
+        pass_filenames: false
