@@ -310,10 +310,12 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
     ax.text(
         0.02,
         0.98,
-        "Supporting comparator only\n"
-        + f"causal vs probe = {-probe_vs_causal['estimate_pp']:+.1f} pp "
+        "Supporting evidence only\n"
+        + "Included to show that selector choice matters\n"
+        + "within the JailbreakBench intervention family\n"
+        + f"gradient vs probe = {-probe_vs_causal['estimate_pp']:+.1f} pp "
         + f"[{-probe_vs_causal['ci_pp']['upper']:+.1f}, {-probe_vs_causal['ci_pp']['lower']:+.1f}]\n"
-        + f"causal vs random = {-rand_vs_causal['estimate_pp']:+.1f} pp "
+        + f"gradient vs random = {-rand_vs_causal['estimate_pp']:+.1f} pp "
         + f"[{-rand_vs_causal['ci_pp']['upper']:+.1f}, {-rand_vs_causal['ci_pp']['lower']:+.1f}]",
         transform=ax.transAxes,
         ha="left",
@@ -328,12 +330,12 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
     )
 
     ax.set_ylabel(
-        "Strict harmfulness rate (%)\n(full-500 panel with differing ruler histories)",
+        "Strict harmfulness rate (%)\n(full-500 comparison)",
         fontsize=9.5,
         fontweight="bold",
     )
     ax.set_title(
-        "C. Jailbreak selector comparator (supporting)",
+        "C. Jailbreak selector comparison (supporting)",
         fontsize=11,
         fontweight="bold",
         color=SUBTITLE_COLOR,

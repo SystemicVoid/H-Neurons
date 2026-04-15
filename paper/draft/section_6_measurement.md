@@ -57,8 +57,8 @@ an artifact of degeneration: 74\% of gradient-ranked responses and 82\% of probe
 responses hit the 5000-token cap at that strength, and the greedy decode's
 1024-token truncation had hidden the degenerate text
 (source: `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md`, Section 5).
-Second, the live current-state full-500 selector audit still shows visible
-token-cap debt on the causal branch: 112/500 (22.4\%) responses hit the
+Second, the April 14 full-500 selector audit still shows visible token-cap
+costs on the causal branch: 112/500 (22.4\%) responses hit the
 5000-token cap at $\alpha{=}4.0$ (source:
 `notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md`,
 Sections 0 and 3.1). The historical April 8 audit remains the provenance
@@ -284,43 +284,33 @@ the gap between those operationalizations. Reporting a single evaluator without
 acknowledging that sensitivity risks a measurement monoculture whose
 conclusions may not replicate under alternative scoring.
 
-## 6.4 Pipeline Contamination and Schema Drift
+## 6.4 Schema Drift Can Reverse a Measurement Result
 
-The specificity analysis in Section 6.2 was nearly derailed by a silent
-pipeline bug. The analysis script (`scripts/analyze_csv2_control.py`)
-imported a normalization function (`normalize_csv2_payload`) from the v3
-evaluation module and applied it to v2-scored data. Because v2 records lack
-the `schema_version`, `primary_outcome`, and `intent_match` fields that v3
-expects, the function silently reclassified 167 of 171 borderline records
-(97.7\%) as strict compliance, inflating the strict harmfulness rate from
-18.8\% to 52.2\%
+A measurement result can fail for purely technical reasons when outputs from
+different evaluator schemas are processed as if they were interchangeable. In
+our specificity analysis, a version-mismatch bug applied CSV-v3 normalization
+logic to CSV-v2 records. That mismatch silently reclassified 167 of 171
+borderline records (97.7\%) as strict compliance, inflating the strict
+harmfulness rate from 18.8\% to 52.2\%
 (source: `notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md`,
 Section 6.1).
 
-The root cause was a four-line code path: v2's `"borderline"`
-$\texttt{harmful\_binary}$ label mapped to `"unknown"` under the v3
-vocabulary; the function then re-derived $\texttt{harmful\_binary}$ from
-C/S/V/T scores, and any specificity $\geq 1$ triggered
-$\texttt{partial\_compliance}$, which in turn resolved to `"yes"`. The fix
-was a schema-version guard: v2 data (identified by the absence of the
-$\texttt{schema\_version}$ field) is now returned without normalization.
+The failure mechanism was simple. CSV-v2 records do not contain the schema
+fields expected by the newer evaluator, so borderline cases were pushed
+through a fallback path that reconstructed harmfulness under the wrong
+vocabulary and promoted many of them to partial compliance and then to binary
+harmfulness. The fix was equally simple: records without the newer schema
+fields are now left in their original CSV-v2 form rather than normalized as
+CSV-v3 data.
 
-The contaminated pipeline produced plausible-looking output---no errors, no
-warnings---and would have yielded the triage verdict
-$\texttt{review\_specificity}$ instead of the correct
-$\texttt{specificity\_supported}$
-(source: `notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md`,
-Section 6.3). Applied to the control comparison, it would have erased the
-slope difference between H-neurons and random neurons by inflating both
-baselines.
-
-This episode illustrates that measurement discipline extends below the
-evaluator-design level to code-level schema handling. The bug was caught
-because the analysis pipeline was re-run from raw data with explicit
-integrity checks (500/500 record counts, schema field verification, cross-
-condition prompt-ID parity). Had the contaminated rates been accepted at
-face value, the H-neuron jailbreak effect would have remained listed as
-"unscored" rather than upgraded to "single-seed supported" with $p = 0.013$.
+The scientific consequence matters more than the debugging details. The
+contaminated analysis produced plausible-looking output with no warnings and
+would have weakened the H-neuron-versus-random specificity contrast by
+inflating both baselines. Re-running the analysis from raw outputs with
+record-count checks, schema-field verification, and cross-condition prompt-ID
+parity preserved the graded specificity result instead of washing it out. In
+other words, code-level schema handling changed whether the intervention would
+have looked specific or ambiguous.
 
 ## 6.5 What Is Established and What Remains Open
 
@@ -344,7 +334,8 @@ We summarize the measurement findings by their current evidential status.
   claim remains limited until multi-seed v3 scoring is complete.
 - *Schema handling is part of measurement validity.* A version-mismatch bug
   silently reclassified 97.7\% of borderline records; without the fix, the
-  control comparison would have yielded the wrong triage verdict.
+  control comparison would have supported the wrong conclusion about
+  specificity.
 
 **Still pending:**
 
@@ -365,4 +356,4 @@ what the project would have concluded about whether an intervention worked.
 Short caps, binary-only scoring, single-evaluator reporting, and schema drift
 all fail in ways that line up with the response patterns the intervention
 actually induces. For intervention research that aims to make safety claims,
-the measurement stack is part of the result.
+the measurement procedure is part of the result.
