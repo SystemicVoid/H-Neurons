@@ -7,14 +7,15 @@ the H-neuron intervention is detected.
 
 Panel A: Binary vs graded evaluation on same data
   Binary judge: Delta +3.0 pp, CI includes zero -> NOT significant
-  Graded (CSV-v2): slope +2.30 pp/alpha [+0.99, +3.58] -> significant
+  Graded rubric: slope +2.30 pp/alpha [+0.99, +3.58] -> significant
   Random control for both: flat
 
 Panel B: Evaluator accuracy comparison (dev vs holdout)
   4 evaluators, 2 conditions (dev n=74, holdout n=50)
 
 Panel C: Specificity control (H-neurons vs random)
-  csv2_yes rate vs alpha with CIs, annotated slope difference and p-value
+  Graded harmfulness rate vs alpha with CIs, annotated slope difference
+  and p-value
 
 Data sources:
   - notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md
@@ -79,7 +80,7 @@ plt.rcParams.update(
 )
 
 # --- Panel B: Evaluator accuracy (from 4-way reports) ---
-EVALUATOR_NAMES = ["CSV2 v3", "Binary", "StrongREJECT", "CSV2 v2"]
+EVALUATOR_NAMES = ["Graded rubric v3", "Binary", "StrongREJECT", "Graded rubric v2"]
 DEV_ACCURACY = [86.5, 77.0, 74.3, 73.0]  # n=74
 HOLDOUT_ACCURACY = [96.0, 90.0, 94.0, 92.0]  # n=50
 
@@ -116,7 +117,7 @@ def load_measurement_data() -> dict:
         "data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/results.json"
     )
     csv2 = load_json(
-        "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_summary.json"
+        "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json"
     )
 
     hn_binary_delta = (
@@ -190,7 +191,7 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
     # Binary judge (delta pp)
     binary_vals = [data["hn_binary_delta"], data["ctrl_binary_delta"]]
 
-    # Graded (CSV-v2 slope pp/alpha)
+    # Graded rubric (slope pp/alpha)
     graded_vals = [data["hn_graded_slope"], data["ctrl_graded_slope"]]
     graded_errs_lo = [
         data["hn_graded_slope"] - HN_GRADED_CI[0],
@@ -224,7 +225,7 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
         linewidth=1.5,
         capsize=4,
         error_kw={"linewidth": 1.3, "color": SUBTITLE_COLOR},
-        label="Graded CSV-v2 (slope pp/$\\alpha$)",
+        label="Graded rubric v2 (slope pp/$\\alpha$)",
         zorder=3,
     )
 
@@ -349,7 +350,7 @@ def draw_panel_b(ax: plt.Axes) -> None:
     # Dev gap (v3 - SR): 86.5 - 74.3 = 12.2pp
     # Holdout gap (v3 - SR): 96.0 - 94.0 = 2.0pp
     bracket_y = 98.5
-    # Bracket between CSV2 v3 (holdout) and StrongREJECT (holdout) positions
+    # Bracket between graded-rubric v3 (holdout) and StrongREJECT positions
     x_v3_ho = 0 + bar_width / 2
     x_sr_ho = 2 + bar_width / 2
     ax.annotate(
@@ -403,8 +404,8 @@ def draw_panel_b(ax: plt.Axes) -> None:
 # Panel C: Specificity control -- H-neurons vs random
 # ---------------------------------------------------------------------------
 def draw_panel_c(ax: plt.Axes, data: dict) -> None:
-    """Line plot of csv2_yes rate vs alpha with CIs for H-neurons and
-    random control, annotated with slope difference and p-value."""
+    """Line plot of graded harmfulness rate vs alpha with CIs for H-neurons
+    and a random control, annotated with slope difference and p-value."""
 
     # H-neuron curve
     ax.fill_between(
@@ -493,7 +494,7 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
     )
 
     ax.set_xlabel("Scaling factor ($\\alpha$)", fontsize=9, fontweight="bold")
-    ax.set_ylabel("csv2_yes rate (%)", fontsize=9, fontweight="bold")
+    ax.set_ylabel("Graded harmfulness rate (%)", fontsize=9, fontweight="bold")
     ax.set_xlim(-0.2, 3.4)
     ax.set_ylim(12, 34)
     ax.set_xticks(data["alphas"])
