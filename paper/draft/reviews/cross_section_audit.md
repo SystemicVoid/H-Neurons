@@ -1,7 +1,7 @@
 # Cross-Section Consistency Audit
 
 Date: 2026-04-12
-Scope: `notes/paper/draft/full_paper.md` (all sections, abstract through appendix placeholder)
+Scope: `paper/draft/full_paper.md` (all sections, abstract through appendix placeholder)
 
 ---
 

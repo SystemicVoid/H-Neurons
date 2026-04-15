@@ -29,13 +29,13 @@ def _manifest(tmp_path: Path, sources: list[dict[str, str]]) -> Path:
 
 class TestBuildFullPaper:
     def test_default_paths_are_repo_root_relative(self, monkeypatch):
-        monkeypatch.chdir(REPO_ROOT / "notes/paper/draft")
+        monkeypatch.chdir(REPO_ROOT / "paper/draft")
         monkeypatch.setattr(sys, "argv", ["build_full_paper.py"])
 
         args = build_full_paper.parse_args()
 
-        assert args.manifest == REPO_ROOT / "notes/paper/draft/assembly_manifest.json"
-        assert args.output == REPO_ROOT / "notes/paper/draft/full_paper.md"
+        assert args.manifest == REPO_ROOT / "paper/draft/assembly_manifest.json"
+        assert args.output == REPO_ROOT / "paper/draft/full_paper.md"
 
     def test_builds_from_manifest(self, tmp_path, monkeypatch):
         _write(tmp_path / "front_matter.md", "Title\n\nAuthor")

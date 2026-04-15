@@ -5,7 +5,7 @@ This repository began as a fork of THUNLP's H-Neurons project and still retains 
 Primary current narratives:
 
 - Site: [`site/`](site/)
-- Current paper draft: [`notes/paper/draft/full_paper.md`](notes/paper/draft/full_paper.md)
+- Current paper draft: [`paper/draft/full_paper.md`](paper/draft/full_paper.md)
 - Measurement contract: [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
 
 ## Overview
@@ -62,15 +62,16 @@ Paper and site outputs:
 - `uv run python scripts/export_site_data.py` exports site-facing JSON summaries from committed outputs.
 - `scripts/infra/publish.sh site --slug aware-fresco-4a2q --client amp` publishes the site to its canonical URL.
 
-If you need the original forked-paper examples, start with [`data/original_paper_examples/`](data/original_paper_examples/). If you need the current project argument, start with [`site/index.html`](site/index.html) or [`notes/paper/draft/full_paper.md`](notes/paper/draft/full_paper.md).
+If you need the original forked-paper examples, start with [`data/original_paper_examples/`](data/original_paper_examples/). If you need the current project argument, start with [`site/index.html`](site/index.html) or [`paper/draft/full_paper.md`](paper/draft/full_paper.md).
 
 ## Repository Map
 
 - [`scripts/`](scripts/) - experiment entrypoints, analysis scripts, and shared utilities
 - [`scripts/infra/`](scripts/infra/) - canonical orchestration wrappers for larger runs
 - [`data/`](data/) - committed experiment outputs, semantic run directories, controls, and audits
-- [`notes/`](notes/) - planning documents, measurement contracts, sprint notes, and paper materials
-- [`notes/paper/draft/`](notes/paper/draft/) - source shards and assembled draft for the current paper
+- [`notes/`](notes/) - planning documents, measurement contracts, and sprint notes
+- [`paper/`](paper/) - source shards, reviews, citations, and assembled draft for the current paper
+- [`paper/draft/`](paper/draft/) - source shards and assembled draft for the current paper
 - [`site/`](site/) - public presentation site and consumers of exported result payloads
 - [`tests/`](tests/) - regression coverage for pipeline guards, reporting, evaluation, and exports
 - [`papers/`](papers/) - local paper corpus, H-neurons reference materials, and literature notes
@@ -104,4 +105,4 @@ Current project-facing reading order:
 - [`site/methods.html`](site/methods.html)
 - [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md)
 - [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md)
-- [`notes/paper/draft/full_paper.md`](notes/paper/draft/full_paper.md)
+- [`paper/draft/full_paper.md`](paper/draft/full_paper.md)

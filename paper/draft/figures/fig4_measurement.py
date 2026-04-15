@@ -23,7 +23,7 @@ Data sources:
   - notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md
 
 Usage:
-    uv run python notes/paper/draft/figures/fig4_measurement.py
+    uv run python paper/draft/figures/fig4_measurement.py
 """
 
 from __future__ import annotations
@@ -40,8 +40,8 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-ROOT = Path(__file__).resolve().parents[4]  # repo root
-OUTPUT = ROOT / "notes/paper/draft/figures/fig4_measurement.png"
+ROOT = Path(__file__).resolve().parents[3]  # repo root
+OUTPUT = ROOT / "paper/draft/figures/fig4_measurement.png"
 
 # ---------------------------------------------------------------------------
 # Color palette -- consistent with Figure 1 & 2

@@ -2,7 +2,7 @@
 
 **Rule: each fact lives in exactly one place. Everything else links to it.**
 
-DO NOT update the notes/paper/draft/full_paper.md directly unless it's absolutely necessary. ALWAYS prefer editing individual sections, and programatically recreating the final paper, avoiding drift and edits in multiple places.
+DO NOT update the paper/draft/full_paper.md directly unless it's absolutely necessary. ALWAYS prefer editing individual sections, and programatically recreating the final paper, avoiding drift and edits in multiple places.
 
 ## Project Phases (Chronological)
 

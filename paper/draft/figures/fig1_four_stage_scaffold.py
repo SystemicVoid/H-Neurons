@@ -6,7 +6,7 @@ stages (Measurement, Localization, Control, Externality) and the anchor case
 studies that demonstrate where transitions between stages break.
 
 Usage:
-    uv run python notes/paper/draft/figures/fig1_four_stage_scaffold.py
+    uv run python paper/draft/figures/fig1_four_stage_scaffold.py
 """
 
 import matplotlib
@@ -20,7 +20,7 @@ from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 # ---------------------------------------------------------------------------
 FIG_W, FIG_H = 12, 4.5
 DPI = 300
-OUTPUT = "notes/paper/draft/figures/fig1_four_stage_scaffold.png"
+OUTPUT = "paper/draft/figures/fig1_four_stage_scaffold.png"
 
 # Stage definitions (label, subtitle)
 STAGES = [

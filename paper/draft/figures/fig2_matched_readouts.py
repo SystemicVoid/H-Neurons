@@ -25,7 +25,7 @@ Data sources (all real, loaded from repo JSON):
   - data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json
 
 Usage:
-    uv run python notes/paper/draft/figures/fig2_matched_readouts.py
+    uv run python paper/draft/figures/fig2_matched_readouts.py
 """
 
 from __future__ import annotations
@@ -42,8 +42,8 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-ROOT = Path(__file__).resolve().parents[4]  # repo root
-OUTPUT = ROOT / "notes/paper/draft/figures/fig2_matched_readouts.png"
+ROOT = Path(__file__).resolve().parents[3]  # repo root
+OUTPUT = ROOT / "paper/draft/figures/fig2_matched_readouts.png"
 
 # ---------------------------------------------------------------------------
 # Color palette -- consistent with Figure 1 (muted blues / terracotta)

@@ -10,11 +10,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = REPO_ROOT / "notes/paper/draft/assembly_manifest.json"
-DEFAULT_OUTPUT = REPO_ROOT / "notes/paper/draft/full_paper.md"
+DEFAULT_MANIFEST = REPO_ROOT / "paper/draft/assembly_manifest.json"
+DEFAULT_OUTPUT = REPO_ROOT / "paper/draft/full_paper.md"
 GENERATED_WARNING = """<!--
 Generated file: do not edit directly.
-Edit notes/paper/draft source shards and rebuild with:
+Edit paper/draft source shards and rebuild with:
   uv run python scripts/build_full_paper.py
 -->"""
 RULE_AFTER = {"front_matter.md", "abstract.md", "section_9_conclusion.md"}

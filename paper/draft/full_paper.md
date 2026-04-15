@@ -1,6 +1,6 @@
 <!--
 Generated file: do not edit directly.
-Edit notes/paper/draft source shards and rebuild with:
+Edit paper/draft source shards and rebuild with:
   uv run python scripts/build_full_paper.py
 -->
 

@@ -14,7 +14,7 @@ Data sources (from audited reports):
   - notes/act3-reports/2026-04-04-bridge-phase2-dev-results.md (E1 dev-only comparison)
 
 Usage:
-    uv run python notes/paper/draft/figures/fig3_bridge_failure.py
+    uv run python paper/draft/figures/fig3_bridge_failure.py
 """
 
 from __future__ import annotations
@@ -32,8 +32,8 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-ROOT = Path(__file__).resolve().parents[4]  # repo root
-OUTPUT = ROOT / "notes/paper/draft/figures/fig3_bridge_failure.png"
+ROOT = Path(__file__).resolve().parents[3]  # repo root
+OUTPUT = ROOT / "paper/draft/figures/fig3_bridge_failure.png"
 
 # ---------------------------------------------------------------------------
 # Color palette -- consistent with Figures 1 & 2

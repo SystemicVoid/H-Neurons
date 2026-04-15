@@ -1,4 +1,4 @@
-Audited [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/paper/draft/full_paper.md:1) against [2026-04-11-strategic-assessment.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/2026-04-11-strategic-assessment.md:51). I grouped repeated mentions of the same numeric result into one row and used the consistency column to note repeats/mismatches.
+Audited [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:1) against [2026-04-11-strategic-assessment.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/2026-04-11-strategic-assessment.md:51). I grouped repeated mentions of the same numeric result into one row and used the consistency column to note repeats/mismatches.
 
 **Quantitative Claim Audit**
 
