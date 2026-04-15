@@ -2,7 +2,7 @@
 
 This section presents the paper's core localization-to-control evidence. Across two intervention families and two evaluation surfaces in Gemma-3-4B-IT, strong predictive readouts did not reliably identify useful steering targets. The flagship result is the matched FaithEval comparison between magnitude-ranked neurons and SAE features. The jailbreak selector results play a narrower corroborative role: they show that a discriminative selector can fail even when a causally motivated selector works better on the same benchmark surface.
 
-We therefore organize the evidence by evidential strength. Section 4.1 establishes that the readouts under study are genuine held-out signals, not strawmen. Section 4.2 presents the paper's cleanest single experiment: matched detection quality between magnitude-ranked neurons and SAE features, with sharply divergent steering outcomes. Section 4.3 keeps the matched jailbreak pilot as a pilot-local selector contrast. Section 4.4 then states the live current position of the full-500 jailbreak evidence: the causal branch is the strongest completed branch on that benchmark, but the panel still combines branches with different ruler histories and therefore remains supporting evidence rather than selector-specific closure.
+We therefore organize the evidence by evidential strength. Section 4.1 establishes that the readouts under study are genuine held-out signals, not strawmen. Section 4.2 presents the paper's cleanest single experiment: matched detection quality between magnitude-ranked neurons and SAE features, with sharply divergent steering outcomes. Section 4.3 keeps the matched jailbreak pilot as a pilot-local selector contrast. Section 4.4 then states the live current position of the full-500 jailbreak selector evidence: the causal branch is the strongest completed branch on that benchmark, but the panel still combines branches with different ruler histories and therefore remains supporting evidence rather than selector-specific closure.
 
 Figure 2 reflects that hierarchy: Panels A and B anchor the section with FaithEval, while Panel C shows the benchmark-local jailbreak comparator as supporting evidence.
 
@@ -127,7 +127,7 @@ Both interventions operate at the attention-head level using Inference-Time Inte
 
 ### Interpretation
 
-The probe-ranked heads discriminated harmful from benign activations perfectly on the pilot readout, yet perturbing them produced no clear behavioral change. The gradient-ranked heads were never assessed for discriminative quality, yet intervening on them reduced harmful compliance on the same pilot. This is useful corroboration for the paper's broader thesis, but it remains a pilot-local comparison rather than the live D7 headline.
+The probe-ranked heads discriminated harmful from benign activations perfectly on the pilot readout, yet perturbing them produced no clear behavioral change. The gradient-ranked heads were never assessed for discriminative quality, yet intervening on them reduced harmful compliance on the same pilot. This is useful corroboration for the paper's broader thesis, but it remains a pilot-local comparison rather than a headline jailbreak result.
 
 The relevant lesson is narrow. On this benchmark and intervention family, components that read out a behavioral label need not be the components that move the label when perturbed. Probe-ranked heads may sit downstream of the decisive mechanism, while gradient-ranked heads were selected for causal influence. Section 4.4 explains why the newer full-500 comparator remains supporting evidence rather than closure.
 
@@ -135,9 +135,9 @@ The relevant lesson is narrow. On this benchmark and intervention family, compon
 [^fn-d7-pilot]: `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md`; probe results from pilot ($n = 100$), 5 alphas.
 [^fn-d7-full500]: Canonical current-state audit: `notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md`; machine-readable summary: `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json`. Historical April 8 legacy-ruler provenance remains in `notes/act3-reports/2026-04-08-d7-full500-audit.md`.
 
-## 4.4 Full-500 D7 as Supporting Comparator Evidence
+## 4.4 Full-500 Jailbreak Comparator as Supporting Evidence
 
-The matched pilot in Section 4.3 is still the cleanest probe-null comparison, but it is no longer the right way to summarize the live D7 evidence. The current full-500 audit supports a narrower sentence: on the current full-500 panel, the locked causal branch is the strongest completed D7 branch. That supports a benchmark-local selector-divergence claim, but not selector-specific closure.
+The matched pilot in Section 4.3 is still the cleanest probe-null comparison, but it is no longer the right way to summarize the live jailbreak selector evidence. The current full-500 audit supports a narrower sentence: on the current full-500 panel, the locked causal branch is the strongest completed branch. That supports a benchmark-local selector-divergence claim, but not selector-specific closure.
 
 **Caveat 1: The full-500 panel is not fully like-for-like.** The old April 8 caveat was "random-head control missing." That specific objection is now obsolete: the current-state audit now includes both a layer-matched random-head seed and a completed full-500 probe branch. But the replacement is still not a clean selector-specific panel. The historical April 8 legacy-ruler panel reported baseline $23.4\%$, L1 $27.4\%$, and causal $14.4\%$ strict harmfulness. The newer normalized current-state panel reports baseline $51.6\%$, L1 $46.8\%$, random $37.2\%$, probe $34.8\%$, and causal $24.8\%$. On that normalized panel, causal remains the strongest completed branch, beating probe by $10.0$ pp $[6.2, 14.0]$ and random by $12.4$ pp $[8.0, 16.8]$.[^fn-d7-full500] But because the branches do not all share the same ruler history, this remains caveated supporting evidence rather than clean selector-specific proof.
 
@@ -147,7 +147,7 @@ The matched pilot in Section 4.3 is still the cleanest probe-null comparison, bu
 
 **What the comparator does establish.** Despite these caveats, the jailbreak evidence still matters in two ways. First, it shows that the pilot probe-null is not an artifact of the ITI intervention family being incapable on this benchmark: the same intervention architecture, applied to different heads, can produce a substantially different outcome. Second, the low Jaccard overlap (0.11) between selectors shows that the ranking criteria surface genuinely different component sets.
 
-For the purpose of this paper's thesis, the D7 result is benchmark-local supporting evidence that selector choice matters on this surface. We do not claim that gradient-based selection is universally superior, or that the current D7 panel closes the selector-specific question.
+For the purpose of this paper's thesis, the jailbreak selector result is benchmark-local supporting evidence that selector choice matters on this surface. We do not claim that gradient-based selection is universally superior, or that the current panel closes the selector-specific question.
 
 ## 4.5 Synthesis
 

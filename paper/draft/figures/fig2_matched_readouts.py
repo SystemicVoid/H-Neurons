@@ -2,8 +2,7 @@
 Figure 2: Matched Readouts, Divergent Control.
 
 FaithEval is the anchor result. The jailbreak comparator appears only as
-supporting evidence, and the probe summary is shown as a distribution rather
-than a headline-matching bar.
+supporting evidence in Panel C.
 
 Usage:
     uv run python paper/draft/figures/fig2_matched_readouts.py
@@ -56,9 +55,6 @@ def load_json(rel_path: str) -> dict:
 def load_data() -> dict:
     neuron_cls = load_json("data/gemma3_4b/pipeline/classifier_disjoint_summary.json")
     sae_cls = load_json("data/gemma3_4b/pipeline/classifier_sae_summary.json")
-    probe_meta = load_json(
-        "data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json"
-    )
     fe_neuron_ctrl = load_json(
         "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"
     )
@@ -75,7 +71,6 @@ def load_data() -> dict:
         "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json"
     )
 
-    probe_aurocs = [entry["auroc"] for entry in probe_meta["selected_head_manifest"]]
     alphas = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 
     sae_results = fe_sae["results"]
@@ -84,12 +79,6 @@ def load_data() -> dict:
     return {
         "auroc_h": neuron_cls["evaluation"]["metrics"]["auroc"]["estimate"],
         "auroc_sae": sae_cls["best"]["test_metrics"]["auroc"],
-        "probe_summary": {
-            "n": len(probe_aurocs),
-            "median": float(np.median(probe_aurocs)),
-            "min": float(np.min(probe_aurocs)),
-            "max": float(np.max(probe_aurocs)),
-        },
         "alphas": np.array(alphas),
         "h_rates": np.array(fe_neuron_ctrl["h_neuron_baseline"]["compliance_rates"]),
         "h_ci_lo": np.array(
@@ -147,43 +136,6 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
             color=TITLE_COLOR,
         )
 
-    probe = data["probe_summary"]
-    probe_x = 1.95
-    probe_y = probe["median"]
-    probe_err = np.array([[probe_y - probe["min"]], [probe["max"] - probe_y]])
-    ax.errorbar(
-        probe_x,
-        probe_y,
-        yerr=probe_err,
-        fmt="D",
-        markersize=5.5,
-        markerfacecolor="white",
-        markeredgecolor=C_SUPPORT,
-        markeredgewidth=1.4,
-        capsize=4,
-        linewidth=1.2,
-        color=C_SUPPORT,
-        zorder=4,
-    )
-    ax.text(
-        probe_x,
-        probe["max"] + 0.006,
-        "Jailbreak probe-head AUROC\nsupporting context",
-        ha="center",
-        va="bottom",
-        fontsize=7,
-        color=C_SUPPORT,
-    )
-    ax.text(
-        probe_x,
-        probe["min"] - 0.013,
-        f"median {probe_y:.3f}\nrange {probe['min']:.2f}-{probe['max']:.2f}",
-        ha="center",
-        va="top",
-        fontsize=6.8,
-        color=C_SUPPORT,
-    )
-
     ax.plot([0, 1], [0.818, 0.818], color=SUBTITLE_COLOR, linewidth=0.8)
     ax.plot([0, 0], [0.818, 0.823], color=SUBTITLE_COLOR, linewidth=0.8)
     ax.plot([1, 1], [0.818, 0.823], color=SUBTITLE_COLOR, linewidth=0.8)
@@ -198,30 +150,16 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
         fontstyle="italic",
     )
 
-    ax.set_xticks([0, 1, probe_x])
-    ax.set_xticklabels(
-        ["H-neurons\n(38)", "SAE features\n(266)", f"Probe heads\n(n={probe['n']})"],
-        fontsize=8,
-    )
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["H-neurons\n(38)", "SAE features\n(266)"], fontsize=8)
     ax.set_ylabel("Detection AUROC", fontsize=10, fontweight="bold")
-    ax.set_ylim(0.70, 1.06)
+    ax.set_ylim(0.70, 0.88)
     ax.set_title(
-        "A. FaithEval anchor, supporting jailbreak AUROC context",
+        "A. FaithEval matched detection quality",
         fontsize=11,
         fontweight="bold",
         loc="left",
         pad=10,
-    )
-    ax.text(
-        0.99,
-        0.03,
-        "Probe shown as a distribution, not a headline bar.",
-        transform=ax.transAxes,
-        ha="right",
-        va="bottom",
-        fontsize=7,
-        color=SUBTITLE_COLOR,
-        fontstyle="italic",
     )
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)

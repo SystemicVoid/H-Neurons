@@ -16,15 +16,14 @@
 The preceding sections established that detection quality does not predict
 steerability (Section 4) and that successful steering is narrow in scope
 (Section 5). Both conclusions rest on behavioral measurements---jailbreak
-compliance rates, severity scores, generation-surface accuracy---that are
+harmfulness rates, severity scores, generation-surface accuracy---that are
 themselves products of evaluation choices. In this section we show that those
-choices are not clerical details: generation length, scoring granularity,
-evaluator identity, and pipeline hygiene each independently shifted what we
-would have concluded about whether a given intervention worked. The current
-endpoint is narrower than some earlier drafts suggested: after the
-StrongREJECT GPT-4o rerun, holdout binary accuracy is tied with CSV-v3, so
-the surviving reason to prefer CSV-v3 in this paper is its richer measurement
-granularity rather than superior held-out binary accuracy.
+choices are part of the scientific result: generation length, scoring
+granularity, evaluator identity, and pipeline hygiene each shifted what we
+would have concluded about whether a given intervention worked. After the
+StrongREJECT GPT-4o rerun, the holdout binary result is tied with CSV-v3, so
+the surviving reason to prefer CSV-v3 in this paper is its richer
+measurement granularity rather than superior held-out binary accuracy.
 
 We organize the case study around the H-neuron jailbreak scaling experiment
 (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n{=}500$ per
@@ -37,7 +36,7 @@ conclusions: binary versus graded scoring, tied holdout binary accuracy after
 the StrongREJECT GPT-4o rerun, and the seed-0 specificity contrast.
 
 ![Figure 4. Measurement choices changed the scientific conclusion.](figures/fig4_measurement.png)
-*Figure 4. Binary scoring obscures the jailbreak effect, holdout validation ends in a binary tie between CSV-v3 and StrongREJECT-GPT-4o, CSV-v3 remains useful for its richer outcome taxonomy, and the seed-0 random-neuron control shows that the graded H-neuron dose-response is steeper than the matched control.*
+*Figure 4. Binary scoring obscures the jailbreak effect, holdout validation ends in a binary tie between CSV-v3 and StrongREJECT-GPT-4o, and the seed-0 random-neuron control shows that the graded H-neuron dose-response is steeper than the matched control.*
 
 ## 6.1 Truncation Hides Downstream Content
 
@@ -85,11 +84,11 @@ The H-neuron jailbreak scaling experiment provides the clearest illustration
 of how scoring granularity determines the conclusion.
 
 **Binary judge.** A GPT-4o binary harmful/safe classifier showed an
-H-neuron compliance increase of $+3.0$ pp from $\alpha{=}0$ to $\alpha{=}3$
+H-neuron harmfulness increase of $+3.0$ pp from $\alpha{=}0$ to $\alpha{=}3$
 (152/500 $\to$ 167/500). The 95\% confidence interval includes zero,
 consistent with the minimum detectable effect of ${\sim}6$ pp at this sample
 size. Under binary evaluation alone, the H-neuron intervention would be
-judged null on jailbreak compliance
+judged null on jailbreak harmfulness
 (source: `notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md`,
 Section 1.2).
 
@@ -325,42 +324,27 @@ face value, the H-neuron jailbreak effect would have remained listed as
 
 ## 6.5 What Is Established and What Remains Open
 
-We summarize the measurement findings by their epistemic status.
+We summarize the measurement findings by their current evidential status.
 
 **Established:**
 
-- *Truncation artifact.* Short generation caps hide post-preamble harmful
-  content in Gemma-3-4B-IT jailbreak responses. Full-generation scoring is
-  required for valid jailbreak severity measurement.
-- *Binary-versus-graded shift.* Binary evaluation washed out a dose-response
-  ($+2.30$ pp/$\alpha$, CI excludes zero) that graded evaluation recovered.
-  The mechanism is collapse of the borderline category.
-- *Holdout tie after judge upgrade.* The apparent evaluator-accuracy gap
-  disappeared after the StrongREJECT GPT-4o rerun: on holdout, CSV-v3 and
-  StrongREJECT both reached 96.0% accuracy with identical error sets.
-  Apparent evaluator advantages can be substantially inflated by
-  development-set overlap and by judge-model differences.
-- *Seed-0 specificity.* H-neuron scaling produced a steeper jailbreak
-  dose-response than a matched random-neuron control (slope difference
-  $+2.77$ pp/$\alpha$ $[+1.17, +4.42]$, permutation $p = 0.013$),
-  but this is a single-seed result.
-- *Evaluator-version slope compression.* The same 500 model outputs scored
-  by CSV-v2 and CSV-v3 produced statistically divergent binary slopes
-  ($+2.30$ vs. $+0.46$ pp/$\alpha$); the compression is entirely explained
-  by borderline absorption under intervention-driven polarization.
-- *Severity-shift dose-response (partially established).* The v3 ordinal
-  taxonomy revealed a significant substantive compliance slope ($+2.00$
-  pp/$\alpha$ $[+0.11, +3.87]$, CI excludes zero), with a marginally
-  significant specificity gap versus control ($+2.72$ pp/$\alpha$
-  $[+0.02, +5.44]$). This is a single-seed result with a fragile lower CI
-  bound.
-- *StrongREJECT construct mismatch confirmed.* Upgrading StrongREJECT from
-  GPT-4o-mini to GPT-4o closed the holdout gap to 0.0 pp while recovering
-  only 3 of 19 false negatives, confirming the bottleneck is the binary
-  \texttt{refused} flag formula, not judge-model capability.
-- *Contamination fix.* A schema-version mismatch silently reclassified
-  97.7\% of borderline records. The fix was four lines; the cost of missing
-  it would have been a qualitatively wrong triage verdict.
+- *Full-generation scoring is required.* Short token caps hide post-preamble
+  harmful content and can turn degeneration into apparent safety.
+- *Scoring granularity changes the verdict.* Binary evaluation treated the
+  H-neuron jailbreak effect as null, while graded evaluation recovered a
+  positive dose-response ($+2.30$ pp/$\alpha$) because it preserved the
+  borderline category.
+- *Evaluator choice matters, but the post-upgrade holdout binary result is a
+  tie.* CSV-v3 and StrongREJECT-GPT-4o both reached 96.0% accuracy with
+  identical holdout error sets, so the remaining disagreement is about rubric
+  structure rather than held-out binary superiority.
+- *The graded specificity result is currently single-seed.* H-neuron scaling
+  produced a steeper dose-response than the matched random-neuron control
+  ($+2.77$ pp/$\alpha$ $[+1.17, +4.42]$, permutation $p = 0.013$), but the
+  claim remains limited until multi-seed v3 scoring is complete.
+- *Schema handling is part of measurement validity.* A version-mismatch bug
+  silently reclassified 97.7\% of borderline records; without the fix, the
+  control comparison would have yielded the wrong triage verdict.
 
 **Still pending:**
 
@@ -378,15 +362,7 @@ We summarize the measurement findings by their epistemic status.
 
 In this setting, measurement choices were not clerical details; they changed
 what the project would have concluded about whether an intervention worked.
-A 256-token generation cap would have hidden the harmful payload.
-Binary scoring would have returned a null result, and an ordinal evaluator
-that stopped at the binary level would have missed a dose-response that lives
-at severity rather than at the harmful/safe boundary. A single
-evaluator---any of the four we tested---would have left the
-construct-sensitivity of the conclusion invisible. And a schema mismatch in four lines of pipeline code
-would have reversed the triage verdict. Each of these measurement decisions
-interacts with intervention-altered response structure: longer refusal
-preambles, graded compliance, and evaluator-specific operationalizations of
-"harmful" are not noise to be averaged away but signal about how the
-intervention reshapes model behavior. For intervention research that aims to
-make safety claims, the measurement stack is part of the result.
+Short caps, binary-only scoring, single-evaluator reporting, and schema drift
+all fail in ways that line up with the response patterns the intervention
+actually induces. For intervention research that aims to make safety claims,
+the measurement stack is part of the result.
