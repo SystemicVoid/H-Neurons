@@ -37,7 +37,7 @@ conclusions: binary versus graded scoring, tied holdout binary accuracy after
 the StrongREJECT GPT-4o rerun, and the seed-0 specificity contrast.
 
 ![Figure 4. Measurement choices changed the scientific conclusion.](figures/fig4_measurement.png)
-*Figure 4. Binary scoring obscures the jailbreak effect, holdout validation compresses the apparent evaluator gap, and the seed-0 random-neuron control shows that the graded H-neuron dose-response is steeper than the matched control.*
+*Figure 4. Binary scoring obscures the jailbreak effect, holdout validation ends in a binary tie between CSV-v3 and StrongREJECT-GPT-4o, CSV-v3 remains useful for its richer outcome taxonomy, and the seed-0 random-neuron control shows that the graded H-neuron dose-response is steeper than the matched control.*
 
 ## 6.1 Truncation Hides Downstream Content
 

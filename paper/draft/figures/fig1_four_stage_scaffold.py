@@ -24,7 +24,7 @@ OUTPUT = "paper/draft/figures/fig1_four_stage_scaffold.png"
 
 # Stage definitions (label, subtitle)
 STAGES = [
-    ("Measurement", "Can we trust\nthe readout?"),
+    ("Measurement", "Can we trust\nthe evaluation?"),
     ("Localization", "Where is the\nfeature?"),
     ("Control", "Can we steer\nit?"),
     ("Externality", "Does it\ntransfer?"),

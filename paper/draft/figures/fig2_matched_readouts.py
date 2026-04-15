@@ -168,7 +168,7 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
     ax.text(
         probe_x,
         probe["max"] + 0.006,
-        "Jailbreak probe heads\nsupporting comparator",
+        "Jailbreak probe-head AUROC\nsupporting context",
         ha="center",
         va="bottom",
         fontsize=7,
@@ -206,7 +206,7 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
     ax.set_ylabel("Detection AUROC", fontsize=10, fontweight="bold")
     ax.set_ylim(0.70, 1.06)
     ax.set_title(
-        "A. FaithEval matched detection",
+        "A. FaithEval anchor, supporting jailbreak AUROC context",
         fontsize=11,
         fontweight="bold",
         loc="left",
@@ -395,7 +395,7 @@ def draw_panel_c(ax: plt.Axes, data: dict) -> None:
         fontweight="bold",
     )
     ax.set_title(
-        "C. Jailbreak supporting comparator",
+        "C. Jailbreak selector comparator (supporting)",
         fontsize=11,
         fontweight="bold",
         color=SUBTITLE_COLOR,

@@ -91,7 +91,7 @@ PANEL_A_DATA = [
         "direction": "positive",
     },
     {
-        "label": "SimpleQA\ncompliance",
+        "label": "SimpleQA\ncorrect-answer rate",
         "delta": -1.8,
         "ci_lo": -3.1,
         "ci_hi": -0.6,
