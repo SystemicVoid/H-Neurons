@@ -1,171 +1,107 @@
-# H-Neurons: On the Existence, Impact, and Origin of Hallucination-Associated Neurons in LLMs
+# Detection Is Not Enough: Gemma 3 4B Intervention Audit Workspace
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#pipeline">Pipeline</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#usage">Usage</a> •
-  <a href="#citation">Citation</a>
-</p>
-This repository contains the official implementation of the paper:
+This repository began as a fork of THUNLP's H-Neurons project and still retains the paper-faithful H-neuron pipeline, original reference materials, and example artifacts. Its current center of gravity is broader: a single-model Gemma-3-4B-IT case study on when strong internal readouts do and do not become useful steering targets. The working framework throughout the repo is `measurement`, `localization`, `control`, and `externality`.
 
-Cheng Gao, Huimin Chen, Chaojun Xiao, Zhiyi Chen, Zhiyuan Liu, Maosong Sun. [H-Neurons: On the Existence, Impact, and Origin of Hallucination-Associated Neurons in LLMs](https://arxiv.org/abs/2512.01797).
+Primary current narratives:
 
-Our research demonstrates that a remarkably sparse subset of neurons can reliably predict hallucination occurrences and are causally linked to over-compliance behaviors.
+- Site: [`site/`](site/)
+- Current paper draft: [`notes/paper/draft/full_paper.md`](notes/paper/draft/full_paper.md)
+- Measurement contract: [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
 
-## Features
-1. **Microscopic Identification**: Locate the precise neurons (H-Neurons) that can predict hallucination occurrences.
-2. **CETT Metric**: Implementation of the Neuron Contribution Quantification (CETT).
-3. **Linear Classifier Training**: Support for various training strategies to train a linear classifier for hallucination prediction.
-4. **Generalizable Detection**: Identified neurons show robust hallucination prediction performance across in-domain and out-of-distribution scenarios.
+## Overview
 
-## Pipeline
-The H-Neuron identification process consists of five main steps:
+This is a research workspace for mechanistic intervention experiments in `google/gemma-3-4b-it`. It contains the original H-neuron replication funnel, intervention and negative-control runs across multiple benchmarks, evaluator and reporting audits, paper assembly tooling, and site-export paths for presenting current results. H-neurons remain the paper-faithful baseline, but not the whole thesis.
 
-1. **Response Collection**: Perform multiple samplings (10x) for training and a single sampling for evaluation.
-2. **Answer Token Extraction**: Use LLM-based extraction to pinpoint factual tokens in the response.
-3. **Balanced Sampling**: Create a balanced dataset of True/False samples for training/testing.
-4. **Activation Extraction**: Quantify neuron-level contributions.
-5. **Classifier Training/Evaluating**: Train a sparse Logistic Regression to identify H-Neurons and detect hallucination.
+## Current Status
 
-## Installation
-This project utilizes `vLLM` for efficient model response sampling. If you encounter any issues during the installation of `vLLM`, please refer to the [official vLLM installation guide](https://docs.vllm.ai/en/latest/getting_started/installation).
+- H-neuron replication remains the first anchor: the paper-faithful sparse detector keeps a held-out signal on the clean split (`76.5%` accuracy, `95% CI [73.6, 79.5]`) and the committed FaithEval intervention path still shows a no-op-to-max compliance gain (`+4.5 pp`, `95% CI [2.9, 6.1]`). See [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md) and [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md).
+- Matched readout quality did not guarantee useful steering: in the current FaithEval comparison, SAE features matched H-neuron detection quality within uncertainty but failed to produce a useful control signal under the committed SAE intervention setup. The broader project claim is therefore not "detectors are fake," but "good detectors are not automatically good levers."
+- Transfer and evaluation remain fragile: the ITI bridge path improves some constrained answer-selection surfaces while hurting open-ended factual generation on the locked TriviaQA bridge test, and the jailbreak work is now partly a measurement case study where evaluator choice changes the conclusion. The current public framing lives in [`site/story.html`](site/story.html) and [`site/methods.html`](site/methods.html).
+
+## Quick Start
+
+This repo uses `uv` for Python environments and repo-local execution.
 
 ```bash
-git clone https://github.com/thunlp/H-Neurons.git
-cd H-Neurons
-pip install -r requirements.txt
+uv sync --dev
+uv run pytest
+ruff check scripts tests
+ty check
 ```
 
-## Usage
+Practical prerequisites:
 
-Ensure your environment is set up and you have access to a target model (e.g., Llama-3, Mistral).
+- Many workflows require local access to a target model and benchmark data.
+- Judge-based evaluation paths require API credentials in the environment or `.env`.
+- Large artifacts already live under `data/`; this repo is not organized around a single end-to-end bootstrap command.
 
-### 1. Collect Responses
-Sample responses from TriviaQA to construct train/test set. You can choose between `rule` or `llm` judging.
+## Core Workflows
 
-*   **For Training**: We perform multiple samplings (default 10) per question. We only retain questions that are **consistently correct** or **consistently hallucinated** across all samples.
-*   **For Evaluation**: We perform only **1 sampling** per question to evaluate the classifier's performance in a standard, real-world inference scenario.
+Paper-faithful H-neuron pipeline:
 
-We provide sampled TriviaQA training and evaluation data for Gemma-3-27B-it, Llama-3.3-70B-Instruct, and Mistral-Small-3.1-24B-Instruct-2503 in `data/original_paper_examples`.
+- `scripts/collect_responses.py` collects consistent TriviaQA-style generations.
+- `scripts/extract_answer_tokens.py` tags answer spans for the original CETT-style pipeline.
+- `scripts/sample_balanced_ids.py` creates train/test manifests.
+- `scripts/extract_activations.py` materializes activation features.
+- `scripts/classifier.py` trains the sparse detector used by the H-neuron baseline.
 
-```bash
-python scripts/collect_responses.py \
-    --model_path /path/to/your/model \
-    --data_path data/TriviaQA/rc.nocontext/triviaqa_train.parquet \
-    --output_path data/gemma3_4b/pipeline/consistency_samples.jsonl \
-    --sample_num 10 \
-    --max_samples 10000 \
-    --judge_type llm \
-    --api_key "YOUR_OPENAI_API_KEY" \
-    --base_url "YOUR_BASE_URL" \
-    --judge_model gpt-4o
-```
+Intervention and evaluation:
 
+- `scripts/run_intervention.py` is the main experiment entrypoint for neuron, SAE, direction, and ITI-head interventions.
+- `scripts/evaluate_intervention.py` runs GPT-judge evaluation for supported benchmark families.
+- `scripts/run_negative_control.py` executes specificity checks rather than relying on headline effects alone.
 
-### 2. Extract Answer Tokens (Optional)
+Canonical shell wrappers:
 
-Use an LLM (e.g., GPT-4o) to pinpoint the exact "answer tokens" within the tokenized response. This ensures the classifier focuses on factual content.
+- `scripts/infra/` contains the runnable wrappers used for claim-bearing experiments.
+- Representative entrypoints include the ITI sweep and evaluation wrappers, TriviaQA bridge wrappers, the canonical `5000`-token jailbreak pipeline, and the D7 pilot and full-500 scripts.
 
-**Note:** We observed that training specifically on exact **answer tokens** yields higher prediction accuracy during evaluation. However, if you wish to avoid the additional overhead (cost and time) of tagging answer tokens, you can choose to train and evaluate on all **output tokens**. To do this, you can manually construct an `answer_tokens.jsonl` file where the `answer_tokens` field is an empty list `[]` for all entries, and then set `--locations output` in Step 4 for both train and test sets.
+Paper and site outputs:
 
-```bash
-python scripts/extract_answer_tokens.py \
-    --input_path data/gemma3_4b/pipeline/consistency_samples.jsonl \
-    --output_path data/gemma3_4b/pipeline/answer_tokens.jsonl \
-    --tokenizer_path /path/to/your/model \
-    --api_key "YOUR_OPENAI_API_KEY" \
-    --base_url "YOUR_BASE_URL" \
-    --judge_model gpt-4o
-```
+- `uv run python scripts/build_full_paper.py` assembles the current paper draft.
+- `uv run python scripts/export_site_data.py` exports site-facing JSON summaries from committed outputs.
+- `scripts/infra/publish.sh site --slug aware-fresco-4a2q --client amp` publishes the site to its canonical URL.
 
-### 3. Sample Balanced Training IDs
+If you need the original forked-paper examples, start with [`data/original_paper_examples/`](data/original_paper_examples/). If you need the current project argument, start with [`site/index.html`](site/index.html) or [`notes/paper/draft/full_paper.md`](notes/paper/draft/full_paper.md).
 
-Generate a balanced set of Question IDs (equal numbers of Faithful and Hallucinated samples) to serve as the training or validation set.
+## Repository Map
 
-```bash
-python scripts/sample_balanced_ids.py \
-    --input_path data/gemma3_4b/pipeline/answer_tokens.jsonl \
-    --output_path data/gemma3_4b/pipeline/train_qids.json \
-    --num_samples 1000
-```
+- [`scripts/`](scripts/) - experiment entrypoints, analysis scripts, and shared utilities
+- [`scripts/infra/`](scripts/infra/) - canonical orchestration wrappers for larger runs
+- [`data/`](data/) - committed experiment outputs, semantic run directories, controls, and audits
+- [`notes/`](notes/) - planning documents, measurement contracts, sprint notes, and paper materials
+- [`notes/paper/draft/`](notes/paper/draft/) - source shards and assembled draft for the current paper
+- [`site/`](site/) - public presentation site and consumers of exported result payloads
+- [`tests/`](tests/) - regression coverage for pipeline guards, reporting, evaluation, and exports
+- [`papers/`](papers/) - local paper corpus, H-neurons reference materials, and literature notes
 
-To create a disjoint held-out split, run the same command again with `--exclude_path data/gemma3_4b/pipeline/train_qids.json` and save to a separate `test_qids.json`.
+For the current committed data layout, also see [`docs/archive/project-structure.md`](docs/archive/project-structure.md).
 
-### 4. Quantify Neuron Contribution
+## Measurement and Reproducibility
 
-Compute and save the neuron contributions (CETT). This script handles the forward pass and supports extracting activations from multiple locations (Input, Output, Answer Tokens, All Tokens except Answer Tokens).
+This repo treats evaluation as part of the scientific object, not an afterthought.
 
-```bash
-python scripts/extract_activations.py \
-    --model_path /path/to/your/model \
-    --input_path data/gemma3_4b/pipeline/answer_tokens.jsonl \
-    --train_ids_path data/gemma3_4b/pipeline/train_qids.json \
-    --output_root data/gemma3_4b/pipeline/activations \
-    --locations answer_tokens all_except_answer_tokens input output \
-    --method mean \
-    --use_mag --use_abs
-```
+- Quantitative claims in project-facing materials are expected to include uncertainty.
+- Claim-relevant artifacts should carry adjacent `*.provenance.json` sidecars.
+- Negative controls are expected for new intervention claims.
+- Evaluator choice can materially change conclusions, especially on jailbreak-style safety runs.
+- `notes/runs_to_analyse.md` is part of the run lifecycle, not optional bookkeeping.
 
-### 5. Train Hallucination Classifier
+The canonical contract for Act 3 claims lives in [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md). Quantitative reporting coverage is tracked in [`docs/ci_manifest.json`](docs/ci_manifest.json).
 
-Train the linear classifier to identify H-Neurons.
-```bash
-python scripts/classifier.py \
-    --model_path /path/to/your/model \
-    --train_ids data/gemma3_4b/pipeline/train_qids.json \
-    --train_ans_acts data/gemma3_4b/pipeline/activations/answer_tokens \
-    --train_other_acts data/gemma3_4b/pipeline/activations/all_except_answer_tokens \
-    --test_ids data/gemma3_4b/pipeline/test_qids.json \
-    --test_acts data/gemma3_4b/pipeline/activations/answer_tokens \
-    --train_mode 3-vs-1 \
-    --penalty l1 \
-    --c_values 0.05 0.1 0.2 0.5 1.0 \
-    --metrics_out data/gemma3_4b/pipeline/classifier_metrics.json \
-    --save_model models/classifier.pkl
-```
+## Lineage and Further Reading
 
-*   **`--train_mode`**:
-    *   **`1-vs-1`**: Distinguishes between hallucinated answer tokens and faithful answer tokens. **If you just want to achieve the highest predictive accuracy, we recommend using this setting.**
-    *   **`3-vs-1`**: The strategy used in our paper. It contrasts hallucinated answer tokens against a combined negative set of faithful answer tokens and non-answer tokens. This mode is designed to isolate neurons specifically linked to factual errors.
+This repo still contains the upstream H-neurons lineage:
 
-*   **`--penalty`**:
-    *   **`l1`**: Encourages sparsity by driving most neuron weights to zero. This is essential for **identifying a sparse subset of H-Neurons** for downstream analysis.
-    *   **`l2`**: Does not produce sparse weights but typically provides a **1-3% boost in accuracy**. Use this if you only need a hallucination detector.
+- Upstream framing and paper materials: [`papers/h-neurons-hallucination-correlated.md`](papers/h-neurons-hallucination-correlated.md)
+- Original converted paper text: [`papers/original-paper-markdown-converted.md`](papers/original-paper-markdown-converted.md)
+- Original paper-faithful example outputs: [`data/original_paper_examples/`](data/original_paper_examples/)
 
-*   **`--C` (Regularization Strength)**:
-    *   In `l1` regularization, the value of $C$ (inverse of regularization strength) controls the number of identified non-zero weights neurons. 
-    *   Selecting an appropriate \(C\) is a trade-off. On one hand, setting \(C\) too low enforces aggressive sparsity, which risks excluding too many neurons. On the other hand, setting \(C\) too high introduces noise by including neurons essential for general language modeling, thereby causing damage to the model's fundamental capabilities during intervention.
-    We perform a grid search to select \(C\) to maximize the sum of (1) classification accuracy on a held-out set and (2) model performance on TriviaQA when suppressing the identified H-Neurons.
-    But if you only need a hallucination detector, just use L2 regularization and set \(C\) as default.
+Current project-facing reading order:
 
-*   **`--c_values` / `--metrics_out`**:
-    *   Use `--c_values` to sweep several regularization strengths in one run.
-    *   When `--test_ids` and `--test_acts` are provided, the best checkpoint is selected using held-out metrics and the full sweep summary can be written to `--metrics_out`.
-
-
-*   **Model Management**:
-    *   **Training**: Provide `--train_ids` and activation directories to train and save a new model via `--save_model`.
-    *   **Evaluation**: Use `--load_model` to skip training and evaluate a pre-trained `.pkl` model on your test set `--test_acts`.
-
-### Model Intervention
-
-To perform neuron-level intervention, we recommend modulating the activations directly during the forward pass within your inference code. Specifically, you should scale the **input to the `down_proj` layer** at the indices identified as **H-Neurons** (those with positive weights in the trained $L_1$ classifier).
-
-We also provide example functions in `scripts/intervene_model.py`.
-
-## Citation
-
-If you find our work useful, please cite our paper:
-
-```bibtex
-@misc{gao2025hneuronsexistenceimpactorigin,
-      title={H-Neurons: On the Existence, Impact, and Origin of Hallucination-Associated Neurons in LLMs}, 
-      author={Cheng Gao and Huimin Chen and Chaojun Xiao and Zhiyi Chen and Zhiyuan Liu and Maosong Sun},
-      year={2025},
-      eprint={2512.01797},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2512.01797}, 
-}
-```
+- [`site/index.html`](site/index.html)
+- [`site/story.html`](site/story.html)
+- [`site/methods.html`](site/methods.html)
+- [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md)
+- [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md)
+- [`notes/paper/draft/full_paper.md`](notes/paper/draft/full_paper.md)
