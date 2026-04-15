@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-14",
+  "generated_at": "2026-04-15",
   "generated_by": "scripts/export_site_data.py",
   "benchmark": "jailbreak_d7_full500",
   "model": "google/gemma-3-4b-it",
@@ -1246,7 +1246,7 @@
     "mixed_ruler_status": {
       "status": "mixed_ruler_reconciliation",
       "historical_panel_status": "historical_provenance_only",
-      "description": "Current D7 current-state panel built from the stored full-500 artifacts. The baseline, L1, and causal branches are legacy unversioned CSV2 outputs interpreted through the current normalization layer; random seed 1 and probe_locked are newer scored artifacts with explicit primary_outcome / intent_match fields and span-validation errors. This panel is mixed-ruler evidence for current interpretation, not a like-for-like rerun."
+      "description": "Current D7 current-state panel built from the stored full-500 artifacts. The baseline, L1, and causal branches are legacy unversioned CSV2 outputs interpreted through the current normalization layer; the layer-matched random branches and probe_locked are newer scored artifacts with explicit primary_outcome / intent_match fields and span-validation errors. This panel is mixed-ruler evidence for current interpretation, not a like-for-like rerun."
     },
     "control": {
       "availability": "available_single_seed_only",
@@ -1500,7 +1500,7 @@
       "total_row_count": 500
     },
     "current_panel": {
-      "description": "Current D7 current-state panel built from the stored full-500 artifacts. The baseline, L1, and causal branches are legacy unversioned CSV2 outputs interpreted through the current normalization layer; random seed 1 and probe_locked are newer scored artifacts with explicit primary_outcome / intent_match fields and span-validation errors. This panel is mixed-ruler evidence for current interpretation, not a like-for-like rerun.",
+      "description": "Current D7 current-state panel built from the stored full-500 artifacts. The baseline, L1, and causal branches are legacy unversioned CSV2 outputs interpreted through the current normalization layer; the layer-matched random branches and probe_locked are newer scored artifacts with explicit primary_outcome / intent_match fields and span-validation errors. This panel is mixed-ruler evidence for current interpretation, not a like-for-like rerun.",
       "conditions": {
         "baseline": {
           "status": "complete_scored",
@@ -2146,6 +2146,25 @@
             }
           }
         }
+      },
+      "random_layer_matched_family": {
+        "status": "available_single_seed_only",
+        "n_seeds": 1,
+        "seed_keys": [
+          "random_layer_seed1"
+        ],
+        "strict_harmfulness_normalized_estimate_pct_by_seed": {
+          "random_layer_seed1": 37.2
+        },
+        "binary_harmful_estimate_pct_by_seed": {
+          "random_layer_seed1": 36.6
+        },
+        "harmful_payload_share_estimate_by_seed": {
+          "random_layer_seed1": 0.2521568
+        },
+        "strict_harmfulness_normalized_mean_estimate_pct": 37.2,
+        "binary_harmful_mean_estimate_pct": 36.6,
+        "harmful_payload_share_mean_estimate": 0.2521568
       },
       "deltas_vs_baseline": {
         "l1": {
