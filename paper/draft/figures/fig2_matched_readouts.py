@@ -1,28 +1,9 @@
 """
 Figure 2: Matched Readouts, Divergent Control.
 
-Flagship empirical figure for "Detection Is Not Enough" showing that
-representation methods with comparable detection AUROC produce sharply
-different intervention outcomes.
-
-Panel A: Detection quality (AUROC) for three methods.
-Panel B: FaithEval compliance dose-response for H-neurons vs SAE features
-         vs random SAE feature control, annotated with the paired
-         neuron-minus-SAE slope difference.
-Panel C: Jailbreak strict harmfulness rates on the normalized full-500
-         panel for baseline vs matched-random, probe-selected, and
-         gradient-selected head interventions.
-
-Data sources (all real, loaded from repo JSON):
-  - data/gemma3_4b/pipeline/classifier_disjoint_summary.json
-  - data/gemma3_4b/pipeline/classifier_sae_summary.json
-  - data/gemma3_4b/intervention/faitheval/experiment/results.json
-  - data/gemma3_4b/intervention/faitheval_sae/experiment/results.json
-  - data/gemma3_4b/intervention/faitheval_sae/control/comparison_summary.json
-  - data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json
-  - data/gemma3_4b/intervention/faitheval/control/comparison_summary.json
-  - data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json
-  - data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json
+FaithEval is the anchor result. The jailbreak comparator appears only as
+supporting evidence, and the probe summary is shown as a distribution rather
+than a headline-matching bar.
 
 Usage:
     uv run python paper/draft/figures/fig2_matched_readouts.py
@@ -39,39 +20,26 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
-ROOT = Path(__file__).resolve().parents[3]  # repo root
+ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "paper/draft/figures/fig2_matched_readouts.png"
 
-# ---------------------------------------------------------------------------
-# Color palette -- consistent with Figure 1 (muted blues / terracotta)
-# ---------------------------------------------------------------------------
 TITLE_COLOR = "#1E3044"
 SUBTITLE_COLOR = "#5A6E7F"
 BG_COLOR = "#FFFFFF"
 
-# Data-series colors
-C_HNEURON = "#3E6A8A"  # dark steel blue -- primary
-C_SAE = "#BF4E38"  # muted terracotta -- SAE
-C_RANDOM = "#8899A6"  # medium gray-blue -- random control
-C_CAUSAL = "#3E6A8A"  # dark steel blue -- causal intervention
-C_L1 = "#BF4E38"  # terracotta -- L1 comparator (worsens)
-C_BASELINE = "#5A6E7F"  # mid-gray -- baseline
+C_HNEURON = "#3E6A8A"
+C_SAE = "#BF4E38"
+C_RANDOM = "#8899A6"
+C_SUPPORT = "#7A8794"
 
 C_HNEURON_FILL = "#DAEAF6"
 C_SAE_FILL = "#FDF1ED"
 C_RANDOM_FILL = "#E8ECF0"
 
-# ---------------------------------------------------------------------------
-# Font settings
-# ---------------------------------------------------------------------------
-FONT_FAMILY = "DejaVu Sans"
 plt.rcParams.update(
     {
         "font.family": "sans-serif",
-        "font.sans-serif": [FONT_FAMILY, "Helvetica", "Arial"],
+        "font.sans-serif": ["DejaVu Sans", "Helvetica", "Arial"],
         "text.color": TITLE_COLOR,
         "axes.labelcolor": TITLE_COLOR,
         "xtick.color": SUBTITLE_COLOR,
@@ -80,40 +48,17 @@ plt.rcParams.update(
 )
 
 
-# ---------------------------------------------------------------------------
-# Data loading
-# ---------------------------------------------------------------------------
 def load_json(rel_path: str) -> dict:
-    """Load a JSON file relative to repo root."""
-    with open(ROOT / rel_path) as f:
+    with open(ROOT / rel_path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_all_data() -> dict:
-    """Load and return all required data in a structured dict."""
-    data: dict = {}
-
-    # ------------------------------------------------------------------
-    # Panel A: AUROC values
-    # ------------------------------------------------------------------
+def load_data() -> dict:
     neuron_cls = load_json("data/gemma3_4b/pipeline/classifier_disjoint_summary.json")
     sae_cls = load_json("data/gemma3_4b/pipeline/classifier_sae_summary.json")
     probe_meta = load_json(
         "data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json"
     )
-
-    data["auroc_hneuron"] = neuron_cls["evaluation"]["metrics"]["auroc"]["estimate"]
-    data["auroc_hneuron_ci"] = neuron_cls["evaluation"]["metrics"]["auroc"]["ci"]
-    data["auroc_sae"] = sae_cls["best"]["test_metrics"]["auroc"]
-
-    # Probe heads: top-20 selected heads with per-head AUROC
-    head_manifest = probe_meta["selected_head_manifest"]
-    data["auroc_probe_heads"] = [h["auroc"] for h in head_manifest]
-    data["auroc_probe_best"] = max(data["auroc_probe_heads"])
-
-    # ------------------------------------------------------------------
-    # Panel B: FaithEval compliance curves
-    # ------------------------------------------------------------------
     fe_neuron_ctrl = load_json(
         "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"
     )
@@ -126,98 +71,125 @@ def load_all_data() -> dict:
     fe_sae_slope_diff = load_json(
         "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json"
     )
-
-    alphas_fe = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
-
-    data["fe_alphas"] = alphas_fe
-    data["fe_hn_rates"] = fe_neuron_ctrl["h_neuron_baseline"]["compliance_rates"]
-    data["fe_hn_ci"] = fe_neuron_ctrl["h_neuron_baseline"]["compliance_ci_by_alpha"]
-
-    data["fe_sae_rates"] = fe_sae["effects"]["compliance_curve"]["rates"]
-    data["fe_sae_ci"] = list(fe_sae["results"].values())
-
-    data["fe_random_rates"] = fe_sae_ctrl["random_sae_features"][
-        "mean_compliance_rates"
-    ]
-    data["fe_random_std"] = fe_sae_ctrl["random_sae_features"]["std_compliance_rates"]
-    data["fe_slope_diff_estimate"] = fe_sae_slope_diff["slope_difference_pp_per_alpha"][
-        "estimate"
-    ]
-    data["fe_slope_diff_ci"] = fe_sae_slope_diff["slope_difference_pp_per_alpha"]["ci"]
-
-    # ------------------------------------------------------------------
-    # Panel C: Full-500 jailbreak comparator panel
-    # ------------------------------------------------------------------
     d7 = load_json(
         "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json"
     )
-    data["d7_conditions"] = d7["current_panel"]["conditions"]
-    data["d7_paired"] = d7["current_panel"]["paired_vs_baseline"]
-    data["d7_direct"] = d7["current_panel"]["direct_comparisons"]
 
-    return data
+    probe_aurocs = [entry["auroc"] for entry in probe_meta["selected_head_manifest"]]
+    alphas = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+
+    sae_results = fe_sae["results"]
+    sae_ci = [sae_results[str(alpha)]["compliance"]["ci"] for alpha in alphas]
+
+    return {
+        "auroc_h": neuron_cls["evaluation"]["metrics"]["auroc"]["estimate"],
+        "auroc_sae": sae_cls["best"]["test_metrics"]["auroc"],
+        "probe_summary": {
+            "n": len(probe_aurocs),
+            "median": float(np.median(probe_aurocs)),
+            "min": float(np.min(probe_aurocs)),
+            "max": float(np.max(probe_aurocs)),
+        },
+        "alphas": np.array(alphas),
+        "h_rates": np.array(fe_neuron_ctrl["h_neuron_baseline"]["compliance_rates"]),
+        "h_ci_lo": np.array(
+            [
+                entry["ci"]["lower"]
+                for entry in fe_neuron_ctrl["h_neuron_baseline"][
+                    "compliance_ci_by_alpha"
+                ]
+            ]
+        ),
+        "h_ci_hi": np.array(
+            [
+                entry["ci"]["upper"]
+                for entry in fe_neuron_ctrl["h_neuron_baseline"][
+                    "compliance_ci_by_alpha"
+                ]
+            ]
+        ),
+        "sae_rates": np.array(fe_sae["effects"]["compliance_curve"]["rates"]),
+        "sae_ci_lo": np.array([entry["lower"] for entry in sae_ci]),
+        "sae_ci_hi": np.array([entry["upper"] for entry in sae_ci]),
+        "rand_rates": np.array(
+            fe_sae_ctrl["random_sae_features"]["mean_compliance_rates"]
+        ),
+        "rand_std": np.array(
+            fe_sae_ctrl["random_sae_features"]["std_compliance_rates"]
+        ),
+        "slope_diff": fe_sae_slope_diff["slope_difference_pp_per_alpha"]["estimate"],
+        "slope_diff_ci": fe_sae_slope_diff["slope_difference_pp_per_alpha"]["ci"],
+        "d7_conditions": d7["current_panel"]["conditions"],
+        "d7_direct": d7["current_panel"]["direct_comparisons"],
+    }
 
 
-# ---------------------------------------------------------------------------
-# Panel A: Detection AUROC comparison
-# ---------------------------------------------------------------------------
 def draw_panel_a(ax: plt.Axes, data: dict) -> None:
-    """Grouped bar chart of detection AUROC for three methods."""
-    methods = [
-        "H-neurons\n(38 neurons)",
-        "SAE features\n(266 features)",
-        "Probe heads\n(jailbreak, top-20)",
-    ]
-    aurocs = [
-        data["auroc_hneuron"],
-        data["auroc_sae"],
-        data["auroc_probe_best"],
-    ]
-    fill_colors = [C_HNEURON_FILL, C_SAE_FILL, C_RANDOM_FILL]
-    edge_colors = [C_HNEURON, C_SAE, C_BASELINE]
-
+    x = np.array([0.0, 1.0])
     bars = ax.bar(
-        methods,
-        aurocs,
-        color=fill_colors,
-        edgecolor=edge_colors,
+        x,
+        [data["auroc_h"], data["auroc_sae"]],
+        color=[C_HNEURON_FILL, C_SAE_FILL],
+        edgecolor=[C_HNEURON, C_SAE],
         linewidth=1.8,
-        width=0.55,
+        width=0.52,
         zorder=3,
     )
-
-    # Value labels on bars
-    for bar, val in zip(bars, aurocs):
+    for bar, val in zip(bars, [data["auroc_h"], data["auroc_sae"]]):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.007,
+            val + 0.007,
             f"{val:.3f}",
             ha="center",
             va="bottom",
-            fontsize=10.5,
+            fontsize=10,
             fontweight="bold",
             color=TITLE_COLOR,
         )
 
-    ax.set_ylim(0.70, 1.06)
-    ax.set_ylabel("Detection AUROC", fontsize=10, fontweight="bold")
-    ax.set_title(
-        "A. Matched detection quality",
-        fontsize=11,
-        fontweight="bold",
-        color=TITLE_COLOR,
-        loc="left",
-        pad=10,
+    probe = data["probe_summary"]
+    probe_x = 1.95
+    probe_y = probe["median"]
+    probe_err = np.array([[probe_y - probe["min"]], [probe["max"] - probe_y]])
+    ax.errorbar(
+        probe_x,
+        probe_y,
+        yerr=probe_err,
+        fmt="D",
+        markersize=5.5,
+        markerfacecolor="white",
+        markeredgecolor=C_SUPPORT,
+        markeredgewidth=1.4,
+        capsize=4,
+        linewidth=1.2,
+        color=C_SUPPORT,
+        zorder=4,
+    )
+    ax.text(
+        probe_x,
+        probe["max"] + 0.006,
+        "Jailbreak probe heads\nsupporting comparator",
+        ha="center",
+        va="bottom",
+        fontsize=7,
+        color=C_SUPPORT,
+    )
+    ax.text(
+        probe_x,
+        probe["min"] - 0.013,
+        f"median {probe_y:.3f}\nrange {probe['min']:.2f}-{probe['max']:.2f}",
+        ha="center",
+        va="top",
+        fontsize=6.8,
+        color=C_SUPPORT,
     )
 
-    # Bracket + delta annotation between H-neurons and SAE
-    bracket_y = 0.818
-    ax.plot([0, 1], [bracket_y, bracket_y], color=SUBTITLE_COLOR, linewidth=0.8)
-    ax.plot([0, 0], [bracket_y, bracket_y + 0.005], color=SUBTITLE_COLOR, linewidth=0.8)
-    ax.plot([1, 1], [bracket_y, bracket_y + 0.005], color=SUBTITLE_COLOR, linewidth=0.8)
+    ax.plot([0, 1], [0.818, 0.818], color=SUBTITLE_COLOR, linewidth=0.8)
+    ax.plot([0, 0], [0.818, 0.823], color=SUBTITLE_COLOR, linewidth=0.8)
+    ax.plot([1, 1], [0.818, 0.823], color=SUBTITLE_COLOR, linewidth=0.8)
     ax.text(
         0.5,
-        bracket_y - 0.008,
+        0.81,
         r"$\Delta$ = 0.005",
         ha="center",
         va="top",
@@ -226,379 +198,247 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
         fontstyle="italic",
     )
 
+    ax.set_xticks([0, 1, probe_x])
+    ax.set_xticklabels(
+        ["H-neurons\n(38)", "SAE features\n(266)", f"Probe heads\n(n={probe['n']})"],
+        fontsize=8,
+    )
+    ax.set_ylabel("Detection AUROC", fontsize=10, fontweight="bold")
+    ax.set_ylim(0.70, 1.06)
+    ax.set_title(
+        "A. FaithEval matched detection",
+        fontsize=11,
+        fontweight="bold",
+        loc="left",
+        pad=10,
+    )
+    ax.text(
+        0.99,
+        0.03,
+        "Probe shown as a distribution, not a headline bar.",
+        transform=ax.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=7,
+        color=SUBTITLE_COLOR,
+        fontstyle="italic",
+    )
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.tick_params(axis="x", labelsize=8)
-    ax.tick_params(axis="y", labelsize=8.5)
     ax.grid(axis="y", alpha=0.2, zorder=0)
 
 
-# ---------------------------------------------------------------------------
-# Panel B: FaithEval dose-response
-# ---------------------------------------------------------------------------
 def draw_panel_b(ax: plt.Axes, data: dict) -> None:
-    """Line plot of compliance rate vs alpha for H-neurons, SAE, random."""
-    alphas = np.array(data["fe_alphas"])
-
-    # --- H-neuron curve with Wilson CIs ---
-    hn_rates = np.array(data["fe_hn_rates"])
-    hn_lo = np.array([c["ci"]["lower"] for c in data["fe_hn_ci"]])
-    hn_hi = np.array([c["ci"]["upper"] for c in data["fe_hn_ci"]])
-
-    ax.fill_between(alphas, hn_lo, hn_hi, alpha=0.15, color=C_HNEURON, zorder=2)
+    alphas = data["alphas"]
+    ax.fill_between(
+        alphas, data["h_ci_lo"], data["h_ci_hi"], color=C_HNEURON, alpha=0.15
+    )
     ax.plot(
         alphas,
-        hn_rates,
+        data["h_rates"],
         color=C_HNEURON,
         linewidth=2.2,
         marker="o",
         markersize=5,
-        label="H-neuron scaling (n=38)",
+        label="H-neurons",
         zorder=4,
     )
 
-    # --- SAE feature curve with Wilson CIs ---
-    # Note: alpha=1.0 is the true no-op (bypass SAE encode/decode cycle).
-    # Other alphas pass through the lossy SAE, inflating compliance ~8-9pp.
-    # We plot the full curve but mark alpha=1.0 distinctly.
-    sae_rates = np.array(data["fe_sae_rates"])
-    sae_ci_data = data["fe_sae_ci"]
-    sae_lo = np.array([c["compliance"]["ci"]["lower"] for c in sae_ci_data])
-    sae_hi = np.array([c["compliance"]["ci"]["upper"] for c in sae_ci_data])
-
-    ax.fill_between(alphas, sae_lo, sae_hi, alpha=0.10, color=C_SAE, zorder=2)
+    ax.fill_between(
+        alphas, data["sae_ci_lo"], data["sae_ci_hi"], color=C_SAE, alpha=0.10
+    )
     ax.plot(
         alphas,
-        sae_rates,
+        data["sae_rates"],
         color=C_SAE,
-        linewidth=2.2,
+        linewidth=2.0,
         marker="s",
         markersize=5,
-        label="SAE feature scaling (n=266)",
+        label="SAE features",
         zorder=4,
     )
-
-    # Mark alpha=1.0 SAE point (true no-op, before lossy cycle)
-    ax.plot(
-        1.0,
-        sae_rates[2],
-        marker="s",
-        markersize=7,
-        markerfacecolor="white",
-        markeredgecolor=C_SAE,
-        markeredgewidth=2,
-        zorder=5,
-    )
-    ax.annotate(
-        "no-op\n(bypass SAE)",
-        xy=(1.0, sae_rates[2] + 0.004),
-        xytext=(1.55, 0.635),
-        fontsize=6.5,
-        color=C_SAE,
-        fontstyle="italic",
-        ha="center",
-        arrowprops=dict(
-            arrowstyle="->",
-            color=C_SAE,
-            linewidth=0.8,
-            connectionstyle="arc3,rad=-0.2",
-        ),
-    )
-
-    # --- Random SAE control (mean +/- 1 SD across 3 seeds) ---
-    rand_rates = np.array(data["fe_random_rates"])
-    rand_std = np.array(data["fe_random_std"])
 
     ax.fill_between(
         alphas,
-        rand_rates - rand_std,
-        rand_rates + rand_std,
-        alpha=0.18,
+        data["rand_rates"] - data["rand_std"],
+        data["rand_rates"] + data["rand_std"],
         color=C_RANDOM,
-        zorder=1,
+        alpha=0.16,
     )
     ax.plot(
         alphas,
-        rand_rates,
+        data["rand_rates"],
         color=C_RANDOM,
         linewidth=1.5,
+        linestyle="--",
         marker="^",
         markersize=4,
-        linestyle="--",
-        label="Random SAE features (3 seeds)",
+        label="Random SAE features",
         zorder=3,
     )
 
-    # --- Slope annotations ---
-    ax.annotate(
-        "+2.1 pp/\u03b1\n(monotonic)",
-        xy=(2.5, 0.695),
-        xytext=(0.65, 0.715),
-        fontsize=8,
-        fontweight="bold",
-        color=C_HNEURON,
-        arrowprops=dict(arrowstyle="->", color=C_HNEURON, linewidth=1.0),
-    )
-
-    ax.annotate(
-        "slope \u2248 0 pp/\u03b1",
-        xy=(2.75, 0.73),
-        xytext=(2.9, 0.775),
-        fontsize=7.5,
-        fontweight="bold",
-        color=C_SAE,
-        ha="center",
-        arrowprops=dict(arrowstyle="->", color=C_SAE, linewidth=0.8),
-    )
-
-    slope_diff = data["fe_slope_diff_estimate"]
-    slope_diff_ci = data["fe_slope_diff_ci"]
+    slope_ci = data["slope_diff_ci"]
     ax.text(
         0.03,
         0.97,
-        "paired "
+        "FaithEval anchor\n"
         + r"$\Delta$"
-        + f" slope = {slope_diff:+.2f} pp/$\\alpha$\n"
-        + "95% CI "
-        + f"[{slope_diff_ci['lower']:+.2f}, {slope_diff_ci['upper']:+.2f}]",
+        + f" slope = {data['slope_diff']:+.2f} pp/$\\alpha$\n"
+        + f"95% CI [{slope_ci['lower']:+.2f}, {slope_ci['upper']:+.2f}]",
         transform=ax.transAxes,
         ha="left",
         va="top",
         fontsize=7.3,
-        color=TITLE_COLOR,
         bbox=dict(
-            boxstyle="round,pad=0.28",
+            boxstyle="round,pad=0.30",
             facecolor="white",
             edgecolor="#D4DCE3",
             alpha=0.95,
         ),
     )
 
-    ax.set_xlabel("Scaling factor (\u03b1)", fontsize=10, fontweight="bold")
+    ax.set_xlabel("Scaling factor (α)", fontsize=10, fontweight="bold")
     ax.set_ylabel("Compliance rate", fontsize=10, fontweight="bold")
     ax.set_title(
-        "B. FaithEval: divergent steering",
+        "B. FaithEval steering divergence",
         fontsize=11,
         fontweight="bold",
-        color=TITLE_COLOR,
         loc="left",
         pad=10,
     )
-
     ax.set_xlim(-0.15, 3.15)
     ax.set_ylim(0.62, 0.79)
     ax.set_xticks(alphas)
-
-    ax.legend(
-        fontsize=7.5,
-        loc="lower right",
-        framealpha=0.90,
-        edgecolor="#CCCCCC",
-    )
-
+    ax.legend(fontsize=7.2, loc="lower right", framealpha=0.90, edgecolor="#CCCCCC")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.tick_params(labelsize=8.5)
     ax.grid(alpha=0.2, zorder=0)
 
 
-# ---------------------------------------------------------------------------
-# Panel C: Full-500 jailbreak comparator results
-# ---------------------------------------------------------------------------
 def draw_panel_c(ax: plt.Axes, data: dict) -> None:
-    """Bar chart of strict harmfulness on the normalized full-500 jailbreak panel."""
-    conditions = data["d7_conditions"]
-    paired = data["d7_paired"]
-
     order = ["baseline", "random_layer_seed1", "probe", "causal"]
-    names_raw = order
+    labels = [
+        "Baseline\n(no-op)",
+        "Matched random\nheads",
+        "Probe-selected\nheads",
+        "Gradient-selected\nheads",
+    ]
+    conditions = data["d7_conditions"]
     rates = [
         conditions[name]["strict_harmfulness_normalized"]["estimate_pct"]
         for name in order
     ]
-    ci_lo = [
+    lo = [
         conditions[name]["strict_harmfulness_normalized"]["ci"]["lower"] * 100
         for name in order
     ]
-    ci_hi = [
+    hi = [
         conditions[name]["strict_harmfulness_normalized"]["ci"]["upper"] * 100
         for name in order
     ]
-    errors_lo = [r - lo for r, lo in zip(rates, ci_lo)]
-    errors_hi = [hi - r for r, hi in zip(rates, ci_hi)]
-
-    # Paper-facing names
-    display_names = {
-        "baseline": "Baseline\n(no-op)",
-        "random_layer_seed1": "Matched random\nheads (\u03b1=4)",
-        "probe": "Probe-selected\nheads (\u03b1=1)",
-        "causal": "Gradient-selected\nheads (\u03b1=4)",
-    }
-    labels = [display_names.get(n, n) for n in names_raw]
-    fill_colors = [C_RANDOM_FILL, "#F6EEE8", C_SAE_FILL, C_HNEURON_FILL]
-    edge_colors = [C_BASELINE, "#8B6B5D", C_L1, C_CAUSAL]
-
-    x = np.arange(len(labels))
-    bars = ax.bar(
+    x = np.arange(len(order))
+    ax.bar(
         x,
         rates,
-        yerr=[errors_lo, errors_hi],
-        color=fill_colors,
-        edgecolor=edge_colors,
-        linewidth=1.8,
+        yerr=[
+            [rate - lower for rate, lower in zip(rates, lo)],
+            [upper - rate for rate, upper in zip(rates, hi)],
+        ],
+        color=[C_RANDOM_FILL, "#F6EEE8", C_SAE_FILL, C_HNEURON_FILL],
+        edgecolor=[SUBTITLE_COLOR, "#8B6B5D", C_SAE, C_HNEURON],
+        linewidth=1.6,
         width=0.50,
-        capsize=5,
-        error_kw=dict(linewidth=1.3, capthick=1.3, color=SUBTITLE_COLOR),
+        capsize=4,
+        error_kw={"linewidth": 1.2, "color": SUBTITLE_COLOR},
         zorder=3,
     )
-
-    # Value labels above error bars
-    for i, (bar, rate) in enumerate(zip(bars, rates)):
+    for xi, rate in zip(x, rates):
         ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + errors_hi[i] + 0.8,
+            xi,
+            rate + 2.0,
             f"{rate:.1f}%",
             ha="center",
             va="bottom",
-            fontsize=10.5,
+            fontsize=9,
             fontweight="bold",
-            color=TITLE_COLOR,
         )
 
-    # Paired effect annotations with CI
-    random_delta = paired["random_layer_seed1"]["strict_harmfulness_normalized"][
-        "estimate_pp"
+    probe_vs_causal = data["d7_direct"]["probe_vs_causal"][
+        "strict_harmfulness_normalized"
     ]
-    random_ci = paired["random_layer_seed1"]["strict_harmfulness_normalized"]["ci_pp"]
+    rand_vs_causal = data["d7_direct"]["random_layer_seed1_vs_causal"][
+        "strict_harmfulness_normalized"
+    ]
     ax.text(
-        1,
-        rates[1] + errors_hi[1] + 5.0,
-        f"{random_delta:.1f} pp [{random_ci['lower']:.1f}, {random_ci['upper']:.1f}]",
-        ha="center",
-        va="bottom",
-        fontsize=7.5,
-        color="#8B6B5D",
-        fontweight="bold",
-        bbox=dict(
-            boxstyle="round,pad=0.25",
-            facecolor="#F6EEE8",
-            edgecolor="#8B6B5D",
-            linewidth=0.6,
-            alpha=0.9,
-        ),
-    )
-
-    probe_delta = paired["probe"]["strict_harmfulness_normalized"]["estimate_pp"]
-    probe_ci = paired["probe"]["strict_harmfulness_normalized"]["ci_pp"]
-    ax.text(
-        2,
-        rates[2] + errors_hi[2] + 5.0,
-        f"{probe_delta:.1f} pp [{probe_ci['lower']:.1f}, {probe_ci['upper']:.1f}]",
-        ha="center",
-        va="bottom",
-        fontsize=7.5,
-        color=C_L1,
-        fontweight="bold",
-        bbox=dict(
-            boxstyle="round,pad=0.25",
-            facecolor=C_SAE_FILL,
-            edgecolor=C_L1,
-            linewidth=0.6,
-            alpha=0.9,
-        ),
-    )
-
-    causal_delta = paired["causal"]["strict_harmfulness_normalized"]["estimate_pp"]
-    causal_ci = paired["causal"]["strict_harmfulness_normalized"]["ci_pp"]
-    ax.text(
-        3,
-        rates[3] + errors_hi[3] + 5.0,
-        f"{causal_delta:.1f} pp [{causal_ci['lower']:.1f}, {causal_ci['upper']:.1f}]",
-        ha="center",
-        va="bottom",
-        fontsize=7.5,
-        color=C_CAUSAL,
-        fontweight="bold",
-        bbox=dict(
-            boxstyle="round,pad=0.25",
-            facecolor=C_HNEURON_FILL,
-            edgecolor=C_CAUSAL,
-            linewidth=0.6,
-            alpha=0.9,
-        ),
-    )
-
-    direct = data["d7_direct"]["probe_vs_causal"]["strict_harmfulness_normalized"]
-    ax.text(
-        0.03,
-        0.97,
-        f"gradient vs probe = {-direct['estimate_pp']:.1f} pp\n"
-        f"95% CI [{-direct['ci_pp']['upper']:.1f}, {-direct['ci_pp']['lower']:.1f}]",
+        0.02,
+        0.98,
+        "Supporting comparator only\n"
+        + f"causal vs probe = {-probe_vs_causal['estimate_pp']:+.1f} pp "
+        + f"[{-probe_vs_causal['ci_pp']['upper']:+.1f}, {-probe_vs_causal['ci_pp']['lower']:+.1f}]\n"
+        + f"causal vs random = {-rand_vs_causal['estimate_pp']:+.1f} pp "
+        + f"[{-rand_vs_causal['ci_pp']['upper']:+.1f}, {-rand_vs_causal['ci_pp']['lower']:+.1f}]",
         transform=ax.transAxes,
         ha="left",
         va="top",
-        fontsize=7.3,
-        color=TITLE_COLOR,
+        fontsize=7.0,
         bbox=dict(
-            boxstyle="round,pad=0.28",
-            facecolor="white",
+            boxstyle="round,pad=0.30",
+            facecolor="#FAFBFC",
             edgecolor="#D4DCE3",
             alpha=0.95,
         ),
     )
 
-    # Reference line at baseline
-    ax.axhline(
-        rates[0], color=C_BASELINE, linewidth=0.8, linestyle=":", alpha=0.5, zorder=1
-    )
-
     ax.set_ylabel(
-        "Strict harmfulness rate (%)\n(normalized full-500 panel, n=500)",
+        "Strict harmfulness rate (%)\n(full-500 panel with differing ruler histories)",
         fontsize=9.5,
         fontweight="bold",
     )
     ax.set_title(
-        "C. Jailbreak: selector-level divergence",
+        "C. Jailbreak supporting comparator",
         fontsize=11,
         fontweight="bold",
-        color=TITLE_COLOR,
+        color=SUBTITLE_COLOR,
         loc="left",
         pad=10,
     )
     ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-
+    ax.set_xticklabels(labels, fontsize=8.2)
     ax.set_ylim(0, 60)
-
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.tick_params(axis="x", labelsize=8.5)
-    ax.tick_params(axis="y", labelsize=8.5)
     ax.grid(axis="y", alpha=0.2, zorder=0)
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 def main() -> None:
-    """Assemble and save the three-panel figure."""
-    data = load_all_data()
+    data = load_data()
+    fig = plt.figure(figsize=(14.8, 7.9), dpi=300)
+    fig.set_facecolor(BG_COLOR)
+    grid = fig.add_gridspec(
+        2,
+        3,
+        height_ratios=[1.0, 0.78],
+        width_ratios=[0.95, 1.05, 1.05],
+        hspace=0.38,
+        wspace=0.32,
+    )
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5.5), dpi=300)
+    ax_a = fig.add_subplot(grid[0, 0])
+    ax_b = fig.add_subplot(grid[0, 1:])
+    ax_c = fig.add_subplot(grid[1, :])
 
-    draw_panel_a(axes[0], data)
-    draw_panel_b(axes[1], data)
-    draw_panel_c(axes[2], data)
+    draw_panel_a(ax_a, data)
+    draw_panel_b(ax_b, data)
+    draw_panel_c(ax_c, data)
 
     fig.suptitle(
         "Figure 2: Matched Readouts, Divergent Control",
         fontsize=14,
         fontweight="bold",
         color=TITLE_COLOR,
-        y=1.02,
+        y=0.985,
     )
-
-    fig.tight_layout(w_pad=3.5)
+    fig.subplots_adjust(top=0.90, bottom=0.08, left=0.055, right=0.985)
     fig.savefig(
         OUTPUT,
         dpi=300,

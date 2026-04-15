@@ -124,7 +124,7 @@ Every key quantitative claim in the paper traced to its canonical source.
 | CSV2 v2 holdout accuracy | 92.0% | [0.843, 0.980] | same |
 | Binary holdout accuracy | 90.0% | [0.80, 0.98] | same |
 | v3-SR gap (dev) | 12.2 pp | — | same |
-| v3-SR gap (holdout) | 2.0 pp | not significant | same |
+| v3-SR gap (holdout, pre-upgrade) | 2.0 pp | not significant | same |
 | Holdout n | 50 | — | same |
 | Contaminated rows removed | 24 | — | same |
 

@@ -2,8 +2,8 @@
 Figure 1: Four-Stage Interpretability Scaffold.
 
 Conceptual pipeline diagram for "Detection Is Not Enough" showing the four
-stages (Measurement, Localization, Control, Externality) and the anchor case
-studies that demonstrate where transitions between stages break.
+stages (Measurement, Localization, Control, Externality) and concise
+transition labels that mark where the scaffold breaks.
 
 Usage:
     uv run python paper/draft/figures/fig1_four_stage_scaffold.py
@@ -24,26 +24,17 @@ OUTPUT = "paper/draft/figures/fig1_four_stage_scaffold.png"
 
 # Stage definitions (label, subtitle)
 STAGES = [
-    ("Measurement", "Can we trust\nthe evaluation?"),
-    ("Localization", "Where does the\nfeature live?"),
-    ("Control", "Can we steer\nbehavior?"),
+    ("Measurement", "Can we trust\nthe readout?"),
+    ("Localization", "Where is the\nfeature?"),
+    ("Control", "Can we steer\nit?"),
     ("Externality", "Does it\ntransfer?"),
 ]
 
-# Anchor case-study text placed below each transition arrow.
-# Each string is pre-wrapped for compact rendering.
+# Concise labels placed below each transition arrow.
 ANCHORS = [
-    "Anchor 3: Truncation, binary vs\ngraded, evaluator dependence",
-    (
-        "Anchor 1: SAE vs H-neurons matched\n"
-        "AUROC, divergent steering; probe\n"
-        "AUROC 1.0, null intervention"
-    ),
-    (
-        "Anchor 2: ITI MC +6.3 pp vs bridge\n"
-        "\u22125.8 pp [\u22128.8, \u22123.0]; wrong-entity\n"
-        "substitution (30/43)"
-    ),
+    "Measurement -> Conclusion\ntruncation, grading, evaluator",
+    "Localization -> Control\nSAE vs H-neurons, steering",
+    "Control -> Externality\nITI gain vs bridge harm",
 ]
 
 # ---------------------------------------------------------------------------
@@ -93,7 +84,7 @@ def draw_figure():
     spacing = usable / (n - 1)
     x_centers = [x_margin + i * spacing for i in range(n)]
 
-    y_center = 0.64  # shifted up to make room for anchor annotations
+    y_center = 0.64  # shifted up to make room for concise transition labels
 
     # -------------------------------------------------------------------
     # Draw boxes + labels
@@ -115,11 +106,11 @@ def draw_figure():
         )
         ax.add_patch(box)
 
-        # Stage number + title
+        # Stage title
         ax.text(
             xc,
             y_center + 0.045,
-            f"{i + 1}. {label}",
+            label,
             ha="center",
             va="center",
             fontsize=11.5,
@@ -195,20 +186,20 @@ def draw_figure():
             zorder=1,
         )
 
-        # Anchor annotation box
+        # Transition label box
         ax.text(
             x_mid,
             y_anchor_top,
             ANCHORS[i],
             ha="center",
             va="top",
-            fontsize=6.5,
+            fontsize=6.7,
             fontstyle="italic",
             color=BREAK_COLOR,
             zorder=4,
             linespacing=1.3,
             bbox=dict(
-                boxstyle="round,pad=0.35",
+                boxstyle="round,pad=0.28",
                 facecolor=BREAK_BG,
                 edgecolor=BREAK_COLOR,
                 linewidth=0.7,

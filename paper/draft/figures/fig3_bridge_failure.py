@@ -133,11 +133,6 @@ SUBSTITUTION_EXAMPLES = [
         '"Peter Griffin" (same show)',
     ),
     (
-        "Dickens: Merdle & Sparkler?",
-        '"Little Dorrit"',
-        '"Bleak House" (same author)',
-    ),
-    (
         "DC comic introducing Superman?",
         '"Action Comics"',
         '"Detective Comics" (same publisher)',
@@ -296,7 +291,7 @@ def draw_panel_c(ax: plt.Axes) -> None:
     ax.axis("off")
 
     ax.set_title(
-        "C. Wrong-entity substitution: the model swaps, not refuses",
+        "C. Wrong-entity substitution: swap, not refusal",
         fontsize=11,
         fontweight="bold",
         color=TITLE_COLOR,
@@ -314,11 +309,11 @@ def draw_panel_c(ax: plt.Axes) -> None:
         cellLoc="left",
         colLoc="left",
         loc="center",
-        bbox=Bbox.from_extents(0.0, 0.0, 1.0, 0.92),
+        bbox=Bbox.from_extents(0.0, 0.0, 1.0, 0.95),
     )
 
     table.auto_set_font_size(False)
-    table.set_fontsize(8)
+    table.set_fontsize(8.1)
 
     # Style header row
     for j in range(len(col_labels)):
@@ -339,7 +334,7 @@ def draw_panel_c(ax: plt.Axes) -> None:
             cell = table[i, j]
             cell.set_facecolor(row_bg)
             cell.set_edgecolor(C_TABLE_BORDER)
-            cell.set_height(0.16)
+            cell.set_height(0.17)
 
             # Color the "correct" column blue, "wrong" column red
             if j == 1:
@@ -361,17 +356,17 @@ def draw_panel_c(ax: plt.Axes) -> None:
 # ---------------------------------------------------------------------------
 def main() -> None:
     """Assemble and save the three-panel figure."""
-    fig = plt.figure(figsize=(12, 5.5), dpi=300)
+    fig = plt.figure(figsize=(12.4, 5.8), dpi=300)
 
     # Layout: panels A and B in left column (stacked), panel C in right column
     gs = gridspec.GridSpec(
         2,
         2,
         figure=fig,
-        width_ratios=[1.0, 1.3],
-        height_ratios=[0.85, 1.15],
-        hspace=0.55,
-        wspace=0.35,
+        width_ratios=[1.0, 1.5],
+        height_ratios=[0.82, 1.18],
+        hspace=0.5,
+        wspace=0.3,
     )
 
     ax_a = fig.add_subplot(gs[:, 0])  # Panel A spans full left column

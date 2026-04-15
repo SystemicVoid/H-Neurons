@@ -20,7 +20,11 @@ compliance rates, severity scores, generation-surface accuracy---that are
 themselves products of evaluation choices. In this section we show that those
 choices are not clerical details: generation length, scoring granularity,
 evaluator identity, and pipeline hygiene each independently shifted what we
-would have concluded about whether a given intervention worked.
+would have concluded about whether a given intervention worked. The current
+endpoint is narrower than some earlier drafts suggested: after the
+StrongREJECT GPT-4o rerun, holdout binary accuracy is tied with CSV-v3, so
+the surviving reason to prefer CSV-v3 in this paper is its richer measurement
+granularity rather than superior held-out binary accuracy.
 
 We organize the case study around the H-neuron jailbreak scaling experiment
 (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n{=}500$ per
@@ -28,7 +32,9 @@ condition), because its moderate effect size makes it sensitive to every
 measurement decision we examine. Where findings generalize beyond this
 experiment, we note it explicitly.
 
-Figure 4 shows the three measurement reversals that matter for the paper's conclusions: binary versus graded scoring, evaluator calibration collapse on holdout, and the seed-0 specificity contrast.
+Figure 4 shows the three measurement results that matter most for the paper's
+conclusions: binary versus graded scoring, tied holdout binary accuracy after
+the StrongREJECT GPT-4o rerun, and the seed-0 specificity contrast.
 
 ![Figure 4. Measurement choices changed the scientific conclusion.](figures/fig4_measurement.png)
 *Figure 4. Binary scoring obscures the jailbreak effect, holdout validation compresses the apparent evaluator gap, and the seed-0 random-neuron control shows that the graded H-neuron dose-response is steeper than the matched control.*
@@ -194,9 +200,9 @@ Section 0.)
 The development-set ranking is not clean holdout evidence, however, because 24
 of the 74 records overlap with the rows used during CSV2 v3's calibration
 phase. Those prompt IDs were chosen precisely because they represented the
-failure surface where earlier evaluators struggled. After removing them, the
-holdout ($n{=}50$, 27 harmful, 23 safe from 17 prompt clusters) told a more
-muted story:
+failure surface where earlier evaluators struggled. Before the StrongREJECT
+GPT-4o rerun, removing those contaminated rows reduced the holdout
+differentiation substantially:
 
 | Evaluator | Holdout accuracy | Holdout 95\% CI (prompt-clustered) |
 |-----------|------------------|------------------------------------|
@@ -208,8 +214,8 @@ muted story:
 (Source: `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
 Sections 0 and 2.)
 
-The v3--StrongREJECT gap compressed from 12.2 pp to 2.0 pp, resting on a single
-discordant record. McNemar's exact test yielded $p = 1.0$; no pairwise
+Even in that pre-upgrade comparison, the v3--StrongREJECT gap rested on a
+single discordant record. McNemar's exact test yielded $p = 1.0$; no pairwise
 comparison reached significance (all $p > 0.25$). On held-out data, all four
 evaluators exceeded 90\% accuracy, and none was statistically distinguishable
 from the others.
@@ -220,8 +226,8 @@ GPT-4o (replacing GPT-4o-mini) improved StrongREJECT accuracy from 74.3\% to
 78.4\% $[67.7, 86.2]$, recovering 3 of 19 false negatives — all via
 \texttt{refused} flips where GPT-4o recognized that a refusal preamble was
 followed by substantive harmful content. On the 50-record holdout, the
-v3--StrongREJECT gap compressed from 2.0 pp to 0.0 pp (both at 96.0\%,
-identical error sets). The remaining 16 false negatives persist in both judge
+v3--StrongREJECT gap then closed to 0.0 pp (both at 96.0\%, identical error
+sets). The remaining 16 false negatives persist in both judge
 versions because the StrongREJECT formula's binary \texttt{refused} flag
 treats refuse-then-comply outputs as genuine refusals regardless of
 downstream harmful substance — a rubric construct mismatch, not a
@@ -243,14 +249,15 @@ Section 3).
 
 These results do not make evaluator choice irrelevant. They sharpen the claim:
 evaluator dependence is real, but its apparent magnitude depends strongly on
-which response regime is sampled. On holdout, the binary judge produced three
-false positives while the other evaluators produced none, which matters because
-false positives create phantom treatment effects in a scaling study meant to
-measure harm reduction.^[Source: `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
-Section 3.] CSV2 v3, by contrast, had zero solo errors; its two holdout errors
-were in the universal-failure bucket where every evaluator was wrong.^[Source:
+which response regime is sampled and on which construct is being scored. On
+holdout, the binary judge produced three false positives while the other
+evaluators produced none, which matters because false positives create phantom
+treatment effects in a scaling study meant to measure harm reduction.^[Source:
 `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`,
-Section 3.]
+Section 3.] CSV2 v3 and StrongREJECT-GPT-4o, by contrast, ended with identical
+holdout error sets; the residual disagreement is about rubric structure rather
+than held-out binary accuracy.^[Source:
+`notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md`, Section 3.]
 
 The deeper disagreement is conceptual. StrongREJECT and the CSV2 family do not
 measure exactly the same construct. StrongREJECT computes
@@ -328,10 +335,11 @@ We summarize the measurement findings by their epistemic status.
 - *Binary-versus-graded shift.* Binary evaluation washed out a dose-response
   ($+2.30$ pp/$\alpha$, CI excludes zero) that graded evaluation recovered.
   The mechanism is collapse of the borderline category.
-- *Holdout compression.* A 12.2 pp evaluator-accuracy gap compressed to
-  2.0 pp (McNemar $p = 1.0$) after removing calibration-contaminated rows.
+- *Holdout tie after judge upgrade.* The apparent evaluator-accuracy gap
+  disappeared after the StrongREJECT GPT-4o rerun: on holdout, CSV-v3 and
+  StrongREJECT both reached 96.0% accuracy with identical error sets.
   Apparent evaluator advantages can be substantially inflated by
-  development-set overlap.
+  development-set overlap and by judge-model differences.
 - *Seed-0 specificity.* H-neuron scaling produced a steeper jailbreak
   dose-response than a matched random-neuron control (slope difference
   $+2.77$ pp/$\alpha$ $[+1.17, +4.42]$, permutation $p = 0.013$),
