@@ -35,7 +35,7 @@ class ConditionSpec:
     csv2_path: Path
 
 
-CURRENT_CONDITIONS = [
+BASE_CURRENT_CONDITIONS = [
     ConditionSpec(
         key="baseline",
         label="baseline_noop",
@@ -76,6 +76,22 @@ CURRENT_CONDITIONS = [
         alpha=1.0,
         experiment_path=RUN_ROOT / "probe_locked/experiment/alpha_1.0.jsonl",
         csv2_path=RUN_ROOT / "probe_locked/csv2_evaluation/alpha_1.0.jsonl",
+    ),
+]
+
+OPTIONAL_CURRENT_CONDITIONS = [
+    ConditionSpec(
+        key="random_layer_seed2",
+        label="causal_random_head_layer_matched/seed_2",
+        alpha=4.0,
+        experiment_path=(
+            RUN_ROOT
+            / "causal_random_head_layer_matched/seed_2/experiment/alpha_4.0.jsonl"
+        ),
+        csv2_path=(
+            RUN_ROOT
+            / "causal_random_head_layer_matched/seed_2/csv2_evaluation/alpha_4.0.jsonl"
+        ),
     ),
 ]
 
@@ -199,6 +215,42 @@ def _condition_status(error_count: int) -> str:
     if error_count:
         return "complete_scored_error_bearing"
     return "complete_scored"
+
+
+def _condition_has_complete_csv2_annotations(spec: ConditionSpec) -> bool:
+    """Return True when the optional condition is fully ready for summarying.
+
+    `evaluate_csv2.py` creates the output JSONL by copying the experiment rows
+    before any `csv2` payloads have been written. Treat that intermediate file
+    as unavailable so live summary/export regeneration stays stable.
+    """
+    if not spec.experiment_path.exists() or not spec.csv2_path.exists():
+        return False
+
+    try:
+        experiment_rows = _rows_by_id(
+            _load_jsonl(spec.experiment_path),
+            context=f"{spec.key} experiment availability",
+        )
+        csv2_rows = _rows_by_id(
+            _load_jsonl(spec.csv2_path),
+            context=f"{spec.key} csv2 availability",
+        )
+    except (json.JSONDecodeError, OSError, KeyError, TypeError, ValueError):
+        return False
+
+    if set(experiment_rows) != set(csv2_rows):
+        return False
+
+    return all(isinstance(row.get("csv2"), dict) for row in csv2_rows.values())
+
+
+def _available_current_conditions() -> list[ConditionSpec]:
+    available = list(BASE_CURRENT_CONDITIONS)
+    for spec in OPTIONAL_CURRENT_CONDITIONS:
+        if _condition_has_complete_csv2_annotations(spec):
+            available.append(spec)
+    return available
 
 
 def _collect_condition_data(
@@ -349,10 +401,57 @@ def _make_direct_comparison(
     }
 
 
+def _random_layer_family_summary(
+    condition_metadata: dict[str, Any],
+) -> dict[str, Any] | None:
+    seed_keys = [
+        key
+        for key in ("random_layer_seed1", "random_layer_seed2")
+        if key in condition_metadata
+    ]
+    if not seed_keys:
+        return None
+
+    strict_by_seed = {
+        key: condition_metadata[key]["strict_harmfulness_normalized"]["estimate_pct"]
+        for key in seed_keys
+    }
+    binary_by_seed = {
+        key: condition_metadata[key]["binary_harmful"]["estimate_pct"]
+        for key in seed_keys
+    }
+    payload_by_seed = {
+        key: condition_metadata[key]["harmful_payload_share"]["estimate"]
+        for key in seed_keys
+    }
+    return {
+        "status": (
+            "available_multi_seed"
+            if len(seed_keys) >= 2
+            else "available_single_seed_only"
+        ),
+        "n_seeds": len(seed_keys),
+        "seed_keys": seed_keys,
+        "strict_harmfulness_normalized_estimate_pct_by_seed": strict_by_seed,
+        "binary_harmful_estimate_pct_by_seed": binary_by_seed,
+        "harmful_payload_share_estimate_by_seed": payload_by_seed,
+        "strict_harmfulness_normalized_mean_estimate_pct": float(
+            np.mean(list(strict_by_seed.values()))
+        ),
+        "binary_harmful_mean_estimate_pct": float(
+            np.mean(list(binary_by_seed.values()))
+        ),
+        "harmful_payload_share_mean_estimate": float(
+            np.mean(list(payload_by_seed.values()))
+        ),
+    }
+
+
 def _current_panel_summary() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     condition_metadata: dict[str, Any] = {}
     arrays_by_condition: dict[str, dict[str, Any]] = {}
-    for spec in CURRENT_CONDITIONS:
+    current_conditions = _available_current_conditions()
+    for spec in current_conditions:
         metadata, arrays = _collect_condition_data(spec)
         condition_metadata[spec.key] = metadata
         arrays_by_condition[spec.key] = arrays
@@ -364,7 +463,9 @@ def _current_panel_summary() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]
             raise ValueError(f"{key}: prompt order mismatch in current panel")
 
     paired_vs_baseline: dict[str, Any] = {}
-    for key in ("l1", "causal", "random_layer_seed1", "probe"):
+    for key in condition_metadata:
+        if key == "baseline":
+            continue
         comparison_arrays = arrays_by_condition[key]
         clean_mask = baseline_arrays["clean_mask"] & comparison_arrays["clean_mask"]
         paired_vs_baseline[key] = {
@@ -394,7 +495,7 @@ def _current_panel_summary() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]
             ),
         }
 
-    direct_comparisons = {
+    direct_comparisons: dict[str, Any] = {
         "random_layer_seed1_vs_causal": _make_direct_comparison(
             arrays_by_condition["causal"],
             arrays_by_condition["random_layer_seed1"],
@@ -408,17 +509,28 @@ def _current_panel_summary() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]
             arrays_by_condition["probe"],
         ),
     }
+    if "random_layer_seed2" in arrays_by_condition:
+        direct_comparisons["random_layer_seed2_vs_causal"] = _make_direct_comparison(
+            arrays_by_condition["causal"],
+            arrays_by_condition["random_layer_seed2"],
+        )
+        direct_comparisons["probe_vs_random_layer_seed2"] = _make_direct_comparison(
+            arrays_by_condition["random_layer_seed2"],
+            arrays_by_condition["probe"],
+        )
 
     return {
         "description": (
             "Current D7 current-state panel built from the stored full-500 artifacts. "
             "The baseline, L1, and causal branches are legacy unversioned CSV2 outputs "
-            "interpreted through the current normalization layer; random seed 1 and "
-            "probe_locked are newer scored artifacts with explicit primary_outcome / "
-            "intent_match fields and span-validation errors. This panel is mixed-ruler "
-            "evidence for current interpretation, not a like-for-like rerun."
+            "interpreted through the current normalization layer; the layer-matched "
+            "random branches and probe_locked are newer scored artifacts with explicit "
+            "primary_outcome / intent_match fields and span-validation errors. This "
+            "panel is mixed-ruler evidence for current interpretation, not a like-for-like "
+            "rerun."
         ),
         "conditions": condition_metadata,
+        "random_layer_matched_family": _random_layer_family_summary(condition_metadata),
         "paired_vs_baseline": paired_vs_baseline,
         "direct_comparisons": direct_comparisons,
     }, arrays_by_condition
@@ -474,13 +586,16 @@ def _ruler_drift_summary(
 
 
 def _artifact_status(current_panel: dict[str, Any]) -> dict[str, Any]:
+    random_seed2 = current_panel["conditions"].get("random_layer_seed2")
     return {
         "baseline_noop": current_panel["conditions"]["baseline"],
         "l1_neuron": current_panel["conditions"]["l1"],
         "causal_locked": current_panel["conditions"]["causal"],
         "causal_random_head_layer_matched": {
             "seed_1": current_panel["conditions"]["random_layer_seed1"],
-            "seed_2": {
+            "seed_2": random_seed2
+            if random_seed2 is not None
+            else {
                 "status": "absent",
                 "label": "causal_random_head_layer_matched/seed_2",
                 "alpha": 4.0,
@@ -498,8 +613,8 @@ def build_summary() -> dict[str, Any]:
     historical_panel = _historical_panel_summary()
     current_panel, _ = _current_panel_summary()
     current_condition_sources = [
-        str(spec.experiment_path) for spec in CURRENT_CONDITIONS
-    ] + [str(spec.csv2_path) for spec in CURRENT_CONDITIONS]
+        str(spec.experiment_path) for spec in _available_current_conditions()
+    ] + [str(spec.csv2_path) for spec in _available_current_conditions()]
     return {
         "schema_version": 1,
         "generated_at": date.today().isoformat(),

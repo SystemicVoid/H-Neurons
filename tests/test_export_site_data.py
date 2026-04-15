@@ -1,14 +1,26 @@
 import json
 from pathlib import Path
+import sys
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+
+import scripts.build_d7_control_and_ruler_summary as d7_current_state_summary
 from scripts.export_site_data import (
     build_bridge_phase3_payload,
     build_d7_comparison_payload,
     build_jailbreak_payload,
     build_payload,
 )
+
+
+def _write_jsonl(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
+        encoding="utf-8",
+    )
 
 
 def test_build_intervention_payload_exports_slope_difference_summaries():
@@ -204,3 +216,43 @@ def test_build_d7_comparison_payload_exports_current_state_namespace():
     assert probe_error_burden["types"] == {"invalid_evidence_spans": 12}
     assert probe_error_burden["clean_row_count"] == 488
     assert probe_error_burden["total_row_count"] == 500
+
+
+def test_available_current_conditions_excludes_incomplete_optional_csv2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    spec = d7_current_state_summary.ConditionSpec(
+        key="random_layer_seed2",
+        label="causal_random_head_layer_matched/seed_2",
+        alpha=4.0,
+        experiment_path=tmp_path / "experiment" / "alpha_4.0.jsonl",
+        csv2_path=tmp_path / "csv2_evaluation" / "alpha_4.0.jsonl",
+    )
+    experiment_rows = [
+        {"id": "sample-1", "response": "alpha"},
+        {"id": "sample-2", "response": "beta"},
+    ]
+    incomplete_csv2_rows = [
+        {"id": "sample-1", "response": "alpha"},
+        {"id": "sample-2", "response": "beta", "csv2": {"harmful_binary": "no"}},
+    ]
+    complete_csv2_rows = [
+        {"id": "sample-1", "response": "alpha", "csv2": {"harmful_binary": "no"}},
+        {"id": "sample-2", "response": "beta", "csv2": {"harmful_binary": "no"}},
+    ]
+
+    _write_jsonl(spec.experiment_path, experiment_rows)
+    _write_jsonl(spec.csv2_path, incomplete_csv2_rows)
+
+    monkeypatch.setattr(d7_current_state_summary, "BASE_CURRENT_CONDITIONS", [])
+    monkeypatch.setattr(
+        d7_current_state_summary,
+        "OPTIONAL_CURRENT_CONDITIONS",
+        [spec],
+    )
+
+    assert d7_current_state_summary._available_current_conditions() == []
+
+    _write_jsonl(spec.csv2_path, complete_csv2_rows)
+
+    assert d7_current_state_summary._available_current_conditions() == [spec]

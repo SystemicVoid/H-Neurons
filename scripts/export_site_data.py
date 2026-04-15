@@ -1979,7 +1979,12 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
     random_seed2_status = artifact_status["causal_random_head_layer_matched"]["seed_2"]
     probe_status = artifact_status["probe_locked"]
     random_seed1_condition = current_panel["conditions"]["random_layer_seed1"]
+    random_seed2_condition = current_panel["conditions"].get("random_layer_seed2")
     probe_condition = current_panel["conditions"]["probe"]
+    random_family_summary = copy.deepcopy(
+        current_panel.get("random_layer_matched_family")
+    )
+    has_random_seed2 = random_seed2_status["status"] != "absent"
     random_seed1_errors = copy.deepcopy(random_seed1_condition["csv2_errors"])
     random_seed1_errors["clean_row_count"] = int(
         random_seed1_condition["strict_harmfulness_normalized_clean_rows"]["n"]
@@ -1994,6 +1999,35 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
     probe_errors["total_row_count"] = int(
         probe_condition["strict_harmfulness_normalized"]["n"]
     )
+    current_state_caveat = (
+        "Interpret D7 as mixed-ruler supporting evidence, not a mechanism-clean "
+        "closure: the random control is single-seed, both random and probe carry "
+        "CSV2 span-validation errors, and only the April 8 baseline/L1/causal panel "
+        "exists on the legacy ruler."
+    )
+    top_level_caveat = (
+        "D7 is a benchmark-local supporting result on a mixed-ruler current-state "
+        "panel: causal is the strongest completed branch, but selector specificity "
+        "is still not mechanism-clean because the random control is single-seed and "
+        "the probe/random branches carry CSV2 error debt."
+    )
+    control_availability = "available_single_seed_only"
+    control_status = "single_seed_mixed_ruler_error_bearing"
+    if has_random_seed2:
+        current_state_caveat = (
+            "Interpret D7 as mixed-ruler supporting evidence, not a mechanism-clean "
+            "closure: the random control now has two layer-matched seeds, but the "
+            "probe/random branches still carry CSV2 span-validation errors and only "
+            "the April 8 baseline/L1/causal panel exists on the legacy ruler."
+        )
+        top_level_caveat = (
+            "D7 is a benchmark-local supporting result on a mixed-ruler current-state "
+            "panel: causal is the strongest completed branch, but selector specificity "
+            "is still not mechanism-clean because the panel remains mixed-ruler and "
+            "the probe/random branches carry CSV2 error debt."
+        )
+        control_availability = "available_two_seed_panel"
+        control_status = "two_seed_mixed_ruler_error_bearing"
 
     current_state_namespace = {
         "date": "2026-04-14",
@@ -2003,12 +2037,7 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
             "full-500 condition, outperforming the available probe and layer-matched "
             "random branches on the current normalized panel."
         ),
-        "caveat": (
-            "Interpret D7 as mixed-ruler supporting evidence, not a mechanism-clean "
-            "closure: the random control is single-seed, both random and probe carry "
-            "CSV2 span-validation errors, and only the April 8 baseline/L1/causal panel "
-            "exists on the legacy ruler."
-        ),
+        "caveat": (current_state_caveat),
         "source_files": [
             "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json",
             str(current_report_path.relative_to(repo_root)),
@@ -2019,8 +2048,8 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
             "description": current_panel["description"],
         },
         "control": {
-            "availability": "available_single_seed_only",
-            "status": "single_seed_mixed_ruler_error_bearing",
+            "availability": control_availability,
+            "status": control_status,
             "seed_1": copy.deepcopy(random_seed1_status),
             "seed_2": copy.deepcopy(random_seed2_status),
         },
@@ -2036,6 +2065,7 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         "current_panel": {
             "description": current_panel["description"],
             "conditions": copy.deepcopy(current_panel["conditions"]),
+            "random_layer_matched_family": random_family_summary,
             "deltas_vs_baseline": {
                 comparator: add_delta_aliases(metrics)
                 for comparator, metrics in current_panel["paired_vs_baseline"].items()
@@ -2060,6 +2090,27 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
             ),
         },
     }
+    if random_seed2_condition is not None:
+        current_state_namespace["current_panel"][
+            "direct_random_layer_seed2_vs_causal"
+        ] = add_delta_aliases(
+            current_panel["direct_comparisons"]["random_layer_seed2_vs_causal"]
+        )
+        current_state_namespace["current_panel"][
+            "direct_causal_vs_random_layer_seed2"
+        ] = invert_delta_metrics(
+            current_panel["direct_comparisons"]["random_layer_seed2_vs_causal"]
+        )
+        current_state_namespace["current_panel"][
+            "direct_probe_vs_random_layer_seed2"
+        ] = add_delta_aliases(
+            current_panel["direct_comparisons"]["probe_vs_random_layer_seed2"]
+        )
+        current_state_namespace["current_panel"][
+            "direct_random_layer_seed2_vs_probe"
+        ] = invert_delta_metrics(
+            current_panel["direct_comparisons"]["probe_vs_random_layer_seed2"]
+        )
 
     return {
         "schema_version": 1,
@@ -2075,12 +2126,7 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
             "notes/act3-reports/2026-04-14-d7-control-and-ruler-audit.md",
         ],
         "claim_status": "benchmark_local_supporting_evidence",
-        "caveat": (
-            "D7 is a benchmark-local supporting result on a mixed-ruler current-state "
-            "panel: causal is the strongest completed branch, but selector specificity "
-            "is still not mechanism-clean because the random control is single-seed and "
-            "the probe/random branches carry CSV2 error debt."
-        ),
+        "caveat": top_level_caveat,
         "headline": current_state_namespace["headline"],
         "conditions": {
             "baseline": copy.deepcopy(legacy_conditions["baseline"]),

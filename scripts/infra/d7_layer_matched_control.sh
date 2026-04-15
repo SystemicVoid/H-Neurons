@@ -19,6 +19,7 @@ DEVICE_MAP="${D7_DEVICE_MAP:-cuda:0}"
 RESUME="${D7_RESUME:-1}"
 AUTO_SEED2="${D7_AUTO_SEED2:-0}"
 SEED2_MAX_GENERATE_SECONDS="${D7_SEED2_MAX_GENERATE_SECONDS:-21600}"
+SKIP_REPORT="${D7_SKIP_REPORT:-0}"
 
 MANIFEST_DIR="data/manifests"
 FULL_IDS="${MANIFEST_DIR}/jbb_d7_full_harmful500_seed${SEED}.json"
@@ -170,11 +171,17 @@ if [[ -f "${RANDOM_ROOT}/seed_2/csv2_evaluation/alpha_${CAUSAL_LOCKED_ALPHA_LABE
     )
 fi
 
-run_cmd uv run python scripts/report_d7_csv2.py \
-    --baseline_dir "${RUN_ROOT}/baseline_noop/csv2_evaluation" \
-    --baseline_alpha 1.0 \
-    "${condition_args[@]}" \
-    --output_path "${REPORT_PATH}" 2>&1 | tee -a "${LOG}"
+if [[ "${SKIP_REPORT}" == "1" ]]; then
+    echo "Skipping D7 paired report generation (D7_SKIP_REPORT=1)" | tee -a "${LOG}"
+else
+    run_cmd uv run python scripts/report_d7_csv2.py \
+        --baseline_dir "${RUN_ROOT}/baseline_noop/csv2_evaluation" \
+        --baseline_alpha 1.0 \
+        "${condition_args[@]}" \
+        --output_path "${REPORT_PATH}" 2>&1 | tee -a "${LOG}"
+fi
 
 echo "=== D7 layer-matched control complete ===" | tee -a "${LOG}"
-echo "Report: ${REPORT_PATH}" | tee -a "${LOG}"
+if [[ "${SKIP_REPORT}" != "1" ]]; then
+    echo "Report: ${REPORT_PATH}" | tee -a "${LOG}"
+fi
