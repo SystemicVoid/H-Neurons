@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+import annotate_gold_expansion
 import finalize_gold_expansion
 import prepare_gold_expansion_queue
 
@@ -31,6 +35,28 @@ def _binary_row(sample_id: str, alpha: float, verdict: str) -> dict:
     return {
         **_base_record(sample_id, alpha),
         "judge": verdict,
+    }
+
+
+def _queue_row(
+    sample_id: str, alpha: float, *, queue_kind: str = "disagreement"
+) -> dict:
+    return {
+        **_base_record(sample_id, alpha),
+        "binary_verdict": "HARMFUL",
+        "v2_verdict": "yes",
+        "v2_reasoning": "v2 reasoning",
+        "v3_verdict": "yes",
+        "v3_primary_outcome": "substantive_compliance",
+        "v3_C": 3,
+        "v3_S": 3,
+        "v3_V": 2,
+        "v3_reasoning": "v3 reasoning",
+        "v3_harmful_spans": [{"start": 0, "end": 10}],
+        "disagreement_type": "two_vs_one_binary_dissents",
+        "queue_kind": queue_kind,
+        "calibration_consensus_label": "SAFE" if queue_kind == "calibration" else None,
+        "v3_error": None,
     }
 
 
@@ -76,6 +102,25 @@ def _v3_row(
         **_base_record(sample_id, alpha),
         "judge": "SAFE",
         "csv2": csv2,
+    }
+
+
+def _label_row(
+    sample_id: str,
+    alpha: float,
+    *,
+    label: str = "HARMFUL",
+    label_raw: str = "HARMFUL",
+    uncertainty: str = "medium",
+    reasoning: str = "specific reason",
+) -> dict:
+    return {
+        "id": sample_id,
+        "alpha": alpha,
+        "label": label,
+        "label_raw": label_raw,
+        "uncertainty": uncertainty,
+        "reasoning": reasoning,
     }
 
 
@@ -664,3 +709,188 @@ class TestFinalizeGoldExpansion:
         assert not expanded_path.exists()
         assert not uncertainties_path.exists()
         assert summary["overlap_with_existing_gold"]["n_disagree"] == 2
+
+
+class TestAnnotateGoldExpansion:
+    def test_annotate_skips_latest_labels_and_blinds_worker_input(
+        self, tmp_path, monkeypatch
+    ):
+        queue_path = tmp_path / "queue.jsonl"
+        progress_path = tmp_path / "progress.jsonl"
+        _write_jsonl(queue_path, [_queue_row("done", 0.0), _queue_row("next", 1.0)])
+        _write_jsonl(
+            progress_path,
+            [
+                _label_row("done", 0.0, label="SAFE", label_raw="SAFE"),
+                _label_row("done", 0.0, label="HARMFUL", label_raw="HARMFUL+"),
+            ],
+        )
+
+        captured_prompts: list[str] = []
+
+        def fake_run(cmd, *, cwd, input, text, capture_output, check):
+            assert cwd == annotate_gold_expansion.ROOT
+            assert text is True
+            assert capture_output is True
+            assert check is False
+            captured_prompts.append(input)
+            output_path = Path(cmd[cmd.index("-o") + 1])
+            output_path.write_text(
+                json.dumps(
+                    _label_row(
+                        "next",
+                        1.0,
+                        label="BORDERLINE",
+                        label_raw="BORDERLINE",
+                        uncertainty="high",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            return subprocess.CompletedProcess(cmd, 0, stdout="ok\n", stderr="")
+
+        monkeypatch.setattr(annotate_gold_expansion.subprocess, "run", fake_run)
+
+        summary = annotate_gold_expansion.annotate_gold_expansion(
+            queue_path=queue_path,
+            progress_path=progress_path,
+            codex_bin="codex",
+        )
+
+        assert summary == {
+            "total_queue_rows": 2,
+            "already_labeled_rows_skipped": 1,
+            "newly_appended_rows": 1,
+            "remaining_rows": 0,
+        }
+        assert len(captured_prompts) == 1
+        prompt = captured_prompts[0]
+        assert '"id": "next"' in prompt
+        assert '"response": "response for next"' in prompt
+        assert "binary_verdict" not in prompt
+        assert "v2_verdict" not in prompt
+        assert "v3_verdict" not in prompt
+
+        progress_rows = prepare_gold_expansion_queue.load_jsonl(progress_path)
+        assert len(progress_rows) == 3
+        assert progress_rows[-1] == _label_row(
+            "next",
+            1.0,
+            label="BORDERLINE",
+            label_raw="BORDERLINE",
+            uncertainty="high",
+        )
+
+    def test_annotate_appends_before_starting_next_worker(self, tmp_path, monkeypatch):
+        queue_path = tmp_path / "queue.jsonl"
+        progress_path = tmp_path / "progress.jsonl"
+        _write_jsonl(queue_path, [_queue_row("first", 0.0), _queue_row("second", 1.0)])
+        worker_calls: list[str] = []
+
+        def fake_run(cmd, *, cwd, input, text, capture_output, check):
+            del cwd, text, capture_output, check
+            row_id = "first" if '"id": "first"' in input else "second"
+            worker_calls.append(row_id)
+            if row_id == "second":
+                progress_rows = prepare_gold_expansion_queue.load_jsonl(progress_path)
+                assert [row["id"] for row in progress_rows] == ["first"]
+            output_path = Path(cmd[cmd.index("-o") + 1])
+            output_path.write_text(
+                json.dumps(
+                    _label_row(
+                        row_id,
+                        0.0 if row_id == "first" else 1.0,
+                        uncertainty="low" if row_id == "first" else "medium",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        monkeypatch.setattr(annotate_gold_expansion.subprocess, "run", fake_run)
+
+        summary = annotate_gold_expansion.annotate_gold_expansion(
+            queue_path=queue_path,
+            progress_path=progress_path,
+            codex_bin="codex",
+        )
+
+        assert worker_calls == ["first", "second"]
+        assert summary["newly_appended_rows"] == 2
+        progress_rows = prepare_gold_expansion_queue.load_jsonl(progress_path)
+        assert [row["id"] for row in progress_rows] == ["first", "second"]
+
+    def test_annotate_stops_on_worker_failure_without_append(
+        self, tmp_path, monkeypatch
+    ):
+        queue_path = tmp_path / "queue.jsonl"
+        progress_path = tmp_path / "progress.jsonl"
+        _write_jsonl(queue_path, [_queue_row("bad", 0.0)])
+
+        def fake_run(cmd, *, cwd, input, text, capture_output, check):
+            del cwd, input, text, capture_output, check
+            return subprocess.CompletedProcess(
+                cmd,
+                1,
+                stdout="",
+                stderr="worker crashed",
+            )
+
+        monkeypatch.setattr(annotate_gold_expansion.subprocess, "run", fake_run)
+
+        with pytest.raises(annotate_gold_expansion.AnnotationRunError) as exc_info:
+            annotate_gold_expansion.annotate_gold_expansion(
+                queue_path=queue_path,
+                progress_path=progress_path,
+                codex_bin="codex",
+            )
+
+        exc = exc_info.value
+        assert exc.sample_id == "bad"
+        assert exc.alpha == 0.0
+        assert "worker crashed" in str(exc)
+        assert exc.counts == {
+            "total_queue_rows": 1,
+            "already_labeled_rows_skipped": 0,
+            "newly_appended_rows": 0,
+            "remaining_rows": 1,
+        }
+        assert not progress_path.exists()
+
+    def test_annotate_rejects_invalid_worker_output_without_append(
+        self, tmp_path, monkeypatch
+    ):
+        queue_path = tmp_path / "queue.jsonl"
+        progress_path = tmp_path / "progress.jsonl"
+        _write_jsonl(queue_path, [_queue_row("bad_label", 0.0)])
+
+        def fake_run(cmd, *, cwd, input, text, capture_output, check):
+            del cwd, input, text, capture_output, check
+            output_path = Path(cmd[cmd.index("-o") + 1])
+            output_path.write_text(
+                json.dumps(
+                    _label_row(
+                        "bad_label",
+                        0.0,
+                        label="SAFE",
+                        label_raw="HARMFUL",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        monkeypatch.setattr(annotate_gold_expansion.subprocess, "run", fake_run)
+
+        with pytest.raises(annotate_gold_expansion.AnnotationRunError) as exc_info:
+            annotate_gold_expansion.annotate_gold_expansion(
+                queue_path=queue_path,
+                progress_path=progress_path,
+                codex_bin="codex",
+            )
+
+        exc = exc_info.value
+        assert exc.sample_id == "bad_label"
+        assert exc.alpha == 0.0
+        assert "SAFE labels must use label_raw=SAFE" in str(exc)
+        assert not progress_path.exists()

@@ -79,7 +79,7 @@ def _verdict_to_bool(verdict: str | None, *, source: str) -> bool | None:
     raise ValueError(f"Unknown evaluator source: {source}")
 
 
-def _validate_label_record(row: dict[str, Any]) -> None:
+def validate_label_record(row: dict[str, Any]) -> None:
     key = (row.get("id"), row.get("alpha"))
     label = row.get("label")
     label_raw = row.get("label_raw")
@@ -112,7 +112,7 @@ def load_progress(
             raise ValueError(f"Progress ledger contains unknown key: {key}")
         latest_by_key[key] = row
     for row in latest_by_key.values():
-        _validate_label_record(row)
+        validate_label_record(row)
     return latest_by_key
 
 
