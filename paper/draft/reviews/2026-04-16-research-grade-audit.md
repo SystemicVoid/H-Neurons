@@ -13,6 +13,14 @@ Freshness checks completed on 2026-04-16:
 
 - `uv run python scripts/build_full_paper.py --check` passed.
 - `uv run pytest tests/test_build_full_paper.py` passed (`6 passed`).
+- `uv run pytest tests/test_citation_registry.py` passed (`6 passed`).
+- `uv run python scripts/check_citation_registry.py` passed.
+
+Progress updates landed after the initial audit:
+
+- `6ce91d0` `fix(fig2): add AUROC uncertainty and soften equivalence wording`
+- `9b01ec8` `fix(citations): validate registry against local paper files`
+- `7610fc2` `fix(fig4): simplify measurement figure and align holdout text`
 
 ## Review Status
 
@@ -20,19 +28,19 @@ Freshness checks completed on 2026-04-16:
 |---|---|---|---|---|
 | D7 evidence hierarchy | overstated inference | Resolved, guard against regression | Manuscript vs [2026-04-16-d7-full500-two-seed-current-state-audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md:1) | FaithEval is now the sole load-bearing anchor; D7 is benchmark-local supporting evidence only. |
 | Section 5 bridge interpretation | overstated inference | Resolved, keep bounded | Manuscript vs [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:1) | Output-level diagnosis remains strong; explanatory language is now bounded to behavior-level interpretation. |
-| Figure 4 uncertainty logic | presentation/consistency defect | Open | Figure script vs manuscript text vs holdout validation note | Panel C uses row-level Wilson intervals while the text reports prompt-clustered bootstrap CIs; Panel D is mostly redundant. |
-| Figure 2 precision signaling | presentation/consistency defect | Open | Figure script vs manuscript wording | Detection panel visually overstates precision/equivalence. |
+| Figure 4 uncertainty logic | presentation/consistency defect | Resolved, keep aligned | Figure script vs manuscript text vs holdout validation note | Panel C now uses the canonical prompt-clustered bootstrap CIs, the stale StrongREJECT table values are fixed, and the redundant Panel D has been removed. |
+| Figure 2 precision signaling | presentation/consistency defect | Resolved, keep bounded | Figure script vs manuscript wording | Detection panel now shows uncertainty and explicitly avoids implying formal equivalence. |
 | Figure 3 readability | presentation/consistency defect | Open | Figure script vs rendered PNG | Panel C table clips at the right edge in the current render. |
 | Jailbreak measurement framing | unsupported claim | Resolved, keep narrow | Manuscript vs [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:1) | Safe claim is tie on binary holdout; prefer CSV-v3 for richer structure, not superiority. |
 | BioASQ summary framing | presentation/consistency defect | Resolved, keep narrow | Manuscript vs [bioasq_pipeline_audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md:1) | Safe claim is endpoint-flat but behaviorally active, not a clean null. |
-| Citation registry integrity | unsupported claim | Open | [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:1) vs local `papers/` files | Registry is too corrupted to trust for sync or provenance. |
+| Citation registry integrity | unsupported claim | Resolved, validator added | [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:1) vs local `papers/` files | Registry mappings were repaired and a dedicated validator plus tests now guard against recurrence. |
 | Sections 2 and 3 narrative economy | presentation/consistency defect | Open | Reader-facing prose vs evidence spine | Early sections still spend too much budget on governance and novelty fencing. |
 
 ## Executive Verdict
 
 The draft now has a coherent evidence hierarchy and a defensible paper-level thesis. The strongest scientific core remains intact: the FaithEval neuron-versus-SAE dissociation, the held-out TriviaQA bridge externality result, and the post-cleanup jailbreak measurement story all survive audit.
 
-The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims. The top remaining risks are Figure 4's interval mismatch, Figure 2's precision signaling, Figure 3's clipped table, and the corrupted citation registry.
+The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims, and the Figure 2, Figure 4, and citation-registry defects flagged in the first pass have now been fixed in committed follow-up work. The top remaining risks are Figure 3's clipped table and the paper's still-slow early narrative economy in Sections 2 and 3.
 
 ## Did Finding 1 Actually Land?
 
@@ -47,42 +55,16 @@ Residual risk: later edits could easily reintroduce D7 inflation, but D7 is no l
 
 ## Open Findings
 
-### 1. High: Figure 4 is not fully aligned with the paper text on uncertainty, and Panel D adds load without adding much evidence
+### 1. Medium: Figure 3 still has a rendered readability defect in Panel C
 
 Type: presentation/consistency defect  
-Checked: [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:1) vs [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:282) vs [2026-04-12-4way-evaluator-holdout-validation.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md:1)
+Checked: figure script vs rendered figure
 
-- The manuscript's holdout-evaluator table reports prompt-clustered bootstrap intervals over 17 prompt IDs in [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:282), matching the canonical holdout note: [2026-04-12-4way-evaluator-holdout-validation.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md:87), [2026-04-12-4way-evaluator-holdout-validation.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md:94).
-- Figure 4 Panel C instead computes Wilson intervals directly from 50 row-level counts in [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:57), [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:146), and [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:159). That is a direct mismatch for the same displayed quantity.
-- Panels B and D are both built from the same graded seed-0 specificity surface. Panel D is not incorrect, but it largely duplicates Panel B with dotted trend lines while dropping the uncertainty shading that makes Panel B interpretable: [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:263), [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:364).
-
-Required revision direction: either make Panel C use the same prompt-clustered intervals as the text or label it explicitly as a different interval method, and cut or repurpose Panel D because it currently increases panel load more than evidential clarity.
-
-### 2. High: The citation registry is corrupted enough to be a submission risk
-
-Type: unsupported claim  
-Checked: [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:1) vs local `papers/` files
-
-The manuscript bibliography is broadly salvageable, but the registry is not trustworthy as a source-of-truth.
-
-- `tan2024steering` points to the Pres paper's local files in [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:92).
-- `pres2024reliable` points to the Bhalla paper's local files in [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:110).
-- `bhalla2024unifying` points to FaithEval files while still saying "Need to acquire" in [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:128).
-- `ming2025faitheval` claims no local files despite local markdown and PDF existing in [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:182). The files do exist: `papers/faitheval-2410.03727.md` and `papers/faitheval-2410.03727.pdf`.
-
-This is not harmless bookkeeping noise. In current form, `registry.json` cannot safely drive citation maintenance, novelty checking, or outward-facing export automation.
-
-### 3. Medium: Figure 2 still over-signals precision, and Figure 3 has a rendered readability defect
-
-Type: presentation/consistency defect  
-Checked: figure scripts vs rendered figures vs manuscript wording
-
-- Figure 2 Panel A presents the matched readout result as two exact bars plus an exact `Δ = 0.005` annotation in [fig2_matched_readouts.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig2_matched_readouts.py:111). The text is careful that "matched" means similar readout quality, not formal equivalence; the figure visually pushes harder than the prose does.
 - Figure 3 is conceptually the strongest main-text figure, but the current rendered table in Panel C clips at the right boundary, stemming from the current full-width table layout in [fig3_bridge_failure.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig3_bridge_failure.py:302) and the rendered asset [fig3_bridge_failure.png](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig3_bridge_failure.png).
 
-Required revision direction: add an uncertainty or equivalence caveat to Figure 2's detection panel, and reflow Figure 3 Panel C so the example text remains legible at manuscript scale.
+Required revision direction: reflow Figure 3 Panel C so the example text remains legible at manuscript scale.
 
-### 4. Medium-High: Sections 2 and 3 still front-load too much governance prose relative to the evidence
+### 2. Medium-High: Sections 2 and 3 still front-load too much governance prose relative to the evidence
 
 Type: presentation/consistency defect  
 Checked: reader-facing prose vs evidence spine
@@ -108,6 +90,16 @@ No further structural retiering is required right now. The remaining risk is reg
 The clean result after the GPT-4o rerun is that CSV-v3 and StrongREJECT tie on holdout binary accuracy; the reason to prefer CSV-v3 is richer measurement structure, not binary superiority. The body now says this correctly in [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:289), and the canonical cleanup report is explicit that the discriminating question shifted away from binary accuracy superiority: [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:227), [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:239), [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:243).
 
 The remaining risk here is rhetorical drift. The science is stronger when phrased as "measurement changed what the paper could honestly conclude" rather than as a generic story of repeated evaluator reversals.
+
+The figure and manuscript alignment issue that was open in the first pass is now fixed. [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:1) now pulls Panel C intervals from the canonical holdout bootstrap artifact, the rendered figure has been simplified to three panels, and the Section 6 table now reports the post-rerun StrongREJECT-GPT-4o tie consistently. This landed in commit `7610fc2` (`fix(fig4): simplify measurement figure and align holdout text`).
+
+### Figure 2 no longer overstates equivalence
+
+The earlier precision-signaling problem in Figure 2 has been repaired. [fig2_matched_readouts.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig2_matched_readouts.py:1) now shows AUROC uncertainty and the caption/surface language explicitly says the result is similar held-out readout quality, not formal equivalence. This landed in commit `6ce91d0` (`fix(fig2): add AUROC uncertainty and soften equivalence wording`).
+
+### Citation registry integrity is now guarded by code
+
+The specific registry corruption cited in the first pass has been repaired in [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:1), and the repo now has an explicit validator in [check_citation_registry.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/scripts/check_citation_registry.py:1) plus focused tests in [test_citation_registry.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/tests/test_citation_registry.py:1). This landed in commit `9b01ec8` (`fix(citations): validate registry against local paper files`). The remaining risk is ordinary future drift rather than current corruption.
 
 ### Bridge interpretation is now aligned with the bridge report
 
@@ -139,11 +131,11 @@ This finding should now be treated as resolved, with the remaining risk being re
 ## Figure And Table Audit
 
 - `Figure 3` earns inclusion and is the closest main-text figure to publication-ready. Its only important scientific caveat is that the failure-mode taxonomy is descriptive and single-rater; its current practical defect is the clipped Panel C table.
-- `Figure 2` should stay, but Panel A needs less precision theater and clearer caveating around what "matched" means.
-- `Figure 4` should stay only if the interval methodology is reconciled with the text and the panel load is simplified. The current Panel C mismatch and Panel D redundancy are the main issues.
+- `Figure 2` now earns inclusion more cleanly: Panel A carries uncertainty and no longer over-implies formal equivalence.
+- `Figure 4` now earns inclusion more cleanly: the holdout panel is aligned with the canonical bootstrap artifact and the redundant fourth panel has been removed.
 - `Figure 1` is conceptually useful but over-detailed for an opener; its stage labels should do less.
 - `Table 1` and `Table 6` both earn inclusion.
-- The old `Table 5` problem has been resolved by removal. The main remaining visual risks are Figure 2 precision signaling, Figure 3 readability, and Figure 4 interval inconsistency.
+- The old `Table 5` problem has been resolved by removal. The main remaining visual risk is Figure 3 readability.
 
 ## Prose And Structure Audit
 
@@ -155,7 +147,7 @@ This finding should now be treated as resolved, with the remaining risk being re
 
 ## Reference Integrity Audit
 
-- The draft's literature framing is broadly reasonable, but the local citation registry is unreliable enough that every claim-to-source mapping should be checked manually before sync.
+- The draft's literature framing is broadly reasonable, and the citation registry now has a validator-backed integrity check rather than relying on manual trust alone.
 - Novelty should remain anchored on the matched cross-target-type FaithEval comparison and the integrated audit scaffold, not on a generic detect/control dissociation claim already occupied by Arad, AxBench, Bhalla, and related work.
 - If the introduction leans heavily on the decodability-versus-causal-use distinction, it would benefit from one deeper foundational citation layer beyond the current lightweight setup.
 
@@ -169,11 +161,10 @@ This version keeps FaithEval as the primary anchor, treats bridge as strong outp
 
 ## Priority Order
 
-1. Reconcile Figure 4's interval methodology with the text, remove or repurpose Panel D, and reduce any remaining precision overstatement in Figure 2.
-2. Fix the Figure 3 Panel C clipping defect.
-3. Compress Sections 2 and 3 so the reader reaches the evidence spine faster.
-4. Repair `paper/citations/registry.json` and recheck every citation used for novelty or framing.
-5. Guard against bridge-claim and D7 regression, but do not spend more main-text budget promoting either.
+1. Fix the Figure 3 Panel C clipping defect.
+2. Compress Sections 2 and 3 so the reader reaches the evidence spine faster.
+3. Guard against bridge-claim and D7 regression, but do not spend more main-text budget promoting either.
+4. Keep the new citation-registry validator in the loop for any future bibliography edits.
 
 ## Best-Practice Lens Consulted
 
