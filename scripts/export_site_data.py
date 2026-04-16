@@ -120,6 +120,132 @@ def require_report_match(text: str, pattern: str, label: str) -> re.Match[str]:
     return match
 
 
+def strip_markdown_formatting(text: str) -> str:
+    return re.sub(r"[*`]+", "", text).strip()
+
+
+def normalize_markdown_label(text: str) -> str:
+    cleaned = strip_markdown_formatting(text).lower().replace("_", " ")
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def parse_markdown_pipe_rows(text: str) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if cells and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells):
+            continue
+        rows.append(cells)
+    return rows
+
+
+def parse_pp_per_alpha(text: str, label: str) -> float:
+    match = re.search(
+        r"([+-]?\d+(?:\.\d+)?)\s*pp/alpha",
+        strip_markdown_formatting(text),
+    )
+    if match is None:
+        raise ValueError(f"Could not parse {label} estimate from {text!r}")
+    return float(match.group(1))
+
+
+def parse_ci_bounds(text: str, label: str) -> tuple[float, float]:
+    match = re.search(
+        r"\[([+-]?\d+(?:\.\d+)?),\s*([+-]?\d+(?:\.\d+)?)\]",
+        strip_markdown_formatting(text),
+    )
+    if match is None:
+        raise ValueError(f"Could not parse {label} CI from {text!r}")
+    return float(match.group(1)), float(match.group(2))
+
+
+def extract_jailbreak_slope_statistics_from_report(
+    paired_report: str,
+) -> dict[str, dict[str, Any]]:
+    stats: dict[tuple[str, str], dict[str, Any]] = {}
+    for cells in parse_markdown_pipe_rows(paired_report):
+        if len(cells) != 4:
+            continue
+        condition = normalize_markdown_label(cells[0])
+        metric = normalize_markdown_label(cells[1])
+        if condition not in {"h-neuron v2", "h-neuron v3"}:
+            continue
+        if metric not in {"harmful slope", "substantive compliance slope"}:
+            continue
+        lower, upper = parse_ci_bounds(cells[3], f"{condition} {metric}")
+        stats[(condition, metric)] = {
+            "estimate_pp_per_alpha": parse_pp_per_alpha(
+                cells[2], f"{condition} {metric}"
+            ),
+            "ci": (lower, upper),
+        }
+
+    required_pairs = {
+        ("h-neuron v2", "harmful slope"): "v2_yes_slope_pp_per_alpha",
+        ("h-neuron v3", "harmful slope"): "v3_yes_slope_pp_per_alpha",
+        (
+            "h-neuron v3",
+            "substantive compliance slope",
+        ): "v3_substantive_slope_pp_per_alpha",
+    }
+    if all(pair in stats for pair in required_pairs):
+        return {output_key: stats[pair] for pair, output_key in required_pairs.items()}
+
+    legacy_patterns = {
+        "v2_yes_slope_pp_per_alpha": (
+            r"\|\s*harmful_binary slope \(H-neuron\)\s*\|\s*\*{0,2}v2\*{0,2}\s*\|"
+            r"\s*\*{0,2}([+-]?\d+\.\d+)\s*pp/alpha\*{0,2}\s*\|"
+            r"\s*\*{0,2}\[([+-]?\d+\.\d+),\s*([+-]?\d+\.\d+)\]\*{0,2}",
+            "legacy jailbreak v2 binary slope",
+        ),
+        "v3_yes_slope_pp_per_alpha": (
+            r"\|\s*harmful_binary slope \(H-neuron\)\s*\|\s*\*{0,2}v3\*{0,2}\s*\|"
+            r"\s*\*{0,2}([+-]?\d+\.\d+)\s*pp/alpha\*{0,2}\s*\|"
+            r"\s*\*{0,2}\[([+-]?\d+\.\d+),\s*([+-]?\d+\.\d+)\]\*{0,2}",
+            "legacy jailbreak v3 binary slope",
+        ),
+        "v3_substantive_slope_pp_per_alpha": (
+            r"\|\s*\*{0,2}substantive[_ ]compliance slope \(H-neuron\)\*{0,2}\s*\|"
+            r"\s*\*{0,2}v3\*{0,2}\s*\|"
+            r"\s*\*{0,2}([+-]?\d+\.\d+)\s*pp/alpha\*{0,2}\s*\|"
+            r"\s*\*{0,2}\[([+-]?\d+\.\d+),\s*([+-]?\d+\.\d+)\]\*{0,2}",
+            "legacy jailbreak v3 substantive slope",
+        ),
+    }
+    fallback_stats: dict[str, dict[str, Any]] = {}
+    for key, (pattern, label) in legacy_patterns.items():
+        match = require_report_match(paired_report, pattern, label)
+        fallback_stats[key] = {
+            "estimate_pp_per_alpha": float(match.group(1)),
+            "ci": (float(match.group(2)), float(match.group(3))),
+        }
+    return fallback_stats
+
+
+def load_jailbreak_paired_evaluator_statistics(
+    paired_report: str,
+    available_evaluator_summary: dict[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    full_set_stats: Any = None
+    if isinstance(available_evaluator_summary, dict):
+        full_set_stats = available_evaluator_summary.get("h_neuron_sweep", {}).get(
+            "statistics"
+        )
+    required_keys = {
+        "v2_yes_slope_pp_per_alpha",
+        "v3_yes_slope_pp_per_alpha",
+        "v3_substantive_slope_pp_per_alpha",
+    }
+    if isinstance(full_set_stats, dict) and required_keys.issubset(full_set_stats):
+        return {
+            key: copy.deepcopy(full_set_stats[key]) for key in sorted(required_keys)
+        }
+    return extract_jailbreak_slope_statistics_from_report(paired_report)
+
+
 def pp_summary(estimate: float, lower: float, upper: float) -> dict[str, Any]:
     return {
         "estimate": estimate,
@@ -1539,6 +1665,10 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
     jailbreak_dir = repo_root / "data/gemma3_4b/intervention/jailbreak/experiment"
     faitheval_dir = repo_root / "data/gemma3_4b/intervention/faitheval/experiment"
     falseqa_dir = repo_root / "data/gemma3_4b/intervention/falseqa/experiment"
+    available_evaluator_summary_path = (
+        repo_root
+        / "data/judge_validation/available_jailbreak_evaluator_comparison.json"
+    )
     v2_comparison_path = (
         repo_root
         / "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json"
@@ -1561,6 +1691,11 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
     jailbreak_results = load_json(find_results_json(jailbreak_dir))
     faitheval_results = load_json(find_results_json(faitheval_dir))
     falseqa_results = load_json(find_results_json(falseqa_dir))
+    available_evaluator_summary = (
+        load_json(available_evaluator_summary_path)
+        if available_evaluator_summary_path.exists()
+        else None
+    )
     v2_comparison = load_json(v2_comparison_path)
     v3_comparison = load_json(v3_comparison_path)
     v3_bootstrap = load_json(v3_bootstrap_path)
@@ -1713,20 +1848,9 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
         "shift with evaluator dependence and incomplete control coverage."
     )
 
-    v2_binary_slope_match = require_report_match(
+    full_set_stats = load_jailbreak_paired_evaluator_statistics(
         paired_report,
-        r"\| harmful_binary slope \(H-neuron\) \| \*\*v2\*\* \| \*\*([+-]?\d+\.\d+) pp/alpha\*\* \| \*\*\[([+-]?\d+\.\d+), ([+-]?\d+\.\d+)\]\*\*",
-        "jailbreak v2 binary slope",
-    )
-    v3_binary_slope_match = require_report_match(
-        paired_report,
-        r"\| harmful_binary slope \(H-neuron\) \| v3 \| ([+-]?\d+\.\d+) pp/alpha \| \[([+-]?\d+\.\d+), ([+-]?\d+\.\d+)\]",
-        "jailbreak v3 binary slope",
-    )
-    substantive_slope_match = require_report_match(
-        paired_report,
-        r"\| \*\*substantive_compliance slope \(H-neuron\)\*\* \| \*\*v3\*\* \| \*\*([+-]?\d+\.\d+) pp/alpha\*\* \| \*\*\[([+-]?\d+\.\d+), ([+-]?\d+\.\d+)\]\*\*",
-        "jailbreak v3 substantive slope",
+        available_evaluator_summary,
     )
     # --- Source files ---
     source_files = (
@@ -1754,6 +1878,44 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
             "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md",
         ]
     )
+    if available_evaluator_summary is not None:
+        source_files.append(
+            "data/judge_validation/available_jailbreak_evaluator_comparison.json"
+        )
+
+    paired_evaluator_comparison: dict[str, Any] = {
+        "source_report": "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md",
+        "binary_v2_slope": pp_summary(
+            float(full_set_stats["v2_yes_slope_pp_per_alpha"]["estimate_pp_per_alpha"]),
+            float(full_set_stats["v2_yes_slope_pp_per_alpha"]["ci"][0]),
+            float(full_set_stats["v2_yes_slope_pp_per_alpha"]["ci"][1]),
+        ),
+        "binary_v3_slope": pp_summary(
+            float(full_set_stats["v3_yes_slope_pp_per_alpha"]["estimate_pp_per_alpha"]),
+            float(full_set_stats["v3_yes_slope_pp_per_alpha"]["ci"][0]),
+            float(full_set_stats["v3_yes_slope_pp_per_alpha"]["ci"][1]),
+        ),
+        "binary_v3_slope_bootstrap": v3_bootstrap["slope_pp_per_alpha"],
+        "substantive_compliance_v3_slope": pp_summary(
+            float(
+                full_set_stats["v3_substantive_slope_pp_per_alpha"][
+                    "estimate_pp_per_alpha"
+                ]
+            ),
+            float(full_set_stats["v3_substantive_slope_pp_per_alpha"]["ci"][0]),
+            float(full_set_stats["v3_substantive_slope_pp_per_alpha"]["ci"][1]),
+        ),
+        "v2_control_gap_pp_per_alpha": {
+            "estimate": v2_comparison["comparison"]["gap_h_minus_random_mean_pp"],
+        },
+        "v3_single_seed_control_gap_pp_per_alpha": {
+            "estimate": v3_comparison["comparison"]["gap_h_minus_random_mean_pp"],
+        },
+    }
+    if available_evaluator_summary is not None:
+        paired_evaluator_comparison["source_artifact"] = (
+            "data/judge_validation/available_jailbreak_evaluator_comparison.json"
+        )
 
     return {
         "schema_version": 1,
@@ -1790,35 +1952,7 @@ def build_jailbreak_payload(repo_root: Path) -> dict[str, Any]:
                 "binary v2 shows a significant slope, binary v3 does not, and v3 recovers "
                 "the signal mainly as a severity shift."
             ),
-            "paired_evaluator_comparison": {
-                "source_report": "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md",
-                "binary_v2_slope": pp_summary(
-                    float(v2_binary_slope_match.group(1)),
-                    float(v2_binary_slope_match.group(2)),
-                    float(v2_binary_slope_match.group(3)),
-                ),
-                "binary_v3_slope": pp_summary(
-                    float(v3_binary_slope_match.group(1)),
-                    float(v3_binary_slope_match.group(2)),
-                    float(v3_binary_slope_match.group(3)),
-                ),
-                "binary_v3_slope_bootstrap": v3_bootstrap["slope_pp_per_alpha"],
-                "substantive_compliance_v3_slope": pp_summary(
-                    float(substantive_slope_match.group(1)),
-                    float(substantive_slope_match.group(2)),
-                    float(substantive_slope_match.group(3)),
-                ),
-                "v2_control_gap_pp_per_alpha": {
-                    "estimate": v2_comparison["comparison"][
-                        "gap_h_minus_random_mean_pp"
-                    ],
-                },
-                "v3_single_seed_control_gap_pp_per_alpha": {
-                    "estimate": v3_comparison["comparison"][
-                        "gap_h_minus_random_mean_pp"
-                    ],
-                },
-            },
+            "paired_evaluator_comparison": paired_evaluator_comparison,
             "strongreject_holdout": {
                 **holdout_summary,
                 "overall_accuracy": strongreject_results["accuracy"],

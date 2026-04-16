@@ -19,6 +19,7 @@ from scripts.export_site_data import (
     build_swing_characterization_payload,
     coefficient_sha256,
     compact_llm_enrichment,
+    load_jailbreak_paired_evaluator_statistics,
     validate_classifier_structure_summary,
 )
 
@@ -26,6 +27,32 @@ from scripts.export_site_data import (
 def write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def write_minimal_classifier_sae_summary(path: Path) -> None:
+    write_json(
+        path,
+        {
+            "evaluation": {
+                "n_examples": 12,
+                "n_positive": 6,
+                "n_negative": 6,
+                "metrics": {
+                    "auroc": {
+                        "estimate": 0.84,
+                        "ci": {
+                            "lower": 0.8,
+                            "upper": 0.88,
+                            "level": 0.95,
+                            "method": "bootstrap_percentile",
+                        },
+                    }
+                },
+                "bootstrap": {},
+                "confusion_matrix": {},
+            }
+        },
+    )
 
 
 def make_top_neuron_artifact_summary(
@@ -295,6 +322,41 @@ def test_build_jailbreak_payload_exports_current_provenance_and_controls():
     }
     assert cross_benchmark["FalseQA"]["negative_control"] == "available"
     assert cross_benchmark["JailbreakBench"]["generation"] == "stochastic (T=0.7)"
+    paired = payload["measurement"]["paired_evaluator_comparison"]
+    assert paired["source_report"].endswith(
+        "2026-04-13-v2-v3-paired-evaluator-comparison.md"
+    )
+    if "source_artifact" in paired:
+        assert paired["source_artifact"].endswith(
+            "available_jailbreak_evaluator_comparison.json"
+        )
+    assert paired["binary_v2_slope"]["estimate"] == 2.3
+    assert paired["binary_v3_slope"]["estimate"] == 0.46
+    assert paired["substantive_compliance_v3_slope"]["estimate"] == 2.0
+
+
+def test_load_jailbreak_paired_evaluator_statistics_falls_back_to_report_and_normalizes_underscores():
+    report = """
+| Condition | Metric | Estimate | 95% CI |
+| --- | --- | --- | --- |
+| **H-neuron v2** | harmful slope | **+2.3 pp/alpha** | **[0.6, 4.0]** |
+| **H-neuron v3** | harmful slope | **-0.3 pp/alpha** | **[-1.7, 1.0]** |
+| **H-neuron v3** | substantive_compliance slope | **+2.0 pp/alpha** | **[0.6, 3.4]** |
+"""
+    stats = load_jailbreak_paired_evaluator_statistics(report, None)
+
+    assert stats["v2_yes_slope_pp_per_alpha"] == {
+        "estimate_pp_per_alpha": 2.3,
+        "ci": (0.6, 4.0),
+    }
+    assert stats["v3_yes_slope_pp_per_alpha"] == {
+        "estimate_pp_per_alpha": -0.3,
+        "ci": (-1.7, 1.0),
+    }
+    assert stats["v3_substantive_slope_pp_per_alpha"] == {
+        "estimate_pp_per_alpha": 2.0,
+        "ci": (0.6, 3.4),
+    }
 
 
 def test_results_page_intervention_narrative_uses_live_bindings():
@@ -370,10 +432,10 @@ def test_results_page_jailbreak_copy_uses_live_bindings():
     shared_js = (repo_root / "site/assets/shared.js").read_text()
 
     jailbreak_bindings = [
-        "negative-control-value",
-        "negative-control-detail",
-        "negative-control-comparison",
-        "stochastic-generation-detail",
+        "template-chart-n",
+        "template-chart-ci",
+        "category-chart-n",
+        "category-chart-ci",
     ]
 
     for binding in jailbreak_bindings:
@@ -387,10 +449,6 @@ def test_results_page_jailbreak_copy_uses_live_bindings():
         "falseqa-negative-control",
         "falseqa-evaluator",
         "falseqa-generation",
-        "jailbreakbench-negative-control",
-        "jailbreakbench-evaluator",
-        "jailbreakbench-generation",
-        "interpretation-caveat",
     ]
 
     for binding in cross_benchmark_bindings:
@@ -415,10 +473,31 @@ def test_results_page_jailbreak_copy_uses_live_bindings():
     for literal in stale_literals:
         assert literal not in results_html
 
-    assert (
-        "100 behaviors &times; 5 templates &times; 7 alpha values = 3,500 responses"
-        in results_html
-    )
+    assert "'negative-control-value'" in charts_js
+    assert "'stochastic-generation-detail'" in charts_js
+    assert "hydrateCrossBenchmarkBindings" in shared_js
+
+
+def test_progress_surfaces_point_to_week_5_and_use_live_bindings():
+    repo_root = Path(__file__).resolve().parents[1]
+    progress_index_html = (repo_root / "site/progress/index.html").read_text()
+    week_5_html = (
+        repo_root / "site/progress/week-05-current-state-alignment.html"
+    ).read_text()
+
+    assert 'href="week-05-current-state-alignment.html"' in progress_index_html
+    assert "Week 5" in progress_index_html
+
+    live_bindings = [
+        'data-d7-april14-bind="random-vs-causal-delta"',
+        'data-d7-april14-bind="random-vs-causal-delta-ci"',
+        'data-d7-bind="token-cap-hits"',
+        'data-jailbreak-summary-bind="holdout-v3-accuracy"',
+        'data-jailbreak-summary-bind="holdout-strongreject-accuracy"',
+        'data-jailbreak-summary-bind="holdout-discordant-count"',
+    ]
+    for binding in live_bindings:
+        assert binding in week_5_html
 
 
 def test_build_classifier_site_payload_uses_tracked_structure_summary(tmp_path: Path):
@@ -456,6 +535,9 @@ def test_build_classifier_site_payload_uses_tracked_structure_summary(tmp_path: 
     write_json(
         repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json",
         {"group_a": ["q1", "q2", "q3"]},
+    )
+    write_minimal_classifier_sae_summary(
+        repo_root / "data/gemma3_4b/pipeline/classifier_sae_summary.json"
     )
     tracked_summary = {
         "schema_version": 1,
@@ -575,6 +657,9 @@ def test_build_classifier_site_payload_rejects_top_neuron_artifact_slug_drift(
     write_json(
         repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json",
         {"group_a": ["q1", "q2", "q3"]},
+    )
+    write_minimal_classifier_sae_summary(
+        repo_root / "data/gemma3_4b/pipeline/classifier_sae_summary.json"
     )
     tracked_summary = {
         "schema_version": 1,
@@ -705,6 +790,9 @@ def test_build_classifier_site_payload_rejects_stale_tracked_structure_when_loca
     write_json(
         repo_root / "data/gemma3_4b/pipeline/test_qids_disjoint.json",
         {"group_a": ["q1", "q2", "q3"]},
+    )
+    write_minimal_classifier_sae_summary(
+        repo_root / "data/gemma3_4b/pipeline/classifier_sae_summary.json"
     )
     write_json(
         repo_root / "data/gemma3_4b/pipeline/classifier_structure_summary.json",

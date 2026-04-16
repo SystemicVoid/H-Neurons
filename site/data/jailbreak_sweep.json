@@ -31,7 +31,8 @@
       "data/judge_validation/strongreject/alpha_0.0.jsonl",
       "data/judge_validation/strongreject/alpha_1.5.jsonl",
       "data/judge_validation/strongreject/alpha_3.0.jsonl",
-      "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md"
+      "notes/act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md",
+      "data/judge_validation/available_jailbreak_evaluator_comparison.json"
     ],
     "notes": [
       "Jailbreak responses use stochastic generation (temperature=0.7, do_sample=true), so per-item outcomes are not exactly reproducible.",
@@ -181,7 +182,8 @@
       },
       "v3_single_seed_control_gap_pp_per_alpha": {
         "estimate": 0.8
-      }
+      },
+      "source_artifact": "data/judge_validation/available_jailbreak_evaluator_comparison.json"
     },
     "strongreject_holdout": {
       "status": "tie_with_v3_on_holdout",
