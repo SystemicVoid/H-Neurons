@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 5: Current-State Alignment | H-Neurons</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital,wght@0,400;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="nav-shell">
+    <div class="nav-primary">
+      <a class="logo" href="../index.html">H<span>-</span>Neurons</a>
+      <div class="nav-page-links">
+        <a href="../index.html">Overview</a>
+        <a href="../story.html">Core Story</a>
+        <a href="../results/gemma-3-4b.html">Results</a>
+        <a href="../methods.html">Methods</a>
+        <a href="../extensions.html">Extensions</a>
+        <a class="active" href="index.html">Progress</a>
+      </div>
+    </div>
+  </div>
+</nav>
+<div class="progress-bar" id="progressBar"></div>
+
+<section id="hero">
+  <div class="fade-in">
+    <span class="tag tag-purple">Progress &mdash; April 15&ndash;16</span>
+    <h1>Week 5:<br>Current-State<br>Alignment</h1>
+    <p class="subtitle" data-source="manual">
+      This update captures the delta from the paper-era snapshot to the current-state panel as of April 16, 2026.
+      Week 4 stays archival; Week 5 is the current framing.
+    </p>
+    <p class="subtitle" data-source="manual">
+      The key shift is narrower and cleaner: D7 now runs on a clean current panel with expanded random-head controls and explicit probe inclusion,
+      while the StrongREJECT holdout framing is corrected to a tie.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 2.5rem;" data-source="manual">
+      <div class="metric-card">
+        <div class="label">D7 panel status</div>
+        <div class="value val-teal" style="font-size: 1.25rem;">Clean current panel</div>
+        <div class="detail"><span data-d7-april14-bind="mixed-ruler-status">resolved clean v3 panel small residual errors</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Control availability</div>
+        <div class="value val-teal">Expanded</div>
+        <div class="detail">Both current random-head control branches are complete, scored, and still error-bearing.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Probe branch</div>
+        <div class="value val-amber">Included</div>
+        <div class="detail"><span data-d7-april14-bind="probe-status">complete scored error bearing</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">StrongREJECT holdout</div>
+        <div class="value val-coral" style="font-size: 1.2rem;">Tie corrected</div>
+        <!-- from: jailbreak_holdout_v3_accuracy -->
+        <!-- from: jailbreak_holdout_strongreject_4o_accuracy -->
+        <!-- from: jailbreak_holdout_v3_sr_discordant_records -->
+        <div class="detail">v3 <span data-jailbreak-summary-bind="holdout-v3-accuracy">96.0%</span> vs SR-4o <span data-jailbreak-summary-bind="holdout-strongreject-accuracy">96.0%</span>; <span data-jailbreak-summary-bind="holdout-discordant-count">0</span> discordant</div>
+      </div>
+    </div>
+
+    <div class="section-links">
+      <a class="section-link section-link-cta" href="#delta">Since-paper delta</a>
+      <a class="section-link" href="#d7-current">D7 current panel</a>
+      <a class="section-link" href="#residual">CSV2 residuals</a>
+      <a class="section-link" href="#holdout">Holdout correction</a>
+      <a class="section-link" href="#status">Interpretation status</a>
+    </div>
+  </div>
+</section>
+
+<section id="delta" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Since-paper delta</span>
+    <h2>What changed from Week 4 archival framing</h2>
+    <p class="subtitle" data-source="manual">
+      Week 4 is preserved as a dated synthesis.
+      Week 5 narrows to live-state alignment updates only, without rewriting the archival page.
+    </p>
+
+    <div class="next-steps" style="margin-top: 1.5rem;">
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Ruler debt moved from central caveat to resolved status</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          D7 reporting now uses the clean current panel as default interpretation context rather than mixed-ruler reconciliation language.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Control coverage is no longer single-seed</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Layer-matched random-head controls now exist for two seeds on the live panel, which closes the old "single-seed only" description.
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Evaluator comparison language is corrected</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          StrongREJECT holdout is now communicated as parity with v3, not as a v3 holdout-accuracy advantage.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="d7-current">
+  <div class="fade-in">
+    <span class="tag tag-teal">D7 current panel</span>
+    <h2>Clean current panel: causal remains strongest among completed branches</h2>
+    <p class="subtitle" data-source="manual">
+      The panel now includes baseline, L1, causal, probe, and two random-head controls under current normalization,
+      so the core comparison no longer depends on legacy-ruler stitching.
+    </p>
+
+    <div class="comparison" style="margin-top: 2rem;">
+      <div class="compare-card highlight" style="text-align: left;">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Week 4 archival context</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent-amber);">Historical synthesis remains preserved</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          Week 4 documented the first current-panel control follow-up as supporting evidence.
+          That archival interpretation stays unchanged and remains the dated provenance snapshot.
+        </div>
+      </div>
+      <div class="compare-card" style="text-align: left; border-color: var(--accent-teal);">
+        <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Week 5 current-state read</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent-teal);">Cleaner panel, tighter caveat</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          <!-- from: d7_random_vs_causal_strict_harm_delta -->
+          On strict harmfulness, layer-matched random seed 1 remains <span data-d7-april14-bind="random-vs-causal-delta">+17.2pp</span>
+          above causal (<span data-d7-april14-bind="random-vs-causal-delta-ci">95% CI 13.2-21.4pp</span>), and expanded random-head controls plus probe inclusion now belong in the default status narrative.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="residual" class="short">
+  <div class="fade-in">
+    <span class="tag tag-coral">Residual framing</span>
+    <h2>CSV2 error debt is small, explicit, and no longer the primary caveat</h2>
+    <p class="subtitle" data-source="manual">
+      Residual CSV2 issues are now documented as a bounded cleanup residue rather than a structural blocker for panel interpretation.
+      The live caveat emphasis moves to causal output quality/token-cap debt.
+    </p>
+
+    <div class="next-steps" style="margin-top: 1.5rem;">
+      <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
+        <h3 style="color: var(--accent-coral);">Seed 1 random residuals</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          A small flagged set remains on Seed 1
+          (<span data-d7-april14-bind="random-error-types">invalid evidence spans: 3, parse failed: 1</span>).
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
+        <h3 style="color: var(--accent-amber);">Probe residuals</h3>
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Probe residuals are smaller still
+          (<span data-d7-april14-bind="probe-error-types">invalid evidence spans: 2</span>).
+        </p>
+      </div>
+      <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
+        <h3 style="color: var(--accent-teal);">Primary live caveat</h3>
+        <!-- from: d7_causal_token_cap_hits -->
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Causal branch token-cap pressure remains visible (<span data-d7-bind="token-cap-hits">112</span> capped outputs), so caveat pressure now centers on output-quality debt rather than mixed-ruler debt.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="holdout" class="short">
+  <div class="fade-in">
+    <span class="tag tag-purple">Holdout correction</span>
+    <h2>StrongREJECT holdout tie is now explicit in the progress narrative</h2>
+    <p class="subtitle" data-source="manual">
+      The evaluator framing is now aligned with the corrected holdout result: v3 and StrongREJECT-4o are tied on the holdout audit.
+    </p>
+
+    <div class="metrics-grid" style="margin-top: 1.5rem;">
+      <div class="metric-card">
+        <div class="label">v3 holdout</div>
+        <!-- from: jailbreak_holdout_v3_accuracy -->
+        <div class="value val-teal"><span data-jailbreak-summary-bind="holdout-v3-accuracy">96.0%</span></div>
+        <div class="detail"><span data-jailbreak-summary-bind="holdout-v3-accuracy-ci">95% CI 90.0-100.0%</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">StrongREJECT-4o holdout</div>
+        <!-- from: jailbreak_holdout_strongreject_4o_accuracy -->
+        <div class="value val-teal"><span data-jailbreak-summary-bind="holdout-strongreject-accuracy">96.0%</span></div>
+        <div class="detail"><span data-jailbreak-summary-bind="holdout-strongreject-accuracy-ci">95% CI 90.0-100.0%</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Discordant correctness</div>
+        <!-- from: jailbreak_holdout_v3_sr_discordant_records -->
+        <div class="value val-amber"><span data-jailbreak-summary-bind="holdout-discordant-count">0</span></div>
+        <div class="detail">on the shared holdout audit</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="reflection">
+  <div class="ref-label">Research principle</div>
+  <p class="ref-text">
+    Treat archived synthesis as provenance and current-state panels as live truth.
+    Updating the framing without erasing prior snapshots improves both rigor and readability.
+  </p>
+</div>
+
+<section id="status" class="short">
+  <div class="fade-in">
+    <span class="tag tag-amber">Interpretation status</span>
+    <h2>Week 5 stance in one line</h2>
+    <p class="subtitle" data-source="manual">
+      D7 is benchmark-local supporting evidence on a clean current panel with stronger control coverage, and jailbreak evaluator framing now reflects holdout parity rather than superiority.
+    </p>
+  </div>
+</section>
+
+<footer>
+  H-Neurons Week 5 &mdash; Current-state alignment &mdash; <a href="../index.html">Back to overview</a>
+</footer>
+
+<script src="../assets/shared.js"></script>
+
+</body>
+</html>

@@ -296,7 +296,7 @@
       "prompt_id_parity_with_experiment": true,
       "csv2_schema_versions": {
         "csv2_v3": 496,
-        "legacy_unversioned": 4
+        "csv2_v3_parse_failed": 4
       },
       "raw_harmful_binary_counts": {
         "no": 396,
@@ -2463,7 +2463,7 @@
         "prompt_id_parity_with_experiment": true,
         "csv2_schema_versions": {
           "csv2_v3": 499,
-          "legacy_unversioned": 1
+          "csv2_v3_parse_failed": 1
         },
         "raw_harmful_binary_counts": {
           "no": 313,
@@ -3048,7 +3048,7 @@
           "prompt_id_parity_with_experiment": true,
           "csv2_schema_versions": {
             "csv2_v3": 496,
-            "legacy_unversioned": 4
+            "csv2_v3_parse_failed": 4
           },
           "raw_harmful_binary_counts": {
             "no": 396,
@@ -3182,7 +3182,7 @@
           "prompt_id_parity_with_experiment": true,
           "csv2_schema_versions": {
             "csv2_v3": 499,
-            "legacy_unversioned": 1
+            "csv2_v3_parse_failed": 1
           },
           "raw_harmful_binary_counts": {
             "no": 313,

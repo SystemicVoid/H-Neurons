@@ -567,6 +567,10 @@ Answer:</code>
     <div class="step-card" style="border-left: 3px solid var(--accent-coral); margin-top: 1.5rem;">
       <h3 style="color: var(--accent-coral);">Interpretive caveats</h3>
       <p style="font-size: 14px; color: var(--text-secondary);">
+        <!-- from: jailbreak_holdout_v3_accuracy -->
+        <!-- from: jailbreak_holdout_strongreject_4o_accuracy -->
+        <!-- from: jailbreak_holdout_v3_sr_discordant_records -->
+        <strong>Held-out accuracy is tied:</strong> on the holdout audit, v3 and StrongREJECT-4o both score 96.0% with 0 discordant records, so v3 stays primary for structure rather than an accuracy edge.<br>
         <strong>Evaluator dependence is structural:</strong> the paired v2-v3 slope compression is mostly borderline-case reclassification, not a random scoring glitch.<br>
         <strong>Specificity is still incomplete:</strong> v3 control evidence is currently single-seed and there is no paired v2-v3 control set for a cleaner evaluator-isolated comparison.<br>
         <strong>Generation caveat remains:</strong> jailbreak runs are stochastic and should be treated as benchmark-supporting evidence, not as a standalone mechanistic proof.
@@ -618,7 +622,7 @@ Answer:</code>
     <span class="tag tag-teal">Cross-benchmark</span>
     <h2>Cross-benchmark direction is consistent, but certainty is uneven</h2>
     <p class="subtitle" data-source="manual">
-      FaithEval and FalseQA have cleaner specificity controls and the most publication-safe positive effects.
+      FaithEval and FalseQA have cleaner specificity controls and the clearest positive effects.
       JailbreakBench still supports the broader compliance story, but its binary slope conclusion depends on evaluator design and should be treated as provisional.
     </p>
 

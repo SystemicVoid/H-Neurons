@@ -21,6 +21,7 @@
     "site/progress/index.html",
     "site/progress/week-03-act3-comparative-sprint.html",
     "site/progress/week-04-flagship-synthesis.html",
+    "site/progress/week-05-current-state-alignment.html",
     "site/deep-dives/neuron-4288.html",
     "site/deep-dives/swing-characterization.html",
     "data/gemma3_4b/pipeline/pipeline_report.md",
@@ -555,10 +556,6 @@
         {
           "file": "data/gemma3_4b/pipeline/pipeline_report.md",
           "mode": "comment"
-        },
-        {
-          "file": "site/results/gemma-3-4b.html",
-          "mode": "comment"
         }
       ]
     },
@@ -581,10 +578,6 @@
         },
         {
           "file": "data/gemma3_4b/pipeline/pipeline_report.md",
-          "mode": "comment"
-        },
-        {
-          "file": "site/results/gemma-3-4b.html",
           "mode": "comment"
         }
       ]
@@ -677,10 +670,6 @@
       "surfaces": [
         {
           "file": "data/gemma3_4b/intervention_findings.md",
-          "mode": "comment"
-        },
-        {
-          "file": "site/results/gemma-3-4b.html",
           "mode": "comment"
         }
       ]
@@ -952,6 +941,10 @@
         {
           "file": "site/progress/week-04-flagship-synthesis.html",
           "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-05-current-state-alignment.html",
+          "mode": "comment"
         }
       ]
     },
@@ -979,6 +972,10 @@
         },
         {
           "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-05-current-state-alignment.html",
           "mode": "comment"
         }
       ]
@@ -1044,6 +1041,14 @@
         {
           "file": "site/progress/week-04-flagship-synthesis.html",
           "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-05-current-state-alignment.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/results/gemma-3-4b.html",
+          "mode": "comment"
         }
       ]
     },
@@ -1071,6 +1076,10 @@
         {
           "file": "site/progress/week-04-flagship-synthesis.html",
           "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-05-current-state-alignment.html",
+          "mode": "comment"
         }
       ]
     },
@@ -1097,6 +1106,10 @@
         },
         {
           "file": "site/progress/week-04-flagship-synthesis.html",
+          "mode": "comment"
+        },
+        {
+          "file": "site/progress/week-05-current-state-alignment.html",
           "mode": "comment"
         }
       ]
