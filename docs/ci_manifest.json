@@ -969,13 +969,25 @@
         {
           "file": "site/extensions.html",
           "mode": "comment"
-        },
+        }
+      ]
+    },
+    {
+      "id": "d7_april14_random_vs_causal_strict_harm_delta",
+      "status": "required",
+      "kind": "estimate_with_ci",
+      "source": {
+        "file": "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_control_and_ruler_summary.json",
+        "path": [
+          "current_panel",
+          "direct_comparisons",
+          "random_layer_seed1_vs_causal",
+          "strict_harmfulness_normalized"
+        ]
+      },
+      "surfaces": [
         {
           "file": "site/progress/week-04-flagship-synthesis.html",
-          "mode": "comment"
-        },
-        {
-          "file": "site/progress/week-05-current-state-alignment.html",
           "mode": "comment"
         }
       ]

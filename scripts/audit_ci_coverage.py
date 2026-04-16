@@ -146,6 +146,7 @@ def ensure_estimate_like(errors: list[str], node: Any, label: str) -> None:
         return
     estimate_keys = {
         "estimate",
+        "estimate_pp",
         "pct",
         "proportion",
         "rate",
@@ -657,6 +658,10 @@ def audit_manifest_claims(errors: list[str], manifest: dict[str, Any]) -> None:
             if isinstance(node, dict):
                 if "ci" in node:
                     ensure_interval_block(errors, node.get("ci"), f"{claim_id}::ci")
+                elif "ci_pp" in node:
+                    ensure_interval_block(
+                        errors, node.get("ci_pp"), f"{claim_id}::ci_pp"
+                    )
                 elif "ci_95" in node:
                     ensure_interval_array(
                         errors, node.get("ci_95"), f"{claim_id}::ci_95"
