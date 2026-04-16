@@ -47,3 +47,50 @@ Hard constraints:
 - Do not lose valid existing content.
 - Use only high-reasoning flagship models.
 - Prevent and correct redundancy in the paper, convey the points with minimal fluff and don't repeat information in many places if not absolutely necessary.
+
+---
+
+ Do a final publication-readiness review of `Main-write-up` only.
+
+  Context:
+  A previous pass already synced the draft to current repo evidence, updated Figures 2–4 and related prose, refreshed
+  Sections 4–6 and Limitations, and restored Appendix B–E. The main known residual risks are:
+  1. appendix tables were restored as plain text blocks rather than native Google Docs table objects
+  2. visible table numbering still follows the draft’s legacy scheme rather than a full sequential renumbering pass
+
+  Your job is not to re-summarize the draft. Your job is to find the remaining issues that would block submission or make the
+  paper look unfinished.
+
+  Review priorities:
+  - publication-level polish, coherence, and internal consistency
+  - incorrect, overstated, ambiguous, or under-qualified claims
+  - mismatches between prose, tables, figures, captions, and appendix
+  - table/figure numbering, naming, caption quality, and cross-references
+  - statistical reporting quality: every quantitative claim should have appropriate uncertainty / interval language where
+  expected, and sample sizes should be present where needed
+  - terminology consistency across sections (for methods, benchmarks, evaluators, selectors, baselines, “bridge”, “holdout”,
+  “endpoint”, “slope”, etc.)
+  - wording that is too casual, defensive, redundant, or draft-like
+  - transitions and narrative flow, especially where Section 4 anchors on FaithEval and D7 is supporting
+  - appendix presentation issues that would matter for a publication-ready version
+  - any leftover editorial artifacts, stale notes, placeholders, duplicated ideas, or formatting problems
+
+  Instructions:
+  - Be strict and act like an external reviewer or final internal editor preparing this for submission.
+  - Prioritize findings that materially improve publication readiness.
+  - Do not suggest broad speculative rewrites unless there is a clear problem.
+  - Do not focus on repo process, only on the manuscript.
+  - If something is correct but still not publication-ready in presentation, call that out.
+  - If a statement is potentially true but too strong for the evidence as written, flag it.
+
+  Output format:
+  1. Findings first, ordered by severity.
+  2. For each finding, include:
+     - severity (`high`, `medium`, or `low`)
+     - exact location (section / table / figure / appendix)
+     - a short quote or precise description of the problematic text
+     - why it is a problem
+     - the minimal concrete fix
+  3. Then include:
+     - `Open questions / assumptions`
+     - `Publication-ready if fixed?` with a yes/no judgment and one-sentence rationale
