@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-04-16
+
+### What I did
+
+Promoted D7 to a new two-seed current-state source of truth: [2026-04-16-d7-full500-two-seed-current-state-audit.md](./act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md). Regenerated the machine-readable D7 summary, integrated `causal_random_head_layer_matched/seed_2`, updated the D7 site-data export, and rewired the live note hierarchy so the old April 14 report is now historical rather than canonical.
+
+### What I expected vs what happened
+
+Expected seed 2 either to behave like seed 1 closely enough to be almost bookkeeping, or to introduce enough heterogeneity to reopen the D7 interpretation. What happened is in between, but importantly not destabilizing. On normalized strict harmfulness, seed 2 lands at **38.8%** versus seed 1 at **37.2%** and probe at **34.8%**, while causal remains far cleaner at **24.8%**. The seed-2-versus-seed-1 gap is only **+1.6 pp [-2.4, +5.4]**, so there is no evidence of a sign flip or qualitatively different random-head regime.
+
+The more interesting update is comparative ordering. Probe versus random seed 1 remained suggestive on strict harmfulness in the April 14 note. With seed 2 added, probe versus random seed 2 is now **-4.0 pp [-7.8, -0.2]**, so probe looks cleaner than one random seed with a CI that just excludes zero. The main claim is therefore firmer and narrower at the same time: causal beats both random seeds and probe, but the panel is still mixed-ruler and the probe/random branches still carry explicit CSV2 error debt.
+
+### What this changes about my thinking
+
+The strongest D7 caveat has shifted. It is no longer "the layer-matched control is only one seed." It is now "the current panel is still mixed-ruler and error-bearing, so even a two-seed control family does not make the result mechanism-clean." That is a better place scientifically: less vulnerable to bookkeeping objections, still disciplined about what has not been earned.
+
+### What I will do next
+
+Keep all live D7 references anchored to the 2026-04-16 two-seed audit and the regenerated `d7_full500_current_state_summary.json`. If D7 later needs to become more central, the next cleanup target is not more narrative reframing; it is reducing mixed-ruler and evaluator-error debt on the current panel.
+
+---
+
 ## 2026-04-14
 
 ### What I did
@@ -33,7 +55,7 @@ Keep all live D7 references anchored to the 2026-04-14 current-state audit unles
 
 ---
 
-## 2026-04-13 (late evening)
+## 2026-04-13 (later evening)
 
 ### What I did
 

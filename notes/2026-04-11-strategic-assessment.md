@@ -96,7 +96,7 @@ The three layers above organize evidence thematically. Orthogonally, each result
 - H-neuron specificity controls on FaithEval and FalseQA
 
 **Supporting but caveated** (useful in the paper, explicit caveats required):
-- D7 pilot probe-null plus the current full-500 mixed-ruler panel — present as "benchmark-local evidence that selector choice matters on this surface," not as mechanism-clean proof
+- D7 pilot probe-null plus the current full-500 mixed-ruler panel — present as "benchmark-local evidence that selector choice matters on this surface," not as mechanism-clean proof; both layer-matched random-head seeds are now scored, but the panel remains mixed-ruler and error-bearing
 - D7 full-500 causal result vs baseline and L1 comparator — 112/500 token-cap hits = visible quality debt
 - H-neuron jailbreak CSV-v2 effect — seed-0 specificity confirmed (slope diff +2.77 pp/alpha [1.17, 4.42], p=0.013); seeds 1-2 pending for multi-seed robustness. See [seed-0 control audit](act3-reports/2026-04-12-seed0-jailbreak-control-audit.md). V3 binary slope non-significant (+0.46 [-1.46, +2.41]), but v3 severity-shift (substantive_compliance +2.00 [+0.11, +3.87]) is marginally significant; see [v2-v3 paired comparison](act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md)
 - CSV v3 zero-FP / zero-solo-error edge — holdout compressed gap vs StrongREJECT from 12.2 to 2.0pp; evaluator optimization is a supporting measurement problem, not a main scientific bottleneck
@@ -158,11 +158,11 @@ H-neuron scaling is a detector-selected target that works on compliance tasks. F
 
 **Defense:** The thesis is "detection quality is not a reliable *heuristic*," not "detection-selected targets never work." The SAE features match H-neuron detection quality and fail. The probe heads exceed it and fail. The H-neuron success is real but does not generalize to other detection methods or even to all tasks (BioASQ null).
 
-### Counter 3: "D7 is missing its control"
+### Counter 3: "D7 is still not mechanism-clean"
 
-*"Even after the new runs, D7 is still not mechanism-clean. The random and probe branches are error-bearing, and the causal branch has visible quality debt."*
+*"Even after the new runs, D7 is still not mechanism-clean. The two random-head controls and probe branch are error-bearing, and the causal branch has visible quality debt."*
 
-**Defense:** Present D7 as "valuable but provisional: benchmark-local supporting evidence, not a mechanism-clean flagship pillar." The thesis survives even if D7 is fully demoted, because the SAE and probe-head nulls stand independently. The updated current-state audit helps by ruling out the stale "probe incomplete / random missing" objection, but it does **not** eliminate the need for caveats: the probe/random comparisons are mixed-ruler and the causal branch still carries quality debt. Seed 0 neuron-mode jailbreak control (2000 rows) can be scored in the next 2 weeks regardless.
+**Defense:** Present D7 as "valuable but provisional: benchmark-local supporting evidence, not a mechanism-clean flagship pillar." The thesis survives even if D7 is fully demoted, because the SAE and probe-head nulls stand independently. The updated two-seed current-state audit rules out the stale "probe incomplete / random missing / single-seed layer-matched control" objections, but it does **not** eliminate the need for caveats: the probe/random comparisons are mixed-ruler and error-bearing, and the causal branch still carries quality debt. Seed 0 neuron-mode jailbreak control (2000 rows) can be scored in the next 2 weeks regardless.
 
 ### Counter 4: "Single model"
 
@@ -225,7 +225,7 @@ The work is best packaged as **three separable deliverables**, not a single mono
 - **Evaluator dependence means safety claims require multi-scorer robustness**, not trust in a single judge
 (~0.5 page)
 
-**§7. Limitations and future work** — Single model, missing D7 control, no capability battery, judge dependence.
+**§7. Limitations and future work** — Single model, D7 still not mechanism-clean, no capability battery, judge dependence.
 - Future: ~~truthfulness monitoring/RLFR direction~~ → **bridge-grounded selective truthfulness intervention** (V2). Current evidence says global truth directions are too blunt; the sequel is a conditional policy: monitor answer-risk → abstain, rerank, or correct selectively. Bridge labels provide the right taxonomy.
 - ~~Architecture-aware head selection (Gemma 3's 5:1 local/global attention)~~ → defer until bridge-grounded approach either works or fails.
 (~0.5 page)
@@ -248,7 +248,7 @@ The work is best packaged as **three separable deliverables**, not a single mono
 |---|---|---|
 | **Clarity and presentation** | One question ("Does good detection identify good intervention targets?"), one answer ("No, not reliably"), organized as ~~3 claims~~ **4 stages × 3 anchor case studies** with a central synthesis table | Much clearer than a sprawling lab notebook; concrete examples (Terry Hall→Horace Panter, SAE null, probe AUROC 1.0 null) make abstract claims vivid |
 | **Relevance to AI safety** | Directly addresses: how should researchers select targets for safety interventions? Shows the tempting heuristic (use your best detector) is unreliable. Theory of change: prevents false confidence in "we found the safety neurons" claims | Core mech interp safety methodology, not just benchmark engineering |
-| **Project quality** | Multiple intervention methods compared fairly. Negative controls on two benchmarks. Evaluation artifacts caught and fixed. 4288 investigation shows care in interpretation. CSV v3 smoke test shows fiscal discipline. Honest limitations (missing D7 control, single model, no capability battery) | Demonstrates exactly the judgment and honesty the criteria reward |
+| **Project quality** | Multiple intervention methods compared fairly. Negative controls on two benchmarks. Evaluation artifacts caught and fixed. 4288 investigation shows care in interpretation. CSV v3 smoke test shows fiscal discipline. Honest limitations (D7 still mixed-ruler/error-bearing, single model, no capability battery) | Demonstrates exactly the judgment and honesty the criteria reward |
 
 ---
 

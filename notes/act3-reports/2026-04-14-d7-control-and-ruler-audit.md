@@ -1,7 +1,7 @@
 # D7 Control And Ruler Audit — mixed-ruler reconciliation
 
 > **Status: historical pre-probe reconciliation note; superseded for current D7 interpretation by**
-> [2026-04-14-d7-full500-current-state-audit.md](./2026-04-14-d7-full500-current-state-audit.md).
+> [2026-04-16-d7-full500-two-seed-current-state-audit.md](./2026-04-16-d7-full500-two-seed-current-state-audit.md).
 >
 > This note preserves the April 14 evidence state **before** `probe_locked` was fully scored. Keep using it for the pre-probe control/ruler reconciliation only, not as the live D7 headline.
 >

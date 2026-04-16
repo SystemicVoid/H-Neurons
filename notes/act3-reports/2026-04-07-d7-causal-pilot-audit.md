@@ -1,7 +1,7 @@
 # D7 Causal Pilot Audit — pilot100_canonical
 
 > **Superseded for headline D7 conclusions by**
-> [2026-04-14-d7-full500-current-state-audit.md](./2026-04-14-d7-full500-current-state-audit.md).
+> [2026-04-16-d7-full500-two-seed-current-state-audit.md](./2026-04-16-d7-full500-two-seed-current-state-audit.md).
 > Keep using this file for pilot-only details (alpha locking, pilot probe-family behavior,
 > and pilot-specific failure analysis), but not as the current source of truth for D7's
 > benchmark-level conclusion.
