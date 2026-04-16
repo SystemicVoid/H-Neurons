@@ -22,8 +22,9 @@ Progress updates landed after the initial audit:
 - `9b01ec8` `fix(citations): validate registry against local paper files`
 - `7610fc2` `fix(fig4): simplify measurement figure and align holdout text`
 - Figure 3 Panel C has now been reflowed to a full-width bottom-row layout with wrapped example text, removing the right-edge clipping defect in the rendered asset.
+- Sections 2 and 3 have now been compressed around the evidence spine: the main-text claim-governance box is gone, the opener names the FaithEval / bridge / jailbreak anchors directly, Table 1 follows evidential priority, and the related-work framing is narrowed to prior results plus the specific gap addressed here.
 
-One more full review pass is still needed after the remaining prose cleanup to confirm that the draft is publication-ready end to end.
+One more full review pass is still needed now that the Section 2--3 prose cleanup has landed, to confirm that the draft is publication-ready end to end.
 
 ## Review Status
 
@@ -37,13 +38,13 @@ One more full review pass is still needed after the remaining prose cleanup to c
 | Jailbreak measurement framing | unsupported claim | Resolved, keep narrow | Manuscript vs [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:1) | Safe claim is tie on binary holdout; prefer CSV-v3 for richer structure, not superiority. |
 | BioASQ summary framing | presentation/consistency defect | Resolved, keep narrow | Manuscript vs [bioasq_pipeline_audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md:1) | Safe claim is endpoint-flat but behaviorally active, not a clean null. |
 | Citation registry integrity | unsupported claim | Resolved, validator added | [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:1) vs local `papers/` files | Registry mappings were repaired and a dedicated validator plus tests now guard against recurrence. |
-| Sections 2 and 3 narrative economy | presentation/consistency defect | Open | Reader-facing prose vs evidence spine | Early sections still spend too much budget on governance and novelty fencing. |
+| Sections 2 and 3 narrative economy | presentation/consistency defect | Resolved, re-review once | Reader-facing prose vs evidence spine | The opener now reaches the FaithEval / bridge / jailbreak spine quickly, removes the main-text governance box, and narrows the novelty framing without changing the paper's claim boundary. |
 
 ## Executive Verdict
 
 The draft now has a coherent evidence hierarchy and a defensible paper-level thesis. The strongest scientific core remains intact: the FaithEval neuron-versus-SAE dissociation, the held-out TriviaQA bridge externality result, and the post-cleanup jailbreak measurement story all survive audit.
 
-The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims, and the Figure 2, Figure 3, Figure 4, and citation-registry defects flagged in the first pass have now been fixed in follow-up work. The top remaining substantive risk is the paper's still-slow early narrative economy in Sections 2 and 3, followed by ordinary regression risk that should be checked in one more full review pass.
+The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims, and the Figure 2, Figure 3, Figure 4, citation-registry, and early-section narrative-economy defects flagged in the first pass have now been fixed in follow-up work. The remaining task is one more full review pass to check for regressions in prose, figure readability, and evidence hierarchy after the latest cleanup.
 
 ## Did Finding 1 Actually Land?
 
@@ -56,20 +57,15 @@ Yes, substantially.
 
 Residual risk: later edits could easily reintroduce D7 inflation, but D7 is no longer the draft's main blocker in its current form.
 
-## Open Findings
-
-### 1. Medium-High: Sections 2 and 3 still front-load too much governance prose relative to the evidence
-
-Type: presentation/consistency defect  
-Checked: reader-facing prose vs evidence spine
-
-The framing is much better than earlier drafts, but the paper still spends too much prime early space on claim-boundary management and novelty calibration in [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:47), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:53), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:80), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:108), and [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:118).
-
-That prose is mostly correct. The problem is narrative economy. The reader should reach the paper's evidence spine faster.
-
-Required revision direction: compress early governance language, keep the novelty claim narrow, and move more quickly into the FaithEval anchor and the surface-validity question.
-
 ## Resolved Or Narrowed Findings That Still Need Guardrails
+
+### Sections 2 and 3 now reach the evidence spine faster
+
+The earlier narrative-economy defect has been substantially addressed. The new Section 2 opener now identifies the paper as a single-model case study and immediately names the FaithEval, TriviaQA bridge, and jailbreak measurement anchors in ordinary prose: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:47). The main-text claim-boundary box is gone, Table 1 now follows evidential priority from FaithEval through bridge and jailbreak: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:55), and the old standalone interpretation-boundary subsection has been collapsed into a shorter reporting-standard paragraph: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:67).
+
+Section 3 is also narrower. It now frames prior work as established background and then states the specific gap addressed here, anchored on the matched FaithEval comparison, the bridge failure-mode diagnosis, and the integrated audit scaffold, rather than spending additional space on novelty fencing: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:71), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:85), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:95).
+
+This should now be treated as resolved at the level of the previous finding. The remaining task is not more local trimming by default, but one more end-to-end read to ensure the new shorter opener does not create transition or redundancy regressions elsewhere.
 
 ### D7 is no longer structurally over-promoted
 
@@ -109,10 +105,10 @@ This finding should now be treated as resolved, with the remaining risk being re
 
 ## Untouched Surfaces
 
-- [Abstract](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/abstract.md:1), [Section 2](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_2_scope_constructs.md:1), [Section 6](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_6_measurement.md:1), [Section 8](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_8_limitations.md:1), and the [appendix](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/appendix.md:1) are broadly coherent with the revised evidence hierarchy.
+- [Abstract](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/abstract.md:1), [Section 6](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_6_measurement.md:1), [Section 8](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_8_limitations.md:1), and the [appendix](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/appendix.md:1) are broadly coherent with the revised evidence hierarchy.
 - BioASQ is now described in the defensible way: endpoint-flat but behaviorally active, not behaviorally inert. That matches the canonical pipeline audit: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:194), [bioasq_pipeline_audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md:170), [bioasq_pipeline_audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md:185).
 - The measurement story is also correctly narrowed: the post-GPT-4o claim is tie on binary holdout, prefer CSV-v3 for richer outcome structure, not superiority: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:289), [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:227), [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:243).
-- The main remaining untouched-surface weakness is narrative economy, not falsity. Sections 2 and 3 still spend more early-page budget on claim-boundary management and novelty fencing than the evidence spine really needs: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:47), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:90), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:118).
+- The main remaining task is regression review rather than another known substantive prose defect. The Section 2--3 cleanup now appears to have fixed the draft's last named structural blocker, but that should be confirmed by one more full-manuscript pass.
 
 ## Claim Status Highlights
 
@@ -161,10 +157,9 @@ This version keeps FaithEval as the primary anchor, treats bridge as strong outp
 
 ## Priority Order
 
-1. Compress Sections 2 and 3 so the reader reaches the evidence spine faster.
-2. Run one more full review pass after that cleanup to check for narrative and figure-level regressions.
-3. Guard against bridge-claim and D7 regression, but do not spend more main-text budget promoting either.
-4. Keep the new citation-registry validator in the loop for any future bibliography edits.
+1. Run one more full review pass after the Section 2--3 cleanup to check for narrative, figure-level, and evidence-hierarchy regressions.
+2. Guard against bridge-claim and D7 regression, but do not spend more main-text budget promoting either.
+3. Keep the new citation-registry validator in the loop for any future bibliography edits.
 
 ## Best-Practice Lens Consulted
 
