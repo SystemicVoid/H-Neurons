@@ -4,7 +4,7 @@ Figure 4: Measurement Choices Changed the Scientific Conclusion.
 The figure is aligned to the current paper claim boundary:
 - binary and graded results are shown in separate panels
 - holdout evaluator accuracy reflects the post-SR-4o tie
-- specificity is shown with explicit uncertainty
+- pipeline hygiene remains a text result in Section 6.4, not a duplicate panel
 
 Usage:
     uv run python paper/draft/figures/fig4_measurement.py
@@ -72,6 +72,7 @@ def load_data() -> dict:
     csv2 = load_json(
         "data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json"
     )
+    holdout = load_json("data/judge_validation/holdout_comparison.json")
 
     binary_alphas = np.array([0.0, 3.0])
     binary_h_rates = (
@@ -143,29 +144,30 @@ def load_data() -> dict:
         )
     ]
 
-    evaluator_counts = {
-        "CSV2 v3": 48,
-        "StrongREJECT\n(SR-4o)": 48,
-        "CSV2 v2": 46,
-        "Binary judge": 45,
-    }
+    evaluator_metrics = holdout["bootstrap_cis"]["evaluators"]
     evaluator_colors = {
         "CSV2 v3": (C_V3, C_H_FILL),
         "StrongREJECT\n(SR-4o)": (C_SR, "#E3EDDF"),
         "CSV2 v2": (C_V2, "#FDF5E0"),
         "Binary judge": (C_BIN, "#FDF1ED"),
     }
+    evaluator_keys = {
+        "CSV2 v3": "csv2v3",
+        "StrongREJECT\n(SR-4o)": "sr",
+        "CSV2 v2": "csv2v2",
+        "Binary judge": "binary",
+    }
 
     evaluator_data = []
-    for name, correct in evaluator_counts.items():
-        lo, hi = wilson_interval(correct, 50)
+    for name, key in evaluator_keys.items():
+        accuracy = evaluator_metrics[key]["accuracy"]
         color, fill = evaluator_colors[name]
         evaluator_data.append(
             {
                 "name": name,
-                "accuracy": correct / 50 * 100,
-                "ci_lo": lo,
-                "ci_hi": hi,
+                "accuracy": accuracy["point"] * 100,
+                "ci_lo": accuracy["ci_lower"] * 100,
+                "ci_hi": accuracy["ci_upper"] * 100,
                 "color": color,
                 "fill": fill,
             }
@@ -192,6 +194,10 @@ def load_data() -> dict:
             "slope_csv2_yes_pp_per_alpha"
         ],
         "slope_diff": csv2["comparison"]["gap_h_minus_random_mean_pp"],
+        "holdout_n_prompt_ids": holdout["bootstrap_cis"]["n_clusters"],
+        "holdout_n_records": holdout["cross_alpha_holdout"]["0.0"]["n_records"]
+        + holdout["cross_alpha_holdout"]["1.5"]["n_records"]
+        + holdout["cross_alpha_holdout"]["3.0"]["n_records"],
         "evaluators": evaluator_data,
     }
 
@@ -338,7 +344,11 @@ def draw_evaluator_panel(ax: plt.Axes, data: dict) -> None:
     ax.text(
         0.03,
         0.97,
-        "Post-upgrade holdout result\nCSV-v3 and SR-4o tie at 96.0%\nReason to keep v3: richer outcome taxonomy",
+        "Post-rerun holdout result\n"
+        + "95% CIs: prompt-clustered bootstrap\n"
+        + f"{data['holdout_n_prompt_ids']} prompt IDs / {data['holdout_n_records']} rows\n"
+        + "CSV-v3 and SR-4o tie at 96.0%\n"
+        + "Reason to keep v3: richer outcome taxonomy",
         transform=ax.transAxes,
         ha="left",
         va="top",
@@ -361,83 +371,15 @@ def draw_evaluator_panel(ax: plt.Axes, data: dict) -> None:
     ax.grid(axis="y", alpha=0.15, zorder=0)
 
 
-def draw_specificity_panel(ax: plt.Axes, data: dict) -> None:
-    x = data["graded_alphas"]
-    h_fit = np.polyfit(x, data["graded_h_rates"], 1)
-    r_fit = np.polyfit(x, data["graded_r_rates"], 1)
-    fit_x = np.linspace(0.0, 3.0, 100)
-
-    ax.plot(
-        x,
-        data["graded_h_rates"],
-        color=C_H,
-        marker="o",
-        linewidth=2.2,
-        label="H-neurons",
-    )
-    ax.plot(
-        x,
-        data["graded_r_rates"],
-        color=C_R,
-        marker="s",
-        linestyle="--",
-        linewidth=2.0,
-        label="Random control",
-    )
-    ax.plot(
-        fit_x,
-        np.polyval(h_fit, fit_x),
-        color=C_H,
-        linestyle=":",
-        linewidth=1.2,
-        alpha=0.7,
-    )
-    ax.plot(
-        fit_x,
-        np.polyval(r_fit, fit_x),
-        color=C_R,
-        linestyle=":",
-        linewidth=1.2,
-        alpha=0.7,
-    )
-    ax.text(
-        0.03,
-        0.97,
-        "Specificity contrast\nsame graded surface as Panel B\nseed-0 result only",
-        transform=ax.transAxes,
-        ha="left",
-        va="top",
-        fontsize=7.3,
-        bbox=dict(boxstyle="round,pad=0.28", facecolor="white", edgecolor="#D4DCE3"),
-    )
-    ax.set_title(
-        "D. Seed-0 specificity contrast",
-        fontsize=11,
-        fontweight="bold",
-        loc="left",
-        pad=10,
-    )
-    ax.set_xlabel("Scaling factor (α)", fontsize=10, fontweight="bold")
-    ax.set_ylabel("Strict harmfulness rate (%)", fontsize=10, fontweight="bold")
-    ax.set_xticks(x)
-    ax.set_xlim(-0.1, 3.1)
-    ax.set_ylim(16, 30)
-    ax.legend(fontsize=7.4, loc="upper left", framealpha=0.9, edgecolor="#CCCCCC")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.grid(alpha=0.15)
-
-
 def main() -> None:
     data = load_data()
-    fig = plt.figure(figsize=(13.4, 9.4), dpi=300)
+    fig = plt.figure(figsize=(13.4, 7.8), dpi=300)
     fig.set_facecolor(BG_COLOR)
     grid = fig.add_gridspec(2, 2, hspace=0.34, wspace=0.24)
 
     draw_binary_panel(fig.add_subplot(grid[0, 0]), data)
     draw_graded_panel(fig.add_subplot(grid[0, 1]), data)
-    draw_evaluator_panel(fig.add_subplot(grid[1, 0]), data)
-    draw_specificity_panel(fig.add_subplot(grid[1, 1]), data)
+    draw_evaluator_panel(fig.add_subplot(grid[1, :]), data)
 
     fig.suptitle(
         "Figure 4: Measurement Choices Changed the Scientific Conclusion",

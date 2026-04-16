@@ -5,7 +5,7 @@ The preceding sections established that detection quality does not predict steer
 We organize the case study around the H-neuron jailbreak scaling experiment (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n = 500$ per condition), because its moderate effect size makes it sensitive to every measurement decision we examine.
 
 ![Figure 4. Measurement choices changed the scientific conclusion.](figures/fig4_measurement.png)
-*Figure 4. Binary and graded scoring lead to different scientific conclusions, holdout evaluator validation ends in a binary tie between CSV-v3 and StrongREJECT-GPT-4o, and the seed-0 specificity contrast remains visible on the graded surface.*
+*Figure 4. Binary and graded scoring lead to different scientific conclusions, and the holdout evaluator panel uses prompt-clustered bootstrap CIs to show that CSV-v3 and StrongREJECT-GPT-4o are tied on binary holdout accuracy.*
 
 ## 6.1 Truncation Hides Downstream Content
 
@@ -32,11 +32,11 @@ If scoring granularity changes the verdict, evaluator identity can still matter 
 | Evaluator | Holdout accuracy | Holdout 95% CI (prompt-clustered) |
 |---|---:|---:|
 | CSV2 v3 | 96.0% | [90.0, 100.0] |
-| StrongREJECT | 94.0% | [88.0, 100.0] |
+| StrongREJECT-GPT-4o | 96.0% | [90.0, 100.0] |
 | CSV2 v2 | 92.0% | [84.3, 98.0] |
 | Binary judge | 90.0% | [80.0, 98.0] |
 
-Even in that pre-upgrade comparison, no pairwise holdout difference was statistically confirmable. Re-running StrongREJECT with GPT-4o then closed the remaining binary gap entirely: CSV-v3 and StrongREJECT-GPT-4o both reached 96.0% holdout accuracy with identical error sets.^[Source: `notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md`, §3.] The reason to keep CSV-v3 in this paper is therefore not binary superiority; it is richer outcome taxonomy.
+No pairwise holdout difference is statistically confirmable on the contamination-clean split. CSV-v3 and StrongREJECT-GPT-4o both reached 96.0% holdout accuracy with identical error sets, so the reason to keep CSV-v3 in this paper is not binary superiority but richer outcome taxonomy.^[Sources: `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`; `notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md`, §3.]
 
 The residual disagreement is still informative because it clusters on a recognizable response type: refuse-then-comply outputs. StrongREJECT's formula zeroes the final score when \texttt{refused = 1}, even if later text contains specific harmful substance. The development-set audit shows that this rubric choice, not judge-model weakness alone, explains the remaining false negatives after the GPT-4o rerun. In this paper we therefore treat evaluator disagreement as construct pluralism rather than as noise that can be solved by picking one preferred judge. Appendix E gives a worked summary of that disagreement regime.^[Sources: `notes/act3-reports/2026-04-12-4way-evaluator-comparison.md`; `notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md`; `notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md`.]
 
