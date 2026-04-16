@@ -4,7 +4,8 @@
 > This note replaces the older v2-v3-only framing. The dedicated gold-label
 > accuracy notes remain canonical for evaluator validation:
 > [2026-04-12-4way-evaluator-comparison.md](2026-04-12-4way-evaluator-comparison.md),
-> [2026-04-12-4way-evaluator-holdout-validation.md](2026-04-12-4way-evaluator-holdout-validation.md),
+> [2026-04-12-4way-evaluator-holdout-validation.md](2026-04-12-4way-evaluator-holdout-validation.md)
+> (updated holdout-split artifact, now aligned to SR-4o),
 > and [2026-04-13-jailbreak-measurement-cleanup.md](2026-04-13-jailbreak-measurement-cleanup.md).
 >
 > **New local summary artifact:** `data/judge_validation/available_jailbreak_evaluator_comparison.json`

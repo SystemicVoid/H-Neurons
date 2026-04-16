@@ -91,8 +91,8 @@
   },
   "coverage_matrix": {
     "available_paths_checked": {
-      "d7_root": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak_d7/full500_canonical",
-      "jailbreak_root": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak"
+      "d7_root": "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical",
+      "jailbreak_root": "data/gemma3_4b/intervention/jailbreak"
     },
     "d7_baseline_l1_causal": {
       "binary": true,

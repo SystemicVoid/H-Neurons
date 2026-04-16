@@ -1,6 +1,297 @@
 {
+  "bootstrap_cis": {
+    "confidence": 0.95,
+    "evaluators": {
+      "binary": {
+        "accuracy": {
+          "ci_lower": 0.8,
+          "ci_upper": 0.98,
+          "point": 0.9
+        },
+        "f1": {
+          "ci_lower": 0.7741935483870969,
+          "ci_upper": 0.9841269841269841,
+          "point": 0.9090909090909091
+        }
+      },
+      "csv2v2": {
+        "accuracy": {
+          "ci_lower": 0.8431372549019608,
+          "ci_upper": 0.98,
+          "point": 0.92
+        },
+        "f1": {
+          "ci_lower": 0.8333333333333333,
+          "ci_upper": 0.9803921568627451,
+          "point": 0.92
+        }
+      },
+      "csv2v3": {
+        "accuracy": {
+          "ci_lower": 0.9,
+          "ci_upper": 1.0,
+          "point": 0.96
+        },
+        "f1": {
+          "ci_lower": 0.888888888888889,
+          "ci_upper": 1.0,
+          "point": 0.9615384615384615
+        }
+      },
+      "sr": {
+        "accuracy": {
+          "ci_lower": 0.9,
+          "ci_upper": 1.0,
+          "point": 0.96
+        },
+        "f1": {
+          "ci_lower": 0.888888888888889,
+          "ci_upper": 1.0,
+          "point": 0.9615384615384615
+        }
+      }
+    },
+    "method": "cluster_bootstrap_by_prompt_id",
+    "n_clusters": 17,
+    "n_iterations": 10000
+  },
+  "cross_alpha_holdout": {
+    "0.0": {
+      "evaluators": {
+        "binary": {
+          "accuracy": 0.8823529411764706,
+          "f1": 0.875,
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.875,
+          "recall": 0.875,
+          "tn": 8,
+          "tp": 7
+        },
+        "csv2v2": {
+          "accuracy": 0.8823529411764706,
+          "f1": 0.8571428571428571,
+          "fn": 2,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.75,
+          "tn": 9,
+          "tp": 6
+        },
+        "csv2v3": {
+          "accuracy": 0.9411764705882353,
+          "f1": 0.9333333333333333,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.875,
+          "tn": 9,
+          "tp": 7
+        },
+        "sr": {
+          "accuracy": 0.9411764705882353,
+          "f1": 0.9333333333333333,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.875,
+          "tn": 9,
+          "tp": 7
+        }
+      },
+      "n_harmful": 8,
+      "n_records": 17,
+      "n_safe": 9
+    },
+    "1.5": {
+      "evaluators": {
+        "binary": {
+          "accuracy": 0.8823529411764706,
+          "f1": 0.9,
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.9,
+          "recall": 0.9,
+          "tn": 6,
+          "tp": 9
+        },
+        "csv2v2": {
+          "accuracy": 0.9411764705882353,
+          "f1": 0.9473684210526316,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9,
+          "tn": 7,
+          "tp": 9
+        },
+        "csv2v3": {
+          "accuracy": 0.9411764705882353,
+          "f1": 0.9473684210526316,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9,
+          "tn": 7,
+          "tp": 9
+        },
+        "sr": {
+          "accuracy": 0.9411764705882353,
+          "f1": 0.9473684210526316,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9,
+          "tn": 7,
+          "tp": 9
+        }
+      },
+      "n_harmful": 10,
+      "n_records": 17,
+      "n_safe": 7
+    },
+    "3.0": {
+      "evaluators": {
+        "binary": {
+          "accuracy": 0.9375,
+          "f1": 0.9473684210526316,
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.9,
+          "recall": 1.0,
+          "tn": 6,
+          "tp": 9
+        },
+        "csv2v2": {
+          "accuracy": 0.9375,
+          "f1": 0.9411764705882353,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.8888888888888888,
+          "tn": 7,
+          "tp": 8
+        },
+        "csv2v3": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 7,
+          "tp": 9
+        },
+        "sr": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 7,
+          "tp": 9
+        }
+      },
+      "n_harmful": 9,
+      "n_records": 16,
+      "n_safe": 7
+    }
+  },
+  "dev_vs_holdout_delta": {
+    "binary": {
+      "accuracy_delta": 0.4,
+      "dev_accuracy": 0.5,
+      "dev_f1": 0.5384615384615385,
+      "f1_delta": 0.3706293706293705,
+      "holdout_accuracy": 0.9,
+      "holdout_f1": 0.9090909090909091
+    },
+    "csv2v2": {
+      "accuracy_delta": 0.5866666666666667,
+      "dev_accuracy": 0.3333333333333333,
+      "dev_f1": 0.27272727272727276,
+      "f1_delta": 0.6472727272727272,
+      "holdout_accuracy": 0.92,
+      "holdout_f1": 0.92
+    },
+    "csv2v3": {
+      "accuracy_delta": 0.29333333333333333,
+      "dev_accuracy": 0.6666666666666666,
+      "dev_f1": 0.7142857142857143,
+      "f1_delta": 0.24725274725274715,
+      "holdout_accuracy": 0.96,
+      "holdout_f1": 0.9615384615384615
+    },
+    "sr": {
+      "accuracy_delta": 0.5433333333333332,
+      "dev_accuracy": 0.4166666666666667,
+      "dev_f1": 0.3636363636363636,
+      "f1_delta": 0.5979020979020979,
+      "holdout_accuracy": 0.96,
+      "holdout_f1": 0.9615384615384615
+    }
+  },
+  "mcnemar_tests": {
+    "binary_vs_csv2v2": {
+      "b_a_right_b_wrong": 2,
+      "c_a_wrong_b_right": 3,
+      "eval_a": "binary",
+      "eval_b": "csv2v2",
+      "more_accurate": "csv2v2",
+      "n_discordant": 5,
+      "p_value": 1.0
+    },
+    "csv2v3_vs_binary": {
+      "b_a_right_b_wrong": 3,
+      "c_a_wrong_b_right": 0,
+      "eval_a": "csv2v3",
+      "eval_b": "binary",
+      "more_accurate": "csv2v3",
+      "n_discordant": 3,
+      "p_value": 0.25
+    },
+    "csv2v3_vs_csv2v2": {
+      "b_a_right_b_wrong": 2,
+      "c_a_wrong_b_right": 0,
+      "eval_a": "csv2v3",
+      "eval_b": "csv2v2",
+      "more_accurate": "csv2v3",
+      "n_discordant": 2,
+      "p_value": 0.5
+    },
+    "csv2v3_vs_sr": {
+      "b_a_right_b_wrong": 0,
+      "c_a_wrong_b_right": 0,
+      "eval_a": "csv2v3",
+      "eval_b": "sr",
+      "more_accurate": "tie",
+      "n_discordant": 0,
+      "p_value": 1.0
+    },
+    "sr_vs_binary": {
+      "b_a_right_b_wrong": 3,
+      "c_a_wrong_b_right": 0,
+      "eval_a": "sr",
+      "eval_b": "binary",
+      "more_accurate": "sr",
+      "n_discordant": 3,
+      "p_value": 0.25
+    },
+    "sr_vs_csv2v2": {
+      "b_a_right_b_wrong": 2,
+      "c_a_wrong_b_right": 0,
+      "eval_a": "sr",
+      "eval_b": "csv2v2",
+      "more_accurate": "sr",
+      "n_discordant": 2,
+      "p_value": 0.5
+    }
+  },
   "metadata": {
-    "input_path": "data/judge_validation/4way_joined.json",
+    "bootstrap_iterations": 10000,
+    "bootstrap_seed": 42,
+    "confidence_level": 0.95,
     "contaminated_ids": [
       "jbb_harmful_14_t3",
       "jbb_harmful_19_t0",
@@ -13,393 +304,115 @@
     ],
     "n_contaminated_ids": 8,
     "n_holdout_ids": 17,
-    "bootstrap_iterations": 10000,
-    "bootstrap_seed": 42,
-    "confidence_level": 0.95
+    "source_files": [
+      "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl",
+      "data/judge_validation/csv2_v3/alpha_0.0.jsonl",
+      "data/judge_validation/csv2_v3/alpha_1.5.jsonl",
+      "data/judge_validation/csv2_v3/alpha_3.0.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_0.0.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_1.5.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_3.0.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.5.jsonl",
+      "data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl",
+      "data/judge_validation/strongreject/strongreject_gold_results.jsonl"
+    ],
+    "strongreject_judge_model": "gpt-4o"
   },
   "splits": {
     "dev": {
-      "n_records": 24,
-      "n_harmful": 18,
-      "n_safe": 6,
       "evaluators": {
-        "csv2v3": {
-          "tp": 10,
-          "tn": 6,
-          "fp": 0,
-          "fn": 8,
-          "accuracy": 0.6666666666666666,
-          "precision": 1.0,
-          "recall": 0.5555555555555556,
-          "f1": 0.7142857142857143
-        },
-        "sr": {
-          "tp": 2,
-          "tn": 6,
-          "fp": 0,
-          "fn": 16,
-          "accuracy": 0.3333333333333333,
-          "precision": 1.0,
-          "recall": 0.1111111111111111,
-          "f1": 0.19999999999999998
-        },
         "binary": {
-          "tp": 7,
-          "tn": 5,
-          "fp": 1,
-          "fn": 11,
           "accuracy": 0.5,
+          "f1": 0.5384615384615385,
+          "fn": 11,
+          "fp": 1,
           "precision": 0.875,
           "recall": 0.3888888888888889,
-          "f1": 0.5384615384615385
+          "tn": 5,
+          "tp": 7
         },
         "csv2v2": {
-          "tp": 3,
-          "tn": 5,
-          "fp": 1,
-          "fn": 15,
           "accuracy": 0.3333333333333333,
+          "f1": 0.27272727272727276,
+          "fn": 15,
+          "fp": 1,
           "precision": 0.75,
           "recall": 0.16666666666666666,
-          "f1": 0.27272727272727276
+          "tn": 5,
+          "tp": 3
+        },
+        "csv2v3": {
+          "accuracy": 0.6666666666666666,
+          "f1": 0.7142857142857143,
+          "fn": 8,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.5555555555555556,
+          "tn": 6,
+          "tp": 10
+        },
+        "sr": {
+          "accuracy": 0.4166666666666667,
+          "f1": 0.3636363636363636,
+          "fn": 14,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.2222222222222222,
+          "tn": 6,
+          "tp": 4
         }
-      }
+      },
+      "n_harmful": 18,
+      "n_records": 24,
+      "n_safe": 6
     },
     "holdout": {
-      "n_records": 50,
-      "n_harmful": 27,
-      "n_safe": 23,
       "evaluators": {
-        "csv2v3": {
-          "tp": 25,
-          "tn": 23,
-          "fp": 0,
-          "fn": 2,
-          "accuracy": 0.96,
-          "precision": 1.0,
-          "recall": 0.9259259259259259,
-          "f1": 0.9615384615384615
-        },
-        "sr": {
-          "tp": 24,
-          "tn": 23,
-          "fp": 0,
-          "fn": 3,
-          "accuracy": 0.94,
-          "precision": 1.0,
-          "recall": 0.8888888888888888,
-          "f1": 0.9411764705882353
-        },
         "binary": {
-          "tp": 25,
-          "tn": 20,
-          "fp": 3,
-          "fn": 2,
           "accuracy": 0.9,
+          "f1": 0.9090909090909091,
+          "fn": 2,
+          "fp": 3,
           "precision": 0.8928571428571429,
           "recall": 0.9259259259259259,
-          "f1": 0.9090909090909091
+          "tn": 20,
+          "tp": 25
         },
         "csv2v2": {
-          "tp": 23,
-          "tn": 23,
-          "fp": 0,
-          "fn": 4,
           "accuracy": 0.92,
+          "f1": 0.92,
+          "fn": 4,
+          "fp": 0,
           "precision": 1.0,
           "recall": 0.8518518518518519,
-          "f1": 0.92
-        }
-      }
-    }
-  },
-  "mcnemar_tests": {
-    "csv2v3_vs_sr": {
-      "eval_a": "csv2v3",
-      "eval_b": "sr",
-      "b_a_right_b_wrong": 1,
-      "c_a_wrong_b_right": 0,
-      "n_discordant": 1,
-      "p_value": 1.0,
-      "more_accurate": "csv2v3"
-    },
-    "csv2v3_vs_binary": {
-      "eval_a": "csv2v3",
-      "eval_b": "binary",
-      "b_a_right_b_wrong": 3,
-      "c_a_wrong_b_right": 0,
-      "n_discordant": 3,
-      "p_value": 0.25,
-      "more_accurate": "csv2v3"
-    },
-    "csv2v3_vs_csv2v2": {
-      "eval_a": "csv2v3",
-      "eval_b": "csv2v2",
-      "b_a_right_b_wrong": 2,
-      "c_a_wrong_b_right": 0,
-      "n_discordant": 2,
-      "p_value": 0.5,
-      "more_accurate": "csv2v3"
-    },
-    "sr_vs_binary": {
-      "eval_a": "sr",
-      "eval_b": "binary",
-      "b_a_right_b_wrong": 3,
-      "c_a_wrong_b_right": 1,
-      "n_discordant": 4,
-      "p_value": 0.625,
-      "more_accurate": "sr"
-    },
-    "sr_vs_csv2v2": {
-      "eval_a": "sr",
-      "eval_b": "csv2v2",
-      "b_a_right_b_wrong": 2,
-      "c_a_wrong_b_right": 1,
-      "n_discordant": 3,
-      "p_value": 1.0,
-      "more_accurate": "sr"
-    },
-    "binary_vs_csv2v2": {
-      "eval_a": "binary",
-      "eval_b": "csv2v2",
-      "b_a_right_b_wrong": 2,
-      "c_a_wrong_b_right": 3,
-      "n_discordant": 5,
-      "p_value": 1.0,
-      "more_accurate": "csv2v2"
-    }
-  },
-  "bootstrap_cis": {
-    "method": "cluster_bootstrap_by_prompt_id",
-    "n_clusters": 17,
-    "n_iterations": 10000,
-    "confidence": 0.95,
-    "evaluators": {
-      "csv2v3": {
-        "accuracy": {
-          "point": 0.96,
-          "ci_lower": 0.9,
-          "ci_upper": 1.0
+          "tn": 23,
+          "tp": 23
         },
-        "f1": {
-          "point": 0.9615384615384615,
-          "ci_lower": 0.888888888888889,
-          "ci_upper": 1.0
-        }
-      },
-      "sr": {
-        "accuracy": {
-          "point": 0.94,
-          "ci_lower": 0.88,
-          "ci_upper": 1.0
-        },
-        "f1": {
-          "point": 0.9411764705882353,
-          "ci_lower": 0.8636363636363636,
-          "ci_upper": 1.0
-        }
-      },
-      "binary": {
-        "accuracy": {
-          "point": 0.9,
-          "ci_lower": 0.8,
-          "ci_upper": 0.98
-        },
-        "f1": {
-          "point": 0.9090909090909091,
-          "ci_lower": 0.7741935483870969,
-          "ci_upper": 0.9841269841269841
-        }
-      },
-      "csv2v2": {
-        "accuracy": {
-          "point": 0.92,
-          "ci_lower": 0.8431372549019608,
-          "ci_upper": 0.98
-        },
-        "f1": {
-          "point": 0.92,
-          "ci_lower": 0.8333333333333333,
-          "ci_upper": 0.9803921568627451
-        }
-      }
-    }
-  },
-  "cross_alpha_holdout": {
-    "0.0": {
-      "n_records": 17,
-      "n_harmful": 8,
-      "n_safe": 9,
-      "evaluators": {
         "csv2v3": {
-          "tp": 7,
-          "tn": 9,
-          "fp": 0,
-          "fn": 1,
-          "accuracy": 0.9411764705882353,
-          "precision": 1.0,
-          "recall": 0.875,
-          "f1": 0.9333333333333333
-        },
-        "sr": {
-          "tp": 6,
-          "tn": 9,
-          "fp": 0,
+          "accuracy": 0.96,
+          "f1": 0.9615384615384615,
           "fn": 2,
-          "accuracy": 0.8823529411764706,
-          "precision": 1.0,
-          "recall": 0.75,
-          "f1": 0.8571428571428571
-        },
-        "binary": {
-          "tp": 7,
-          "tn": 8,
-          "fp": 1,
-          "fn": 1,
-          "accuracy": 0.8823529411764706,
-          "precision": 0.875,
-          "recall": 0.875,
-          "f1": 0.875
-        },
-        "csv2v2": {
-          "tp": 6,
-          "tn": 9,
           "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9259259259259259,
+          "tn": 23,
+          "tp": 25
+        },
+        "sr": {
+          "accuracy": 0.96,
+          "f1": 0.9615384615384615,
           "fn": 2,
-          "accuracy": 0.8823529411764706,
+          "fp": 0,
           "precision": 1.0,
-          "recall": 0.75,
-          "f1": 0.8571428571428571
+          "recall": 0.9259259259259259,
+          "tn": 23,
+          "tp": 25
         }
-      }
-    },
-    "1.5": {
-      "n_records": 17,
-      "n_harmful": 10,
-      "n_safe": 7,
-      "evaluators": {
-        "csv2v3": {
-          "tp": 9,
-          "tn": 7,
-          "fp": 0,
-          "fn": 1,
-          "accuracy": 0.9411764705882353,
-          "precision": 1.0,
-          "recall": 0.9,
-          "f1": 0.9473684210526316
-        },
-        "sr": {
-          "tp": 9,
-          "tn": 7,
-          "fp": 0,
-          "fn": 1,
-          "accuracy": 0.9411764705882353,
-          "precision": 1.0,
-          "recall": 0.9,
-          "f1": 0.9473684210526316
-        },
-        "binary": {
-          "tp": 9,
-          "tn": 6,
-          "fp": 1,
-          "fn": 1,
-          "accuracy": 0.8823529411764706,
-          "precision": 0.9,
-          "recall": 0.9,
-          "f1": 0.9
-        },
-        "csv2v2": {
-          "tp": 9,
-          "tn": 7,
-          "fp": 0,
-          "fn": 1,
-          "accuracy": 0.9411764705882353,
-          "precision": 1.0,
-          "recall": 0.9,
-          "f1": 0.9473684210526316
-        }
-      }
-    },
-    "3.0": {
-      "n_records": 16,
-      "n_harmful": 9,
-      "n_safe": 7,
-      "evaluators": {
-        "csv2v3": {
-          "tp": 9,
-          "tn": 7,
-          "fp": 0,
-          "fn": 0,
-          "accuracy": 1.0,
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0
-        },
-        "sr": {
-          "tp": 9,
-          "tn": 7,
-          "fp": 0,
-          "fn": 0,
-          "accuracy": 1.0,
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0
-        },
-        "binary": {
-          "tp": 9,
-          "tn": 6,
-          "fp": 1,
-          "fn": 0,
-          "accuracy": 0.9375,
-          "precision": 0.9,
-          "recall": 1.0,
-          "f1": 0.9473684210526316
-        },
-        "csv2v2": {
-          "tp": 8,
-          "tn": 7,
-          "fp": 0,
-          "fn": 1,
-          "accuracy": 0.9375,
-          "precision": 1.0,
-          "recall": 0.8888888888888888,
-          "f1": 0.9411764705882353
-        }
-      }
-    }
-  },
-  "dev_vs_holdout_delta": {
-    "csv2v3": {
-      "dev_accuracy": 0.6666666666666666,
-      "holdout_accuracy": 0.96,
-      "accuracy_delta": 0.29333333333333333,
-      "dev_f1": 0.7142857142857143,
-      "holdout_f1": 0.9615384615384615,
-      "f1_delta": 0.24725274725274715
-    },
-    "sr": {
-      "dev_accuracy": 0.3333333333333333,
-      "holdout_accuracy": 0.94,
-      "accuracy_delta": 0.6066666666666667,
-      "dev_f1": 0.19999999999999998,
-      "holdout_f1": 0.9411764705882353,
-      "f1_delta": 0.7411764705882353
-    },
-    "binary": {
-      "dev_accuracy": 0.5,
-      "holdout_accuracy": 0.9,
-      "accuracy_delta": 0.4,
-      "dev_f1": 0.5384615384615385,
-      "holdout_f1": 0.9090909090909091,
-      "f1_delta": 0.3706293706293705
-    },
-    "csv2v2": {
-      "dev_accuracy": 0.3333333333333333,
-      "holdout_accuracy": 0.92,
-      "accuracy_delta": 0.5866666666666667,
-      "dev_f1": 0.27272727272727276,
-      "holdout_f1": 0.92,
-      "f1_delta": 0.6472727272727272
+      },
+      "n_harmful": 27,
+      "n_records": 50,
+      "n_safe": 23
     }
   }
 }

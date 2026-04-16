@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Holdout evaluator comparison: split on calibration contamination boundary.
 
-Loads the 4-way joined data, removes the 24 records (8 prompt IDs × 3 alphas)
-used during CSV2 v3 calibration, and recomputes metrics on the true holdout.
-Adds McNemar paired tests and prompt-clustered bootstrap CIs.
+Builds the holdout panel from the canonical per-evaluator local artifacts,
+removes the 24 records (8 prompt IDs × 3 alphas) used during CSV2 v3
+calibration, and recomputes metrics on the true holdout. StrongREJECT is read
+from the post-rerun GPT-4o gold results so the output matches the current
+canonical holdout story. Adds McNemar paired tests and prompt-clustered
+bootstrap CIs.
 """
 
 from __future__ import annotations
@@ -17,8 +20,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-INPUT_PATH = ROOT / "data/judge_validation/4way_joined.json"
 OUTPUT_PATH = ROOT / "data/judge_validation/holdout_comparison.json"
+GOLD_PATH = ROOT / "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl"
+CSV2_V3_DIR = ROOT / "data/judge_validation/csv2_v3"
+CSV2_V2_DIR = ROOT / "data/gemma3_4b/intervention/jailbreak/csv2_evaluation"
+BINARY_DIR = ROOT / "data/gemma3_4b/intervention/jailbreak/experiment"
+STRONGREJECT_PATH = (
+    ROOT / "data/judge_validation/strongreject/strongreject_gold_results.jsonl"
+)
+EVALUATION_ALPHAS = ("0.0", "1.5", "3.0")
 
 # ── Contamination boundary ────────────────────────────────────────────
 # Source: scripts/csv2_v3_smoke_hardcases.py lines 27-36
@@ -51,6 +61,81 @@ CONFIDENCE = 0.95
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
+
+
+def load_jsonl(path: Path) -> list[dict]:
+    with open(path, encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def evaluation_key(row: dict) -> tuple[str, float]:
+    return row["id"], float(row["alpha"])
+
+
+def load_holdout_panel() -> list[dict]:
+    """Load the canonical 4-way comparison panel from local raw artifacts."""
+    gold_rows = [
+        row
+        for row in load_jsonl(GOLD_PATH)
+        if row["human_label"] in {"HARMFUL", "SAFE"}
+    ]
+    gold_by_key = {evaluation_key(row): row for row in gold_rows}
+
+    v3_by_key: dict[tuple[str, float], dict] = {}
+    for alpha in EVALUATION_ALPHAS:
+        for row in load_jsonl(CSV2_V3_DIR / f"alpha_{alpha}.jsonl"):
+            key = evaluation_key(row)
+            if key in gold_by_key:
+                v3_by_key[key] = row
+
+    v2_by_key: dict[tuple[str, float], dict] = {}
+    for alpha in EVALUATION_ALPHAS:
+        for row in load_jsonl(CSV2_V2_DIR / f"alpha_{alpha}.jsonl"):
+            key = evaluation_key(row)
+            if key in gold_by_key:
+                v2_by_key[key] = row
+
+    binary_by_key: dict[tuple[str, float], dict] = {}
+    for alpha in EVALUATION_ALPHAS:
+        for row in load_jsonl(BINARY_DIR / f"alpha_{alpha}.jsonl"):
+            key = evaluation_key(row)
+            if key in gold_by_key:
+                binary_by_key[key] = row
+
+    sr_by_key = {evaluation_key(row): row for row in load_jsonl(STRONGREJECT_PATH)}
+
+    missing: dict[str, list[tuple[str, float]]] = {}
+    for name, rows_by_key in (
+        ("csv2_v3", v3_by_key),
+        ("csv2_v2", v2_by_key),
+        ("binary", binary_by_key),
+        ("strongreject", sr_by_key),
+    ):
+        absent = sorted(set(gold_by_key) - set(rows_by_key))
+        if absent:
+            missing[name] = absent
+    if missing:
+        missing_preview = {
+            name: [f"{row_id}@{alpha}" for row_id, alpha in keys[:5]]
+            for name, keys in missing.items()
+        }
+        raise KeyError(f"Missing evaluator rows for gold panel: {missing_preview}")
+
+    joined: list[dict] = []
+    for key in sorted(gold_by_key):
+        gold = gold_by_key[key]
+        joined.append(
+            {
+                "id": gold["id"],
+                "alpha": float(gold["alpha"]),
+                "gold": gold["human_label"] == "HARMFUL",
+                "csv2v3": v3_by_key[key]["csv2"]["harmful_binary"] == "yes",
+                "sr": sr_by_key[key]["strongreject"]["harmful_binary"] == "yes",
+                "binary": binary_by_key[key].get("judge") == "HARMFUL",
+                "csv2v2": v2_by_key[key]["csv2"]["harmful_binary"] == "yes",
+            }
+        )
+    return joined
 
 
 def confusion_counts(records: list[dict], evaluator: str) -> dict[str, int]:
@@ -240,10 +325,9 @@ def compute_split_metrics(records: list[dict], evaluators: tuple[str, ...]) -> d
 
 
 def main() -> None:
-    # Load joined data
-    with open(INPUT_PATH) as f:
-        joined: list[dict] = json.load(f)
-    print(f"Loaded {len(joined)} records from {INPUT_PATH.relative_to(ROOT)}")
+    # Load canonical comparison panel
+    joined = load_holdout_panel()
+    print(f"Loaded {len(joined)} gold records from canonical evaluator artifacts")
 
     # Split
     dev, holdout = split_by_contamination(joined)
@@ -301,7 +385,23 @@ def main() -> None:
     # Assemble output
     output = {
         "metadata": {
-            "input_path": str(INPUT_PATH.relative_to(ROOT)),
+            "source_files": [
+                str(GOLD_PATH.relative_to(ROOT)),
+                *[
+                    str((CSV2_V3_DIR / f"alpha_{alpha}.jsonl").relative_to(ROOT))
+                    for alpha in EVALUATION_ALPHAS
+                ],
+                *[
+                    str((CSV2_V2_DIR / f"alpha_{alpha}.jsonl").relative_to(ROOT))
+                    for alpha in EVALUATION_ALPHAS
+                ],
+                *[
+                    str((BINARY_DIR / f"alpha_{alpha}.jsonl").relative_to(ROOT))
+                    for alpha in EVALUATION_ALPHAS
+                ],
+                str(STRONGREJECT_PATH.relative_to(ROOT)),
+            ],
+            "strongreject_judge_model": "gpt-4o",
             "contaminated_ids": sorted(CONTAMINATED_IDS),
             "n_contaminated_ids": len(CONTAMINATED_IDS),
             "n_holdout_ids": n_holdout_ids,
@@ -325,8 +425,9 @@ def main() -> None:
         "dev_vs_holdout_delta": delta,
     }
 
-    with open(OUTPUT_PATH, "w") as f:
-        json.dump(output, f, indent=2)
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2, sort_keys=True)
+        f.write("\n")
     print(f"Output written to {OUTPUT_PATH.relative_to(ROOT)}")
 
     # ── Print summary ─────────────────────────────────────────────────

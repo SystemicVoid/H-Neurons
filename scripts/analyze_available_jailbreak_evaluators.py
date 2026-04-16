@@ -31,6 +31,10 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def repo_relative(path: Path) -> str:
+    return str(path.relative_to(ROOT))
+
+
 def rate_summary(yes: int, total: int) -> dict[str, Any]:
     return {
         "yes": yes,
@@ -329,8 +333,8 @@ def compute_coverage_matrix() -> dict[str, Any]:
             "strongreject": False,
         },
         "available_paths_checked": {
-            "jailbreak_root": str(root / "jailbreak"),
-            "d7_root": str(root / "jailbreak_d7/full500_canonical"),
+            "jailbreak_root": repo_relative(root / "jailbreak"),
+            "d7_root": repo_relative(root / "jailbreak_d7/full500_canonical"),
         },
     }
     return coverage
