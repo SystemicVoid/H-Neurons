@@ -27,7 +27,7 @@ The heuristic sometimes works. Refusal-mediating directions identified by simple
 This paper tests the readout-to-steering heuristic empirically in Gemma-3-4B-IT. We compare multiple intervention families -- neuron scaling, sparse autoencoder feature steering, inference-time intervention via attention heads, and gradient-based causal head selection -- across contextual faithfulness, answer selection, open-ended factual generation, and jailbreak settings. We find repeated dissociations between four stages that are routinely conflated:
 
 1. **Measurement** -- Can we trust the evaluation? Truncation artifacts, binary-versus-graded scoring, and evaluator choice each changed the scientific conclusion about whether an intervention worked; after the StrongREJECT GPT-4o rerun, the holdout binary-accuracy gap disappeared and the reason to prefer CSV-v3 became measurement granularity rather than binary superiority (§6).
-2. **Localization** -- Does the readout identify causally relevant components? SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843), yet in the committed FaithEval comparison they did not translate into useful control while H-neurons did. Supporting JailbreakBench selector comparisons point in the same direction, but remain benchmark-local and caveated (§4).
+2. **Localization** -- Does the readout identify causally relevant components? In the paper's cleanest localization-to-control comparison, SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843), yet on FaithEval they did not translate into useful control while H-neurons did. Supporting JailbreakBench selector evidence is directionally consistent, but remains benchmark-local and caveated (§4).
 3. **Control** -- Does intervention produce the intended behavioral change? When it did, the effect was narrow: H-neurons improved compliance on FaithEval but showed no robust net alias-accuracy effect on BioASQ despite substantial behavioral perturbation; ITI improved answer selection but not open-ended generation (§5).
 4. **Externality** -- Does the effect transfer without causing harm? The TriviaQA bridge benchmark revealed that ITI does not merely degrade generation; it often substitutes nearby wrong entities for correct ones (§5.3).
 
@@ -123,9 +123,9 @@ The paper sits at the intersection of four threads that have not previously been
 
 # 4. Case Study I: From Localization to Control
 
-This section presents the paper's strongest localization-to-control evidence. Across two intervention families and two evaluation surfaces in Gemma-3-4B-IT, strong predictive readouts did not reliably identify useful steering targets. The anchor result is the matched FaithEval comparison between magnitude-ranked neurons and SAE features. The jailbreak selector results play a narrower corroborative role: they show that, within the same intervention family on JailbreakBench, different selection criteria can lead to different behavioral outcomes.
+This section presents the paper's strongest localization-to-control evidence. The anchor result is the matched FaithEval comparison between magnitude-ranked neurons and SAE features, where strong predictive readouts did not reliably identify useful steering targets. We then add a shorter jailbreak selector analysis as supporting evidence only: within one intervention family on JailbreakBench, different selection criteria can lead to different behavioral outcomes, but that evidence is benchmark-local and more heavily caveated.
 
-We therefore organize the section by evidential strength. Section 4.1 establishes that the readouts under study are genuine held-out signals, not strawmen. Section 4.2 presents the paper's cleanest single experiment: matched detection quality between magnitude-ranked neurons and SAE features, with sharply divergent steering outcomes. Sections 4.3 and 4.4 then keep the jailbreak selector evidence in a supporting role.
+We therefore organize the section by evidential strength. Section 4.1 establishes that the readouts under study are genuine held-out signals, not strawmen. Section 4.2 presents the paper's cleanest single experiment: matched detection quality between magnitude-ranked neurons and SAE features, with sharply divergent steering outcomes. Sections 4.3 and 4.4 then add brief supporting jailbreak selector evidence.
 
 Figure 2 shows only the FaithEval anchor comparison. Supporting jailbreak selector detail is summarized later in the section and in Appendix Table D1.
 
@@ -156,32 +156,25 @@ We also tested whether the neuron dose-response could be explained by generic pe
 
 The narrow reporting claim is strong: on matched FaithEval items, matched readout quality did not predict matched intervention utility. H-neurons and SAE features read out the construct equally well, but only the neuron intervention produced a robust behavioral dose-response.
 
-## 4.3 Pilot Selector Contrast on Jailbreak
+## 4.3 Supporting Pilot Selector Contrast on Jailbreak
 
-The FaithEval comparison is the section's anchor result. The jailbreak selector comparison is narrower: on a matched pilot ($n = 100$), probe-ranked heads with perfect readout quality were inert while a gradient-ranked selector was not.
+The FaithEval comparison is the section's anchor result. As a narrower corroboration within one intervention family, we also examined a matched jailbreak pilot ($n = 100$): probe-ranked heads with perfect readout quality were inert while a gradient-ranked selector was not.
 
 Both interventions use the same ITI head-level operator and differ only in how heads are selected. Probe-ranked selection orders heads by harmful-versus-benign AUROC; gradient-ranked selection orders them by the mean absolute gradient of refusal probability with respect to head output. Both were tested at $k = 20$ on the same alpha grid and scored with the same CSV-v2 graded ruler.^[Sources: `data/contrastive/refusal/iti_refusal_probe_d7/extraction_metadata.json`; `data/contrastive/refusal/iti_refusal_causal_d7/extraction_metadata.json`; `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md`.]
 
 On that matched pilot, the best probe intervention produced a $-2$ pp change in strict harmfulness rate $[-10, +6]$ and the high-alpha behavior was dominated by degeneration: at $\alpha = 8.0$, harmful compliance increased and 82% of responses hit the 5,000-token cap. The gradient-ranked selector, by contrast, reduced strict harmfulness by $-13$ pp $[-21, -6]$ at its best pilot setting. The two selectors also identify meaningfully different heads: Jaccard overlap between their top-20 sets is $0.11$ (4 heads out of 36 unique heads).^[Source: `notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md`.]
 
-This is useful corroboration, not the paper's headline jailbreak claim. On this benchmark and intervention family, components that read out the label need not be the components that move the label when perturbed.
+This is useful corroboration, not a load-bearing result for the paper's main localization claim. On this benchmark and intervention family, components that read out the label need not be the components that move the label when perturbed.
 
 ## 4.4 Full-500 Jailbreak Comparator as Supporting Evidence
 
-The larger full-500 jailbreak summary supports the same qualitative point, but it is not a clean selector comparison. On the current normalized April 16 panel, baseline strict harmfulness is 51.6%, probe is 34.8%, layer-matched random seeds are 37.2% and 38.8%, and the locked causal branch is 24.8%. Causal therefore beats probe by $10.0$ pp $[6.2, 14.0]$, random seed 1 by $12.4$ pp $[8.0, 16.8]$, and random seed 2 by $14.0$ pp $[10.0, 18.2]$.^[Source: `notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md`; structured summary in `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json`.] Appendix Table D1 reports the panel directly.
+The larger full-500 jailbreak summary supports the same qualitative point, but it remains supporting evidence rather than a clean selector comparison. On the current normalized April 16 panel, baseline strict harmfulness is 51.6%, probe is 34.8%, layer-matched random seeds are 37.2% and 38.8%, and the locked causal branch is 24.8%. Causal therefore beats probe by $10.0$ pp $[6.2, 14.0]$, random seed 1 by $12.4$ pp $[8.0, 16.8]$, and random seed 2 by $14.0$ pp $[10.0, 18.2]$.^[Source: `notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md`; structured summary in `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json`.] Appendix Table D1 reports the panel directly.
 
 The caveats remain live. The comparison is still mixed-ruler rather than fully like-for-like; the probe and both random branches are error-bearing; and the causal branch still carries visible token-cap debt (112/500 cap hits at $\alpha = 4.0$). The surviving claim is therefore benchmark-local and supporting: on the current mixed-ruler full-500 evidence base, the locked causal branch is the strongest completed D7 branch, but the result does not close the selector-specificity question.
 
 ## 4.5 Synthesis
 
-**Table 5 -- Summary of Detection-Steering Dissociations**
-
-| Comparison | Detection | Steering | Slope difference | Control evidence | Lesson |
-|---|---|---|---|---|---|
-| Neurons vs. SAE features (FaithEval) | AUROC $0.843$ vs. $0.848$ | $+2.09$ pp/$\alpha$ $[1.38, 2.83]$ vs. $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$ | $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$, $p < 0.001$ | 8-seed neuron null; delta-only SAE null | Matched detection, divergent steering |
-| Probe vs. gradient heads (jailbreak) | AUROC ${\geq}0.92$ (top-20) vs. not assessed | Pilot: best probe $-2$ pp $[-10, +6]$ vs. causal $-13$ pp $[-21, -6]$; current full-500 panel: probe 34.8%, random seeds 37.2%/38.8%, causal 24.8%, baseline 51.6% | Not a formal paired slope-difference design on full-500 | Pilot selector comparison is clean; full-500 panel is supporting and caveated | Strong readout does not guarantee strong control |
-
-Two patterns matter. First, the anchor FaithEval comparison shows that detection quality did not predict steering success: the SAE probe matched the neuron probe on held-out AUROC and failed on control. Second, the jailbreak selector evidence points in the same qualitative direction but with narrower scope: selector choice clearly matters on this benchmark surface, but the full-500 comparator remains too caveated for a broader selector claim.
+Two patterns matter. First, the anchor FaithEval comparison shows that detection quality did not predict steering success: the SAE probe matched the neuron probe on held-out AUROC and failed on control. Second, the jailbreak selector evidence is directionally consistent but strictly supporting: within that intervention family, selector choice appears to matter on this benchmark surface, but the current comparator remains too caveated for a broader selector claim.
 
 The positive counterexample remains important. H-neurons did steer FaithEval compliance, and specificity was confirmed against matched random controls. The thesis is not that detection-based targets never work. It is that readout quality alone is an unreliable heuristic for identifying when they will.
 
@@ -312,7 +305,7 @@ Sections 4--6 isolate three different failure points: matched readouts diverged 
 The four stages -- **measurement**, **localization**, **control**, and **externality** -- are not a theoretical taxonomy. They are an empirical observation about where intervention claims break in practice.
 
 - **Measurement -> Conclusion.** Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In our jailbreak setting, truncation artifacts, binary-versus-graded scoring, and evaluator choice each altered the conclusion about the same outputs (§6.1--6.3). After the StrongREJECT GPT-4o rerun, the holdout binary-accuracy gap disappeared; the remaining case for CSV-v3 is richer outcome structure, not superior held-out binary accuracy.
-- **Localization -> Control.** A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843), yet in the committed FaithEval comparison they did not translate into useful control while H-neurons did (§4.2). Supporting JailbreakBench selector comparisons point in the same direction, but remain corroborative and caveated (§4.3--4.4).
+- **Localization -> Control.** A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality (AUROC 0.848 vs. 0.843), yet in the committed FaithEval comparison they did not translate into useful control while H-neurons did (§4.2). A narrower JailbreakBench selector comparison is directionally consistent, but remains supporting and caveated (§4.3--4.4).
 - **Control -> Externality.** An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA answer selection by +6.3 pp MC1 but reduced open-ended factual accuracy by $-5.8$ pp [$-8.8$, $-3.0$] on the TriviaQA bridge test set, where wrong-entity substitution was the most frequent diagnosed failure mode (§5.3). H-neurons improved compliance on FaithEval but showed no robust net alias-accuracy effect on BioASQ despite substantial behavioral perturbation (§5.1).
 
 Each stage transition is a distinct empirical claim. Passing one does not license claims about the next.
@@ -322,7 +315,7 @@ Each stage transition is a distinct empirical claim. Passing one does not licens
 We distill the case study evidence into five concrete recommendations for researchers making mechanistic intervention claims.
 
 **Recommendation 1: Do not treat held-out readout quality as sufficient target-selection evidence.**
-Readout quality -- whether measured by AUROC, accuracy, or probe coefficient magnitude -- is insufficient on its own for identifying useful steering targets. Our matched-readout comparison (§4.2) and the pilot selector contrast in §4.3 show that readout metrics can be uninformative or even misleading about intervention utility.
+Readout quality -- whether measured by AUROC, accuracy, or probe coefficient magnitude -- is insufficient on its own for identifying useful steering targets. Our matched-readout comparison in FaithEval (§4.2) shows that similar held-out discrimination quality can still fail to predict intervention utility.
 
 **Recommendation 2: Validate on the behavioral surface you actually care about.**
 Answer-selection benchmarks and open-ended generation benchmarks measure different constructs, and intervention effects do not transfer reliably between them (§5.2--5.3). If the goal is to improve factual generation, evaluate on a factual generation benchmark. If the goal is to reduce harmful compliance, evaluate on graded harmful-compliance metrics, not binary proxies (§6.2).
