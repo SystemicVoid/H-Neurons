@@ -1960,21 +1960,13 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         "D7 full500 current-state audit note",
     )
 
-    legacy_summary = load_json(legacy_summary_path)
-    legacy_conditions = index_conditions_by_name(legacy_summary["conditions"])
-    legacy_report_text = normalize_report_text(load_text(legacy_report_path))
-    causal_token_cap_match = require_report_match(
-        legacy_report_text,
-        r"Token-cap hits are real for causal:\s*\*\*(\d+)/(\d+)\*\*\s*\(([\d.]+)%\)",
-        "April 8 D7 causal token-cap summary",
-    )
     current_summary = load_json(current_summary_path)
     historical_panel = current_summary["historical_panel"]
     current_panel = current_summary["current_panel"]
     artifact_status = current_summary["artifact_status"]
     paired_vs_baseline = {
         comparator: add_delta_aliases(metrics)
-        for comparator, metrics in legacy_summary["paired_vs_baseline"].items()
+        for comparator, metrics in current_panel["paired_vs_baseline"].items()
     }
     random_seed1_status = artifact_status["causal_random_head_layer_matched"]["seed_1"]
     random_seed2_status = artifact_status["causal_random_head_layer_matched"]["seed_2"]
@@ -2001,38 +1993,27 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         probe_condition["strict_harmfulness_normalized"]["n"]
     )
     current_state_caveat = (
-        "Interpret D7 as mixed-ruler supporting evidence, not a mechanism-clean "
-        "closure: the random control is single-seed, both random and probe carry "
-        "CSV2 span-validation errors, and only the April 8 baseline/L1/causal panel "
-        "exists on the legacy ruler."
+        "Interpret D7 as benchmark-local supporting evidence on a clean CSV2 v3 "
+        "panel: the mixed-ruler debt on the current panel has been cleared, and the "
+        "remaining evaluator-error debt is now a small documented residual set after "
+        "repair. The main live caveat is causal token-cap and quality debt rather "
+        "than ruler debt."
     )
     top_level_caveat = (
-        "D7 is a benchmark-local supporting result on a mixed-ruler current-state "
-        "panel: causal is the strongest completed branch, but selector specificity "
-        "is still not mechanism-clean because the random control is single-seed and "
-        "the probe/random branches carry CSV2 error debt."
+        "D7 is a benchmark-local supporting result on a clean CSV2 v3 current-state "
+        "panel: causal is still the strongest completed branch, and the remaining "
+        "live caveats are causal token-cap and quality debt plus a small documented "
+        "residual CSV2-error set rather than mixed-ruler debt."
     )
     control_availability = "available_single_seed_only"
-    control_status = "single_seed_mixed_ruler_error_bearing"
+    control_status = "single_seed_clean_panel"
     if has_random_seed2:
-        current_state_caveat = (
-            "Interpret D7 as mixed-ruler supporting evidence, not a mechanism-clean "
-            "closure: the random control now has two layer-matched seeds, but the "
-            "probe/random branches still carry CSV2 span-validation errors and only "
-            "the April 8 baseline/L1/causal panel exists on the legacy ruler."
-        )
-        top_level_caveat = (
-            "D7 is a benchmark-local supporting result on a mixed-ruler current-state "
-            "panel: causal is the strongest completed branch, but selector specificity "
-            "is still not mechanism-clean because the panel remains mixed-ruler and "
-            "the probe/random branches carry CSV2 error debt."
-        )
         control_availability = "available_two_seed_panel"
-        control_status = "two_seed_mixed_ruler_error_bearing"
+        control_status = "two_seed_clean_panel"
 
     current_state_namespace = {
         "date": "2026-04-16",
-        "claim_status": "benchmark_local_supporting_mixed_ruler",
+        "claim_status": "benchmark_local_supporting_clean_panel",
         "headline": (
             "D7 current state: the causal branch is still the strongest completed "
             "full-500 condition, outperforming the available probe and layer-matched "
@@ -2044,7 +2025,7 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
             str(current_report_path.relative_to(repo_root)),
         ],
         "mixed_ruler_status": {
-            "status": "mixed_ruler_reconciliation",
+            "status": "resolved_clean_v3_panel_small_residual_errors",
             "historical_panel_status": "historical_provenance_only",
             "description": current_panel["description"],
         },
@@ -2144,9 +2125,9 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         "caveat": top_level_caveat,
         "headline": current_state_namespace["headline"],
         "conditions": {
-            "baseline": copy.deepcopy(legacy_conditions["baseline"]),
-            "l1": copy.deepcopy(legacy_conditions["l1"]),
-            "causal": copy.deepcopy(legacy_conditions["causal"]),
+            "baseline": copy.deepcopy(current_panel["conditions"]["baseline"]),
+            "l1": copy.deepcopy(current_panel["conditions"]["l1"]),
+            "causal": copy.deepcopy(current_panel["conditions"]["causal"]),
         },
         "paired_vs_baseline": paired_vs_baseline,
         "direct_comparisons": {
@@ -2154,9 +2135,15 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
             for comparison, metrics in current_panel["direct_comparisons"].items()
         },
         "token_cap": {
-            "causal_hits": int(causal_token_cap_match.group(1)),
-            "causal_total": int(causal_token_cap_match.group(2)),
-            "causal_share_pct": float(causal_token_cap_match.group(3)),
+            "causal_hits": int(
+                current_panel["conditions"]["causal"]["token_cap"]["count"]
+            ),
+            "causal_total": int(
+                current_panel["conditions"]["causal"]["token_cap"]["n"]
+            ),
+            "causal_share_pct": float(
+                current_panel["conditions"]["causal"]["token_cap"]["share_pct"]
+            ),
         },
         "historical_april_8": {
             "source_files": [

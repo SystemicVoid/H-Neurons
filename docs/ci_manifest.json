@@ -884,7 +884,7 @@
         "path": [
           "paired_vs_baseline",
           "causal",
-          "csv2_yes"
+          "strict_harmfulness_normalized"
         ]
       },
       "surfaces": [
@@ -911,7 +911,7 @@
         "path": [
           "paired_vs_baseline",
           "l1",
-          "csv2_yes"
+          "strict_harmfulness_normalized"
         ]
       },
       "surfaces": [
