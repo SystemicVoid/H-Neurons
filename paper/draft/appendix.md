@@ -53,7 +53,7 @@ The current full-500 selector panel is supporting evidence rather than a main-te
 | random seed 2 | 38.8% | [34.6, 43.1] | -12.8 pp [-17.4, -8.4] |
 | causal | 24.8% | [21.2, 28.8] | -26.8 pp [-31.0, -22.6] |
 
-Three caveats remain attached to this table. First, the panel is mixed-ruler rather than fully like-for-like. Second, the probe and both random branches are error-bearing. Third, the causal branch still has visible token-cap debt (112/500 cap hits at $\alpha = 4.0$). The correct paper-facing sentence is therefore the narrow one used in §4.4: on the current mixed-ruler full-500 evidence base, the locked causal branch is the strongest completed D7 branch.
+Three caveats remain attached to this table. First, the panel combines branches scored under different evaluation pipelines rather than providing a fully like-for-like comparison. Second, the probe and both random branches are error-bearing. Third, the gradient-ranked branch still shows visible generation-cap artifacts, with 112 of 500 responses hitting the cap at $\alpha = 4.0$. The correct paper-facing sentence is therefore the narrow one used in §4.4: on the current full-500 comparator panel, the gradient-ranked branch is the strongest completed D7 branch.
 
 ## Appendix E. Measurement Support
 

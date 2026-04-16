@@ -24,7 +24,7 @@ Progress updates landed after the initial audit:
 - Figure 3 Panel C has now been reflowed to a full-width bottom-row layout with wrapped example text, removing the right-edge clipping defect in the rendered asset.
 - Sections 2 and 3 have now been compressed around the evidence spine: the main-text claim-governance box is gone, the opener names the FaithEval / bridge / jailbreak anchors directly, Table 1 follows evidential priority, and the related-work framing is narrowed to prior results plus the specific gap addressed here.
 
-One more full review pass is still needed now that the Section 2--3 prose cleanup has landed, to confirm that the draft is publication-ready end to end.
+The remaining work is now a narrow publication-surface cleanup pass: remove residual audit jargon from the D7 supporting-evidence prose, repair the §4.1 detector-source split between structure and evaluation files, and synchronize support ledgers to the post-SR-4o evaluator tie.
 
 ## Review Status
 
@@ -44,7 +44,7 @@ One more full review pass is still needed now that the Section 2--3 prose cleanu
 
 The draft now has a coherent evidence hierarchy and a defensible paper-level thesis. The strongest scientific core remains intact: the FaithEval neuron-versus-SAE dissociation, the held-out TriviaQA bridge externality result, and the post-cleanup jailbreak measurement story all survive audit.
 
-The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims, and the Figure 2, Figure 3, Figure 4, citation-registry, and early-section narrative-economy defects flagged in the first pass have now been fixed in follow-up work. The remaining task is one more full review pass to check for regressions in prose, figure readability, and evidence hierarchy after the latest cleanup.
+The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims, and the Figure 2, Figure 3, Figure 4, citation-registry, and early-section narrative-economy defects flagged in the first pass have now been fixed in follow-up work. What remains is publication-surface cleanup rather than a new scientific review cycle: remove audit-language bleed-through on D7, repair the detector-source trace split in §4.1, and keep the post-SR-4o evaluator tie canonical everywhere.
 
 ## Did Finding 1 Actually Land?
 
@@ -83,11 +83,11 @@ The remaining risk here is rhetorical drift. The science is stronger when phrase
 
 The figure and manuscript alignment issue that was open in the first pass is now fixed. [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:1) now pulls Panel C intervals from the canonical holdout bootstrap artifact, the rendered figure has been simplified to three panels, and the Section 6 table now reports the post-rerun StrongREJECT-GPT-4o tie consistently. This landed in commit `7610fc2` (`fix(fig4): simplify measurement figure and align holdout text`).
 
-### Figure 3 readability defect is fixed, but should be checked once more in context
+### Figure 3 readability defect is fixed
 
 The earlier Panel C clipping defect in Figure 3 has now been addressed in [fig3_bridge_failure.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig3_bridge_failure.py:1) by replacing the cramped full-width `matplotlib` table with a manual wrapped layout and by giving Panel C the full bottom row of the figure. The regenerated [fig3_bridge_failure.png](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig3_bridge_failure.png) no longer cuts off the wrong-answer examples at the right edge.
 
-This finding should now be treated as resolved. The remaining task is not another redesign but one more full-manuscript review pass to confirm the figure still reads well at manuscript scale alongside the surrounding prose and other figures.
+This finding should now be treated as resolved. No additional figure redesign is required for the current cleanup pass.
 
 ### Figure 2 no longer overstates equivalence
 
@@ -108,7 +108,7 @@ This finding should now be treated as resolved, with the remaining risk being re
 - [Abstract](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/abstract.md:1), [Section 6](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_6_measurement.md:1), [Section 8](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_8_limitations.md:1), and the [appendix](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/appendix.md:1) are broadly coherent with the revised evidence hierarchy.
 - BioASQ is now described in the defensible way: endpoint-flat but behaviorally active, not behaviorally inert. That matches the canonical pipeline audit: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:194), [bioasq_pipeline_audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md:170), [bioasq_pipeline_audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md:185).
 - The measurement story is also correctly narrowed: the post-GPT-4o claim is tie on binary holdout, prefer CSV-v3 for richer outcome structure, not superiority: [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:289), [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:227), [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:243).
-- The main remaining task is regression review rather than another known substantive prose defect. The Section 2--3 cleanup now appears to have fixed the draft's last named structural blocker, but that should be confirmed by one more full-manuscript pass.
+- The remaining work is publication-surface cleanup rather than another known substantive prose defect. The Section 2--3 cleanup appears to have fixed the last named structural blocker, and the remaining paper-state issues are now localized to prose hygiene and support-file synchronization.
 
 ## Claim Status Highlights
 
@@ -131,14 +131,14 @@ This finding should now be treated as resolved, with the remaining risk being re
 - `Figure 4` now earns inclusion more cleanly: the holdout panel is aligned with the canonical bootstrap artifact and the redundant fourth panel has been removed.
 - `Figure 1` is conceptually useful but over-detailed for an opener; its stage labels should do less.
 - `Table 1` and `Table 6` both earn inclusion.
-- The old `Table 5` problem has been resolved by removal. The main remaining visual risk is Figure 3 readability.
+- The old `Table 5` problem has been resolved by removal. No remaining figure defect currently rises to a publication blocker.
 
 ## Prose And Structure Audit
 
 - The draft is strongest when it stays at the level of what the evidence shows and weakest when it infers latent mechanism from output behavior.
 - The paper's true flagship is FaithEval. The structure should make that obvious earlier and more consistently.
 - Section transitions still repeat the thesis more often than they advance inference.
-- Internal audit language remains visible in reader-facing prose. Terms like `mixed-ruler`, `locked causal branch`, and `token-cap debt` read like internal state summaries rather than paper prose.
+- Internal audit language still needs to stay out of reader-facing D7 prose. Terms like `mixed-ruler`, `locked causal branch`, and `token-cap debt` are useful in internal audits but should not remain in the manuscript after the cleanup pass.
 - The novelty framing is mostly calibrated, but it should continue to emphasize the matched FaithEval case study and integrated scaffold, not a slogan-level detect/control dissociation claim that prior work already occupies.
 
 ## Reference Integrity Audit
@@ -157,8 +157,8 @@ This version keeps FaithEval as the primary anchor, treats bridge as strong outp
 
 ## Priority Order
 
-1. Run one more full review pass after the Section 2--3 cleanup to check for narrative, figure-level, and evidence-hierarchy regressions.
-2. Guard against bridge-claim and D7 regression, but do not spend more main-text budget promoting either.
+1. Remove residual D7 audit-language bleed-through and keep the claim benchmark-local and supporting.
+2. Repair the §4.1 detector-source split and keep the post-SR-4o evaluator tie canonical across support files.
 3. Keep the new citation-registry validator in the loop for any future bibliography edits.
 
 ## Best-Practice Lens Consulted
