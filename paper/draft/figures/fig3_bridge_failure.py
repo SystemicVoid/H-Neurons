@@ -20,13 +20,14 @@ Usage:
 from __future__ import annotations
 
 from pathlib import Path
+from textwrap import fill
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from matplotlib.transforms import Bbox
+from matplotlib.patches import Rectangle
 import numpy as np
 
 # ---------------------------------------------------------------------------
@@ -287,8 +288,10 @@ def draw_panel_b(ax: plt.Axes) -> None:
 # Panel C: Substitution examples (text table)
 # ---------------------------------------------------------------------------
 def draw_panel_c(ax: plt.Axes) -> None:
-    """Render a compact text table of substitution examples."""
+    """Render wrapped substitution examples without table-cell clipping."""
     ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
 
     ax.set_title(
         "C. Wrong-entity substitution: swap, not refusal",
@@ -299,56 +302,102 @@ def draw_panel_c(ax: plt.Axes) -> None:
         pad=10,
     )
 
-    # Table data
     col_labels = ["Question", "Baseline (correct)", "ITI \u03b1=8 (wrong)"]
-    cell_text = list(SUBSTITUTION_EXAMPLES)
-
-    table = ax.table(
-        cellText=cell_text,
-        colLabels=col_labels,
-        cellLoc="left",
-        colLoc="left",
-        loc="center",
-        bbox=Bbox.from_extents(0.0, 0.0, 1.0, 0.95),
-    )
-
-    table.auto_set_font_size(False)
-    table.set_fontsize(8.1)
-
-    # Style header row
-    for j in range(len(col_labels)):
-        cell = table[0, j]
-        cell.set_facecolor(C_TABLE_HEADER_BG)
-        cell.set_edgecolor(C_TABLE_BORDER)
-        cell.set_text_props(
-            fontweight="bold",
-            fontsize=8.5,
-            color=TITLE_COLOR,
+    wrap_widths = [31, 22, 35]
+    wrapped_rows = [
+        tuple(
+            fill(
+                text,
+                width=width,
+                break_long_words=False,
+                break_on_hyphens=False,
+            )
+            for text, width in zip(row, wrap_widths, strict=True)
         )
-        cell.set_height(0.13)
+        for row in SUBSTITUTION_EXAMPLES
+    ]
 
-    # Style data rows
-    for i in range(1, len(cell_text) + 1):
-        row_bg = BG_COLOR if i % 2 == 1 else C_TABLE_ROW_ALT
-        for j in range(len(col_labels)):
-            cell = table[i, j]
-            cell.set_facecolor(row_bg)
-            cell.set_edgecolor(C_TABLE_BORDER)
-            cell.set_height(0.17)
+    left = 0.02
+    top = 0.92
+    table_width = 0.96
+    table_height = 0.84
+    col_widths = [0.27, 0.22, 0.51]
+    col_x = [left]
+    for width in col_widths[:-1]:
+        col_x.append(col_x[-1] + width * table_width)
 
-            # Color the "correct" column blue, "wrong" column red
-            if j == 1:
-                cell.set_text_props(color=C_TABLE_CORRECT, fontsize=8)
-            elif j == 2:
-                cell.set_text_props(color=C_TABLE_WRONG, fontsize=8)
-            else:
-                cell.set_text_props(color=TITLE_COLOR, fontsize=8)
+    header_units = 1.3
+    row_units = []
+    for row in wrapped_rows:
+        max_lines = max(text.count("\n") + 1 for text in row)
+        row_units.append(max_lines + 0.75)
 
-    # Set column widths
-    col_widths = [0.36, 0.30, 0.34]
-    for j, w in enumerate(col_widths):
-        for i in range(len(cell_text) + 1):
-            table[i, j].set_width(w)
+    total_units = header_units + sum(row_units)
+    header_height = table_height * (header_units / total_units)
+    row_heights = [table_height * (units / total_units) for units in row_units]
+    text_padding = 0.018
+
+    # Header row
+    y_top = top
+    y_bottom = y_top - header_height
+    for x, width, label in zip(col_x, col_widths, col_labels, strict=True):
+        rect = Rectangle(
+            (x, y_bottom),
+            width * table_width,
+            header_height,
+            facecolor=C_TABLE_HEADER_BG,
+            edgecolor=C_TABLE_BORDER,
+            linewidth=1.0,
+            transform=ax.transAxes,
+            clip_on=False,
+        )
+        ax.add_patch(rect)
+        ax.text(
+            x + text_padding,
+            y_bottom + header_height / 2,
+            label,
+            ha="left",
+            va="center",
+            fontsize=9.0,
+            fontweight="bold",
+            color=TITLE_COLOR,
+            transform=ax.transAxes,
+        )
+
+    # Data rows
+    y_top = y_bottom
+    for i, (row, row_height) in enumerate(zip(wrapped_rows, row_heights, strict=True)):
+        y_bottom = y_top - row_height
+        row_bg = BG_COLOR if i % 2 == 0 else C_TABLE_ROW_ALT
+        row_colors = [TITLE_COLOR, C_TABLE_CORRECT, C_TABLE_WRONG]
+
+        for x, width, text, color in zip(
+            col_x, col_widths, row, row_colors, strict=True
+        ):
+            rect = Rectangle(
+                (x, y_bottom),
+                width * table_width,
+                row_height,
+                facecolor=row_bg,
+                edgecolor=C_TABLE_BORDER,
+                linewidth=1.0,
+                transform=ax.transAxes,
+                clip_on=False,
+            )
+            ax.add_patch(rect)
+            ax.text(
+                x + text_padding,
+                y_bottom + row_height / 2,
+                text,
+                ha="left",
+                va="center",
+                fontsize=8.5,
+                color=color,
+                linespacing=1.2,
+                transform=ax.transAxes,
+            )
+
+        y_top = y_bottom
 
 
 # ---------------------------------------------------------------------------
@@ -356,22 +405,22 @@ def draw_panel_c(ax: plt.Axes) -> None:
 # ---------------------------------------------------------------------------
 def main() -> None:
     """Assemble and save the three-panel figure."""
-    fig = plt.figure(figsize=(12.4, 5.8), dpi=300)
+    fig = plt.figure(figsize=(12.4, 6.6), dpi=300)
 
-    # Layout: panels A and B in left column (stacked), panel C in right column
+    # Layout: panels A and B on the top row, Panel C spans the full bottom row.
     gs = gridspec.GridSpec(
         2,
         2,
         figure=fig,
-        width_ratios=[1.0, 1.5],
-        height_ratios=[0.82, 1.18],
-        hspace=0.5,
-        wspace=0.3,
+        width_ratios=[1.0, 1.35],
+        height_ratios=[0.86, 1.14],
+        hspace=0.38,
+        wspace=0.35,
     )
 
-    ax_a = fig.add_subplot(gs[:, 0])  # Panel A spans full left column
+    ax_a = fig.add_subplot(gs[0, 0])  # Panel A top-left
     ax_b = fig.add_subplot(gs[0, 1])  # Panel B top-right
-    ax_c = fig.add_subplot(gs[1, 1])  # Panel C bottom-right
+    ax_c = fig.add_subplot(gs[1, :])  # Panel C full-width bottom row
 
     draw_panel_a(ax_a)
     draw_panel_b(ax_b)

@@ -21,6 +21,9 @@ Progress updates landed after the initial audit:
 - `6ce91d0` `fix(fig2): add AUROC uncertainty and soften equivalence wording`
 - `9b01ec8` `fix(citations): validate registry against local paper files`
 - `7610fc2` `fix(fig4): simplify measurement figure and align holdout text`
+- Figure 3 Panel C has now been reflowed to a full-width bottom-row layout with wrapped example text, removing the right-edge clipping defect in the rendered asset.
+
+One more full review pass is still needed after the remaining prose cleanup to confirm that the draft is publication-ready end to end.
 
 ## Review Status
 
@@ -30,7 +33,7 @@ Progress updates landed after the initial audit:
 | Section 5 bridge interpretation | overstated inference | Resolved, keep bounded | Manuscript vs [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:1) | Output-level diagnosis remains strong; explanatory language is now bounded to behavior-level interpretation. |
 | Figure 4 uncertainty logic | presentation/consistency defect | Resolved, keep aligned | Figure script vs manuscript text vs holdout validation note | Panel C now uses the canonical prompt-clustered bootstrap CIs, the stale StrongREJECT table values are fixed, and the redundant Panel D has been removed. |
 | Figure 2 precision signaling | presentation/consistency defect | Resolved, keep bounded | Figure script vs manuscript wording | Detection panel now shows uncertainty and explicitly avoids implying formal equivalence. |
-| Figure 3 readability | presentation/consistency defect | Open | Figure script vs rendered PNG | Panel C table clips at the right edge in the current render. |
+| Figure 3 readability | presentation/consistency defect | Resolved, re-review once | Figure script vs rendered PNG | Panel C has been reflowed into a full-width bottom panel with wrapped example text; the rendered asset no longer clips at the right edge. |
 | Jailbreak measurement framing | unsupported claim | Resolved, keep narrow | Manuscript vs [2026-04-13-jailbreak-measurement-cleanup.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md:1) | Safe claim is tie on binary holdout; prefer CSV-v3 for richer structure, not superiority. |
 | BioASQ summary framing | presentation/consistency defect | Resolved, keep narrow | Manuscript vs [bioasq_pipeline_audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md:1) | Safe claim is endpoint-flat but behaviorally active, not a clean null. |
 | Citation registry integrity | unsupported claim | Resolved, validator added | [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:1) vs local `papers/` files | Registry mappings were repaired and a dedicated validator plus tests now guard against recurrence. |
@@ -40,7 +43,7 @@ Progress updates landed after the initial audit:
 
 The draft now has a coherent evidence hierarchy and a defensible paper-level thesis. The strongest scientific core remains intact: the FaithEval neuron-versus-SAE dissociation, the held-out TriviaQA bridge externality result, and the post-cleanup jailbreak measurement story all survive audit.
 
-The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims, and the Figure 2, Figure 4, and citation-registry defects flagged in the first pass have now been fixed in committed follow-up work. The top remaining risks are Figure 3's clipped table and the paper's still-slow early narrative economy in Sections 2 and 3.
+The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims, and the Figure 2, Figure 3, Figure 4, and citation-registry defects flagged in the first pass have now been fixed in follow-up work. The top remaining substantive risk is the paper's still-slow early narrative economy in Sections 2 and 3, followed by ordinary regression risk that should be checked in one more full review pass.
 
 ## Did Finding 1 Actually Land?
 
@@ -55,16 +58,7 @@ Residual risk: later edits could easily reintroduce D7 inflation, but D7 is no l
 
 ## Open Findings
 
-### 1. Medium: Figure 3 still has a rendered readability defect in Panel C
-
-Type: presentation/consistency defect  
-Checked: figure script vs rendered figure
-
-- Figure 3 is conceptually the strongest main-text figure, but the current rendered table in Panel C clips at the right boundary, stemming from the current full-width table layout in [fig3_bridge_failure.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig3_bridge_failure.py:302) and the rendered asset [fig3_bridge_failure.png](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig3_bridge_failure.png).
-
-Required revision direction: reflow Figure 3 Panel C so the example text remains legible at manuscript scale.
-
-### 2. Medium-High: Sections 2 and 3 still front-load too much governance prose relative to the evidence
+### 1. Medium-High: Sections 2 and 3 still front-load too much governance prose relative to the evidence
 
 Type: presentation/consistency defect  
 Checked: reader-facing prose vs evidence spine
@@ -92,6 +86,12 @@ The clean result after the GPT-4o rerun is that CSV-v3 and StrongREJECT tie on h
 The remaining risk here is rhetorical drift. The science is stronger when phrased as "measurement changed what the paper could honestly conclude" rather than as a generic story of repeated evaluator reversals.
 
 The figure and manuscript alignment issue that was open in the first pass is now fixed. [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:1) now pulls Panel C intervals from the canonical holdout bootstrap artifact, the rendered figure has been simplified to three panels, and the Section 6 table now reports the post-rerun StrongREJECT-GPT-4o tie consistently. This landed in commit `7610fc2` (`fix(fig4): simplify measurement figure and align holdout text`).
+
+### Figure 3 readability defect is fixed, but should be checked once more in context
+
+The earlier Panel C clipping defect in Figure 3 has now been addressed in [fig3_bridge_failure.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig3_bridge_failure.py:1) by replacing the cramped full-width `matplotlib` table with a manual wrapped layout and by giving Panel C the full bottom row of the figure. The regenerated [fig3_bridge_failure.png](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig3_bridge_failure.png) no longer cuts off the wrong-answer examples at the right edge.
+
+This finding should now be treated as resolved. The remaining task is not another redesign but one more full-manuscript review pass to confirm the figure still reads well at manuscript scale alongside the surrounding prose and other figures.
 
 ### Figure 2 no longer overstates equivalence
 
@@ -130,7 +130,7 @@ This finding should now be treated as resolved, with the remaining risk being re
 
 ## Figure And Table Audit
 
-- `Figure 3` earns inclusion and is the closest main-text figure to publication-ready. Its only important scientific caveat is that the failure-mode taxonomy is descriptive and single-rater; its current practical defect is the clipped Panel C table.
+- `Figure 3` earns inclusion and is the closest main-text figure to publication-ready. Its important scientific caveat is that the failure-mode taxonomy is descriptive and single-rater; the earlier Panel C clipping defect has now been fixed, with one more end-to-end review pass still recommended.
 - `Figure 2` now earns inclusion more cleanly: Panel A carries uncertainty and no longer over-implies formal equivalence.
 - `Figure 4` now earns inclusion more cleanly: the holdout panel is aligned with the canonical bootstrap artifact and the redundant fourth panel has been removed.
 - `Figure 1` is conceptually useful but over-detailed for an opener; its stage labels should do less.
@@ -161,8 +161,8 @@ This version keeps FaithEval as the primary anchor, treats bridge as strong outp
 
 ## Priority Order
 
-1. Fix the Figure 3 Panel C clipping defect.
-2. Compress Sections 2 and 3 so the reader reaches the evidence spine faster.
+1. Compress Sections 2 and 3 so the reader reaches the evidence spine faster.
+2. Run one more full review pass after that cleanup to check for narrative and figure-level regressions.
 3. Guard against bridge-claim and D7 regression, but do not spend more main-text budget promoting either.
 4. Keep the new citation-registry validator in the loop for any future bibliography edits.
 
