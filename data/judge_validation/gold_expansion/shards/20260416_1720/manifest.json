@@ -1,0 +1,51 @@
+{
+  "source_queue": "data/judge_validation/gold_expansion/labeling_queue.jsonl",
+  "source_progress": "data/judge_validation/gold_expansion/labeling_progress.jsonl",
+  "authoritative_labeled_before_sharding": 120,
+  "remaining_rows": 447,
+  "strategy": "round_robin_remaining_rows",
+  "shards": [
+    {
+      "shard": 1,
+      "queue_path": "data/judge_validation/gold_expansion/shards/20260416_1720/labeling_queue.shard1.jsonl",
+      "progress_path": "data/judge_validation/gold_expansion/shards/20260416_1720/labeling_progress.shard1.jsonl",
+      "rows": 149,
+      "first_key": [
+        "jbb_harmful_46_t2",
+        0.0
+      ],
+      "last_key": [
+        "jbb_harmful_98_t4",
+        3.0
+      ]
+    },
+    {
+      "shard": 2,
+      "queue_path": "data/judge_validation/gold_expansion/shards/20260416_1720/labeling_queue.shard2.jsonl",
+      "progress_path": "data/judge_validation/gold_expansion/shards/20260416_1720/labeling_progress.shard2.jsonl",
+      "rows": 149,
+      "first_key": [
+        "jbb_harmful_47_t2",
+        0.0
+      ],
+      "last_key": [
+        "jbb_harmful_99_t1",
+        3.0
+      ]
+    },
+    {
+      "shard": 3,
+      "queue_path": "data/judge_validation/gold_expansion/shards/20260416_1720/labeling_queue.shard3.jsonl",
+      "progress_path": "data/judge_validation/gold_expansion/shards/20260416_1720/labeling_progress.shard3.jsonl",
+      "rows": 149,
+      "first_key": [
+        "jbb_harmful_47_t4",
+        0.0
+      ],
+      "last_key": [
+        "jbb_harmful_99_t3",
+        3.0
+      ]
+    }
+  ]
+}
