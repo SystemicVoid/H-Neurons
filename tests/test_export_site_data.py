@@ -101,7 +101,7 @@ def test_build_d7_comparison_payload_exports_benchmark_local_caveat():
         payload["caveat"]
         == "D7 is a benchmark-local supporting result on a mixed-ruler current-state "
         "panel: causal is the strongest completed branch, but selector specificity "
-        "is still not mechanism-clean because the random control is single-seed and "
+        "is still not mechanism-clean because the panel remains mixed-ruler and "
         "the probe/random branches carry CSV2 error debt."
     )
     assert (
@@ -149,21 +149,24 @@ def test_build_d7_comparison_payload_exports_current_state_namespace():
     assert (
         current_state["caveat"]
         == "Interpret D7 as mixed-ruler supporting evidence, not a mechanism-clean "
-        "closure: the random control is single-seed, both random and probe carry "
-        "CSV2 span-validation errors, and only the April 8 baseline/L1/causal panel "
-        "exists on the legacy ruler."
+        "closure: the random control now has two layer-matched seeds, but the "
+        "probe/random branches still carry CSV2 span-validation errors and only "
+        "the April 8 baseline/L1/causal panel exists on the legacy ruler."
     )
     assert current_state["mixed_ruler_status"]["status"] == "mixed_ruler_reconciliation"
-    assert current_state["control"]["availability"] == "available_single_seed_only"
+    assert current_state["control"]["availability"] == "available_two_seed_panel"
     assert (
         current_state["control"]["seed_1"]["status"] == "complete_scored_error_bearing"
     )
-    assert current_state["control"]["seed_2"]["status"] == "absent"
+    assert current_state["control"]["status"] == "two_seed_mixed_ruler_error_bearing"
+    assert (
+        current_state["control"]["seed_2"]["status"] == "complete_scored_error_bearing"
+    )
     assert current_state["probe"]["status"] == "complete_scored_error_bearing"
     assert current_state["probe"]["experiment_row_count"] == 500
     assert current_state["probe"]["included_in_current_claim"] is True
     assert (
-        "notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md"
+        "notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md"
         in current_state["source_files"]
     )
     assert current_state["current_panel"]["direct_random_layer_seed1_vs_causal"][
@@ -174,6 +177,9 @@ def test_build_d7_comparison_payload_exports_current_state_namespace():
     assert current_panel["conditions"]["random_layer_seed1"][
         "strict_harmfulness_normalized"
     ]["estimate_pct"] == pytest.approx(37.2)
+    assert current_panel["conditions"]["random_layer_seed2"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pct"] == pytest.approx(38.8)
     assert current_panel["conditions"]["probe"]["strict_harmfulness_normalized"][
         "estimate_pct"
     ] == pytest.approx(34.8)
@@ -189,6 +195,12 @@ def test_build_d7_comparison_payload_exports_current_state_namespace():
     assert current_panel["deltas_vs_baseline"]["random_layer_seed1"]["binary_harmful"][
         "estimate_pp"
     ] == pytest.approx(6.6)
+    assert current_panel["deltas_vs_baseline"]["random_layer_seed2"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-12.8)
+    assert current_panel["deltas_vs_baseline"]["random_layer_seed2"]["binary_harmful"][
+        "estimate_pp"
+    ] == pytest.approx(5.2)
     assert current_panel["deltas_vs_baseline"]["probe"][
         "strict_harmfulness_normalized"
     ]["estimate_pp"] == pytest.approx(-16.8)
@@ -201,9 +213,30 @@ def test_build_d7_comparison_payload_exports_current_state_namespace():
     assert current_panel["direct_causal_vs_probe"]["strict_harmfulness_normalized"][
         "estimate_pp"
     ] == pytest.approx(-10.0)
+    assert current_panel["direct_causal_vs_random_layer_seed2"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-14.0)
+    assert current_panel["direct_causal_vs_random_layer_seed2"]["binary_harmful"][
+        "estimate_pp"
+    ] == pytest.approx(-15.8)
     assert current_panel["direct_probe_vs_random_layer_seed1"][
         "strict_harmfulness_normalized"
     ]["estimate_pp"] == pytest.approx(-2.4)
+    assert current_panel["direct_probe_vs_random_layer_seed2"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-4.0)
+    assert current_panel["direct_random_layer_seed2_vs_random_layer_seed1"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(1.6)
+    assert current_panel["direct_random_layer_seed2_vs_random_layer_seed1"][
+        "strict_harmfulness_normalized"
+    ]["ci_pp"]["lower"] == pytest.approx(-2.4)
+    assert current_panel["direct_random_layer_seed2_vs_random_layer_seed1"][
+        "strict_harmfulness_normalized"
+    ]["ci_pp"]["upper"] == pytest.approx(5.4)
+    assert current_panel["direct_random_layer_seed1_vs_random_layer_seed2"][
+        "strict_harmfulness_normalized"
+    ]["estimate_pp"] == pytest.approx(-1.6)
 
     error_burden = current_state["random_seed1_csv2_error_burden"]
     assert error_burden["count"] == 8

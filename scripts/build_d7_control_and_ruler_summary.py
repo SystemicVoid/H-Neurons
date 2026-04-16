@@ -518,6 +518,12 @@ def _current_panel_summary() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]
             arrays_by_condition["random_layer_seed2"],
             arrays_by_condition["probe"],
         )
+        direct_comparisons["random_layer_seed2_vs_random_layer_seed1"] = (
+            _make_direct_comparison(
+                arrays_by_condition["random_layer_seed1"],
+                arrays_by_condition["random_layer_seed2"],
+            )
+        )
 
     return {
         "description": (
@@ -628,7 +634,7 @@ def build_summary() -> dict[str, Any]:
             *current_condition_sources,
             "notes/act3-reports/2026-04-08-d7-full500-audit.md",
             "notes/act3-reports/2026-04-14-d7-control-and-ruler-audit.md",
-            "notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md",
+            "notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md",
         ],
         "artifact_status": _artifact_status(current_panel),
         "historical_panel": historical_panel,

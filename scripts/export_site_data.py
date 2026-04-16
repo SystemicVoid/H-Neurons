@@ -1955,7 +1955,8 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
     )
     legacy_report_path = repo_root / "notes/act3-reports/2026-04-08-d7-full500-audit.md"
     current_report_path = require_existing_path(
-        repo_root / "notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md",
+        repo_root
+        / "notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md",
         "D7 full500 current-state audit note",
     )
 
@@ -2030,7 +2031,7 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         control_status = "two_seed_mixed_ruler_error_bearing"
 
     current_state_namespace = {
-        "date": "2026-04-14",
+        "date": "2026-04-16",
         "claim_status": "benchmark_local_supporting_mixed_ruler",
         "headline": (
             "D7 current state: the causal branch is still the strongest completed "
@@ -2110,6 +2111,20 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
             "direct_random_layer_seed2_vs_probe"
         ] = invert_delta_metrics(
             current_panel["direct_comparisons"]["probe_vs_random_layer_seed2"]
+        )
+        current_state_namespace["current_panel"][
+            "direct_random_layer_seed2_vs_random_layer_seed1"
+        ] = add_delta_aliases(
+            current_panel["direct_comparisons"][
+                "random_layer_seed2_vs_random_layer_seed1"
+            ]
+        )
+        current_state_namespace["current_panel"][
+            "direct_random_layer_seed1_vs_random_layer_seed2"
+        ] = invert_delta_metrics(
+            current_panel["direct_comparisons"][
+                "random_layer_seed2_vs_random_layer_seed1"
+            ]
         )
 
     return {
