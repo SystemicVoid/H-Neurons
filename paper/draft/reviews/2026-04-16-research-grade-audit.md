@@ -19,7 +19,7 @@ Freshness checks completed on 2026-04-16:
 | Area | Type | Status | What was checked against what | Current conclusion |
 |---|---|---|---|---|
 | D7 evidence hierarchy | overstated inference | Resolved, guard against regression | Manuscript vs [2026-04-16-d7-full500-two-seed-current-state-audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md:1) | FaithEval is now the sole load-bearing anchor; D7 is benchmark-local supporting evidence only. |
-| Section 5 bridge interpretation | overstated inference | Open | Manuscript vs [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:1) | Output-level diagnosis is strong; mechanism-closing language is too strong. |
+| Section 5 bridge interpretation | overstated inference | Resolved, keep bounded | Manuscript vs [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:1) | Output-level diagnosis remains strong; explanatory language is now bounded to behavior-level interpretation. |
 | Figure 4 uncertainty logic | presentation/consistency defect | Open | Figure script vs manuscript text vs holdout validation note | Panel C uses row-level Wilson intervals while the text reports prompt-clustered bootstrap CIs; Panel D is mostly redundant. |
 | Figure 2 precision signaling | presentation/consistency defect | Open | Figure script vs manuscript wording | Detection panel visually overstates precision/equivalence. |
 | Figure 3 readability | presentation/consistency defect | Open | Figure script vs rendered PNG | Panel C table clips at the right edge in the current render. |
@@ -32,7 +32,7 @@ Freshness checks completed on 2026-04-16:
 
 The draft now has a coherent evidence hierarchy and a defensible paper-level thesis. The strongest scientific core remains intact: the FaithEval neuron-versus-SAE dissociation, the held-out TriviaQA bridge externality result, and the post-cleanup jailbreak measurement story all survive audit.
 
-The main remaining blockers are narrower and more concrete than before. The top scientific risk is still inferential discipline in Section 5. The top presentation risks are Figure 4's interval mismatch, Figure 2's precision signaling, Figure 3's clipped table, and the corrupted citation registry.
+The main remaining blockers are narrower and more concrete than before. The earlier Section 5 inferential-discipline issue has been resolved in the manuscript by bounding the bridge interpretation to behavior-level claims. The top remaining risks are Figure 4's interval mismatch, Figure 2's precision signaling, Figure 3's clipped table, and the corrupted citation registry.
 
 ## Did Finding 1 Actually Land?
 
@@ -47,21 +47,7 @@ Residual risk: later edits could easily reintroduce D7 inflation, but D7 is no l
 
 ## Open Findings
 
-### 1. Critical: Section 5 still overstates mechanism relative to the bridge evidence
-
-Type: overstated inference  
-Checked: manuscript vs [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:1)
-
-The bridge result itself is strong and publication-grade. The overreach appears in the explanatory language layered on top of it.
-
-- Reader-facing overreach appears in [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:222), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:224), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:226), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:239), and [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:245).
-- Related work already pre-frames the paper as characterizing a probability-mass redirection mechanism in [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:110), which is also stronger than the evidence now warrants.
-- What the canonical report clearly supports is that the held-out test result is real, the harm is statistically significant, and wrong-entity substitution is the most frequent manually diagnosed failure mode at `30/43` right-to-wrong flips. The coding is single-rater, so the taxonomy is descriptive and approximate: [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:72), [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:186), [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:197), [2026-04-13-bridge-phase3-test-results.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-13-bridge-phase3-test-results.md:212).
-- What is not cleanly earned is the stronger interpretation that the paper now "explains why" constrained selection helps while open-ended generation worsens, or that the rescues and failures together support an "indiscriminate redistribution" account. Those are plausible hypotheses, not closed conclusions.
-
-Required revision direction: keep the behavioral diagnosis, but recast the explanatory layer as bounded hypothesis. "Consistent with" is earned; "explains why" and "supports an indiscriminate redistribution interpretation" are too strong.
-
-### 2. High: Figure 4 is not fully aligned with the paper text on uncertainty, and Panel D adds load without adding much evidence
+### 1. High: Figure 4 is not fully aligned with the paper text on uncertainty, and Panel D adds load without adding much evidence
 
 Type: presentation/consistency defect  
 Checked: [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/figures/fig4_measurement.py:1) vs [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:282) vs [2026-04-12-4way-evaluator-holdout-validation.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-12-4way-evaluator-holdout-validation.md:1)
@@ -72,7 +58,7 @@ Checked: [fig4_measurement.py](/home/hugo/Documents/Engineering/mech-interp/lab/
 
 Required revision direction: either make Panel C use the same prompt-clustered intervals as the text or label it explicitly as a different interval method, and cut or repurpose Panel D because it currently increases panel load more than evidential clarity.
 
-### 3. High: The citation registry is corrupted enough to be a submission risk
+### 2. High: The citation registry is corrupted enough to be a submission risk
 
 Type: unsupported claim  
 Checked: [registry.json](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/citations/registry.json:1) vs local `papers/` files
@@ -86,7 +72,7 @@ The manuscript bibliography is broadly salvageable, but the registry is not trus
 
 This is not harmless bookkeeping noise. In current form, `registry.json` cannot safely drive citation maintenance, novelty checking, or outward-facing export automation.
 
-### 4. Medium: Figure 2 still over-signals precision, and Figure 3 has a rendered readability defect
+### 3. Medium: Figure 2 still over-signals precision, and Figure 3 has a rendered readability defect
 
 Type: presentation/consistency defect  
 Checked: figure scripts vs rendered figures vs manuscript wording
@@ -96,7 +82,7 @@ Checked: figure scripts vs rendered figures vs manuscript wording
 
 Required revision direction: add an uncertainty or equivalence caveat to Figure 2's detection panel, and reflow Figure 3 Panel C so the example text remains legible at manuscript scale.
 
-### 5. Medium-High: Sections 2 and 3 still front-load too much governance prose relative to the evidence
+### 4. Medium-High: Sections 2 and 3 still front-load too much governance prose relative to the evidence
 
 Type: presentation/consistency defect  
 Checked: reader-facing prose vs evidence spine
@@ -123,6 +109,12 @@ The clean result after the GPT-4o rerun is that CSV-v3 and StrongREJECT tie on h
 
 The remaining risk here is rhetorical drift. The science is stronger when phrased as "measurement changed what the paper could honestly conclude" rather than as a generic story of repeated evaluator reversals.
 
+### Bridge interpretation is now aligned with the bridge report
+
+The Section 5 bridge interpretation has been brought into line with the canonical bridge report. The paper now keeps the held-out harm result, significance, and manually diagnosed wrong-entity pattern strong, while bounding the explanatory layer to behavior-level hypotheses and placing the single-rater coding caveat next to the taxonomy claim. The key repaired surfaces are [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:110), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:212), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:222), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:226), [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:239), and [full_paper.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/full_paper.md:245).
+
+This finding should now be treated as resolved, with the remaining risk being regression toward stronger mechanism language in later prose edits. The paper is strongest when bridge remains an output-level diagnosis plus bounded interpretation rather than mechanism closure. The narrowing landed in commit `72665c2` (`docs(paper): bound bridge mechanism claims`).
+
 ## Untouched Surfaces
 
 - [Abstract](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/abstract.md:1), [Section 2](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_2_scope_constructs.md:1), [Section 6](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_6_measurement.md:1), [Section 8](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/section_8_limitations.md:1), and the [appendix](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/draft/appendix.md:1) are broadly coherent with the revised evidence hierarchy.
@@ -140,7 +132,7 @@ The remaining risk here is rhetorical drift. The science is stronger when phrase
 | Full-500 D7 evidence supports benchmark-local selector divergence | Supported, narrowly | April 16 current-state audit | Keep as supporting evidence only |
 | H-neuron scaling is behaviorally active on BioASQ but endpoint-flat | Supported | `data/gemma3_4b/intervention/bioasq/bioasq_pipeline_audit.md` | Keep the endpoint-flat plus behavioral-activity framing |
 | ITI improves TruthfulQA MC but harms open-ended factual generation | Supported | [2026-04-01-priority-reruns-audit.md](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/notes/act3-reports/2026-04-01-priority-reruns-audit.md:130) and bridge test report | Keep |
-| Wrong-entity substitution is the dominant bridge failure mode and coarse reweighting explains the harm | Partially supported / overstated | Bridge report supports the first half, not a settled mechanism | Soften explanation language |
+| Wrong-entity substitution is the dominant bridge failure mode and coarse reweighting explains the harm | Supported, narrowly | Bridge report supports the dominant diagnosed failure mode plus bounded behavior-level interpretation, not settled mechanism | Keep the softened explanation language |
 | Measurement choices changed the jailbreak conclusion | Supported | Truncation, graded scoring, evaluator cleanup, schema bug audit | Keep |
 | CSV-v3 is preferred because it beats StrongREJECT on holdout accuracy | Unsupported / stale | Post-GPT-4o rerun removes that claim | Do not state this anywhere |
 
@@ -177,12 +169,11 @@ This version keeps FaithEval as the primary anchor, treats bridge as strong outp
 
 ## Priority Order
 
-1. Rewrite Section 5 interpretation so the bridge result stays strong while the mechanism claims become properly bounded.
-2. Reconcile Figure 4's interval methodology with the text, remove or repurpose Panel D, and reduce any remaining precision overstatement in Figure 2.
-3. Fix the Figure 3 Panel C clipping defect.
-4. Compress Sections 2 and 3 so the reader reaches the evidence spine faster.
-5. Repair `paper/citations/registry.json` and recheck every citation used for novelty or framing.
-6. Guard against D7 regression, but do not spend more main-text budget promoting it.
+1. Reconcile Figure 4's interval methodology with the text, remove or repurpose Panel D, and reduce any remaining precision overstatement in Figure 2.
+2. Fix the Figure 3 Panel C clipping defect.
+3. Compress Sections 2 and 3 so the reader reaches the evidence spine faster.
+4. Repair `paper/citations/registry.json` and recheck every citation used for novelty or framing.
+5. Guard against bridge-claim and D7 regression, but do not spend more main-text budget promoting either.
 
 ## Best-Practice Lens Consulted
 
