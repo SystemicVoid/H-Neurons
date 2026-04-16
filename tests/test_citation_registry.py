@@ -75,6 +75,20 @@ class TestCitationRegistryValidation:
         assert errors[0].field == "title"
         assert "does not match markdown heading" in errors[0].message
 
+    def test_detects_wrong_pdf_mapping(self, tmp_path):
+        _write(tmp_path / "papers/correct-paper.md", "# Correct Local Paper\n")
+        _write(tmp_path / "papers/correct-paper.pdf", "pdf")
+        _write(tmp_path / "papers/wrong-paper.pdf", "pdf")
+        registry = {
+            "broken2026paper": _make_entry(local_pdf="papers/wrong-paper.pdf"),
+        }
+
+        errors = check_citation_registry.validate_registry(registry, repo_root=tmp_path)
+
+        assert [error.key for error in errors] == ["broken2026paper"]
+        assert errors[0].field == "local_pdf"
+        assert "same paper basename as local_md" in errors[0].message
+
     def test_detects_missing_local_file(self, tmp_path):
         _write(tmp_path / "papers/correct-paper.pdf", "pdf")
         registry = {
@@ -98,6 +112,36 @@ class TestCitationRegistryValidation:
         assert {(error.field, error.message) for error in errors} == {
             ("acquired", "cannot be false when local_pdf is populated"),
             ("md_converted", "cannot be false when local_md is populated"),
+        }
+
+    def test_rejects_non_boolean_flags(self, tmp_path):
+        _write(tmp_path / "papers/correct-paper.md", "# Correct Local Paper\n")
+        _write(tmp_path / "papers/correct-paper.pdf", "pdf")
+        registry = {
+            "flags2026paper": _make_entry(acquired="true", md_converted="false"),
+        }
+
+        errors = check_citation_registry.validate_registry(registry, repo_root=tmp_path)
+
+        assert {(error.field, error.message) for error in errors} == {
+            ("acquired", "must be a boolean"),
+            ("md_converted", "must be a boolean"),
+        }
+
+    def test_rejects_missing_boolean_flags(self, tmp_path):
+        _write(tmp_path / "papers/correct-paper.md", "# Correct Local Paper\n")
+        _write(tmp_path / "papers/correct-paper.pdf", "pdf")
+        registry = {
+            "flags2026paper": _make_entry(),
+        }
+        del registry["flags2026paper"]["acquired"]
+        del registry["flags2026paper"]["md_converted"]
+
+        errors = check_citation_registry.validate_registry(registry, repo_root=tmp_path)
+
+        assert {(error.field, error.message) for error in errors} == {
+            ("acquired", "must be a boolean"),
+            ("md_converted", "must be a boolean"),
         }
 
     def test_allows_unacquired_entry_without_local_files(self, tmp_path):

@@ -8,9 +8,9 @@ import json
 import re
 import sys
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
-from difflib import SequenceMatcher
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = REPO_ROOT / "paper/citations/registry.json"
@@ -92,6 +92,7 @@ def validate_registry(
         acquired = entry.get("acquired")
         md_converted = entry.get("md_converted")
         title = entry.get("title")
+        local_paths: dict[str, Path] = {}
 
         for field_name, value in (("local_pdf", local_pdf), ("local_md", local_md)):
             if value is None:
@@ -103,12 +104,20 @@ def validate_registry(
                     )
                 )
                 continue
-            if not (repo_root / value).exists():
+            local_path = repo_root / value
+            if not local_path.exists():
                 errors.append(
                     ValidationError(
                         key, field_name, f"local file does not exist: {value}"
                     )
                 )
+                continue
+            local_paths[field_name] = local_path
+
+        if not isinstance(acquired, bool):
+            errors.append(ValidationError(key, "acquired", "must be a boolean"))
+        if not isinstance(md_converted, bool):
+            errors.append(ValidationError(key, "md_converted", "must be a boolean"))
 
         if acquired is True and local_pdf is None:
             errors.append(
@@ -172,6 +181,18 @@ def validate_registry(
                         "registry title does not match markdown heading "
                         f"(similarity={title_similarity:.2f}; heading={heading!r})"
                     ),
+                )
+            )
+            continue
+
+        if {"local_pdf", "local_md"} <= local_paths.keys() and (
+            local_paths["local_pdf"].stem != local_paths["local_md"].stem
+        ):
+            errors.append(
+                ValidationError(
+                    key,
+                    "local_pdf",
+                    "must refer to the same paper basename as local_md",
                 )
             )
 
