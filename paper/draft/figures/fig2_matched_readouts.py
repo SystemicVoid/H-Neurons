@@ -1,8 +1,9 @@
 """
 Figure 2: Matched Readouts, Divergent Control.
 
-FaithEval is the anchor result. The jailbreak comparator appears only as
-supporting evidence in Panel C.
+This main-text figure carries only the FaithEval anchor comparison. Supporting
+jailbreak selector detail is preserved in the appendix rather than sharing equal
+visual weight here.
 
 Usage:
     uv run python paper/draft/figures/fig2_matched_readouts.py
@@ -67,10 +68,6 @@ def load_data() -> dict:
     fe_sae_slope_diff = load_json(
         "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json"
     )
-    d7 = load_json(
-        "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json"
-    )
-
     alphas = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 
     sae_results = fe_sae["results"]
@@ -108,8 +105,6 @@ def load_data() -> dict:
         ),
         "slope_diff": fe_sae_slope_diff["slope_difference_pp_per_alpha"]["estimate"],
         "slope_diff_ci": fe_sae_slope_diff["slope_difference_pp_per_alpha"]["ci"],
-        "d7_conditions": d7["current_panel"]["conditions"],
-        "d7_direct": d7["current_panel"]["direct_comparisons"],
     }
 
 
@@ -253,132 +248,32 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
     ax.grid(alpha=0.2, zorder=0)
 
 
-def draw_panel_c(ax: plt.Axes, data: dict) -> None:
-    order = ["baseline", "random_layer_seed1", "probe", "causal"]
-    labels = [
-        "Baseline\n(no-op)",
-        "Matched random\nheads",
-        "Probe-selected\nheads",
-        "Gradient-selected\nheads",
-    ]
-    conditions = data["d7_conditions"]
-    rates = [
-        conditions[name]["strict_harmfulness_normalized"]["estimate_pct"]
-        for name in order
-    ]
-    lo = [
-        conditions[name]["strict_harmfulness_normalized"]["ci"]["lower"] * 100
-        for name in order
-    ]
-    hi = [
-        conditions[name]["strict_harmfulness_normalized"]["ci"]["upper"] * 100
-        for name in order
-    ]
-    x = np.arange(len(order))
-    ax.bar(
-        x,
-        rates,
-        yerr=[
-            [rate - lower for rate, lower in zip(rates, lo)],
-            [upper - rate for rate, upper in zip(rates, hi)],
-        ],
-        color=[C_RANDOM_FILL, "#F6EEE8", C_SAE_FILL, C_HNEURON_FILL],
-        edgecolor=[SUBTITLE_COLOR, "#8B6B5D", C_SAE, C_HNEURON],
-        linewidth=1.6,
-        width=0.50,
-        capsize=4,
-        error_kw={"linewidth": 1.2, "color": SUBTITLE_COLOR},
-        zorder=3,
-    )
-    for xi, rate in zip(x, rates):
-        ax.text(
-            xi,
-            rate + 2.0,
-            f"{rate:.1f}%",
-            ha="center",
-            va="bottom",
-            fontsize=9,
-            fontweight="bold",
-        )
-
-    probe_vs_causal = data["d7_direct"]["probe_vs_causal"][
-        "strict_harmfulness_normalized"
-    ]
-    rand_vs_causal = data["d7_direct"]["random_layer_seed1_vs_causal"][
-        "strict_harmfulness_normalized"
-    ]
-    ax.text(
-        0.02,
-        0.98,
-        "Supporting evidence only\n"
-        + "Included to show that selector choice matters\n"
-        + "within the JailbreakBench intervention family\n"
-        + f"gradient vs probe = {-probe_vs_causal['estimate_pp']:+.1f} pp "
-        + f"[{-probe_vs_causal['ci_pp']['upper']:+.1f}, {-probe_vs_causal['ci_pp']['lower']:+.1f}]\n"
-        + f"gradient vs random = {-rand_vs_causal['estimate_pp']:+.1f} pp "
-        + f"[{-rand_vs_causal['ci_pp']['upper']:+.1f}, {-rand_vs_causal['ci_pp']['lower']:+.1f}]",
-        transform=ax.transAxes,
-        ha="left",
-        va="top",
-        fontsize=7.0,
-        bbox=dict(
-            boxstyle="round,pad=0.30",
-            facecolor="#FAFBFC",
-            edgecolor="#D4DCE3",
-            alpha=0.95,
-        ),
-    )
-
-    ax.set_ylabel(
-        "Strict harmfulness rate (%)\n(full-500 comparison)",
-        fontsize=9.5,
-        fontweight="bold",
-    )
-    ax.set_title(
-        "C. Jailbreak selector comparison (supporting)",
-        fontsize=11,
-        fontweight="bold",
-        color=SUBTITLE_COLOR,
-        loc="left",
-        pad=10,
-    )
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=8.2)
-    ax.set_ylim(0, 60)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.grid(axis="y", alpha=0.2, zorder=0)
-
-
 def main() -> None:
     data = load_data()
-    fig = plt.figure(figsize=(14.8, 7.9), dpi=300)
+    fig = plt.figure(figsize=(12.6, 4.8), dpi=300)
     fig.set_facecolor(BG_COLOR)
     grid = fig.add_gridspec(
+        1,
         2,
-        3,
-        height_ratios=[1.0, 0.78],
-        width_ratios=[0.95, 1.05, 1.05],
-        hspace=0.38,
-        wspace=0.32,
+        width_ratios=[0.85, 1.35],
+        hspace=0.0,
+        wspace=0.26,
     )
 
     ax_a = fig.add_subplot(grid[0, 0])
-    ax_b = fig.add_subplot(grid[0, 1:])
-    ax_c = fig.add_subplot(grid[1, :])
+    ax_b = fig.add_subplot(grid[0, 1])
 
     draw_panel_a(ax_a, data)
     draw_panel_b(ax_b, data)
-    draw_panel_c(ax_c, data)
 
     fig.suptitle(
-        "Figure 2: Matched Readouts, Divergent Control",
+        "Figure 2: FaithEval Matched Readouts, Divergent Control",
         fontsize=14,
         fontweight="bold",
         color=TITLE_COLOR,
         y=0.985,
     )
-    fig.subplots_adjust(top=0.90, bottom=0.08, left=0.055, right=0.985)
+    fig.subplots_adjust(top=0.86, bottom=0.16, left=0.06, right=0.985)
     fig.savefig(
         OUTPUT,
         dpi=300,
