@@ -130,7 +130,7 @@ We therefore organize the section by evidential strength. Section 4.1 establishe
 Figure 2 shows only the FaithEval anchor comparison. Supporting jailbreak selector detail is summarized later in the section and in Appendix Table D1.
 
 ![Figure 2. Matched readouts, divergent control.](figures/fig2_matched_readouts.png)
-*Figure 2. The anchor result is the matched FaithEval neuron-versus-SAE comparison: detection quality is similar, but steering behavior diverges sharply.*
+*Figure 2. The anchor result is the matched FaithEval neuron-versus-SAE comparison: held-out readout quality is similar, though this is not a formal equivalence claim, while steering behavior diverges sharply.*
 
 ## 4.1 The Readouts Are Real
 

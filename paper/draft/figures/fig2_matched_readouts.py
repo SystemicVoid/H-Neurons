@@ -72,10 +72,14 @@ def load_data() -> dict:
 
     sae_results = fe_sae["results"]
     sae_ci = [sae_results[str(alpha)]["compliance"]["ci"] for alpha in alphas]
+    h_auroc = neuron_cls["evaluation"]["metrics"]["auroc"]
+    sae_auroc = sae_cls["evaluation"]["metrics"]["auroc"]
 
     return {
-        "auroc_h": neuron_cls["evaluation"]["metrics"]["auroc"]["estimate"],
-        "auroc_sae": sae_cls["best"]["test_metrics"]["auroc"],
+        "auroc_h": h_auroc["estimate"],
+        "auroc_h_ci": h_auroc["ci"],
+        "auroc_sae": sae_auroc["estimate"],
+        "auroc_sae_ci": sae_auroc["ci"],
         "alphas": np.array(alphas),
         "h_rates": np.array(fe_neuron_ctrl["h_neuron_baseline"]["compliance_rates"]),
         "h_ci_lo": np.array(
@@ -110,19 +114,26 @@ def load_data() -> dict:
 
 def draw_panel_a(ax: plt.Axes, data: dict) -> None:
     x = np.array([0.0, 1.0])
+    values = [data["auroc_h"], data["auroc_sae"]]
+    ci_bounds = [data["auroc_h_ci"], data["auroc_sae_ci"]]
+    err_lo = [val - ci["lower"] for val, ci in zip(values, ci_bounds, strict=True)]
+    err_hi = [ci["upper"] - val for val, ci in zip(values, ci_bounds, strict=True)]
     bars = ax.bar(
         x,
-        [data["auroc_h"], data["auroc_sae"]],
+        values,
         color=[C_HNEURON_FILL, C_SAE_FILL],
         edgecolor=[C_HNEURON, C_SAE],
         linewidth=1.8,
         width=0.52,
+        yerr=[err_lo, err_hi],
+        capsize=4,
+        error_kw={"linewidth": 1.2, "color": SUBTITLE_COLOR},
         zorder=3,
     )
-    for bar, val in zip(bars, [data["auroc_h"], data["auroc_sae"]]):
+    for bar, val, ci in zip(bars, values, ci_bounds, strict=True):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            val + 0.007,
+            ci["upper"] + 0.004,
             f"{val:.3f}",
             ha="center",
             va="bottom",
@@ -130,25 +141,29 @@ def draw_panel_a(ax: plt.Axes, data: dict) -> None:
             fontweight="bold",
             color=TITLE_COLOR,
         )
-
-    ax.plot([0, 1], [0.818, 0.818], color=SUBTITLE_COLOR, linewidth=0.8)
-    ax.plot([0, 0], [0.818, 0.823], color=SUBTITLE_COLOR, linewidth=0.8)
-    ax.plot([1, 1], [0.818, 0.823], color=SUBTITLE_COLOR, linewidth=0.8)
     ax.text(
-        0.5,
-        0.81,
-        r"$\Delta$ = 0.005",
-        ha="center",
+        0.03,
+        0.97,
+        "95% bootstrap CIs overlap\n"
+        + "Matched = similar held-out AUROC,\n"
+        + "not a formal equivalence test",
+        transform=ax.transAxes,
+        ha="left",
         va="top",
-        fontsize=8,
+        fontsize=7.2,
         color=SUBTITLE_COLOR,
-        fontstyle="italic",
+        bbox=dict(
+            boxstyle="round,pad=0.30",
+            facecolor="white",
+            edgecolor="#D4DCE3",
+            alpha=0.95,
+        ),
     )
 
     ax.set_xticks([0, 1])
     ax.set_xticklabels(["H-neurons\n(38)", "SAE features\n(266)"], fontsize=8)
     ax.set_ylabel("Detection AUROC", fontsize=10, fontweight="bold")
-    ax.set_ylim(0.70, 0.88)
+    ax.set_ylim(0.70, 0.885)
     ax.set_title(
         "A. FaithEval matched detection quality",
         fontsize=11,
