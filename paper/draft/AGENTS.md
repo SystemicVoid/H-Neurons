@@ -44,7 +44,8 @@ This directory is the paper-authoring surface. Treat it like source code with a 
 
 ## Current Paper-Specific Guardrails
 
-- Treat the **2026-04-14 current-state jailbreak selector audit** as the live current-state source.
+- Treat the **2026-04-16 two-seed current-state jailbreak selector audit** as the live current-state source.
+- Treat the **2026-04-14 current-state jailbreak selector audit** as a superseded reconciliation note unless a section explicitly discusses the pre-seed-2 state.
 - Treat the **2026-04-08 jailbreak audit** as historical provenance unless a section explicitly discusses the legacy panel.
 - Keep the selector-comparison result benchmark-local and caveated unless new evidence actually closes the mechanism question.
 - Keep the clean pilot selector comparison separate from the noisier full-500 mixed-ruler panel.

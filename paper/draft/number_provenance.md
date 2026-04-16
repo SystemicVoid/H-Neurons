@@ -37,10 +37,14 @@ Every key quantitative claim in the paper traced to its canonical source.
 | Historical April 8 legacy-ruler causal full-500 effect | -9.0 pp strict harmfulness rate | [-12.2, -5.8] | `notes/act3-reports/2026-04-08-d7-full500-audit.md` (historical provenance only) |
 | Current full-500 normalized baseline strict harmfulness rate | 51.6% | Wilson 95% CI [47.2, 56.0] | `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json` (`current_panel.conditions.baseline.strict_harmfulness_normalized`) |
 | Current full-500 normalized probe strict harmfulness rate | 34.8% | Wilson 95% CI [30.8, 39.1] | same file (`current_panel.conditions.probe.strict_harmfulness_normalized`) |
-| Current full-500 normalized random strict harmfulness rate | 37.2% | Wilson 95% CI [33.1, 41.5] | same file (`current_panel.conditions.random_layer_seed1.strict_harmfulness_normalized`) |
+| Current full-500 normalized random seed 1 strict harmfulness rate | 37.2% | Wilson 95% CI [33.1, 41.5] | same file (`current_panel.conditions.random_layer_seed1.strict_harmfulness_normalized`); canonical audit: `notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md` |
+| Current full-500 normalized random seed 2 strict harmfulness rate | 38.8% | Wilson 95% CI [34.6, 43.1] | same file (`current_panel.conditions.random_layer_seed2.strict_harmfulness_normalized`); canonical audit: same report |
 | Current full-500 normalized causal strict harmfulness rate | 24.8% | Wilson 95% CI [21.2, 28.8] | same file (`current_panel.conditions.causal.strict_harmfulness_normalized`) |
-| Current full-500 normalized causal vs probe gap | -10.0 pp | [-14.0, -6.2] | same file (`current_panel.direct_comparisons.probe_vs_causal.strict_harmfulness_normalized`, sign-flipped for causal-minus-probe phrasing) |
-| Token-cap hits | 112/500 | — | `notes/act3-reports/2026-04-14-d7-full500-current-state-audit.md` |
+| Current full-500 normalized causal vs probe gap | -10.0 pp | [-14.0, -6.2] | same file (`current_panel.direct_comparisons.probe_vs_causal.strict_harmfulness_normalized`, sign-flipped for causal-minus-probe phrasing); canonical audit: `notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md` |
+| Current full-500 normalized causal vs random seed 1 gap | -12.4 pp | [-16.8, -8.0] | same file (`current_panel.direct_comparisons.random_layer_seed1_vs_causal.strict_harmfulness_normalized`, sign-flipped for causal-minus-random phrasing); canonical audit: same report |
+| Current full-500 normalized causal vs random seed 2 gap | -14.0 pp | [-18.2, -10.0] | same file (`current_panel.direct_comparisons.random_layer_seed2_vs_causal.strict_harmfulness_normalized`, sign-flipped for causal-minus-random phrasing); canonical audit: same report |
+| Random seed 2 minus seed 1 strict harmfulness gap | +1.6 pp | [-2.4, +5.4] | same file (`current_panel.direct_comparisons.random_layer_seed2_vs_random_layer_seed1.strict_harmfulness_normalized`); canonical audit: same report |
+| Token-cap hits | 112/500 | — | `notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md` |
 
 ## ITI MC vs Generation (§5.2)
 
