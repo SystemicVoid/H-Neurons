@@ -152,6 +152,32 @@ def add_delta_aliases(metrics: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def add_legacy_d7_condition_aliases(condition: dict[str, Any]) -> dict[str, Any]:
+    """Preserve the historical D7 site contract during the v3 migration."""
+    condition_copy = copy.deepcopy(condition)
+    if (
+        "csv2_yes" not in condition_copy
+        and "strict_harmfulness_normalized" in condition_copy
+    ):
+        condition_copy["csv2_yes"] = copy.deepcopy(
+            condition_copy["strict_harmfulness_normalized"]
+        )
+    return condition_copy
+
+
+def add_legacy_d7_comparison_aliases(metrics: dict[str, Any]) -> dict[str, Any]:
+    """Expose both legacy `csv2_yes` and current normalized comparison keys."""
+    metrics_copy = add_delta_aliases(metrics)
+    if (
+        "csv2_yes" not in metrics_copy
+        and "strict_harmfulness_normalized" in metrics_copy
+    ):
+        metrics_copy["csv2_yes"] = copy.deepcopy(
+            metrics_copy["strict_harmfulness_normalized"]
+        )
+    return metrics_copy
+
+
 def index_conditions_by_name(
     conditions: list[dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
@@ -1965,7 +1991,7 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
     current_panel = current_summary["current_panel"]
     artifact_status = current_summary["artifact_status"]
     paired_vs_baseline = {
-        comparator: add_delta_aliases(metrics)
+        comparator: add_legacy_d7_comparison_aliases(metrics)
         for comparator, metrics in current_panel["paired_vs_baseline"].items()
     }
     random_seed1_status = artifact_status["causal_random_head_layer_matched"]["seed_1"]
@@ -2125,9 +2151,13 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         "caveat": top_level_caveat,
         "headline": current_state_namespace["headline"],
         "conditions": {
-            "baseline": copy.deepcopy(current_panel["conditions"]["baseline"]),
-            "l1": copy.deepcopy(current_panel["conditions"]["l1"]),
-            "causal": copy.deepcopy(current_panel["conditions"]["causal"]),
+            "baseline": add_legacy_d7_condition_aliases(
+                current_panel["conditions"]["baseline"]
+            ),
+            "l1": add_legacy_d7_condition_aliases(current_panel["conditions"]["l1"]),
+            "causal": add_legacy_d7_condition_aliases(
+                current_panel["conditions"]["causal"]
+            ),
         },
         "paired_vs_baseline": paired_vs_baseline,
         "direct_comparisons": {

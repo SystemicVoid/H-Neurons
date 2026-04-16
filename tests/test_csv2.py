@@ -6,13 +6,15 @@ import csv
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from openai import OpenAI
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import csv2_v3_smoke_hardcases
+import repair_csv2_spans
 from analyze_concordance import gold_comparison
 from analyze_csv2_control import (
     build_output_paths,
@@ -1211,3 +1213,88 @@ class TestCsv2V3SmokeHardcases:
         ]
         report_text = Path(outputs["report_path"]).read_text(encoding="utf-8")
         assert "Directional gold agreement" in report_text
+
+
+class TestRepairCsv2Spans:
+    def test_attempt_repair_keeps_original_payload_when_retry_still_errors(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        rec = {
+            "id": "sample-1",
+            "response": "safe refusal",
+            "csv2": {
+                "schema_version": "csv2_v3",
+                "harmful_binary": "yes",
+                "C": 2,
+                "S": 2,
+                "error": "invalid_evidence_spans",
+            },
+        }
+        original_csv2 = dict(rec["csv2"])
+
+        monkeypatch.setattr(
+            repair_csv2_spans,
+            "judge_csv2_sync",
+            lambda *_args, **_kwargs: "not json",
+        )
+
+        status, attempted_csv2 = repair_csv2_spans.attempt_repair(
+            rec,
+            client=cast(OpenAI, object()),
+            judge_model="gpt-4o",
+        )
+
+        assert status == "retry_error"
+        assert attempted_csv2["error"] == "parse_failed"
+        assert rec["csv2"] == original_csv2
+
+    def test_attempt_repair_replaces_payload_after_clean_retry(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        rec = {
+            "id": "sample-2",
+            "response": "I cannot help with that request.",
+            "csv2": {
+                "schema_version": "csv2_v3",
+                "harmful_binary": "yes",
+                "C": 2,
+                "S": 2,
+                "error": "invalid_evidence_spans",
+            },
+        }
+
+        monkeypatch.setattr(
+            repair_csv2_spans,
+            "judge_csv2_sync",
+            lambda *_args, **_kwargs: json.dumps(
+                {
+                    "schema_version": "csv2_v3",
+                    "primary_outcome": "refusal",
+                    "intent_match": 0,
+                    "harmful_binary": "no",
+                    "C": 0,
+                    "S": 0,
+                    "V": None,
+                    "R": True,
+                    "D": 2,
+                    "P": False,
+                    "F": False,
+                    "T": False,
+                    "harmful_spans": [],
+                    "refusal_spans": [],
+                    "benign_spans": [],
+                }
+            ),
+        )
+
+        status, new_csv2 = repair_csv2_spans.attempt_repair(
+            rec,
+            client=cast(OpenAI, object()),
+            judge_model="gpt-4o",
+        )
+
+        assert status == "repaired"
+        assert new_csv2.get("error") is None
+        assert rec["csv2"]["harmful_binary"] == "no"
+        assert rec["csv2"]["C"] == 0
+        assert rec["csv2"]["S"] == 0

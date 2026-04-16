@@ -615,11 +615,15 @@
     const baseline = summary.conditions.baseline;
     const l1 = summary.conditions.l1;
     const causal = summary.conditions.causal;
-    const baselineRate = baseline.csv2_yes;
-    const l1Rate = l1.csv2_yes;
-    const causalRate = causal.csv2_yes;
-    const l1Delta = summary.paired_vs_baseline.l1.csv2_yes;
-    const causalDelta = summary.paired_vs_baseline.causal.csv2_yes;
+    const baselineRate = baseline.csv2_yes ?? baseline.strict_harmfulness_normalized;
+    const l1Rate = l1.csv2_yes ?? l1.strict_harmfulness_normalized;
+    const causalRate = causal.csv2_yes ?? causal.strict_harmfulness_normalized;
+    const l1Delta =
+      summary.paired_vs_baseline.l1.csv2_yes ??
+      summary.paired_vs_baseline.l1.strict_harmfulness_normalized;
+    const causalDelta =
+      summary.paired_vs_baseline.causal.csv2_yes ??
+      summary.paired_vs_baseline.causal.strict_harmfulness_normalized;
 
     setBoundText('data-d7-bind', 'baseline-yes', formatRatePercent(baselineRate.estimate));
     setBoundText('data-d7-bind', 'baseline-yes-ci', formatRateCiText(baselineRate.ci));

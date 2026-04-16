@@ -134,6 +134,18 @@
           "resampling": "iid_rows",
           "interval": "percentile"
         }
+      },
+      "csv2_yes": {
+        "estimate": 0.342,
+        "estimate_pct": 34.2,
+        "n_yes": 171,
+        "n": 500,
+        "ci": {
+          "lower": 0.3017655066658599,
+          "upper": 0.38464378491999074,
+          "level": 0.95,
+          "method": "wilson"
+        }
       }
     },
     "l1": {
@@ -258,6 +270,18 @@
           "seed": 42,
           "resampling": "iid_rows",
           "interval": "percentile"
+        }
+      },
+      "csv2_yes": {
+        "estimate": 0.364,
+        "estimate_pct": 36.4,
+        "n_yes": 182,
+        "n": 500,
+        "ci": {
+          "lower": 0.32301143591892645,
+          "upper": 0.4070623846866158,
+          "level": 0.95,
+          "method": "wilson"
         }
       }
     },
@@ -393,6 +417,18 @@
           "resampling": "iid_rows",
           "interval": "percentile"
         }
+      },
+      "csv2_yes": {
+        "estimate": 0.2,
+        "estimate_pct": 20.0,
+        "n_yes": 100,
+        "n": 500,
+        "ci": {
+          "lower": 0.16728549897175743,
+          "upper": 0.23728910530517394,
+          "level": 0.95,
+          "method": "wilson"
+        }
       }
     }
   },
@@ -526,6 +562,34 @@
           "resampling": "paired_by_sample_id",
           "interval": "percentile"
         }
+      },
+      "csv2_yes": {
+        "estimate_pp": 2.1999999999999966,
+        "ci_pp": {
+          "lower": -1.6000000000000014,
+          "upper": 6.2,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        },
+        "n": 500,
+        "transitions": {
+          "harmful_to_not_harmful": 43,
+          "not_harmful_to_harmful": 54
+        },
+        "estimate": 2.1999999999999966,
+        "ci": {
+          "lower": -1.6000000000000014,
+          "upper": 6.2,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
       }
     },
     "causal": {
@@ -656,6 +720,34 @@
           "seed": 42,
           "resampling": "paired_by_sample_id",
           "interval": "percentile"
+        }
+      },
+      "csv2_yes": {
+        "estimate_pp": -14.200000000000001,
+        "ci_pp": {
+          "lower": -17.8,
+          "upper": -10.600000000000001,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        },
+        "n": 500,
+        "transitions": {
+          "harmful_to_not_harmful": 84,
+          "not_harmful_to_harmful": 13
+        },
+        "estimate": -14.200000000000001,
+        "ci": {
+          "lower": -17.8,
+          "upper": -10.600000000000001,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
         }
       }
     },
@@ -788,6 +880,34 @@
           "resampling": "paired_by_sample_id",
           "interval": "percentile"
         }
+      },
+      "csv2_yes": {
+        "estimate_pp": 2.9999999999999973,
+        "ci_pp": {
+          "lower": -1.200000000000001,
+          "upper": 7.200000000000001,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        },
+        "n": 500,
+        "transitions": {
+          "harmful_to_not_harmful": 50,
+          "not_harmful_to_harmful": 65
+        },
+        "estimate": 2.9999999999999973,
+        "ci": {
+          "lower": -1.200000000000001,
+          "upper": 7.200000000000001,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
       }
     },
     "probe": {
@@ -919,6 +1039,34 @@
           "resampling": "paired_by_sample_id",
           "interval": "percentile"
         }
+      },
+      "csv2_yes": {
+        "estimate_pp": 0.599999999999995,
+        "ci_pp": {
+          "lower": -2.9999999999999973,
+          "upper": 4.199999999999998,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        },
+        "n": 500,
+        "transitions": {
+          "harmful_to_not_harmful": 39,
+          "not_harmful_to_harmful": 42
+        },
+        "estimate": 0.599999999999995,
+        "ci": {
+          "lower": -2.9999999999999973,
+          "upper": 4.199999999999998,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        }
       }
     },
     "random_layer_seed2": {
@@ -1049,6 +1197,34 @@
           "seed": 42,
           "resampling": "paired_by_sample_id",
           "interval": "percentile"
+        }
+      },
+      "csv2_yes": {
+        "estimate_pp": 4.199999999999998,
+        "ci_pp": {
+          "lower": 0.40000000000000036,
+          "upper": 7.9999999999999964,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        },
+        "n": 500,
+        "transitions": {
+          "harmful_to_not_harmful": 37,
+          "not_harmful_to_harmful": 58
+        },
+        "estimate": 4.199999999999998,
+        "ci": {
+          "lower": 0.40000000000000036,
+          "upper": 7.9999999999999964,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
         }
       }
     }

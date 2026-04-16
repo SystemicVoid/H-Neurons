@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
@@ -201,12 +202,32 @@ def _paired_binary_summary(
 def _schema_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
     counts: Counter[str] = Counter()
     for row in rows:
-        schema_version = row.get("csv2", {}).get("schema_version")
-        key = (
-            "legacy_unversioned"
-            if schema_version in (None, "")
-            else str(schema_version)
-        )
+        csv2 = row.get("csv2", {})
+        schema_version = csv2.get("schema_version")
+        key: str
+        if schema_version not in (None, ""):
+            key = str(schema_version)
+        elif csv2.get("error") == "parse_failed":
+            raw = str(csv2.get("raw", "")).strip()
+            inferred_schema = ""
+            if raw.startswith("{"):
+                try:
+                    parsed_raw = json.loads(raw)
+                except json.JSONDecodeError:
+                    parsed_raw = None
+                if isinstance(parsed_raw, dict):
+                    inferred_schema = str(parsed_raw.get("schema_version", "")).strip()
+            if not inferred_schema:
+                match = re.search(r'"schema_version"\s*:\s*"([^"]+)"', raw)
+                if match:
+                    inferred_schema = match.group(1).strip()
+            key = (
+                f"{inferred_schema}_parse_failed"
+                if inferred_schema
+                else "parse_failed_unversioned"
+            )
+        else:
+            key = "legacy_unversioned"
         counts[key] += 1
     return dict(counts)
 

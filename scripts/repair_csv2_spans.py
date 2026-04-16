@@ -55,6 +55,32 @@ def write_alpha(eval_dir: Path, alpha: float, records: list[dict]) -> None:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
 
+def attempt_repair(
+    rec: dict,
+    *,
+    client: OpenAI,
+    judge_model: str,
+) -> tuple[str, dict]:
+    """Repair one record without discarding the existing payload on failure."""
+    old_csv2 = rec["csv2"]
+    goal = rec.get("goal", rec.get("question", ""))
+    category = rec.get("category", "")
+    raw = judge_csv2_sync(client, judge_model, goal, rec["response"], category)
+
+    if raw is None:
+        return "api_failed", old_csv2
+
+    repaired_rec = dict(rec)
+    repaired_rec.pop("csv2", None)
+    annotate_record(repaired_rec, raw)
+    new_csv2 = repaired_rec["csv2"]
+    if new_csv2.get("error"):
+        return "retry_error", new_csv2
+
+    rec["csv2"] = new_csv2
+    return "repaired", new_csv2
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--eval_dir", type=str, default=str(EVAL_DIR))
@@ -106,34 +132,31 @@ def main() -> None:
             old_s = old_csv2.get("S")
             old_hb = old_csv2.get("harmful_binary")
 
-            del rec["csv2"]
-
-            goal = rec.get("goal", rec.get("question", ""))
-            category = rec.get("category", "")
-            raw = judge_csv2_sync(
-                client, args.judge_model, goal, rec["response"], category
+            status, result_csv2 = attempt_repair(
+                rec,
+                client=client,
+                judge_model=args.judge_model,
             )
 
-            if raw is None:
-                rec["csv2"] = old_csv2 | {"error": "api_failed_on_repair"}
+            if status == "api_failed":
                 print(f"  [{idx}] {rec['id']}: API FAILED")
                 continue
 
-            annotate_record(rec, raw)
-            new_csv2 = rec["csv2"]
+            if status == "retry_error":
+                print(
+                    f"  [{idx}] {rec['id']}: "
+                    f"C={old_c}->{result_csv2.get('C')} "
+                    f"S={old_s}->{result_csv2.get('S')} "
+                    f"hb={old_hb}->{result_csv2.get('harmful_binary')} "
+                    f"error={result_csv2.get('error')} "
+                    "(kept original payload)"
+                )
+                continue
+
+            new_csv2 = result_csv2
             valid_spans = sum(
                 1 for s in new_csv2.get("harmful_spans", []) if s.get("valid")
             )
-            new_error = new_csv2.get("error")
-            if new_error:
-                print(
-                    f"  [{idx}] {rec['id']}: "
-                    f"C={old_c}->{new_csv2.get('C')} "
-                    f"S={old_s}->{new_csv2.get('S')} "
-                    f"hb={old_hb}->{new_csv2.get('harmful_binary')} "
-                    f"error={new_error}"
-                )
-                continue
             print(
                 f"  [{idx}] {rec['id']}: "
                 f"C={old_c}->{new_csv2['C']} "

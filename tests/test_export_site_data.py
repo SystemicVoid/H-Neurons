@@ -127,6 +127,26 @@ def test_build_d7_comparison_payload_exports_benchmark_local_caveat():
     assert payload["direct_comparisons"]["probe_vs_causal"][
         "strict_harmfulness_normalized"
     ]["estimate_pp"] == pytest.approx(14.8)
+    assert (
+        payload["conditions"]["baseline"]["csv2_yes"]
+        == payload["conditions"]["baseline"]["strict_harmfulness_normalized"]
+    )
+    assert (
+        payload["conditions"]["l1"]["csv2_yes"]
+        == payload["conditions"]["l1"]["strict_harmfulness_normalized"]
+    )
+    assert (
+        payload["conditions"]["causal"]["csv2_yes"]
+        == payload["conditions"]["causal"]["strict_harmfulness_normalized"]
+    )
+    assert (
+        payload["paired_vs_baseline"]["causal"]["csv2_yes"]
+        == payload["paired_vs_baseline"]["causal"]["strict_harmfulness_normalized"]
+    )
+    assert (
+        payload["paired_vs_baseline"]["l1"]["csv2_yes"]
+        == payload["paired_vs_baseline"]["l1"]["strict_harmfulness_normalized"]
+    )
 
 
 def test_build_d7_comparison_payload_exports_current_state_namespace():
@@ -297,3 +317,20 @@ def test_available_current_conditions_excludes_incomplete_optional_csv2(
     _write_jsonl(spec.csv2_path, complete_csv2_rows)
 
     assert d7_current_state_summary._available_current_conditions() == [spec]
+
+
+def test_current_state_summary_counts_parse_failed_v3_rows_separately():
+    summary = d7_current_state_summary.build_summary()
+    causal_counts = summary["current_panel"]["conditions"]["causal"][
+        "csv2_schema_versions"
+    ]
+    random_seed1_counts = summary["current_panel"]["conditions"]["random_layer_seed1"][
+        "csv2_schema_versions"
+    ]
+
+    assert "legacy_unversioned" not in causal_counts
+    assert causal_counts["csv2_v3_parse_failed"] == 4
+    assert causal_counts["csv2_v3"] == 496
+    assert "legacy_unversioned" not in random_seed1_counts
+    assert random_seed1_counts["csv2_v3_parse_failed"] == 1
+    assert random_seed1_counts["csv2_v3"] == 499
