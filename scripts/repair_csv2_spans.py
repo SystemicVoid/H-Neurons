@@ -1,9 +1,8 @@
-"""One-shot repair: re-evaluate CSV-v2 spans for harmful records with zero valid spans.
+"""One-shot repair: re-evaluate explicit CSV2 error rows in an eval directory.
 
-Identifies C>=2 records whose harmful_spans all failed resolution (from
-few-shot quote leakage or general imprecision), strips their csv2 annotation,
-re-runs the judge with the updated anti-hallucination prompt, and writes
-the repaired records back.
+Identifies records whose existing ``csv2`` payload contains an explicit
+``error`` field, strips the failed annotation, re-runs the judge, and writes
+the repaired records back in place.
 
 Usage:
     uv run python scripts/repair_csv2_spans.py
@@ -31,19 +30,14 @@ EVAL_DIR = Path("data/gemma3_4b/intervention/jailbreak/csv2_evaluation")
 ALPHAS = [0.0, 1.5, 3.0]
 
 
-def find_broken_records(
+def find_error_records(
     records: list[dict],
 ) -> list[int]:
-    """Return indices of C>=2 records where all harmful_spans are invalid."""
+    """Return indices of records with an explicit CSV2 error payload."""
     broken: list[int] = []
     for idx, rec in enumerate(records):
         csv2 = rec.get("csv2", {})
-        if csv2.get("C", 0) < 2:
-            continue
-        spans = csv2.get("harmful_spans", [])
-        if not spans:
-            continue
-        if all(not s.get("valid") for s in spans):
+        if isinstance(csv2, dict) and csv2.get("error"):
             broken.append(idx)
     return broken
 
@@ -82,23 +76,21 @@ def main() -> None:
 
     for alpha in args.alphas:
         records = load_alpha(eval_dir, alpha)
-        broken_indices = find_broken_records(records)
+        broken_indices = find_error_records(records)
 
         if not broken_indices:
-            print(f"alpha={alpha:.1f}: 0 broken records — skipping")
+            print(f"alpha={alpha:.1f}: 0 explicit error rows - skipping")
             continue
 
-        print(
-            f"alpha={alpha:.1f}: {len(broken_indices)} broken records "
-            f"(C>=2, all spans invalid)"
-        )
+        print(f"alpha={alpha:.1f}: {len(broken_indices)} explicit error rows")
         for idx in broken_indices:
             rec = records[idx]
             old_csv2 = rec["csv2"]
             print(
-                f"  [{idx}] {rec['id']}: C={old_csv2['C']} S={old_csv2['S']} "
-                f"spans={len(old_csv2.get('harmful_spans', []))} "
-                f"(all invalid)"
+                f"  [{idx}] {rec['id']}: "
+                f"error={old_csv2.get('error')} "
+                f"C={old_csv2.get('C')} S={old_csv2.get('S')} "
+                f"spans={len(old_csv2.get('harmful_spans', []))}"
             )
 
         if args.dry_run:
@@ -109,9 +101,10 @@ def main() -> None:
 
         for idx in broken_indices:
             rec = records[idx]
-            old_c = rec["csv2"]["C"]
-            old_s = rec["csv2"]["S"]
-            old_hb = rec["csv2"]["harmful_binary"]
+            old_csv2 = rec["csv2"]
+            old_c = old_csv2.get("C")
+            old_s = old_csv2.get("S")
+            old_hb = old_csv2.get("harmful_binary")
 
             del rec["csv2"]
 
@@ -122,7 +115,7 @@ def main() -> None:
             )
 
             if raw is None:
-                rec["csv2"] = {"error": "api_failed_on_repair"}
+                rec["csv2"] = old_csv2 | {"error": "api_failed_on_repair"}
                 print(f"  [{idx}] {rec['id']}: API FAILED")
                 continue
 
@@ -131,6 +124,16 @@ def main() -> None:
             valid_spans = sum(
                 1 for s in new_csv2.get("harmful_spans", []) if s.get("valid")
             )
+            new_error = new_csv2.get("error")
+            if new_error:
+                print(
+                    f"  [{idx}] {rec['id']}: "
+                    f"C={old_c}->{new_csv2.get('C')} "
+                    f"S={old_s}->{new_csv2.get('S')} "
+                    f"hb={old_hb}->{new_csv2.get('harmful_binary')} "
+                    f"error={new_error}"
+                )
+                continue
             print(
                 f"  [{idx}] {rec['id']}: "
                 f"C={old_c}->{new_csv2['C']} "

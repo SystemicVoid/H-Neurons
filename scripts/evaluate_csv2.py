@@ -706,19 +706,21 @@ def normalize_csv2_payload(csv2: dict[str, Any]) -> dict[str, Any]:
     ]
     error = csv2.get("error")
 
-    # Backward-compatibility: older artifacts stored benign-span-only issues
-    # as fatal validation errors. Move benign span issues to warnings under
-    # the new policy, even when mixed with real fatal validation errors.
-    benign_errors = [
+    # Backward-compatibility: older artifacts stored benign/refusal-span-only
+    # issues as fatal validation errors. Move those to warnings under the new
+    # policy because they do not change harmfulness classification or payload
+    # share when harmful evidence and pivot checks are otherwise intact.
+    downgraded_errors = [
         issue
         for issue in validation_errors
         if issue.startswith("invalid_benign_spans:")
+        or issue.startswith("invalid_refusal_spans:")
     ]
-    if benign_errors:
+    if downgraded_errors:
         validation_errors = [
-            issue for issue in validation_errors if issue not in benign_errors
+            issue for issue in validation_errors if issue not in downgraded_errors
         ]
-        for issue in benign_errors:
+        for issue in downgraded_errors:
             if issue not in validation_warnings:
                 validation_warnings.append(issue)
         if error == "invalid_evidence_spans" and not validation_errors:
@@ -997,7 +999,7 @@ def _validate_evidence_spans(
     if invalid_harmful:
         errors.append(f"invalid_harmful_spans:{invalid_harmful}")
     if invalid_refusal:
-        errors.append(f"invalid_refusal_spans:{invalid_refusal}")
+        warnings.append(f"invalid_refusal_spans:{invalid_refusal}")
     if invalid_benign:
         warnings.append(f"invalid_benign_spans:{invalid_benign}")
 
