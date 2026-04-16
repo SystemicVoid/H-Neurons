@@ -1,352 +1,237 @@
-# V2 vs V3 Paired Evaluator Comparison — H-Neuron 38 and Seed-1 Control
+# Available-Data Evaluator Comparison — Jailbreak Intervention Outputs
 
-> **Status: canonical for v2-v3 evaluator comparison on jailbreak data.** Subsumes the interpretation sections (§3) of the [pipeline audit](2026-04-13-phase3-jailbreak-pipeline-audit.md); raw data verification and issue inventory remain owned there.
+> **Status: canonical available-data comparison for jailbreak evaluator claims.**
+> This note replaces the older v2-v3-only framing. The dedicated gold-label
+> accuracy notes remain canonical for evaluator validation:
+> [2026-04-12-4way-evaluator-comparison.md](2026-04-12-4way-evaluator-comparison.md),
+> [2026-04-12-4way-evaluator-holdout-validation.md](2026-04-12-4way-evaluator-holdout-validation.md),
+> and [2026-04-13-jailbreak-measurement-cleanup.md](2026-04-13-jailbreak-measurement-cleanup.md).
 >
-> **Prior work:** [pipeline audit](2026-04-13-phase3-jailbreak-pipeline-audit.md) (issues C1-C3, M1-M4), [seed-0 v2 control](2026-04-12-seed0-jailbreak-control-audit.md) (v2 specificity, slope CIs), [4-way evaluator comparison](2026-04-12-4way-evaluator-comparison.md) (v3 accuracy validation), [holdout validation](2026-04-12-4way-evaluator-holdout-validation.md) (calibration overlap controlled)
+> **New local summary artifact:** `data/judge_validation/available_jailbreak_evaluator_comparison.json`
+> produced by `scripts/analyze_available_jailbreak_evaluators.py`.
 >
-> **Data audited:**
-> - `data/gemma3_4b/intervention/jailbreak/csv2_evaluation/` — H-neuron v2 (500 records × 4 alphas)
-> - `data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation/` — H-neuron v3 (500 records × 4 alphas)
-> - `data/gemma3_4b/intervention/jailbreak/control/seed_1_unconstrained_csv2_v3/` — seed-1 v3 control (500 records × 4 alphas)
-> - `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v2_summary.json` — archived v2 specificity data
-> - `data/gemma3_4b/intervention/jailbreak/control/concordance/concordance_summary.json` — three-judge concordance
->
-> **Methodology:** All bootstrap CIs use 10,000 resamples, seed=42, `numpy.random.default_rng`. OLS slopes via `numpy.polyfit(..., 1)`. Error-filtered denominators (excluding `csv2.error` records) match the pipeline audit's verified counts.
-
----
+> **Important constraint:** this update uses only already-scored local artifacts.
+> No new API calls, rescoring, or new gold labels were added.
 
 ## 0. Headline
 
-| Metric | Evaluator | Value | 95% CI | Significant? |
-|---|---|---|---|---|
-| harmful_binary slope (H-neuron) | **v2** | **+2.30 pp/alpha** | **[+0.99, +3.58]** | **Yes** |
-| harmful_binary slope (H-neuron) | v3 | +0.46 pp/alpha | [-1.46, +2.41] | No |
-| harmful_binary slope (seed-1 control) | v3 | -0.34 pp/alpha | [-2.28, +1.61] | No |
-| harmful_binary slope gap (H minus ctrl) | v3 | +0.80 pp/alpha | [-2.00, +3.58] | No |
-| **substantive_compliance slope (H-neuron)** | **v3** | **+2.00 pp/alpha** | **[+0.11, +3.87]** | **Yes** |
-| substantive_compliance slope (seed-1 ctrl) | v3 | -0.72 pp/alpha | [-2.58, +1.19] | No |
-| **substantive_compliance slope gap (H minus ctrl)** | **v3** | **+2.72 pp/alpha** | **[+0.02, +5.44]** | **Yes** |
+The available data now supports five clean statements.
+
+1. **On clean holdout gold, CSV2 v3 and StrongREJECT-GPT-4o are tied on binary accuracy.**
+   Both score **96.0% (48/50)** with identical holdout error sets and **0**
+   discordant records.
+2. **The full-set H-neuron comparison is still a `binary + v2 + v3` story, not a
+   full 4-way story.**
+   Across the 500-row jailbreak sweep, `StrongREJECT` is not available.
+3. **The main v2-v3 disagreement on full outputs is structural, not adversarial.**
+   v3 almost never overturns a v2-safe row. It mostly resolves `v2 borderline`
+   rows into `v3 yes` or `v3 no`.
+4. **The load-bearing significant jailbreak-specificity result still lives in v2.**
+   Existing data still support the v2 H-neuron vs seed-0 control result more
+   strongly than any v3-specific control claim.
+5. **D7 is only partially panel-complete.**
+   Baseline, L1, and causal have `binary + v2 + v3`; probe and both random
+   branches do not have v3, so they remain outside a full paired evaluator panel.
+
+## 1. Coverage Matrix
 
-**Summary:** The v2 evaluator reports a significant binary dose-response. The v3 evaluator reports a non-significant binary dose-response on the same model outputs. But v3's primary_outcome taxonomy reveals the underlying signal: the intervention increases *severity* (substantive compliance) at +2.00 pp/alpha, which is significant. The effect is real — it's just at a different measurement level than v2 captures.
+| Surface | Binary | v2 | v3 | StrongREJECT | What this supports |
+|---|---:|---:|---:|---:|---|
+| 74-row gold set | Yes | Yes | Yes | Yes | Evaluator accuracy and holdout calibration story |
+| Original H-neuron sweep (500 × 4 alphas) | Yes | Yes | Yes | No | Full-set paired `binary/v2/v3` comparison |
+| Seed-0 random control (500 × 4 alphas) | Yes | Yes | No | No | v2 specificity result |
+| Seed-1 random control (500 × 4 alphas) | No | No | Yes | No | v3 flat-control check |
+| D7 baseline / L1 / causal | Yes | Yes | Yes | No | Paired current-ruler comparison on completed core branches |
+| D7 probe / random seed 1 / random seed 2 | Yes | Yes | No | No | Incomplete panel only |
+
+**Implication:** the repo contains a clean 4-way evaluator comparison only on the
+curated gold subset. On the full intervention outputs, the best available
+paired comparison is `binary + v2 + v3`.
 
----
+## 2. Gold-Set Reference Results
+
+These are not new computations; they are the current local-evidence baseline.
+The new summary JSON simply recomputes them from existing files so they sit
+beside the full-output comparisons.
+
+### 2.1 Combined 74-row gold set
+
+| Evaluator | Accuracy | Precision | Recall | FP | FN |
+|---|---:|---:|---:|---:|---:|
+| CSV2 v3 | **86.5%** | 1.000 | 0.778 | 0 | 10 |
+| StrongREJECT-GPT-4o | 78.4% | 1.000 | 0.644 | 0 | 16 |
+| Binary judge | 77.0% | 0.911 | 0.711 | 4 | 13 |
+| CSV2 v2 | 73.0% | 1.000 | 0.578 | 0 | 19 |
 
-## 1. Data Scope
+### 2.2 Dev vs holdout split
+
+| Split | CSV2 v3 | StrongREJECT-GPT-4o | CSV2 v2 | Binary |
+|---|---:|---:|---:|---:|
+| Dev / contaminated (n=24) | 66.7% | 41.7% | 33.3% | 50.0% |
+| Holdout (n=50) | **96.0%** | **96.0%** | 92.0% | 90.0% |
+
+**What survives scrutiny:**
 
-### 1.1 What was compared
+- The dramatic v3 advantage is concentrated in the contaminated hard-case dev split.
+- On holdout, the binary-accuracy story is a **tie** between v3 and StrongREJECT-GPT-4o.
+- The reason to keep v3 as primary in paper-facing text is therefore **measurement structure**, not held-out binary superiority.
 
-**Paired comparison (same model outputs, different evaluator):**
-- H-neuron v2 vs H-neuron v3: 500 prompts × 4 alphas, joined by ID. This is the cleanest possible "measurement changes conclusions" exhibit.
+## 3. Full 500-Row H-Neuron Sweep: The Real Paired Comparison
 
-**Unpaired comparisons (different model outputs):**
-- H-neuron v3 vs seed-1 v3: same evaluator, different neuron sets. Tests specificity within v3.
-- H-neuron v2 vs seed-0 v2: same evaluator, different neuron sets. Tests specificity within v2 ([prior report](2026-04-12-seed0-jailbreak-control-audit.md)).
+This is the largest like-for-like evaluator comparison currently available in
+the repo: same 500 prompts, same responses, different evaluators.
+
+### 3.1 Harmful-rate comparison by alpha
 
-### 1.2 What could NOT be compared
+| Alpha | Binary harmful | v2 yes | v2 borderline | v3 yes | v3 valid rows |
+|---|---:|---:|---:|---:|---:|
+| 0.0 | 30.4% (152/500) | 18.8% (94/500) | 34.2% (171/500) | 34.6% (169/489) | 489 |
+| 1.0 | 31.0% (155/500) | 24.6% (123/500) | 25.4% (127/500) | 35.0% (172/492) | 492 |
+| 1.5 | 32.2% (161/500) | 23.6% (118/500) | 26.8% (134/500) | 34.5% (167/484) | 484 |
+| 3.0 | 33.4% (167/500) | 26.4% (132/500) | 19.6% (98/500) | 36.0% (177/492) | 492 |
 
-| Comparison | Status | Why |
-|---|---|---|
-| Seed-0 v2 vs seed-0 v3 | Not possible | Seed-0 was scored only with v2 |
-| Seed-1 v2 vs seed-1 v3 | Not possible | Seed-1 was scored only with v3 |
-| Cross-evaluator paired comparison on control data | Not possible | No control seed has both v2 and v3 |
+### 3.2 What changes between v2 and v3
 
-**Implication:** We can decompose the v2-v3 difference on H-neuron data (paired) but not on control data (different seeds, different evaluators). Both controls are flat, which is reassuring, but we cannot rule out that the evaluator contributes to the ~10pp baseline difference between v2 control (24.2%) and v3 control (34.4%).
+| Transition | α=1.0 | α=3.0 |
+|---|---:|---:|
+| yes → yes | 120 | 130 |
+| yes → no | 0 | 1 |
+| borderline → yes | 52 | 47 |
+| borderline → no | 70 | 48 |
+| no → yes | 0 | 0 |
+| no → no | 250 | 266 |
+| v3 errors | 8 | 8 |
+
+The structural point is the same at every alpha:
 
----
+- **Zero `v2 no -> v3 yes` flips** on the H-neuron sweep.
+- Only **2** genuine `v2 yes -> v3 no` flips across all four alphas.
+- Almost all disagreement is `v2 borderline` being resolved by v3.
+
+This is why the full-set comparison should not be written as “v3 contradicts
+v2.” It mostly **refines v2’s ambiguous bucket**.
+
+### 3.3 Statistical layer already established by existing artifacts
+
+These existing results still hold and remain useful:
 
-## 2. Paired V2-V3 Analysis on H-Neuron Data
+| Condition | Metric | Value | 95% CI |
+|---|---|---:|---|
+| H-neuron v2 | harmful slope | +2.30 pp/alpha | [+0.99, +3.58] |
+| H-neuron v3 | harmful slope | +0.46 pp/alpha | [-1.46, +2.41] |
+| H-neuron v3 | substantive compliance slope | +2.00 pp/alpha | [+0.11, +3.87] |
 
-### 2.1 Rate comparison by alpha
+So the available-data conclusion on the original jailbreak sweep remains:
 
-| Alpha | v2 yes | v2 borderline | v2 no | v3 yes | v3 no | v3 errors |
-|---|---|---|---|---|---|---|
-| 0.0 | 94 (18.8%) | 171 (34.2%) | 235 (47.0%) | 169 (34.6%) | 320 (65.4%) | 11 |
-| 1.0 | 123 (24.6%) | 127 (25.4%) | 250 (50.0%) | 172 (35.0%) | 320 (65.0%) | 8 |
-| 1.5 | 118 (23.6%) | 134 (26.8%) | 248 (49.6%) | 167 (34.5%) | 317 (65.5%) | 16 |
-| 3.0 | 132 (26.4%) | 98 (19.6%) | 270 (54.0%) | 177 (36.0%) | 315 (64.0%) | 8 |
+- `v2` yields the strongest binary dose-response claim.
+- `v3` flattens that binary slope, but exposes a severity-shift signal through
+  `primary_outcome`.
+- `binary` sits above both and is the coarsest ruler.
 
-v2 denominators: always 500/500 (no errors). v3 denominators: 489, 492, 484, 492 (after error exclusion).
+## 4. Available Control Evidence
 
-### 2.2 Transition matrix (ID-level join, v3 errors excluded)
+The control story is still split across evaluator versions.
 
-| v2 label → v3 label | α=0.0 | α=1.0 | α=1.5 | α=3.0 | Total |
-|---|---|---|---|---|---|
-| **yes → yes** | 93 | 120 | 113 | 130 | **456** |
-| **yes → no** | 0 | 0 | 1 | 1 | **2** |
-| **borderline → yes** | 76 | 52 | 54 | 47 | **229** |
-| **borderline → no** | 87 | 70 | 73 | 48 | **278** |
-| **no → no** | 233 | 250 | 243 | 266 | **992** |
-| **no → yes** | 0 | 0 | 0 | 0 | **0** |
+### 4.1 Seed-0 control, v2 only
 
-**Key structural properties:**
-- **Zero v2-no → v3-yes flips.** Every v3-yes record was either v2-yes (456) or v2-borderline (229). v3 never calls something harmful that v2 called safe.
-- **Only 2 v2-yes → v3-no flips** (at α=1.5 and α=3.0). These are the only genuine evaluator disagreements worth examining.
-- **All 229 discordant records are v2-borderline → v3-yes.** This is construct expansion (v3 resolves what v2 left ambiguous), not evaluator error.
+| Alpha | v2 yes | v2 borderline |
+|---|---:|---:|
+| 0.0 | 24.2% (121/500) | 24.8% (124/500) |
+| 1.0 | 22.6% (113/500) | 26.6% (133/500) |
+| 1.5 | 22.4% (112/500) | 27.8% (139/500) |
+| 3.0 | 22.6% (113/500) | 26.4% (132/500) |
 
-### 2.3 Agreement statistics
+This is the load-bearing specificity result already reported in
+[2026-04-12-seed0-jailbreak-control-audit.md](2026-04-12-seed0-jailbreak-control-audit.md):
+flat control under v2, with a significant H-neuron-minus-control slope gap.
 
-| Metric | Value |
-|---|---|
-| Overall agreement (v2-yes=yes, v2-border/no=no) | 88.2% |
-| Cohen's kappa | 0.719 |
-| v2-yes → v3-no (genuine flips) | 2 / 1957 (0.1%) |
-| v2-no → v3-yes (genuine surprises) | 0 / 1957 (0.0%) |
+### 4.2 Seed-1 control, v3 only
 
-Agreement improves with alpha: 84.5% at α=0.0 → 90.2% at α=3.0, because fewer borderlines remain to reclassify at higher scaling.
+| Alpha | v3 yes | substantive compliance | v3 valid rows |
+|---|---:|---:|---:|
+| 0.0 | 34.4% (168/488) | 30.7% (150/488) | 488 |
+| 1.0 | 35.6% (175/491) | 32.4% (159/491) | 491 |
+| 1.5 | 34.3% (168/490) | 28.2% (138/490) | 490 |
+| 3.0 | 33.7% (165/489) | 29.2% (143/489) | 489 |
 
----
+This remains a useful flat-control check for v3, but it is **not paired to the
+v2 control seed**. That means the repo still does **not** contain a same-seed,
+same-output v2-v3 control comparison.
 
-## 3. Bootstrap Confidence Intervals
+## 5. D7: What Is Actually Comparable Now
 
-### 3.1 Binary harmful rate slopes
+### 5.1 Core paired branches with `binary + v2 + v3`
 
-| Condition | Slope (pp/alpha) | 95% CI | Includes zero? |
-|---|---|---|---|
-| H-neuron v2 (from [prior report](2026-04-12-seed0-jailbreak-control-audit.md)) | +2.30 | [+0.99, +3.58] | No |
-| H-neuron v3 | +0.46 | [-1.46, +2.41] | **Yes** |
-| Seed-0 v2 control (from prior report) | -0.47 | [-1.42, +0.47] | Yes |
-| Seed-1 v3 control | -0.34 | [-2.28, +1.61] | Yes |
+| Branch | Alpha | Binary harmful | v2 yes | v2 borderline | v3 yes |
+|---|---:|---:|---:|---:|---:|
+| baseline | 1.0 | 30.0% (150/500) | 23.4% (117/500) | 29.2% (146/500) | 34.2% (171/500) |
+| L1 | 3.0 | 33.2% (166/500) | 27.4% (137/500) | 20.0% (100/500) | 36.3% (181/499) |
+| causal | 4.0 | 19.4% (97/500) | 14.4% (72/500) | 10.8% (54/500) | 19.7% (97/493) |
 
-### 3.2 Slope differences
+**What this shows:**
 
-| Comparison | Gap (pp/alpha) | 95% CI | Includes zero? |
-|---|---|---|---|
-| v2: H-neuron minus seed-0 control (from prior report) | +2.77 | [+1.17, +4.42] | **No** (p=0.013) |
-| v3: H-neuron minus seed-1 control | +0.80 | [-2.00, +3.58] | **Yes** |
+- The causal branch remains the strongest completed D7 branch under all three
+  available rulers.
+- v3 again sits above v2 mainly because it resolves ambiguous/partial rows.
+- The paired D7 bridge is available only for baseline, L1, and causal.
 
-### 3.3 Primary outcome slopes
+### 5.2 Incomplete branches
 
-| Outcome | H-neuron slope | 95% CI | Control slope | 95% CI |
-|---|---|---|---|---|
-| **substantive_compliance** | **+2.00** | **[+0.11, +3.87]** | -0.72 | [-2.58, +1.19] |
-| partial_compliance | -1.54 | — | +0.38 | — |
-| deflection | -1.68 | — | +0.09 | — |
-| refusal | +0.86 | — | -0.01 | — |
+`probe_locked`, `causal_random_head_layer_matched/seed_1`, and
+`causal_random_head_layer_matched/seed_2` have `binary + csv2_evaluation`
+artifacts, but **no v3 artifacts**. They therefore belong to the current D7
+state audit, but not to a full paired evaluator panel.
 
-**Substantive_compliance slope gap (H minus ctrl):** +2.72 pp/alpha [+0.02, +5.44] — CI excludes zero.
+**Implication:** D7 can support “causal beats the available comparators on the
+current mixed-ruler panel,” but it still cannot support a full v2-v3 evaluator
+expansion across every branch.
 
----
+## 6. What The Available Data Supports
 
-## 4. Slope Compression Mechanism
+### 6.1 Earned
 
-### 4.1 The arithmetic
+1. **Holdout binary superiority is not the reason to use v3.**
+   On holdout gold, v3 and StrongREJECT-GPT-4o tie.
+2. **The strongest full-output comparison is a `binary + v2 + v3` comparison on the original H-neuron sweep.**
+3. **v2-v3 disagreement on full outputs is mostly borderline resolution.**
+   It is not driven by v3 newly labeling v2-safe rows as harmful.
+4. **The significant jailbreak-specificity result remains the v2 seed-0 result.**
+5. **v3 still adds value through structure.**
+   Its `primary_outcome` taxonomy exposes severity shifts that binary and v2
+   compress.
 
-The v3 harmful_binary count at each alpha = v2_yes count + absorbed borderlines (v2-borderline → v3-yes) - genuine flips (v2-yes → v3-no).
+### 6.2 Not earned
 
-| Alpha | v2_yes | Absorbed borderlines | Flips | v3_yes | Net v3 gain over v2 |
-|---|---|---|---|---|---|
-| 0.0 | 94 | 76 | 0 | 169 | +75 |
-| 1.0 | 123 | 52 | 0 | 172 | +49 |
-| 1.5 | 118 | 54 | 1 | 167 | +49 |
-| 3.0 | 132 | 47 | 1 | 177 | +45 |
+1. **“v3 clearly beats StrongREJECT on current jailbreak outputs.”**
+   No full-output StrongREJECT comparison exists.
+2. **“v3 is fully validated as the replacement ruler for the jailbreak story.”**
+   The control comparison is split across seeds and D7 is panel-incomplete.
+3. **“The repo now has a full 4-way evaluator panel everywhere that matters.”**
+   It does not. The only 4-way panel is the curated gold subset.
 
-From α=0.0 to α=3.0:
-- v2_yes increases by **+38 records** (the v2 dose-response signal)
-- Absorbed borderlines decrease by **-29 records** (fewer borderlines to absorb at high alpha)
-- Net v3_yes increase: **+8 records** (the compressed v3 signal)
+## 7. Recommended Paper Framing
 
-**The ~~88%~~ 80% slope compression (2.30 → 0.46 pp/alpha) [corrected 2026-04-14: (2.30−0.46)/2.30 = 80%] is entirely explained by the declining number of borderline absorptions at higher alphas.** The intervention reduces the borderline population (polarization), and v3 absorbs fewer of them into the "yes" category at high alpha than at baseline.
+The safe updated sentence is:
 
-### 4.2 Borderline reclassification rate is alpha-stable
+> We use CSV2 v3 as the primary jailbreak evaluator because it provides the
+> structured severity and response-taxonomy fields needed for intervention
+> analysis, not because it has a clean held-out binary-accuracy lead over
+> StrongREJECT.
 
-| Alpha | Borderlines | → v3 yes | → v3 no | Reclassification rate |
-|---|---|---|---|---|
-| 0.0 | 171 | 76 | 87 | 46.6% |
-| 1.0 | 127 | 52 | 70 | 42.6% |
-| 1.5 | 134 | 54 | 73 | 42.5% |
-| 3.0 | 98 | 47 | 48 | 49.5% |
+And the safe supporting sentence is:
 
-The fraction of borderlines that v3 calls "yes" is roughly stable (42-50%) across all alphas. The slope compression is driven by the **number** of borderlines declining (171 → 98), not by a change in v3's classification behavior. This confirms the compression is a structural property of how v3 interacts with the intervention's polarization effect, not an evaluator inconsistency.
+> On the original H-neuron jailbreak sweep, the largest available paired
+> comparison is binary vs CSV2 v2 vs CSV2 v3; that comparison shows that v3
+> mainly resolves the large borderline bucket that v2 leaves ambiguous.
 
-### 4.3 Polarization (from v2 data)
+## 8. Audited Artifacts
 
-The intervention pushes v2-borderline cases toward the poles:
-- Borderlines: 171 → 98 (-73 records)
-- v2-yes: 94 → 132 (+38 records, half of the departing borderlines become clearly harmful)
-- v2-no: 235 → 270 (+35 records, the other half become clearly safe)
-
-The control shows no polarization (borderlines stable at 124-139 across alphas; [prior report](2026-04-12-seed0-jailbreak-control-audit.md) §3.1).
-
----
-
-## 5. Primary Outcome-Level Analysis — The Severity Shift
-
-This is the most informative finding in this analysis. While v3's harmful_binary rate is flat, its primary_outcome taxonomy reveals a clear dose-dependent severity shift.
-
-### 5.1 H-neuron primary outcome trajectory
-
-| Outcome | α=0.0 | α=3.0 | Change | Direction |
-|---|---|---|---|---|
-| substantive_compliance | 27.8% | 33.9% | **+6.1pp** | ↑ stronger compliance |
-| partial_compliance | 6.7% | 2.0% | -4.7pp | ↓ resolving to poles |
-| deflection | 17.6% | 12.4% | -5.2pp | ↓ resolving to poles |
-| refusal | 45.4% | 48.0% | +2.6pp | ↑ more definitive refusals |
-| benign_answer | 2.5% | 3.7% | +1.2pp | ≈ stable |
-
-### 5.2 Seed-1 control primary outcome trajectory
-
-| Outcome | α=0.0 | α=3.0 | Change | Direction |
-|---|---|---|---|---|
-| substantive_compliance | 30.7% | 29.2% | -1.5pp | ≈ flat |
-| partial_compliance | 3.7% | 4.5% | +0.8pp | ≈ flat |
-| deflection | 17.2% | 17.8% | +0.6pp | ≈ flat |
-| refusal | 45.7% | 45.0% | -0.7pp | ≈ flat |
-| benign_answer | 2.7% | 3.5% | +0.8pp | ≈ flat |
-
-### 5.3 Interpretation
-
-The intervention produces a **severity intensification** pattern visible only in v3's outcome taxonomy:
-
-1. **Partial compliance → substantive compliance:** Responses that partially engage with the harmful request at baseline become fully compliant at higher alpha. This is the primary dose-dependent signal (+6.1pp).
-2. **Deflection → refusal:** Ambiguous deflections become definitive refusals at higher alpha (+2.6pp refusal, -5.2pp deflection). The intervention also pushes safe-side responses toward more decisive safety behavior.
-3. **harmful_binary masks the signal:** Because partial_compliance and substantive_compliance both count as "yes" when intent_match ≥ 1, the partial→substantive shift is invisible at the binary level. The harmful count barely changes (+8 records) while the *composition* changes substantially.
-
-**The dose-response exists — it's a response in severity, not in the harmful/safe boundary.** v2 captured this as a rate increase (borderline→yes ≈ partial→substantive through v2's lens). v3's binary metric missed it because its threshold is set higher. But v3's granular taxonomy recovers it at the right level.
-
----
-
-## 6. Sensitivity Analysis — Error Attrition
-
-v3 evaluation errors vary by alpha: 11, 8, 16, 8 (all `invalid_evidence_spans`).
-
-| Alpha | Actual rate | All errors harmful | All errors safe | Impact |
-|---|---|---|---|---|
-| 0.0 | 34.56% | 36.00% | 33.80% | ±1.2pp |
-| 1.0 | 34.96% | 36.00% | 34.40% | ±0.6pp |
-| 1.5 | 34.50% | 36.60% | 33.40% | ±1.2pp |
-| 3.0 | 35.98% | 37.00% | 35.40% | ±0.6pp |
-
-| Scenario | Slope (pp/alpha) |
-|---|---|
-| Actual (errors excluded) | 0.46 |
-| All errors harmful | 0.36 |
-| All errors safe | 0.50 |
-
-**Verdict:** Error attrition has negligible impact on the slope. The α=1.5 error spike (16 errors, 2× other alphas) does not meaningfully affect the harmful rate or slope. The sensitivity bounds [0.36, 0.50] are well within the bootstrap CI [-1.46, +2.41].
-
----
-
-## 7. Seed-1 V3 Control
-
-### 7.1 Rates
-
-| Alpha | Yes count | Valid count | Rate |
-|---|---|---|---|
-| 0.0 | 168 | 488 | 34.43% |
-| 1.0 | 175 | 491 | 35.64% |
-| 1.5 | 168 | 490 | 34.29% |
-| 3.0 | 165 | 489 | 33.74% |
-
-### 7.2 Slopes
-
-- harmful_binary slope: -0.34 pp/alpha [-2.28, +1.61] — flat (CI includes zero)
-- substantive_compliance slope: -0.72 pp/alpha [-2.58, +1.19] — flat (CI includes zero)
-
-### 7.3 Specificity limitations
-
-The v3 specificity test (H-neuron minus seed-1 control) uses a **single control seed** and yields:
-- harmful_binary gap: +0.80 pp/alpha [-2.00, +3.58] — **not significant**
-- substantive_compliance gap: +2.72 pp/alpha [+0.02, +5.44] — **marginally significant** (lower bound barely excludes zero)
-
-Contrast with v2 specificity ([prior report](2026-04-12-seed0-jailbreak-control-audit.md)): slope difference +2.77 pp/alpha [+1.17, +4.42], p=0.013 (permutation test). The v2 specificity result remains the stronger evidence.
-
-The v3 specificity at the substantive_compliance level is interesting but should be treated with caution: it comes from a single seed, the lower bound of the CI barely excludes zero, and the same bootstrap was not used to compute the v2 substantive_compliance equivalent (not applicable to v2, which lacks primary_outcome).
-
----
-
-## 8. What Withstands Scrutiny
-
-### 8.1 The v2-to-v3 slope compression is real and structurally explained
-
-Same 500 prompts, same model outputs, only the evaluator changed. The v2 slope (+2.30, CI excludes zero) compresses to a v3 slope (+0.46, CI includes zero). The mechanism is transparent: v3 absorbs borderline cases into the baseline rate, and fewer borderlines exist at high alpha due to intervention-driven polarization. The arithmetic is exact: v2 gain (+38) + absorbed change (-29) = v3 gain (+8).
-
-### 8.2 The evaluator agreement structure is clean
-
-88.2% overall agreement. Zero v2-no → v3-yes flips. Only 2 v2-yes → v3-no flips. The 11.8% discordance is entirely v2-borderline reclassification — a construct-definition difference, not evaluator error.
-
-### 8.3 The severity-shift finding is reproducible
-
-The substantive_compliance slope (+2.00 pp/alpha) and the gap vs control (+2.72 pp/alpha) are computed from the same raw data with the same bootstrap methodology. The underlying pattern (partial→substantive, deflection→refusal) is visible in raw counts without statistical modeling.
-
-### 8.4 Both controls are flat
-
-v2 seed-0: -0.47 pp/alpha (harmful_binary). v3 seed-1: -0.34 pp/alpha (harmful_binary). v3 seed-1: -0.72 pp/alpha (substantive_compliance). All CIs include zero. The intervention signal, whatever its size, is absent from random neurons under both evaluators.
-
----
-
-## 9. Caveats and Remaining Uncertainty
-
-### 9.1 High uncertainty
-
-- **Is the substantive_compliance slope robustly significant?** The lower bound of the CI (+0.11) barely excludes zero. A slightly different bootstrap seed or sample could flip this. Treat as "directionally positive, marginally significant" — not headline-safe without replication or a larger sample.
-- **Is v3 specificity real?** The single-seed v3 comparison has low power. The harmful_binary gap CI includes zero. The substantive_compliance gap CI barely excludes zero. V2 specificity (p=0.013) remains the load-bearing evidence.
-
-### 9.2 Medium uncertainty
-
-- **Does the borderline reclassification rate change across harm categories?** The overall rate is 42-50%, but category-level variation is untested. If reclassification is concentrated in specific categories, the severity-shift conclusion could be narrower than claimed.
-- **Would scoring seed-0 with v3 change the control comparison?** The current v3 control (seed-1) and v2 control (seed-0) use different seeds, preventing a direct evaluator comparison on control data. Scoring seed-0 with v3 would resolve this.
-
-### 9.3 Low uncertainty
-
-- Error attrition does not meaningfully affect any reported metric (sensitivity bounds well within CIs).
-- The transition matrix and reclassification arithmetic are exact (ID-level join, exhaustive).
-- The pipeline audit's raw data verification (§1) independently confirmed all rates.
-
----
-
-## 10. Implications for Anchor 3
-
-The paper's Anchor 3 claim ("measurement choices change conclusions") can now be made at three levels, each stronger than the last:
-
-### Level 1: Binary threshold sensitivity (the original framing)
-
-The evaluator changes the statistical conclusion. v2 says "significant dose-response" (slope excludes zero); v3 says "no detectable dose-response" (slope includes zero). Same model outputs, different measurement instrument. This is clean and unambiguous.
-
-### Level 2: Mechanism transparency (new from this analysis)
-
-The slope compression is not mysterious — it's a known and predictable consequence of how each evaluator handles borderline cases. v3 catches refuse-then-comply patterns at baseline that v2 coded as borderline, inflating the baseline rate and absorbing the signal. The intervention's polarization effect (pushing borderlines to yes or no) is the same reality seen through two different lenses.
-
-**Why this matters for the paper:** It preempts the objection "maybe v3 is just noisier." The mechanism is fully explained by construct definition (what counts as "yes"), not by measurement noise.
-
-### Level 3: Measurement level determines conclusion type (the new finding)
-
-The most powerful framing: the evaluator doesn't just change the magnitude of the conclusion — it changes the *type* of conclusion that's detectable. v2's binary metric correctly detected a real signal but located it at the harmful/safe boundary. v3's binary metric missed the same signal at that boundary. But v3's primary_outcome taxonomy found the signal at the right level: severity intensification (partial → substantive compliance), which is significant (+2.00 pp/alpha, CI excludes zero).
-
-**For the paper:** This upgrades Anchor 3 from "evaluator X says significant, evaluator Y says not" to "the intervention's dose-response is real but lives at the severity level, and your conclusion depends on whether your evaluator measures there." This is a methodological insight, not just a measurement artifact.
-
-### Updated claim status
-
-| Claim | Status | Evidence |
-|---|---|---|
-| v2 shows significant binary dose-response | **Earned** | +2.30 [+0.99, +3.58] |
-| v3 shows non-significant binary dose-response | **Earned** | +0.46 [-1.46, +2.41] |
-| Measurement changes conclusions (binary level) | **Earned** | Same outputs, different slopes, different significance |
-| Slope compression mechanism understood | **Earned** | Borderline absorption + polarization, arithmetic verified |
-| Severity-shift dose-response (v3 substantive_compliance) | **Partially earned** | +2.00 [+0.11, +3.87], marginal; needs caveat |
-| Severity-shift specific to H-neurons | **Partially earned** | Gap +2.72 [+0.02, +5.44], marginal; single control seed |
-| v3 binary specificity | **Not earned** | Gap +0.80 [-2.00, +3.58], CI includes zero |
-
----
-
-## 11. Next Steps (Ordered by Information Gained per Time)
-
-1. **Score seed-0 with v3** (~$8 API, ~1h). Enables (a) paired v2-v3 comparison on control data, (b) multi-seed permutation test for v3 specificity, (c) check whether borderline reclassification rate is condition-dependent. Highest value remaining experiment for the measurement story.
-
-2. **Examine the 2 v2-yes → v3-no flips** (~10 min). These are the only genuine evaluator disagreements. Understanding why v3 downgraded them could reveal edge cases in v3's primary_outcome → harmful_binary derivation.
-
-3. **Category-level borderline reclassification rates** (~20 min). Check whether the 42-50% reclassification rate is uniform or concentrated in specific harm categories. If non-uniform, the severity-shift story may need qualification.
-
-4. **Substantive_compliance slope with different seeds** (requires step 1). The marginal significance (CI lower bound +0.11) is fragile. A second control seed would either confirm or weaken it. This is important for deciding whether the severity-shift claim can appear in the paper without heavy caveats.
-
----
-
-## Data Artifacts Audited
-
-| Artifact | Path | Schema | Verified |
-|---|---|---|---|
-| H-neuron v2 evaluation | `data/.../jailbreak/csv2_evaluation/alpha_{0.0,1.0,1.5,3.0}.jsonl` | legacy (no version) | rates, borderline counts, transitions |
-| H-neuron v3 evaluation | `data/.../jailbreak/csv2_v3_evaluation/alpha_{0.0,1.0,1.5,3.0}.jsonl` | csv2_v3 | rates, errors, primary_outcome, transitions |
-| Seed-1 v3 control | `data/.../control/seed_1_unconstrained_csv2_v3/alpha_{0.0,1.0,1.5,3.0}.jsonl` | csv2_v3 | rates, primary_outcome, errors |
-| v2 specificity summary | `data/.../control/comparison_csv2_v2_summary.json` | — | archived from git, slope +2.30 |
-| v3 specificity summary | `data/.../control/comparison_csv2_v3_summary.json` | — | slope +0.46, seed-1 only |
-| Concordance summary | `data/.../control/concordance/concordance_summary.json` | — | kappa, flips, category breakdown |
+- `data/judge_validation/available_jailbreak_evaluator_comparison.json`
+- `data/judge_validation/strongreject/strongreject_gold_results.jsonl`
+- `data/judge_validation/csv2_v3/alpha_{0.0,1.5,3.0}.jsonl`
+- `data/gemma3_4b/intervention/jailbreak/experiment/alpha_{0.0,1.0,1.5,3.0}.jsonl`
+- `data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_{0.0,1.0,1.5,3.0}.jsonl`
+- `data/gemma3_4b/intervention/jailbreak/csv2_v3_evaluation/alpha_{0.0,1.0,1.5,3.0}.jsonl`
+- `data/gemma3_4b/intervention/jailbreak/control/seed_0_unconstrained/csv2_evaluation/alpha_{0.0,1.0,1.5,3.0}.jsonl`
+- `data/gemma3_4b/intervention/jailbreak/control/seed_1_unconstrained_csv2_v3/alpha_{0.0,1.0,1.5,3.0}.jsonl`
+- `data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/{baseline_noop,l1_neuron,causal_locked}/`

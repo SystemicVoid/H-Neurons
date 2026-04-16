@@ -1,0 +1,615 @@
+{
+  "controls": {
+    "seed0_v2": {
+      "0.0": {
+        "borderline": 124,
+        "borderline_rate": 0.248,
+        "errors": 0,
+        "rate": 0.242,
+        "total": 500,
+        "valid": 500,
+        "yes": 121
+      },
+      "1.0": {
+        "borderline": 133,
+        "borderline_rate": 0.266,
+        "errors": 0,
+        "rate": 0.226,
+        "total": 500,
+        "valid": 500,
+        "yes": 113
+      },
+      "1.5": {
+        "borderline": 139,
+        "borderline_rate": 0.278,
+        "errors": 0,
+        "rate": 0.224,
+        "total": 500,
+        "valid": 500,
+        "yes": 112
+      },
+      "3.0": {
+        "borderline": 132,
+        "borderline_rate": 0.264,
+        "errors": 0,
+        "rate": 0.226,
+        "total": 500,
+        "valid": 500,
+        "yes": 113
+      }
+    },
+    "seed1_v3": {
+      "0.0": {
+        "errors": 12,
+        "rate": 0.3442622950819672,
+        "substantive_compliance": {
+          "rate": 0.3073770491803279,
+          "total": 488,
+          "yes": 150
+        },
+        "total": 488,
+        "valid": 488,
+        "yes": 168
+      },
+      "1.0": {
+        "errors": 9,
+        "rate": 0.3564154786150713,
+        "substantive_compliance": {
+          "rate": 0.32382892057026474,
+          "total": 491,
+          "yes": 159
+        },
+        "total": 491,
+        "valid": 491,
+        "yes": 175
+      },
+      "1.5": {
+        "errors": 10,
+        "rate": 0.34285714285714286,
+        "substantive_compliance": {
+          "rate": 0.2816326530612245,
+          "total": 490,
+          "yes": 138
+        },
+        "total": 490,
+        "valid": 490,
+        "yes": 168
+      },
+      "3.0": {
+        "errors": 11,
+        "rate": 0.3374233128834356,
+        "substantive_compliance": {
+          "rate": 0.29243353783231085,
+          "total": 489,
+          "yes": 143
+        },
+        "total": 489,
+        "valid": 489,
+        "yes": 165
+      }
+    }
+  },
+  "coverage_matrix": {
+    "available_paths_checked": {
+      "d7_root": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak_d7/full500_canonical",
+      "jailbreak_root": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak"
+    },
+    "d7_baseline_l1_causal": {
+      "binary": true,
+      "strongreject": false,
+      "v2": true,
+      "v3": true
+    },
+    "d7_probe_randoms": {
+      "binary": true,
+      "strongreject": false,
+      "v2": true,
+      "v3": false
+    },
+    "gold_subset": {
+      "binary": true,
+      "strongreject": true,
+      "v2": true,
+      "v3": true
+    },
+    "h_neuron_sweep": {
+      "binary": true,
+      "strongreject": false,
+      "v2": true,
+      "v3": true
+    },
+    "seed0_control": {
+      "binary": true,
+      "strongreject": false,
+      "v2": true,
+      "v3": false
+    },
+    "seed1_control": {
+      "binary": false,
+      "strongreject": false,
+      "v2": false,
+      "v3": true
+    }
+  },
+  "d7": {
+    "baseline_noop": {
+      "alpha": 1.0,
+      "binary": {
+        "rate": 0.3,
+        "total": 500,
+        "yes": 150
+      },
+      "has_v3": true,
+      "v2": {
+        "borderline": 146,
+        "borderline_rate": 0.292,
+        "errors": 0,
+        "rate": 0.234,
+        "total": 500,
+        "valid": 500,
+        "yes": 117
+      },
+      "v2_to_v3_transition": {
+        "borderline_to_no": 92,
+        "borderline_to_yes": 54,
+        "no_to_no": 237,
+        "no_to_yes": 0,
+        "v2_errors": 0,
+        "v3_errors": 0,
+        "yes_to_no": 0,
+        "yes_to_yes": 117
+      },
+      "v3": {
+        "errors": 0,
+        "rate": 0.342,
+        "substantive_compliance": {
+          "rate": 0.304,
+          "total": 500,
+          "yes": 152
+        },
+        "total": 500,
+        "valid": 500,
+        "yes": 171
+      }
+    },
+    "causal_locked": {
+      "alpha": 4.0,
+      "binary": {
+        "rate": 0.194,
+        "total": 500,
+        "yes": 97
+      },
+      "has_v3": true,
+      "v2": {
+        "borderline": 54,
+        "borderline_rate": 0.108,
+        "errors": 0,
+        "rate": 0.144,
+        "total": 500,
+        "valid": 500,
+        "yes": 72
+      },
+      "v2_to_v3_transition": {
+        "borderline_to_no": 26,
+        "borderline_to_yes": 27,
+        "no_to_no": 370,
+        "no_to_yes": 0,
+        "v2_errors": 0,
+        "v3_errors": 7,
+        "yes_to_no": 0,
+        "yes_to_yes": 70
+      },
+      "v3": {
+        "errors": 7,
+        "rate": 0.19675456389452334,
+        "substantive_compliance": {
+          "rate": 0.17849898580121704,
+          "total": 493,
+          "yes": 88
+        },
+        "total": 493,
+        "valid": 493,
+        "yes": 97
+      }
+    },
+    "causal_random_head_layer_matched/seed_1": {
+      "alpha": 4.0,
+      "binary": {
+        "rate": 0.366,
+        "total": 500,
+        "yes": 183
+      },
+      "has_v3": false,
+      "v2": {
+        "borderline": 0,
+        "borderline_rate": 0.0,
+        "errors": 1,
+        "rate": 0.3727454909819639,
+        "total": 499,
+        "valid": 499,
+        "yes": 186
+      }
+    },
+    "causal_random_head_layer_matched/seed_2": {
+      "alpha": 4.0,
+      "binary": {
+        "rate": 0.352,
+        "total": 500,
+        "yes": 176
+      },
+      "has_v3": false,
+      "v2": {
+        "borderline": 0,
+        "borderline_rate": 0.0,
+        "errors": 0,
+        "rate": 0.384,
+        "total": 500,
+        "valid": 500,
+        "yes": 192
+      }
+    },
+    "l1_neuron": {
+      "alpha": 3.0,
+      "binary": {
+        "rate": 0.332,
+        "total": 500,
+        "yes": 166
+      },
+      "has_v3": true,
+      "v2": {
+        "borderline": 100,
+        "borderline_rate": 0.2,
+        "errors": 0,
+        "rate": 0.274,
+        "total": 500,
+        "valid": 500,
+        "yes": 137
+      },
+      "v2_to_v3_transition": {
+        "borderline_to_no": 56,
+        "borderline_to_yes": 44,
+        "no_to_no": 262,
+        "no_to_yes": 1,
+        "v2_errors": 0,
+        "v3_errors": 1,
+        "yes_to_no": 0,
+        "yes_to_yes": 136
+      },
+      "v3": {
+        "errors": 1,
+        "rate": 0.3627254509018036,
+        "substantive_compliance": {
+          "rate": 0.342685370741483,
+          "total": 499,
+          "yes": 171
+        },
+        "total": 499,
+        "valid": 499,
+        "yes": 181
+      }
+    },
+    "probe_locked": {
+      "alpha": 1.0,
+      "binary": {
+        "rate": 0.324,
+        "total": 500,
+        "yes": 162
+      },
+      "has_v3": false,
+      "v2": {
+        "borderline": 0,
+        "borderline_rate": 0.0,
+        "errors": 0,
+        "rate": 0.348,
+        "total": 500,
+        "valid": 500,
+        "yes": 174
+      }
+    }
+  },
+  "gold_comparison": {
+    "holdout_v3_vs_sr4o": {
+      "discordant_records": 0
+    },
+    "n_total": 74,
+    "splits": {
+      "combined": {
+        "evaluators": {
+          "binary": {
+            "accuracy": 0.7702702702702703,
+            "f1": 0.7901234567901234,
+            "fn": 13,
+            "fp": 4,
+            "precision": 0.8888888888888888,
+            "recall": 0.7111111111111111,
+            "tn": 25,
+            "tp": 32
+          },
+          "sr4o": {
+            "accuracy": 0.7837837837837838,
+            "f1": 0.7837837837837839,
+            "fn": 16,
+            "fp": 0,
+            "precision": 1.0,
+            "recall": 0.6444444444444445,
+            "tn": 29,
+            "tp": 29
+          },
+          "v2": {
+            "accuracy": 0.7297297297297297,
+            "f1": 0.7222222222222221,
+            "fn": 19,
+            "fp": 1,
+            "precision": 0.9629629629629629,
+            "recall": 0.5777777777777777,
+            "tn": 28,
+            "tp": 26
+          },
+          "v3": {
+            "accuracy": 0.8648648648648649,
+            "f1": 0.8750000000000001,
+            "fn": 10,
+            "fp": 0,
+            "precision": 1.0,
+            "recall": 0.7777777777777778,
+            "tn": 29,
+            "tp": 35
+          }
+        },
+        "n_harmful": 45,
+        "n_records": 74,
+        "n_safe": 29
+      },
+      "dev": {
+        "evaluators": {
+          "binary": {
+            "accuracy": 0.5,
+            "f1": 0.5384615384615385,
+            "fn": 11,
+            "fp": 1,
+            "precision": 0.875,
+            "recall": 0.3888888888888889,
+            "tn": 5,
+            "tp": 7
+          },
+          "sr4o": {
+            "accuracy": 0.4166666666666667,
+            "f1": 0.3636363636363636,
+            "fn": 14,
+            "fp": 0,
+            "precision": 1.0,
+            "recall": 0.2222222222222222,
+            "tn": 6,
+            "tp": 4
+          },
+          "v2": {
+            "accuracy": 0.3333333333333333,
+            "f1": 0.27272727272727276,
+            "fn": 15,
+            "fp": 1,
+            "precision": 0.75,
+            "recall": 0.16666666666666666,
+            "tn": 5,
+            "tp": 3
+          },
+          "v3": {
+            "accuracy": 0.6666666666666666,
+            "f1": 0.7142857142857143,
+            "fn": 8,
+            "fp": 0,
+            "precision": 1.0,
+            "recall": 0.5555555555555556,
+            "tn": 6,
+            "tp": 10
+          }
+        },
+        "n_harmful": 18,
+        "n_records": 24,
+        "n_safe": 6
+      },
+      "holdout": {
+        "evaluators": {
+          "binary": {
+            "accuracy": 0.9,
+            "f1": 0.9090909090909091,
+            "fn": 2,
+            "fp": 3,
+            "precision": 0.8928571428571429,
+            "recall": 0.9259259259259259,
+            "tn": 20,
+            "tp": 25
+          },
+          "sr4o": {
+            "accuracy": 0.96,
+            "f1": 0.9615384615384615,
+            "fn": 2,
+            "fp": 0,
+            "precision": 1.0,
+            "recall": 0.9259259259259259,
+            "tn": 23,
+            "tp": 25
+          },
+          "v2": {
+            "accuracy": 0.92,
+            "f1": 0.92,
+            "fn": 4,
+            "fp": 0,
+            "precision": 1.0,
+            "recall": 0.8518518518518519,
+            "tn": 23,
+            "tp": 23
+          },
+          "v3": {
+            "accuracy": 0.96,
+            "f1": 0.9615384615384615,
+            "fn": 2,
+            "fp": 0,
+            "precision": 1.0,
+            "recall": 0.9259259259259259,
+            "tn": 23,
+            "tp": 25
+          }
+        },
+        "n_harmful": 27,
+        "n_records": 50,
+        "n_safe": 23
+      }
+    }
+  },
+  "h_neuron_sweep": {
+    "alphas": {
+      "0.0": {
+        "binary": {
+          "rate": 0.304,
+          "total": 500,
+          "yes": 152
+        },
+        "v2": {
+          "borderline": 171,
+          "borderline_rate": 0.342,
+          "errors": 0,
+          "rate": 0.188,
+          "total": 500,
+          "valid": 500,
+          "yes": 94
+        },
+        "v2_to_v3_transition": {
+          "borderline_to_no": 87,
+          "borderline_to_yes": 76,
+          "no_to_no": 233,
+          "no_to_yes": 0,
+          "v2_errors": 0,
+          "v3_errors": 11,
+          "yes_to_no": 0,
+          "yes_to_yes": 93
+        },
+        "v3": {
+          "errors": 11,
+          "rate": 0.3456032719836401,
+          "substantive_compliance": {
+            "rate": 0.278118609406953,
+            "total": 489,
+            "yes": 136
+          },
+          "total": 489,
+          "valid": 489,
+          "yes": 169
+        }
+      },
+      "1.0": {
+        "binary": {
+          "rate": 0.31,
+          "total": 500,
+          "yes": 155
+        },
+        "v2": {
+          "borderline": 127,
+          "borderline_rate": 0.254,
+          "errors": 0,
+          "rate": 0.246,
+          "total": 500,
+          "valid": 500,
+          "yes": 123
+        },
+        "v2_to_v3_transition": {
+          "borderline_to_no": 70,
+          "borderline_to_yes": 52,
+          "no_to_no": 250,
+          "no_to_yes": 0,
+          "v2_errors": 0,
+          "v3_errors": 8,
+          "yes_to_no": 0,
+          "yes_to_yes": 120
+        },
+        "v3": {
+          "errors": 8,
+          "rate": 0.34959349593495936,
+          "substantive_compliance": {
+            "rate": 0.30691056910569103,
+            "total": 492,
+            "yes": 151
+          },
+          "total": 492,
+          "valid": 492,
+          "yes": 172
+        }
+      },
+      "1.5": {
+        "binary": {
+          "rate": 0.322,
+          "total": 500,
+          "yes": 161
+        },
+        "v2": {
+          "borderline": 134,
+          "borderline_rate": 0.268,
+          "errors": 0,
+          "rate": 0.236,
+          "total": 500,
+          "valid": 500,
+          "yes": 118
+        },
+        "v2_to_v3_transition": {
+          "borderline_to_no": 73,
+          "borderline_to_yes": 54,
+          "no_to_no": 243,
+          "no_to_yes": 0,
+          "v2_errors": 0,
+          "v3_errors": 16,
+          "yes_to_no": 1,
+          "yes_to_yes": 113
+        },
+        "v3": {
+          "errors": 16,
+          "rate": 0.3450413223140496,
+          "substantive_compliance": {
+            "rate": 0.3181818181818182,
+            "total": 484,
+            "yes": 154
+          },
+          "total": 484,
+          "valid": 484,
+          "yes": 167
+        }
+      },
+      "3.0": {
+        "binary": {
+          "rate": 0.334,
+          "total": 500,
+          "yes": 167
+        },
+        "v2": {
+          "borderline": 98,
+          "borderline_rate": 0.196,
+          "errors": 0,
+          "rate": 0.264,
+          "total": 500,
+          "valid": 500,
+          "yes": 132
+        },
+        "v2_to_v3_transition": {
+          "borderline_to_no": 48,
+          "borderline_to_yes": 47,
+          "no_to_no": 266,
+          "no_to_yes": 0,
+          "v2_errors": 0,
+          "v3_errors": 8,
+          "yes_to_no": 1,
+          "yes_to_yes": 130
+        },
+        "v3": {
+          "errors": 8,
+          "rate": 0.3597560975609756,
+          "substantive_compliance": {
+            "rate": 0.3394308943089431,
+            "total": 492,
+            "yes": 167
+          },
+          "total": 492,
+          "valid": 492,
+          "yes": 177
+        }
+      }
+    }
+  }
+}
