@@ -83,17 +83,17 @@ def test_build_bridge_phase3_payload_exports_externality_break():
     assert payload["failure_modes"]["wrong_entity_substitution"]["share_pct"] == 70.0
 
 
-def test_build_d7_comparison_payload_exports_benchmark_local_caveat():
+def test_build_d7_comparison_payload_exports_dual_panel_benchmark_local_caveat():
     repo_root = Path(__file__).resolve().parents[1]
     payload = build_d7_comparison_payload(repo_root)
 
     assert payload["claim_status"] == "benchmark_local_supporting_evidence"
     assert (
         payload["caveat"]
-        == "D7 is a benchmark-local supporting result on a clean CSV2 v3 current-state "
-        "panel: causal is still the strongest completed branch, and the remaining "
-        "live caveats are causal token-cap and quality debt plus a small documented "
-        "residual CSV2-error set rather than mixed-ruler debt."
+        == "D7 should be read as a dual-panel result: keep the April 8 legacy panel "
+        "as historical provenance, and treat the April 16 current panel as "
+        "mixed-ruler benchmark-local supporting evidence rather than selector-"
+        "specific closure."
     )
     assert (
         "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json"
@@ -105,28 +105,28 @@ def test_build_d7_comparison_payload_exports_benchmark_local_caveat():
         "random branches on the current normalized panel."
     )
     assert payload["conditions"]["baseline"]["strict_harmfulness_normalized"][
-        "estimate_pct"
-    ] == pytest.approx(34.2)
+        "estimate"
+    ] == pytest.approx(0.234)
     assert payload["conditions"]["l1"]["strict_harmfulness_normalized"][
-        "estimate_pct"
-    ] == pytest.approx(36.4)
+        "estimate"
+    ] == pytest.approx(0.274)
     assert payload["conditions"]["causal"]["strict_harmfulness_normalized"][
-        "estimate_pct"
-    ] == pytest.approx(20.0)
+        "estimate"
+    ] == pytest.approx(0.144)
     assert payload["paired_vs_baseline"]["causal"]["strict_harmfulness_normalized"][
         "estimate_pp"
-    ] == pytest.approx(-14.2)
+    ] == pytest.approx(-9.0)
     assert payload["paired_vs_baseline"]["causal"]["strict_harmfulness_normalized"][
         "estimate"
-    ] == pytest.approx(-14.2)
+    ] == pytest.approx(-9.0)
     assert payload["paired_vs_baseline"]["l1"]["strict_harmfulness_normalized"][
         "estimate_pp"
-    ] == pytest.approx(2.2)
+    ] == pytest.approx(4.0)
     assert payload["token_cap"]["causal_hits"] == 112
     assert payload["token_cap"]["causal_share_pct"] == pytest.approx(22.4)
     assert payload["direct_comparisons"]["probe_vs_causal"][
         "strict_harmfulness_normalized"
-    ]["estimate_pp"] == pytest.approx(14.8)
+    ]["estimate_pp"] == pytest.approx(10.0)
     assert (
         payload["conditions"]["baseline"]["csv2_yes"]
         == payload["conditions"]["baseline"]["strict_harmfulness_normalized"]
@@ -149,12 +149,14 @@ def test_build_d7_comparison_payload_exports_benchmark_local_caveat():
     )
 
 
-def test_build_d7_comparison_payload_exports_current_state_namespace():
+def test_build_d7_comparison_payload_exports_mixed_ruler_current_state_namespace():
     repo_root = Path(__file__).resolve().parents[1]
     payload = build_d7_comparison_payload(repo_root)
     current_state = payload["current_state"]
 
-    assert current_state["claim_status"] == "benchmark_local_supporting_clean_panel"
+    assert (
+        current_state["claim_status"] == "benchmark_local_supporting_mixed_ruler_panel"
+    )
     assert (
         current_state["headline"]
         == "D7 current state: the causal branch is still the strongest completed "
@@ -163,21 +165,21 @@ def test_build_d7_comparison_payload_exports_current_state_namespace():
     )
     assert (
         current_state["caveat"]
-        == "Interpret D7 as benchmark-local supporting evidence on a clean CSV2 v3 "
-        "panel: the mixed-ruler debt on the current panel has been cleared, and the "
-        "remaining evaluator-error debt is now a small documented residual set after "
-        "repair. The main live caveat is causal token-cap and quality debt rather "
-        "than ruler debt."
+        == "Interpret D7 as benchmark-local supporting evidence on a mixed-ruler "
+        "current panel: causal is still the strongest completed branch, but the "
+        "comparison remains mixed-ruler, the probe/random branches remain "
+        "error-bearing, and the causal branch still carries visible token-cap and "
+        "quality debt."
     )
     assert (
         current_state["mixed_ruler_status"]["status"]
-        == "resolved_clean_v3_panel_small_residual_errors"
+        == "current_panel_still_mixed_ruler"
     )
     assert current_state["control"]["availability"] == "available_two_seed_panel"
     assert (
         current_state["control"]["seed_1"]["status"] == "complete_scored_error_bearing"
     )
-    assert current_state["control"]["status"] == "two_seed_clean_panel"
+    assert current_state["control"]["status"] == "two_seed_mixed_ruler_panel"
     assert (
         current_state["control"]["seed_2"]["status"] == "complete_scored_error_bearing"
     )
@@ -190,18 +192,18 @@ def test_build_d7_comparison_payload_exports_current_state_namespace():
     )
     assert current_state["current_panel"]["direct_random_layer_seed1_vs_causal"][
         "strict_harmfulness_normalized"
-    ]["estimate_pp"] == pytest.approx(17.2)
+    ]["estimate_pp"] == pytest.approx(12.4)
 
     current_panel = current_state["current_panel"]
     assert current_panel["conditions"]["baseline"]["strict_harmfulness_normalized"][
         "estimate_pct"
-    ] == pytest.approx(34.2)
+    ] == pytest.approx(51.6)
     assert current_panel["conditions"]["l1"]["strict_harmfulness_normalized"][
         "estimate_pct"
-    ] == pytest.approx(36.4)
+    ] == pytest.approx(46.8)
     assert current_panel["conditions"]["causal"]["strict_harmfulness_normalized"][
         "estimate_pct"
-    ] == pytest.approx(20.0)
+    ] == pytest.approx(24.8)
     assert current_panel["conditions"]["random_layer_seed1"][
         "strict_harmfulness_normalized"
     ]["estimate_pct"] == pytest.approx(37.2)
@@ -213,37 +215,37 @@ def test_build_d7_comparison_payload_exports_current_state_namespace():
     ] == pytest.approx(34.8)
     assert current_panel["deltas_vs_baseline"]["l1"]["strict_harmfulness_normalized"][
         "estimate_pp"
-    ] == pytest.approx(2.2)
+    ] == pytest.approx(-4.8)
     assert current_panel["deltas_vs_baseline"]["causal"][
         "strict_harmfulness_normalized"
-    ]["estimate_pp"] == pytest.approx(-14.2)
+    ]["estimate_pp"] == pytest.approx(-26.8)
     assert current_panel["deltas_vs_baseline"]["random_layer_seed1"][
         "strict_harmfulness_normalized"
-    ]["estimate_pp"] == pytest.approx(3.0)
+    ]["estimate_pp"] == pytest.approx(-14.4)
     assert current_panel["deltas_vs_baseline"]["random_layer_seed1"]["binary_harmful"][
         "estimate_pp"
     ] == pytest.approx(6.6)
     assert current_panel["deltas_vs_baseline"]["random_layer_seed2"][
         "strict_harmfulness_normalized"
-    ]["estimate_pp"] == pytest.approx(4.2)
+    ]["estimate_pp"] == pytest.approx(-13.2)
     assert current_panel["deltas_vs_baseline"]["random_layer_seed2"]["binary_harmful"][
         "estimate_pp"
     ] == pytest.approx(5.2)
     assert current_panel["deltas_vs_baseline"]["probe"][
         "strict_harmfulness_normalized"
-    ]["estimate_pp"] == pytest.approx(0.6)
+    ]["estimate_pp"] == pytest.approx(-16.8)
     assert current_panel["direct_causal_vs_random_layer_seed1"][
         "strict_harmfulness_normalized"
-    ]["estimate_pp"] == pytest.approx(-17.2)
+    ]["estimate_pp"] == pytest.approx(-12.4)
     assert current_panel["direct_causal_vs_random_layer_seed1"]["binary_harmful"][
         "estimate_pp"
     ] == pytest.approx(-17.2)
     assert current_panel["direct_causal_vs_probe"]["strict_harmfulness_normalized"][
         "estimate_pp"
-    ] == pytest.approx(-14.8)
+    ] == pytest.approx(-10.0)
     assert current_panel["direct_causal_vs_random_layer_seed2"][
         "strict_harmfulness_normalized"
-    ]["estimate_pp"] == pytest.approx(-18.4)
+    ]["estimate_pp"] == pytest.approx(-13.6)
     assert current_panel["direct_causal_vs_random_layer_seed2"]["binary_harmful"][
         "estimate_pp"
     ] == pytest.approx(-15.8)
@@ -319,7 +321,7 @@ def test_available_current_conditions_excludes_incomplete_optional_csv2(
     assert d7_current_state_summary._available_current_conditions() == [spec]
 
 
-def test_current_state_summary_counts_parse_failed_v3_rows_separately():
+def test_current_state_summary_tracks_legacy_and_v3_schema_counts():
     summary = d7_current_state_summary.build_summary()
     causal_counts = summary["current_panel"]["conditions"]["causal"][
         "csv2_schema_versions"
@@ -328,9 +330,7 @@ def test_current_state_summary_counts_parse_failed_v3_rows_separately():
         "csv2_schema_versions"
     ]
 
-    assert "legacy_unversioned" not in causal_counts
-    assert causal_counts["csv2_v3_parse_failed"] == 4
-    assert causal_counts["csv2_v3"] == 496
+    assert causal_counts == {"legacy_unversioned": 500}
     assert "legacy_unversioned" not in random_seed1_counts
     assert random_seed1_counts["csv2_v3_parse_failed"] == 1
     assert random_seed1_counts["csv2_v3"] == 499
