@@ -288,6 +288,13 @@ def add_legacy_d7_condition_aliases(condition: dict[str, Any]) -> dict[str, Any]
         condition_copy["csv2_yes"] = copy.deepcopy(
             condition_copy["strict_harmfulness_normalized"]
         )
+    if (
+        "strict_harmfulness_normalized" not in condition_copy
+        and "csv2_yes" in condition_copy
+    ):
+        condition_copy["strict_harmfulness_normalized"] = copy.deepcopy(
+            condition_copy["csv2_yes"]
+        )
     return condition_copy
 
 
@@ -300,6 +307,13 @@ def add_legacy_d7_comparison_aliases(metrics: dict[str, Any]) -> dict[str, Any]:
     ):
         metrics_copy["csv2_yes"] = copy.deepcopy(
             metrics_copy["strict_harmfulness_normalized"]
+        )
+    if (
+        "strict_harmfulness_normalized" not in metrics_copy
+        and "csv2_yes" in metrics_copy
+    ):
+        metrics_copy["strict_harmfulness_normalized"] = copy.deepcopy(
+            metrics_copy["csv2_yes"]
         )
     return metrics_copy
 
@@ -2126,7 +2140,7 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
     artifact_status = current_summary["artifact_status"]
     paired_vs_baseline = {
         comparator: add_legacy_d7_comparison_aliases(metrics)
-        for comparator, metrics in current_panel["paired_vs_baseline"].items()
+        for comparator, metrics in historical_panel["paired_vs_baseline"].items()
     }
     random_seed1_status = artifact_status["causal_random_head_layer_matched"]["seed_1"]
     random_seed2_status = artifact_status["causal_random_head_layer_matched"]["seed_2"]
@@ -2153,27 +2167,26 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         probe_condition["strict_harmfulness_normalized"]["n"]
     )
     current_state_caveat = (
-        "Interpret D7 as benchmark-local supporting evidence on a clean CSV2 v3 "
-        "panel: the mixed-ruler debt on the current panel has been cleared, and the "
-        "remaining evaluator-error debt is now a small documented residual set after "
-        "repair. The main live caveat is causal token-cap and quality debt rather "
-        "than ruler debt."
+        "Interpret D7 as benchmark-local supporting evidence on a mixed-ruler "
+        "current panel: causal is still the strongest completed branch, but the "
+        "comparison remains mixed-ruler, the probe/random branches remain "
+        "error-bearing, and the causal branch still carries visible token-cap and "
+        "quality debt."
     )
     top_level_caveat = (
-        "D7 is a benchmark-local supporting result on a clean CSV2 v3 current-state "
-        "panel: causal is still the strongest completed branch, and the remaining "
-        "live caveats are causal token-cap and quality debt plus a small documented "
-        "residual CSV2-error set rather than mixed-ruler debt."
+        "D7 should be read as a dual-panel result: keep the April 8 legacy panel as "
+        "historical provenance, and treat the April 16 current panel as mixed-ruler "
+        "benchmark-local supporting evidence rather than selector-specific closure."
     )
     control_availability = "available_single_seed_only"
-    control_status = "single_seed_clean_panel"
+    control_status = "single_seed_mixed_ruler_panel"
     if has_random_seed2:
         control_availability = "available_two_seed_panel"
-        control_status = "two_seed_clean_panel"
+        control_status = "two_seed_mixed_ruler_panel"
 
     current_state_namespace = {
         "date": "2026-04-16",
-        "claim_status": "benchmark_local_supporting_clean_panel",
+        "claim_status": "benchmark_local_supporting_mixed_ruler_panel",
         "headline": (
             "D7 current state: the causal branch is still the strongest completed "
             "full-500 condition, outperforming the available probe and layer-matched "
@@ -2185,7 +2198,7 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
             str(current_report_path.relative_to(repo_root)),
         ],
         "mixed_ruler_status": {
-            "status": "resolved_clean_v3_panel_small_residual_errors",
+            "status": "current_panel_still_mixed_ruler",
             "historical_panel_status": "historical_provenance_only",
             "description": current_panel["description"],
         },
@@ -2286,11 +2299,11 @@ def build_d7_comparison_payload(repo_root: Path) -> dict[str, Any]:
         "headline": current_state_namespace["headline"],
         "conditions": {
             "baseline": add_legacy_d7_condition_aliases(
-                current_panel["conditions"]["baseline"]
+                historical_panel["conditions"]["baseline"]
             ),
-            "l1": add_legacy_d7_condition_aliases(current_panel["conditions"]["l1"]),
+            "l1": add_legacy_d7_condition_aliases(historical_panel["conditions"]["l1"]),
             "causal": add_legacy_d7_condition_aliases(
-                current_panel["conditions"]["causal"]
+                historical_panel["conditions"]["causal"]
             ),
         },
         "paired_vs_baseline": paired_vs_baseline,

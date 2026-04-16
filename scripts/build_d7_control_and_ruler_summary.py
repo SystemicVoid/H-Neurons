@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the current-state D7 full-500 summary."""
+"""Build the canonical mixed-ruler D7 full-500 current-state summary."""
 
 from __future__ import annotations
 
@@ -42,21 +42,21 @@ BASE_CURRENT_CONDITIONS = [
         label="baseline_noop",
         alpha=1.0,
         experiment_path=RUN_ROOT / "baseline_noop/experiment/alpha_1.0.jsonl",
-        csv2_path=RUN_ROOT / "baseline_noop/csv2_v3_evaluation/alpha_1.0.jsonl",
+        csv2_path=RUN_ROOT / "baseline_noop/csv2_evaluation/alpha_1.0.jsonl",
     ),
     ConditionSpec(
         key="l1",
         label="l1_neuron",
         alpha=3.0,
         experiment_path=RUN_ROOT / "l1_neuron/experiment/alpha_3.0.jsonl",
-        csv2_path=RUN_ROOT / "l1_neuron/csv2_v3_evaluation/alpha_3.0.jsonl",
+        csv2_path=RUN_ROOT / "l1_neuron/csv2_evaluation/alpha_3.0.jsonl",
     ),
     ConditionSpec(
         key="causal",
         label="causal_locked",
         alpha=4.0,
         experiment_path=RUN_ROOT / "causal_locked/experiment/alpha_4.0.jsonl",
-        csv2_path=RUN_ROOT / "causal_locked/csv2_v3_evaluation/alpha_4.0.jsonl",
+        csv2_path=RUN_ROOT / "causal_locked/csv2_evaluation/alpha_4.0.jsonl",
     ),
     ConditionSpec(
         key="random_layer_seed1",
@@ -549,13 +549,13 @@ def _current_panel_summary() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]
     return {
         "description": (
             "Current D7 current-state panel built from the stored full-500 artifacts "
-            "using CSV2 v3-native outputs for all six compared conditions. The "
-            "baseline, L1, and causal branches were rescored from raw generations "
-            "into fresh v3 outputs, and the probe/random branches were repaired so "
-            "the live panel no longer depends on mixed-ruler reconciliation. After "
-            "two repair passes, a small documented residual set of explicit CSV2 "
-            "errors remains; the main live caveat is still causal token-cap and "
-            "quality debt rather than ruler debt."
+            "under a mixed-ruler interpretation. The baseline, L1, and causal "
+            "branches remain anchored to the repaired legacy CSV2 outputs, while the "
+            "probe and layer-matched random branches use the newer CSV2-scored "
+            "artifacts. The panel is therefore the best available current-state "
+            "comparison, but not a like-for-like rerun on one stable ruler. The main "
+            "live caveats remain mixed-ruler status, error-bearing non-causal "
+            "comparators, and causal token-cap plus quality debt."
         ),
         "conditions": condition_metadata,
         "random_layer_matched_family": _random_layer_family_summary(condition_metadata),
