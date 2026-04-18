@@ -64,7 +64,7 @@ We find repeated dissociations between four stages that are routinely conflated:
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/fig1_scaffold.pdf}
-  \caption{The four-stage audit scaffold. Each transition represents a distinct empirical gate where the readout-to-steering heuristic can break. The paper's three anchor case studies map onto the localization$\to$control (\S\ref{sec:localization}), control$\to$externality (\S\ref{sec:externality}), and measurement$\to$conclusion (\S\ref{sec:measurement}) transitions.}
+  \caption{The four-stage audit scaffold. Each transition represents a distinct empirical gate where the readout-to-steering heuristic can break. The paper's three anchor case studies map onto the localization$\to$control (\S\ref{sec:localization}), control$\to$externality (\S\ref{sec:externality}), and measurement$\to$verdict (\S\ref{sec:measurement}) transitions.}
   \label{fig:scaffold}
 \end{figure*}
 
@@ -306,7 +306,7 @@ The four stages---measurement, localization, control, and externality---are sepa
 They are an empirical observation about where intervention claims break in practice:
 
 \begin{itemize}
-  \item \textbf{Measurement$\to$Conclusion.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In our jailbreak setting, truncation, binary-versus-graded scoring, and evaluator choice each altered the conclusion about the same outputs (\S\ref{sec:measurement}).
+  \item \textbf{Measurement$\to$Verdict.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In our jailbreak setting, truncation, binary-versus-graded scoring, and evaluator choice each altered the conclusion about the same outputs (\S\ref{sec:measurement}).
   \item \textbf{Localization$\to$Control.} A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality, yet did not translate into useful control (\S\ref{sec:localization}).
   \item \textbf{Control$\to$Externality.} An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA MC1 but reduced open-ended factual accuracy, where wrong-entity substitution was the dominant failure mode (\S\ref{sec:externality}).
 \end{itemize}

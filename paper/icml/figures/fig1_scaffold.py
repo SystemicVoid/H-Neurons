@@ -28,7 +28,7 @@ STAGES = [
 ]
 
 ANCHORS = [
-    r"Meas.$\to$Conclusion" + "\ntruncation, grading,\n" + r"evaluator ($\S$6)",
+    r"Meas.$\to$Verdict" + "\ntruncation, grading,\n" + r"evaluator ($\S$6)",
     r"Loc.$\to$Control" + "\nSAE vs H-neurons\n" + r"steering ($\S$4)",
     r"Ctrl.$\to$Externality" + "\nITI gain vs bridge\n" + r"harm ($\S$5)",
 ]
