@@ -3,8 +3,11 @@ https://docs.google.com/document/d/1XUTmk7EQHSNh2vNky1FSupxEKt3HYbEXRl5Li-MEwLI/
 
 Do NOT touch any other tab.
 
+The Main-write-up tab is not plain text. It has 267 paragraphs, 9 tables, and 4 inline figures (as of 17/04). That rules out a blunt delete-and-reinsert plan if we want to reserve valid content and avoid collateral damage to figures/tables.
+
+
 Objective:
-Bring the Main-write-up fully in line with the latest current story and evidence, especially all material changes since the 2026-04-12 content update. The result must be faithful to the current paper, scientifically calibrated, and polished in content and prose.
+Bring the Main-write-up fully in line with the latest current story and evidence, especially all material changes since the last content update. The result must be faithful to the current paper, scientifically calibrated, and polished in content and prose.
 
 Scope:
 - Read the current Main-write-up.
