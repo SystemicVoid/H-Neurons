@@ -1,0 +1,14 @@
+# Build intermediates
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+
+# Downloaded archive
+icml2026.zip
+
+# Template example files
+example_paper.*
+icml_numpapers.pdf
