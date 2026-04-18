@@ -83,6 +83,7 @@ The paper does not claim a new steering method or a general failure of detector-
 % 2. RELATED WORK
 % ======================================================================
 \section{Related Work}
+\label{sec:related}
 
 Foundational probe critiques establish that high readout accuracy can arise for reasons the model does not functionally rely on \citep{hewitt2019control,elazar2021amnesic,kumar2022probes}.
 More recent work moves to the intervention question directly: within SAE feature selection, high-scoring features need not steer well \citep{arad2025saes}; AxBench reports that detection and steering need not be jointly optimized \citep{wu2025axbench}; and \citet{bhalla2024unifying} describe a predict/control discrepancy for interpretability-based interventions.
@@ -91,7 +92,8 @@ More recent work moves to the intervention question directly: within SAE feature
 On measurement, StrongREJECT \citep{souly2024strongreject} showed that binary scoring can overestimate jailbreak effectiveness, and \citet{chen2025safer} showed that evaluator artifacts materially affect safety judgments.
 
 Three narrower gaps motivate this paper.
-First, we provide a matched cross-target-type comparison on one behavioral surface (FaithEval), controlling for readout quality across neurons and SAE features.
+First, prior work demonstrates detection-steering divergence within single method families---\citet{arad2025saes} show this within SAE feature selection (input vs.\ output scoring).
+We extend the comparison across representational bases (feed-forward neurons vs.\ SAE features) on a single behavioral surface (FaithEval), controlling for held-out readout quality.
 Second, we behaviorally diagnose the exact failure mode when ITI gains fail to transfer---wrong-entity substitution rather than simple suppression.
 Third, we integrate measurement, localization, control, and externality concerns into a single case study and a practical audit framework.
 
@@ -170,7 +172,8 @@ The intervention modulates compliance-adjacent behavior but does not improve dom
 
 Inference-Time Intervention using TruthfulQA-sourced truthfulness directions \citep{li2023iti} produces a clear improvement on answer selection: $+6.3$~pp MC1 $[3.7, 8.9]$ and $+7.49$~pp MC2 $[5.28, 9.82]$ on held-out TruthfulQA folds, with 61 incorrect$\to$correct flips against 20 correct$\to$incorrect flips at $\alpha = 8.0$.
 
-This gain does not transfer to open-ended factual generation.
+This MC/generation divergence replicates the finding of \citet{li2023iti} in LLaMA/Alpaca; we extend it in Gemma-3-4B-IT by characterizing the behavioral mechanism.
+The gain does not transfer to open-ended factual generation.
 On SimpleQA ($n = 1{,}000$) with a prompt that removes the explicit escape hatch, ITI at $\alpha = 8.0$ reduces correct-answer rate from 4.6\% $[3.5, 6.1]$ to 2.8\% $[1.9, 4.0]$ (paired $\Delta = -1.8$~pp $[-3.1, -0.6]$).
 The attempt rate collapses from 99.7\% to 67.0\%, indicating that the truthfulness direction promotes epistemic caution---the model hedges or refuses rather than generating factual answers.
 Precision among attempted answers remains stable (${\sim}4$\%), suggesting the intervention does not improve factual accuracy; it merely suppresses generation.
@@ -241,15 +244,15 @@ DC comic intro.\ Superman? & Action Comics & Detective Comics (same publisher) \
 The preceding sections established that detection quality does not predict steerability (\S\ref{sec:localization}) and that successful steering is narrow in scope (\S\ref{sec:externality}).
 Both conclusions rest on behavioral measurements---jailbreak harmfulness rates, severity scores, and generation-surface accuracy---that are themselves products of evaluation choices.
 In this section we show that those choices are part of the scientific result: generation length, scoring granularity, and evaluator identity each shifted what we would have concluded about whether a given intervention worked.
+The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that these choices reversed the conclusion about a representation-engineering intervention on the same set of outputs.
 
 We organize the case study around the H-neuron jailbreak scaling experiment (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n = 500$ per condition), because its moderate effect size makes it sensitive to every measurement decision we examine.
 
 \textbf{Truncation hides downstream content.}
-Early jailbreak runs in this project used short generation caps (256 tokens in the legacy setup).
+Short generation caps (e.g., 256 tokens) can systematically bias intervention evaluations when steering changes response structure.
 Gemma-3-4B-IT often begins jailbreak responses with a refusal preamble and only later emits substantive harmful content.
-Short caps therefore preferentially capture the refusal-looking prefix and hide the downstream payload.
-Moving to the canonical full-generation setup ($\texttt{max\_new\_tokens} = 5{,}000$, sampled decoding) changed two interpretations.
-First, the apparent high-alpha reversal in a gradient-ranked pilot was revealed to be degeneration rather than a clean behavioral sign flip: 82\% of probe responses hit the 5,000-token cap at $\alpha = 8.0$.
+Short caps therefore preferentially capture the refusal-looking prefix and hide the downstream payload, overestimating intervention effectiveness.
+Under full-generation scoring ($\texttt{max\_new\_tokens} = 5{,}000$, sampled decoding), an apparent high-alpha reversal in a gradient-ranked pilot was revealed to be degeneration rather than a clean behavioral sign flip: 82\% of probe responses hit the 5,000-token cap at $\alpha = 8.0$.
 Full-generation scoring is therefore required for the kinds of jailbreak claims made in this paper.
 
 \textbf{Scoring granularity changes the verdict.}
@@ -334,6 +337,11 @@ Externality & At least one non-target surface; capability check; report harms an
 \end{tabular}
 \vskip -0.1in
 \end{table}
+
+Most published steering results report localization (readout quality) and target-surface control.
+Few report matched negative controls, and fewer still test on a non-target surface or audit evaluator agreement.
+In our case study, each omitted gate would have licensed a claim that the full audit rejects: without measurement audits, the jailbreak intervention looks null; without externality checks, the ITI intervention looks beneficial.
+The checklist is not a theoretical contribution---it is a codification of the points where our own conclusions changed.
 
 \subsection{Five Recommendations}
 
