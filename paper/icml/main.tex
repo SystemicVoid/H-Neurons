@@ -1,4 +1,4 @@
-%%%%%%%% ICML 2026 MI Workshop — Finding the Signal, Losing the Wheel %%%%%%%%%
+%%%%%%%% ICML 2026 MI Workshop — Detection Is Not Enough %%%%%%%%%
 \documentclass{article}
 
 \usepackage{microtype}
@@ -10,13 +10,13 @@
 \usepackage{amssymb}
 \usepackage{xurl}
 
-\icmltitlerunning{Finding the Signal, Losing the Wheel}
+\icmltitlerunning{Detection Is Not Enough}
 
 \begin{document}
 
 \twocolumn[
-  \icmltitle{Finding the Signal, Losing the Wheel:\\
-    The Paradox of Internal Readouts in Gemma-3-4B-IT}
+  \icmltitle{Detection Is Not Enough:\\
+    Strong Readouts Often Fail as Steering Targets in Gemma-3-4B-IT}
 
   \begin{icmlauthorlist}
     \icmlauthor{Anonymous}{}
@@ -32,9 +32,9 @@
 \begin{abstract}
 Predictive internal signals are often treated as natural targets for steering language models, but their reliability as intervention handles remains unclear.
 We test this assumption in Gemma-3-4B-IT across contextual faithfulness, factual generation, and jailbreak settings.
-In a matched FaithEval comparison, SAE features and magnitude-ranked H-neurons achieve similar detection quality (AUROC 0.848 vs.\ 0.843), yet only H-neurons produce a reliable compliance dose-response ($+2.1$ pp/$\alpha$ [1.4, 2.8]; neuron-minus-SAE gap excludes zero).
+In a cross-family FaithEval comparison, sparse autoencoder (SAE) features and magnitude-ranked H-neurons achieve similar held-out detection quality (AUROC 0.848 vs.\ 0.843), yet only H-neurons produce a reliable compliance dose-response ($+2.1$ pp/$\alpha$ [1.4, 2.8]; neuron-minus-SAE gap excludes zero).
 When steering works, it remains surface-local: ITI improves TruthfulQA answer selection by $+6.3$ pp MC1 but reduces TriviaQA bridge accuracy by $-5.8$ pp [$-8.8$, $-3.0$], most often through wrong-entity substitution.
-Measurement choices also change the conclusion: truncation, scoring granularity, and evaluator identity alter the apparent jailbreak result.
+Measurement choices also change the conclusion: truncation and scoring granularity alter the apparent jailbreak result, and a held-out evaluator audit reveals rubric-dependent disagreement.
 We organize these findings as a four-stage audit framework---measurement, localization, control, and externality---and argue that strong readouts are insufficient evidence for good steering targets.
 \end{abstract}
 
@@ -69,7 +69,7 @@ We find repeated dissociations between four stages that are routinely conflated:
 \end{figure*}
 
 \textbf{Contributions.}
-(1)~A matched FaithEval comparison showing that similar readout quality yields sharply different steering outcomes.
+(1)~A FaithEval comparison showing that similar held-out readout quality yields sharply different steering outcomes.
 (2)~An externality analysis showing that answer-selection gains do not transfer to generation, with wrong-entity substitution as the dominant failure mode.
 (3)~A four-stage audit framework for evaluating mechanistic intervention claims without collapsing measurement, localization, control, and externality into one inference.
 
@@ -79,6 +79,16 @@ We compare multiple intervention families---neuron scaling, SAE feature steering
 We organize results through four analytic stages as empirical gates in the path from ``a feature predicts behavior $X$'' to ``intervening on that feature usefully changes behavior $X$.''
 The paper does not claim a new steering method or a general failure of detector-based targets; the thesis is that readout quality alone is an unreliable predictor of steering utility.
 
+\textbf{Construct surfaces.}
+We treat FaithEval as a context-faithfulness / anti-compliance surface, TruthfulQA MC as constrained answer selection, TriviaQA bridge and SimpleQA as open-ended factual generation, and JailbreakBench as a harmfulness-evaluation surface; all claims in this paper are surface-specific.
+
+\textbf{Hypotheses.}
+We evaluate three hypotheses, each corresponding to a gate in the readout-to-behavior chain.
+\textbf{H1} (localization$\to$control): held-out readout quality is sufficient evidence for selecting steering targets---rejected in the FaithEval neuron-vs-SAE comparison (\S\ref{sec:localization}).
+\textbf{H2} (control$\to$externality): truthfulness-adjacent answer-selection gains transfer to open-ended factual generation---rejected by the TruthfulQA MC vs.\ TriviaQA bridge dissociation (\S\ref{sec:externality}).
+\textbf{H3} (measurement$\to$verdict): reasonable measurement choices leave the scientific verdict stable---rejected by the jailbreak measurement audit (\S\ref{sec:measurement}).
+Each rejection is evidenced on a specific surface; we do not generalize to architectures or settings not tested here.
+
 % ======================================================================
 % 2. RELATED WORK
 % ======================================================================
@@ -86,34 +96,35 @@ The paper does not claim a new steering method or a general failure of detector-
 \label{sec:related}
 
 Foundational probe critiques establish that high readout accuracy can arise for reasons the model does not functionally rely on \citep{hewitt2019control,elazar2021amnesic,kumar2022probes}.
-More recent work moves to the intervention question directly: within SAE feature selection, high-scoring features need not steer well \citep{arad2025saes}; AxBench reports that detection and steering need not be jointly optimized \citep{wu2025axbench}; and \citet{bhalla2024unifying} describe a predict/control discrepancy for interpretability-based interventions.
+More recent work moves to the intervention question directly: within SAE feature selection, high-scoring features need not steer well \citep{arad2025saes}; AxBench reports that detection and steering need not be jointly optimized \citep{wu2025axbench}; \citet{wang2026interpretability} report only a weak positive association between SAE interpretability and steering utility across 90 SAEs (Kendall's $\tau_b \approx 0.298$); and \citet{bhalla2024unifying} describe a predict/control discrepancy for interpretability-based interventions.
 \citet{li2023iti} already showed that ITI's multiple-choice gains can diverge from generative gains, and \citet{opielka2026causality} demonstrated that causally effective function vectors can be format-specific.
 \citet{hase2023localization} showed that better localization does not reliably predict better editing, providing a close precedent for the localization/control dissociation.
 On measurement, StrongREJECT \citep{souly2024strongreject} showed that binary scoring can overestimate jailbreak effectiveness, and \citet{chen2025safer} showed that evaluator artifacts materially affect safety judgments.
 
-Three narrower gaps motivate this paper.
-First, prior work demonstrates detection-steering divergence within single method families---\citet{arad2025saes} show this within SAE feature selection (input vs.\ output scoring).
-We extend the comparison across representational bases (feed-forward neurons vs.\ SAE features) on a single behavioral surface (FaithEval), controlling for held-out readout quality.
-Second, we behaviorally diagnose the exact failure mode when ITI gains fail to transfer---wrong-entity substitution rather than simple suppression.
-Third, we integrate measurement, localization, control, and externality concerns into a single case study and a practical audit framework.
+Concurrent SAE-centric analyses \citep{arad2025saes,wang2026interpretability} and synthetic-benchmark evaluations \citep{wu2025axbench} make detection/control divergence increasingly clear within single-family settings.
+Three elements remain distinctive here.
+(i)~A neuron-vs-SAE comparison on a single real behavioral surface (FaithEval), with similar held-out readout quality while varying representational basis.
+(ii)~A behavioral externality diagnosis on TriviaQA bridge generation---wrong-entity substitution rather than simple suppression---evaluated under a one-shot frozen protocol.
+(iii)~A measurement audit showing that truncation and scoring granularity change the scientific verdict on the same intervention outputs, while the evaluator audit reveals rubric-dependent disagreement.
+We integrate all three into a four-stage audit framework (measurement, localization, control, externality).
 
 % ======================================================================
 % 3. LOCALIZATION -> CONTROL
 % ======================================================================
-\section{Localization Does Not Predict Control}
+\section{Similar Readout Quality Does Not Guarantee Control}
 \label{sec:localization}
 
 \subsection{The Readouts Are Real}
 
 The intervention targets were selected through held-out predictive readouts.
-A CETT probe \citep{gao2025hneurons} identified 38 positive-weight neurons out of 348,160 feed-forward neurons and achieved AUROC~$0.843$ (accuracy 76.5\%, $n_{\text{test}} = 780$).
+A sparse H-neuron probe following \citet{gao2025hneurons} identified 38 positive-weight neurons out of 348,160 feed-forward neurons and achieved AUROC~$0.843$ (accuracy 76.5\%, $n_{\text{test}} = 780$).
 A parallel L1 probe on Gemma Scope~2 SAE activations selected 266 positive-weight features across 10 layers and achieved AUROC~$0.848$ (accuracy 77.2\%, $n_{\text{test}} = 782$).
 These are real held-out signals, though individual-weight interpretation remains fragile (Appendix~\ref{app:detector}).
 
-\subsection{Matched Readouts, Divergent Control}
+\subsection{Comparable Readouts, Divergent Control}
 
-Both methods achieve matched detection quality on FaithEval \citep{ming2025faitheval} ($n = 1{,}000$).
-The 38 CETT-selected neurons were scaled multiplicatively across $\alpha \in \{0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0\}$, with $\alpha = 1.0$ as the no-op baseline.
+Both methods achieve similar held-out detection quality, and we evaluate both interventions on the same 1,000 FaithEval items \citep{ming2025faitheval}.
+The 38 probe-selected neurons were scaled multiplicatively across $\alpha \in \{0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0\}$, with $\alpha = 1.0$ as the no-op baseline.
 The 266 SAE features were scaled through an encode-modify-decode intervention on the same grid.
 
 The neuron intervention showed a clear dose-response: compliance slope $+2.09$ pp/$\alpha$ $[1.38, 2.83]$, with perfect Spearman monotonicity ($\rho = 1.0$).
@@ -126,7 +137,7 @@ A delta-only architecture that cancels reconstruction error confirmed the null: 
 The neuron baseline on the same three-alpha subset remained $+2.12$ pp/$\alpha$.
 
 The paired neuron-minus-SAE slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (permutation $p < 0.001$).
-On matched FaithEval items, matched readout quality did not predict matched intervention utility: H-neurons and SAE features read out the construct equally well, but only the neuron intervention produced a robust behavioral dose-response.
+On the same 1,000 FaithEval items, similar held-out readout quality did not predict intervention utility: H-neurons and SAE features showed comparable detector performance, but only the neuron intervention produced a robust behavioral dose-response.
 
 \subsection{Synthesis}
 
@@ -136,15 +147,15 @@ The refusal-direction literature \citep{arditi2024refusal} remains another impor
 The thesis is not that detection-based targets never work---it is that readout quality alone is an unreliable heuristic for predicting \emph{when} they will.
 SAE features matched H-neurons on the quantity most commonly used to justify steering (held-out AUROC) and failed on the downstream behavioral test.
 
-A natural objection is that the matched-readout design confounds representational basis with readout quality: SAE features and neurons differ in operator form, layer coverage, and feature granularity.
+A natural objection is that this comparable-readout design confounds representational basis with readout quality: SAE features and neurons differ in operator form, layer coverage, and feature granularity.
 That is true, and it means the clean inference is narrower than ``only readout quality matters.''
-The claim is instead that readout quality \emph{alone} did not suffice to predict steering utility in this matched comparison.
+The claim is instead that readout quality \emph{alone} did not suffice to predict steering utility in this comparison.
 We discuss this limitation further in~\S\ref{sec:framework}.
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/fig2_matched.pdf}
-  \caption{The anchor result: FaithEval matched readouts, divergent control.
+  \caption{The anchor result: FaithEval comparable readouts, divergent control.
   (a)~H-neurons and SAE features have similar held-out detection AUROC.
   (b)~Only H-neurons produce a dose-dependent compliance increase; SAE features and random SAE features are both flat.
   The neuron-minus-SAE slope difference ($+1.93$ pp/$\alpha$, 95\% CI excludes zero) confirms the dissociation.}
@@ -165,7 +176,7 @@ On FaithEval, compliance increases by $+4.5$~pp $[2.9, 6.1]$ above the no-op bas
 On FalseQA ($n = 687$), the same neurons show a dose-response slope of $+1.62$ pp/$\alpha$ $[0.52, 2.74]$.
 
 However, the same 38 neurons show no robust net accuracy effect on BioASQ factoid QA: $-0.06$~pp $[-1.5, 1.4]$ on a well-powered sample ($n = 1{,}600$, MDE ${\sim}2$~pp), despite substantially perturbing answer style in 1,339 of 1,600 responses.
-The endpoint is flat, but the intervention is behaviorally active---this is a portability limit on the metric, not behavioral inactivity.
+The flat accuracy endpoint coexists with substantial output perturbation, suggesting that behavioral activity and alias-accuracy movement come apart on this surface.
 The intervention modulates compliance-adjacent behavior but does not improve domain-specific factual accuracy under the alias metric.
 
 \subsection{ITI: Answer Selection vs.\ Open-Ended Generation}
@@ -199,6 +210,7 @@ The dominant damage is factual corruption, not silence.
 Of the 43 R$\to$W flips, 30 were manually classified as substitutions where the model replaces a correct factual answer with a different entity from the same semantic neighborhood (${\sim}70\%$; Table~\ref{tab:substitution}).
 Three additional failure modes account for the remaining 13 flips: evasion/factual denial (8/43, 19\%), answer dilution from verbosity (3/43, 7\%), and formal refusal (2/43, 5\%).
 This pattern is consistent with a coarse behavior-level reweighting toward nearby but wrong candidates rather than simple suppression of generation.
+We treat wrong-entity substitution as a behavioral diagnosis rather than a claim about the exact internal circuit mechanism.
 
 The 14 wrong-to-right rescues show that the intervention is behaviorally active in both directions: on some questions it moves a wrong baseline answer to the correct entity, though on this surface the damage rate is larger than the rescue rate.
 
@@ -243,8 +255,8 @@ DC comic intro.\ Superman? & Action Comics & Detective Comics (same publisher) \
 
 The preceding sections established that detection quality does not predict steerability (\S\ref{sec:localization}) and that successful steering is narrow in scope (\S\ref{sec:externality}).
 Both conclusions rest on behavioral measurements---jailbreak harmfulness rates, severity scores, and generation-surface accuracy---that are themselves products of evaluation choices.
-In this section we show that those choices are part of the scientific result: generation length, scoring granularity, and evaluator identity each shifted what we would have concluded about whether a given intervention worked.
-The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that these choices reversed the conclusion about a representation-engineering intervention on the same set of outputs.
+In this section we show that those choices are part of the scientific result: generation length and scoring granularity shifted what we would have concluded about whether a given intervention worked, while the evaluator audit exposes residual rubric dependence on the same outputs.
+The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that measurement choices can reverse the conclusion about a representation-engineering intervention on the same set of outputs, even when two held-out evaluators tie in aggregate accuracy.
 
 We organize the case study around the H-neuron jailbreak scaling experiment (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n = 500$ per condition), because its moderate effect size makes it sensitive to every measurement decision we examine.
 
@@ -252,7 +264,6 @@ We organize the case study around the H-neuron jailbreak scaling experiment (38 
 Short generation caps (e.g., 256 tokens) can systematically bias intervention evaluations when steering changes response structure.
 Gemma-3-4B-IT often begins jailbreak responses with a refusal preamble and only later emits substantive harmful content.
 Short caps therefore preferentially capture the refusal-looking prefix and hide the downstream payload, overestimating intervention effectiveness.
-Under full-generation scoring ($\texttt{max\_new\_tokens} = 5{,}000$, sampled decoding), an apparent high-alpha reversal in a gradient-ranked pilot was revealed to be degeneration rather than a clean behavioral sign flip: 82\% of probe responses hit the 5,000-token cap at $\alpha = 8.0$.
 Full-generation scoring is therefore required for the kinds of jailbreak claims made in this paper.
 
 \textbf{Scoring granularity changes the verdict.}
@@ -260,7 +271,7 @@ The same H-neuron jailbreak outputs look different under binary and graded evalu
 A GPT-4o binary harmful/safe judge shows a $+3.0$~pp endpoint shift ($\alpha = 0 \to 3$, 152/500~$\to$~167/500), with a confidence interval that includes zero.
 Under binary evaluation alone, the intervention looks weak and non-decisive.
 
-CSV-v2 graded evaluation on the same outputs recovers a materially different result.
+A graded harmfulness rubric (CSV-v2) applied to the same outputs recovers a materially different result.
 The H-neuron strict harmfulness slope is $+2.30$ pp/$\alpha$ $[+0.99, +3.58]$, while a matched random-neuron control is flat at $-0.47$ pp/$\alpha$ $[-1.42, +0.47]$.
 The slope difference is $+2.77$ pp/$\alpha$ $[+1.17, +4.42]$ with permutation $p = 0.013$.
 Binary scoring washes out this signal because the effect largely lives in the movement of borderline cases into clearer refusal or clearer compliance.
@@ -270,7 +281,7 @@ This is the section's core granularity result: binary evaluation suggests a weak
 \textbf{Evaluator dependence is part of the result.}
 On a contamination-free 50-record holdout, four evaluators spanning two judge models and three rubrics yield the accuracies in Table~\ref{tab:evaluator}.
 No pairwise holdout difference is statistically confirmable.
-CSV-v3 and StrongREJECT-GPT-4o both reached 96.0\% holdout accuracy with identical error sets, so the reason to keep CSV-v3 in this paper is not binary superiority but richer outcome taxonomy.
+A taxonomy-based graded rubric (CSV-v3) and StrongREJECT-GPT-4o both reached 96.0\% holdout accuracy with identical error sets, so the reason to keep CSV-v3 in this paper is not binary superiority but richer outcome taxonomy.
 
 The residual disagreement is informative because it clusters on a recognizable response type: refuse-then-comply outputs.
 StrongREJECT's formula zeroes the final score when \texttt{refused = 1}, even if later text contains specific harmful substance.
@@ -338,8 +349,7 @@ Externality & At least one non-target surface; capability check; report harms an
 \vskip -0.1in
 \end{table}
 
-Most published steering results report localization (readout quality) and target-surface control.
-Few report matched negative controls, and fewer still test on a non-target surface or audit evaluator agreement.
+In our reading of the recent steering literature, target-surface control is reported more often than matched negative controls, cross-surface tests, or evaluator audits.
 In our case study, each omitted gate would have licensed a claim that the full audit rejects: without measurement audits, the jailbreak intervention looks null; without externality checks, the ITI intervention looks beneficial.
 The checklist is not a theoretical contribution---it is a codification of the points where our own conclusions changed.
 
@@ -347,7 +357,7 @@ The checklist is not a theoretical contribution---it is a codification of the po
 
 \textbf{R1: Do not treat held-out readout quality as sufficient target-selection evidence.}
 Readout quality---whether measured by AUROC, accuracy, or probe coefficient magnitude---is insufficient on its own for identifying useful steering targets.
-Our matched comparison (\S\ref{sec:localization}) shows that similar held-out AUROC can fail to predict intervention utility.
+Our comparison in \S\ref{sec:localization} shows that similar held-out AUROC can fail to predict intervention utility.
 
 \textbf{R2: Validate on the behavioral surface you actually care about.}
 Answer-selection benchmarks and open-ended generation benchmarks measure different constructs, and intervention effects do not transfer reliably between them (\S\ref{sec:externality}).
@@ -365,13 +375,16 @@ Interventions that help on one metric can harm others.
 Our bridge results show that the harm can be a specific, interpretable failure mode (\S\ref{sec:externality}).
 Cross-surface effects belong next to the headline result, not in the footnotes.
 
+Our externality results suggest that the next useful move is toward selective or conditional interventions that trigger only under answer-risk or context-specific failure conditions, closer in spirit to conditional activation steering \citep{lee2025cast} than to unconditional global shifts.
+
 \subsection{Limitations}
 
 All experiments use a single model (Gemma-3-4B-IT); the dissociations may not replicate across architectures or scales, though \citet{gao2025hneurons} report qualitatively similar H-neuron compliance effects across six models.
-The matched-readout design controls for AUROC but cannot rule out that some other property of the feature family (operator form, layer coverage) explains the steering divergence.
+The comparable-readout design keeps held-out AUROC close but cannot rule out that some other property of the feature family (operator form, layer coverage) explains the steering divergence.
 SAE layer coverage is partial; a different SAE width or layer selection could yield non-null results.
 Bridge failure-mode coding is single-rater without inter-rater reliability, so exact shares are approximate.
 Jailbreak H-neuron specificity is single-seed ($p = 0.013$); additional seeds are needed.
+Concurrent work \citep{wang2026interpretability,arad2025saes,wu2025axbench} already argues for interpretability/utility divergence from SAE-centric and benchmark-driven perspectives; we do not claim first demonstration of this phenomenon. Our distinctness lies in cross-representational matching on a real behavioral surface plus explicit transfer and measurement audits.
 The full limitation inventory is in Appendix~\ref{app:limitations}.
 
 % ======================================================================
