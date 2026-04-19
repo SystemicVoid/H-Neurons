@@ -1,9 +1,11 @@
 """
-Figure 1: Four-Stage Interpretability Scaffold.
+Figure 1 (draft): Four-Stage Interpretability Scaffold.
 
-Conceptual pipeline diagram for "Strong Readouts, Local Levers" showing the four
-stages (Measurement, Localization, Control, Externality) and concise
-transition labels that mark where the scaffold breaks.
+Two-row layout: (top) four stage cards + three plain arrows; (bottom) three
+audit-gate callouts, each tethered to its anchor. Box-anchored gate =
+within-stage break (Measurement -> Verdict); arrow-anchored gates =
+inter-stage breaks. Mirrors the ICML version at a larger canvas with
+sans-serif body for the draft.
 
 Usage:
     uv run python paper/draft/figures/fig1_four_stage_scaffold.py
@@ -12,17 +14,18 @@ Usage:
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch  # noqa: E402
 
-# ---------------------------------------------------------------------------
-# Layout constants
-# ---------------------------------------------------------------------------
-FIG_W, FIG_H = 12, 4.5
+FIG_W, FIG_H = 12, 5.2
 DPI = 300
 OUTPUT = "paper/draft/figures/fig1_four_stage_scaffold.png"
 
-# Stage definitions (label, subtitle)
+# Draft paper section numbering (distinct from ICML's §3/§4/§5).
+SEC_LOCALIZATION = "4"
+SEC_EXTERNALITY = "5"
+SEC_MEASUREMENT = "6"
+
 STAGES = [
     ("Measurement", "Can we trust\nthe evaluation?"),
     ("Localization", "Where is the\nfeature?"),
@@ -30,28 +33,43 @@ STAGES = [
     ("Externality", "Does it\ntransfer?"),
 ]
 
-# Concise labels placed below each transition arrow.
-ANCHORS = [
-    "Measurement -> Conclusion\ntruncation, grading, evaluator",
-    "Localization -> Control\nSAE vs H-neurons, steering",
-    "Control -> Externality\nITI gain vs bridge harm",
+# Gate = (title, body, anchor_kind, anchor_index, section)
+# "box" -> tether lands on stage[anchor_index] bottom edge (within-stage).
+# "arrow" -> tether lands on arrow[anchor_index] midpoint (inter-stage).
+GATES = [
+    (
+        "Measurement -> Verdict",
+        "truncation, grading, evaluator",
+        "box",
+        0,
+        SEC_MEASUREMENT,
+    ),
+    (
+        "Localization -> Control",
+        "SAE vs H-neurons, steering",
+        "arrow",
+        1,
+        SEC_LOCALIZATION,
+    ),
+    (
+        "Control -> Externality",
+        "ITI gain vs bridge harm",
+        "arrow",
+        2,
+        SEC_EXTERNALITY,
+    ),
 ]
 
-# ---------------------------------------------------------------------------
-# Color palette — muted blues/grays with warm accent for break points
-# ---------------------------------------------------------------------------
-BOX_FACE = "#DAEAF6"  # light steel blue
-BOX_EDGE = "#3E6A8A"  # dark steel blue
-ARROW_COLOR = "#8899A6"  # medium gray-blue
-BREAK_COLOR = "#BF4E38"  # muted terracotta accent for break annotations
-BREAK_BG = "#FDF1ED"  # very light terracotta tint
-TITLE_COLOR = "#1E3044"  # near-black slate
-SUBTITLE_COLOR = "#5A6E7F"  # mid-gray blue
+BOX_FACE = "#EAF2F8"
+BOX_EDGE = "#2D4A60"
+ARROW_COLOR = "#98A2AB"
+BREAK_COLOR = "#A0402E"
+BREAK_BG = "#FBEDE6"
+BREAK_EDGE = "#D9B5AB"
+TITLE_COLOR = "#14202E"
+SUBTITLE_COLOR = "#3E5060"
 BG_COLOR = "#FFFFFF"
 
-# ---------------------------------------------------------------------------
-# Font settings
-# ---------------------------------------------------------------------------
 FONT_FAMILY = "DejaVu Sans"
 plt.rcParams.update(
     {
@@ -63,7 +81,7 @@ plt.rcParams.update(
 
 
 def draw_figure():
-    """Build and save the four-stage scaffold diagram."""
+    """Build and save the two-row scaffold diagram."""
     fig, ax = plt.subplots(figsize=(FIG_W, FIG_H), dpi=DPI)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -72,159 +90,155 @@ def draw_figure():
     fig.patch.set_facecolor(BG_COLOR)
     ax.set_facecolor(BG_COLOR)
 
-    # -------------------------------------------------------------------
-    # Geometry (axes-fraction coordinates)
-    # -------------------------------------------------------------------
     n = len(STAGES)
-    box_w = 0.16
-    box_h = 0.28
-
-    x_margin = 0.08
+    box_w = 0.155
+    box_h = 0.24
+    x_margin = 0.105
     usable = 1.0 - 2 * x_margin
     spacing = usable / (n - 1)
     x_centers = [x_margin + i * spacing for i in range(n)]
+    y_stage = 0.76
 
-    y_center = 0.64  # shifted up to make room for concise transition labels
-
-    # -------------------------------------------------------------------
-    # Draw boxes + labels
-    # -------------------------------------------------------------------
     for i, (label, subtitle) in enumerate(STAGES):
         xc = x_centers[i]
-        x0 = xc - box_w / 2
-        y0 = y_center - box_h / 2
-
         box = FancyBboxPatch(
-            (x0, y0),
+            (xc - box_w / 2, y_stage - box_h / 2),
             box_w,
             box_h,
-            boxstyle="round,pad=0.018",
+            boxstyle="round,pad=0.012,rounding_size=0.020",
             facecolor=BOX_FACE,
             edgecolor=BOX_EDGE,
-            linewidth=2.0,
+            linewidth=1.4,
             zorder=3,
         )
         ax.add_patch(box)
 
-        # Stage title
         ax.text(
             xc,
-            y_center + 0.045,
-            label,
+            y_stage + 0.052,
+            f"{i + 1}. {label}",
             ha="center",
             va="center",
-            fontsize=11.5,
+            fontsize=13.5,
             fontweight="bold",
             color=TITLE_COLOR,
             zorder=4,
         )
-
-        # Guiding question
         ax.text(
             xc,
-            y_center - 0.065,
+            y_stage - 0.044,
             subtitle,
             ha="center",
             va="center",
-            fontsize=8.0,
-            fontstyle="italic",
+            fontsize=10.0,
             color=SUBTITLE_COLOR,
             zorder=4,
-            linespacing=1.25,
+            linespacing=1.3,
         )
 
-    # -------------------------------------------------------------------
-    # Draw arrows, break marks, and anchor annotations
-    # -------------------------------------------------------------------
+    arrow_mid_x = []
     for i in range(n - 1):
-        x_start = x_centers[i] + box_w / 2 + 0.010
-        x_end = x_centers[i + 1] - box_w / 2 - 0.010
-        y_arrow = y_center
-
-        # Main connecting arrow
+        x_start = x_centers[i] + box_w / 2 + 0.008
+        x_end = x_centers[i + 1] - box_w / 2 - 0.008
         arrow = FancyArrowPatch(
-            (x_start, y_arrow),
-            (x_end, y_arrow),
+            (x_start, y_stage),
+            (x_end, y_stage),
             arrowstyle="->,head_length=7,head_width=4.5",
             color=ARROW_COLOR,
-            linewidth=2.5,
+            linewidth=1.8,
             mutation_scale=1,
             zorder=2,
         )
         ax.add_patch(arrow)
+        arrow_mid_x.append((x_start + x_end) / 2)
 
-        # "Break" lightning-bolt / X indicator at midpoint
-        x_mid = (x_start + x_end) / 2
-        ms = 0.014  # marker half-size
-        ax.plot(
-            [x_mid - ms, x_mid + ms],
-            [y_arrow + ms, y_arrow - ms],
-            color=BREAK_COLOR,
-            linewidth=2.4,
-            solid_capstyle="round",
-            zorder=6,
-        )
-        ax.plot(
-            [x_mid - ms, x_mid + ms],
-            [y_arrow - ms, y_arrow + ms],
-            color=BREAK_COLOR,
-            linewidth=2.4,
-            solid_capstyle="round",
-            zorder=6,
-        )
+    gate_box_w = 0.215
+    gate_box_h = 0.25
+    gate_y = 0.24
 
-        # Thin dashed drop-line from midpoint to annotation
-        y_box_bottom = y_center - box_h / 2
-        y_anchor_top = y_box_bottom - 0.06
+    y_box_bottom = y_stage - box_h / 2
+    anchor_points = []
+    gate_x_centers = []
+    for _title, _body, anchor_kind, anchor_idx, _section in GATES:
+        if anchor_kind == "box":
+            anchor_points.append((x_centers[anchor_idx], y_box_bottom))
+            half = gate_box_w / 2
+            gate_x_centers.append(max(x_centers[anchor_idx], x_margin + half))
+        else:
+            anchor_points.append((arrow_mid_x[anchor_idx], y_stage))
+            gate_x_centers.append(arrow_mid_x[anchor_idx])
+
+    gate_top = gate_y + gate_box_h / 2
+
+    for i, (title, body, _anchor_kind, _anchor_idx, section) in enumerate(GATES):
+        xc = gate_x_centers[i]
+        gate_box = FancyBboxPatch(
+            (xc - gate_box_w / 2, gate_y - gate_box_h / 2),
+            gate_box_w,
+            gate_box_h,
+            boxstyle="round,pad=0.012,rounding_size=0.020",
+            facecolor=BREAK_BG,
+            edgecolor=BREAK_EDGE,
+            linewidth=0.9,
+            zorder=3,
+        )
+        ax.add_patch(gate_box)
+
+        anchor_x, anchor_y = anchor_points[i]
         ax.plot(
-            [x_mid, x_mid],
-            [y_arrow - ms - 0.005, y_anchor_top + 0.01],
+            [xc, anchor_x],
+            [gate_top + 0.004, anchor_y - 0.010],
             color=BREAK_COLOR,
-            linewidth=0.7,
-            linestyle="--",
-            alpha=0.5,
+            linewidth=0.9,
+            linestyle=(0, (3.6, 2.4)),
+            alpha=0.55,
             zorder=1,
         )
+        ax.plot(
+            [anchor_x],
+            [anchor_y],
+            marker="o",
+            markersize=5.5,
+            markeredgecolor=BREAK_COLOR,
+            markerfacecolor=BREAK_COLOR,
+            zorder=5,
+        )
 
-        # Transition label box
         ax.text(
-            x_mid,
-            y_anchor_top,
-            ANCHORS[i],
+            xc,
+            gate_y + 0.055,
+            f"{title}  (\u00a7{section})",
             ha="center",
-            va="top",
-            fontsize=6.7,
-            fontstyle="italic",
+            va="center",
+            fontsize=11.0,
+            fontweight="bold",
+            color=BREAK_COLOR,
+            zorder=4,
+        )
+        ax.text(
+            xc,
+            gate_y - 0.048,
+            body,
+            ha="center",
+            va="center",
+            fontsize=10.0,
             color=BREAK_COLOR,
             zorder=4,
             linespacing=1.3,
-            bbox=dict(
-                boxstyle="round,pad=0.28",
-                facecolor=BREAK_BG,
-                edgecolor=BREAK_COLOR,
-                linewidth=0.7,
-                alpha=0.9,
-            ),
         )
 
-    # -------------------------------------------------------------------
-    # Figure title
-    # -------------------------------------------------------------------
     ax.text(
         0.5,
         0.965,
         "The Four-Stage Interpretability Scaffold",
         ha="center",
         va="top",
-        fontsize=14,
+        fontsize=15.5,
         fontweight="bold",
         color=TITLE_COLOR,
         zorder=4,
     )
 
-    # -------------------------------------------------------------------
-    # Save
-    # -------------------------------------------------------------------
     fig.savefig(
         OUTPUT,
         dpi=DPI,

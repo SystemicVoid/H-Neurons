@@ -38,10 +38,10 @@ STYLE
 - Avoid tiny annotation boxes, weak pastel office aesthetics, and clip-art-like arrows.
 
 LAYOUT
-- Use a wide landscape composition.
+- Use a wide landscape composition, ideally two rows: a top pipeline row (four stage cards + plain connecting arrows) and a bottom gates row (three compact breakpoint callouts).
 - Place the four stages as large, evenly spaced modules with strong alignment.
-- Put the breakpoint markers directly on the transitions so the diagram reads as a chain with failures occurring between stages.
-- The anchor labels should be short and clearly legible at manuscript size; they can sit beneath the transitions as compact callouts.
+- Encode the semantics of each breakpoint by where its tether lands, not by label text alone. The first gate (Measurement -> Verdict) is a within-stage break; tether its callout to the bottom of the Measurement stage card. The remaining two gates (Localization -> Control, Control -> Externality) are inter-stage breaks; tether their callouts to the midpoint of the corresponding transition arrow between stages.
+- The anchor labels should be short and clearly legible at manuscript size; they can sit beneath the pipeline as compact callouts.
 - Use generous whitespace and a clean top title area.
 - The final figure should read cleanly in under three seconds, with no cramped text.
 ```
