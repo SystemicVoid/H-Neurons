@@ -1,7 +1,7 @@
 """
 Figure 1: Four-Stage Interpretability Scaffold.
 
-Conceptual pipeline diagram for "Detection Is Not Enough" showing the four
+Conceptual pipeline diagram for "Strong Readouts, Local Levers" showing the four
 stages (Measurement, Localization, Control, Externality) and concise
 transition labels that mark where the scaffold breaks.
 

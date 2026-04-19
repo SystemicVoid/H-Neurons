@@ -1,6 +1,6 @@
 
 # Refined Flagship Paper Outline
-## *Detection Is Not Enough: Strong Readouts Often Fail as Steering Targets in Gemma-3-4B-IT*
+## *Strong Readouts, Local Levers: A Steering Audit of Gemma-3-4B-IT*
 ### Working subtitle
 *A comparative case study in separating measurement, localization, control, and externality in mechanistic intervention research.*
 

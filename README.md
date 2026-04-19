@@ -1,4 +1,4 @@
-# Detection Is Not Enough: Gemma 3 4B Intervention Audit Workspace
+# Strong Readouts, Local Levers: Gemma 3 4B Intervention Audit Workspace
 
 This repository began as a fork of THUNLP's H-Neurons project and still retains the paper-faithful H-neuron pipeline, original reference materials, and example artifacts. Its current center of gravity is broader: a single-model Gemma-3-4B-IT case study on when strong internal readouts do and do not become useful steering targets. The working framework throughout the repo is `measurement`, `localization`, `control`, and `externality`.
 
