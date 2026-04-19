@@ -57,18 +57,18 @@ This block was added by the integration pass on 2026-04-19. It tracks every acti
 - **Limitations: April 2026 concurrent-work context** — DONE at `main.tex:387`. Paper no longer implicitly claims first demonstration of interpretability/utility divergence; distinctness is explicitly repositioned to cross-family matching on real behavioral surfaces.
 - **Abstract: expand SAE acronym + cross-family novelty cue** — DONE at `main.tex:35` (`matched cross-family FaithEval comparison, sparse autoencoder (SAE) features...`).
 
-### DEFERRED — valuable but out of this pass's scope
+### Deferred follow-up (2026-04-19) — resolved / closed
 
-- **Substitution examples table (§4, L207–223 in original review)** — the review asks for more literal question stubs (e.g., "Which Danny Boyle film was released in 1996?"). Deferred because faithful rewriting requires access to the actual TriviaQA bridge items and could introduce fabricated wording. Follow-up needs an author with benchmark access to verify each stub against the source.
-- **Spearman ρ = 1.0 / ρ = 0.18 removal** (§4 L119–129 in original review) — deferred, contingent on page-length overflow after recompile. If `make` shows the main body over 8 pages, drop these two ρ values; otherwise keep for interpretive completeness.
-- **R2–R5 stylistic compression** (§4 L346–365) — same contingency. R1 is the load-bearing recommendation; R2–R5 can be compressed as a single paragraph if space pressure materializes.
-- **Know Thy Judge citation strengthening in §5 measurement prose** (§3.D) — currently cited in related work via `eiras2025judge`. A follow-up could add an inline citation at the §5 evaluator-dependence paragraph to localize the meta-evaluation precedent. Low priority; §5 already cites `chen2025safer` and `souly2024strongreject`.
-- **SimpleQA vs bridge hierarchy compression in §4** (§4 L173–182 in original review) — review suggests making the bridge-is-main, SimpleQA-is-supporting hierarchy more explicit. Deferred as light editorial; current prose already foregrounds bridge as the "most informative externality result."
+- **Substitution examples table (§4, L207–223 in original review)** — DONE at `main.tex:215–224`. The question stubs were rewritten from the exact TriviaQA bridge test items in the baseline / ITI JSONL artifacts, and the February 1959 plane-crash row was subsequently corrected to restore the Buddy Holly / Big Bopper premise after review.
+- **Spearman ρ = 1.0 / ρ = 0.18 removal** (§4 L119–129 in original review) — NOT NEEDED after recompile. A direct `bibtex` + two `pdflatex` rebuild via `guidelines-style-files/` still places references on page 7 and the appendix on page 8, so both ρ values were retained for interpretive completeness.
+- **R2–R5 stylistic compression** (§4 L346–365) — NOT NEEDED for the same page-budget reason. R1–R5 remain separate recommendations.
+- **Know Thy Judge citation strengthening in §5 measurement prose** (§3.D) — DONE at `main.tex:276`, where `eiras2025judge` is now cited inline in the evaluator-dependence paragraph.
+- **SimpleQA vs bridge hierarchy compression in §4** (§4 L173–182 in original review) — DONE at `main.tex:177–181`. SimpleQA now reads as a supporting stress test, while the locked bridge benchmark is explicitly framed as the main externality result.
 
 ### OUT OF SCOPE — needs tooling / artifacts / domain passes this pass cannot cover
 
 - **Provenance ledger updates** (`paper/draft/number_provenance.md`, §5 of this review). The ledger uses section numbering from the long markdown draft, not the TeX. Mapping every headline number to its TeX section reference is a separate pass.
-- **Recompilation / page-count / font-embedding / PDF-metadata checks** (§1 of this review). A background `make` was kicked off in the integration session; the user should inspect the resulting `main.pdf` for ≤8-page main body, Type-1 fonts, and clean anonymized metadata.
+- **Font-embedding / final PDF-metadata checks** (§1 of this review). A direct `bibtex` + `pdflatex` rebuild via `guidelines-style-files/` confirmed references on page 7 and the appendix on page 8, so the main body remains within the 8-page limit. Type-1 font inspection and final anonymized metadata review remain submission-time checks.
 - **Reproducibility supplement package** (§3.G, §8.C). Prompt manifests, judge prompts, coding guide, scoring scripts, provenance ledger — artifact-assembly task, not a `main.tex` edit.
 - **Bibliography venue verification beyond Wang / CAST adds**. Spot-audit at integration time confirmed `arad2025saes` is EMNLP 2025, `wu2025axbench` is ICML 2025 Spotlight, `opielka2026causality` is ICLR 2026 Poster, `eiras2025judge` is ICLR 2025 Workshop, `chen2025safer` is ACL 2025. No further changes required unless reviewers raise specific venues.
 - **"What this paper contributes in 2026" standalone sentence** (§8.A). Folded into the reframed gap statement (see DONE item for Wang/reframe); a separate sentence would be redundant.
@@ -77,9 +77,9 @@ This block was added by the integration pass on 2026-04-19. It tracks every acti
 ### Notes for the next follow-up session
 
 - The bib already contains `wang2026interpretability` (ICLR 2026) and `lee2025cast` (ICLR 2025 Spotlight). No author-list fetch from OpenReview was required.
-- The `\label{sec:localization}` label was preserved despite the section retitle, so all internal `\ref` call sites continue to resolve. Verify by running `make` and checking for `LaTeX Warning: Reference ... undefined` lines.
+- The `\label{sec:localization}` label was preserved despite the section retitle, so all internal `\ref` call sites continue to resolve. Verify by running `bibtex main` plus two `pdflatex` passes with `TEXINPUTS=guidelines-style-files:`; `make` currently still assumes top-level `icml2026.sty` / `icml2026.bst` files and will fail until the Makefile is updated or those assets are restored.
 - Orphan grep audits were run post-edit: zero occurrences of `paradox`, `Finding the Signal`, `Losing the Wheel`, `gradient-ranked`, `A CETT probe`, `portability limit on the metric`, or the old §3 title. Safe to continue editing.
-- Net line delta after this pass: ≈ +15 added, ≈ −3 removed. Page budget risk is real but not severe; if the compile spills, start with the two DEFERRED compressions above (Spearman ρ, R2–R5).
+- The deferred follow-up kept the page budget intact: after rebuild, references still begin on page 7 and Appendix A on page 8, so the Spearman ρ values and separate R2–R5 recommendations were retained.
 
 ---
 

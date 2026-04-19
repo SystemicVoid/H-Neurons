@@ -174,14 +174,11 @@ The intervention modulates compliance-adjacent behavior but does not improve dom
 
 Inference-Time Intervention using TruthfulQA-sourced truthfulness directions \citep{li2023iti} produces a clear improvement on answer selection: $+6.3$~pp MC1 $[3.7, 8.9]$ and $+7.49$~pp MC2 $[5.28, 9.82]$ on held-out TruthfulQA folds, with 61 incorrect$\to$correct flips against 20 correct$\to$incorrect flips at $\alpha = 8.0$.
 
-This MC/generation divergence replicates the finding of \citet{li2023iti} in LLaMA/Alpaca; we extend it in Gemma-3-4B-IT by characterizing the behavioral mechanism.
+This MC/generation divergence replicates the finding of \citet{li2023iti} in LLaMA/Alpaca; here, SimpleQA serves as a supporting stress test, while the locked bridge benchmark below is the main externality result.
 The gain does not transfer to open-ended factual generation.
 On SimpleQA ($n = 1{,}000$) with a prompt that removes the explicit escape hatch, ITI at $\alpha = 8.0$ reduces correct-answer rate from 4.6\% $[3.5, 6.1]$ to 2.8\% $[1.9, 4.0]$ (paired $\Delta = -1.8$~pp $[-3.1, -0.6]$).
-The attempt rate collapses from 99.7\% to 67.0\%, indicating that the truthfulness direction promotes epistemic caution---the model hedges or refuses rather than generating factual answers.
-Precision among attempted answers remains stable (${\sim}4$\%), suggesting the intervention does not improve factual accuracy; it merely suppresses generation.
-
-The contrast is stark: on a constrained answer-selection task, the same direction helps the model pick correct options; on an open-ended generation task, it suppresses attempts without improving accuracy.
-Answer-selection success is not evidence for generation-level truthfulness improvement, consistent with \citet{pres2024reliable} and \citet{opielka2026causality}.
+The attempt rate collapses from 99.7\% to 67.0\%, while precision among attempted answers remains stable (${\sim}4$\%), suggesting epistemic caution rather than factual improvement.
+Answer-selection success is therefore not evidence for generation-level truthfulness improvement, consistent with \citet{pres2024reliable} and \citet{opielka2026causality}.
 
 \subsection{Bridge: Wrong-Entity Substitution}
 
@@ -215,15 +212,15 @@ The 14 wrong-to-right rescues show that the intervention is behaviorally active 
 \toprule
 \textbf{Question} & \textbf{Baseline} & \textbf{ITI $\alpha\!=\!8$} \\
 \midrule
-Boyle 1996 film? & Trainspotting & Slumdog M.\ (same director) \\
+Danny Boyle's 1996 ``Choose Life'' film? & Trainspotting & Slumdog M.\ (same director) \\
 \addlinespace
-1959 crash musician? & Ritchie Valens & J.P.\ Richardson (same crash) \\
+Other musician with Buddy Holly and the Big Bopper in the Feb.\ 1959 crash? & Ritchie Valens & J.P.\ Richardson (same crash) \\
 \addlinespace
-Family Guy spinoff? & Cleveland Brown & Peter Griffin (same show) \\
+Family Guy character who moved to Stoolbend, Virginia? & Cleveland Brown & Peter Griffin (same show) \\
 \addlinespace
-Dickens novel w/ Merdle? & Little Dorrit & Bleak House (same author) \\
+Dickens novel with Merdle, Sparkler, and Tattycoram? & Little Dorrit & Bleak House (same author) \\
 \addlinespace
-DC comic intro.\ Superman? & Action Comics & Detective Comics (same publisher) \\
+Comic whose June 1938 issue introduced Superman? & Action Comics & Detective Comics (same publisher) \\
 \bottomrule
 \end{tabular}
 \vskip -0.1in
@@ -276,7 +273,7 @@ A taxonomy-based graded rubric (CSV-v3) and StrongREJECT-GPT-4o both reached 96.
 
 The residual disagreement is informative because it clusters on a recognizable response type: refuse-then-comply outputs.
 StrongREJECT's formula zeroes the final score when \texttt{refused = 1}, even if later text contains specific harmful substance.
-We therefore treat evaluator disagreement as construct pluralism rather than noise that can be solved by picking one preferred judge.
+We therefore treat evaluator disagreement as construct pluralism rather than noise that can be solved by picking one preferred judge \citep{eiras2025judge}.
 
 \begin{table}[t]
 \centering
