@@ -24,7 +24,7 @@ CONTENT
 - The stages are connected in sequence.
 - Mark three breakpoints at the transitions, each representing where the paper's evidence shows the readout-to-steering heuristic can fail.
 - Label the three breakpoints with these concise anchors:
-  - "Measurement -> Conclusion: truncation, grading, evaluator"
+  - "Measurement -> Verdict: truncation, grading, evaluator"
   - "Localization -> Control: SAE vs H-neurons, steering"
   - "Control -> Externality: ITI gain vs bridge harm"
 - The central message is that interpretability evidence must pass through four distinct gates, and failure can occur at the transitions rather than only inside a single stage.
