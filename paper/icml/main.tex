@@ -58,7 +58,7 @@ We find repeated dissociations between four stages that are routinely conflated:
   \item \textbf{Measurement}---Can we trust the evaluation? Truncation, scoring granularity, and evaluator choice each changed the scientific conclusion (\S\ref{sec:measurement}).
   \item \textbf{Localization}---Does the readout identify causally relevant components? SAE features matched H-neurons on detection quality but did not translate into useful control (\S\ref{sec:localization}).
   \item \textbf{Control}---Does intervention produce the intended behavioral change? Effects were narrow and task-local (\S\ref{sec:externality}).
-  \item \textbf{Externality}---Does the effect transfer without causing harm? Wrong-entity substitution was the dominant failure mode on a held-out bridge benchmark (\S\ref{sec:externality}).
+  \item \textbf{Externality}---Does the effect transfer without causing harm? Wrong-entity substitution was the most common manually coded failure mode on a held-out bridge benchmark (\S\ref{sec:externality}).
 \end{enumerate}
 
 \begin{figure*}[t]
@@ -70,24 +70,15 @@ We find repeated dissociations between four stages that are routinely conflated:
 
 \textbf{Contributions.}
 (1)~A FaithEval comparison showing that similar held-out readout quality yields sharply different steering outcomes.
-(2)~An externality analysis showing that answer-selection gains do not transfer to generation, with wrong-entity substitution as the dominant failure mode.
+(2)~An externality analysis showing that answer-selection gains do not transfer to generation, with wrong-entity substitution as the most common manually coded failure mode.
 (3)~A four-stage audit framework for evaluating mechanistic intervention claims without collapsing measurement, localization, control, and externality into one inference.
 
 \textbf{Study orientation.}
 This paper is a single-model comparative case study in Gemma-3-4B-IT \citep{gemma2025}.
 We compare multiple intervention families---neuron scaling, SAE feature steering, and inference-time intervention via attention heads---across contextual faithfulness (FaithEval), answer selection (TruthfulQA), open-ended factual generation (TriviaQA, SimpleQA), domain QA (BioASQ), and jailbreak settings (JailbreakBench).
 We organize results through four analytic stages as empirical gates in the path from ``a feature predicts behavior $X$'' to ``intervening on that feature usefully changes behavior $X$.''
-The paper does not claim a new steering method or a general failure of detector-based targets; the thesis is that readout quality alone is an unreliable predictor of steering utility.
-
-\textbf{Construct surfaces.}
-We treat FaithEval as a context-faithfulness / anti-compliance surface, TruthfulQA MC as constrained answer selection, TriviaQA bridge and SimpleQA as open-ended factual generation, and JailbreakBench as a harmfulness-evaluation surface; all claims in this paper are surface-specific.
-
-\textbf{Hypotheses.}
-We evaluate three hypotheses, each corresponding to a gate in the readout-to-behavior chain.
-\textbf{H1} (localization$\to$control): held-out readout quality is sufficient evidence for selecting steering targets---rejected in the FaithEval neuron-vs-SAE comparison (\S\ref{sec:localization}).
-\textbf{H2} (control$\to$externality): truthfulness-adjacent answer-selection gains transfer to open-ended factual generation---rejected by the TruthfulQA MC vs.\ TriviaQA bridge dissociation (\S\ref{sec:externality}).
-\textbf{H3} (measurement$\to$verdict): reasonable measurement choices leave the scientific verdict stable---rejected by the jailbreak measurement audit (\S\ref{sec:measurement}).
-Each rejection is evidenced on a specific surface; we do not generalize to architectures or settings not tested here.
+All claims are surface-specific: FaithEval is a context-faithfulness / anti-compliance surface, TruthfulQA MC constrained answer selection, TriviaQA bridge and SimpleQA open-ended factual generation, and JailbreakBench a harmfulness-evaluation surface.
+The paper does not claim a new steering method or a general failure of detector-based targets; it asks, within these tested surfaces, whether held-out readout quality is enough to select steering targets (\S\ref{sec:localization}), whether answer-selection gains transfer to open-ended factual generation (\S\ref{sec:externality}), and whether plausible measurement choices leave the jailbreak verdict stable (\S\ref{sec:measurement}).
 
 % ======================================================================
 % 2. RELATED WORK
@@ -102,11 +93,11 @@ More recent work moves to the intervention question directly: within SAE feature
 On measurement, StrongREJECT \citep{souly2024strongreject} showed that binary scoring can overestimate jailbreak effectiveness, and \citet{chen2025safer} showed that evaluator artifacts materially affect safety judgments.
 
 Concurrent SAE-centric analyses \citep{arad2025saes,wang2026interpretability} and synthetic-benchmark evaluations \citep{wu2025axbench} make detection/control divergence increasingly clear within single-family settings.
-Three elements remain distinctive here.
-(i)~A neuron-vs-SAE comparison on a single real behavioral surface (FaithEval), with similar held-out readout quality while varying representational basis.
-(ii)~A behavioral externality diagnosis on TriviaQA bridge generation---wrong-entity substitution rather than simple suppression---evaluated under a one-shot frozen protocol.
-(iii)~A measurement audit showing that truncation and scoring granularity change the scientific verdict on the same intervention outputs, while the evaluator audit reveals rubric-dependent disagreement.
-We integrate all three into a four-stage audit framework (measurement, localization, control, externality).
+The core contribution here is a cross-representational FaithEval comparison: neurons and SAE features are evaluated on the same real behavioral surface with closely matched held-out readout quality.
+Two supporting additions broaden that case study.
+First, on TriviaQA bridge generation we provide a frozen-protocol behavioral diagnosis of the transfer failure, where wrong-entity substitution is the most common manually coded right-to-wrong pattern rather than simple suppression.
+Second, we show that truncation and scoring granularity can change the verdict for the same representation-engineering intervention outputs, while a held-out evaluator audit reveals residual rubric dependence.
+We synthesize these observations in a four-stage audit framework (measurement, localization, control, externality).
 
 % ======================================================================
 % 3. LOCALIZATION -> CONTROL
@@ -206,7 +197,7 @@ NOT\_ATTEMPTED counts increase from 2 to 8, a small effect (1.2~pp).
 Formal refusal accounts for only 2 of 43 R$\to$W flips (5\%).
 The dominant damage is factual corruption, not silence.
 
-\textbf{Wrong-entity substitution is the dominant failure mode.}
+\textbf{Wrong-entity substitution is the most common manually coded failure mode.}
 Of the 43 R$\to$W flips, 30 were manually classified as substitutions where the model replaces a correct factual answer with a different entity from the same semantic neighborhood (${\sim}70\%$; Table~\ref{tab:substitution}).
 Three additional failure modes account for the remaining 13 flips: evasion/factual denial (8/43, 19\%), answer dilution from verbosity (3/43, 7\%), and formal refusal (2/43, 5\%).
 This pattern is consistent with a coarse behavior-level reweighting toward nearby but wrong candidates rather than simple suppression of generation.
@@ -243,7 +234,7 @@ DC comic intro.\ Superman? & Action Comics & Detective Comics (same publisher) \
   \includegraphics[width=\textwidth]{figures/fig3_bridge.pdf}
   \caption{Surface-local control and bridge failure modes.
   (a)~ITI improves TruthfulQA MC1 but harms both generation surfaces (CIs exclude zero).
-  (b)~Among the 43 right-to-wrong flips on the TriviaQA bridge test set, wrong-entity substitution is the dominant failure mode (${\sim}70\%$), not refusal.}
+  (b)~Among the 43 right-to-wrong flips on the TriviaQA bridge test set, wrong-entity substitution is the most common manually coded failure mode (${\sim}70\%$), not refusal.}
   \label{fig:bridge}
 \end{figure*}
 
@@ -255,8 +246,8 @@ DC comic intro.\ Superman? & Action Comics & Detective Comics (same publisher) \
 
 The preceding sections established that detection quality does not predict steerability (\S\ref{sec:localization}) and that successful steering is narrow in scope (\S\ref{sec:externality}).
 Both conclusions rest on behavioral measurements---jailbreak harmfulness rates, severity scores, and generation-surface accuracy---that are themselves products of evaluation choices.
-In this section we show that those choices are part of the scientific result: generation length and scoring granularity shifted what we would have concluded about whether a given intervention worked, while the evaluator audit exposes residual rubric dependence on the same outputs.
-The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that measurement choices can reverse the conclusion about a representation-engineering intervention on the same set of outputs, even when two held-out evaluators tie in aggregate accuracy.
+In this section we show that those choices are part of the scientific result: truncation and scoring granularity shifted what we would have concluded about whether a given intervention worked on the same outputs, while the evaluator audit exposes residual rubric dependence on a held-out set.
+The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that same-output measurement choices can reverse the conclusion about a representation-engineering intervention, even when two held-out evaluators tie in aggregate accuracy.
 
 We organize the case study around the H-neuron jailbreak scaling experiment (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n = 500$ per condition), because its moderate effect size makes it sensitive to every measurement decision we examine.
 
@@ -317,9 +308,9 @@ The four stages---measurement, localization, control, and externality---are sepa
 They are an empirical observation about where intervention claims break in practice:
 
 \begin{itemize}
-  \item \textbf{Measurement$\to$Verdict.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In our jailbreak setting, truncation, binary-versus-graded scoring, and evaluator choice each altered the conclusion about the same outputs (\S\ref{sec:measurement}).
+  \item \textbf{Measurement$\to$Verdict.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In our jailbreak setting, truncation and binary-versus-graded scoring altered the conclusion about the same outputs, while the evaluator holdout exposed residual construct mismatch (\S\ref{sec:measurement}).
   \item \textbf{Localization$\to$Control.} A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality, yet did not translate into useful control (\S\ref{sec:localization}).
-  \item \textbf{Control$\to$Externality.} An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA MC1 but reduced open-ended factual accuracy, where wrong-entity substitution was the dominant failure mode (\S\ref{sec:externality}).
+  \item \textbf{Control$\to$Externality.} An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA MC1 but reduced open-ended factual accuracy, where wrong-entity substitution was the most common manually coded failure mode (\S\ref{sec:externality}).
 \end{itemize}
 
 Each stage transition is a distinct empirical claim.
@@ -375,8 +366,6 @@ Interventions that help on one metric can harm others.
 Our bridge results show that the harm can be a specific, interpretable failure mode (\S\ref{sec:externality}).
 Cross-surface effects belong next to the headline result, not in the footnotes.
 
-Our externality results suggest that the next useful move is toward selective or conditional interventions that trigger only under answer-risk or context-specific failure conditions, closer in spirit to conditional activation steering \citep{lee2025cast} than to unconditional global shifts.
-
 \subsection{Limitations}
 
 All experiments use a single model (Gemma-3-4B-IT); the dissociations may not replicate across architectures or scales, though \citet{gao2025hneurons} report qualitatively similar H-neuron compliance effects across six models.
@@ -392,8 +381,8 @@ The full limitation inventory is in Appendix~\ref{app:limitations}.
 % ======================================================================
 \section{Conclusion}
 
-In Gemma-3-4B-IT, strong internal readouts were useful for monitoring and sometimes useful for control, but they did not by themselves justify claims about steering utility, transfer, or even the sign of an intervention effect without validating the measurement procedure.
-The four-stage audit framework---measurement, localization, control, and externality---is meant as a practical decomposition: passing one gate does not license claims about the next.
+In Gemma-3-4B-IT, strong internal readouts supported monitoring and sometimes supported control, but their usefulness as steering targets depended on the behavioral surface and the measurement procedure used to judge success.
+The four-stage audit framework---measurement, localization, control, and externality---summarizes that bounded lesson: passing one gate does not license claims about the next.
 
 % ======================================================================
 % IMPACT STATEMENT
