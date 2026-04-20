@@ -1,10 +1,10 @@
-# Review report for `main.tex` — ICML 2026 Mechanistic Interpretability Workshop submission
+# Review report for `paper/icml/main.tex` — ICML 2026 Mechanistic Interpretability Workshop submission
 
 Reviewed inputs:
-- `main.tex`
-- `full_paper.md`
-- `number_provenance.md`
-- `2026-04-11-strategic-assessment.md`
+- `paper/icml/main.tex`
+- `paper/draft/full_paper.md`
+- `paper/draft/number_provenance.md`
+- `notes/2026-04-11-strategic-assessment.md`
 
 ## Bottom line
 
@@ -33,53 +33,44 @@ Everything else should either remain appendix-only or appear only as supporting 
 
 ---
 
-## Status tracker (2026-04-19 integration pass)
+## Verification addendum (2026-04-20 repo sync pass)
 
-This block was added by the integration pass on 2026-04-19. It tracks every actionable recommendation in this review against its current status in `main.tex` / `references.bib`. Use it as the starting point for follow-up sessions.
+This addendum supersedes the 2026-04-19 integration tracker. The rest of the document remains a historical review artifact, but the bullets below reflect the current repository state at `HEAD`.
 
-### Tier-1 top-5 (§7) — all DONE
+### In sync with current repo
 
-1. **Title change to thesis-first** — DONE. `main.tex:1` (comment), `main.tex:13` (running), `main.tex:18–19` (main title). New title: *Detection Is Not Enough: Strong Readouts Often Fail as Steering Targets in Gemma-3-4B-IT*. Zero remaining occurrences of `paradox` / `Finding the Signal` / `Losing the Wheel`.
-2. **Wang et al. (ICLR 2026) + novelty reframe** — DONE. Cited in related work prose at `main.tex:99` (Kendall's τ_b ≈ 0.298) and in the reframed gap statement at `main.tex:104`. Bib entry `wang2026interpretability` already present (`references.bib:160–167`).
-3. **Construct-surfaces sentence in intro** — DONE as `\textbf{Construct surfaces.}` block at `main.tex:82–83`. All four benchmark families explicitly typed (faithfulness, answer selection, open-ended generation, harmfulness).
-4. **Bridge disclaimer (behavioral diagnosis, not circuit claim)** — DONE at `main.tex:213`, appended to the wrong-entity-substitution paragraph in §4.
-5. **Remove gradient-ranked pilot sentence from §5** — DONE. Sentence deleted at the old `main.tex:255`. Paragraph still makes the truncation argument without the orphaned D7 reference.
+1. **Wang et al. (ICLR 2026) + novelty reframe** — PRESENT in [`paper/icml/main.tex`](paper/icml/main.tex) and [`paper/icml/references.bib`](paper/icml/references.bib). The related-work framing cites `wang2026interpretability`, and the limitations section now explicitly avoids a “first demonstration” claim.
+2. **Construct-surfaces clarification** — PRESENT, though not as the old `\textbf{Construct surfaces.}` block. The surface-typing sentence now appears in the Study orientation paragraph of [`paper/icml/main.tex`](paper/icml/main.tex).
+3. **Bridge disclaimer (behavioral diagnosis, not circuit claim)** — PRESENT. The wrong-entity-substitution paragraph now explicitly says this is a behavioral diagnosis, not an exact circuit claim.
+4. **Gradient-ranked pilot sentence removed from §5** — PRESENT. The measurement section is now centered on the H-neuron jailbreak scaling experiment without the dangling D7 pilot reference.
+5. **CETT acronym removed from main body** — PRESENT. Main-text wording now uses “A sparse H-neuron probe following \citet{gao2025hneurons}...”; CETT remains only in the appendix interpretation audit.
+6. **Metric-portability softening in §4** — PRESENT. The BioASQ paragraph now uses the softer “flat accuracy endpoint coexists with substantial output perturbation...” wording.
+7. **CSV-v2 / CSV-v3 semantic glosses at first mention** — PRESENT in §5.
+8. **Literature-wide claim softened in §6** — PRESENT as “In our reading of the recent steering literature...”
+9. **Concurrent-work limitation context** — PRESENT in the Limitations subsection.
+10. **Abstract acronym / novelty cue update** — PRESENT. The abstract now expands SAE and foregrounds the cross-family comparison.
+11. **Substitution examples table** — PRESENT with the corrected Buddy Holly / Big Bopper row.
+12. **Know Thy Judge citation strengthening** — PRESENT. `eiras2025judge` is cited in the evaluator-dependence paragraph.
+13. **SimpleQA vs bridge hierarchy compression** — PRESENT. SimpleQA is framed as a supporting stress test and the locked bridge benchmark as the main externality result.
 
-### Additional surgical edits landed this pass — DONE
+### Not in sync with current repo
 
-- **H1/H2/H3 falsifiable-hypothesis block** (§3.A) — DONE at `main.tex:85–90`. Each hypothesis maps to a specific audit gate and is paired with its rejection surface.
-- **§3 retitled** (`Localization Does Not Predict Control` → `Matched Readout Quality Does Not Guarantee Control`) — DONE at `main.tex:114`. `\label{sec:localization}` preserved; no downstream `\ref` edits required.
-- **CETT acronym removed from main body** — DONE at `main.tex:120` (`A sparse H-neuron probe following \citet{gao2025hneurons}...`) and `main.tex:127` (`The 38 probe-selected neurons...`). Appendix mention of `CETT neuron (L20:N4288)` intentionally left, since the review scoped removal to main text.
-- **§4 metric-portability softening** (`portability limit on the metric...` → `flat accuracy endpoint coexists with substantial output perturbation...`) — DONE at `main.tex:179`.
-- **§5 CSV-v2 / CSV-v3 semantic glosses at first mention** — DONE at `main.tex:274` (`A graded harmfulness rubric (CSV-v2)...`) and `main.tex:284` (`A taxonomy-based graded rubric (CSV-v3)...`).
-- **§6 soften literature-wide claim** — DONE at `main.tex:352` (`In our reading of the recent steering literature, target-surface control is reported more often than matched negative controls, cross-surface tests, or evaluator audits.`).
-- **§8.B CAST / conditional-steering future-work sentence** — DONE at `main.tex:378`, between R5 and Limitations. Bib entry `lee2025cast` already present (`references.bib:169–176`).
-- **Limitations: April 2026 concurrent-work context** — DONE at `main.tex:387`. Paper no longer implicitly claims first demonstration of interpretability/utility divergence; distinctness is explicitly repositioned to cross-family matching on real behavioral surfaces.
-- **Abstract: expand SAE acronym + cross-family novelty cue** — DONE at `main.tex:35` (`matched cross-family FaithEval comparison, sparse autoencoder (SAE) features...`).
+1. **Title change to thesis-first** — NOT IN SYNC. The current title and running title in [`paper/icml/main.tex`](paper/icml/main.tex) are *Strong Readouts, Local Levers: A Steering Audit of Gemma-3-4B-IT*, not *Detection Is Not Enough...*.
+2. **H1/H2/H3 falsifiable-hypothesis block** — NOT PRESENT in the current `main.tex`.
+3. **§3 retitle wording** — PARTIAL. The current section title is `Similar Readout Quality Does Not Guarantee Control`, not the previously tracked `Matched Readout Quality Does Not Guarantee Control`.
+4. **CAST / conditional-steering future-work sentence** — NOT PRESENT in the current `main.tex`, although the bibliography entry `lee2025cast` is still available in [`paper/icml/references.bib`](paper/icml/references.bib).
 
-### Deferred follow-up (2026-04-19) — resolved / closed
+### Tooling / build status
 
-- **Substitution examples table (§4, L207–223 in original review)** — DONE at `main.tex:215–224`. The question stubs were rewritten from the exact TriviaQA bridge test items in the baseline / ITI JSONL artifacts, and the February 1959 plane-crash row was subsequently corrected to restore the Buddy Holly / Big Bopper premise after review.
-- **Spearman ρ = 1.0 / ρ = 0.18 removal** (§4 L119–129 in original review) — NOT NEEDED after recompile. A direct `bibtex` + two `pdflatex` rebuild via `guidelines-style-files/` still places references on page 7 and the appendix on page 8, so both ρ values were retained for interpretive completeness.
-- **R2–R5 stylistic compression** (§4 L346–365) — NOT NEEDED for the same page-budget reason. R1–R5 remain separate recommendations.
-- **Know Thy Judge citation strengthening in §5 measurement prose** (§3.D) — DONE at `main.tex:276`, where `eiras2025judge` is now cited inline in the evaluator-dependence paragraph.
-- **SimpleQA vs bridge hierarchy compression in §4** (§4 L173–182 in original review) — DONE at `main.tex:177–181`. SimpleQA now reads as a supporting stress test, while the locked bridge benchmark is explicitly framed as the main externality result.
+- `paper/icml/Makefile` is still out of sync with the repository layout: `make` fails because it expects top-level `icml2026.sty` / `icml2026.bst`.
+- Direct compilation does work with the style-file paths set explicitly: `BSTINPUTS=guidelines-style-files: bibtex main` plus `TEXINPUTS=guidelines-style-files: pdflatex ...`.
+- Current compiled artifact is [`paper/icml/main.pdf`](paper/icml/main.pdf): title `Strong Readouts, Local Levers: A Steering Audit of Gemma-3-4B-IT`, 9 pages total, with references beginning on page 7 and Appendix A beginning on page 8.
 
-### OUT OF SCOPE — needs tooling / artifacts / domain passes this pass cannot cover
+### Still out of scope
 
-- **Provenance ledger updates** (`paper/draft/number_provenance.md`, §5 of this review). The ledger uses section numbering from the long markdown draft, not the TeX. Mapping every headline number to its TeX section reference is a separate pass.
-- **Font-embedding / final PDF-metadata checks** (§1 of this review). A direct `bibtex` + `pdflatex` rebuild via `guidelines-style-files/` confirmed references on page 7 and the appendix on page 8, so the main body remains within the 8-page limit. Type-1 font inspection and final anonymized metadata review remain submission-time checks.
-- **Reproducibility supplement package** (§3.G, §8.C). Prompt manifests, judge prompts, coding guide, scoring scripts, provenance ledger — artifact-assembly task, not a `main.tex` edit.
-- **Bibliography venue verification beyond Wang / CAST adds**. Spot-audit at integration time confirmed `arad2025saes` is EMNLP 2025, `wu2025axbench` is ICML 2025 Spotlight, `opielka2026causality` is ICLR 2026 Poster, `eiras2025judge` is ICLR 2025 Workshop, `chen2025safer` is ACL 2025. No further changes required unless reviewers raise specific venues.
-- **"What this paper contributes in 2026" standalone sentence** (§8.A). Folded into the reframed gap statement (see DONE item for Wang/reframe); a separate sentence would be redundant.
-- **Separate TODO files** (`TODO_L4_interrater.md`, `TODO_LAST_Limitation 5 multi-seed.md`, `TODO_Limitations_Fixes`) — the user asked this pass to stay within the review-report scope.
-
-### Notes for the next follow-up session
-
-- The bib already contains `wang2026interpretability` (ICLR 2026) and `lee2025cast` (ICLR 2025 Spotlight). No author-list fetch from OpenReview was required.
-- The `\label{sec:localization}` label was preserved despite the section retitle, so all internal `\ref` call sites continue to resolve. Verify by running `bibtex main` plus two `pdflatex` passes with `TEXINPUTS=guidelines-style-files:`; `make` currently still assumes top-level `icml2026.sty` / `icml2026.bst` files and will fail until the Makefile is updated or those assets are restored.
-- Orphan grep audits were run post-edit: zero occurrences of `paradox`, `Finding the Signal`, `Losing the Wheel`, `gradient-ranked`, `A CETT probe`, `portability limit on the metric`, or the old §3 title. Safe to continue editing.
-- The deferred follow-up kept the page budget intact: after rebuild, references still begin on page 7 and Appendix A on page 8, so the Spearman ρ values and separate R2–R5 recommendations were retained.
+- **Provenance ledger updates** (`paper/draft/number_provenance.md`). The ledger still follows the long markdown draft rather than the ICML TeX section numbering.
+- **Font-embedding / final PDF metadata review**. The paper now compiles, but submission-time font and anonymization checks still remain.
+- **Reproducibility supplement package**. Prompt manifests, judge prompts, coding guide, scoring scripts, and the provenance ledger still need an artifact-assembly pass.
 
 ---
 
@@ -133,7 +124,7 @@ The TeX draft appears compliant on the following points:
 
 ### What still needs explicit submission-time checking
 
-I could not compile the paper in the exact ICML 2026 style because the submission package assets were not included with the upload, so these still need manual verification before submission:
+The paper now compiles in the repo with the bundled style files, but not via the current `paper/icml/Makefile`. Manual verification is still needed before submission because compilation currently depends on explicit `BSTINPUTS=guidelines-style-files:` and `TEXINPUTS=guidelines-style-files:` environment settings:
 
 1. **Main-body page count** after real figures and bibliography in the actual ICML style.
 2. **Figure font embedding** (Type-1 fonts; no Type-3 leakage from generated PDFs).
