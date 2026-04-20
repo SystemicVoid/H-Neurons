@@ -36,6 +36,7 @@ Everything else should either remain appendix-only or appear only as supporting 
 ## Verification addendum (2026-04-20 repo sync pass)
 
 This addendum supersedes the 2026-04-19 integration tracker. The rest of the document remains a historical review artifact, but the bullets below reflect the current repository state at `HEAD`.
+Where later sections of this report recommend older titles or phrasing, treat them as dated review suggestions, not live TODOs; the commit history below records which suggestions were adopted temporarily and which were later tightened or superseded.
 
 ### In sync with current repo
 
@@ -53,17 +54,17 @@ This addendum supersedes the 2026-04-19 integration tracker. The rest of the doc
 12. **Know Thy Judge citation strengthening** — PRESENT. `eiras2025judge` is cited in the evaluator-dependence paragraph.
 13. **SimpleQA vs bridge hierarchy compression** — PRESENT. SimpleQA is framed as a supporting stress test and the locked bridge benchmark as the main externality result.
 
-### Not in sync with current repo
+### Addressed in revision history, then intentionally revised again
 
-1. **Title change to thesis-first** — NOT IN SYNC. The current title and running title in [`paper/icml/main.tex`](paper/icml/main.tex) are *Strong Readouts, Local Levers: A Steering Audit of Gemma-3-4B-IT*, not *Detection Is Not Enough...*.
-2. **H1/H2/H3 falsifiable-hypothesis block** — NOT PRESENT in the current `main.tex`.
-3. **§3 retitle wording** — PARTIAL. The current section title is `Similar Readout Quality Does Not Guarantee Control`, not the previously tracked `Matched Readout Quality Does Not Guarantee Control`.
-4. **CAST / conditional-steering future-work sentence** — NOT PRESENT in the current `main.tex`, although the bibliography entry `lee2025cast` is still available in [`paper/icml/references.bib`](paper/icml/references.bib).
+1. **Title / thesis-first framing** — ADDRESSED, then superseded. The thesis-first retitle to *Detection Is Not Enough...* landed in [`ef6baa7`](https://github.com/SystemicVoid/H-Neurons/commit/ef6baa73c4ead2865a3435c4a8f7753fb4e52017), and the final manuscript title was then intentionally settled as *Strong Readouts, Local Levers: A Steering Audit of Gemma-3-4B-IT* in [`65cf3fc`](https://github.com/SystemicVoid/H-Neurons/commit/65cf3fc64a90a61505bebba3d0810e1084f4a108). The current title is therefore the final resolved state, not a regression.
+2. **H1/H2/H3 falsifiable-hypothesis block** — ADDRESSED, then folded into tighter prose. The explicit labeled hypothesis block was added in [`ef6baa7`](https://github.com/SystemicVoid/H-Neurons/commit/ef6baa73c4ead2865a3435c4a8f7753fb4e52017) and later removed in [`c547261`](https://github.com/SystemicVoid/H-Neurons/commit/c54726142f6fdf4da3294f5a4bb94d21ed76fe5b) when the introduction was compressed into a single contribution spine. The final introduction still preserves the same three evaluative questions in the Study orientation paragraph, but no longer presents them as `H1/H2/H3`.
+3. **§3 retitle wording** — ADDRESSED substantively. The review recommendation to move away from the older framing was implemented in [`ef6baa7`](https://github.com/SystemicVoid/H-Neurons/commit/ef6baa73c4ead2865a3435c4a8f7753fb4e52017), where the section title landed as `Similar Readout Quality Does Not Guarantee Control`. The `Matched Readout Quality...` wording elsewhere in this report should be read as a historical suggestion, not a still-missing manuscript edit.
+4. **CAST / conditional-steering future-work sentence** — ADDRESSED, then removed during claim-tightening. The CAST pointer was added in [`ef6baa7`](https://github.com/SystemicVoid/H-Neurons/commit/ef6baa73c4ead2865a3435c4a8f7753fb4e52017) and later removed in [`c547261`](https://github.com/SystemicVoid/H-Neurons/commit/c54726142f6fdf4da3294f5a4bb94d21ed76fe5b). The bibliography entry `lee2025cast` remains available in [`paper/icml/references.bib`](paper/icml/references.bib), but the sentence is not an outstanding omission in the final manuscript.
 
 ### Tooling / build status
 
-- `paper/icml/Makefile` is still out of sync with the repository layout: `make` fails because it expects top-level `icml2026.sty` / `icml2026.bst`.
-- Direct compilation does work with the style-file paths set explicitly: `BSTINPUTS=guidelines-style-files: bibtex main` plus `TEXINPUTS=guidelines-style-files: pdflatex ...`.
+- `paper/icml/Makefile` is now in sync with the repository layout after [`0786430`](https://github.com/SystemicVoid/H-Neurons/commit/07864308e8e454cc37a8cb26740f5909e9bd1d06): `cd paper/icml && make clean && make` succeeds using the bundled `guidelines-style-files/` automatically.
+- A fresh `cd paper/icml && make clean && make` run still emits non-fatal LaTeX warnings, but the mix has changed: early `pdflatex` passes report transient `natbib` undefined-citation warnings before `bibtex` resolves them, while the final stable warnings are the remaining underfull-box layout warnings. The earlier `hyperref` metadata warnings are no longer present, and there are no build failures.
 - Current compiled artifact is [`paper/icml/main.pdf`](paper/icml/main.pdf): title `Strong Readouts, Local Levers: A Steering Audit of Gemma-3-4B-IT`, 9 pages total, with references beginning on page 7 and Appendix A beginning on page 8.
 
 ### Still out of scope
@@ -124,7 +125,7 @@ The TeX draft appears compliant on the following points:
 
 ### What still needs explicit submission-time checking
 
-The paper now compiles in the repo with the bundled style files, but not via the current `paper/icml/Makefile`. Manual verification is still needed before submission because compilation currently depends on explicit `BSTINPUTS=guidelines-style-files:` and `TEXINPUTS=guidelines-style-files:` environment settings:
+The paper now compiles in the repo via `cd paper/icml && make`, so the remaining submission-time checks are about artifact quality rather than build-path workarounds:
 
 1. **Main-body page count** after real figures and bibliography in the actual ICML style.
 2. **Figure font embedding** (Type-1 fonts; no Type-3 leakage from generated PDFs).
