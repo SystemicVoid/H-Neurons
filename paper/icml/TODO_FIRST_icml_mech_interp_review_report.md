@@ -2,6 +2,7 @@
 
 Reviewed inputs:
 - `paper/icml/main.tex`
+- `paper/icml/number_provenance.md`
 - `paper/draft/full_paper.md`
 - `paper/draft/number_provenance.md`
 - `notes/2026-04-11-strategic-assessment.md`
@@ -53,6 +54,7 @@ Where later sections of this report recommend older titles or phrasing, treat th
 11. **Substitution examples table** — PRESENT with the corrected Buddy Holly / Big Bopper row.
 12. **Know Thy Judge citation strengthening** — PRESENT. `eiras2025judge` is cited in the evaluator-dependence paragraph.
 13. **SimpleQA vs bridge hierarchy compression** — PRESENT. SimpleQA is framed as a supporting stress test and the locked bridge benchmark as the main externality result.
+14. **ICML-specific provenance ledger** — PRESENT in [`paper/icml/number_provenance.md`](paper/icml/number_provenance.md). The reviewer-facing ledger now tracks the current TeX section structure and covers the main-body headline numbers, while the older [`paper/draft/number_provenance.md`](paper/draft/number_provenance.md) remains the long-draft artifact.
 
 ### Addressed in revision history, then intentionally revised again
 
@@ -69,9 +71,9 @@ Where later sections of this report recommend older titles or phrasing, treat th
 
 ### Still out of scope
 
-- **Provenance ledger updates** (`paper/draft/number_provenance.md`). The ledger still follows the long markdown draft rather than the ICML TeX section numbering.
+- **Supplement/artifact packaging around provenance.** The ICML-specific ledger now exists at [`paper/icml/number_provenance.md`](paper/icml/number_provenance.md), but the broader anonymized supplement assembly still remains: prompt manifests, judge prompts, coding guide, scoring scripts, and final artifact packaging.
 - **Font-embedding / final PDF metadata review**. The paper now compiles, but submission-time font and anonymization checks still remain.
-- **Reproducibility supplement package**. Prompt manifests, judge prompts, coding guide, scoring scripts, and the provenance ledger still need an artifact-assembly pass.
+- **Reproducibility supplement package**. Prompt manifests, judge prompts, coding guide, scoring scripts, and the remaining anonymized supplement materials still need an artifact-assembly pass.
 
 ---
 
