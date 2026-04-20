@@ -91,7 +91,7 @@ This paper tests the readout-to-steering heuristic empirically in Gemma-3-4B-IT 
 We find repeated dissociations between four stages that are routinely conflated:
 
 \begin{enumerate}
-  \item \textbf{Measurement}---Can we trust the evaluation? Truncation, scoring granularity, and evaluator choice each changed the scientific conclusion (\S\ref{sec:measurement}).
+  \item \textbf{Measurement}---Can we trust the evaluation? Truncation and scoring granularity changed the scientific conclusion, while the evaluator audit exposed residual rubric dependence (\S\ref{sec:measurement}).
   \item \textbf{Localization}---Does the readout identify causally relevant components? SAE features matched H-neurons on detection quality but did not translate into useful control (\S\ref{sec:localization}).
   \item \textbf{Control}---Does intervention produce the intended behavioral change? Effects were narrow and task-local (\S\ref{sec:externality}).
   \item \textbf{Externality}---Does the effect transfer without causing harm? Wrong-entity substitution was the most common manually coded failure mode on a held-out bridge benchmark (\S\ref{sec:externality}).
@@ -100,7 +100,7 @@ We find repeated dissociations between four stages that are routinely conflated:
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/fig1_scaffold.pdf}
-  \caption{The Four-Stage Interpretability Scaffold and three empirical gates. Stages run left to right; each transition is a question the next stage assumes has been answered. Three gates mark where the readout-to-steering heuristic broke in our case study: one \emph{within-stage} (Measurement$\to$Verdict, \S\ref{sec:measurement}: truncation, grading, and evaluator choice all shifted the verdict) and two \emph{inter-stage} (Localization$\to$Control, \S\ref{sec:localization}; Control$\to$Externality, \S\ref{sec:externality}). Within-stage gates tether to a stage box; inter-stage gates tether to the transition arrow.}
+  \caption{The Four-Stage Interpretability Scaffold and three empirical gates. Stages run left to right; each transition is a question the next stage assumes has been answered. Three gates mark where the readout-to-steering heuristic broke in our case study: one \emph{within-stage} (Measurement$\to$Verdict, \S\ref{sec:measurement}: truncation and grading shifted the verdict, while the evaluator audit exposed residual rubric dependence) and two \emph{inter-stage} (Localization$\to$Control, \S\ref{sec:localization}; Control$\to$Externality, \S\ref{sec:externality}). Within-stage gates tether to a stage box; inter-stage gates tether to the transition arrow.}
   \label{fig:scaffold}
 \end{figure*}
 
@@ -112,9 +112,12 @@ We find repeated dissociations between four stages that are routinely conflated:
 \textbf{Study orientation.}
 This paper is a single-model comparative case study in Gemma-3-4B-IT \citep{gemma2025}.
 We compare multiple intervention families---neuron scaling, SAE feature steering, and inference-time intervention via attention heads---across contextual faithfulness (FaithEval), answer selection (TruthfulQA), open-ended factual generation (TriviaQA, SimpleQA), domain QA (BioASQ), and jailbreak settings (JailbreakBench).
-We organize results through four analytic stages as empirical gates in the path from ``a feature predicts behavior $X$'' to ``intervening on that feature usefully changes behavior $X$.''
 All claims are surface-specific: FaithEval is a context-faithfulness / anti-compliance surface, TruthfulQA MC constrained answer selection, TriviaQA bridge and SimpleQA open-ended factual generation, and JailbreakBench a harmfulness-evaluation surface.
-The paper does not claim a new steering method or a general failure of detector-based targets; it asks, within these tested surfaces, whether held-out readout quality is enough to select steering targets (\S\ref{sec:localization}), whether answer-selection gains transfer to open-ended factual generation (\S\ref{sec:externality}), and whether plausible measurement choices leave the jailbreak verdict stable (\S\ref{sec:measurement}).
+Within that scope, the paper asks three bounded empirical questions:
+(1)~Is held-out readout quality enough to select steering targets? (\S\ref{sec:localization})
+(2)~Do answer-selection gains transfer to open-ended factual generation? (\S\ref{sec:externality})
+(3)~Do plausible measurement choices leave the jailbreak verdict stable? (\S\ref{sec:measurement})
+These are surface-specific questions, not claims of a new steering method or a general failure of detector-based targets.
 
 % ======================================================================
 % 2. RELATED WORK
