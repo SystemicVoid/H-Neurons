@@ -7,14 +7,14 @@ This package is a submission-safe, reviewer-facing supplement for the ICML manus
 | File | Role | Supports manuscript sections |
 |---|---|---|
 | `reference/main.tex` | Anonymous TeX manuscript copy used as the section-numbering anchor for this supplement. | All sections |
-| `number_provenance.md` | Canonical reviewer-facing ledger for every main-body quantitative claim. | Abstract, §§3-5 |
+| `number_provenance.md` | Canonical reviewer-facing ledger for the manuscript’s main-body quantitative claims, keyed to one-hop bundled support files. | Abstract, §§3-5 |
 | `evaluation_manifest.md` | Judge prompts, rubric versions, judge models, holdout artifact, and scoring entrypoints. | §5 |
 | `failure_coding_manifest.md` | Coding guide and provenance for the TriviaQA bridge wrong-entity substitution audit. | §4.3 |
 | `reproduction_manifest.md` | Minimal rerun map for the paper’s anchor results, with expected outputs and omitted sidecars policy. | §§3-5 |
 | `support/localization_summary.md` | Derived summary of the FaithEval readout-quality and control comparison. | §3 |
 | `support/externality_summary.md` | Derived summary of FalseQA, BioASQ, TruthfulQA, SimpleQA, and TriviaQA bridge results. | §4 |
 | `support/measurement_summary.md` | Derived summary of the seed-0 jailbreak control analysis and evaluator holdout validation. | §5 |
-| `support/judge_prompts.md` | Prompt and rubric summary for CSV2 v3 and StrongREJECT, with scoring-field definitions. | §5 |
+| `support/judge_prompts.md` | Prompt and rubric summary for CSV2 v2, CSV2 v3, and StrongREJECT, with scoring-field definitions. | §5 |
 | `data/judge_validation/holdout_comparison.json` | Safe machine-readable holdout comparison artifact for the four-way evaluator audit. | §5 |
 | `data/manifests/triviaqa_bridge_test500_seed42.json` | Safe 500-question held-out ID manifest for the bridge benchmark. | §4.3, rerun map |
 | `data/manifests/truthfulqa_final_fold0_heldout_mc1_seed42.json` | Safe held-out TruthfulQA MC1 fold-0 manifest. | §4.2, rerun map |

@@ -33,14 +33,18 @@ Interpretation: the same H-neuron intervention is active on compliance-adjacent 
 | ITI MC1 effect (held-out TruthfulQA folds) | +6.3 pp | [+3.7, +8.9] |
 | ITI MC2 effect (held-out TruthfulQA folds) | +7.49 pp | [+5.28, +9.82] |
 | TruthfulQA flip counts | 61 wrong-to-right, 20 right-to-wrong | — |
+| SimpleQA evaluation size | 1,000 items | — |
 | SimpleQA correct-answer rate at `α = 0.0` | 4.6% | [3.5, 6.1] |
 | SimpleQA correct-answer rate at `α = 8.0` | 2.8% | [1.9, 4.0] |
 | SimpleQA paired delta (`α = 0.0 → 8.0`) | -1.8 pp | [-3.1, -0.6] |
 | SimpleQA attempt rate at `α = 0.0` | 99.7% | — |
 | SimpleQA attempt rate at `α = 8.0` | 67.0% | — |
 | SimpleQA paired attempt-rate delta | -32.7 pp | [-35.6, -29.9] |
+| SimpleQA precision among attempted answers at `α = 0.0` | 4.6% | — |
+| SimpleQA precision among attempted answers at `α = 8.0` | 4.2% | — |
+| SimpleQA paired precision delta | -0.4 pp | [-1.9, +1.1] |
 
-Interpretation: ITI improves constrained answer selection on held-out TruthfulQA folds, but that gain does not transfer to open-ended SimpleQA generation.
+Interpretation: ITI improves constrained answer selection on held-out TruthfulQA folds, but that gain does not transfer to open-ended SimpleQA generation. The main movement is in attempt rate, not in precision among attempted answers.
 
 ## §4.3 Bridge: Wrong-Entity Substitution
 

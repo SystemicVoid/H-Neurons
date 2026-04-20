@@ -2,7 +2,7 @@
 
 Reviewer-facing provenance ledger for the ICML submission in [`reference/main.tex`](reference/main.tex). Section references follow the anonymous TeX manuscript bundled in this supplement.
 
-Each row resolves in one hop to a bundled reviewer-facing support file or bundled safe JSON artifact.
+Each listed row resolves in one hop to a bundled reviewer-facing support file or bundled safe JSON artifact.
 
 ## Main-Body Quantitative Claims
 
@@ -34,6 +34,9 @@ Each row resolves in one hop to a bundled reviewer-facing support file or bundle
 | Random-neuron specificity | 8/8 paired neuron-minus-random differences positive | every seed-specific 95% CI excludes zero | `support/localization_summary.md` |
 | SAE H-feature slope | +0.16 pp/α | [-0.51, 0.84] | `support/localization_summary.md` |
 | SAE monotonicity | Spearman ρ = 0.18 | — | `support/localization_summary.md` |
+| Delta-only SAE H-feature slope | +0.12 pp/α | audit summary; no CI reported | `support/localization_summary.md` |
+| Delta-only random-feature slope | -0.09 pp/α | audit summary; no CI reported | `support/localization_summary.md` |
+| Neuron baseline on same three-alpha subset | +2.12 pp/α | audit summary; 3-point OLS on `α ∈ {0.0, 1.0, 3.0}` | `support/localization_summary.md` |
 | SAE random slope | +0.59 pp/α | descriptive seed mean | `support/localization_summary.md` |
 | Neuron-minus-SAE slope difference | +1.93 pp/α | [+0.94, +2.92] | `support/localization_summary.md` |
 | Neuron-minus-SAE directional permutation test | one-sided `p < 0.001` | saved value `9.9998e-05` | `support/localization_summary.md` |
@@ -60,12 +63,16 @@ Each row resolves in one hop to a bundled reviewer-facing support file or bundle
 | ITI MC1 effect (held-out TruthfulQA folds) | +6.3 pp | [+3.7, +8.9] | `support/externality_summary.md` |
 | ITI MC2 effect (held-out TruthfulQA folds) | +7.49 pp | [+5.28, +9.82] | `support/externality_summary.md` |
 | TruthfulQA flip counts | 61 wrong→right, 20 right→wrong | — | `support/externality_summary.md` |
+| SimpleQA evaluation size | 1,000 items | — | `support/externality_summary.md` |
 | SimpleQA correct-answer rate at `α = 0.0` | 4.6% | [3.5, 6.1] | `support/externality_summary.md` |
 | SimpleQA correct-answer rate at `α = 8.0` | 2.8% | [1.9, 4.0] | `support/externality_summary.md` |
 | SimpleQA paired compliance delta (`α = 0.0 → 8.0`) | -1.8 pp | [-3.1, -0.6] | `support/externality_summary.md` |
 | SimpleQA attempt rate at `α = 0.0` | 99.7% | — | `support/externality_summary.md` |
 | SimpleQA attempt rate at `α = 8.0` | 67.0% | — | `support/externality_summary.md` |
 | SimpleQA paired attempt-rate delta (`α = 0.0 → 8.0`) | -32.7 pp | [-35.6, -29.9] | `support/externality_summary.md` |
+| SimpleQA precision among attempted answers at `α = 0.0` | 4.6% | — | `support/externality_summary.md` |
+| SimpleQA precision among attempted answers at `α = 8.0` | 4.2% | — | `support/externality_summary.md` |
+| SimpleQA paired precision delta (`α = 0.0 → 8.0`) | -0.4 pp | [-1.9, +1.1] | `support/externality_summary.md` |
 
 #### §4.3 Bridge: Wrong-Entity Substitution
 

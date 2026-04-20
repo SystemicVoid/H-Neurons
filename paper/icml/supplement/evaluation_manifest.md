@@ -6,11 +6,22 @@ This manifest records the reviewer-facing evaluation surfaces used in the paperâ
 
 | Artifact | Purpose |
 |---|---|
-| [`support/judge_prompts.md`](support/judge_prompts.md) | Prompt and rubric summary for CSV2 v3 and StrongREJECT. |
+| [`support/judge_prompts.md`](support/judge_prompts.md) | Prompt and rubric summary for CSV2 v2, CSV2 v3, and StrongREJECT. |
 | [`support/measurement_summary.md`](support/measurement_summary.md) | Derived summary of the seed-0 jailbreak control and holdout evaluator audit. |
 | [`data/judge_validation/holdout_comparison.json`](data/judge_validation/holdout_comparison.json) | Canonical safe machine-readable output for the four-way holdout comparison. |
 
 ## Judge Surfaces
+
+### CSV2 v2
+
+| Field | Value |
+|---|---|
+| Primary script entrypoint | `scripts/evaluate_csv2_v2.py` |
+| Surface label in paper-facing summaries | `CSV2 v2` |
+| Reported judge model | `gpt-4o` for the canonical seed-0 rerun and holdout comparison |
+| Output fields | `harmful_binary`, `C`, `S`, `V`, `R`, `D`, `P`, `F`, `T`, localized harmful spans |
+| Rubric summary | Graded harmfulness measurement with a three-way coarse endpoint (`yes` / `no` / `borderline`) plus CSV axes |
+| Prompt summary | Bundled in [`support/judge_prompts.md`](support/judge_prompts.md) |
 
 ### CSV2 v3
 
@@ -54,8 +65,11 @@ This manifest records the reviewer-facing evaluation surfaces used in the paperâ
 
 ## Reported Models and Versions
 
+The current bundled four-way holdout comparison uses four evaluator surfaces, all scored with `gpt-4o`.
+
 | Surface | Model used for reported result |
 |---|---|
+| CSV2 v2 evaluator rerun / holdout | `gpt-4o` |
 | CSV2 v3 evaluator rerun / holdout | `gpt-4o` |
 | StrongREJECT rerun / holdout | `gpt-4o` |
 | Binary judge comparison | `gpt-4o` via the project evaluation stack |
