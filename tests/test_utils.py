@@ -43,6 +43,7 @@ run_jailbreak = run_intervention.run_jailbreak
 extract_mc_answer = utils.extract_mc_answer
 format_alpha_label = utils.format_alpha_label
 normalize_answer = utils.normalize_answer
+resolve_project_root = utils.resolve_project_root
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +99,18 @@ class TestFormatAlphaLabel:
         assert format_alpha_label(0.02) == "0.02"
         assert format_alpha_label(0.125) == "0.125"
         assert format_alpha_label(0.0) != format_alpha_label(0.02)
+
+
+class TestResolveProjectRoot:
+    def test_uses_repo_root_for_standard_scripts_layout(self):
+        script_path = Path("/tmp/example-repo/scripts/example.py")
+
+        assert resolve_project_root(script_path) == Path("/tmp/example-repo")
+
+    def test_uses_bundle_root_for_code_scripts_layout(self):
+        script_path = Path("/tmp/example-bundle/code/scripts/example.py")
+
+        assert resolve_project_root(script_path) == Path("/tmp/example-bundle")
 
 
 # ---------------------------------------------------------------------------

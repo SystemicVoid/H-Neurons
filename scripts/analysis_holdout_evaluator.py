@@ -18,7 +18,12 @@ from collections import defaultdict
 from itertools import combinations
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+try:
+    from utils import resolve_project_root
+except ModuleNotFoundError:
+    from scripts.utils import resolve_project_root
+
+ROOT = resolve_project_root(__file__)
 
 OUTPUT_PATH = ROOT / "data/judge_validation/holdout_comparison.json"
 GOLD_PATH = ROOT / "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl"

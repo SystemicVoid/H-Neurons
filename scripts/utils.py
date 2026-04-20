@@ -28,6 +28,21 @@ _SENSITIVE_ARG_NAMES = {"api_key", "sampling_api_key"}
 _REDACTED_ARG_VALUE = "[REDACTED]"
 
 
+def resolve_project_root(script_path: str | os.PathLike[str]) -> Path:
+    """Resolve the project root for scripts run from repo or bundle layouts.
+
+    Repository scripts live at `<root>/scripts/*.py`, while the public
+    supplement bundles some entrypoints at `<bundle>/code/scripts/*.py`.
+    In the latter case, repo-relative defaults should still resolve against
+    `<bundle>/`, not `<bundle>/code/`.
+    """
+    path = Path(script_path).resolve()
+    root = path.parent.parent
+    if path.parent.name == "scripts" and root.name == "code":
+        return root.parent
+    return root
+
+
 def format_alpha_label(alpha: float) -> str:
     """Format alpha values without collapsing nearby micro-betas."""
     rounded_one_decimal = round(alpha, 1)

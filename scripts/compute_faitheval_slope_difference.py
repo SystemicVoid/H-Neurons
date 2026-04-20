@@ -21,14 +21,16 @@ try:
         DEFAULT_BOOTSTRAP_SEED,
         paired_bootstrap_slope_difference,
     )
+    from utils import resolve_project_root
 except ModuleNotFoundError:
     from scripts.uncertainty import (
         DEFAULT_BOOTSTRAP_RESAMPLES,
         DEFAULT_BOOTSTRAP_SEED,
         paired_bootstrap_slope_difference,
     )
+    from scripts.utils import resolve_project_root
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = resolve_project_root(__file__)
 
 NEURON_DIR = PROJECT_ROOT / "data/gemma3_4b/intervention/faitheval/experiment"
 SAE_DIR = PROJECT_ROOT / "data/gemma3_4b/intervention/faitheval_sae/experiment"
