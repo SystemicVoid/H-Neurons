@@ -37,8 +37,8 @@ This manifest documents the reviewer-facing coding surface for the TriviaQA brid
 |---|---|
 | Canonical internal report used to derive this manifest | `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md` |
 | Bundled reviewer-facing derivative | [`support/externality_summary.md`](support/externality_summary.md) |
-| Bridge grading stack | `scripts/evaluate_intervention.py` |
-| Test-run orchestration | `scripts/infra/triviaqa_bridge_test.sh` |
+| Bridge grading stack | `code/scripts/evaluate_intervention.py` |
+| Bundled manifest builder | `code/scripts/build_triviaqa_bridge_manifest.py` |
 
 ## Caveats
 

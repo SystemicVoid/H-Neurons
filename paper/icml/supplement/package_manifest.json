@@ -1,0 +1,233 @@
+{
+  "copies": [
+    {
+      "src": "paper/icml/supplement/README.md",
+      "dst": "README.md"
+    },
+    {
+      "src": "paper/icml/supplement/artifact_manifest.md",
+      "dst": "artifact_manifest.md"
+    },
+    {
+      "src": "paper/icml/supplement/evaluation_manifest.md",
+      "dst": "evaluation_manifest.md"
+    },
+    {
+      "src": "paper/icml/supplement/failure_coding_manifest.md",
+      "dst": "failure_coding_manifest.md"
+    },
+    {
+      "src": "paper/icml/supplement/number_provenance.md",
+      "dst": "number_provenance.md"
+    },
+    {
+      "src": "paper/icml/supplement/reproduction_manifest.md",
+      "dst": "reproduction_manifest.md"
+    },
+    {
+      "src": "paper/icml/supplement/package_manifest.json",
+      "dst": "package_manifest.json"
+    },
+    {
+      "glob": "paper/icml/supplement/reference/*.tex",
+      "dst_dir": "reference"
+    },
+    {
+      "glob": "paper/icml/supplement/support/*.md",
+      "dst_dir": "support"
+    },
+    {
+      "src": "paper/icml/supplement/data/judge_validation/holdout_comparison.json",
+      "dst": "data/judge_validation/holdout_comparison.json"
+    },
+    {
+      "glob": "paper/icml/supplement/data/manifests/*.json",
+      "dst_dir": "data/manifests"
+    },
+    {
+      "src": "requirements.txt",
+      "dst": "code/requirements.txt"
+    },
+    {
+      "src": "scripts/classifier.py",
+      "dst": "code/scripts/classifier.py"
+    },
+    {
+      "src": "scripts/classifier_sae.py",
+      "dst": "code/scripts/classifier_sae.py"
+    },
+    {
+      "src": "scripts/run_intervention.py",
+      "dst": "code/scripts/run_intervention.py"
+    },
+    {
+      "src": "scripts/run_negative_control.py",
+      "dst": "code/scripts/run_negative_control.py"
+    },
+    {
+      "src": "scripts/run_sae_negative_control.py",
+      "dst": "code/scripts/run_sae_negative_control.py"
+    },
+    {
+      "src": "scripts/compute_faitheval_slope_difference.py",
+      "dst": "code/scripts/compute_faitheval_slope_difference.py"
+    },
+    {
+      "src": "scripts/extract_truthfulness_iti.py",
+      "dst": "code/scripts/extract_truthfulness_iti.py"
+    },
+    {
+      "src": "scripts/intervene_iti.py",
+      "dst": "code/scripts/intervene_iti.py"
+    },
+    {
+      "src": "scripts/evaluate_intervention.py",
+      "dst": "code/scripts/evaluate_intervention.py"
+    },
+    {
+      "src": "scripts/build_triviaqa_bridge_manifest.py",
+      "dst": "code/scripts/build_triviaqa_bridge_manifest.py"
+    },
+    {
+      "src": "scripts/build_truthfulqa_splits.py",
+      "dst": "code/scripts/build_truthfulqa_splits.py"
+    },
+    {
+      "src": "scripts/evaluate_csv2.py",
+      "dst": "code/scripts/evaluate_csv2.py"
+    },
+    {
+      "src": "scripts/evaluate_csv2_v2.py",
+      "dst": "code/scripts/evaluate_csv2_v2.py"
+    },
+    {
+      "src": "scripts/evaluate_strongreject.py",
+      "dst": "code/scripts/evaluate_strongreject.py"
+    },
+    {
+      "src": "scripts/analysis_holdout_evaluator.py",
+      "dst": "code/scripts/analysis_holdout_evaluator.py"
+    },
+    {
+      "src": "scripts/jailbreak_measurement_cleanup.py",
+      "dst": "code/scripts/jailbreak_measurement_cleanup.py"
+    },
+    {
+      "src": "scripts/openai_batch.py",
+      "dst": "code/scripts/openai_batch.py"
+    },
+    {
+      "src": "scripts/utils.py",
+      "dst": "code/scripts/utils.py"
+    },
+    {
+      "src": "scripts/uncertainty.py",
+      "dst": "code/scripts/uncertainty.py"
+    },
+    {
+      "src": "scripts/extract_direction.py",
+      "dst": "code/scripts/extract_direction.py"
+    },
+    {
+      "src": "scripts/analyze_concordance.py",
+      "dst": "code/scripts/analyze_concordance.py"
+    },
+    {
+      "src": "scripts/analyze_csv2.py",
+      "dst": "code/scripts/analyze_csv2.py"
+    },
+    {
+      "src": "scripts/analyze_csv2_control.py",
+      "dst": "code/scripts/analyze_csv2_control.py"
+    },
+    {
+      "src": "scripts/csv2_v3_smoke_hardcases.py",
+      "dst": "code/scripts/csv2_v3_smoke_hardcases.py"
+    },
+    {
+      "src": "scripts/repair_csv2_spans.py",
+      "dst": "code/scripts/repair_csv2_spans.py"
+    },
+    {
+      "src": "scripts/intervene_model.py",
+      "dst": "code/scripts/intervene_model.py"
+    },
+    {
+      "src": "scripts/intervene_direction.py",
+      "dst": "code/scripts/intervene_direction.py"
+    },
+    {
+      "src": "scripts/intervene_sae.py",
+      "dst": "code/scripts/intervene_sae.py"
+    },
+    {
+      "src": "scripts/extract_sae_activations.py",
+      "dst": "code/scripts/extract_sae_activations.py"
+    },
+    {
+      "src": "scripts/extract_activations.py",
+      "dst": "code/scripts/extract_activations.py"
+    },
+    {
+      "src": "scripts/build_truthfulness_contrastive.py",
+      "dst": "code/scripts/build_truthfulness_contrastive.py"
+    },
+    {
+      "src": "tests/__init__.py",
+      "dst": "code/tests/__init__.py"
+    },
+    {
+      "src": "tests/test_compute_faitheval_slope_difference.py",
+      "dst": "code/tests/test_compute_faitheval_slope_difference.py"
+    },
+    {
+      "src": "tests/test_triviaqa_bridge.py",
+      "dst": "code/tests/test_triviaqa_bridge.py"
+    },
+    {
+      "src": "tests/test_truthfulness_iti.py",
+      "dst": "code/tests/test_truthfulness_iti.py"
+    },
+    {
+      "src": "tests/test_csv2.py",
+      "dst": "code/tests/test_csv2.py"
+    },
+    {
+      "src": "tests/test_strongreject.py",
+      "dst": "code/tests/test_strongreject.py"
+    },
+    {
+      "src": "tests/test_evaluate_intervention.py",
+      "dst": "code/tests/test_evaluate_intervention.py"
+    },
+    {
+      "src": "tests/test_jailbreak_measurement_cleanup.py",
+      "dst": "code/tests/test_jailbreak_measurement_cleanup.py"
+    },
+    {
+      "src": "tests/test_uncertainty.py",
+      "dst": "code/tests/test_uncertainty.py"
+    },
+    {
+      "src": "tests/test_utils.py",
+      "dst": "code/tests/test_utils.py"
+    }
+  ],
+  "banned_path_prefixes": [
+    ".git/",
+    "paper/draft/",
+    "paper/icml/reviews/",
+    "logs/",
+    "notes/",
+    "scripts/infra/",
+    "tests/gold_labels/",
+    "wandb/"
+  ],
+  "banned_strings": [
+    "/home/hugo",
+    "Hugo Nguyen",
+    "SystemicVoid",
+    "github.com/SystemicVoid/H-Neurons",
+    "git@github.com:SystemicVoid/H-Neurons.git"
+  ]
+}

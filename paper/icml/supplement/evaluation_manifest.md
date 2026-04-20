@@ -16,7 +16,7 @@ This manifest records the reviewer-facing evaluation surfaces used in the paperâ
 
 | Field | Value |
 |---|---|
-| Primary script entrypoint | `scripts/evaluate_csv2_v2.py` |
+| Primary script entrypoint | `code/scripts/evaluate_csv2_v2.py` |
 | Surface label in paper-facing summaries | `CSV2 v2` |
 | Reported judge model | `gpt-4o` for the canonical seed-0 rerun and holdout comparison |
 | Output fields | `harmful_binary`, `C`, `S`, `V`, `R`, `D`, `P`, `F`, `T`, localized harmful spans |
@@ -27,7 +27,7 @@ This manifest records the reviewer-facing evaluation surfaces used in the paperâ
 
 | Field | Value |
 |---|---|
-| Primary script entrypoint | `scripts/evaluate_csv2.py` |
+| Primary script entrypoint | `code/scripts/evaluate_csv2.py` |
 | Schema version | `csv2_v3` |
 | Reported judge model | `gpt-4o` for the canonical v3 rerun and holdout comparison |
 | Output fields | `primary_outcome`, `intent_match`, `harmful_binary`, `C`, `S`, `V`, `R`, `D`, `P`, `F`, `T`, localized evidence spans |
@@ -38,7 +38,7 @@ This manifest records the reviewer-facing evaluation surfaces used in the paperâ
 
 | Field | Value |
 |---|---|
-| Primary script entrypoint | `scripts/evaluate_strongreject.py` |
+| Primary script entrypoint | `code/scripts/evaluate_strongreject.py` |
 | Schema version | `strongreject_v1` |
 | Reported judge model | `gpt-4o` for the canonical rerun referenced by the holdout comparison |
 | Output fields | `refused`, `convincingness`, `specificity`, derived `score`, derived `harmful_binary` |
@@ -49,7 +49,7 @@ This manifest records the reviewer-facing evaluation surfaces used in the paperâ
 
 | Field | Value |
 |---|---|
-| Primary script entrypoint | `scripts/evaluate_intervention.py` |
+| Primary script entrypoint | `code/scripts/evaluate_intervention.py` |
 | Surfaces covered | Jailbreak binary judge, SimpleQA batch judge, TriviaQA bridge deterministic + adjudicated grading |
 | Paper-facing use here | Binary judge is part of the four-way evaluator audit; bridge grading is part of the Â§4.3 externality analysis |
 
@@ -58,8 +58,8 @@ This manifest records the reviewer-facing evaluation surfaces used in the paperâ
 | Item | Value |
 |---|---|
 | Holdout artifact | [`data/judge_validation/holdout_comparison.json`](data/judge_validation/holdout_comparison.json) |
-| Analysis script | `scripts/analysis_holdout_evaluator.py` |
-| Gold fixture used in-repo | `tests/gold_labels/jailbreak_cross_alpha_gold.jsonl` |
+| Analysis script | `code/scripts/analysis_holdout_evaluator.py` |
+| Gold fixture used in-repo | `tests/gold_labels/jailbreak_cross_alpha_gold.jsonl` (not bundled) |
 | Bundling policy for gold fixture | Not bundled in this supplement because it contains harmful prompts and full response text |
 | Contamination rule | Exclude the 8 prompt IDs used during CSV2 v3 calibration, leaving a 50-record contamination-clean holdout |
 
@@ -74,7 +74,7 @@ The current bundled four-way holdout comparison uses four evaluator surfaces, al
 | StrongREJECT rerun / holdout | `gpt-4o` |
 | Binary judge comparison | `gpt-4o` via the project evaluation stack |
 
-## Non-Bundled Implementation Details
+## Bundled Implementation Details
 
-- Exact API wrappers, batching logic, and few-shot calibration examples live in the repo entrypoints listed above.
+- Exact API wrappers, batching logic, and few-shot calibration examples live in the bundled code entrypoints listed above under `code/scripts/`.
 - Raw scored JSONL outputs and raw run provenance sidecars are intentionally omitted from this supplement for anonymization and compactness.

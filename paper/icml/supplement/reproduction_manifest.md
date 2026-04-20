@@ -2,6 +2,8 @@
 
 This manifest is a minimal rerun map for the paper’s anchor results. It is not a full artifact bundle. The aim is to identify the data roots, scripts, expected outputs, and bundled safe manifests without exposing anonymization-sensitive sidecars.
 
+All script paths below refer to the bundled code tree under `code/scripts/`.
+
 ## Bundled Safe Inputs
 
 | File | Use |
@@ -19,7 +21,7 @@ This manifest is a minimal rerun map for the paper’s anchor results. It is not
 | Item | Value |
 |---|---|
 | Core repo data roots | `data/gemma3_4b/pipeline/`, `data/gemma3_4b/intervention/faitheval/`, `data/gemma3_4b/intervention/faitheval_sae/` |
-| Main scripts | `scripts/classifier.py`, `scripts/classifier_sae.py`, `scripts/run_intervention.py`, `scripts/run_negative_control.py`, `scripts/run_sae_negative_control.py`, `scripts/compute_faitheval_slope_difference.py` |
+| Main scripts | `code/scripts/classifier.py`, `code/scripts/classifier_sae.py`, `code/scripts/run_intervention.py`, `code/scripts/run_negative_control.py`, `code/scripts/run_sae_negative_control.py`, `code/scripts/compute_faitheval_slope_difference.py` |
 | Expected outputs | `classifier_disjoint_summary.json`, `classifier_sae_summary.json`, `results.json`, `comparison_summary.json`, `slope_difference_summary.json` |
 | Reviewer-facing bundled derivative | [`support/localization_summary.md`](support/localization_summary.md) |
 
@@ -28,7 +30,7 @@ This manifest is a minimal rerun map for the paper’s anchor results. It is not
 | Item | Value |
 |---|---|
 | Core repo data roots | `data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/`, `data/gemma3_4b/intervention/simpleqa_factual_phrase_*`, `data/gemma3_4b/intervention/truthfulqa_mc_*` |
-| Main scripts | `scripts/extract_truthfulness_iti.py`, `scripts/intervene_iti.py`, `scripts/run_intervention.py`, `scripts/evaluate_intervention.py`, `scripts/infra/act3_priority_reruns.sh`, `scripts/infra/simpleqa_standalone.sh` |
+| Main scripts | `code/scripts/extract_truthfulness_iti.py`, `code/scripts/intervene_iti.py`, `code/scripts/run_intervention.py`, `code/scripts/evaluate_intervention.py` |
 | Bundled safe inputs | Held-out TruthfulQA manifests in `data/manifests/` |
 | Expected outputs | `results.json`, per-alpha JSONL files, judge summaries |
 | Reviewer-facing bundled derivative | [`support/externality_summary.md`](support/externality_summary.md) |
@@ -38,7 +40,7 @@ This manifest is a minimal rerun map for the paper’s anchor results. It is not
 | Item | Value |
 |---|---|
 | Core repo data roots | `data/gemma3_4b/intervention/triviaqa_bridge/`, `data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/` |
-| Main scripts | `scripts/infra/triviaqa_bridge_test.sh`, `scripts/run_intervention.py`, `scripts/evaluate_intervention.py` |
+| Main scripts | `code/scripts/build_triviaqa_bridge_manifest.py`, `code/scripts/run_intervention.py`, `code/scripts/evaluate_intervention.py` |
 | Bundled safe input | [`data/manifests/triviaqa_bridge_test500_seed42.json`](data/manifests/triviaqa_bridge_test500_seed42.json) |
 | Expected outputs | `results.json`, `audit_stats.json`, per-alpha JSONL files |
 | Reviewer-facing bundled derivative | [`support/externality_summary.md`](support/externality_summary.md), [`failure_coding_manifest.md`](failure_coding_manifest.md) |
@@ -48,7 +50,7 @@ This manifest is a minimal rerun map for the paper’s anchor results. It is not
 | Item | Value |
 |---|---|
 | Core repo data roots | `data/gemma3_4b/intervention/jailbreak/`, `data/judge_validation/` |
-| Main scripts | `scripts/evaluate_csv2.py`, `scripts/evaluate_strongreject.py`, `scripts/analysis_holdout_evaluator.py`, `scripts/jailbreak_measurement_cleanup.py`, `scripts/infra/jailbreak_measurement_cleanup.sh` |
+| Main scripts | `code/scripts/evaluate_csv2.py`, `code/scripts/evaluate_strongreject.py`, `code/scripts/analysis_holdout_evaluator.py`, `code/scripts/jailbreak_measurement_cleanup.py` |
 | Bundled safe artifact | [`data/judge_validation/holdout_comparison.json`](data/judge_validation/holdout_comparison.json) |
 | Expected outputs | scored evaluator directories, `holdout_comparison.json`, comparison summaries |
 | Reviewer-facing bundled derivative | [`support/measurement_summary.md`](support/measurement_summary.md), [`evaluation_manifest.md`](evaluation_manifest.md) |
