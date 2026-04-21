@@ -14,6 +14,7 @@ Usage:
 
 import json
 from pathlib import Path
+from typing import Any
 
 import joblib
 import numpy as np
@@ -200,7 +201,240 @@ def build_sae_feature_map(flat_indices, *, layer_indices, d_sae):
         flat_indices, layer_indices=layer_indices, d_sae=d_sae
     ):
         feature_map.setdefault(decoded["layer"], []).append(decoded["feature"])
+    for layer_idx in feature_map:
+        feature_map[layer_idx] = sorted(feature_map[layer_idx])
     return feature_map
+
+
+def _metadata_from_summary_or_extraction(
+    *,
+    classifier_summary_path: str | None = None,
+    extraction_dir: str | None = None,
+) -> dict[str, Any] | None:
+    if classifier_summary_path:
+        summary = _load_json(classifier_summary_path)
+        extraction_metadata = summary.get("extraction_metadata")
+        if extraction_metadata is not None:
+            if extraction_dir is not None:
+                _validate_classifier_metadata(classifier_summary_path, extraction_dir)
+            return extraction_metadata
+    if extraction_dir is not None:
+        return _load_extraction_metadata(extraction_dir)
+    return None
+
+
+def build_sae_feature_entries(flat_indices, *, layer_indices, d_sae):
+    """Build normalized SAE feature dicts with layer/feature/flat index."""
+    return decode_sae_feature_indices(
+        flat_indices,
+        layer_indices=layer_indices,
+        d_sae=d_sae,
+    )
+
+
+def build_sae_feature_manifest(
+    features: list[dict[str, Any]],
+    *,
+    extraction_metadata: dict[str, Any] | None = None,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build a normalized SAE feature manifest payload."""
+    payload: dict[str, Any] = {
+        "schema_version": "sae_feature_manifest/v1",
+        "feature_space": "sae",
+        "feature_count": len(features),
+        "features": features,
+    }
+    if extraction_metadata is not None:
+        payload["extraction_metadata"] = extraction_metadata
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def _coerce_feature_entries(
+    raw_payload: dict[str, Any] | list[Any],
+    *,
+    layer_indices: list[int] | None,
+    d_sae: int | None,
+) -> list[dict[str, Any]]:
+    if isinstance(raw_payload, list):
+        raw_entries = raw_payload
+    elif isinstance(raw_payload, dict) and isinstance(
+        raw_payload.get("features"), list
+    ):
+        raw_entries = raw_payload["features"]
+    elif isinstance(raw_payload, dict) and isinstance(
+        raw_payload.get("target_features"), dict
+    ):
+        raw_entries = []
+        for layer_key, features in raw_payload["target_features"].items():
+            for feature in features:
+                raw_entries.append({"layer": int(layer_key), "feature": int(feature)})
+    elif isinstance(raw_payload, dict) and all(
+        isinstance(key, (int, str)) and isinstance(value, list)
+        for key, value in raw_payload.items()
+    ):
+        raw_entries = []
+        for layer_key, features in raw_payload.items():
+            for feature in features:
+                raw_entries.append({"layer": int(layer_key), "feature": int(feature)})
+    else:
+        raise ValueError(
+            "SAE feature manifest must be a list of features, an object with "
+            "'features', an object with 'target_features', or a bare layer map."
+        )
+
+    entries: list[dict[str, Any]] = []
+    seen_flat: set[int] = set()
+    seen_pairs: set[tuple[int, int]] = set()
+    valid_layers = set(layer_indices or [])
+    for idx, raw_entry in enumerate(raw_entries):
+        if not isinstance(raw_entry, dict):
+            raise ValueError(f"Feature entry #{idx} must be an object")
+        layer = raw_entry.get("layer")
+        feature = raw_entry.get("feature")
+        flat_idx = raw_entry.get("flat_idx")
+
+        if flat_idx is not None:
+            if layer_indices is None or d_sae is None:
+                raise ValueError(
+                    "Feature manifests with flat_idx entries require layer_indices and "
+                    "d_sae metadata."
+                )
+            decoded = decode_sae_feature_indices(
+                [int(flat_idx)],
+                layer_indices=layer_indices,
+                d_sae=d_sae,
+            )
+            if not decoded:
+                raise ValueError(
+                    f"Feature entry #{idx} has invalid flat_idx={flat_idx}"
+                )
+            decoded_entry = decoded[0]
+            if layer is None:
+                layer = decoded_entry["layer"]
+            if feature is None:
+                feature = decoded_entry["feature"]
+            if (
+                int(layer) != decoded_entry["layer"]
+                or int(feature) != decoded_entry["feature"]
+            ):
+                raise ValueError(
+                    f"Feature entry #{idx} disagrees with flat_idx={flat_idx}"
+                )
+        elif layer is None or feature is None:
+            raise ValueError(
+                f"Feature entry #{idx} must include either flat_idx or both layer and feature"
+            )
+
+        layer = int(layer)
+        feature = int(feature)
+        if layer_indices is not None and layer not in valid_layers:
+            raise ValueError(f"Feature entry #{idx} uses unknown layer {layer}")
+        if d_sae is not None and not (0 <= feature < int(d_sae)):
+            raise ValueError(
+                f"Feature entry #{idx} uses out-of-range feature {feature} for d_sae={d_sae}"
+            )
+        if flat_idx is None:
+            if layer_indices is None or d_sae is None:
+                raise ValueError(
+                    "Feature manifests without flat_idx require layer_indices and d_sae metadata."
+                )
+            layer_pos = layer_indices.index(layer)
+            flat_idx = layer_pos * int(d_sae) + feature
+        flat_idx = int(flat_idx)
+
+        pair = (layer, feature)
+        if flat_idx in seen_flat or pair in seen_pairs:
+            raise ValueError(
+                f"Duplicate SAE feature entry for layer={layer}, feature={feature}"
+            )
+        seen_flat.add(flat_idx)
+        seen_pairs.add(pair)
+
+        entry = {"layer": layer, "feature": feature, "flat_idx": flat_idx}
+        for key, value in raw_entry.items():
+            if key not in entry:
+                entry[key] = value
+        entries.append(entry)
+
+    entries.sort(key=lambda item: int(item["flat_idx"]))
+    return entries
+
+
+def load_sae_feature_manifest(
+    manifest_path,
+    *,
+    classifier_summary_path=None,
+    extraction_dir=None,
+    layer_indices=None,
+    d_sae=None,
+):
+    """Load and validate an explicit SAE feature manifest."""
+    payload = _load_json(str(manifest_path))
+    manifest_metadata = None
+    if isinstance(payload, dict):
+        manifest_metadata = payload.get("extraction_metadata")
+
+    resolved_metadata = manifest_metadata or _metadata_from_summary_or_extraction(
+        classifier_summary_path=classifier_summary_path,
+        extraction_dir=extraction_dir,
+    )
+    if resolved_metadata is not None:
+        layer_indices = resolved_metadata["layer_indices"]
+        d_sae = resolved_metadata["d_sae"]
+    elif layer_indices is None or d_sae is None:
+        raise ValueError(
+            "Explicit SAE feature manifests require extraction metadata in the manifest "
+            "or caller-provided classifier_summary_path / extraction_dir / layer_indices / d_sae."
+        )
+
+    entries = _coerce_feature_entries(
+        payload,
+        layer_indices=layer_indices,
+        d_sae=d_sae,
+    )
+    feature_map = build_sae_feature_map(
+        [entry["flat_idx"] for entry in entries],
+        layer_indices=layer_indices,
+        d_sae=d_sae,
+    )
+    normalized_payload = (
+        dict(payload)
+        if isinstance(payload, dict)
+        else build_sae_feature_manifest(entries)
+    )
+    normalized_payload["features"] = entries
+    normalized_payload["feature_count"] = len(entries)
+    normalized_payload["target_features"] = {
+        str(layer): feature_map[layer] for layer in sorted(feature_map)
+    }
+    if resolved_metadata is not None:
+        normalized_payload["extraction_metadata"] = resolved_metadata
+    return normalized_payload
+
+
+def load_target_features_from_manifest(
+    manifest_path,
+    *,
+    classifier_summary_path=None,
+    extraction_dir=None,
+    layer_indices=None,
+    d_sae=None,
+):
+    """Load target SAE features from an explicit feature manifest."""
+    manifest = load_sae_feature_manifest(
+        manifest_path,
+        classifier_summary_path=classifier_summary_path,
+        extraction_dir=extraction_dir,
+        layer_indices=layer_indices,
+        d_sae=d_sae,
+    )
+    return {
+        int(layer): [int(feature) for feature in features]
+        for layer, features in manifest["target_features"].items()
+    }
 
 
 def load_sae_classifier_coefficients(classifier_path):

@@ -20,6 +20,7 @@ Usage:
 
 import argparse
 from collections import Counter
+from functools import lru_cache
 import hashlib
 import json
 import os
@@ -39,7 +40,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from intervene_model import get_h_neuron_indices
 from intervene_direction import DirectionScaler
 from intervene_iti import ITI_DECODE_SCOPES, ITIHeadScaler, load_iti_artifact
-from intervene_sae import SAEFeatureScaler, load_target_features_from_classifier
+from intervene_sae import (
+    SAEFeatureScaler,
+    load_sae_feature_manifest,
+    load_target_features_from_classifier,
+)
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
@@ -301,6 +306,61 @@ def resolve_output_dir(args: argparse.Namespace) -> str:
             f"{benchmark_name}_{direction_suffix}/experiment"
         )
     return f"data/gemma3_4b/intervention/{benchmark_name}/experiment"
+
+
+def load_sample_manifest_ids(path: str) -> set[str]:
+    """Load sample IDs from a plain list manifest or an object with ``ids``."""
+    with open(path, encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    if isinstance(payload, list):
+        return {str(item) for item in payload}
+    if isinstance(payload, dict):
+        for key in ("ids", "sample_ids"):
+            ids = payload.get(key)
+            if isinstance(ids, list):
+                return {str(item) for item in ids}
+    raise ValueError(
+        "sample manifest must be a JSON list or an object with an 'ids' list"
+    )
+
+
+def resolve_sae_target_features(
+    args: argparse.Namespace,
+) -> tuple[dict[int, list[int]], dict[str, Any]]:
+    """Resolve SAE target features from an explicit manifest or classifier weights."""
+    if args.sae_feature_manifest:
+        manifest = load_sae_feature_manifest(
+            args.sae_feature_manifest,
+            classifier_summary_path=args.sae_classifier_summary,
+            extraction_dir=args.extraction_dir,
+        )
+        target_features = {
+            int(layer): [int(feature) for feature in features]
+            for layer, features in manifest["target_features"].items()
+        }
+        return target_features, manifest
+
+    if not (
+        args.sae_classifier_path and args.sae_classifier_summary and args.extraction_dir
+    ):
+        raise ValueError(
+            "--intervention_mode sae requires either --sae_feature_manifest or "
+            "--sae_classifier_path + --sae_classifier_summary + --extraction_dir"
+        )
+
+    target_features = load_target_features_from_classifier(
+        args.sae_classifier_path,
+        classifier_summary_path=args.sae_classifier_summary,
+        extraction_dir=args.extraction_dir,
+    )
+    with open(args.sae_classifier_summary, encoding="utf-8") as handle:
+        classifier_summary = json.load(handle)
+    return target_features, {
+        "source": "classifier_positive_weights",
+        "classifier_path": args.sae_classifier_path,
+        "extraction_metadata": classifier_summary["extraction_metadata"],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1246,27 +1306,128 @@ from utils import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 
+FAITHEVAL_CANONICAL_LABELS = tuple("ABCDE")
+
+
+def _faitheval_choice_signature(
+    question: str,
+    choice_texts: list[str],
+) -> tuple[str, tuple[str, ...]]:
+    return question.strip(), tuple(str(text).strip() for text in choice_texts)
+
+
+def _normalize_faitheval_choice_key(key: str, valid_labels: list[str]) -> str:
+    """Map a canonical ARC/FaithEval answer key onto the displayed option label."""
+    normalized_key = str(key)
+    normalized_labels = [str(label) for label in valid_labels]
+    if normalized_key in normalized_labels:
+        return normalized_key
+    if normalized_key in FAITHEVAL_CANONICAL_LABELS:
+        idx = FAITHEVAL_CANONICAL_LABELS.index(normalized_key)
+        if idx < len(normalized_labels):
+            return normalized_labels[idx]
+    raise ValueError(
+        f"Could not map FaithEval key {normalized_key!r} onto labels {normalized_labels!r}"
+    )
+
+
+@lru_cache(maxsize=1)
+def _load_arc_challenge_test_index() -> tuple[
+    dict[str, dict[str, Any]],
+    dict[tuple[str, tuple[str, ...]], dict[str, Any]],
+]:
+    from datasets import load_dataset
+
+    ds = load_dataset("allenai/ai2_arc", "ARC-Challenge", split="test")
+    by_id: dict[str, dict[str, Any]] = {}
+    by_signature: dict[tuple[str, tuple[str, ...]], dict[str, Any]] = {}
+    for row in ds:
+        row_id = str(row["id"])
+        signature = _faitheval_choice_signature(
+            str(row["question"]),
+            list(row["choices"]["text"]),
+        )
+        if row_id in by_id:
+            raise ValueError(f"Duplicate ARC-Challenge id {row_id!r}")
+        if signature in by_signature:
+            raise ValueError(
+                f"Duplicate ARC-Challenge question/choice signature for {row_id!r}"
+            )
+        by_id[row_id] = row
+        by_signature[signature] = row
+    return by_id, by_signature
+
+
+def _resolve_arc_challenge_row(faitheval_row: dict[str, Any]) -> dict[str, Any]:
+    arc_by_id, arc_by_signature = _load_arc_challenge_test_index()
+    row_id = str(faitheval_row["id"])
+    labels = list(faitheval_row["choices"]["label"])
+    texts = list(faitheval_row["choices"]["text"])
+    signature = _faitheval_choice_signature(str(faitheval_row["question"]), texts)
+
+    arc_row = arc_by_id.get(row_id)
+    if arc_row is None:
+        arc_row = arc_by_signature.get(signature)
+    if arc_row is None:
+        raise ValueError(f"Could not find ARC-Challenge source row for {row_id!r}")
+
+    arc_signature = _faitheval_choice_signature(
+        str(arc_row["question"]),
+        list(arc_row["choices"]["text"]),
+    )
+    if arc_signature != signature:
+        raise ValueError(
+            "FaithEval row does not match ARC-Challenge source row for "
+            f"{row_id!r}: labels={labels!r}"
+        )
+    return arc_row
+
+
+def _build_faitheval_sample(
+    row: dict[str, Any],
+    *,
+    preferred_answer_key: str,
+) -> dict[str, Any]:
+    choices = row["choices"]
+    labels = [str(label) for label in choices["label"]]
+    texts = [str(text) for text in choices["text"]]
+    choice_str = "\n".join(
+        f"{label}) {text}" for label, text in zip(labels, texts, strict=True)
+    )
+    counterfactual_key = _normalize_faitheval_choice_key(row["answerKey"], labels)
+    preferred_key = _normalize_faitheval_choice_key(preferred_answer_key, labels)
+    counterfactual_idx = labels.index(counterfactual_key)
+    preferred_idx = labels.index(preferred_key)
+    return {
+        "id": row["id"],
+        "context": row["context"],
+        "question": row["question"],
+        "choices_text": choice_str,
+        "answer_text": row["answer"],
+        "counterfactual_answer_text": texts[counterfactual_idx],
+        "preferred_answer_text": texts[preferred_idx],
+        "valid_letters": labels,
+        "counterfactual_key": counterfactual_key,
+        "counterfactual_key_canonical": str(row["answerKey"]),
+        "preferred_key": preferred_key,
+        "preferred_key_canonical": str(preferred_answer_key),
+        "num_options": row["num of options"],
+    }
+
+
 def load_faitheval():
-    """Load FaithEval counterfactual dataset from HuggingFace."""
+    """Load FaithEval with original ARC answers and visible option labels."""
     from datasets import load_dataset
 
     ds = load_dataset("Salesforce/FaithEval-counterfactual-v1.0", split="test")
     samples = []
     for row in ds:
-        choices = row["choices"]
-        labels = choices["label"]
-        texts = choices["text"]
-        choice_str = "\n".join(f"{label}) {text}" for label, text in zip(labels, texts))
+        arc_row = _resolve_arc_challenge_row(row)
         samples.append(
-            {
-                "id": row["id"],
-                "context": row["context"],
-                "question": row["question"],
-                "choices_text": choice_str,
-                "valid_letters": labels,
-                "counterfactual_key": row["answerKey"],  # The misleading answer
-                "num_options": row["num of options"],
-            }
+            _build_faitheval_sample(
+                row,
+                preferred_answer_key=str(arc_row["answerKey"]),
+            )
         )
     return samples
 
@@ -3538,6 +3699,15 @@ def parse_args(argv: list[str] | None = None):
         help="Path to SAE classifier .pkl (required for --intervention_mode sae)",
     )
     p.add_argument(
+        "--sae_feature_manifest",
+        type=str,
+        default=None,
+        help=(
+            "Path to an explicit SAE feature manifest. When provided, this "
+            "takes precedence over classifier-derived positive features."
+        ),
+    )
+    p.add_argument(
         "--sae_classifier_summary",
         type=str,
         help="Path to SAE classifier summary JSON (required for --intervention_mode sae)",
@@ -3744,32 +3914,20 @@ def main():
         device = next(model.parameters()).device
 
         if args.intervention_mode == "sae":
-            if not (
-                args.sae_classifier_path
-                and args.sae_classifier_summary
-                and args.extraction_dir
-            ):
-                raise ValueError(
-                    "--intervention_mode sae requires --sae_classifier_path, "
-                    "--sae_classifier_summary, and --extraction_dir"
-                )
-            print(f"Loading SAE classifier: {args.sae_classifier_path}")
-            target_features = load_target_features_from_classifier(
-                args.sae_classifier_path,
-                classifier_summary_path=args.sae_classifier_summary,
-                extraction_dir=args.extraction_dir,
-            )
+            target_features, sae_feature_source = resolve_sae_target_features(args)
             total_features = sum(len(v) for v in target_features.values())
             print(
                 f"SAE features: {total_features} across {len(target_features)} layers"
             )
 
-            # Load SAEs only for layers with positive features
+            # Load SAEs only for layers with selected features.
             from extract_sae_activations import load_saes
 
-            with open(args.sae_classifier_summary, "r", encoding="utf-8") as f:
-                cls_summary = json.load(f)
-            meta = cls_summary["extraction_metadata"]
+            meta = sae_feature_source.get("extraction_metadata")
+            if meta is None:
+                raise ValueError(
+                    "SAE feature selection requires extraction metadata to load SAEs."
+                )
             sae_layers = sorted(target_features.keys())
             print(f"Loading SAEs for layers: {sae_layers}")
             saes = load_saes(
@@ -3910,8 +4068,7 @@ def main():
             raise ValueError(f"Unknown benchmark: {args.benchmark}")
 
         if args.sample_manifest:
-            with open(args.sample_manifest) as f:
-                manifest_ids = set(json.load(f))
+            manifest_ids = load_sample_manifest_ids(args.sample_manifest)
             samples = [s for s in samples if s["id"] in manifest_ids]
             print(
                 f"Filtered to {len(samples)} samples via manifest {args.sample_manifest}"
@@ -4120,7 +4277,10 @@ def main():
             },
         }
         if args.intervention_mode == "sae":
-            summary["sae_classifier"] = args.sae_classifier_path
+            if args.sae_classifier_path:
+                summary["sae_classifier"] = args.sae_classifier_path
+            if args.sae_feature_manifest:
+                summary["sae_feature_manifest"] = args.sae_feature_manifest
             summary["sae_steering_mode"] = args.sae_steering_mode
             summary["n_sae_features"] = total_neurons
         elif args.intervention_mode == "direction":
