@@ -1,0 +1,57 @@
+{"case_id": "bridge_test_case_ee378a6e88c1", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_57adab295e9f", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_127c6afb83c8", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_f102259c34b5", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_0e16205d2085", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_5a786ebd882a", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_9eb6d9f38666", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_fc5db6c5b082", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_c4a00858ecfc", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_1866f482ce11", "label": "evasion_or_factual_denial", "confidence": "high", "notes": "R4", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_d387892dfdfc", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_281182bd7058", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_1ca9a3e15ebb", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2 but also add non relevant info to question", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_99132f3ede90", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_8b65ebba726e", "label": "evasion_or_factual_denial", "confidence": "high", "notes": "R4", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_32404330f6ba", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_5b44d3b2a861", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_bd7d4e5edb92", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_804c3b43d26f", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_331e8863c4df", "label": "evasion_or_factual_denial", "confidence": "high", "notes": "R4", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_d87849797b55", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_74db1cea953b", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_d01dfb559117", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_2605a9ba3490", "label": "evasion_or_factual_denial", "confidence": "high", "notes": "R4", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_41dfe4647032", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_ab52a682cc1f", "label": "evasion_or_factual_denial", "confidence": "high", "notes": "R4", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_70c04e89df45", "label": "answer_dilution", "confidence": "medium", "notes": "R3", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_e74558a6e7fd", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_e33a556103cd", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_195dbe046184", "label": "wrong_entity_substitution", "confidence": "low", "notes": "R2 for start date, but end data is too generous as well so 3 for R6 ? not sure", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_339e21375829", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_2092e8c97ec0", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_bfa26b8aea69", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_0b87bdfc8ef2", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_59746841420a", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_b2a8a7102b12", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_0bf0a66035e1", "label": "evasion_or_factual_denial", "confidence": "medium", "notes": "R4 - not sure a group is individual level id but still not nothing", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_bd975b7f89e8", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_77ad7367d986", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_254af807f0bd", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_d88a53c22dfe", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_580d5d287f34", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_cfeef173800c", "label": "evasion_or_factual_denial", "confidence": "high", "notes": "R4", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_b56a2ec14a29", "label": "answer_dilution", "confidence": "high", "notes": "R3", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_1c2fb525fd6c", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_3dba3bb56915", "label": "evasion_or_factual_denial", "confidence": "high", "notes": "R4", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_8b1f3dfc9496", "label": "answer_dilution", "confidence": "low", "notes": "Its not wrong just underspecified so it cant be r2 because its not wrong but its also not the level of specificity expected, borderline to me.", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_3e161317568f", "label": "wrong_entity_substitution", "confidence": "medium", "notes": "R2 and R6", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_e0a82d91d77b", "label": "wrong_entity_substitution", "confidence": "medium", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_a9887a3c58fe", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_bf197bc863a9", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_f6d309ba9494", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_d7938b698464", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_96bc17a959be", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_984567b64819", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_fbd7b4956480", "label": "evasion_or_factual_denial", "confidence": "high", "notes": "R4", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}
+{"case_id": "bridge_test_case_8fb35f697ec0", "label": "wrong_entity_substitution", "confidence": "high", "notes": "R2", "rater": "rater_a_human", "rubric_version": "bridge_incorrect_response_v1"}

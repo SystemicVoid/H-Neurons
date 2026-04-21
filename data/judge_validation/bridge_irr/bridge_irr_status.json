@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "awaiting_labels",
+  "status": "adjudicated",
   "rubric_version": "bridge_incorrect_response_v1",
   "label_set": [
     "wrong_entity_substitution",
