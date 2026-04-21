@@ -229,15 +229,15 @@ At $\alpha = 8.0$, the baseline TruthfulQA-sourced ITI variant reduces adjudicat
 Both the primary (adjudicated) and floor (deterministic) accuracy deltas exclude zero, ruling out a grading artifact.
 
 \textbf{The observed harm is not primarily refusal:} NOT\_ATTEMPTED counts rise from 2 to 8, a small 1.2~pp effect.
-Formal refusal accounts for 0 of 43 R$\to$W flips under the dual-rated adjudicated coding.
+Formal refusal accounts for 0 of 43 R$\to$W flips under the dual-rated coding.
 The dominant damage is factual corruption, not silence.
 
-\textbf{Wrong-entity substitution is the most common adjudicated failure mode.}
-Of the 43 R$\to$W flips, 31 were adjudicated as substitutions where the model replaces a correct factual answer with a different entity from the same semantic neighborhood ($31/43 = 72\%$; 95\% CI $[57, 83]$; Table~\ref{tab:substitution}).
-Three additional failure modes account for the remaining 12 flips: evasion/factual denial (9/43, 21\%), answer dilution from verbosity (3/43, 7\%), and formal refusal (0/43).
-Both raters independently assigned category labels; raw agreement was 96.5\% on all 57 discordant cases (Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96), and the two disagreements were resolved under a pre-frozen adjudication rule.
-This pattern is consistent with a coarse behavior-level reweighting toward nearby but wrong candidates rather than simple suppression of generation.
-We treat wrong-entity substitution as a behavioral diagnosis rather than a claim about the exact internal circuit mechanism.
+\textbf{Wrong-entity substitution is the most common dual-rated failure mode.}
+Each of the 57 discordant test cases (43 R$\to$W + 14 W$\to$R) was coded by the first author and a blinded LLM judge (\texttt{gpt-4o-2024-11-20}, temperature 0, strict JSON schema) against a pre-registered four-category rubric whose decision rules were committed before any test label was appended.
+Raw agreement was 96.5\% (Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96); the two disagreements were resolved under the pre-committed rule.
+Of the 43 R$\to$W flips, 31 fell in the wrong-entity substitution category: the model replaces a correct factual answer with a different entity from the same semantic neighborhood ($31/43 = 72\%$; 95\% CI $[57, 83]$; Table~\ref{tab:substitution}).
+The remaining 12 flips split into evasion/factual denial (9/43, 21\%), answer dilution (3/43, 7\%), and formal refusal (0/43).
+This profile is consistent with a coarse behavior-level reweighting toward nearby but wrong candidates rather than suppression of generation; we treat it as a behavioral diagnosis, not a claim about the exact internal circuit mechanism.
 
 The 14 wrong-to-right rescues show that the intervention is behaviorally active in both directions: on some questions it moves a wrong baseline answer to the correct entity, though on this surface the damage rate is larger than the rescue rate.
 
@@ -270,7 +270,7 @@ Comic whose June 1938 issue introduced Superman? & Action Comics & Detective Com
   \includegraphics[width=\textwidth]{figures/fig3_bridge.pdf}
   \caption{Surface-local control and bridge failure modes.
   (a)~ITI improves TruthfulQA MC1 but harms both generation surfaces (CIs exclude zero).
-  (b)~Among the 43 right-to-wrong flips on the TriviaQA bridge test set, wrong-entity substitution is the most common adjudicated failure mode ($72\%$; 95\% CI $[57, 83]$), not refusal.}
+  (b)~Among the 43 right-to-wrong flips on the TriviaQA bridge test set, wrong-entity substitution is the most common dual-rated failure mode ($72\%$; 95\% CI $[57, 83]$), not refusal.}
   \label{fig:bridge}
 \end{figure*}
 
@@ -409,7 +409,7 @@ Cross-surface effects belong next to the headline result, not in the footnotes.
 All experiments use a single model (Gemma-3-4B-IT); the dissociations may not replicate across architectures or scales, though \citet{gao2025hneurons} report qualitatively similar H-neuron compliance effects across six models.
 The comparable-readout design keeps held-out AUROC close but cannot rule out that some other property of the feature family (operator form, layer coverage) explains the steering divergence.
 SAE layer coverage is partial; a different SAE width or layer selection could yield non-null results.
-Bridge failure-mode coding was dual-rated by the first author and a blinded GPT-4o second rater on all 57 discordant test cases (96.5\% raw agreement, Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96); the 2 disagreements were resolved under a pre-frozen adjudication rule. Since the second rater is an LLM judge rather than an independent human, we present this as a sensitivity check rather than strong-form human--human IRR.
+The bridge failure-mode second rater is an LLM judge (GPT-4o), not an independent human coder, so we present the agreement reported in \S\ref{sec:externality} as a sensitivity check rather than strong-form human--human IRR.
 Jailbreak H-neuron specificity is single-seed ($p = 0.013$); additional seeds are needed.
 Concurrent work \citep{wang2026interpretability,arad2025saes,wu2025axbench} already argues for interpretability/utility divergence from SAE-centric and benchmark-driven perspectives; we do not claim first demonstration of this phenomenon. Our distinctness lies in cross-representational matching on a real behavioral surface plus explicit transfer and measurement audits.
 The full limitation inventory is in Appendix~\ref{app:limitations}.
@@ -533,7 +533,7 @@ BioASQ         & 1,600 & flat                & ${\sim}2$ pp \\
 L1 & Single model (Gemma-3-4B-IT); all claims. \\
 L2 & Matched-readout confound: SAE and neurons differ in operator form and layer coverage. \\
 L3 & SAE layer coverage is partial; a different width or layer set could yield non-null results. \\
-L4 & Bridge failure-mode second rater is an LLM judge (GPT-4o), not an independent human coder; dual-rater agreement is 96.5\% ($\kappa = 0.90$, AC1 = 0.96). \\
+L4 & Bridge failure-mode second rater is an LLM judge (GPT-4o), not an independent human coder; raw agreement 96.5\% ($\kappa = 0.90$, AC1 = 0.96). \\
 L5 & Jailbreak H-neuron specificity is single-seed ($p = 0.013$); seeds 1--2 pending. \\
 \bottomrule
 \end{tabular}
