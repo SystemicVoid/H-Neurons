@@ -62,22 +62,23 @@ You are labeling a model's incorrect response to a TriviaQA trivia question usin
 
 CATEGORIES:
 - wrong_entity_substitution: the response names exactly one specific wrong entity as the answer. Hedging words ("probably", "I think", "most likely") do not disqualify this label if one entity is committed.
-- evasion_or_factual_denial: the response denies the answer's existence, knowability, or fit, and does not name a specific entity as the answer.
-- answer_dilution: the response lists two or more plausible candidates without committing to one, OR pads the answer slot with tangential context that provides no specific answer.
+- evasion_or_factual_denial: the response uses explicit denial language ("there isn't one", "no such thing exists", "I don't know", "can't be pinned down") about the answer's existence, knowability, or fit, and does not name a specific entity as the answer.
+- answer_dilution: the response lists two or more plausible candidates without committing to one, OR pads the answer slot with tangential context (definitions, subject information, vague descriptions of the subject) that provides no specific answer.
 - formal_refusal: explicit refusal to answer, typically with safety or policy framing.
 
 DECISION RULES (apply the first whose precondition fits):
 R1. Explicit refusal language ("I can't", "I won't", "I'm not able to") and no answer attempt -> formal_refusal.
 R2. Response commits to exactly one specific entity as the answer, even with hedging -> wrong_entity_substitution. Operational test: a reader completes "The model said the answer is ___" with one entity.
 R3. Response lists two or more plausible candidates without picking one -> answer_dilution.
-R4. Response denies the answer's existence, knowability, or unique fit and names no entity -> evasion_or_factual_denial.
+R4. Response contains explicit denial language about the answer's existence, knowability, or fit (e.g., "there isn't one", "no such thing exists", "I don't know", "can't be pinned down") and names no entity -> evasion_or_factual_denial. Absence of a named answer alone is NOT R4 — the response must contain denial language.
 R5. Commitment plus caveats or alternatives (one primary answer, others as alternatives) -> R2 wins, label wrong_entity_substitution.
-R6. Tangential context about the subject without commitment or explicit denial -> answer_dilution.
+R6. Tangential context about the subject — definitions, subject information, vague descriptions — without a committed answer and without explicit denial -> answer_dilution.
 
 TIEBREAKERS:
 - R2 vs R3: if one entity is in primary answer position, apply R2; if entities are parallel with no primary, apply R3.
 - R3 vs R4: prefer R3 when candidates are offered; prefer R4 when the response denies fit without offering candidates.
 - R2 vs R4: prefer R2 if any specific entity is proposed, even hedged.
+- R4 vs R6: R4 requires explicit denial language. If the response describes the subject without denial language, apply R6 even when no entity is named.
 
 INSTRUCTIONS:
 - Label ONLY the `incorrect_response` field.

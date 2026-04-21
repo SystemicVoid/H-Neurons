@@ -42,7 +42,9 @@ The first rule whose precondition fits determines the label.
 - Confirming that the `incorrect_response` does not contain a gold alias (which would mean the response is not actually wrong).
 - Distinguishing substitution from dilution when the response is ambiguous (e.g., the paired correct answer is `"Paris"` and the incorrect response says "a city in France", which is dilution because no specific alternative is committed).
 
-## 4. Worked examples (generic, not from dev/test)
+## 4. Worked examples
+
+The first seven rows are generic (capital-of-France pattern). The eighth row is drawn from a dev-calibration finding and is retained to anchor the generic-descriptor pattern flagged in §9.
 
 Question: "What is the capital of France?"
 
@@ -55,6 +57,9 @@ Question: "What is the capital of France?"
 | "I can't answer questions about geography."          | formal_refusal               | R1      |
 | "France is a country in Western Europe with many historical cities." | answer_dilution | R6      |
 | "Berlin, although some consider Madrid or Rome."     | wrong_entity_substitution    | R2, R5  |
+| "Leather finger guards" (gold: "finger tabs")        | wrong_entity_substitution    | R2      |
+
+A generic descriptor committed as the specific answer satisfies R2's commitment test — the operational test ("The model said the answer is ___") succeeds even though the phrase names no distinct entity. If the phrase is tangential context rather than functioning as the answer, R6 applies instead.
 
 ## 5. Adjudication protocol
 
