@@ -258,6 +258,36 @@ def pp_summary(estimate: float, lower: float, upper: float) -> dict[str, Any]:
     }
 
 
+def _bridge_irr_artifact_paths(repo_root: Path) -> dict[str, Path]:
+    base_dir = repo_root / "data/judge_validation/bridge_irr"
+    return {
+        "status": base_dir / "bridge_irr_status.json",
+        "summary": base_dir / "bridge_irr_summary.json",
+    }
+
+
+def load_bridge_irr_artifact(repo_root: Path) -> dict[str, Any] | None:
+    paths = _bridge_irr_artifact_paths(repo_root)
+    summary_path = paths["summary"]
+    if summary_path.exists():
+        summary = load_json(summary_path)
+        if summary.get("status") == "adjudicated":
+            return {
+                "source_path": summary_path,
+                "status": "adjudicated",
+                "payload": summary,
+            }
+    status_path = paths["status"]
+    if status_path.exists():
+        payload = load_json(status_path)
+        return {
+            "source_path": status_path,
+            "status": payload.get("status", "unknown"),
+            "payload": payload,
+        }
+    return None
+
+
 def add_percent_point_aliases(metric: dict[str, Any]) -> dict[str, Any]:
     metric_copy = copy.deepcopy(metric)
     if "estimate_pp" in metric_copy and "estimate" not in metric_copy:
@@ -2021,6 +2051,7 @@ def build_bridge_phase3_payload(repo_root: Path) -> dict[str, Any]:
     baseline_audit = load_json(baseline_audit_path)
     iti_audit = load_json(iti_audit_path)
     report = normalize_report_text(load_text(report_path))
+    irr_artifact = load_bridge_irr_artifact(repo_root)
 
     primary_delta = require_report_match(
         report,
@@ -2055,6 +2086,48 @@ def build_bridge_phase3_payload(repo_root: Path) -> dict[str, Any]:
 
     baseline_row = baseline_results["results"]["1.0"]
     iti_row = iti_results["results"]["8.0"]
+    source_files = [
+        "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/results.json",
+        "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/results.json",
+        "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/audit_stats.json",
+        "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/audit_stats.json",
+        "notes/act3-reports/2026-04-13-bridge-phase3-test-results.md",
+    ]
+    wrong_entity_payload: dict[str, Any] = {
+        "count": int(wrong_entity.group(1)),
+        "share_pct": float(wrong_entity.group(2)),
+    }
+    irr_payload: dict[str, Any] = {"status": "unavailable"}
+    if irr_artifact is not None:
+        source_files.append(
+            str(irr_artifact["source_path"].relative_to(repo_root)).replace("\\", "/")
+        )
+        if irr_artifact["status"] == "adjudicated":
+            irr_summary = irr_artifact["payload"]
+            wrong_entity_summary = irr_summary["paper_claims"][
+                "wrong_entity_substitution_r2w"
+            ]
+            wrong_entity_payload = {
+                "count": int(wrong_entity_summary["count"]),
+                "denominator": int(wrong_entity_summary["denominator"]),
+                "share": float(wrong_entity_summary["share"]),
+                "share_pct": float(wrong_entity_summary["share_pct"]),
+                "share_ci": copy.deepcopy(wrong_entity_summary["share_ci"]),
+                "share_ci_pct": copy.deepcopy(wrong_entity_summary["share_ci_pct"]),
+            }
+            irr_payload = {
+                "status": "adjudicated",
+                "n_cases": int(irr_summary["irr"]["n_cases"]),
+                "raw_agreement": copy.deepcopy(irr_summary["irr"]["raw_agreement"]),
+                "cohen_kappa": float(irr_summary["irr"]["cohen_kappa"]),
+                "gwet_ac1": float(irr_summary["irr"]["gwet_ac1"]),
+                "n_disagreements": int(irr_summary["irr"]["n_disagreements"]),
+            }
+        else:
+            irr_payload = {
+                "status": str(irr_artifact["status"]),
+                "counts": copy.deepcopy(irr_artifact["payload"].get("counts", {})),
+            }
 
     return {
         "schema_version": 1,
@@ -2062,13 +2135,7 @@ def build_bridge_phase3_payload(repo_root: Path) -> dict[str, Any]:
         "generated_by": "scripts/export_site_data.py",
         "benchmark": "triviaqa_bridge_phase3",
         "model": "google/gemma-3-4b-it",
-        "source_files": [
-            "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/results.json",
-            "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/results.json",
-            "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/audit_stats.json",
-            "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/audit_stats.json",
-            "notes/act3-reports/2026-04-13-bridge-phase3-test-results.md",
-        ],
+        "source_files": source_files,
         "verdict": verdict.group(1),
         "conditions": {
             "baseline": baseline_row,
@@ -2098,12 +2165,8 @@ def build_bridge_phase3_payload(repo_root: Path) -> dict[str, Any]:
             "base_wrong_iti_correct": int(flip_table.group(3)),
             "base_wrong_iti_wrong": int(flip_table.group(4)),
         },
-        "failure_modes": {
-            "wrong_entity_substitution": {
-                "count": int(wrong_entity.group(1)),
-                "share_pct": float(wrong_entity.group(2)),
-            }
-        },
+        "failure_modes": {"wrong_entity_substitution": wrong_entity_payload},
+        "irr": irr_payload,
         "audit": {
             "baseline_match_disagree_rate": baseline_audit[
                 "audit_disagree_rate_matches"

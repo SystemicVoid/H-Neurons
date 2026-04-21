@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-16",
+  "generated_at": "2026-04-21",
   "generated_by": "scripts/export_site_data.py",
   "benchmark": "triviaqa_bridge_phase3",
   "model": "google/gemma-3-4b-it",
@@ -9,7 +9,8 @@
     "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/results.json",
     "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/audit_stats.json",
     "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/audit_stats.json",
-    "notes/act3-reports/2026-04-13-bridge-phase3-test-results.md"
+    "notes/act3-reports/2026-04-13-bridge-phase3-test-results.md",
+    "data/judge_validation/bridge_irr/bridge_irr_summary.json"
   ],
   "verdict": "The externality break replicates on the held-out test set and is now\n> statistically significant.",
   "conditions": {
@@ -208,9 +209,48 @@
   },
   "failure_modes": {
     "wrong_entity_substitution": {
-      "count": 30,
-      "share_pct": 70.0
+      "count": 31,
+      "denominator": 43,
+      "share": 0.7209302325581395,
+      "share_pct": 72.1,
+      "share_ci": {
+        "lower": 0.5730897131812113,
+        "upper": 0.832533862137625,
+        "level": 0.95,
+        "method": "wilson"
+      },
+      "share_ci_pct": {
+        "lower": 57.3,
+        "upper": 83.3,
+        "level": 0.95,
+        "method": "wilson"
+      }
     }
+  },
+  "irr": {
+    "status": "adjudicated",
+    "n_cases": 57,
+    "raw_agreement": {
+      "count": 55,
+      "n": 57,
+      "estimate": 0.9649122807017544,
+      "estimate_pct": 96.5,
+      "ci": {
+        "lower": 0.8807921863237419,
+        "upper": 0.9903243356550671,
+        "level": 0.95,
+        "method": "wilson"
+      },
+      "ci_pct": {
+        "lower": 88.1,
+        "upper": 99.0,
+        "level": 0.95,
+        "method": "wilson"
+      }
+    },
+    "cohen_kappa": 0.8995,
+    "gwet_ac1": 0.9603,
+    "n_disagreements": 2
   },
   "audit": {
     "baseline_match_disagree_rate": 0.0,

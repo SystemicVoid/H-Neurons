@@ -79,8 +79,16 @@ def test_build_bridge_phase3_payload_exports_externality_break():
     assert payload["effects"]["adjudicated_accuracy_delta_pp"]["estimate"] == -5.8
     assert payload["effects"]["adjudicated_accuracy_delta_pp"]["ci"]["upper"] == -3.0
     assert payload["effects"]["mcnemar_p"] == 0.0002
-    assert payload["failure_modes"]["wrong_entity_substitution"]["count"] == 30
-    assert payload["failure_modes"]["wrong_entity_substitution"]["share_pct"] == 70.0
+    assert payload["failure_modes"]["wrong_entity_substitution"]["count"] == 31
+    assert payload["failure_modes"]["wrong_entity_substitution"]["share_pct"] == 72.1
+    assert payload["failure_modes"]["wrong_entity_substitution"]["denominator"] == 43
+    irr = payload["irr"]
+    assert irr["status"] == "adjudicated"
+    assert irr["n_cases"] == 57
+    assert irr["n_disagreements"] == 2
+    assert irr["cohen_kappa"] == 0.8995
+    assert irr["gwet_ac1"] == 0.9603
+    assert irr["raw_agreement"]["count"] == 55
 
 
 def test_build_d7_comparison_payload_exports_dual_panel_benchmark_local_caveat():

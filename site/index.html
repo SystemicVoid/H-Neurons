@@ -55,7 +55,7 @@
         <h3 style="color: var(--accent-amber);">Anchor 2</h3>
         <p class="card-item"><strong>Control does not guarantee transfer:</strong> the bridge benchmark now shows a held-out externality break.</p>
         <p class="card-item"><strong>Locked test result:</strong> ITI reduces adjudicated accuracy by <span data-bridge-bind="adjudicated-delta">-5.8pp</span> (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>) on 500 held-out TriviaQA items.</p>
-        <p class="card-item"><strong>Dominant failure mode:</strong> <span data-bridge-bind="wrong-entity-share">70.0%</span> of right-to-wrong flips are wrong-entity substitutions, not refusal.</p>
+        <p class="card-item"><strong>Dominant failure mode:</strong> <span data-bridge-bind="wrong-entity-share">72.1%</span> of right-to-wrong flips are wrong-entity substitutions, not refusal.</p>
         <p class="card-item"><strong>Project consequence:</strong> an intervention can help on one evaluation surface and still corrupt free-form factual generation.</p>
       </div>
       <!-- from: jailbreak_v2_binary_slope -->
@@ -140,8 +140,8 @@
           E0 ITI lowers adjudicated accuracy by <span data-bridge-bind="adjudicated-delta">-5.8pp</span>
           (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>) on 500 locked test questions,
           with <span data-bridge-bind="mcnemar-p">p=0.0002</span>. The damage is mostly active corruption, not abstention:
-          <span data-bridge-bind="wrong-entity-count">30</span> of <span data-bridge-bind="right-to-wrong-count">43</span> right-to-wrong flips
-          (<span data-bridge-bind="wrong-entity-share">70.0%</span>) are wrong-entity substitutions.
+          <span data-bridge-bind="wrong-entity-count">31</span> of <span data-bridge-bind="right-to-wrong-count">43</span> right-to-wrong flips
+          (<span data-bridge-bind="wrong-entity-share">72.1%</span>) are wrong-entity substitutions.
         </p>
       </div>
 
