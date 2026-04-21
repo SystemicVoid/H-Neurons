@@ -138,18 +138,20 @@ see [L5_PLAN](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/pape
 
 # 3. Highest-value experiment stack
 
-## Priority 0 — Finish the writing-feedback implementation
+## Priority 0 — Finish the writing-feedback implementation - DONE
 
 This gates everything. Do not add experiments until the current draft has the tightened thesis, updated related work, explicit hypotheses, revised title/framing, and cleaned limitation language. The workshop explicitly values clarity about what evidence does and does not support. ([MechInt Workshop][2])
 
 See [P0](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/paper/icml/TODO_Pro_icml_mech_interp_review_report.md)
 
-## Priority 1 — L4 bridge IRR + expanded discordant-case coding
+## Priority 1 — L4 bridge IRR + expanded discordant-case coding - DONE (2026-04-21)
 
 **Value:** Very high.
 **Cost:** Low.
 **Risk:** Low.
 **Where it appears:** Main text, §4.3 bridge subsection.
+
+**Closure:** raw agreement 96.5% on 57 discordant cases (Cohen's κ = 0.90, Gwet's AC1 = 0.96); R→W wrong-entity share 72.1% [57.3, 83.3]; W→R rescues 14/14 wrong-entity. Two disagreements resolved under pre-frozen rule, zero rule-gaps. Full analysis: [`../reports/2026-04-21-bridge-irr-review.md`](../reports/2026-04-21-bridge-irr-review.md).
 
 Minimum deliverable:
 

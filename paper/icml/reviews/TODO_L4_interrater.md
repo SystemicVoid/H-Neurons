@@ -1,5 +1,7 @@
 # L4: Bridge inter-rater reliability — no-brainer fix
 
+> **Status (2026-04-21): CLOSED.** All deliverables landed; raw agreement 96.5% on 57 discordant cases (Cohen's κ = 0.90, Gwet's AC1 = 0.96), two disagreements resolved under the pre-frozen rule (rule_gap = 0/2), adjudicated R→W wrong-entity share 72.1% [57.3, 83.3]. Final analysis: [`../reports/2026-04-21-bridge-irr-review.md`](../reports/2026-04-21-bridge-irr-review.md). Core commits: `7d9a0e5` (artifacts), `2fa9de2` (paper integration), `06a9ccb` (site), `4187a4a` (review report), `e0bd9bc` (§4.3 tightening).
+
 **Limitation:** Bridge failure-mode coding is single-rater, no inter-rater reliability reported.
 
 **Why it matters:** The ~70% wrong-entity substitution claim is the paper's most vivid qualitative result. A reviewer can dismiss it as subjective without IRR. The added value is not just κ — it is making the bridge result look like a serious behavioral mechanism analysis rather than an anecdotal taxonomy.

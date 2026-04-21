@@ -536,7 +536,7 @@ Two optional additions:
 1. explicitly mention the new April 2026 literature context:
    - the paper is not the first to suggest interpretability/utility divergence;
    - its distinctness lies elsewhere.
-2. mention that bridge coding is **single-rater and behavioral**, which limits mechanism claims specifically.
+2. mention that bridge coding is **behavioral**, which limits mechanism claims specifically. *(2026-04-21: the original "single-rater" concern was resolved via dual-rater IRR; see [`../reports/2026-04-21-bridge-irr-review.md`](../reports/2026-04-21-bridge-irr-review.md).)*
 
 ---
 

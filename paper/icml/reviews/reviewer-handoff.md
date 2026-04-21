@@ -133,7 +133,7 @@ Read the paper front-to-back as a mech-interp researcher who knows SAEs, probing
 
 2. **Matched-readout confound.** SAE features and neurons differ in more than readout quality (operator form, layer coverage, feature granularity). The paper acknowledges this (§3.3, L2) but the matched AUROC is doing a lot of inferential work. Check that the claim is scoped correctly ("readout quality alone did not suffice" rather than "readout quality is the only thing that matters").
 
-3. **Single-rater failure coding.** The 30/43 wrong-entity share is based on one rater (L4). A reviewer may want inter-rater reliability. Check that the paper uses "manually diagnosed" and "approximate" qualifiers.
+3. **~~Single-rater~~ Dual-rated failure coding (closed 2026-04-21).** The 31/43 wrong-entity share is now dual-rated with pre-registered rubric and IRR (raw agreement 96.5%, κ = 0.90, AC1 = 0.96, two disagreements adjudicated under a pre-frozen rule); Rater B is an LLM judge, so the paper frames this as a sensitivity check rather than strong-form human–human IRR. See [`../reports/2026-04-21-bridge-irr-review.md`](../reports/2026-04-21-bridge-irr-review.md).
 
 4. **No capability battery.** The paper does not report a generic capability check (e.g., MMLU, HellaSwag) to verify that interventions are not simply degrading the model globally. The BioASQ flat endpoint partially addresses this, but a reviewer might still ask for it.
 

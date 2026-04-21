@@ -106,7 +106,7 @@ Why this matters for framing:
 
 - This is more specific and more defensible than the generic MC->generation slogan.
 - No cited prior paper appears to document this exact failure mode for truthfulness steering.
-- It is the paper's best concrete behavioral mechanism claim, subject to one explicit caveat: the coding is still **single-rater** and should remain framed as a behavioral diagnosis, not a circuit-level mechanism.
+- It is the paper's best concrete behavioral mechanism claim, and should remain framed as a behavioral diagnosis, not a circuit-level mechanism. *(2026-04-21 update: the original single-rater caveat was addressed via dual-rater IRR — 72.1% wrong-entity [57.3, 83.3], κ = 0.90, AC1 = 0.96; see [`../reports/2026-04-21-bridge-irr-review.md`](../reports/2026-04-21-bridge-irr-review.md). The "behavioral diagnosis, not circuit mechanism" framing is unchanged.)*
 
 ### 4.2 The cross-representational FaithEval comparison is novel only in a narrow form
 
