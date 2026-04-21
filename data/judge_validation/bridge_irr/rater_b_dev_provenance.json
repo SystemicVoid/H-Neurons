@@ -1,0 +1,18 @@
+{
+  "rater": "rater_b_llm",
+  "rater_kind": "llm_judge",
+  "model": "gpt-4o-2024-11-20",
+  "rubric_version": "bridge_incorrect_response_v1",
+  "prompt_hash": "a135761b05bf1533",
+  "split": "dev",
+  "n_cases": 13,
+  "n_newly_labeled": 13,
+  "n_failures": 0,
+  "git_commit": "7bea24fe86bbde63084edaa31c4ccc59ee3a2ebc",
+  "timestamp": "2026-04-21T10:41:28+00:00",
+  "decoding": {
+    "temperature": 0,
+    "response_format": "json_schema (strict)"
+  },
+  "batch_mode": true
+}

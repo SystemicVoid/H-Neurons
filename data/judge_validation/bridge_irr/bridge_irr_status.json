@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "status": "awaiting_labels",
+  "rubric_version": "bridge_incorrect_response_v1",
+  "label_set": [
+    "wrong_entity_substitution",
+    "evasion_or_factual_denial",
+    "answer_dilution",
+    "formal_refusal"
+  ],
+  "adjudication_rule": {
+    "path": "data/judge_validation/bridge_irr/adjudication_rule.md",
+    "git_commit": "0e965d5649e1c8e5f3e3009d5a342599686d3318",
+    "content_sha256": "4dcbae24804a2c2b6faa7ab0e0c3e353263f027a34d7361e09a81667130dd816"
+  },
+  "files": {
+    "adjudication_rule": "data/judge_validation/bridge_irr/adjudication_rule.md",
+    "dev_calibration_queue": "data/judge_validation/bridge_irr/dev_calibration_queue.jsonl",
+    "test_queue_blinded": "data/judge_validation/bridge_irr/test_queue_blinded.jsonl",
+    "test_queue_key": "data/judge_validation/bridge_irr/test_queue_key.jsonl",
+    "rater_a_progress": "data/judge_validation/bridge_irr/rater_a_progress.jsonl",
+    "rater_b_progress": "data/judge_validation/bridge_irr/rater_b_progress.jsonl",
+    "adjudication_progress": "data/judge_validation/bridge_irr/adjudication_progress.jsonl",
+    "rater_b_provenance": "data/judge_validation/bridge_irr/rater_b_provenance.json",
+    "summary": "data/judge_validation/bridge_irr/bridge_irr_summary.json"
+  },
+  "counts": {
+    "dev": {
+      "discordant_total": 13,
+      "right_to_wrong": 10,
+      "wrong_to_right": 3
+    },
+    "test": {
+      "discordant_total": 57,
+      "right_to_wrong": 43,
+      "wrong_to_right": 14
+    }
+  }
+}
