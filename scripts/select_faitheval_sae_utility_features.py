@@ -31,6 +31,7 @@ from intervene_sae import (
     load_sae_classifier_coefficients,
 )
 from run_intervention import (
+    FAITHEVAL_CANONICAL_LABELS,
     _normalize_faitheval_choice_key,
     _faitheval_prompt,
     load_faitheval,
@@ -113,6 +114,26 @@ def _rows_by_id(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _canonical_answer_position(sample: dict[str, Any]) -> str:
+    raw_value = sample.get("counterfactual_key_canonical")
+    if raw_value is None or str(raw_value).strip() == "":
+        raise ValueError(
+            "FaithEval sample is missing required counterfactual_key_canonical "
+            f"for split construction (sample_id={sample.get('id')!r})"
+        )
+
+    canonical_key = str(raw_value).strip()
+    num_options = int(sample["num_options"])
+    valid_positions = FAITHEVAL_CANONICAL_LABELS[:num_options]
+    if canonical_key not in valid_positions:
+        raise ValueError(
+            "FaithEval sample has invalid counterfactual_key_canonical "
+            f"{canonical_key!r} for num_options={num_options} "
+            f"(sample_id={sample.get('id')!r})"
+        )
+    return canonical_key
+
+
 def _resolve_choice_logprob_key(
     sample: dict[str, Any],
     *,
@@ -163,7 +184,7 @@ def build_stratified_faitheval_split(
 
     strata: dict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
     for sample in samples:
-        key = (int(sample["num_options"]), str(sample["counterfactual_key"]))
+        key = (int(sample["num_options"]), _canonical_answer_position(sample))
         strata[key].append(sample)
 
     rng = random.Random(seed)
@@ -204,7 +225,7 @@ def build_stratified_faitheval_split(
         "seed": int(seed),
         "validation_size": int(len(validation)),
         "test_size": int(len(test)),
-        "stratify_by": ["num_options", "counterfactual_key"],
+        "stratify_by": ["num_options", "counterfactual_key_canonical"],
         "strata_validation_counts": validation_counts,
         "strata_test_counts": test_counts,
         "validation_fingerprint": fingerprint_ids(
@@ -646,9 +667,10 @@ def main() -> None:
         output_dir / "feature_stats.json",
         output_dir / "utility_scores.jsonl",
         output_dir / "utility_selected_features.json",
-        output_dir / "random_matched_seed_0_features.json",
-        output_dir / "random_matched_seed_1_features.json",
-        output_dir / "random_matched_seed_2_features.json",
+        output_dir / "readout_selected_features.json",
+        output_dir / "matched_random_seed_0_features.json",
+        output_dir / "matched_random_seed_1_features.json",
+        output_dir / "matched_random_seed_2_features.json",
         output_dir / "selector_summary.json",
     ]
     provenance_handle = start_run_provenance(
@@ -808,6 +830,27 @@ def main() -> None:
                 d_sae=d_sae,
             )
         ]
+        readout_selected = get_positive_sae_features_from_classifier(
+            args.classifier_path,
+            layer_indices=layer_indices,
+            d_sae=d_sae,
+        )
+        if len(readout_selected) != args.top_k:
+            raise ValueError(
+                "FaithEval held-out comparison requires matched feature-set sizes: "
+                f"expected {args.top_k} readout-selected SAE features, "
+                f"found {len(readout_selected)}"
+            )
+        readout_manifest = feature_manifest_with_selector_metadata(
+            readout_selected,
+            extraction_metadata=extraction_metadata,
+            selector_name="classifier_positive_readout",
+            split_metadata=split_metadata,
+            alpha=args.alpha,
+            prompt_style=args.prompt_style,
+        )
+        _write_json(output_dir / "readout_selected_features.json", readout_manifest)
+
         for seed in range(3):
             matched = match_random_zero_weight_features(
                 utility_selected,
@@ -824,15 +867,10 @@ def main() -> None:
                 prompt_style=args.prompt_style,
             )
             _write_json(
-                output_dir / f"random_matched_seed_{seed}_features.json",
+                output_dir / f"matched_random_seed_{seed}_features.json",
                 matched_manifest,
             )
 
-        readout_selected = get_positive_sae_features_from_classifier(
-            args.classifier_path,
-            layer_indices=layer_indices,
-            d_sae=d_sae,
-        )
         outside_old_shortlist = [
             feature
             for feature in utility_selected
@@ -840,7 +878,7 @@ def main() -> None:
         ]
         overlap = jaccard_overlap(utility_selected, readout_selected)
         selector_summary = {
-            "schema_version": "faitheval_sae_utility_selector/v1",
+            "schema_version": "faitheval_sae_utility_selector/v2",
             "benchmark": "faitheval",
             "prompt_style": args.prompt_style,
             "sae_steering_mode": "delta_only",
@@ -861,36 +899,46 @@ def main() -> None:
                     [_feature_id(feature) for feature in candidate_pool]
                 ),
             },
-            "utility_selected": {
-                "k": len(utility_selected),
-                "fingerprint": fingerprint_ids(
-                    [_feature_id(feature) for feature in utility_selected]
-                ),
-                "layer_histogram": layer_histogram(utility_selected),
-                "mean_selector_score": float(
-                    np.mean(
-                        [
-                            float(feature["selector_score"])
-                            for feature in utility_selected
-                        ]
-                    )
-                ),
-                "outside_old_shortlist_count": len(outside_old_shortlist),
-                "outside_old_shortlist_fraction": float(
-                    len(outside_old_shortlist) / len(utility_selected)
-                )
-                if utility_selected
-                else 0.0,
+            "families": {
+                "utility_selected": {
+                    "k": len(utility_selected),
+                    "fingerprint": fingerprint_ids(
+                        [_feature_id(feature) for feature in utility_selected]
+                    ),
+                    "layer_histogram": layer_histogram(utility_selected),
+                    "mean_selector_score": float(
+                        np.mean(
+                            [
+                                float(feature["selector_score"])
+                                for feature in utility_selected
+                            ]
+                        )
+                    ),
+                    "outside_old_shortlist": {
+                        "count": int(len(outside_old_shortlist)),
+                        "fraction": (
+                            float(len(outside_old_shortlist) / len(utility_selected))
+                            if utility_selected
+                            else 0.0
+                        ),
+                        "threshold": float(args.old_shortlist_threshold),
+                    },
+                },
+                "readout_selected": {
+                    "k": len(readout_selected),
+                    "fingerprint": fingerprint_ids(
+                        [_feature_id(feature) for feature in readout_selected]
+                    ),
+                    "layer_histogram": layer_histogram(readout_selected),
+                    "old_shortlist_threshold": float(args.old_shortlist_threshold),
+                    "old_shortlist_size": int(
+                        np.sum(np.abs(coefficients) > args.old_shortlist_threshold)
+                    ),
+                },
             },
-            "readout_reference": {
-                "k_positive": len(readout_selected),
-                "layer_histogram": layer_histogram(readout_selected),
-                "old_shortlist_threshold": float(args.old_shortlist_threshold),
-                "old_shortlist_size": int(
-                    np.sum(np.abs(coefficients) > args.old_shortlist_threshold)
-                ),
+            "family_overlap": {
+                "utility_selected_vs_readout_selected": overlap,
             },
-            "overlap_with_readout_positive": overlap,
         }
         _write_json(output_dir / "selector_summary.json", selector_summary)
 

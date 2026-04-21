@@ -12,12 +12,16 @@ from types import SimpleNamespace
 
 import joblib
 import numpy as np
+import pytest
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from intervene_sae import load_sae_feature_manifest  # noqa: E402
-from report_faitheval_sae_utility_selector import build_heldout_summary  # noqa: E402
+from report_faitheval_sae_utility_selector import (  # noqa: E402
+    FAMILY_ORDER,
+    build_heldout_summary,
+)
 from run_intervention import (  # noqa: E402
     _build_faitheval_sample,
     load_sample_manifest_ids,
@@ -42,6 +46,30 @@ def _extraction_metadata() -> dict[str, object]:
         "d_sae": 4,
         "aggregation_method": "mean",
     }
+
+
+def _make_split_samples(visible_labels: list[str]) -> list[dict[str, object]]:
+    samples: list[dict[str, object]] = []
+    canonical_labels = list("ABCDE")
+    for idx in range(24):
+        num_options = 4 if idx < 18 else 5
+        canonical_key = canonical_labels[idx % num_options]
+        display_key = visible_labels[canonical_labels.index(canonical_key)]
+        samples.append(
+            {
+                "id": f"s{idx}",
+                "num_options": num_options,
+                "counterfactual_key": display_key,
+                "counterfactual_key_canonical": canonical_key,
+            }
+        )
+    return samples
+
+
+def _family_rows(ids: list[str], compliant_ids: set[str]) -> list[dict[str, object]]:
+    return [
+        {"id": sample_id, "compliance": sample_id in compliant_ids} for sample_id in ids
+    ]
 
 
 class SpaceSensitiveTokenizer:
@@ -97,34 +125,55 @@ def test_sample_manifest_loader_accepts_metadata_wrapped_ids(tmp_path: Path) -> 
     assert load_sample_manifest_ids(str(manifest_path)) == {"a", "b"}
 
 
-def test_stratified_faitheval_split_is_deterministic_and_preserves_shape() -> None:
-    samples = []
-    for idx in range(24):
-        samples.append(
-            {
-                "id": f"s{idx}",
-                "num_options": 4 if idx < 18 else 5,
-                "counterfactual_key": "A" if idx % 2 == 0 else "B",
-            }
-        )
+def test_stratified_faitheval_split_is_deterministic_and_label_invariant() -> None:
+    alpha_samples = _make_split_samples(["A", "B", "C", "D", "E"])
+    numeric_samples = _make_split_samples(["1", "2", "3", "4", "5"])
 
-    val_a, test_a, meta_a = build_stratified_faitheval_split(
-        samples,
+    val_alpha, test_alpha, meta_alpha = build_stratified_faitheval_split(
+        alpha_samples,
         validation_size=8,
         seed=42,
     )
-    val_b, test_b, meta_b = build_stratified_faitheval_split(
-        samples,
+    val_numeric, test_numeric, meta_numeric = build_stratified_faitheval_split(
+        numeric_samples,
+        validation_size=8,
+        seed=42,
+    )
+    val_repeat, test_repeat, meta_repeat = build_stratified_faitheval_split(
+        alpha_samples,
         validation_size=8,
         seed=42,
     )
 
-    assert [row["id"] for row in val_a] == [row["id"] for row in val_b]
-    assert [row["id"] for row in test_a] == [row["id"] for row in test_b]
-    assert meta_a == meta_b
-    assert len(val_a) == 8
-    assert len(test_a) == 16
-    assert set(row["id"] for row in val_a).isdisjoint(row["id"] for row in test_a)
+    assert [row["id"] for row in val_alpha] == [row["id"] for row in val_repeat]
+    assert [row["id"] for row in test_alpha] == [row["id"] for row in test_repeat]
+    assert meta_alpha == meta_repeat
+
+    assert [row["id"] for row in val_alpha] == [row["id"] for row in val_numeric]
+    assert [row["id"] for row in test_alpha] == [row["id"] for row in test_numeric]
+    assert meta_alpha == meta_numeric
+    assert meta_alpha["stratify_by"] == ["num_options", "counterfactual_key_canonical"]
+    assert sorted(meta_alpha["strata_validation_counts"]) == [
+        "4::A",
+        "4::B",
+        "4::C",
+        "4::D",
+        "5::A",
+        "5::B",
+        "5::C",
+        "5::D",
+        "5::E",
+    ]
+
+
+def test_stratified_faitheval_split_requires_canonical_answer_key() -> None:
+    samples = [
+        {"id": "s0", "num_options": 4, "counterfactual_key": "A"},
+        {"id": "s1", "num_options": 4, "counterfactual_key": "B"},
+    ]
+
+    with pytest.raises(ValueError, match="counterfactual_key_canonical"):
+        build_stratified_faitheval_split(samples, validation_size=1, seed=42)
 
 
 def test_margin_metric_uses_preferred_option_and_positive_is_good() -> None:
@@ -231,51 +280,130 @@ def test_random_matching_is_layer_exact_and_avoids_selected_overlap() -> None:
     )
 
 
-def test_report_summary_math_and_field_names() -> None:
+def test_report_summary_covers_full_bundle_schema() -> None:
+    ordered_ids = ["a", "b", "c", "d"]
     selector_summary = {
-        "utility_selected": {
-            "k": 2,
-            "outside_old_shortlist_count": 1,
-            "outside_old_shortlist_fraction": 0.5,
-            "layer_histogram": {"5": 1, "9": 1},
+        "families": {
+            "utility_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 1, "9": 1},
+                "outside_old_shortlist": {"count": 1, "fraction": 0.5},
+            },
+            "readout_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 2},
+            },
         },
-        "readout_reference": {"layer_histogram": {"5": 2}},
-        "overlap_with_readout_positive": {"intersection_count": 1, "jaccard": 1 / 3},
+        "family_overlap": {
+            "utility_selected_vs_readout_selected": {
+                "intersection_count": 1,
+                "union_count": 3,
+                "jaccard": 1 / 3,
+            }
+        },
     }
-    baseline_rows = [
-        {"id": "a", "compliance": True},
-        {"id": "b", "compliance": False},
-        {"id": "c", "compliance": True},
-        {"id": "d", "compliance": False},
-    ]
-    intervention_rows = [
-        {"id": "a", "compliance": False},
-        {"id": "b", "compliance": False},
-        {"id": "c", "compliance": True},
-        {"id": "d", "compliance": False},
-    ]
+    heldout_rows_by_benchmark = {
+        "faitheval": {
+            "noop": _family_rows(ordered_ids, {"a", "c"}),
+            "readout_selected": _family_rows(ordered_ids, {"a"}),
+            "utility_selected": _family_rows(ordered_ids, {"c"}),
+            "matched_random_seed_0": _family_rows(ordered_ids, {"a", "d"}),
+            "matched_random_seed_1": _family_rows(ordered_ids, {"b"}),
+            "matched_random_seed_2": _family_rows(ordered_ids, {"a", "b"}),
+        },
+        "faitheval_mc_logprob": {
+            "noop": _family_rows(ordered_ids, {"a", "b", "d"}),
+            "readout_selected": _family_rows(ordered_ids, {"a", "d"}),
+            "utility_selected": _family_rows(ordered_ids, {"a"}),
+            "matched_random_seed_0": _family_rows(ordered_ids, {"b", "c"}),
+            "matched_random_seed_1": _family_rows(ordered_ids, {"a", "c", "d"}),
+            "matched_random_seed_2": _family_rows(ordered_ids, {"c"}),
+        },
+    }
 
     summary = build_heldout_summary(
         selector_summary=selector_summary,
-        baseline_rows=baseline_rows,
-        intervention_rows=intervention_rows,
-        baseline_alpha=1.0,
-        intervention_alpha=0.0,
+        ordered_ids=ordered_ids,
+        heldout_rows_by_benchmark=heldout_rows_by_benchmark,
     )
 
-    assert summary["heldout_compliance"]["noop"]["n_compliant"] == 2
-    assert summary["heldout_compliance"]["utility_selected"]["n_compliant"] == 1
+    assert summary["schema_version"] == "faitheval_sae_utility_selector_report/v2"
+    assert summary["heldout_compliance"]["families"]["noop"]["n_compliant"] == 2
     assert (
-        summary["heldout_compliance"]["utility_minus_noop_pp"]["estimate_pp"] == -25.0
+        summary["heldout_compliance"]["families"]["utility_selected"]["n_compliant"]
+        == 1
     )
+    assert (
+        summary["heldout_compliance"]["paired_deltas_pp"]["utility_minus_noop"][
+            "estimate_pp"
+        ]
+        == -25.0
+    )
+    assert (
+        summary["heldout_mc_logprob"]["families"]["utility_selected"]["n_compliant"]
+        == 1
+    )
+    assert set(summary["heldout_compliance"]["families"]) == set(FAMILY_ORDER)
+    assert set(summary["heldout_mc_logprob"]["families"]) == set(FAMILY_ORDER)
+    expected_delta_keys = {
+        "utility_minus_readout",
+        "utility_minus_noop",
+        "utility_minus_matched_random_seed_0",
+        "utility_minus_matched_random_seed_1",
+        "utility_minus_matched_random_seed_2",
+    }
+    assert set(summary["heldout_compliance"]["paired_deltas_pp"]) == expected_delta_keys
+    assert set(summary["heldout_mc_logprob"]["paired_deltas_pp"]) == expected_delta_keys
     assert summary["selector_diagnostics"]["outside_old_shortlist_fraction"] == 0.5
-    assert summary["selector_diagnostics"]["utility_layer_histogram"] == {
-        "5": 1,
-        "9": 1,
+    assert summary["selector_diagnostics"]["calibration_to_heldout_gap"] is None
+
+
+def test_report_summary_requires_exact_sample_id_parity() -> None:
+    ordered_ids = ["a", "b"]
+    selector_summary = {
+        "families": {
+            "utility_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 2},
+                "outside_old_shortlist": {"count": 0, "fraction": 0.0},
+            },
+            "readout_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 2},
+            },
+        },
+        "family_overlap": {
+            "utility_selected_vs_readout_selected": {
+                "intersection_count": 2,
+                "union_count": 2,
+                "jaccard": 1.0,
+            }
+        },
+    }
+    benchmark_rows = {
+        family: _family_rows(ordered_ids, {"a"}) for family in FAMILY_ORDER
+    }
+    benchmark_rows["readout_selected"] = [{"id": "a", "compliance": True}]
+
+    heldout_rows_by_benchmark = {
+        "faitheval": benchmark_rows,
+        "faitheval_mc_logprob": {
+            family: _family_rows(ordered_ids, {"a"}) for family in FAMILY_ORDER
+        },
     }
 
+    with pytest.raises(
+        ValueError,
+        match="Held-out sample-ID parity failed for faitheval/readout_selected",
+    ):
+        build_heldout_summary(
+            selector_summary=selector_summary,
+            ordered_ids=ordered_ids,
+            heldout_rows_by_benchmark=heldout_rows_by_benchmark,
+        )
 
-def test_wrapper_skips_heldout_stage_when_timestamped_results_exist(
+
+def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
     tmp_path: Path,
 ) -> None:
     repo_root = Path(__file__).resolve().parents[1]
@@ -298,18 +426,35 @@ def test_wrapper_skips_heldout_stage_when_timestamped_results_exist(
         workdir / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector"
     )
     selector_dir.mkdir(parents=True, exist_ok=True)
-    (selector_dir / "selector_summary.json").write_text("{}", encoding="utf-8")
+    for name in [
+        "validation_manifest.json",
+        "test_manifest.json",
+        "candidate_pool.json",
+        "utility_selected_features.json",
+        "readout_selected_features.json",
+        "matched_random_seed_0_features.json",
+        "matched_random_seed_1_features.json",
+        "matched_random_seed_2_features.json",
+        "selector_summary.json",
+    ]:
+        (selector_dir / name).write_text("{}", encoding="utf-8")
 
-    heldout_dir = (
-        workdir
-        / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout"
-        / "utility_selected/experiment"
+    heldout_root = (
+        workdir / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout"
     )
-    heldout_dir.mkdir(parents=True, exist_ok=True)
-    (heldout_dir / "results.20260421_010203.json").write_text(
-        "{}",
-        encoding="utf-8",
-    )
+    for benchmark in ["faitheval", "faitheval_mc_logprob"]:
+        for family in FAMILY_ORDER:
+            alpha_label = "1.0" if family == "noop" else "0.0"
+            family_dir = heldout_root / benchmark / family / "experiment"
+            family_dir.mkdir(parents=True, exist_ok=True)
+            (family_dir / f"alpha_{alpha_label}.jsonl").write_text(
+                "{}\n",
+                encoding="utf-8",
+            )
+            (family_dir / "results.20260421_010203.json").write_text(
+                "{}",
+                encoding="utf-8",
+            )
 
     report_dir = (
         workdir / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/report"
@@ -346,7 +491,9 @@ def test_wrapper_skips_heldout_stage_when_timestamped_results_exist(
     )
 
     assert completed.returncode == 0, completed.stderr
-    assert "Skipping held-out stage; found existing results summary" in completed.stdout
+    assert "Skipping selector stage; found complete selector bundle" in completed.stdout
+    assert completed.stdout.count("Skipping held-out stage; found") == 12
+    assert "Skipping report stage; found" in completed.stdout
     assert not log_file.exists() or "run_intervention.py" not in log_file.read_text(
         encoding="utf-8"
     )
