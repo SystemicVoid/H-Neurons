@@ -1,4 +1,6 @@
 # Final Review and Refined Flagship Outline
+
+> Historical framing note: this outline review is a historical planning artifact, not the current default framing governor. It should not be used to inherit FaithEval-as-master-anchor language without first checking [../notes/2026-04-21-claim-framing-governance.md](../notes/2026-04-21-claim-framing-governance.md).
 ## Detection Is Not Enough / Strong Readouts as Steering Evidence
 
 ### Recommended paper identity

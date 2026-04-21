@@ -6,6 +6,7 @@
 **Purpose:** Update the intervention plan so it is driven by what the repo and the primary papers actually support, not by plausible-but-loose extrapolation.
 
 > This file is the strategy note for "what to try next."
+> Current non-ICML framing defaults now live in [2026-04-21-claim-framing-governance.md](./2026-04-21-claim-framing-governance.md). Treat this file as frozen experiment-discovery strategy, not the current framing governor.
 > Current result facts live in:
 > - [2026-04-16-d7-full500-two-seed-current-state-audit.md](./2026-04-16-d7-full500-two-seed-current-state-audit.md)
 > - [2026-04-08-d7-full500-audit.md](./2026-04-08-d7-full500-audit.md)

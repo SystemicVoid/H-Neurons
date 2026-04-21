@@ -1,5 +1,7 @@
 # Paper Outline
 
+> Historical framing note: this outline is a historical planning artifact, not the current default framing governor. It should not be used to inherit anchor rankings without first checking [../notes/2026-04-21-claim-framing-governance.md](../notes/2026-04-21-claim-framing-governance.md).
+
 **Strong Readouts, Local Levers: A Steering Audit of Gemma-3-4B-IT**
 
 But make the *actual framing sentence* in the abstract and introduction more precise:

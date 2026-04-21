@@ -1,5 +1,6 @@
-
 # Refined Flagship Paper Outline
+
+> Historical framing note: this outline is a historical planning artifact, not the current default framing governor. It contains stronger FaithEval-centered ranking language than current repo governance allows. Check [../notes/2026-04-21-claim-framing-governance.md](../notes/2026-04-21-claim-framing-governance.md) first.
 ## *Strong Readouts, Local Levers: A Steering Audit of Gemma-3-4B-IT*
 ### Working subtitle
 *A comparative case study in separating measurement, localization, control, and externality in mechanistic intervention research.*

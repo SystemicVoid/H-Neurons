@@ -2,6 +2,8 @@
 
 This repository began as a fork of THUNLP's H-Neurons project and still retains the paper-faithful H-neuron pipeline, original reference materials, and example artifacts. Its current center of gravity is broader: a single-model Gemma-3-4B-IT case study on when strong internal readouts do and do not become useful steering targets. The working framework throughout the repo is `measurement`, `localization`, `control`, and `externality`.
 
+Current internal framing governor: [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md). Use that note before inheriting older strategy or outline language.
+
 Primary current narratives:
 
 - Site: [`site/`](site/)
@@ -14,9 +16,9 @@ This is a research workspace for mechanistic intervention experiments in `google
 
 ## Current Status
 
-- H-neuron replication remains the first anchor: the paper-faithful sparse detector keeps a held-out signal on the clean split (`76.5%` accuracy, `95% CI [73.6, 79.5]`) and the committed FaithEval intervention path still shows a no-op-to-max compliance gain (`+4.5 pp`, `95% CI [2.9, 6.1]`). See [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md) and [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md).
-- Matched readout quality did not guarantee useful steering: in the current FaithEval comparison, SAE features matched H-neuron detection quality within uncertainty but failed to produce a useful control signal under the committed SAE intervention setup. The broader project claim is therefore not "detectors are fake," but "good detectors are not automatically good levers."
-- Transfer and evaluation remain fragile: the ITI bridge path improves some constrained answer-selection surfaces while hurting open-ended factual generation on the locked TriviaQA bridge test, and the jailbreak work is now partly a measurement case study where evaluator choice changes the conclusion. The current public framing lives in [`site/story.html`](site/story.html) and [`site/methods.html`](site/methods.html).
+- Detection remains real, but interpretation is not trivial: the H-neuron replication keeps a held-out signal on the clean split (`76.5%` accuracy, `95% CI [73.6, 79.5]`), while the repo also contains evidence that detector interpretation can be fragile. See [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md), [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md), and [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md).
+- Localization, control, and externality are all live evidence families here. The FaithEval neuron-versus-SAE comparison is one strong localization/control result; the TriviaQA bridge benchmark carries the sharpest control/externality diagnosis; the jailbreak audits carry the measurement/conclusion story.
+- Current repo guidance is intentionally plural-anchor. Do not assume one result is the project's default center of gravity just because it appears in older strategy or outline docs.
 
 ## Quick Start
 
@@ -62,7 +64,7 @@ Paper and site outputs:
 - `uv run python scripts/export_site_data.py` exports site-facing JSON summaries from committed outputs.
 - `scripts/infra/publish.sh site --slug aware-fresco-4a2q --client amp` publishes the site to its canonical URL.
 
-If you need the original forked-paper examples, start with [`data/original_paper_examples/`](data/original_paper_examples/). If you need the current project argument, start with [`site/index.html`](site/index.html) or [`paper/draft/full_paper.md`](paper/draft/full_paper.md).
+If you need the original forked-paper examples, start with [`data/original_paper_examples/`](data/original_paper_examples/). If you need the current internal framing and evidence routing, start with [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md), then [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md), then the canonical reports under [`notes/act3-reports/`](notes/act3-reports/).
 
 ## Repository Map
 
@@ -100,9 +102,9 @@ This repo still contains the upstream H-neurons lineage:
 
 Current project-facing reading order:
 
-- [`site/index.html`](site/index.html)
-- [`site/story.html`](site/story.html)
-- [`site/methods.html`](site/methods.html)
+- [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md)
+- [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
+- [`notes/research-log.md`](notes/research-log.md)
 - [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md)
 - [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md)
-- [`paper/draft/full_paper.md`](paper/draft/full_paper.md)
+- [`notes/act3-reports/`](notes/act3-reports/)

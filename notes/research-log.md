@@ -26,6 +26,26 @@ Keep all live D7 references anchored to the 2026-04-16 two-seed audit and the re
 
 ---
 
+## 2026-04-21
+
+### What I did
+
+Added a framing-governance pass to stop one repeated interpretation from auto-directing the whole repo. The new authority is [2026-04-21-claim-framing-governance.md](./2026-04-21-claim-framing-governance.md), with explicit rerouting in `README.md`, `notes/AGENTS.md`, sprint/strategy guidance, and historical banners on the loudest framing docs. Also added a Wave 2 handoff file: [2026-04-21-framing-remediation-backlog.md](./2026-04-21-framing-remediation-backlog.md).
+
+### What I expected vs what happened
+
+Expected the problem to live mainly in one strategy memo. What actually happened is that the April 11 strategic assessment, the V2 critique, the outline stack, and downstream AI-review machinery had turned one setting-specific result into a repo-wide default. The result itself is still real. The inflation came from routing and repetition: old notes were being read as current authority, and later prompts inherited that hierarchy as if it had been independently re-earned.
+
+### What this changes about my thinking
+
+The fix is governance, not counter-slogan. A late corrective note cannot win if `README.md`, `notes/AGENTS.md`, and historical planning docs keep routing future discussion back to the old center of gravity. The project needs a plural-anchor default: FaithEval for localization/control, bridge for control/externality, jailbreak for measurement/conclusion, and detector-interpretation work for localization fragility. That keeps the FaithEval result in scope without letting it dominate every subsequent decision.
+
+### What I will do next
+
+Use the governance note as the first framing reference for new discussions until a deliberate Wave 2 pass updates public and draft-facing surfaces. When revisiting `site/**`, `paper/draft/**`, or `/paper/icml`, preserve the result but narrow the ranking claim rather than trying to erase it.
+
+---
+
 ## 2026-04-14
 
 ### What I did

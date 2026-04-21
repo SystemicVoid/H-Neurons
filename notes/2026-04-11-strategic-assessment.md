@@ -1,5 +1,7 @@
 # Strategic Assessment — Sunday Title Lock + 2-Week Artifact Window
 
+> Historical framing note: this document is a frozen April 11-12 paper-framing synthesis, not the current default framing governor. It overstates FaithEval's ranking authority relative to current repo guidance. For current non-ICML framing defaults, see [2026-04-21-claim-framing-governance.md](./2026-04-21-claim-framing-governance.md).
+
 > Date: 2026-04-11 (revised 2026-04-12 post mentor review)
 > Purpose: Decision matrix, title recommendation, and execution strategy for BlueDot submission
 > Inputs: Full project evidence base, GPT-5.4 pro analysis (myopic + high-vantage), independent Oracle review (2 rounds), BlueDot evaluation criteria, mentor strategic review (2026-04-12), holdout evaluator comparison

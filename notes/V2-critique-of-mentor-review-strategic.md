@@ -1,3 +1,5 @@
+> Historical framing note: this document is a historical critique/synthesis artifact, not the current default framing governor. It contributes to the over-amplified FaithEval ranking and should be read through [2026-04-21-claim-framing-governance.md](./2026-04-21-claim-framing-governance.md).
+
 You were right to ask for a harder second pass 🔬
 
 My first answer was directionally right, but it still underdelivered in several important ways.
