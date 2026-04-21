@@ -1,0 +1,641 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-04-21T16:46:28+00:00",
+  "git_commit": "76d7ca360a6b98a3500b87b97f50312d7f0a0a88",
+  "n_records": 5,
+  "cohort_sizes": {
+    "A_rw_substitution": 3,
+    "B_rw_nonsubstitution": 1,
+    "C_wr_rescue": 1,
+    "D_random_control": 0
+  },
+  "cohorts": {
+    "A_rw_substitution": {
+      "n": 3,
+      "label": "A. R\u2192W substitution",
+      "first3": {
+        "shift_nats": {
+          "estimate": -18.34192144870758,
+          "n": 3,
+          "ci": {
+            "lower": -30.208497405052185,
+            "upper": -4.04583740234375,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "shift_per_token": {
+          "estimate": -6.11397381623586,
+          "n": 3,
+          "ci": {
+            "lower": -10.069499135017395,
+            "upper": -1.3486124674479167,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "delta_base_mean": 10.403913458188375,
+        "delta_iti_mean": -7.938007990519206
+      },
+      "full": {
+        "shift_nats": {
+          "estimate": -19.138784050941467,
+          "n": 3,
+          "ci": {
+            "lower": -32.59919607639313,
+            "upper": -4.0458372831344604,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "shift_per_token": {
+          "estimate": -2.4973875337176854,
+          "n": 3,
+          "ci": {
+            "lower": -4.403120815753937,
+            "upper": -1.2418407996495566,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "delta_base_mean": 11.613145669301352,
+        "delta_iti_mean": -7.525638381640117
+      },
+      "tokenwise": {
+        "position_0": {
+          "estimate": -2.6151529947916665,
+          "n": 3,
+          "ci": {
+            "lower": -6.609375,
+            "upper": 0.0,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "position_1": {
+          "estimate": -6.526199658711751,
+          "n": 3,
+          "ci": {
+            "lower": -17.501464009284973,
+            "upper": 9.655952453613281e-06,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "position_2": {
+          "estimate": -9.200568795204163,
+          "n": 3,
+          "ci": {
+            "lower": -12.707033395767212,
+            "upper": -2.8097630739212036,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "tokens_2_3": {
+          "estimate": -15.726768453915914,
+          "n": 3,
+          "ci": {
+            "lower": -30.208497405052185,
+            "upper": -2.80975341796875,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        }
+      }
+    },
+    "B_rw_nonsubstitution": {
+      "n": 1,
+      "label": "B. R\u2192W non-substitution",
+      "first3": {
+        "shift_nats": {
+          "estimate": -34.85471057891846,
+          "n": 1,
+          "ci": {
+            "lower": -34.85471057891846,
+            "upper": -34.85471057891846,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "shift_per_token": {
+          "estimate": -11.618236859639484,
+          "n": 1,
+          "ci": {
+            "lower": -11.618236859639484,
+            "upper": -11.618236859639484,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "delta_base_mean": 13.843541145324707,
+        "delta_iti_mean": -21.01116943359375
+      },
+      "full": {
+        "shift_nats": {
+          "estimate": -35.11588370800018,
+          "n": 1,
+          "ci": {
+            "lower": -35.11588370800018,
+            "upper": -35.11588370800018,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "shift_per_token": {
+          "estimate": -1.9103989998499555,
+          "n": 1,
+          "ci": {
+            "lower": -1.9103989998499555,
+            "upper": -1.9103989998499555,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "delta_base_mean": 14.480591058731079,
+        "delta_iti_mean": -20.635292649269104
+      },
+      "tokenwise": {
+        "position_0": {
+          "estimate": -12.30078125,
+          "n": 1,
+          "ci": {
+            "lower": -12.30078125,
+            "upper": -12.30078125,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "position_1": {
+          "estimate": -8.744359016418457,
+          "n": 1,
+          "ci": {
+            "lower": -8.744359016418457,
+            "upper": -8.744359016418457,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "position_2": {
+          "estimate": -13.8095703125,
+          "n": 1,
+          "ci": {
+            "lower": -13.8095703125,
+            "upper": -13.8095703125,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "tokens_2_3": {
+          "estimate": -22.553929328918457,
+          "n": 1,
+          "ci": {
+            "lower": -22.553929328918457,
+            "upper": -22.553929328918457,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        }
+      }
+    },
+    "C_wr_rescue": {
+      "n": 1,
+      "label": "C. W\u2192R rescue",
+      "first3": {
+        "shift_nats": {
+          "estimate": 5.32580029964447,
+          "n": 1,
+          "ci": {
+            "lower": 5.32580029964447,
+            "upper": 5.32580029964447,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "shift_per_token": {
+          "estimate": 1.9707219998041787,
+          "n": 1,
+          "ci": {
+            "lower": 1.9707219998041787,
+            "upper": 1.9707219998041787,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "delta_base_mean": -0.7517002820968628,
+        "delta_iti_mean": 4.574100017547607
+      },
+      "full": {
+        "shift_nats": {
+          "estimate": 5.32580029964447,
+          "n": 1,
+          "ci": {
+            "lower": 5.32580029964447,
+            "upper": 5.32580029964447,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "shift_per_token": {
+          "estimate": 1.9707219998041787,
+          "n": 1,
+          "ci": {
+            "lower": 1.9707219998041787,
+            "upper": 1.9707219998041787,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "delta_base_mean": -0.7517002820968628,
+        "delta_iti_mean": 4.574100017547607
+      },
+      "tokenwise": {
+        "position_0": {
+          "estimate": 4.760009765625,
+          "n": 1,
+          "ci": {
+            "lower": 4.760009765625,
+            "upper": 4.760009765625,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "position_1": {
+          "estimate": 0.5656986236572266,
+          "n": 1,
+          "ci": {
+            "lower": 0.5656986236572266,
+            "upper": 0.5656986236572266,
+            "level": 0.95,
+            "method": "bootstrap_percentile_within_cohort"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95
+          }
+        },
+        "position_2": null,
+        "tokens_2_3": null
+      }
+    },
+    "D_random_control": {
+      "n": 0,
+      "label": "D. Random wrong-entity control",
+      "first3": {
+        "shift_nats": null,
+        "shift_per_token": null,
+        "delta_base_mean": null,
+        "delta_iti_mean": null
+      },
+      "full": {
+        "shift_nats": null,
+        "shift_per_token": null,
+        "delta_base_mean": null,
+        "delta_iti_mean": null
+      },
+      "tokenwise": {
+        "position_0": null,
+        "position_1": null,
+        "position_2": null,
+        "tokens_2_3": null
+      }
+    }
+  },
+  "between_cohort": {
+    "A_vs_B": {
+      "group_a": "A_rw_substitution",
+      "group_b": "B_rw_nonsubstitution",
+      "n_a": 3,
+      "n_b": 1,
+      "first3": {
+        "shift_nats": {
+          "estimate": 16.512789130210876,
+          "n_a": 3,
+          "n_b": 1,
+          "ci": {
+            "lower": 4.646213173866272,
+            "upper": 30.808873176574707,
+            "level": 0.95,
+            "method": "bootstrap_percentile_unpaired"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "independent_groups"
+          },
+          "permutation_test": {
+            "p_value": 1.0,
+            "n_extreme": 10000,
+            "n_permutations": 10000,
+            "alternative": "one_sided_less",
+            "null": "equal_means"
+          }
+        },
+        "shift_per_token": {
+          "estimate": 5.504263043403625,
+          "n_a": 3,
+          "n_b": 1,
+          "ci": {
+            "lower": 1.5487377246220895,
+            "upper": 10.269624392191568,
+            "level": 0.95,
+            "method": "bootstrap_percentile_unpaired"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "independent_groups"
+          },
+          "permutation_test": {
+            "p_value": 1.0,
+            "n_extreme": 10000,
+            "n_permutations": 10000,
+            "alternative": "one_sided_less",
+            "null": "equal_means"
+          }
+        }
+      },
+      "full": {
+        "shift_nats": {
+          "estimate": 15.977099657058716,
+          "n_a": 3,
+          "n_b": 1,
+          "ci": {
+            "lower": 2.5166876316070557,
+            "upper": 31.070046424865723,
+            "level": 0.95,
+            "method": "bootstrap_percentile_unpaired"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "independent_groups"
+          },
+          "permutation_test": {
+            "p_value": 1.0,
+            "n_extreme": 10000,
+            "n_permutations": 10000,
+            "alternative": "one_sided_less",
+            "null": "equal_means"
+          }
+        },
+        "shift_per_token": {
+          "estimate": -0.5869885338677299,
+          "n_a": 3,
+          "n_b": 1,
+          "ci": {
+            "lower": -2.4927218159039812,
+            "upper": 0.6685582002003989,
+            "level": 0.95,
+            "method": "bootstrap_percentile_unpaired"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "independent_groups"
+          },
+          "permutation_test": {
+            "p_value": 0.7515248475152485,
+            "n_extreme": 7515,
+            "n_permutations": 10000,
+            "alternative": "one_sided_less",
+            "null": "equal_means"
+          }
+        }
+      },
+      "tokens_2_3": {
+        "shift_nats": {
+          "estimate": 6.8271608750025425,
+          "n_a": 3,
+          "n_b": 1,
+          "ci": {
+            "lower": -7.654568076133728,
+            "upper": 19.744175910949707,
+            "level": 0.95,
+            "method": "bootstrap_percentile_unpaired"
+          },
+          "bootstrap": {
+            "n_resamples": 10000,
+            "seed": 42,
+            "confidence": 0.95,
+            "resampling": "independent_groups"
+          },
+          "permutation_test": {
+            "p_value": 0.7436256374362564,
+            "n_extreme": 7436,
+            "n_permutations": 10000,
+            "alternative": "one_sided_less",
+            "null": "equal_means"
+          }
+        }
+      }
+    }
+  },
+  "baseline_sign_check": {
+    "A_rw_substitution": {
+      "n": 3,
+      "first3_delta_base_mean": 10.403913458188375,
+      "first3_delta_base_positive_fraction": 0.6666666666666666
+    },
+    "B_rw_nonsubstitution": {
+      "n": 1,
+      "first3_delta_base_mean": 13.843541145324707,
+      "first3_delta_base_positive_fraction": 1.0
+    }
+  },
+  "within_A_baseline_sign": {
+    "A_pos_baseline_prefers_gold": {
+      "n": 2,
+      "label": "A_pos_baseline_prefers_gold",
+      "first3_shift_nats": {
+        "estimate": -25.489963471889496,
+        "n": 2,
+        "ci": {
+          "lower": -30.208497405052185,
+          "upper": -20.771429538726807,
+          "level": 0.95,
+          "method": "bootstrap_percentile_within_cohort"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95
+        }
+      },
+      "tokens_2_3_shift": {
+        "estimate": -22.185275971889496,
+        "n": 2,
+        "ci": {
+          "lower": -30.208497405052185,
+          "upper": -14.162054538726807,
+          "level": 0.95,
+          "method": "bootstrap_percentile_within_cohort"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95
+        }
+      }
+    },
+    "A_neg_baseline_ambivalent": {
+      "n": 1,
+      "label": "A_neg_baseline_ambivalent",
+      "first3_shift_nats": {
+        "estimate": -4.04583740234375,
+        "n": 1,
+        "ci": {
+          "lower": -4.04583740234375,
+          "upper": -4.04583740234375,
+          "level": 0.95,
+          "method": "bootstrap_percentile_within_cohort"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95
+        }
+      },
+      "tokens_2_3_shift": {
+        "estimate": -2.80975341796875,
+        "n": 1,
+        "ci": {
+          "lower": -2.80975341796875,
+          "upper": -2.80975341796875,
+          "level": 0.95,
+          "method": "bootstrap_percentile_within_cohort"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95
+        }
+      }
+    }
+  },
+  "bootstrap": {
+    "n_resamples": 10000,
+    "seed": 42,
+    "confidence": 0.95
+  },
+  "figures": {
+    "first3": {
+      "png": "data/gemma3_4b/analysis/bridge_margins/test_sanity/margin_shift_by_cohort_first3.png",
+      "pdf": "data/gemma3_4b/analysis/bridge_margins/test_sanity/margin_shift_by_cohort_first3.pdf"
+    },
+    "full": {
+      "png": "data/gemma3_4b/analysis/bridge_margins/test_sanity/margin_shift_by_cohort_full.png",
+      "pdf": "data/gemma3_4b/analysis/bridge_margins/test_sanity/margin_shift_by_cohort_full.pdf"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "script": "scripts/score_bridge_margins.py",
+  "timestamp_utc": "2026-04-21T16:26:35+00:00",
+  "git_commit": "76d7ca360a6b98a3500b87b97f50312d7f0a0a88",
+  "args": {
+    "adjudicated": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/judge_validation/bridge_irr/adjudicated_labels.jsonl",
+    "queue_key": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/judge_validation/bridge_irr/test_queue_key.jsonl",
+    "baseline_rows": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/alpha_1.0.jsonl",
+    "manifest": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/manifests/triviaqa_bridge_test500_seed42.json",
+    "iti_artifact": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/iti_heads.pt",
+    "output_dir": "data/gemma3_4b/analysis/bridge_margins/test_sanity",
+    "model_path": "google/gemma-3-4b-it",
+    "device_map": "auto",
+    "iti_alpha": 8.0,
+    "iti_k": 12,
+    "iti_family": "truthfulqa_paperfaithful",
+    "iti_decode_scope": "first_3_tokens",
+    "iti_selection_strategy": "ranked",
+    "iti_random_seed": 42,
+    "n_controls": 0,
+    "control_seed": 42,
+    "limit": null,
+    "only_case_ids": [
+      "bridge_test_case_127c6afb83c8",
+      "bridge_test_case_195dbe046184",
+      "bridge_test_case_1c2fb525fd6c",
+      "bridge_test_case_0bf0a66035e1",
+      "bridge_test_case_0b87bdfc8ef2"
+    ],
+    "dry_run_print_each_case": true
+  },
+  "iti_artifact_sha256": "5d57eebab05865f5caa1c6a9036fc2c6e7ea013a8014a0f0a3cd3a40c7ae023c",
+  "model_path": "google/gemma-3-4b-it",
+  "first_n_tokens": 3,
+  "n_records_written": 5,
+  "n_records_skipped_existing": 0,
+  "elapsed_seconds": 8.277885828001672,
+  "output_path": "data/gemma3_4b/analysis/bridge_margins/test_sanity/margins.jsonl"
+}

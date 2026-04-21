@@ -1,0 +1,13 @@
+{
+  "script": "scripts/analyze_bridge_margins.py",
+  "timestamp_utc": "2026-04-21T16:51:00+00:00",
+  "git_commit": "76d7ca360a6b98a3500b87b97f50312d7f0a0a88",
+  "args": {
+    "input": "data/gemma3_4b/analysis/bridge_margins/test/margins.jsonl",
+    "output_dir": "data/gemma3_4b/analysis/bridge_margins/test",
+    "n_resamples": 10000,
+    "seed": 42
+  },
+  "input_path": "data/gemma3_4b/analysis/bridge_margins/test/margins.jsonl",
+  "results_path": "data/gemma3_4b/analysis/bridge_margins/test/results.json"
+}

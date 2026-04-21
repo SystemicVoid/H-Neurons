@@ -43,6 +43,27 @@ def resolve_project_root(script_path: str | os.PathLike[str]) -> Path:
     return root
 
 
+def format_path_for_metadata(
+    path: str | os.PathLike[str],
+    *,
+    root: str | os.PathLike[str] | None = None,
+) -> str:
+    """Serialize a path for JSON metadata.
+
+    Paths that resolve inside ``root`` are reported repo-relative for
+    portability. Paths outside ``root`` fall back to absolute paths so
+    relative CLI arguments never fail metadata generation.
+    """
+    resolved = Path(path).expanduser().resolve()
+    if root is not None:
+        root_path = Path(root).expanduser().resolve()
+        try:
+            return str(resolved.relative_to(root_path))
+        except ValueError:
+            pass
+    return str(resolved)
+
+
 def format_alpha_label(alpha: float) -> str:
     """Format alpha values without collapsing nearby micro-betas."""
     rounded_one_decimal = round(alpha, 1)
