@@ -577,3 +577,29 @@ The rescue cases (14/500 = 2.8% of all questions) mirror the damage mechanism: w
 ### What I will do next
 
 Update Section 5.3 of the paper draft to replace dev-set numbers with test-set numbers and remove the L5 hedge. Update the strategic assessment's earned/not-earned boundary for the externality-break claim.
+
+---
+
+## 2026-04-21
+
+### What I did
+
+Closed Limitation 4 (bridge failure-mode single-rater). Built a dual-rater IRR pipeline for all 57 TriviaQA-bridge discordant test cases (43 R→W + 14 W→R): Rater A (first author, human) plus Rater B (`gpt-4o-2024-11-20` via OpenAI Batch API, zero-shot on the rubric, temperature=0, strict JSON schema). Adjudicated the 2 A/B disagreements under a pre-frozen rule (sha256 + git_commit pinned in the summary). Integrated across main.tex, figures, supplement, site, and tests; regenerated fig3 and `site/data/bridge_phase3.json`.
+
+Then reviewed the pipeline and wrote a standalone analysis report at [`paper/icml/reports/2026-04-21-bridge-irr-review.md`](../paper/icml/reports/2026-04-21-bridge-irr-review.md).
+
+### What I expected vs what happened
+
+Expected the single-rater 70% to shift modestly under dual rating; expected a handful of disagreements including some rule-gap cases. Got raw agreement 55/57 = 96.5% [88.1, 99.0], Cohen's κ = 0.90, Gwet's AC1 = 0.96, and two disagreements — both resolved under clean rule coverage (rule_gap=0/2). The adjudicated R→W shares are 72.1% [57.3, 83.3] wrong-entity substitution, 20.9% evasion/denial, 7.0% dilution, 0.0% formal refusal. Dev calibration with the final Rater B prompt was 13/13 = 100%.
+
+Two incidental findings surprised me. First, the W→R rescues are 14/14 wrong-entity — damage and rescue flow through the same category, consistent with the "indiscriminate redistribution" reading rather than a "truthfulness injection" reading. Second, formal refusal collapsed from 2 to 0 at the R→W level: the legacy taxonomy conflated NOT_ATTEMPTED-graded outputs with explicit-refusal language; the frozen rule's R1 requires explicit refusal phrasing, and neither case qualified.
+
+### What this changes about my thinking
+
+The §4.3 claim ("wrong-entity substitution is the dominant R→W failure mode") is now defensible with interval-qualified quantification rather than only qualitative framing. The paper no longer has a single-rater exposure surface on its most vivid qualitative finding.
+
+The R→W / W→R symmetry reshapes the interpretive story. Both directions are ~100% or ~72% wrong-entity; the paper's reading as a redistribution operator over semantic neighbors gets stronger. This sets up Priority-3 (logprob-margin analysis on the 31 adjudicated substitution cases) as the natural next step — cheap, uses existing data, and would upgrade the behavioral taxonomy to a mechanistic measurement.
+
+### What I will do next
+
+(1) Write a short dev-calibration narrative report documenting the §9 rule/prompt revision (two dev runs, prompt_hash `ab951cf3c3ee0bb7` → `a135761b05bf1533`). (2) Consider running the Priority-3 logprob-margin experiment before deadline — the labeled subset is ready.

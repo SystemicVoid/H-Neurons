@@ -1,5 +1,7 @@
 # TriviaQA Bridge Phase 3 Test Results — 2026-04-13
 
+> **§5 Failure Mode Taxonomy superseded 2026-04-21.** The single-rater counts in §5 (30/8/3/2 R→W) were replaced by dual-rated adjudicated counts (31/9/3/0) after the L4 inter-rater reliability exercise. Canonical taxonomy numbers and prose analysis now live in [`../../paper/icml/reports/2026-04-21-bridge-irr-review.md`](../../paper/icml/reports/2026-04-21-bridge-irr-review.md), backed by [`data/judge_validation/bridge_irr/bridge_irr_summary.json`](../../data/judge_validation/bridge_irr/bridge_irr_summary.json). All other sections (headline accuracy, CIs, flip tables, grader reliability, dev-to-test replication) remain authoritative — the IRR did not touch those numbers. Body is frozen per `notes/CLAUDE.md` supersede policy; do not edit numbers in place.
+
 > **Verdict: The externality break replicates on the held-out test set and is now
 > statistically significant. E0 ITI (paper-faithful, K=12, α=8.0) reduces
 > adjudicated accuracy by −5.8 pp [−8.8, −3.0] (CI excludes zero, McNemar
