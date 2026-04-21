@@ -1,3 +1,6 @@
+> Historical synthesis note: this document reflects an earlier framing state and is not the current framing governor.
+> For current routing and claim hygiene, use `notes/2026-04-21-claim-framing-governance.md`.
+
 I think the best version of your project is **not** “the evaluator paper” and **not** “the D7 paper.” It is a broader methods paper about **intervention science**:
 
 **measurement can change the apparent effect, readout quality is an unreliable heuristic for steering-target selection, and even successful steering is narrow and surface-dependent.** That is the real through-line across the project, and it is already visible in your strongest results: the matched H-neuron vs SAE dissociation, the probe-head AUROC 1.0 null, the ITI MC-vs-generation split, the bridge benchmark’s wrong-entity-substitution mechanism, and the jailbreak evaluation artifacts.

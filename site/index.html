@@ -31,8 +31,12 @@
   <div class="fade-in">
     <h1>Strong Readouts, Local Levers</h1>
     <p class="subtitle" data-source="manual">
-      A broader Gemma 3 4B thesis: measurement, localization, control, and externality are separable stages,
-      and strong readouts often fail as steering targets. H-neurons remain the paper-faithful first anchor, not the whole story.
+      A Gemma 3 4B staged-audit overview: measurement, localization, control, and externality are separable questions,
+      and strong readouts often fail as steering targets.
+    </p>
+    <p class="subtitle" style="margin-top: 1rem;" data-source="manual">
+      The site now routes by question first. FaithEval remains strong localization/control evidence, while the bridge benchmark
+      and jailbreak audits answer different questions at the same decision level.
     </p>
 
     <div class="next-steps" style="margin-top: 2.5rem;">
@@ -41,19 +45,19 @@
       <!-- from: top_neuron_supporting_tests -->
       <!-- from: top_neuron_total_tests -->
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Anchor 1</h3>
-        <p class="card-item"><strong>H-neuron replication still holds:</strong> 38 neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy, and a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span> FaithEval gain above no-op.</p>
+        <h3 style="color: var(--accent-teal);">Question 1: What shows localization can become control?</h3>
+        <p class="card-item"><strong>FaithEval remains strong evidence:</strong> 38 neurons, <span data-classifier-bind="accuracy-value">76.5%</span> disjoint accuracy, and a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span> gain above no-op.</p>
         <p class="card-item"><strong>Specificity was tested:</strong> random-neuron intervention controls stay flat on FaithEval and FalseQA.</p>
         <!-- from: top_neuron_broader_detector_positive_neurons -->
         <!-- from: top_neuron_broader_detector_c_value -->
         <p class="card-item"><strong>Interpretation got narrower:</strong> the 4288 top-neuron story failed 0/6 cross-checks, and the stronger mechanism hypothesis is distributed rather than singular.</p>
-        <p class="card-item"><strong>Why this anchor matters:</strong> it establishes a real localization and control foothold before the broader thesis asks where that foothold breaks.</p>
+        <p class="card-item"><strong>Role in the site:</strong> this is the baseline localization/control case study, not a repo-wide default hierarchy.</p>
       </div>
       <!-- from: bridge_phase3_adjudicated_delta -->
       <!-- from: bridge_phase3_wrong_entity_share -->
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Anchor 2</h3>
-        <p class="card-item"><strong>Control does not guarantee transfer:</strong> the bridge benchmark now shows a held-out externality break.</p>
+        <h3 style="color: var(--accent-amber);">Question 2: What shows control can create externalities?</h3>
+        <p class="card-item"><strong>The bridge benchmark is the main case study:</strong> control does not guarantee transfer once the task becomes open-ended generation.</p>
         <p class="card-item"><strong>Locked test result:</strong> ITI reduces adjudicated accuracy by <span data-bridge-bind="adjudicated-delta">-5.8pp</span> (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>) on 500 held-out TriviaQA items.</p>
         <p class="card-item"><strong>Dominant failure mode:</strong> <span data-bridge-bind="wrong-entity-share">72.1%</span> of right-to-wrong flips are wrong-entity substitutions, not refusal.</p>
         <p class="card-item"><strong>Project consequence:</strong> an intervention can help on one evaluation surface and still corrupt free-form factual generation.</p>
@@ -62,8 +66,8 @@
       <!-- from: jailbreak_v3_binary_slope -->
       <!-- from: jailbreak_v3_substantive_compliance_slope -->
       <div class="step-card" style="border-left: 3px solid var(--accent-purple);">
-        <h3 style="color: var(--accent-purple);">Anchor 3</h3>
-        <p class="card-item"><strong>Measurement changes conclusions:</strong> the original 256-token jailbreak slope was a truncation artifact.</p>
+        <h3 style="color: var(--accent-purple);">Question 3: What shows measurement changes the conclusion?</h3>
+        <p class="card-item"><strong>Jailbreak audits are the main measurement case study:</strong> the original 256-token slope was a truncation artifact.</p>
         <p class="card-item"><strong>Paired v2-v3 audit:</strong> v2 shows a positive binary slope, v3 binary is uncertain, and v3 still recovers a substantive-compliance rise.</p>
         <p class="card-item"><strong>Why v3 stays primary:</strong> not because it leads on held-out accuracy after the tie, but because it supplies the taxonomy and granularity the paper needs without introducing false positives on the gold set.</p>
         <p class="card-item"><strong>Project consequence:</strong> evaluator dependence is part of the scientific result, not just reporting overhead.</p>
@@ -73,10 +77,10 @@
       <!-- from: d7_causal_token_cap_hits -->
       <!-- from: d7_random_vs_causal_strict_harm_delta -->
       <div class="step-card" style="border-left: 3px solid var(--accent-rose);">
-        <h3 style="color: var(--accent-rose);">Boundary of the claim</h3>
-        <p class="card-item"><strong>D7 is supporting evidence:</strong> the April 8 legacy panel stays historical, and the April 16 current panel remains a mixed-ruler current-state comparison with expanded layer-matched random controls and a scored probe branch; the shown random seed remains <span data-d7-april14-bind="random-vs-causal-delta">+12.4pp</span> more harmful than causal on strict harmfulness (<span data-d7-april14-bind="random-vs-causal-delta-ci">95% CI 8.0-16.8pp</span>).</p>
-        <p class="card-item"><strong>v3 is not pitched as universally superior:</strong> the holdout rerun closed the old StrongREJECT gap, so the rationale is measurement quality, not outdated superiority language.</p>
-        <p class="card-item"><strong>Single-model scope remains explicit:</strong> the site is framed as a Gemma 3 4B case study in intervention science.</p>
+        <h3 style="color: var(--accent-rose);">Boundary and scope</h3>
+        <p class="card-item"><strong>D7 stays supporting evidence:</strong> the April 8 legacy panel stays historical, and the April 16 current panel remains a mixed-ruler current-state comparison with expanded layer-matched random controls and a scored probe branch; the shown random seed remains <span data-d7-april14-bind="random-vs-causal-delta">+12.4pp</span> more harmful than causal on strict harmfulness (<span data-d7-april14-bind="random-vs-causal-delta-ci">95% CI 8.0-16.8pp</span>).</p>
+        <p class="card-item"><strong>No evaluator supremacy claim:</strong> the holdout rerun closed the old StrongREJECT gap, so the rationale for v3 is measurement quality, not universal superiority.</p>
+        <p class="card-item"><strong>Single-model scope remains explicit:</strong> this is a Gemma 3 4B case study with multiple earned evidence families and no repo-wide default hierarchy.</p>
       </div>
     </div>
 
@@ -95,7 +99,7 @@
 
     <div class="next-steps">
       <div class="step-card" data-status="THESIS">
-        <h3>The project is now about stage breaks, not one neuron set</h3>
+        <h3>The project is organized as a staged audit, not an anchor ladder</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           The stable pattern across the April evidence is broader than H-neurons alone: measurement, localization,
           control, and externality come apart. Good readouts do not reliably identify good steering targets,
@@ -104,49 +108,36 @@
         <p style="margin-top: 1rem;"><a class="button-link" href="story.html#claim">Read the thesis</a></p>
       </div>
 
-      <div class="step-card" data-status="ANCHOR 1">
-        <h3>H-neurons still earn the first anchor</h3>
+      <div class="step-card" data-status="QUESTION 1">
+        <h3>Localization to control: FaithEval stays strong, but narrower</h3>
         <!-- from: classifier_disjoint_accuracy -->
         <!-- from: anti_compliance_delta_noop_to_3 -->
         <p style="font-size: 14px; color: var(--text-secondary);">
           The paper-faithful sparse baseline survives the hard checks: <span data-classifier-bind="accuracy-value">76.5%</span> held-out accuracy
           (<span data-classifier-bind="accuracy-ci-text">95% CI 73.6-79.5%</span>), a <span data-intervention-summary-bind="anti-noop-delta-value">+4.5pp</span>
           FaithEval gain above no-op, and flat random-neuron intervention controls. What narrowed is the interpretation,
-          not the existence of signal.
+          not the existence of signal: 4288 failed as a unique hub story, so the mechanism claim is now distributed.
         </p>
-        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#cross-benchmark">Open H-neuron results</a></p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="story.html#localization-control">Open the localization/control case study</a></p>
       </div>
 
-      <div class="step-card" data-status="OUR WORK">
-        <h3>The paper's #1 neuron is an L1 regularization artifact</h3>
-        <!-- from: top_neuron_supporting_tests -->
-        <!-- from: top_neuron_total_tests -->
-        <!-- from: top_neuron_broader_detector_positive_neurons -->
-        <!-- from: top_neuron_broader_detector_c_value -->
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          Neuron (20, 4288) has 1.65x the classifier weight of the runner-up but scores 0/6 on independent checks.
-          By C=3.0 the signal is spread across 219 positive-weight neurons and accuracy rises to 80.5%.
-          Sparse bookkeeping is not the same thing as mechanistic centrality.
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link" href="results/gemma-3-4b.html#surprise">Six-test investigation</a></p>
-      </div>
-
-      <div class="step-card" data-status="ANCHOR 2">
-        <h3>When steering transfers badly, it fails by picking the wrong nearby fact</h3>
+      <div class="step-card" data-status="QUESTION 2">
+        <h3>Control to externality: the bridge benchmark shows wrong-entity corruption</h3>
         <!-- from: bridge_phase3_adjudicated_delta -->
         <!-- from: bridge_phase3_wrong_entity_share -->
         <p style="font-size: 14px; color: var(--text-secondary);">
-          The held-out bridge benchmark upgrades the externality claim to stronger held-out evidence:
+          The held-out bridge benchmark upgrades the externality claim to strong held-out evidence:
           E0 ITI lowers adjudicated accuracy by <span data-bridge-bind="adjudicated-delta">-5.8pp</span>
           (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>) on 500 locked test questions,
           with <span data-bridge-bind="mcnemar-p">p=0.0002</span>. The damage is mostly active corruption, not abstention:
           <span data-bridge-bind="wrong-entity-count">31</span> of <span data-bridge-bind="right-to-wrong-count">43</span> right-to-wrong flips
           (<span data-bridge-bind="wrong-entity-share">72.1%</span>) are wrong-entity substitutions.
         </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="story.html#control-externality">Open the control/externality case study</a></p>
       </div>
 
-      <div class="step-card" data-status="ANCHOR 3">
-        <h3>Jailbreak evaluation is now a measurement case study, not just a binary-rate story</h3>
+      <div class="step-card" data-status="QUESTION 3">
+        <h3>Measurement to conclusion: evaluator choice changes what the jailbreak result means</h3>
         <!-- from: jailbreak_v2_binary_slope -->
         <!-- from: jailbreak_v3_binary_slope -->
         <!-- from: jailbreak_v3_substantive_compliance_slope -->
@@ -157,10 +148,11 @@
           <span data-jailbreak-summary-bind="v3-substantive-slope">2.00pp/α</span> substantive-compliance shift.
           v3 stays primary after the holdout tie for taxonomy and zero-false-positive behavior, while specificity remains limited by missing paired controls and a single-seed random control.
         </p>
+        <p style="margin-top: 1rem;"><a class="button-link" href="story.html#measurement-conclusion">Open the measurement/conclusion case study</a></p>
       </div>
 
-      <div class="step-card" data-status="SUPPORTING">
-        <h3>D7 is promising benchmark-local evidence, not a finished mechanism claim</h3>
+      <div class="step-card" data-status="BOUNDARY">
+        <h3>Boundary: this is a Gemma case study with supporting branches, not one master proof</h3>
         <!-- from: d7_causal_csv2_yes_delta -->
         <!-- from: d7_l1_csv2_yes_delta -->
         <!-- from: d7_causal_token_cap_hits -->
@@ -170,20 +162,11 @@
           while the L1 comparator increases it by <span data-d7-bind="l1-delta">+4.0pp</span>
           (<span data-d7-bind="l1-delta-ci">95% CI 0.6-7.6pp</span>).
           The April 16 current panel remains a mixed-ruler current-state comparison with expanded layer-matched random controls and a scored probe branch; the shown random seed remains <span data-d7-april14-bind="random-vs-causal-delta">+12.4pp</span> more harmful than causal on strict harmfulness (<span data-d7-april14-bind="random-vs-causal-delta-ci">95% CI 8.0-16.8pp</span>).
-          The live caveat is now mixed-ruler status plus causal token-cap and quality debt alongside a small documented residual evaluator-error set, not missing seeds or a missing probe branch, so this stays supporting rather than selector-specific closure.
+          The live caveat is now mixed-ruler status plus causal token-cap and quality debt alongside a small documented residual evaluator-error set, so this stays supporting rather than selector-specific closure.
         </p>
         <p style="margin-top: 1rem;"><a class="button-link secondary" href="extensions.html#workstreams">See supporting workstreams</a></p>
       </div>
 
-      <div class="step-card" data-status="METHOD">
-        <h3>Measurement discipline changed the project's claims more than new model scale did</h3>
-        <p style="font-size: 14px; color: var(--text-secondary);">
-          April 8-16 turned multiple attractive stories into narrower ones: D7 moved to mixed-ruler supporting evidence with stronger control coverage instead of the old single-seed framing,
-          v3 lost outdated holdout-superiority framing, and jailbreak binary counts gave way to a severity story.
-          That is a methodological win, not a retreat.
-        </p>
-        <p style="margin-top: 1rem;"><a class="button-link secondary" href="methods.html#evaluation">Open the evaluation contract</a></p>
-      </div>
     </div>
   </div>
 </section>

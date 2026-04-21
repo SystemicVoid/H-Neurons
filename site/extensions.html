@@ -32,15 +32,15 @@
     <span class="tag tag-amber">Extensions</span>
     <h1>Open questions and caveats for the<br>flagship thesis</h1>
     <p class="subtitle" data-source="manual">
-      This page is no longer a sprint tracker. It is a decision map for what is already strong,
-      what is still caveated, and what evidence would actually change the core thesis.
+      This page is no longer a sprint tracker. It is a decision map for what is already strong current evidence,
+      what stays supporting current evidence, and what remains an open hypothesis.
     </p>
 
     <div class="metrics-grid" style="margin-top: 2.5rem;">
       <div class="metric-card" data-status="STABLE">
-        <div class="label">Anchor case studies</div>
+        <div class="label">Current case studies</div>
         <div class="value val-teal">3</div>
-        <div class="detail">SAE vs H-neurons, ITI bridge externality, jailbreak measurement</div>
+        <div class="detail">Localization/control, control/externality, and measurement/conclusion</div>
       </div>
       <div class="metric-card" data-status="PROVISIONAL">
         <div class="label">Strongest unresolved caveat</div>
@@ -74,8 +74,8 @@
     <span class="tag tag-teal">Question map</span>
     <h2>Open questions and caveats by evidence branch</h2>
     <p class="subtitle" data-source="manual">
-      April 8&ndash;14 turned the project into a confidence-tier problem: two anchors are headline-safe,
-      one anchor is scientifically valuable but caveated, and future extensions should be judged by whether they reduce those caveats.
+      Future extensions are judged by whether they clarify one of the current stage-break questions,
+      not by whether they can be promoted into a louder hierarchy label.
     </p>
 
     <div class="roadmap-table-shell">
@@ -83,7 +83,7 @@
         <thead>
           <tr>
             <th>Branch</th>
-            <th>Confidence tier</th>
+            <th>Current status</th>
             <th>What we now know</th>
             <th>What still blocks a stronger claim</th>
           </tr>
@@ -91,7 +91,7 @@
         <tbody>
           <tr>
             <td><strong>Jailbreak measurement + specificity</strong></td>
-            <td><span class="status-pill status-ready">Supporting, caveated</span></td>
+            <td><span class="status-pill status-ready">Supporting current evidence</span></td>
             <!-- from: jailbreak_v2_binary_slope -->
             <!-- from: jailbreak_v3_binary_slope -->
             <!-- from: jailbreak_v3_substantive_compliance_slope -->
@@ -100,7 +100,7 @@
           </tr>
           <tr>
             <td><strong>D7 causal-head mitigation</strong></td>
-            <td><span class="status-pill status-ready">Supporting, caveated</span></td>
+            <td><span class="status-pill status-ready">Supporting current evidence</span></td>
             <!-- from: d7_causal_csv2_yes_delta -->
             <!-- from: d7_l1_csv2_yes_delta -->
             <!-- from: d7_random_vs_causal_strict_harm_delta -->
@@ -110,14 +110,14 @@
           </tr>
           <tr>
             <td><strong>ITI bridge externality</strong></td>
-            <td><span class="status-pill status-complete">Headline-safe</span></td>
+            <td><span class="status-pill status-complete">Strong current evidence</span></td>
             <!-- from: bridge_phase3_wrong_entity_share -->
             <td>Held-out test confirms externality break: <span data-bridge-bind="adjudicated-delta">-5.8pp</span> adjudicated accuracy (<span data-bridge-bind="adjudicated-delta-ci">95% CI -8.8--3.0pp</span>), <span data-bridge-bind="mcnemar-p">p=0.0002</span>. <span data-bridge-bind="wrong-entity-share">72.1%</span> of right-to-wrong flips are wrong-entity substitutions.</td>
             <td>Mechanistic interpretation is behavioral rather than circuit-level. Formal multi-rater coding could tighten failure-mode percentages.</td>
           </tr>
           <tr>
             <td><strong>SAE vs H-neuron dissociation</strong></td>
-            <td><span class="status-pill status-complete">Headline-safe</span></td>
+            <td><span class="status-pill status-complete">Strong current evidence</span></td>
             <td><!-- from: classifier_sae_auroc -->
             <!-- from: classifier_disjoint_auroc -->
             Matched detection quality (AUROC <span data-classifier-sae-bind="auc-value">0.848</span>, <span data-classifier-sae-bind="auc-ci-text">95% CI 0.820-0.874</span>
@@ -146,7 +146,7 @@
     <span class="tag tag-purple">Caveat order</span>
     <h2>Priority is now caveat-reduction, not benchmark accumulation</h2>
     <p class="subtitle" data-source="manual">
-      The next best experiment is the one that upgrades a supporting claim to headline-safe.
+      The next best experiment is the one that turns supporting current evidence into stronger current evidence.
       Everything else is optional polish.
     </p>
 
@@ -195,30 +195,30 @@
 
     <div class="next-steps">
       <div class="step-card" style="border-left: 3px solid var(--accent-amber);">
-        <h3 style="color: var(--accent-amber);">Jailbreak measurement branch (caveated)</h3>
+        <h3 style="color: var(--accent-amber);">Jailbreak measurement branch (supporting current evidence)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           The key result is not "one true slope." It is that evaluation level changes the conclusion:
           v2 binary reads a positive slope, v3 binary compresses it, and v3 primary-outcome taxonomy recovers a severity shift.
-          This is valuable Anchor-3 evidence, but specificity still needs stronger paired controls.
+          This is valuable measurement/conclusion evidence, but specificity still needs stronger paired controls.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral);">
-        <h3 style="color: var(--accent-coral);">D7 causal branch (promising but provisional)</h3>
+        <h3 style="color: var(--accent-coral);">D7 causal branch (supporting current evidence)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           The April 8 legacy panel and April 16 mixed-ruler current panel still point the same way: the locked causal branch looks strongest among completed D7 conditions.
           But the result stays supporting because the panel is still mixed-ruler, causal is still token-cap-limited, and the probe/random branches still carry a small residual evaluator-error set, so treat this as evidence for "alternative selectors can work on this surface," not as a settled mechanism claim.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-teal);">
-        <h3 style="color: var(--accent-teal);">Bridge externality branch (load-bearing)</h3>
+        <h3 style="color: var(--accent-teal);">Bridge externality branch (strong current evidence)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
-          This is the cleanest control-to-externality break in the repo:
+          This is the main control-to-externality case study in the repo:
           a direction that helps TruthfulQA MC harms open-ended TriviaQA generation, mostly by wrong-entity substitutions.
           It upgrades externality risk from anecdote to statistically supported evidence.
         </p>
       </div>
       <div class="step-card" style="border-left: 3px solid var(--accent-coral); opacity: 0.7;">
-        <h3 style="color: var(--accent-coral);">SAE branch (closed, still central)</h3>
+        <h3 style="color: var(--accent-coral);">SAE branch (strong current evidence)</h3>
         <p style="font-size: 14px; color: var(--text-secondary);">
           The null is not dead weight. It is the clearest localization-to-control break:
           matched readout quality, divergent intervention outcomes.
@@ -259,7 +259,7 @@
     <span class="tag tag-teal">Decision gates</span>
     <h2>What would actually change the thesis now</h2>
     <p class="subtitle" data-source="manual">
-      The flagship can already stand on two headline-safe anchors plus one caveated measurement anchor.
+      The flagship already has strong current evidence across multiple question-specific branches.
       The next decision is whether to spend remaining budget on caveat closure or on novelty exploration.
     </p>
 
@@ -275,14 +275,14 @@
         <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">If caveats remain unresolved</div>
         <div style="font-size: 1.35rem; font-weight: 700; color: var(--accent-coral);">Still publishable, narrower claims</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-          The central thesis remains valid (good readouts often fail as steering targets), but D7 and jailbreak specificity stay as supporting evidence instead of pillars.
+          The central thesis remains valid (good readouts often fail as steering targets), but D7 and jailbreak specificity stay as supporting current evidence instead of core routing surfaces.
         </div>
       </div>
     </div>
 
     <div class="insight-box" data-status="NEW">
-      <strong>Why this framing is different:</strong> this page now separates "interesting" from "load-bearing."
-      The safest writing strategy is to lead with headline-safe anchors and use caveated branches to show scope, not to carry the core claim.
+      <strong>Why this framing is different:</strong> this page now separates current strength, current support, and open hypotheses
+      without using constitutional rank language from older synthesis notes.
     </div>
   </div>
 </section>
