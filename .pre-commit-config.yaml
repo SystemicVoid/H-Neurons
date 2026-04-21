@@ -21,10 +21,9 @@ repos:
 
       - id: ty-check
         name: ty check
-        entry: ty check
+        entry: ty check --force-exclude
         language: system
-        types: [python]
-        pass_filenames: false
+        files: ^(scripts|tests)/.*\.py$
 
       - id: ci-audit
         name: CI coverage audit
