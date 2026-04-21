@@ -133,6 +133,26 @@
       "dst": "code/scripts/analyze_concordance.py"
     },
     {
+      "src": "scripts/bridge_irr.py",
+      "dst": "code/scripts/bridge_irr.py"
+    },
+    {
+      "src": "scripts/prepare_bridge_irr_queue.py",
+      "dst": "code/scripts/prepare_bridge_irr_queue.py"
+    },
+    {
+      "src": "scripts/bridge_irr_label.py",
+      "dst": "code/scripts/bridge_irr_label.py"
+    },
+    {
+      "src": "scripts/bridge_irr_rater_b.py",
+      "dst": "code/scripts/bridge_irr_rater_b.py"
+    },
+    {
+      "src": "scripts/finalize_bridge_irr.py",
+      "dst": "code/scripts/finalize_bridge_irr.py"
+    },
+    {
       "src": "scripts/analyze_csv2.py",
       "dst": "code/scripts/analyze_csv2.py"
     },
@@ -207,6 +227,10 @@
     {
       "src": "tests/test_uncertainty.py",
       "dst": "code/tests/test_uncertainty.py"
+    },
+    {
+      "src": "tests/test_bridge_irr.py",
+      "dst": "code/tests/test_bridge_irr.py"
     },
     {
       "src": "tests/test_utils.py",

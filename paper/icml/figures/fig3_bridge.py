@@ -14,6 +14,7 @@ Usage:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import matplotlib
@@ -26,6 +27,7 @@ import numpy as np  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "paper/icml/figures/fig3_bridge.pdf"
+IRR_SUMMARY = ROOT / "data/judge_validation/bridge_irr/bridge_irr_summary.json"
 
 TITLE_COLOR = "#1E3044"
 SUBTITLE_COLOR = "#5A6E7F"
@@ -78,12 +80,43 @@ PANEL_A_DATA = [
     },
 ]
 
-FLIP_TAXONOMY = [
+DEFAULT_FLIP_TAXONOMY = [
     ("Wrong-entity\nsubstitution", 30, C_SUBSTITUTION),
     ("Evasion /\nfactual denial", 8, C_EVASION),
     ("Verbosity /\ndilution", 3, C_VERBOSITY),
     ("Formal\nrefusal", 2, C_OTHER),
 ]
+
+
+def load_flip_taxonomy() -> list[tuple[str, int, str]]:
+    if not IRR_SUMMARY.exists():
+        return DEFAULT_FLIP_TAXONOMY
+    payload = json.loads(IRR_SUMMARY.read_text(encoding="utf-8"))
+    if payload.get("status") != "adjudicated":
+        return DEFAULT_FLIP_TAXONOMY
+    categories = payload["direction_summaries"]["right_to_wrong"]["categories"]
+    return [
+        (
+            "Wrong-entity\nsubstitution",
+            int(categories["wrong_entity_substitution"]["count"]),
+            C_SUBSTITUTION,
+        ),
+        (
+            "Evasion /\nfactual denial",
+            int(categories["evasion_or_factual_denial"]["count"]),
+            C_EVASION,
+        ),
+        (
+            "Verbosity /\ndilution",
+            int(categories["answer_dilution"]["count"]),
+            C_VERBOSITY,
+        ),
+        (
+            "Formal\nrefusal",
+            int(categories["formal_refusal"]["count"]),
+            C_OTHER,
+        ),
+    ]
 
 
 def draw_panel_a(ax: plt.Axes) -> None:
@@ -161,9 +194,10 @@ def draw_panel_a(ax: plt.Axes) -> None:
 
 
 def draw_panel_b(ax: plt.Axes) -> None:
-    labels = [t[0] for t in FLIP_TAXONOMY]
-    counts = [t[1] for t in FLIP_TAXONOMY]
-    colors = [t[2] for t in FLIP_TAXONOMY]
+    flip_taxonomy = load_flip_taxonomy()
+    labels = [t[0] for t in flip_taxonomy]
+    counts = [t[1] for t in flip_taxonomy]
+    colors = [t[2] for t in flip_taxonomy]
 
     y = np.arange(len(labels))
     bars = ax.barh(

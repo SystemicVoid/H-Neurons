@@ -68,14 +68,16 @@ Interpretation: ITI improves constrained answer selection on held-out TruthfulQA
 | Flip counts | 43 right-to-wrong, 14 wrong-to-right | net -29 |
 | NOT_ATTEMPTED counts | 2 / 8 | baseline / ITI |
 
-### Failure mode coding on 43 right-to-wrong flips
+### Failure mode coding on 43 right-to-wrong flips (dual-rated, adjudicated)
 
-| Category | Count | Share |
-|---|---:|---:|
-| Wrong-entity substitution | 30 | 70% |
-| Evasion / factual denial | 8 | 19% |
-| Answer dilution / verbosity | 3 | 7% |
-| Formal refusal | 2 | 5% |
+| Category | Count | Share | 95% CI (Wilson) |
+|---|---:|---:|---|
+| Wrong-entity substitution | 31 | 72.1% | [57.3, 83.3] |
+| Evasion / factual denial | 9 | 20.9% | [11.4, 35.2] |
+| Answer dilution / verbosity | 3 | 7.0% | [2.4, 18.6] |
+| Formal refusal | 0 | 0.0% | [0.0, 8.2] |
+
+Inter-rater reliability on all 57 discordant test cases (43 R→W + 14 W→R): raw agreement 55/57 = 96.5% [88.1, 99.0], Cohen's κ = 0.90, Gwet's AC1 = 0.96. The 14 W→R rescues are all wrong-entity substitution (100% [78.5, 100]). Rater A is the first author (human); Rater B is an LLM judge (`gpt-4o-2024-11-20`, temperature=0, strict JSON schema); the 2 disagreements were resolved under a pre-frozen adjudication rule (rule_gap=0/2). See [`../../reports/2026-04-21-bridge-irr-review.md`](../../reports/2026-04-21-bridge-irr-review.md) for the full analysis.
 
 ### Representative wrong-entity substitutions
 
@@ -91,4 +93,4 @@ Interpretation: the bridge result is not primarily a refusal effect. The dominan
 ## Reviewer Notes
 
 - The bridge taxonomy is a behavioral diagnosis rather than a formal causal claim about the underlying circuit.
-- The exact category percentages come from a single-rater manual coding pass over 43 flips.
+- Category percentages are dual-rated and adjudicated under a pre-frozen rule; Rater B is an LLM judge, so we present these as a sensitivity check rather than strong-form human–human IRR.

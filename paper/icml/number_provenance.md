@@ -76,11 +76,15 @@ Abstract headline numbers are covered by the section-level rows below rather tha
 | E0 `α = 8.0` deterministic delta | -4.6 pp | [-7.6, -1.6] | same file §2.2 |
 | Bridge paired significance | McNemar p = 0.0002 | — | same file §2.2 |
 | Bridge flip counts | 43 right→wrong, 14 wrong→right | net -29 | same file §2.3 |
-| Wrong-entity substitution | 30 / 43 (70%) | — | same file §5.1 |
-| Evasion / factual denial | 8 / 43 (19%) | — | same file §5.1 |
-| Answer dilution / verbosity | 3 / 43 (7%) | — | same file §5.1 |
-| Formal refusal among right→wrong flips | 2 / 43 (5%) | — | same file §5.1 |
-| NOT_ATTEMPTED counts (baseline / ITI) | 2 / 8 | — | same file §7 |
+| Wrong-entity substitution (adjudicated, R→W) | 31 / 43 (72.1%) | [57.3, 83.3] (Wilson) | `data/judge_validation/bridge_irr/bridge_irr_summary.json` (`direction_summaries.right_to_wrong.categories.wrong_entity_substitution`) |
+| Evasion / factual denial (adjudicated, R→W) | 9 / 43 (20.9%) | [11.4, 35.2] (Wilson) | same file (`...evasion_or_factual_denial`) |
+| Answer dilution / verbosity (adjudicated, R→W) | 3 / 43 (7.0%) | [2.4, 18.6] (Wilson) | same file (`...answer_dilution`) |
+| Formal refusal among right→wrong flips (adjudicated) | 0 / 43 (0.0%) | [0.0, 8.2] (Wilson) | same file (`...formal_refusal`) |
+| Dual-rater raw agreement (all 57 discordant) | 55 / 57 (96.5%) | [88.1, 99.0] (Wilson) | same file (`irr.raw_agreement`) |
+| Cohen's κ (A vs B, 4-category) | 0.90 | — | same file (`irr.cohen_kappa`) |
+| Gwet's AC1 (A vs B, 4-category) | 0.96 | — | same file (`irr.gwet_ac1`) |
+| Adjudicated disagreements | 2 / 57 | — | same file (`irr.n_disagreements`, `adjudication`) |
+| NOT_ATTEMPTED counts (baseline / ITI) | 2 / 8 | — | `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md` §7 |
 | Bridge test set size | 500 | — | same file §1 |
 
 ### Section 5. Measurement Choices Changed the Conclusion (`\S\ref{sec:measurement}`)
