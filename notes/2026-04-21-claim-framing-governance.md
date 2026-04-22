@@ -106,9 +106,8 @@ When writing or reviewing notes, prompts, or planning docs:
 - Historical framing only, not current default:
   - `notes/2026-04-11-strategic-assessment.md`
   - `notes/V2-critique-of-mentor-review-strategic.md`
-  - `paper/paper-outline-v1.md`
-  - `paper/revised_flagship_outline-v2.md`
-  - `paper/final_flagship_outline_review.md`
+  - `paper/outline-older-framing.md` (surviving in-repo historical snapshot; renamed from the old outline-review surface)
+  - `/home/hugo/Documents/Engineering/02-h-neurons-paper-draft-archive/` for the archived long-draft stack, including the retired `paper/paper-outline-v1.md` and `paper/revised_flagship_outline-v2.md`
 
 ## Operational rule for future AI prompts
 

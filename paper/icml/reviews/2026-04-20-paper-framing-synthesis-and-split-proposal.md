@@ -2,7 +2,7 @@
 
 **Status.** Supersedes the earlier 2026-04-20 version of this memo. That version correctly flagged the SAE layer-coverage confound and the strength of the jailbreak-measurement evidence, but it still misidentified the paper's deepest structural problem. The main issue is now novelty framing: `paper/icml/main.tex` headlines a slogan-level thesis whose weak form is already in the literature, while the paper's actually novel contributions sit one layer below the headline.
 
-**Question.** After the arbitration audit, the GPT and Opus deep literature reviews, the three outline revisions (`paper/paper-outline-v1.md`, `paper/revised_flagship_outline-v2.md`, `paper/final_flagship_outline_review.md`), the current `main.tex`, and the 2026-04-20 D7 adversarial audit are read together, what should the paper actually claim, and which earlier recommendations are now stale?
+**Question.** After the arbitration audit, the GPT and Opus deep literature reviews, the historical outline stack (surviving in-repo snapshot: `paper/outline-older-framing.md`; older long-draft files archived out of repo), the current `main.tex`, and the 2026-04-20 D7 adversarial audit are read together, what should the paper actually claim, and which earlier recommendations are now stale?
 
 **Scope.** Reference document only. No edits to `main.tex` yet. This note updates the framing diagnosis, retires stale recommendations, and keeps paper-splitting as a secondary venue strategy rather than the primary conclusion.
 
@@ -319,9 +319,8 @@ Primary sources for this revised synthesis:
 - `paper/literature-research/research_arbitration_audit_detection_is_not_enough.md`
 - `paper/literature-research/gpt-deep-literature-review.md`
 - `paper/literature-research/opus-deep-literature-review.md`
-- `paper/paper-outline-v1.md`
-- `paper/revised_flagship_outline-v2.md`
-- `paper/final_flagship_outline_review.md`
+- `paper/outline-older-framing.md`
+- `/home/hugo/Documents/Engineering/02-h-neurons-paper-draft-archive/` (historical long-draft archive; includes the retired `paper/paper-outline-v1.md` and `paper/revised_flagship_outline-v2.md`)
 - `paper/icml/reviews/2026-04-20-d7-quality-debt-adversarial-audit.md`
 - `notes/act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md`
 - `notes/act3-reports/2026-04-13-bridge-phase3-test-results.md`
