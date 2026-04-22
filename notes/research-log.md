@@ -630,7 +630,7 @@ The R→W / W→R symmetry reshapes the interpretive story. Both directions are 
 
 ### What I did
 
-Reviewed the Priority-3 bridge logprob-margin pipeline post-run. The scorer/analyzer/tests (commit `7edabc5`) had already produced `margins.jsonl` and `results.json` for the full 57+200 case set under a precommit-locked analysis plan from 2026-04-21. I audited the code path (teacher-forcing, ITI scope gating, ragged-length handling, permutation/bootstrap setup), walked the precommit decision tree against the actual numbers, and rewrote the precommit file in place as a full post-run analysis at [`paper/icml/reports/2026-04-21-bridge-margin-precommit.md`](../paper/icml/reports/2026-04-21-bridge-margin-precommit.md) (sealing the original precommit as Appendix A). Updated the TODO Priority-3 entry, the IRR review's §4.3/§5/§7.2 pointers, the `runs_to_analyse` queue, and the analyzer docstring path.
+Reviewed the Priority-3 bridge logprob-margin pipeline post-run. The scorer/analyzer/tests (commit `7edabc5`) had already produced `margins.jsonl` and `results.json` for the full 57+200 case set under a precommit-locked analysis plan from 2026-04-21. I audited the code path (teacher-forcing, ITI scope gating, ragged-length handling, permutation/bootstrap setup), walked the precommit decision tree against the actual numbers, and rewrote the precommit file in place as a full post-run analysis at [`paper/icml/reports/2026-04-21-bridge-margin-report.md`](../paper/icml/reports/2026-04-21-bridge-margin-report.md) (sealing the original precommit as Appendix A). Updated the TODO Priority-3 entry, the IRR review's §4.3/§5/§7.2 pointers, the `runs_to_analyse` queue, and the analyzer docstring path.
 
 ### What I expected vs what happened
 
