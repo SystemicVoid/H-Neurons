@@ -83,6 +83,13 @@ class TestManifestCount:
     def test_basic(self, manifest_file: Path) -> None:
         assert manifest_count(manifest_file) == 5
 
+    def test_sample_manifest_wrapper(self, tmp_path: Path) -> None:
+        p = tmp_path / "sample_manifest.json"
+        p.write_text(
+            json.dumps({"schema_version": "sample_manifest/v2", "ids": ["a", "b"]})
+        )
+        assert manifest_count(p) == 2
+
     def test_empty_list(self, tmp_path: Path) -> None:
         p = tmp_path / "empty.json"
         p.write_text("[]")
@@ -91,7 +98,7 @@ class TestManifestCount:
     def test_non_list_raises(self, tmp_path: Path) -> None:
         p = tmp_path / "bad.json"
         p.write_text('{"not": "a list"}')
-        with pytest.raises(ValueError, match="not a JSON list"):
+        with pytest.raises(ValueError, match="neither a JSON list nor an object"):
             manifest_count(p)
 
 

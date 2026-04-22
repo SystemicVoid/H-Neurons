@@ -328,17 +328,26 @@ def _selector_calibration_gap(selector_summary: dict[str, Any]) -> Any:
     return selector_summary.get("calibration_to_heldout_gap")
 
 
+def _selector_design(selector_summary: dict[str, Any]) -> dict[str, Any]:
+    design = selector_summary.get("selector_design")
+    if isinstance(design, dict):
+        return design
+    return {}
+
+
 def build_heldout_summary(
     *,
     selector_summary: dict[str, Any],
     ordered_ids: list[str],
     heldout_rows_by_benchmark: dict[str, dict[str, list[dict[str, Any]]]],
 ) -> dict[str, Any]:
+    selector_design = _selector_design(selector_summary)
     utility_family = selector_summary["families"]["utility_selected"]
     readout_family = selector_summary["families"]["readout_selected"]
     overlap = selector_summary["family_overlap"]["utility_selected_vs_readout_selected"]
+    candidate_pool = selector_summary.get("candidate_pool", {})
     return {
-        "schema_version": "faitheval_sae_utility_selector_report/v3",
+        "schema_version": "faitheval_sae_utility_selector_report/v4",
         "n_samples": len(ordered_ids),
         "sample_ids_fingerprint": fingerprint_ids(ordered_ids),
         "heldout_compliance": _build_measurement_section(
@@ -353,10 +362,18 @@ def build_heldout_summary(
             ],
             ordered_ids=ordered_ids,
         ),
+        "selector_design": selector_design,
         "selector_diagnostics": {
+            "candidate_pool_n": candidate_pool.get("n_features"),
+            "candidate_pool_layer_histogram": candidate_pool.get("layer_histogram"),
+            "candidate_pool_weight_sign_counts": candidate_pool.get(
+                "weight_sign_counts"
+            ),
             "selected_k": utility_family["k"],
             "utility_layer_histogram": utility_family["layer_histogram"],
             "readout_layer_histogram": readout_family["layer_histogram"],
+            "utility_weight_sign_counts": utility_family.get("weight_sign_counts"),
+            "readout_weight_sign_counts": readout_family.get("weight_sign_counts"),
             "overlap_with_readout": overlap,
             "outside_old_shortlist_count": utility_family["outside_old_shortlist"][
                 "count"
@@ -365,6 +382,8 @@ def build_heldout_summary(
                 "fraction"
             ],
             "calibration_to_heldout_gap": _selector_calibration_gap(selector_summary),
+            "layer_coverage_note": selector_design.get("layer_coverage_note"),
+            "target_families": selector_design.get("target_families"),
         },
     }
 
@@ -429,6 +448,7 @@ def _format_raw_delta_triplet(section: dict[str, Any]) -> str:
 
 def build_audit_note(summary: dict[str, Any]) -> str:
     diagnostics = summary["selector_diagnostics"]
+    target_families = diagnostics.get("target_families") or {}
     return "\n".join(
         [
             "# FaithEval SAE Utility Selector Audit",
@@ -454,6 +474,25 @@ def build_audit_note(summary: dict[str, Any]) -> str:
                 f"{_format_raw_delta_triplet(summary['heldout_anti_compliance_margin'])}"
             ),
             (
+                "- Candidate pool scope: "
+                f"{diagnostics.get('candidate_pool_n', 'unknown')} non-zero "
+                "probe-support SAE features from the existing extraction scope; "
+                "layer histogram="
+                f"{json.dumps(diagnostics.get('candidate_pool_layer_histogram'), sort_keys=True)}"
+            ),
+            (
+                "- Candidate-pool sign counts: "
+                f"{json.dumps(diagnostics.get('candidate_pool_weight_sign_counts'), sort_keys=True)}"
+            ),
+            (
+                "- Utility-selected sign counts: "
+                f"{json.dumps(diagnostics.get('utility_weight_sign_counts'), sort_keys=True)}"
+            ),
+            (
+                "- Readout-selected sign counts: "
+                f"{json.dumps(diagnostics.get('readout_weight_sign_counts'), sort_keys=True)}"
+            ),
+            (
                 "- Outside old |w|>1e-3 shortlist: "
                 f"{diagnostics['outside_old_shortlist_count']} / {diagnostics['selected_k']} "
                 f"({diagnostics['outside_old_shortlist_fraction']:.4f})"
@@ -469,6 +508,14 @@ def build_audit_note(summary: dict[str, Any]) -> str:
             (
                 "- Readout layer histogram: "
                 f"{json.dumps(diagnostics['readout_layer_histogram'], sort_keys=True)}"
+            ),
+            (
+                "- Target-family definitions: "
+                f"{json.dumps(target_families, sort_keys=True)}"
+            ),
+            (
+                "- Layer-coverage status: "
+                f"{diagnostics.get('layer_coverage_note', 'not recorded')}"
             ),
         ]
     )

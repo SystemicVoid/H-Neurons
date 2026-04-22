@@ -302,15 +302,30 @@ def test_random_matching_is_layer_exact_and_avoids_selected_overlap() -> None:
 def test_report_summary_covers_full_bundle_schema() -> None:
     ordered_ids = ["a", "b", "c", "d"]
     selector_summary = {
+        "selector_design": {
+            "layer_coverage_note": "Partial L3 closure only.",
+            "target_families": {
+                "readout_selected": "probe-positive",
+                "utility_selected": "validation margin",
+                "matched_random": "zero-weight matched",
+            },
+        },
+        "candidate_pool": {
+            "n_features": 5,
+            "layer_histogram": {"5": 3, "9": 2},
+            "weight_sign_counts": {"negative": 2, "positive": 3},
+        },
         "families": {
             "utility_selected": {
                 "k": 2,
                 "layer_histogram": {"5": 1, "9": 1},
+                "weight_sign_counts": {"negative": 1, "positive": 1},
                 "outside_old_shortlist": {"count": 1, "fraction": 0.5},
             },
             "readout_selected": {
                 "k": 2,
                 "layer_histogram": {"5": 2},
+                "weight_sign_counts": {"positive": 2},
             },
         },
         "family_overlap": {
@@ -364,7 +379,7 @@ def test_report_summary_covers_full_bundle_schema() -> None:
         heldout_rows_by_benchmark=heldout_rows_by_benchmark,
     )
 
-    assert summary["schema_version"] == "faitheval_sae_utility_selector_report/v3"
+    assert summary["schema_version"] == "faitheval_sae_utility_selector_report/v4"
     assert summary["heldout_compliance"]["families"]["noop"]["n_compliant"] == 2
     assert (
         summary["heldout_compliance"]["families"]["utility_selected"]["n_compliant"]
@@ -409,12 +424,25 @@ def test_report_summary_covers_full_bundle_schema() -> None:
     assert summary["heldout_anti_compliance_margin"]["paired_deltas"][
         "utility_minus_noop"
     ]["estimate"] == pytest.approx(-0.25)
+    assert summary["selector_diagnostics"]["candidate_pool_n"] == 5
+    assert summary["selector_diagnostics"]["utility_weight_sign_counts"] == {
+        "negative": 1,
+        "positive": 1,
+    }
+    assert summary["selector_diagnostics"]["target_families"]["matched_random"] == (
+        "zero-weight matched"
+    )
+    assert summary["selector_diagnostics"]["layer_coverage_note"] == (
+        "Partial L3 closure only."
+    )
     assert summary["selector_diagnostics"]["outside_old_shortlist_fraction"] == 0.5
     assert summary["selector_diagnostics"]["calibration_to_heldout_gap"] is None
 
     audit_note = build_audit_note(summary)
     assert "FaithEval anti-compliance margin families" in audit_note
     assert "FaithEval anti-compliance margin paired deltas" in audit_note
+    assert "Candidate pool scope" in audit_note
+    assert "Layer-coverage status" in audit_note
     assert "FaithEval MC-logprob" not in audit_note
     margin_line = next(
         line
@@ -486,6 +514,7 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
         "scripts/select_faitheval_sae_utility_features.py",
         "scripts/report_faitheval_sae_utility_selector.py",
         "scripts/run_intervention.py",
+        "scripts/lib/pipeline.py",
         "models/sae_detector.pkl",
         "data/gemma3_4b/pipeline/classifier_sae_summary.json",
     ]:
@@ -502,6 +531,8 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
         "validation_manifest.json",
         "test_manifest.json",
         "candidate_pool.json",
+        "feature_stats.json",
+        "utility_scores.jsonl",
         "utility_selected_features.json",
         "readout_selected_features.json",
         "matched_random_seed_0_features.json",
@@ -580,6 +611,8 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
     assert not log_file.exists() or "run_intervention.py" not in log_file.read_text(
         encoding="utf-8"
     )
+    if log_file.exists():
+        assert "log-run" not in log_file.read_text(encoding="utf-8")
 
 
 def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
@@ -596,6 +629,7 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
         "scripts/select_faitheval_sae_utility_features.py",
         "scripts/report_faitheval_sae_utility_selector.py",
         "scripts/run_intervention.py",
+        "scripts/lib/pipeline.py",
         "models/sae_detector.pkl",
         "data/gemma3_4b/pipeline/classifier_sae_summary.json",
     ]:
@@ -612,6 +646,8 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
         "validation_manifest.json",
         "test_manifest.json",
         "candidate_pool.json",
+        "feature_stats.json",
+        "utility_scores.jsonl",
         "utility_selected_features.json",
         "readout_selected_features.json",
         "matched_random_seed_0_features.json",
@@ -698,3 +734,4 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
         "run_intervention.py --model_path google/gemma-3-4b-it --device_map cuda:0 --benchmark faitheval_anti_compliance_margin --prompt_style anti_compliance --intervention_mode sae --sae_feature_manifest data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/utility_selected_features.json"
         in log_text
     )
+    assert "python -m scripts.lib.pipeline log-run" in log_text

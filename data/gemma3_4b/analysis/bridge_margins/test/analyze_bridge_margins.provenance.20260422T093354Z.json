@@ -1,0 +1,13 @@
+{
+  "script": "scripts/analyze_bridge_margins.py",
+  "timestamp_utc": "2026-04-22T09:33:54+00:00",
+  "git_commit": "b5c47e113791cfb62b273db26434a2bf9a04ab7b",
+  "args": {
+    "input": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/analysis/bridge_margins/test/margins.jsonl",
+    "output_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/analysis/bridge_margins/test",
+    "n_resamples": 10000,
+    "seed": 42
+  },
+  "input_path": "data/gemma3_4b/analysis/bridge_margins/test/margins.jsonl",
+  "results_path": "data/gemma3_4b/analysis/bridge_margins/test/results.json"
+}

@@ -54,13 +54,20 @@ def check_stage_complete(
 
 
 def manifest_count(manifest: Path) -> int:
-    """Return the number of entries in a JSON manifest (a list of IDs)."""
+    """Return the number of entries in a JSON manifest.
+
+    Accepts either a plain JSON list of IDs or a sample-manifest object with
+    an ``ids`` list.
+    """
     data = json.loads(manifest.read_text())
-    if not isinstance(data, list):
-        raise ValueError(
-            f"Manifest {manifest} is not a JSON list (got {type(data).__name__})"
-        )
-    return len(data)
+    if isinstance(data, list):
+        return len(data)
+    if isinstance(data, dict) and isinstance(data.get("ids"), list):
+        return len(data["ids"])
+    raise ValueError(
+        f"Manifest {manifest} is neither a JSON list nor an object with an ids list "
+        f"(got {type(data).__name__})"
+    )
 
 
 def gpu_preflight() -> None:

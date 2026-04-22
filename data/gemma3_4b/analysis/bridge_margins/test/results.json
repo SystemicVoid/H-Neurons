@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_utc": "2026-04-21T16:51:00+00:00",
-  "git_commit": "76d7ca360a6b98a3500b87b97f50312d7f0a0a88",
+  "generated_utc": "2026-04-22T09:55:27+00:00",
+  "git_commit": "b5c47e113791cfb62b273db26434a2bf9a04ab7b",
   "n_records": 257,
   "cohort_sizes": {
     "A_rw_substitution": 31,
@@ -908,6 +908,10 @@
     "full": {
       "png": "data/gemma3_4b/analysis/bridge_margins/test/margin_shift_by_cohort_full.png",
       "pdf": "data/gemma3_4b/analysis/bridge_margins/test/margin_shift_by_cohort_full.pdf"
+    },
+    "position_panels": {
+      "png": "data/gemma3_4b/analysis/bridge_margins/test/margin_shift_by_position_panels.png",
+      "pdf": "data/gemma3_4b/analysis/bridge_margins/test/margin_shift_by_position_panels.pdf"
     }
   }
 }

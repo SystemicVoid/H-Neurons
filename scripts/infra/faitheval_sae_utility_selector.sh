@@ -5,6 +5,7 @@ ROOT="data/gemma3_4b/intervention/faitheval_sae_utility_selector"
 SELECTOR_DIR="${ROOT}/selector"
 HELDOUT_ROOT="${ROOT}/heldout"
 REPORT_DIR="${ROOT}/report"
+DID_GENERATE_DATA=0
 
 MODEL_PATH="${MODEL_PATH:-google/gemma-3-4b-it}"
 DEVICE_MAP="${DEVICE_MAP:-cuda:0}"
@@ -77,6 +78,8 @@ selector_stage_complete() {
         "validation_manifest.json"
         "test_manifest.json"
         "candidate_pool.json"
+        "feature_stats.json"
+        "utility_scores.jsonl"
         "utility_selected_features.json"
         "readout_selected_features.json"
         "matched_random_seed_0_features.json"
@@ -145,6 +148,10 @@ heldout_stage_complete() {
     )
     [[ -f "${alpha_path}" ]] || return 1
     artifact_is_fresh "${alpha_path}" "${deps[@]}" || return 1
+    env PYTHONUNBUFFERED=1 uv run python -m scripts.lib.pipeline check-stage \
+        --output-dir "${dir}" \
+        --manifest "${SELECTOR_DIR}/test_manifest.json" \
+        --alphas "${alpha}" >/dev/null || return 1
     fresh_results_summary_exists "${dir}" "${deps[@]}"
 }
 
@@ -174,6 +181,7 @@ report_stage_complete() {
 require_file "scripts/select_faitheval_sae_utility_features.py" "selector script"
 require_file "scripts/report_faitheval_sae_utility_selector.py" "report script"
 require_file "scripts/run_intervention.py" "intervention script"
+require_file "scripts/lib/pipeline.py" "pipeline guard library"
 require_file "${CLASSIFIER_PATH}" "SAE classifier"
 require_file "${CLASSIFIER_SUMMARY}" "SAE classifier summary"
 
@@ -190,6 +198,7 @@ if ! selector_stage_complete; then
             --classifier_path "${CLASSIFIER_PATH}" \
             --classifier_summary "${CLASSIFIER_SUMMARY}" \
             --output_dir "${SELECTOR_DIR}"
+    DID_GENERATE_DATA=1
 else
     echo "Skipping selector stage; found complete selector bundle in ${SELECTOR_DIR}"
 fi
@@ -218,6 +227,7 @@ for benchmark in "${BENCHMARKS[@]}"; do
                     --alphas "${alpha}" \
                     --sample_manifest "${SELECTOR_DIR}/test_manifest.json" \
                     --output_dir "${dir}"
+            DID_GENERATE_DATA=1
         else
             echo "Skipping held-out stage; found ${benchmark}/${family} outputs in ${dir}"
         fi
@@ -231,4 +241,11 @@ if ! report_stage_complete; then
         --output_dir "${ROOT}"
 else
     echo "Skipping report stage; found fresh report outputs in ${REPORT_DIR}"
+fi
+
+if [[ "${DID_GENERATE_DATA}" -eq 1 ]]; then
+    env PYTHONUNBUFFERED=1 uv run python -m scripts.lib.pipeline log-run \
+        --run-dir "${ROOT}" \
+        --description "FaithEval SAE utility-selector ablation + held-out bundle (anti-compliance, delta-only, validation-selected/readout-selected/matched-random)" \
+        --key-files "selector/selector_summary.json, heldout/*/*/alpha_*.jsonl, report/heldout_summary.json, *.provenance.json"
 fi

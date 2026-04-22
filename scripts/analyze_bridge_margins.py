@@ -8,7 +8,7 @@ between-cohort comparisons (A vs. B, A vs. D).
 **Confirmatory primary window: first-3-token log-probability.** This was
 locked before the full run; the post-run analysis and the sealed
 precommit decision tree both live at
-``paper/icml/reports/2026-04-21-bridge-margin-precommit.md`` (Appendix A
+``paper/icml/reports/2026-04-21-bridge-margin-report.md`` (Appendix A
 preserves the precommit verbatim). Do not change the endpoint post-hoc
 to chase the numbers.
 
@@ -466,32 +466,27 @@ def sign_check_baseline(by_cohort: dict[str, list[dict[str, Any]]]) -> dict[str,
     return check
 
 
-def make_strip_plot(
-    by_cohort: dict[str, list[dict[str, Any]]],
-    summary: dict[str, dict[str, Any]],
+def _draw_cohort_strip(
+    ax: Any,
     *,
-    window: str,
-    metric: str,
-    title: str,
-    out_path_png: Path,
-    out_path_pdf: Path,
-    seed: int = DEFAULT_SEED,
+    present_cohorts: list[str],
+    values_by_cohort: dict[str, np.ndarray],
+    ci_by_cohort: dict[str, dict[str, Any] | None],
+    rng: np.random.Generator,
+    x_label: str,
 ) -> None:
-    fig, ax = plt.subplots(figsize=(7.5, 4.2))
-    rng = np.random.default_rng(seed)
-    present_cohorts = [name for name in COHORTS if by_cohort.get(name)]
     for y_pos, cohort_name in enumerate(present_cohorts):
-        rows = by_cohort[cohort_name]
-        values = np.array([float(r[window][metric]) for r in rows])
-        jitter = rng.uniform(-0.12, 0.12, size=values.size)
-        ax.scatter(
-            values,
-            np.full_like(values, y_pos, dtype=float) + jitter,
-            s=28,
-            alpha=0.45,
-            color="#444",
-        )
-        ci = summary[cohort_name][window][metric]
+        values = values_by_cohort.get(cohort_name, np.array([], dtype=float))
+        if values.size:
+            jitter = rng.uniform(-0.12, 0.12, size=values.size)
+            ax.scatter(
+                values,
+                np.full_like(values, y_pos, dtype=float) + jitter,
+                s=28,
+                alpha=0.45,
+                color="#444",
+            )
+        ci = ci_by_cohort.get(cohort_name)
         if ci is not None:
             est = ci["estimate"]
             lo = ci["ci"]["lower"]
@@ -516,12 +511,103 @@ def make_strip_plot(
             )
     ax.axvline(0.0, color="#888", linestyle="--", linewidth=0.8)
     ax.set_yticks(range(len(present_cohorts)))
+    ax.set_xlabel(x_label)
+    ax.grid(axis="x", alpha=0.25)
+
+
+def make_strip_plot(
+    by_cohort: dict[str, list[dict[str, Any]]],
+    summary: dict[str, dict[str, Any]],
+    *,
+    window: str,
+    metric: str,
+    title: str,
+    out_path_png: Path,
+    out_path_pdf: Path,
+    seed: int = DEFAULT_SEED,
+) -> None:
+    fig, ax = plt.subplots(figsize=(7.5, 4.2))
+    present_cohorts = [name for name in COHORTS if by_cohort.get(name)]
+    values_by_cohort = {
+        name: np.array([float(r[window][metric]) for r in by_cohort[name]], dtype=float)
+        for name in present_cohorts
+    }
+    ci_by_cohort: dict[str, dict[str, Any] | None] = {
+        name: summary[name][window][metric] for name in present_cohorts
+    }
+    _draw_cohort_strip(
+        ax,
+        present_cohorts=present_cohorts,
+        values_by_cohort=values_by_cohort,
+        ci_by_cohort=ci_by_cohort,
+        rng=np.random.default_rng(seed),
+        x_label=f"{metric} ({window} window, nats)",
+    )
     ax.set_yticklabels([COHORT_LABELS[c] for c in present_cohorts])
     ax.invert_yaxis()
-    ax.set_xlabel(f"{metric} ({window} window, nats)")
     ax.set_title(title)
-    ax.grid(axis="x", alpha=0.25)
     fig.tight_layout()
+    fig.savefig(out_path_png, dpi=160)
+    fig.savefig(out_path_pdf)
+    plt.close(fig)
+
+
+def make_position_panels_plot(
+    by_cohort: dict[str, list[dict[str, Any]]],
+    summary: dict[str, dict[str, Any]],
+    *,
+    title: str,
+    out_path_png: Path,
+    out_path_pdf: Path,
+    seed: int = DEFAULT_SEED,
+) -> None:
+    """Two-panel figure separating position-0 (answer-frame) from the
+    tokens-2-3 content window. Reveals that B's larger aggregate shift is
+    concentrated but not exclusive at position 0 — the finding §8 calls out.
+    """
+    present_cohorts = [name for name in COHORTS if by_cohort.get(name)]
+    fig, axes = plt.subplots(
+        1, 2, figsize=(11.5, 4.2), sharey=True, constrained_layout=True
+    )
+    panel_specs = (
+        (
+            axes[0],
+            "position_0",
+            "position 0 (first continuation token)",
+            lambda r: per_position_shift(r, 0),
+        ),
+        (
+            axes[1],
+            "tokens_2_3",
+            "tokens 2–3 (positions 1 + 2 summed per case)",
+            tokens_2_3_shift,
+        ),
+    )
+    rng = np.random.default_rng(seed)
+    for ax, summary_key, panel_title, per_case in panel_specs:
+        values_by_cohort = {
+            name: np.array(
+                [v for v in (per_case(r) for r in by_cohort[name]) if v is not None],
+                dtype=float,
+            )
+            for name in present_cohorts
+        }
+        ci_by_cohort: dict[str, dict[str, Any] | None] = {
+            name: summary[name]["tokenwise"].get(summary_key)
+            for name in present_cohorts
+        }
+        _draw_cohort_strip(
+            ax,
+            present_cohorts=present_cohorts,
+            values_by_cohort=values_by_cohort,
+            ci_by_cohort=ci_by_cohort,
+            rng=rng,
+            x_label="shift_nats",
+        )
+        ax.set_title(panel_title)
+    axes[0].set_yticklabels([COHORT_LABELS[c] for c in present_cohorts])
+    axes[0].invert_yaxis()
+    fig.suptitle(title)
     fig.savefig(out_path_png, dpi=160)
     fig.savefig(out_path_pdf)
     plt.close(fig)
@@ -696,6 +782,19 @@ def main() -> int:
         out_path_pdf=pdf_path_full,
         seed=args.seed,
     )
+    png_path_pos = args.output_dir / "margin_shift_by_position_panels.png"
+    pdf_path_pos = args.output_dir / "margin_shift_by_position_panels.pdf"
+    make_position_panels_plot(
+        by_cohort,
+        summary,
+        title=(
+            "ITI margin shift decomposed: answer-frame token vs. "
+            "content tokens (bridge discordant cases, nats)"
+        ),
+        out_path_png=png_path_pos,
+        out_path_pdf=pdf_path_pos,
+        seed=args.seed,
+    )
 
     results = {
         "schema_version": 1,
@@ -720,6 +819,10 @@ def main() -> int:
             "full": {
                 "png": format_path_for_metadata(png_path_full, root=ROOT),
                 "pdf": format_path_for_metadata(pdf_path_full, root=ROOT),
+            },
+            "position_panels": {
+                "png": format_path_for_metadata(png_path_pos, root=ROOT),
+                "pdf": format_path_for_metadata(pdf_path_pos, root=ROOT),
             },
         },
     }

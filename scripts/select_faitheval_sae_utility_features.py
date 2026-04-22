@@ -6,6 +6,11 @@ Locked selector for this diagnostic:
 - operator/sign family: SAE delta-only ablation at alpha=0.0
 - utility metric: mean reduction in misleading-vs-preferred logprob margin
 - selected set size: k=266
+
+This is an in-family target-selection ablation for the L2/L3 reviewer critique:
+it asks whether a utility-aware selector can recover a steerable SAE set within
+the existing extraction scope. It is not a blind wider-layer or wider-width SAE
+sweep, so layer-coverage closure remains partial by design.
 """
 
 from __future__ import annotations
@@ -451,6 +456,11 @@ def layer_histogram(features: list[dict[str, Any]]) -> dict[str, int]:
     return {str(layer): int(counts[layer]) for layer in sorted(counts)}
 
 
+def weight_sign_counts(features: list[dict[str, Any]]) -> dict[str, int]:
+    counts = Counter(str(feature.get("weight_sign", "unknown")) for feature in features)
+    return {sign: int(counts[sign]) for sign in sorted(counts)}
+
+
 def jaccard_overlap(
     left: list[dict[str, Any]],
     right: list[dict[str, Any]],
@@ -761,11 +771,44 @@ def main() -> None:
         ]
         overlap = jaccard_overlap(utility_selected, readout_selected)
         selector_summary = {
-            "schema_version": "faitheval_sae_utility_selector/v2",
+            "schema_version": "faitheval_sae_utility_selector/v3",
             "benchmark": "faitheval",
             "prompt_style": args.prompt_style,
             "sae_steering_mode": "delta_only",
             "alpha": float(args.alpha),
+            "selector_design": {
+                "review_limitation_targets": ["L2", "L3"],
+                "question": (
+                    "Does an intervention-aware SAE selector recover a steerable "
+                    "FaithEval feature set where readout-selected features fail?"
+                ),
+                "validation_policy": (
+                    "Freeze a single stratified validation/test split; use "
+                    "validation only for feature scoring and selection."
+                ),
+                "heldout_policy": (
+                    "Run one locked held-out evaluation bundle on the test manifest."
+                ),
+                "layer_coverage_note": (
+                    "Partial L3 closure only: selection searches all non-zero "
+                    "probe-support features within the existing SAE extraction "
+                    "layers, not a wider SAE sweep."
+                ),
+                "target_families": {
+                    "readout_selected": (
+                        "Top positive probe-weight SAE features from the original "
+                        "FaithEval readout."
+                    ),
+                    "utility_selected": (
+                        "Top-k SAE features ranked by validation reduction in "
+                        "misleading-minus-preferred logprob margin."
+                    ),
+                    "matched_random": (
+                        "Zero-weight SAE features matched to the utility-selected "
+                        "set by layer, activation frequency, and decoder norm."
+                    ),
+                },
+            },
             "selector_metric": {
                 "name": "validation_logprob_margin",
                 "margin_definition": "logp(counterfactual_key) - logp(preferred_key)",
@@ -778,6 +821,9 @@ def main() -> None:
                 "n_features": len(candidate_pool),
                 "n_positive": int(np.sum(coefficients > 0)),
                 "n_negative": int(np.sum(coefficients < 0)),
+                "layer_histogram": layer_histogram(candidate_pool),
+                "weight_sign_counts": weight_sign_counts(candidate_pool),
+                "layer_indices": list(layer_indices),
                 "fingerprint": fingerprint_ids(
                     [_feature_id(feature) for feature in candidate_pool]
                 ),
@@ -797,6 +843,7 @@ def main() -> None:
                             ]
                         )
                     ),
+                    "weight_sign_counts": weight_sign_counts(utility_selected),
                     "outside_old_shortlist": {
                         "count": int(len(outside_old_shortlist)),
                         "fraction": (
@@ -813,6 +860,7 @@ def main() -> None:
                         [_feature_id(feature) for feature in readout_selected]
                     ),
                     "layer_histogram": layer_histogram(readout_selected),
+                    "weight_sign_counts": weight_sign_counts(readout_selected),
                     "old_shortlist_threshold": float(args.old_shortlist_threshold),
                     "old_shortlist_size": int(
                         np.sum(np.abs(coefficients) > args.old_shortlist_threshold)
