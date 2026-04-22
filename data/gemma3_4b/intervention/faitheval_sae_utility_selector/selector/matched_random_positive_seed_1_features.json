@@ -1,0 +1,1458 @@
+{
+  "alpha": 0.0,
+  "benchmark": "faitheval",
+  "extraction_metadata": {
+    "aggregation_method": "mean",
+    "d_in": 2560,
+    "d_sae": 16384,
+    "hook_point": "post_feedforward_layernorm",
+    "layer_indices": [
+      0,
+      5,
+      6,
+      7,
+      13,
+      14,
+      15,
+      16,
+      17,
+      20
+    ],
+    "sae_l0": "small",
+    "sae_release": "gemma-scope-2-4b-it-mlp-all",
+    "sae_width": "16k",
+    "source_locations": {
+      "test": "answer_tokens",
+      "train_answer": "answer_tokens",
+      "train_other": "all_except_answer_tokens"
+    },
+    "train_mode": "3-vs-1"
+  },
+  "feature_count": 154,
+  "feature_space": "sae",
+  "features": [
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 0,
+      "flat_idx": 0,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1,
+      "flat_idx": 1,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 3,
+      "flat_idx": 3,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 4,
+      "flat_idx": 4,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 5,
+      "flat_idx": 5,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 6,
+      "flat_idx": 6,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 7,
+      "flat_idx": 7,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 8,
+      "flat_idx": 8,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 9,
+      "flat_idx": 9,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 10,
+      "flat_idx": 10,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 11,
+      "flat_idx": 11,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 12,
+      "flat_idx": 12,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 15,
+      "flat_idx": 15,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 27,
+      "flat_idx": 27,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 28,
+      "flat_idx": 28,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 33,
+      "flat_idx": 33,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 57,
+      "flat_idx": 57,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 81,
+      "flat_idx": 81,
+      "layer": 0,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 1,
+      "flat_idx": 16385,
+      "layer": 5,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 8,
+      "flat_idx": 16392,
+      "layer": 5,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 1,
+      "flat_idx": 32769,
+      "layer": 6,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 3,
+      "flat_idx": 32771,
+      "layer": 6,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 14,
+      "flat_idx": 32782,
+      "layer": 6,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 0,
+      "flat_idx": 49152,
+      "layer": 7,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 1,
+      "flat_idx": 49153,
+      "layer": 7,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 2,
+      "flat_idx": 49154,
+      "layer": 7,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 0,
+      "flat_idx": 65536,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 1,
+      "flat_idx": 65537,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 2,
+      "flat_idx": 65538,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 4,
+      "flat_idx": 65540,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 6,
+      "flat_idx": 65542,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 7,
+      "flat_idx": 65543,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 8,
+      "flat_idx": 65544,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 9,
+      "flat_idx": 65545,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 10,
+      "flat_idx": 65546,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 13,
+      "flat_idx": 65549,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 14,
+      "flat_idx": 65550,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 15,
+      "flat_idx": 65551,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 16,
+      "flat_idx": 65552,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 17,
+      "flat_idx": 65553,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 18,
+      "flat_idx": 65554,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 20,
+      "flat_idx": 65556,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 21,
+      "flat_idx": 65557,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 23,
+      "flat_idx": 65559,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998211860657,
+      "feature": 35,
+      "flat_idx": 65571,
+      "layer": 13,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 0,
+      "flat_idx": 81920,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1,
+      "flat_idx": 81921,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 2,
+      "flat_idx": 81922,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 3,
+      "flat_idx": 81923,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 4,
+      "flat_idx": 81924,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 8,
+      "flat_idx": 81928,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 11,
+      "flat_idx": 81931,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 14,
+      "flat_idx": 81934,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 15,
+      "flat_idx": 81935,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 16,
+      "flat_idx": 81936,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 24,
+      "flat_idx": 81944,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 25,
+      "flat_idx": 81945,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 27,
+      "flat_idx": 81947,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.000000238418579,
+      "feature": 45,
+      "flat_idx": 81965,
+      "layer": 14,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 0,
+      "flat_idx": 98304,
+      "layer": 15,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1,
+      "flat_idx": 98305,
+      "layer": 15,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 2,
+      "flat_idx": 98306,
+      "layer": 15,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 3,
+      "flat_idx": 98307,
+      "layer": 15,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 8,
+      "flat_idx": 98312,
+      "layer": 15,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 9,
+      "flat_idx": 98313,
+      "layer": 15,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 20,
+      "flat_idx": 98324,
+      "layer": 15,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 0,
+      "flat_idx": 114688,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998211860657,
+      "feature": 1,
+      "flat_idx": 114689,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 2,
+      "flat_idx": 114690,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 4,
+      "flat_idx": 114692,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 5,
+      "flat_idx": 114693,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 7,
+      "flat_idx": 114695,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998211860657,
+      "feature": 10,
+      "flat_idx": 114698,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 11,
+      "flat_idx": 114699,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 15,
+      "flat_idx": 114703,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 18,
+      "flat_idx": 114706,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 21,
+      "flat_idx": 114709,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 23,
+      "flat_idx": 114711,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 24,
+      "flat_idx": 114712,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 29,
+      "flat_idx": 114717,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 30,
+      "flat_idx": 114718,
+      "layer": 16,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 1,
+      "activation_frequency": 0.00625,
+      "decoder_norm": 1.0,
+      "feature": 526,
+      "flat_idx": 115214,
+      "layer": 16,
+      "mean_activation": 0.3090620994567871
+    },
+    {
+      "activation_count": 5,
+      "activation_frequency": 0.03125,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 3730,
+      "flat_idx": 118418,
+      "layer": 16,
+      "mean_activation": 2.159343194961548
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 1,
+      "flat_idx": 131073,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 2,
+      "flat_idx": 131074,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 3,
+      "flat_idx": 131075,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 4,
+      "flat_idx": 131076,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 6,
+      "flat_idx": 131078,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 7,
+      "flat_idx": 131079,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 8,
+      "flat_idx": 131080,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 9,
+      "flat_idx": 131081,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 10,
+      "flat_idx": 131082,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 11,
+      "flat_idx": 131083,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 13,
+      "flat_idx": 131085,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 14,
+      "flat_idx": 131086,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 15,
+      "flat_idx": 131087,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 16,
+      "flat_idx": 131088,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 17,
+      "flat_idx": 131089,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 19,
+      "flat_idx": 131091,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 21,
+      "flat_idx": 131093,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 23,
+      "flat_idx": 131095,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 27,
+      "flat_idx": 131099,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 28,
+      "flat_idx": 131100,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 46,
+      "flat_idx": 131118,
+      "layer": 17,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 0,
+      "flat_idx": 147456,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 1,
+      "flat_idx": 147457,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 2,
+      "flat_idx": 147458,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 3,
+      "flat_idx": 147459,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 4,
+      "flat_idx": 147460,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 5,
+      "flat_idx": 147461,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 6,
+      "flat_idx": 147462,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 7,
+      "flat_idx": 147463,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 9,
+      "flat_idx": 147465,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 10,
+      "flat_idx": 147466,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 11,
+      "flat_idx": 147467,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 12,
+      "flat_idx": 147468,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 13,
+      "flat_idx": 147469,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 14,
+      "flat_idx": 147470,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 15,
+      "flat_idx": 147471,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 18,
+      "flat_idx": 147474,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 19,
+      "flat_idx": 147475,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 20,
+      "flat_idx": 147476,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 21,
+      "flat_idx": 147477,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 22,
+      "flat_idx": 147478,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 23,
+      "flat_idx": 147479,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 24,
+      "flat_idx": 147480,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 25,
+      "flat_idx": 147481,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 26,
+      "flat_idx": 147482,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 27,
+      "flat_idx": 147483,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 28,
+      "flat_idx": 147484,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 29,
+      "flat_idx": 147485,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 30,
+      "flat_idx": 147486,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 31,
+      "flat_idx": 147487,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 32,
+      "flat_idx": 147488,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 33,
+      "flat_idx": 147489,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 34,
+      "flat_idx": 147490,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 35,
+      "flat_idx": 147491,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 36,
+      "flat_idx": 147492,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 37,
+      "flat_idx": 147493,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 38,
+      "flat_idx": 147494,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 39,
+      "flat_idx": 147495,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999999403953552,
+      "feature": 40,
+      "flat_idx": 147496,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 42,
+      "flat_idx": 147498,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 43,
+      "flat_idx": 147499,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 0.9999998807907104,
+      "feature": 44,
+      "flat_idx": 147500,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 45,
+      "flat_idx": 147501,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 46,
+      "flat_idx": 147502,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 47,
+      "flat_idx": 147503,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 49,
+      "flat_idx": 147505,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 50,
+      "flat_idx": 147506,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 51,
+      "flat_idx": 147507,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0,
+      "feature": 52,
+      "flat_idx": 147508,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 0,
+      "activation_frequency": 0.0,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 55,
+      "flat_idx": 147511,
+      "layer": 20,
+      "mean_activation": 0.0
+    },
+    {
+      "activation_count": 3,
+      "activation_frequency": 0.01875,
+      "decoder_norm": 1.0000001192092896,
+      "feature": 348,
+      "flat_idx": 147804,
+      "layer": 20,
+      "mean_activation": 2.1346306800842285
+    }
+  ],
+  "prompt_style": "anti_compliance",
+  "sae_steering_mode": "delta_only",
+  "schema_version": "sae_feature_manifest/v1",
+  "selector_name": "layer_matched_zero_weight_positive_seed_1",
+  "split_metadata": {
+    "seed": 42,
+    "strata_test_counts": {
+      "3::A": 1,
+      "3::B": 1,
+      "3::C": 1,
+      "4::A": 219,
+      "4::B": 198,
+      "4::C": 197,
+      "4::D": 221,
+      "5::A": 1,
+      "5::D": 1
+    },
+    "strata_validation_counts": {
+      "3::A": 0,
+      "3::B": 0,
+      "3::C": 0,
+      "4::A": 42,
+      "4::B": 38,
+      "4::C": 38,
+      "4::D": 42,
+      "5::A": 0,
+      "5::D": 0
+    },
+    "stratify_by": [
+      "num_options",
+      "counterfactual_key_canonical"
+    ],
+    "test_fingerprint": "781fd7eafa5f2573",
+    "test_size": 840,
+    "validation_fingerprint": "6fc512b3027fc4a0",
+    "validation_size": 160
+  }
+}

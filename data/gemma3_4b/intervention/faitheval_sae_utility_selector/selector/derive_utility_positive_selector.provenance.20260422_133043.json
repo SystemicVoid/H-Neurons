@@ -1,0 +1,43 @@
+{
+  "args": {
+    "classifier_path": "models/sae_detector.pkl",
+    "selector_dir": "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/derive_utility_positive_selector.py"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/derive_utility_positive_selector.py",
+  "completed_at_utc": "2026-04-22T13:30:47.602008+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "41687aa7d1602436bf895227355d211f49581251",
+  "hostname": "excurio",
+  "matched_seeds": 3,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/utility_positive_selected_features.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/matched_random_positive_seed_0_features.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/matched_random_positive_seed_1_features.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/matched_random_positive_seed_2_features.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/utility_positive_summary.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "derive_utility_positive_selector.py",
+  "started_at_utc": "2026-04-22T13:30:43.446695+00:00",
+  "status": "completed",
+  "utility_positive_k": 154,
+  "utility_positive_layer_histogram": {
+    "0": 18,
+    "13": 19,
+    "14": 14,
+    "15": 7,
+    "16": 17,
+    "17": 21,
+    "20": 50,
+    "5": 2,
+    "6": 3,
+    "7": 3
+  }
+}

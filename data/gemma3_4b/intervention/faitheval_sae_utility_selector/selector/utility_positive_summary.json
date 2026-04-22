@@ -1,0 +1,82 @@
+{
+  "alpha": 0.0,
+  "augment_design": {
+    "matched_random_policy": "Zero-weight SAE features layer-matched to the utility-positive selection by activation frequency and decoder norm. 3 seeds.",
+    "noop_reference": "Uses the shared noop (\u03b1=1.0) held-out bundle produced by faitheval_sae_utility_selector.sh Phase 1.",
+    "review_loophole_targeted": "Size-matched k=266 utility family crosses selector_score=0 (only 154/509 features have strictly positive validation utility). This slice selects only the positive-utility features so paired comparisons cannot be attacked as 'diluted by neutral or harmful features to match readout cardinality'.",
+    "selection_rule": "selector_score > 0",
+    "size_matching_policy": "Cardinality = number of strictly-positive-utility features; no size match to readout."
+  },
+  "benchmark": "faitheval",
+  "family_diagnostics": {
+    "matched_random_positive_fingerprints": [
+      "666719785ba7a656",
+      "666719785ba7a656",
+      "666719785ba7a656"
+    ],
+    "matched_random_positive_layer_histograms": [
+      {
+        "0": 18,
+        "13": 19,
+        "14": 14,
+        "15": 7,
+        "16": 17,
+        "17": 21,
+        "20": 50,
+        "5": 2,
+        "6": 3,
+        "7": 3
+      },
+      {
+        "0": 18,
+        "13": 19,
+        "14": 14,
+        "15": 7,
+        "16": 17,
+        "17": 21,
+        "20": 50,
+        "5": 2,
+        "6": 3,
+        "7": 3
+      },
+      {
+        "0": 18,
+        "13": 19,
+        "14": 14,
+        "15": 7,
+        "16": 17,
+        "17": 21,
+        "20": 50,
+        "5": 2,
+        "6": 3,
+        "7": 3
+      }
+    ],
+    "utility_positive_selected": {
+      "fingerprint": "5d5e9d33fd81835a",
+      "k": 154,
+      "layer_histogram": {
+        "0": 18,
+        "13": 19,
+        "14": 14,
+        "15": 7,
+        "16": 17,
+        "17": 21,
+        "20": 50,
+        "5": 2,
+        "6": 3,
+        "7": 3
+      },
+      "max_selector_score": 0.3617313340306282,
+      "mean_selector_score": 0.018305533485753197,
+      "min_selector_score": 7.450580596923829e-10,
+      "weight_sign_counts": {
+        "negative": 75,
+        "positive": 79
+      }
+    }
+  },
+  "prompt_style": "anti_compliance",
+  "sae_steering_mode": "delta_only",
+  "schema_version": "faitheval_sae_utility_positive_augment/v1"
+}
