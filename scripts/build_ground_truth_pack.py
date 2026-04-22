@@ -298,6 +298,31 @@ def bootstrap_paired_mean(
     }
 
 
+def bootstrap_mean_ci(
+    values: list[float],
+    *,
+    seed: int = BOOTSTRAP_SEED,
+    n_resamples: int = BOOTSTRAP_RESAMPLES,
+) -> JsonDict:
+    if not values:
+        raise ValueError("bootstrap mean requires at least one value")
+    estimate = sum(values) / len(values)
+    rng = random.Random(seed)
+    draws: list[float] = []
+    for _ in range(n_resamples):
+        sample = [values[rng.randrange(len(values))] for _ in range(len(values))]
+        draws.append(sum(sample) / len(sample))
+    draws.sort()
+    return {
+        "estimate": estimate,
+        "ci_lower": percentile(draws, 0.025),
+        "ci_upper": percentile(draws, 0.975),
+        "ci_level": 0.95,
+        "ci_method": "bootstrap_percentile_mean",
+        "n": len(values),
+    }
+
+
 def metric_row(
     *,
     metric_id: str,
@@ -597,6 +622,18 @@ class Builder:
         source_artifact_ids: list[str] | None = None,
         source_locators: list[JsonDict] | None = None,
     ) -> None:
+        if not is_numeric_scalar(point):
+            raise ValueError(f"{metric_id}: estimate must be numeric, got {point!r}")
+        for field_name, field_value in (
+            ("ci_lower", ci_lower),
+            ("ci_upper", ci_upper),
+            ("ci_level", ci_level),
+        ):
+            if field_value is not None and not is_numeric_scalar(field_value):
+                raise ValueError(
+                    f"{metric_id}: {field_name} must be numeric when present, "
+                    f"got {field_value!r}"
+                )
         if source_locators is None:
             if locator is None:
                 locator = "root"
@@ -927,11 +964,11 @@ class Builder:
             for seed in data["per_seed"].values()
             if seed["slope_difference_pp_per_alpha"]["estimate"] > 0
         )
-        first_row = next(iter(data["per_seed"].values()))
-        estimate = sum(
+        seed_estimates = [
             row["slope_difference_pp_per_alpha"]["estimate"]
             for row in data["per_seed"].values()
-        ) / len(data["per_seed"])
+        ]
+        summary = bootstrap_mean_ci(seed_estimates)
         self.add_metric_from_point(
             metric_id="intervention.faitheval.seedwise_positive_differences",
             spec=spec,
@@ -951,19 +988,15 @@ class Builder:
             comparison_type="paired_effect",
             condition_a="h_neuron",
             condition_b="random_controls",
-            point=estimate,
+            point=summary["estimate"],
             unit="pp_per_alpha",
-            n=first_row["n_items"],
+            n=summary["n"],
             paired=True,
-            ci_lower=data["per_seed"]["seed_0_unconstrained"][
-                "slope_difference_pp_per_alpha"
-            ]["ci"]["lower"],
-            ci_upper=data["per_seed"]["seed_0_unconstrained"][
-                "slope_difference_pp_per_alpha"
-            ]["ci"]["upper"],
-            ci_level=0.95,
-            ci_method="bootstrap_percentile_paired_seedwise_reference",
-            locator="aggregate.slope_difference_pp_per_alpha.estimate",
+            ci_lower=summary["ci_lower"],
+            ci_upper=summary["ci_upper"],
+            ci_level=summary["ci_level"],
+            ci_method=summary["ci_method"],
+            locator="per_seed.*.slope_difference_pp_per_alpha.estimate",
         )
 
     def extract_faitheval_remap(self, spec: JsonDict) -> None:
@@ -2244,6 +2277,7 @@ class Builder:
             point=-causal_vs_probe["estimate_pp"],
             unit="pp",
             n=500,
+            paired=True,
             ci_lower=-causal_vs_probe["ci_pp"]["upper"],
             ci_upper=-causal_vs_probe["ci_pp"]["lower"],
             ci_level=causal_vs_probe["ci_pp"]["level"],
@@ -2252,7 +2286,7 @@ class Builder:
             source_locators=[
                 self.source_locator(
                     raw_artifact_id,
-                    "current_panel.direct_comparisons.probe_vs_causal.strict_harmfulness_normalized.estimate",
+                    "current_panel.direct_comparisons.probe_vs_causal.strict_harmfulness_normalized.estimate_pp",
                 ),
                 self.source_locator(
                     spec["artifact_id"],
@@ -2275,16 +2309,22 @@ class Builder:
                 point=-gap["estimate_pp"],
                 unit="pp",
                 n=500,
+                paired=True,
                 ci_lower=-gap["ci_pp"]["upper"],
                 ci_upper=-gap["ci_pp"]["lower"],
                 ci_level=gap["ci_pp"]["level"],
                 ci_method=gap["ci_pp"]["method"],
-                source_artifact_ids=[raw_artifact_id],
+                source_artifact_ids=[raw_artifact_id, spec["artifact_id"]],
                 source_locators=[
                     self.source_locator(
                         raw_artifact_id,
-                        f"current_panel.direct_comparisons.{random_key}_vs_causal.strict_harmfulness_normalized.estimate",
-                    )
+                        f"current_panel.direct_comparisons.{random_key}_vs_causal.strict_harmfulness_normalized.estimate_pp",
+                    ),
+                    self.source_locator(
+                        spec["artifact_id"],
+                        f"current_state.current_panel.direct_{random_key}_vs_causal.strict_harmfulness_normalized.estimate",
+                        derivation="mirrored_surface",
+                    ),
                 ],
             )
         self.add_metric_from_point(
@@ -2294,13 +2334,13 @@ class Builder:
             comparison_type="summary_value",
             condition_a="causal",
             condition_b="causal",
-            point=data["artifact_status"]["causal_locked"]["token_cap"],
+            point=data["artifact_status"]["causal_locked"]["token_cap"]["count"],
             unit="count",
             n=500,
             source_artifact_ids=[raw_artifact_id, spec["artifact_id"]],
             source_locators=[
                 self.source_locator(
-                    raw_artifact_id, "artifact_status.causal_locked.token_cap"
+                    raw_artifact_id, "artifact_status.causal_locked.token_cap.count"
                 ),
                 self.source_locator(
                     spec["artifact_id"],
@@ -2398,15 +2438,13 @@ class Builder:
         benchmark: str,
         source_artifact_id: str,
         source_artifact_ids: list[str],
-        baseline_path: str,
-        comparison_path: str,
+        baseline_paths: str | list[str],
+        comparison_paths: str | list[str],
         strata: list[str],
         transition_fn: Any,
     ) -> None:
-        baseline_rows = {row["id"]: row for row in load_jsonl(self.path(baseline_path))}
-        comparison_rows = {
-            row["id"]: row for row in load_jsonl(self.path(comparison_path))
-        }
+        baseline_rows = self._load_unique_rows_by_id(baseline_paths)
+        comparison_rows = self._load_unique_rows_by_id(comparison_paths)
         grouped: dict[str, list[JsonDict]] = defaultdict(list)
         for sample_id in sorted(set(baseline_rows) & set(comparison_rows)):
             base = baseline_rows[sample_id]
@@ -2495,6 +2533,19 @@ class Builder:
                         )
                     )
 
+    def _load_unique_rows_by_id(self, paths: str | list[str]) -> dict[str, JsonDict]:
+        path_list = [paths] if isinstance(paths, str) else list(paths)
+        merged: dict[str, JsonDict] = {}
+        for relative_path in path_list:
+            for row in load_jsonl(self.path(relative_path)):
+                sample_id = str(row["id"])
+                if sample_id in merged:
+                    raise ValueError(
+                        f"duplicate sample id {sample_id!r} while merging {path_list}"
+                    )
+                merged[sample_id] = row
+        return merged
+
     def build_intervention_examples(self) -> None:
         self._paired_examples_from_rows(
             family="intervention_surfaces",
@@ -2506,8 +2557,8 @@ class Builder:
                 "faitheval_alpha_0_rows",
                 "faitheval_alpha_3_rows",
             ],
-            baseline_path="data/gemma3_4b/intervention/faitheval/experiment/alpha_0.0.jsonl",
-            comparison_path="data/gemma3_4b/intervention/faitheval/experiment/alpha_3.0.jsonl",
+            baseline_paths="data/gemma3_4b/intervention/faitheval/experiment/alpha_0.0.jsonl",
+            comparison_paths="data/gemma3_4b/intervention/faitheval/experiment/alpha_3.0.jsonl",
             strata=["0_to_1", "0_to_0"],
             transition_fn=lambda base, comp: (
                 f"{int(bool(base['compliance']))}_to_{int(bool(comp['compliance']))}"
@@ -2523,8 +2574,8 @@ class Builder:
                 "falseqa_alpha_0_rows",
                 "falseqa_alpha_3_rows",
             ],
-            baseline_path="data/gemma3_4b/intervention/falseqa/experiment/alpha_0.0.jsonl",
-            comparison_path="data/gemma3_4b/intervention/falseqa/experiment/alpha_3.0.jsonl",
+            baseline_paths="data/gemma3_4b/intervention/falseqa/experiment/alpha_0.0.jsonl",
+            comparison_paths="data/gemma3_4b/intervention/falseqa/experiment/alpha_3.0.jsonl",
             strata=["1_to_1", "1_to_0"],
             transition_fn=lambda base, comp: (
                 f"{int(bool(base['compliance']))}_to_{int(bool(comp['compliance']))}"
@@ -2540,8 +2591,8 @@ class Builder:
                 "bioasq_alpha_0_rows",
                 "bioasq_alpha_3_rows",
             ],
-            baseline_path="data/gemma3_4b/intervention/bioasq/experiment/alpha_0.0.jsonl",
-            comparison_path="data/gemma3_4b/intervention/bioasq/experiment/alpha_3.0.jsonl",
+            baseline_paths="data/gemma3_4b/intervention/bioasq/experiment/alpha_0.0.jsonl",
+            comparison_paths="data/gemma3_4b/intervention/bioasq/experiment/alpha_3.0.jsonl",
             strata=["0_to_1", "0_to_0"],
             transition_fn=lambda base, comp: (
                 f"{int(bool(base['compliance']))}_to_{int(bool(comp['compliance']))}"
@@ -2557,8 +2608,8 @@ class Builder:
                 "jailbreak_alpha_0_rows",
                 "jailbreak_alpha_3_rows",
             ],
-            baseline_path="data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl",
-            comparison_path="data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl",
+            baseline_paths="data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl",
+            comparison_paths="data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl",
             strata=["1_to_1", "1_to_0"],
             transition_fn=lambda base, comp: (
                 f"{int(bool(base['compliance']))}_to_{int(bool(comp['compliance']))}"
@@ -2713,8 +2764,8 @@ class Builder:
                 "triviaqa_bridge_alpha_1_rows",
                 "triviaqa_bridge_iti_alpha_8_rows",
             ],
-            baseline_path="data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/alpha_1.0.jsonl",
-            comparison_path="data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/alpha_8.0.jsonl",
+            baseline_paths="data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/alpha_1.0.jsonl",
+            comparison_paths="data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/alpha_8.0.jsonl",
             strata=["wrong_to_right", "right_to_wrong"],
             transition_fn=lambda base, comp: (
                 "wrong_to_right"
@@ -2734,9 +2785,17 @@ class Builder:
             source_artifact_ids=[
                 "truthfulqa_mc1_iti_fold0_alpha0",
                 "truthfulqa_mc1_iti_fold0_alpha8",
+                "truthfulqa_mc1_iti_fold1_alpha0",
+                "truthfulqa_mc1_iti_fold1_alpha8",
             ],
-            baseline_path="data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold0-iti-heads_7723b7d6d7/experiment/alpha_0.0.jsonl",
-            comparison_path="data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold0-iti-heads_7723b7d6d7/experiment/alpha_8.0.jsonl",
+            baseline_paths=[
+                "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold0-iti-heads_7723b7d6d7/experiment/alpha_0.0.jsonl",
+                "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold1-iti-heads_9a10b5307d/experiment/alpha_0.0.jsonl",
+            ],
+            comparison_paths=[
+                "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold0-iti-heads_7723b7d6d7/experiment/alpha_8.0.jsonl",
+                "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold1-iti-heads_9a10b5307d/experiment/alpha_8.0.jsonl",
+            ],
             strata=["wrong_to_right", "right_to_wrong"],
             transition_fn=lambda base, comp: (
                 "wrong_to_right"
@@ -2758,8 +2817,8 @@ class Builder:
                 "simpleqa_alpha_0_rows",
                 "simpleqa_alpha_8_rows",
             ],
-            baseline_path="data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_0.0.jsonl",
-            comparison_path="data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_8.0.jsonl",
+            baseline_paths="data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_0.0.jsonl",
+            comparison_paths="data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_8.0.jsonl",
             strata=["correct_to_incorrect", "incorrect_to_correct"],
             transition_fn=lambda base, comp: (
                 "correct_to_incorrect"
@@ -2857,8 +2916,8 @@ class Builder:
                 "d7_baseline_alpha_1_rows",
                 "d7_causal_alpha_4_rows",
             ],
-            baseline_path="data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/baseline_noop/csv2_evaluation/alpha_1.0.jsonl",
-            comparison_path="data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_locked/csv2_evaluation/alpha_4.0.jsonl",
+            baseline_paths="data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/baseline_noop/csv2_evaluation/alpha_1.0.jsonl",
+            comparison_paths="data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_locked/csv2_evaluation/alpha_4.0.jsonl",
             strata=["wrong_to_right", "right_to_wrong", "stayed_wrong", "stayed_right"],
             transition_fn=lambda base, comp: (
                 "wrong_to_right"
@@ -2989,7 +3048,8 @@ class Builder:
     def parse_number_provenance(self) -> list[JsonDict]:
         path = self.path("paper/icml/number_provenance.md")
         rows: list[JsonDict] = []
-        last_explicit_path: str | None = None
+        last_primary_explicit_path: str | None = None
+        last_support_explicit_path: str | None = None
         for line in path.read_text(encoding="utf-8").splitlines():
             if (
                 not line.startswith("|")
@@ -3002,15 +3062,25 @@ class Builder:
                 continue
             claim, _, _, source_column = parts
             source_refs: list[JsonDict] = []
-            current_path = last_explicit_path
+            row_primary_path: str | None = None
+            current_path = last_primary_explicit_path
+            current_support_path = last_support_explicit_path
             for segment in [part.strip() for part in source_column.split(";")]:
+                lower_segment = segment.lower()
                 path_match = re.findall(r"`([^`]+)`", segment)
                 explicit_paths = [token for token in path_match if "/" in token]
                 locators = [token for token in path_match if "/" not in token]
                 section_match = re.search(r"(§\d+(?:\.\d+)?)", segment)
                 if explicit_paths:
                     current_path = explicit_paths[0]
-                    last_explicit_path = current_path
+                    if row_primary_path is None:
+                        row_primary_path = current_path
+                    if current_path.endswith(".md") or "audit" in lower_segment:
+                        current_support_path = current_path
+                elif "same audit" in lower_segment:
+                    current_path = current_support_path
+                elif "same file" in lower_segment:
+                    current_path = row_primary_path or last_primary_explicit_path
                 if current_path is None and not explicit_paths and not section_match:
                     continue
                 if not locators and section_match:
@@ -3025,6 +3095,10 @@ class Builder:
                             "raw": segment,
                         }
                     )
+            if row_primary_path is not None:
+                last_primary_explicit_path = row_primary_path
+            if current_support_path is not None:
+                last_support_explicit_path = current_support_path
             rows.append(
                 {
                     "surface_id": f"provenance:{slugify(claim)}",

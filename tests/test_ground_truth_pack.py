@@ -104,6 +104,16 @@ def load_keyed(path: Path) -> dict[str, dict]:
     return PACK.load_keyed_jsonl(path)
 
 
+def merge_rows_by_id(paths: list[Path]) -> dict[str, dict]:
+    merged: dict[str, dict] = {}
+    for path in paths:
+        for row in load_jsonl(path):
+            sample_id = str(row["id"])
+            assert sample_id not in merged, (sample_id, path)
+            merged[sample_id] = row
+    return merged
+
+
 def test_pack_outputs_exist_and_rebuild_is_byte_stable() -> None:
     expected = {
         "README.md",
@@ -211,6 +221,13 @@ def test_artifact_metric_and_example_ledgers_have_new_schema_and_declared_source
 
     for row in metric_rows:
         assert set(row) == metric_keys
+        assert PACK.is_numeric_scalar(row["estimate"])
+        for field_name in ("ci_lower", "ci_upper", "ci_level"):
+            if row[field_name] is not None:
+                assert PACK.is_numeric_scalar(row[field_name]), (
+                    row["metric_id"],
+                    field_name,
+                )
         assert row["source_artifact_ids"]
         assert set(row["source_artifact_ids"]) <= artifact_ids
         assert row["source_locators"]
@@ -274,6 +291,121 @@ def test_surface_crosswalk_covers_declared_scalars_and_structured_claims() -> No
             assert row["coverage_status"] == "exact_metric"
             assert row["ledger_metric_ids"]
     assert seen_unresolved == unresolved
+
+
+def test_faitheval_mean_slope_difference_uses_seed_bootstrap_mean_contract() -> None:
+    summary = load_json(
+        ROOT
+        / "data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json"
+    )
+    metric = next(
+        row
+        for row in load_jsonl(PACK_DIR / "metric_ledger.jsonl")
+        if row["metric_id"]
+        == "intervention.faitheval.mean_slope_difference_pp_per_alpha"
+    )
+    seed_estimates = [
+        row["slope_difference_pp_per_alpha"]["estimate"]
+        for row in summary["per_seed"].values()
+    ]
+    expected = PACK.bootstrap_mean_ci(seed_estimates)
+
+    assert metric["estimate"] == pytest.approx(expected["estimate"])
+    assert metric["n"] == 8
+    assert metric["paired"] is True
+    assert metric["ci_method"] == "bootstrap_percentile_mean"
+    assert metric["ci_lower"] == pytest.approx(expected["ci_lower"])
+    assert metric["ci_upper"] == pytest.approx(expected["ci_upper"])
+    assert metric["source_locators"] == [
+        {
+            "artifact_id": "faitheval_control_slope_difference",
+            "source_path": "data/gemma3_4b/intervention/faitheval/control/slope_difference_summary.json",
+            "locator": "per_seed.*.slope_difference_pp_per_alpha.estimate",
+            "derivation": "direct",
+        }
+    ]
+
+
+def test_d7_metric_contracts_use_real_raw_locators_and_exact_site_scalars() -> None:
+    metrics = {
+        row["metric_id"]: row for row in load_jsonl(PACK_DIR / "metric_ledger.jsonl")
+    }
+    crosswalk = {
+        row["surface_id"]: row
+        for row in load_jsonl(PACK_DIR / "surface_crosswalk.jsonl")
+    }
+
+    token_cap = metrics["mechanism.d7.current_panel.causal_token_cap_count"]
+    assert token_cap["estimate"] == 112
+    assert token_cap["source_locators"] == [
+        {
+            "artifact_id": "d7_current_state_summary",
+            "source_path": "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/d7_full500_current_state_summary.json",
+            "locator": "artifact_status.causal_locked.token_cap.count",
+            "derivation": "direct",
+        },
+        {
+            "artifact_id": "d7_comparison_site",
+            "source_path": "site/data/d7_comparison.json",
+            "locator": "token_cap.causal_hits",
+            "derivation": "mirrored_surface",
+        },
+    ]
+
+    expected_gaps = {
+        "mechanism.d7.current_panel.causal_vs_probe_gap_pp": (
+            "current_panel.direct_comparisons.probe_vs_causal.strict_harmfulness_normalized.estimate_pp",
+            "current_state.current_panel.direct_probe_vs_causal.strict_harmfulness_normalized.estimate",
+            "surface:site/data/d7_comparison.json:current_state.current_panel.direct_probe_vs_causal.strict_harmfulness_normalized.estimate",
+        ),
+        "mechanism.d7.current_panel.causal_vs_random_layer_seed1_gap_pp": (
+            "current_panel.direct_comparisons.random_layer_seed1_vs_causal.strict_harmfulness_normalized.estimate_pp",
+            "current_state.current_panel.direct_random_layer_seed1_vs_causal.strict_harmfulness_normalized.estimate",
+            "surface:site/data/d7_comparison.json:current_state.current_panel.direct_random_layer_seed1_vs_causal.strict_harmfulness_normalized.estimate",
+        ),
+        "mechanism.d7.current_panel.causal_vs_random_layer_seed2_gap_pp": (
+            "current_panel.direct_comparisons.random_layer_seed2_vs_causal.strict_harmfulness_normalized.estimate_pp",
+            "current_state.current_panel.direct_random_layer_seed2_vs_causal.strict_harmfulness_normalized.estimate",
+            "surface:site/data/d7_comparison.json:current_state.current_panel.direct_random_layer_seed2_vs_causal.strict_harmfulness_normalized.estimate",
+        ),
+    }
+    for metric_id, (raw_locator, site_locator, surface_id) in expected_gaps.items():
+        metric = metrics[metric_id]
+        assert metric["paired"] is True
+        assert {locator["locator"] for locator in metric["source_locators"]} == {
+            raw_locator,
+            site_locator,
+        }
+        assert "d7_comparison_site" in metric["source_artifact_ids"]
+        assert crosswalk[surface_id]["coverage_status"] == "exact_metric"
+        assert crosswalk[surface_id]["ledger_metric_ids"] == [metric_id]
+
+
+def test_provenance_same_file_and_same_audit_path_state_resolves_correctly() -> None:
+    builder = PACK.Builder(load_json(MANIFEST_PATH))
+    provenance_rows = {
+        row["claim_slug"]: row for row in builder.parse_number_provenance()
+    }
+    all_eight = provenance_rows["random-neuron-null-summary-all-eight-seeds"]
+
+    same_file_refs = [
+        ref for ref in all_eight["source_refs"] if "same file" in ref["raw"].lower()
+    ]
+    assert same_file_refs
+    assert {ref["path"] for ref in same_file_refs} == {
+        "data/gemma3_4b/intervention/faitheval/control/comparison_summary.json"
+    }
+
+    same_audit_refs = [
+        ref for ref in all_eight["source_refs"] if "same audit" in ref["raw"].lower()
+    ]
+    assert same_audit_refs == [
+        {
+            "path": "notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md",
+            "locator": None,
+            "raw": "verified in same audit",
+        }
+    ]
 
 
 def test_readout_examples_recompute_from_probability_quantiles_with_full_support() -> (
@@ -421,38 +553,42 @@ def test_paired_examples_recompute_from_median_length_delta_and_bridge_irr_examp
 ):
     paired_configs = {
         ("intervention_surfaces", "faitheval"): (
-            ROOT / "data/gemma3_4b/intervention/faitheval/experiment/alpha_0.0.jsonl",
-            ROOT / "data/gemma3_4b/intervention/faitheval/experiment/alpha_3.0.jsonl",
+            [ROOT / "data/gemma3_4b/intervention/faitheval/experiment/alpha_0.0.jsonl"],
+            [ROOT / "data/gemma3_4b/intervention/faitheval/experiment/alpha_3.0.jsonl"],
             lambda base, comp: (
                 f"{int(bool(base['compliance']))}_to_{int(bool(comp['compliance']))}"
             ),
         ),
         ("intervention_surfaces", "falseqa"): (
-            ROOT / "data/gemma3_4b/intervention/falseqa/experiment/alpha_0.0.jsonl",
-            ROOT / "data/gemma3_4b/intervention/falseqa/experiment/alpha_3.0.jsonl",
+            [ROOT / "data/gemma3_4b/intervention/falseqa/experiment/alpha_0.0.jsonl"],
+            [ROOT / "data/gemma3_4b/intervention/falseqa/experiment/alpha_3.0.jsonl"],
             lambda base, comp: (
                 f"{int(bool(base['compliance']))}_to_{int(bool(comp['compliance']))}"
             ),
         ),
         ("intervention_surfaces", "bioasq"): (
-            ROOT / "data/gemma3_4b/intervention/bioasq/experiment/alpha_0.0.jsonl",
-            ROOT / "data/gemma3_4b/intervention/bioasq/experiment/alpha_3.0.jsonl",
+            [ROOT / "data/gemma3_4b/intervention/bioasq/experiment/alpha_0.0.jsonl"],
+            [ROOT / "data/gemma3_4b/intervention/bioasq/experiment/alpha_3.0.jsonl"],
             lambda base, comp: (
                 f"{int(bool(base['compliance']))}_to_{int(bool(comp['compliance']))}"
             ),
         ),
         ("intervention_surfaces", "jailbreak"): (
-            ROOT / "data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl",
-            ROOT / "data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl",
+            [ROOT / "data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl"],
+            [ROOT / "data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl"],
             lambda base, comp: (
                 f"{int(bool(base['compliance']))}_to_{int(bool(comp['compliance']))}"
             ),
         ),
         ("transfer_externality_surfaces", "triviaqa_bridge"): (
-            ROOT
-            / "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/alpha_1.0.jsonl",
-            ROOT
-            / "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/alpha_8.0.jsonl",
+            [
+                ROOT
+                / "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/alpha_1.0.jsonl"
+            ],
+            [
+                ROOT
+                / "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/alpha_8.0.jsonl"
+            ],
             lambda base, comp: (
                 "wrong_to_right"
                 if float(base.get("metric_value", 0.0)) == 0.0
@@ -464,10 +600,18 @@ def test_paired_examples_recompute_from_median_length_delta_and_bridge_irr_examp
             ),
         ),
         ("transfer_externality_surfaces", "truthfulqa_mc"): (
-            ROOT
-            / "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold0-iti-heads_7723b7d6d7/experiment/alpha_0.0.jsonl",
-            ROOT
-            / "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold0-iti-heads_7723b7d6d7/experiment/alpha_8.0.jsonl",
+            [
+                ROOT
+                / "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold0-iti-heads_7723b7d6d7/experiment/alpha_0.0.jsonl",
+                ROOT
+                / "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold1-iti-heads_9a10b5307d/experiment/alpha_0.0.jsonl",
+            ],
+            [
+                ROOT
+                / "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold0-iti-heads_7723b7d6d7/experiment/alpha_8.0.jsonl",
+                ROOT
+                / "data/gemma3_4b/intervention/truthfulqa_mc_mc1_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_final-fold1-iti-heads_9a10b5307d/experiment/alpha_8.0.jsonl",
+            ],
             lambda base, comp: (
                 "wrong_to_right"
                 if float(base.get("metric_value", 0.0)) == 0.0
@@ -479,10 +623,14 @@ def test_paired_examples_recompute_from_median_length_delta_and_bridge_irr_examp
             ),
         ),
         ("transfer_externality_surfaces", "simpleqa"): (
-            ROOT
-            / "data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_0.0.jsonl",
-            ROOT
-            / "data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_8.0.jsonl",
+            [
+                ROOT
+                / "data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_0.0.jsonl"
+            ],
+            [
+                ROOT
+                / "data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_8.0.jsonl"
+            ],
             lambda base, comp: (
                 "correct_to_incorrect"
                 if bool(base.get("compliance")) and not bool(comp.get("compliance"))
@@ -492,10 +640,14 @@ def test_paired_examples_recompute_from_median_length_delta_and_bridge_irr_examp
             ),
         ),
         ("mechanism_diagnostic_surfaces", "jailbreak_d7_full500"): (
-            ROOT
-            / "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/baseline_noop/csv2_evaluation/alpha_1.0.jsonl",
-            ROOT
-            / "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_locked/csv2_evaluation/alpha_4.0.jsonl",
+            [
+                ROOT
+                / "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/baseline_noop/csv2_evaluation/alpha_1.0.jsonl"
+            ],
+            [
+                ROOT
+                / "data/gemma3_4b/intervention/jailbreak_d7/full500_canonical/causal_locked/csv2_evaluation/alpha_4.0.jsonl"
+            ],
             lambda base, comp: (
                 "wrong_to_right"
                 if (not bool(base.get("compliance"))) and bool(comp.get("compliance"))
@@ -511,12 +663,12 @@ def test_paired_examples_recompute_from_median_length_delta_and_bridge_irr_examp
 
     examples = load_jsonl(PACK_DIR / "example_ledger.jsonl")
     for (family, benchmark), (
-        baseline_path,
-        comparison_path,
+        baseline_paths,
+        comparison_paths,
         transition_fn,
     ) in paired_configs.items():
-        baseline = {row["id"]: row for row in load_jsonl(baseline_path)}
-        comparison = {row["id"]: row for row in load_jsonl(comparison_path)}
+        baseline = merge_rows_by_id(baseline_paths)
+        comparison = merge_rows_by_id(comparison_paths)
         expected_by_stratum: dict[str, str] = {}
         candidates: dict[str, list[dict]] = defaultdict(list)
         for sample_id in sorted(set(baseline) & set(comparison)):
@@ -546,6 +698,28 @@ def test_paired_examples_recompute_from_median_length_delta_and_bridge_irr_examp
         ]
         for row in selected:
             assert row["sample_id"] == expected_by_stratum[row["selection_stratum"]]
+            if (
+                family == "transfer_externality_surfaces"
+                and benchmark == "truthfulqa_mc"
+            ):
+                assert row["source_artifact_ids"] == [
+                    "truthfulqa_mc1_iti_fold0_alpha0",
+                    "truthfulqa_mc1_iti_fold0_alpha8",
+                    "truthfulqa_mc1_iti_fold1_alpha0",
+                    "truthfulqa_mc1_iti_fold1_alpha8",
+                ]
+
+    truthfulqa_selected = {
+        row["selection_stratum"]: row["sample_id"]
+        for row in examples
+        if row["family"] == "transfer_externality_surfaces"
+        and row["benchmark"] == "truthfulqa_mc"
+        and row["condition_metadata"].get("pair_role") == "baseline"
+    }
+    assert truthfulqa_selected == {
+        "right_to_wrong": "truthfulqa_mc1_35",
+        "wrong_to_right": "truthfulqa_mc1_373",
+    }
 
     bridge_cases = {
         row["case_id"]: row
