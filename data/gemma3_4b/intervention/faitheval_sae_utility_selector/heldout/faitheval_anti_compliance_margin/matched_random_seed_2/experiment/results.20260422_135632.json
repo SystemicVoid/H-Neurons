@@ -1,0 +1,80 @@
+{
+  "benchmark": "faitheval_anti_compliance_margin",
+  "model": "google/gemma-3-4b-it",
+  "intervention_mode": "sae",
+  "run_profile": "canonical",
+  "comparability_class": "claimable",
+  "generation_fingerprint": {
+    "id": "d5bcdf62e59ed349",
+    "spec": {
+      "run_profile": "canonical",
+      "intervention_mode": "sae",
+      "iti_decode_scope": null,
+      "jailbreak_generation": null
+    }
+  },
+  "n_h_neurons": 266,
+  "results": {
+    "0.0": {
+      "compliance_rate": 0.6667,
+      "n_compliant": 560,
+      "n_judged": 840,
+      "n_total": 840,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.6666666666666666,
+        "n_compliant": 560,
+        "n_total": 840,
+        "ci": {
+          "lower": 0.6340927218606255,
+          "upper": 0.6977231625962871,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "metric_name": "misleading_minus_preferred_logprob_margin",
+      "metric_mean": 7.899581,
+      "metric_std": 16.736848,
+      "parse_failures": 0,
+      "parse_failure": {
+        "estimate": 0.0,
+        "count": 0,
+        "n_total": 840,
+        "ci": {
+          "lower": 0.0,
+          "upper": 0.004552346629262249,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    }
+  },
+  "effects": {},
+  "throughput": {
+    "by_alpha": {
+      "0.0": {
+        "samples_completed": 840,
+        "record_count_total": 840,
+        "instrumented_row_count": 840,
+        "instrumented_coverage": 1.0,
+        "generated_tokens_total": 0,
+        "prompt_tokens_total": 393965,
+        "wall_total_s": 164.4295,
+        "wall_measured_s": 164.2817,
+        "generate_total_s": 164.2489,
+        "mean_generated_tokens": 0.0,
+        "mean_generate_s": 0.1955,
+        "samples_per_s_wall": 5.1086,
+        "tokens_per_s_wall": 0.0,
+        "tokens_per_s_generate": 0.0,
+        "inter_sample_gap_count": 839,
+        "inter_sample_gap_mean_s": 0.000171,
+        "inter_sample_gap_p50_s": 0.000174,
+        "inter_sample_gap_p95_s": 0.000203
+      }
+    }
+  },
+  "sae_feature_manifest": "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/matched_random_seed_2_features.json",
+  "sae_steering_mode": "delta_only",
+  "n_sae_features": 266
+}

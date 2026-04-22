@@ -1,0 +1,152 @@
+{
+  "alpha": 0.0,
+  "benchmark": "faitheval",
+  "candidate_pool": {
+    "fingerprint": "27a0b55d10f64700",
+    "layer_histogram": {
+      "0": 39,
+      "13": 49,
+      "14": 42,
+      "15": 38,
+      "16": 49,
+      "17": 75,
+      "20": 189,
+      "5": 6,
+      "6": 9,
+      "7": 13
+    },
+    "layer_indices": [
+      0,
+      5,
+      6,
+      7,
+      13,
+      14,
+      15,
+      16,
+      17,
+      20
+    ],
+    "n_features": 509,
+    "n_negative": 243,
+    "n_positive": 266,
+    "name": "classifier_nonzero_support",
+    "weight_sign_counts": {
+      "negative": 243,
+      "positive": 266
+    }
+  },
+  "families": {
+    "readout_selected": {
+      "fingerprint": "2fcf84a0f96f944d",
+      "k": 266,
+      "layer_histogram": {
+        "0": 26,
+        "13": 26,
+        "14": 23,
+        "15": 19,
+        "16": 28,
+        "17": 39,
+        "20": 93,
+        "5": 3,
+        "6": 4,
+        "7": 5
+      },
+      "old_shortlist_size": 366,
+      "old_shortlist_threshold": 0.001,
+      "weight_sign_counts": {
+        "unknown": 266
+      }
+    },
+    "utility_selected": {
+      "fingerprint": "1c68da0b226fff8b",
+      "k": 266,
+      "layer_histogram": {
+        "0": 19,
+        "13": 25,
+        "14": 18,
+        "15": 17,
+        "16": 29,
+        "17": 40,
+        "20": 109,
+        "5": 2,
+        "6": 3,
+        "7": 4
+      },
+      "mean_selector_score": 0.009982368257596977,
+      "outside_old_shortlist": {
+        "count": 75,
+        "fraction": 0.2819548872180451,
+        "threshold": 0.001
+      },
+      "weight_sign_counts": {
+        "negative": 134,
+        "positive": 132
+      }
+    }
+  },
+  "family_overlap": {
+    "utility_selected_vs_readout_selected": {
+      "intersection_count": 132,
+      "jaccard": 0.33,
+      "union_count": 400
+    }
+  },
+  "prompt_style": "anti_compliance",
+  "sae_steering_mode": "delta_only",
+  "schema_version": "faitheval_sae_utility_selector/v3",
+  "selector_design": {
+    "heldout_policy": "Run one locked held-out evaluation bundle on the test manifest.",
+    "layer_coverage_note": "Partial L3 closure only: selection searches all non-zero probe-support features within the existing SAE extraction layers, not a wider SAE sweep.",
+    "question": "Does an intervention-aware SAE selector recover a steerable FaithEval feature set where readout-selected features fail?",
+    "review_limitation_targets": [
+      "L2",
+      "L3"
+    ],
+    "target_families": {
+      "matched_random": "Zero-weight SAE features matched to the utility-selected set by layer, activation frequency, and decoder norm.",
+      "readout_selected": "Top positive probe-weight SAE features from the original FaithEval readout.",
+      "utility_selected": "Top-k SAE features ranked by validation reduction in misleading-minus-preferred logprob margin."
+    },
+    "validation_policy": "Freeze a single stratified validation/test split; use validation only for feature scoring and selection."
+  },
+  "selector_metric": {
+    "aggregation": "validation_mean",
+    "margin_definition": "logp(counterfactual_key) - logp(preferred_key)",
+    "name": "validation_logprob_margin",
+    "utility_definition": "baseline_margin - ablated_margin"
+  },
+  "split_metadata": {
+    "seed": 42,
+    "strata_test_counts": {
+      "3::A": 1,
+      "3::B": 1,
+      "3::C": 1,
+      "4::A": 219,
+      "4::B": 198,
+      "4::C": 197,
+      "4::D": 221,
+      "5::A": 1,
+      "5::D": 1
+    },
+    "strata_validation_counts": {
+      "3::A": 0,
+      "3::B": 0,
+      "3::C": 0,
+      "4::A": 42,
+      "4::B": 38,
+      "4::C": 38,
+      "4::D": 42,
+      "5::A": 0,
+      "5::D": 0
+    },
+    "stratify_by": [
+      "num_options",
+      "counterfactual_key_canonical"
+    ],
+    "test_fingerprint": "781fd7eafa5f2573",
+    "test_size": 840,
+    "validation_fingerprint": "6fc512b3027fc4a0",
+    "validation_size": 160
+  }
+}
