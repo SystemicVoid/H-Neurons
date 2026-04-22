@@ -1,11 +1,5 @@
 ## Verdict
 
-Your instinct to address **L4 and L5** is directionally right, but incomplete.
-
-**L4 is a no-brainer. Do it.** It is cheap, directly protects one of the paper’s most vivid claims, and makes the bridge externality result much harder to dismiss.
-
-**L5 is worth doing, but not as “let’s rescue the old jailbreak H-neuron p-value.”** It should become a clean measurement-sensitivity result: same outputs, same intervention, different scoring rulers, different scientific verdict. That is more aligned with the paper’s thesis than merely adding two random seeds.
-
 **The highest-value new experiment is not L4 or L5.** It is a targeted attack on **L2/L3**: test whether the SAE null survives a utility-aware / output-effect feature-selection ablation. That is the experiment most likely to improve the paper’s contribution in April 2026, because current SAE-steering work has moved exactly toward “SAEs can steer if you select the right features.” Arad et al. distinguish input-active vs output-effective SAE features and report 2–3× steering improvements after output-score filtering; Wang et al. train 90 SAEs and find interpretability is only weakly associated with steering utility, while utility-aware feature selection improves steering substantially. Your current SAE result is strongest if it is explicitly about **readout-selected** SAE features, not “SAEs” in general. ([ACL Anthology][1])
 
 The workshop’s current CFP explicitly rewards rigorous negative results, clear falsifiable hypotheses, reproducibility, and honest limitation reporting; it also says long papers are held to a higher standard of rigor and depth. So the right strategy is not “run more things.” It is: close cheap credibility holes, then add one experiment that sharpens the central methodological lesson. ([MechInt Workshop][2])
@@ -317,73 +311,6 @@ This can support the audit checklist, but it is not essential.
 A clean second-model replication would be excellent, but a rushed one is likely to be underpowered, partial, and distracting. The current submission should stay a disciplined Gemma-3-4B-IT case study.
 
 A tiny appendix pilot is acceptable only if your codebase makes it almost automatic and it does not compete with the SAE selector ablation.
-
----
-
-# 4. What not to do
-
-Do **not** reopen D7 unless you decide to make it central again. The current TeX draft wisely does not depend on D7. Leave it out or keep it in appendix-level provenance.
-
-Do **not** run a full all-layer/all-width SAE sweep. That is a different paper.
-
-Do **not** rescore everything with every evaluator. L5 needs v2/v3; the broader measurement story needs carefully chosen contrasts, not rubric maximalism.
-
-Do **not** try to “fix” the ITI generation failure before submission. The bridge result is valuable because it diagnoses a failure. A rushed selective-intervention sequel will dilute the current paper.
-
-Do **not** hide v3 null results. They help the paper. The thesis is that measurement, localization, control, and externality are separable gates; v3 disagreement is evidence for that thesis.
-
----
-
-# 5. Concrete three-week plan
-
-## Week 1: close credibility holes and freeze analysis policy
-
-Finish the writing-feedback implementation first.
-
-Then run in parallel:
-
-* L4 human/LLM second coding of bridge discordant cases.
-* L5 missing v2/v3 scoring.
-* Analysis-script hardening:
-
-  * assert expected files loaded;
-  * assert row counts per α;
-  * assert ruler names in output;
-  * write one machine-readable result JSON per figure/table;
-  * update number provenance.
-
-By end of Week 1, the paper should no longer contain “seeds pending” or “single-rater” as unresolved limitations.
-
-## Week 2: run the central optional experiment
-
-Run the SAE utility-selector ablation.
-
-Start with a pilot:
-
-* validation-only;
-* small `n`;
-* one endpoint α;
-* frozen candidate pool;
-* no paper claims from validation.
-
-Decision rule:
-
-* If the utility selector shows no hint of movement, stop and report as appendix robustness or omit.
-* If it shows movement, run one held-out FaithEval test and integrate.
-
-In parallel, run the bridge logprob-margin analysis if implementation is straightforward.
-
-## Week 3: integrate and cut
-
-The main danger in Week 3 is not lack of experiments. It is sprawl.
-
-Integration policy:
-
-* L4: one sentence + maybe one table row.
-* L5: one compact measurement-sensitivity table.
-* SAE selector: main text only if clean and interpretable.
-* Bridge logprob: main text only if it sharpens the wrong-entity mechanism.
-* Everything else: appendix/provenance.
 
 ---
 
