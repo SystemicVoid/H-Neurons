@@ -3,6 +3,7 @@
 **Prioritize steps by information gained per unit time. After every result, ask what was learned, what branch of the search tree was ruled out, and whether the failure was conceptual, methodological, or merely implementation-level.**
 
 - Use the literature when building experiments based on related work, start with `papers/INDEX.md`.
+- When the user asks for a handoff prompt for another agent, output only the prompt body. Do not prepend framing such as `Use this as the handoff prompt:` or wrap it in explanatory prose, because the user may paste it directly into another agent.
 
 ## Build, Test, and Development Commands
 
