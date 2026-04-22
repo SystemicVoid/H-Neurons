@@ -2,7 +2,7 @@ from argparse import Namespace
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -277,6 +277,176 @@ def test_summarize_per_token_handles_empty_and_short() -> None:
     assert longer["n_tokens_first3"] == 3
     assert longer["sum_logprob_first3"] == pytest.approx(-6.0)
     assert longer["sum_logprob"] == pytest.approx(-10.0)
+
+
+N_LAYERS_ITI_FIXTURE = 2
+N_HEADS_ITI_FIXTURE = 2
+HEAD_DIM_ITI_FIXTURE = 4
+HIDDEN_SIZE_ITI_FIXTURE = N_HEADS_ITI_FIXTURE * HEAD_DIM_ITI_FIXTURE
+
+
+class _FixtureSelfAttn(torch.nn.Module):
+    o_proj: torch.nn.Linear
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.o_proj = torch.nn.Linear(
+            HIDDEN_SIZE_ITI_FIXTURE, HIDDEN_SIZE_ITI_FIXTURE, bias=False
+        )
+
+
+class _FixtureLayer(torch.nn.Module):
+    self_attn: _FixtureSelfAttn
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.self_attn = _FixtureSelfAttn()
+
+
+class _FixtureInner(torch.nn.Module):
+    layers: torch.nn.ModuleList
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.layers = torch.nn.ModuleList(
+            _FixtureLayer() for _ in range(N_LAYERS_ITI_FIXTURE)
+        )
+
+
+class _FixtureModel(torch.nn.Module):
+    model: _FixtureInner
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = _FixtureInner()
+
+
+def _build_tiny_iti_model_and_artifact() -> tuple[
+    torch.nn.Module, list[torch.nn.Linear], dict[str, Any]
+]:
+    model = _FixtureModel()
+    o_projs = [
+        cast(_FixtureLayer, layer).self_attn.o_proj for layer in model.model.layers
+    ]
+    unit = 1.0 / (HEAD_DIM_ITI_FIXTURE**0.5)
+    artifact: dict[str, Any] = {
+        "family": "test",
+        "n_layers": N_LAYERS_ITI_FIXTURE,
+        "n_attention_heads": N_HEADS_ITI_FIXTURE,
+        "head_dim": HEAD_DIM_ITI_FIXTURE,
+        "ranked_heads": [
+            {
+                "layer": 0,
+                "head": 0,
+                "sigma": 1.0,
+                "direction": [unit] * HEAD_DIM_ITI_FIXTURE,
+                "position_summary": {"mean": 0.0, "std": 1.0},
+                "auroc": 0.80,
+                "balanced_accuracy": 0.75,
+            },
+            {
+                "layer": N_LAYERS_ITI_FIXTURE - 1,
+                "head": N_HEADS_ITI_FIXTURE - 1,
+                "sigma": 2.0,
+                "direction": [unit] * HEAD_DIM_ITI_FIXTURE,
+                "position_summary": {"mean": 0.0, "std": 1.0},
+                "auroc": 0.70,
+                "balanced_accuracy": 0.70,
+            },
+        ],
+    }
+    return model, o_projs, artifact
+
+
+def test_iti_scaler_alpha_zero_is_bit_exact_noop() -> None:
+    """Regression guard for the §2.4 medium-severity gap in
+    ``paper/icml/reports/2026-04-21-bridge-margin-report.md``.
+
+    ``score_bridge_margins.score_continuations`` produces the baseline arm
+    by holding the ITI hook installed and setting ``scaler.alpha = 0.0``.
+    If the hook ever stops short-circuiting at ``alpha == 0``, the baseline
+    arm silently acquires a non-zero intervention and every downstream
+    margin shift becomes miscalibrated. This test asserts the invariant
+    holds tensor-for-tensor on a CPU toy model.
+    """
+    from intervene_iti import ITIHeadScaler
+
+    torch.manual_seed(0)
+    model, o_projs, artifact = _build_tiny_iti_model_and_artifact()
+    hidden_size = artifact["n_attention_heads"] * artifact["head_dim"]
+
+    scaler = ITIHeadScaler(
+        model,
+        artifact,
+        torch.device("cpu"),
+        family="test",
+        k=2,
+        decode_scope="first_3_tokens",
+    )
+    scaler.alpha = 0.0
+    scaler.arm_first_decode_token()
+
+    rng = torch.Generator().manual_seed(7)
+    decode_inputs = [torch.randn(1, 1, hidden_size, generator=rng) for _ in range(5)]
+
+    # Hook uses in-place add_ on a reshaped view; clone to isolate runs.
+    hooked_outputs: list[torch.Tensor] = []
+    for o_proj in o_projs:
+        for x in decode_inputs:
+            hooked_outputs.append(o_proj(x.clone()).detach().clone())
+
+    for handle in scaler.hooks:
+        handle.remove()
+    scaler.hooks.clear()
+
+    unhooked_outputs: list[torch.Tensor] = []
+    for o_proj in o_projs:
+        for x in decode_inputs:
+            unhooked_outputs.append(o_proj(x.clone()).detach().clone())
+
+    for hooked, plain in zip(hooked_outputs, unhooked_outputs, strict=True):
+        assert torch.equal(hooked, plain), (
+            "alpha=0 must be a bit-exact no-op in the ITI hook; the baseline "
+            "arm of score_bridge_margins depends on this invariant."
+        )
+
+
+def test_iti_scaler_nonzero_alpha_shifts_output_so_noop_test_is_not_vacuous() -> None:
+    """Sanity positive control: if ``alpha != 0`` and the intervention
+    genuinely runs, the o_proj output must differ from the unhooked output.
+    Without this, the ``alpha=0`` regression above could pass trivially
+    (e.g. if the hook were never installed at all).
+    """
+    from intervene_iti import ITIHeadScaler
+
+    torch.manual_seed(0)
+    model, o_projs, artifact = _build_tiny_iti_model_and_artifact()
+    hidden_size = artifact["n_attention_heads"] * artifact["head_dim"]
+
+    scaler = ITIHeadScaler(
+        model,
+        artifact,
+        torch.device("cpu"),
+        family="test",
+        k=2,
+        decode_scope="first_3_tokens",
+    )
+    scaler.alpha = 8.0
+    scaler.arm_first_decode_token()
+
+    rng = torch.Generator().manual_seed(7)
+    x_base = torch.randn(1, 1, hidden_size, generator=rng)
+    with_iti = o_projs[0](x_base.clone()).detach().clone()
+
+    for handle in scaler.hooks:
+        handle.remove()
+    scaler.hooks.clear()
+    unhooked = o_projs[0](x_base.clone()).detach().clone()
+
+    assert not torch.equal(with_iti, unhooked), (
+        "alpha=8 failed to modify o_proj output; the alpha=0 no-op test "
+        "above would be vacuous."
+    )
 
 
 def test_score_continuations_rejects_nonfinite_logprob() -> None:
