@@ -18,6 +18,7 @@
 - 4-way evaluator holdout validation: [2026-04-12-4way-evaluator-holdout-validation.md](./act3-reports/2026-04-12-4way-evaluator-holdout-validation.md)
 - Seed-0 jailbreak control audit: [2026-04-12-seed0-jailbreak-control-audit.md](./act3-reports/2026-04-12-seed0-jailbreak-control-audit.md)
 - Phase 3 jailbreak pipeline audit (v3 slopes, specificity, concordance): [2026-04-13-phase3-jailbreak-pipeline-audit.md](./act3-reports/2026-04-13-phase3-jailbreak-pipeline-audit.md)
+- **FaithEval SAE utility-selector L2/L3 review (canonical, lives under `paper/icml/reports/`):** [../paper/icml/reports/2026-04-22-faitheval-sae-utility-selector-review.md](../paper/icml/reports/2026-04-22-faitheval-sae-utility-selector-review.md)
 - **V2 vs V3 paired evaluator comparison (canonical for Anchor 3):** [2026-04-13-v2-v3-paired-evaluator-comparison.md](./act3-reports/2026-04-13-v2-v3-paired-evaluator-comparison.md)
 - Error taxonomy (v3 FN + binary FP): [error-taxonomy-v3-fn-binary-fp.md](../error-taxonomy-v3-fn-binary-fp.md)
 - D7 full-500 two-seed current-state audit (canonical): [2026-04-16-d7-full500-two-seed-current-state-audit.md](./act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md)

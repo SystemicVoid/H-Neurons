@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-04-22
+
+### What I did
+
+Ran the Priority-2 L2/L3 target-selection ablation (TODO_Limitations_Fixes §Priority 2) and reviewed it end-to-end. Full audit lives under `paper/icml/reports/` (new default for limitations-closure reports): [../paper/icml/reports/2026-04-22-faitheval-sae-utility-selector-review.md](../paper/icml/reports/2026-04-22-faitheval-sae-utility-selector-review.md).
+
+### What I expected vs what happened
+
+Expected a clean binary result: either utility-aware selection rescues the SAE null (pivoting the paper toward "selector matters") or the null survives and closes L2. What happened was the second outcome — FaithEval accuracy is null across readout / utility-selected (k=266) / utility-positive (k=154) / matched-random families — but with two informative complications.
+
+First, on the anti-compliance margin endpoint, readout-selected ablation moves the misleading-preferred margin in the *wrong* direction (+0.92 nats vs noop [+0.61, +1.23]), while utility-selected reduces it by −0.76 nats [−1.08, −0.42]. Within the same candidate pool, the two selection rules pick features with opposite causal effect. That is a sharper "good readout ≠ good steering handle" claim than the matched-AUROC comparison alone.
+
+Second, the `matched_random` control turned out to be two kinds of broken. The `match_random_zero_weight_features` function collapses to a deterministic flat_idx tiebreak because zero-weight SAE features have near-identical prompt-end stats (act_freq≈0 for 99.5% of them; decoder_norm≡1.0 by construction); the "three seeds" are byte-identical manifests, and the "layer-matched zero-weight" set ends up being the lowest-flat_idx dead features per layer. On top of that, α=0 on a dead-feature manifest is a near-noop numerically but not a true noop — it moves the margin −0.41 nats vs the α=1.0 shortcut, purely as an intervention-path artifact. So `utility − matched_random = −0.35 nats [−0.65, −0.05]` is the correct clean selection-specificity estimate, but the matched_random "three-seed null" is not actually a three-seed null.
+
+### What this changes about my thinking
+
+The paper-facing L2 story is unchanged in direction but sharpened in evidence. Instead of leaning on `utility − matched_random` (compromised), the strongest claims should be (1) accuracy is null across every selection rule, including one trained on the scoring metric itself, and (2) readout-selected ablation worsens the margin while utility-selected improves it — a paired contrast inside the probe-nonzero pool where the intervention-path drift cancels. Both are cleaner than the matched-random comparison and they do not depend on the buggy null.
+
+L3 remains partial by design: the search stayed inside the existing SAE extraction layers and did not re-fit SAEs at new layers or widths. This is acknowledged in the audit.
+
+### What I will do next
+
+1. Rerun `matched_random` with an actually-random, layer-activity-matched null — uniformly from the probe-nonzero pool minus the utility/readout selections, or from zero-weight features weighted by full-sequence (not prompt-end) activation. Three genuinely independent seeds.
+2. Add an intervention-path baseline (α=0 on a single guaranteed-dead feature) so `X − noop` deltas can be decomposed into path drift vs selection.
+3. Fold the `readout − noop = +0.92` nats finding into the main line of the paper. It makes claim 2 of the audit stand alone without needing matched_random.
+4. Move the limitations table: L2 from "central weakness" to "addressed via target-selection ablation (readout vs utility sign divergence; accuracy null under intervention-aware selection)"; L3 stays "partially addressed".
+
+---
+
 ## 2026-04-16
 
 ### What I did

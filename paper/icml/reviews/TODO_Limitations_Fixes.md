@@ -162,7 +162,9 @@ Add a small table:
 
 This would make the externality section materially more convincing.
 
-## Priority 2 — SAE utility-selector ablation on FaithEval
+## Priority 2 — SAE utility-selector ablation on FaithEval — DONE (2026-04-22, accuracy null survives; margin shows opposite-sign readout vs utility)
+
+**Closure:** ran the 266-feature target-selection ablation (readout / utility / layer-matched random) + k=154 strictly-positive augment on the frozen 160/840 FaithEval split. All families produce null accuracy deltas on n=840 test (paired 95% CIs include 0, point estimates ≤0.5 pp). On the anti-compliance margin endpoint, utility-selected reduces the misleading-preferred margin by −0.76 nats vs noop [−1.08, −0.42] while readout-selected *increases* it by +0.92 nats [+0.61, +1.23]. The paired `utility − readout` delta is −1.68 nats [−2.17, −1.19] within the same candidate pool. Full audit, including two flaws surfaced in the matched-random control (seed collapse + intervention-path artifact) and prioritized cleanups, is in [`../reports/2026-04-22-faitheval-sae-utility-selector-review.md`](../reports/2026-04-22-faitheval-sae-utility-selector-review.md). L2 moves from "central weakness" to "addressed for the target-selection artifact concern"; L3 remains partially addressed.
 
 **Value:** Highest scientific upside.
 **Cost:** Medium.
@@ -323,8 +325,8 @@ After these experiments, your limitation table should not pretend everything is 
 | Limitation                           | Current status      | After recommended work                                            |
 | ------------------------------------ | ------------------- | ----------------------------------------------------------------- |
 | L1 single model                      | Real and unresolved | Still unresolved; honestly scoped                                 |
-| L2 matched-readout confound          | Central weakness    | Partially addressed by SAE readout-vs-utility selector ablation   |
-| L3 SAE layer coverage                | Real but narrower   | Partially addressed if candidate pool expands; otherwise explicit |
+| L2 matched-readout confound          | Central weakness    | **Closed for the target-selection artifact concern:** accuracy null across readout / utility / matched-random; readout vs utility pick features with opposite-sign margin effect within the same pool. See [2026-04-22 audit](../reports/2026-04-22-faitheval-sae-utility-selector-review.md). |
+| L3 SAE layer coverage                | Real but narrower   | Partially addressed (selector searched all probe-nonzero features in existing extraction layers). Wider SAE sweep not run. |
 | L4 bridge single-rater               | Easy objection      | Closed with IRR + adjudication                                    |
 | L5 jailbreak single-seed specificity | Credibility issue   | Closed as multi-seed, multi-ruler measurement-sensitivity result  |
 
