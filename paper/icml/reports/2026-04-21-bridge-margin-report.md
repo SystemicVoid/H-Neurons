@@ -45,6 +45,7 @@ decision tree.
 - Scoring provenance: `data/gemma3_4b/analysis/bridge_margins/test/score_bridge_margins.provenance.20260421T165055Z.json`
 - Analysis provenance: `data/gemma3_4b/analysis/bridge_margins/test/analyze_bridge_margins.provenance.20260421T165100Z.json`
 - Plots: `data/gemma3_4b/analysis/bridge_margins/test/margin_shift_by_cohort_{first3,full}.{pdf,png}`
+  and `margin_shift_by_position_panels.{pdf,png}` (answer-frame vs. content-token decomposition, added 2026-04-22)
 - Scorer: [`scripts/score_bridge_margins.py`](../../../scripts/score_bridge_margins.py)
 - Analyzer: [`scripts/analyze_bridge_margins.py`](../../../scripts/analyze_bridge_margins.py)
 - ITI scaler: [`scripts/intervene_iti.py`](../../../scripts/intervene_iti.py)
@@ -148,22 +149,26 @@ precommit's directional hypothesis.
 
 | Severity | Flag | Source |
 |---|---|---|
-| Medium | No regression test that `α=0` is a bit-exact no-op. The hook short-circuits by code inspection but not by test. | `tests/test_bridge_margins.py` lacks an alpha-sweep case |
+| Medium (closed 2026-04-22) | No regression test that `α=0` is a bit-exact no-op. The hook short-circuits by code inspection but not by test. | Closed: `tests/test_bridge_margins.py::test_iti_scaler_alpha_zero_is_bit_exact_noop` + positive control `..._nonzero_alpha_shifts_output_so_noop_test_is_not_vacuous` |
 | Medium | Position-2 n is asymmetric across cohorts (A=14/31, B=5/12, C=4/14, D=92/200) because not every gold alias spans 3 tokens. Expected, but B's position-2 estimate rests on n=5; report should always co-cite n. | `results.json .cohorts.*.tokenwise.position_2` |
 | Medium | A-vs-B tokens-2–3 uses A n=14, B n=5. Adequately powered to *measure*, underpowered to *reject* the precommit's "does B attenuate?" question with confidence. | `results.json .between_cohort.A_vs_B.tokens_2_3` |
-| Low | No explicit NaN/Inf guard on per-token logprobs. `torch.log_softmax` could in principle produce NaN; would propagate silently through bootstrap. Unlikely in practice. | `scripts/score_bridge_margins.py` `score_continuations` |
+| Low (closed 2026-04-22) | No explicit NaN/Inf guard on per-token logprobs. `torch.log_softmax` could in principle produce NaN; would propagate silently through bootstrap. Unlikely in practice. | Closed: `score_bridge_margins._guard_finite_logprob` raises `ValueError` on any non-finite per-token logprob; regression test in `tests/test_bridge_margins.py::test_score_continuations_rejects_nonfinite_logprob` |
 | Low | ITI artifact SHA256 is recorded but not runtime-validated. A future audit that re-runs and re-hashes could miss an intervening modification. | `scripts/score_bridge_margins.py` provenance write |
-| Low | `wrong_entity_text` is tokenized as-is from `incorrect_response`; leading/trailing whitespace is not stripped. Would matter only if the baseline queue emits heterogeneous whitespace. | `scripts/score_bridge_margins.py:519` |
+| Low (closed 2026-04-22) | `wrong_entity_text` is tokenized as-is from `incorrect_response`; leading/trailing whitespace is not stripped. Would matter only if the baseline queue emits heterogeneous whitespace. | Closed: scorer now calls `.strip()` at ingest (2026-04-22); spot-check of the 257-case `margins.jsonl` showed zero affected records, so no re-run needed |
 | Low | `pick_gold_alias` uses per-token-averaged logprob; for 1-token aliases this reduces to a single-token logprob and is noisier. | `scripts/score_bridge_margins.py:330–366` |
 | Negligible | Permutation RNG seeded at `seed + 1`; trivial correlation with bootstrap. Common practice. | `scripts/analyze_bridge_margins.py:167` |
 
 ### 2.5 Test coverage gaps (known unknowns)
 
-Not covered by `tests/test_bridge_margins.py`:
-`α=0` no-op equivalence; end-to-end scoring on a real case with verified
-numbers; KV-cache reset behavior between conditions; NaN/Inf logprob
-propagation; tokenization differences when `gold` and `wrong` share a
-leading token.
+As of 2026-04-22, `tests/test_bridge_margins.py` now covers:
+
+- `α=0` no-op equivalence (`test_iti_scaler_alpha_zero_is_bit_exact_noop` + positive control)
+- NaN/Inf logprob fail-fast (`test_score_continuations_rejects_nonfinite_logprob`)
+
+Still not covered:
+end-to-end scoring on a real case with verified numbers; KV-cache reset
+behavior between conditions; tokenization differences when `gold` and
+`wrong` share a leading token.
 
 None of these are blockers for the current numerical results (they would
 manifest as implausible values, which we do not see), but they are the
@@ -464,6 +469,10 @@ informatively than a confirmation would have.
    generic answer-commitment axis rather than a targeted wrong-entity
    insertion. This matches the ITI literature's picture of truthfulness
    steering as a direction in activation space, not a per-claim edit.
+   See `margin_shift_by_position_panels.{pdf,png}` (added 2026-04-22) for
+   the position-0 vs. tokens-2–3 split rendered as two side-by-side
+   strip plots; the B cohort's aggregate compression is driven
+   primarily but not exclusively by the first-token panel.
 3. **B cases have much stronger baseline gold preference than A cases
    (+27.55 vs +3.41 nats; 100% vs 71% positive).** Non-substitution
    wrong answers are behaviorally cases where the model *knew* the
@@ -513,11 +522,11 @@ informatively than a confirmation would have.
 | High | Update [`TODO_Limitations_Fixes.md`](../reviews/TODO_Limitations_Fixes.md) Priority-3 entry to mark executed; record directional outcome; link this report | Closes the audit trail | 10 min | Nil |
 | High | Remove stale [`notes/runs_to_analyse.md`](../../../notes/runs_to_analyse.md) entry per notes-folder policy | Hygiene | 5 min | Nil |
 | High | Add a cross-link from the sibling [IRR review](./2026-04-21-bridge-irr-review.md) §7.2 to this report | Readers landing on IRR first find the mechanism outcome | 5 min | Nil |
-| Medium | Decompose position 0 vs. positions 1–2 as separate panels in the margin-by-cohort figure, not a single first-3 sum | Clarifies the answer-frame story visually | 1 hr | Nil |
-| Medium | Add a regression test that `α=0` is a bit-exact no-op for `score_continuations` | Closes the §2.4 medium-severity gap | 30 min | Nil |
+| Medium (done 2026-04-22) | Decompose position 0 vs. positions 1–2 as separate panels in the margin-by-cohort figure, not a single first-3 sum | Clarifies the answer-frame story visually | 1 hr | Nil |
+| Medium (done 2026-04-22) | Add a regression test that `α=0` is a bit-exact no-op for `score_continuations` | Closes the §2.4 medium-severity gap | 30 min | Nil |
 | Medium | Run the same scorer at α ∈ {4, 16} and (budget permitting) on the Mistral anchor to test whether B > A is model/α-robust | Tests generalization of the §8 insights | 2–4 hr GPU | Low |
-| Low | NaN/Inf guard in scorer, surface any flagged cases in provenance | Defensive | 30 min | Nil |
-| Low | Whitespace-strip `wrong_entity_text` at tokenization; spot-check existing records | Defensive | 20 min | Nil |
+| Low (done 2026-04-22) | NaN/Inf guard in scorer, surface any flagged cases in provenance | Defensive | 30 min | Nil |
+| Low (done 2026-04-22) | Whitespace-strip `wrong_entity_text` at tokenization; spot-check existing records | Defensive | 20 min | Nil |
 | Low (skip) | Expand B cohort via new discordant set | Would tighten position-2 CIs; unlikely to change direction | High GPU cost | Low |
 
 ## 11. Sanity ↔ full-run agreement check
