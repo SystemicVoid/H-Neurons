@@ -1,7 +1,7 @@
 """
 Figure 2 (workshop): Matched Readouts, Divergent Control.
 
-Adapted from paper/draft/figures/fig2_matched_readouts.py for ICML
+Adapted from the archived long-draft Figure 2 script for ICML
 two-column format (figure* full-width, 6.75in, PDF output).
 
 Usage:

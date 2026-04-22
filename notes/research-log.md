@@ -42,7 +42,7 @@ The fix is governance, not counter-slogan. A late corrective note cannot win if 
 
 ### What I will do next
 
-Use the governance note as the first framing reference for new discussions until a deliberate Wave 2 pass updates public and draft-facing surfaces. When revisiting `site/**`, `paper/draft/**`, or `/paper/icml`, preserve the result but narrow the ranking claim rather than trying to erase it.
+Use the governance note as the first framing reference for new discussions until a deliberate Wave 2 pass updates public and live manuscript-facing surfaces. When revisiting `site/**`, the archived long draft, or `paper/icml/**`, preserve the result but narrow the ranking claim rather than trying to erase it.
 
 ---
 

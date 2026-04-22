@@ -4,13 +4,13 @@ This file records what Wave 1 intentionally did **not** touch so the next cleanu
 
 ## Intentionally out of scope in Wave 1
 
-- `paper/draft/**`, including `paper/draft/AGENTS.md`
+- the long-form markdown draft and its authoring guardrails
 - `paper/icml/**`
 - Historical AI review and literature notes that repeat the old anchor ranking but do not currently route repo defaults
 
 ## Why deferred
 
-- `paper/draft/**` is still manuscript-facing and should be revised as a deliberate writing pass, not as incidental repo-governance cleanup.
+- the long-form markdown draft was still manuscript-facing at the time and is now archived out of repo; any rewrite should be a deliberate writing pass, not incidental repo-governance cleanup.
 - `paper/icml/**` was explicitly excluded.
 - Many review/literature notes are historical context; touching all of them in Wave 1 would create churn without changing the repo's default routing behavior.
 

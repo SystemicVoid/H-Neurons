@@ -33,8 +33,8 @@ This package is a submission-safe, reviewer-facing supplement for the ICML manus
 
 | Excluded artifact class | Reason |
 |---|---|
-| `paper/draft/full_paper.md` | Long internal draft; not manuscript-centered and contains historical working context. |
-| `paper/draft/number_provenance.md` | Historical long-draft ledger; superseded here by `number_provenance.md` aligned to the TeX manuscript. |
+| Archived long-form markdown manuscript | Historical writing artifact; not manuscript-centered and contains working context outside the reviewer-facing submission. |
+| Archived long-draft provenance ledger | Historical long-draft ledger; superseded here by `number_provenance.md` aligned to the TeX manuscript. |
 | Full repository snapshot | Not reviewer-efficient and harder to anonymize; the supplement instead ships a curated manuscript-centered code and data slice. |
 | `scripts/infra/` and deployment helpers | These wrappers contain local orchestration assumptions and are not needed to interpret or verify the paper claims. |
 | Raw `*.provenance*.json` sidecars | Omitted for anonymization: these files expose local paths, host metadata, and command-line details. |
@@ -44,6 +44,6 @@ This package is a submission-safe, reviewer-facing supplement for the ICML manus
 
 ## Historical Notes
 
-- The older long-draft provenance ledger remains in the repository as a historical-only artifact, but it is not part of this supplement.
+- The older long-draft provenance ledger now lives in the external archive as a historical-only artifact, but it is not part of this supplement.
 - This package includes only files that directly support manuscript traceability or minimal rerun orientation.
 - The built package is intended for direct OpenReview upload as anonymized supplementary material.

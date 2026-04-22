@@ -239,7 +239,6 @@
   ],
   "banned_path_prefixes": [
     ".git/",
-    "paper/draft/",
     "paper/icml/reviews/",
     "logs/",
     "notes/",

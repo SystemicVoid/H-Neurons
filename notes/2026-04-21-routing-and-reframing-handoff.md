@@ -1,7 +1,7 @@
 # Routing And Reframing Handoff — 2026-04-21
 
 > Status: Active implementation order for the site-and-notes reframing pass.
-> Scope freeze: `paper/**` is frozen in this pass, including `paper/draft/**`, `paper/draft/reviews/**`, and `paper/icml/**`.
+> Scope freeze: `paper/**` is frozen in this pass, including the archived long draft and review stack, plus `paper/icml/**`.
 
 ## Active implementation order
 

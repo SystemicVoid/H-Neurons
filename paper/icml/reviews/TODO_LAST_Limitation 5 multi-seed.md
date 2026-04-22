@@ -166,8 +166,8 @@ Option C — BOTH rulers ✅ SELECTED:
      --output_dir data/gemma3_4b/intervention/jailbreak/control/v3_3seed_comparison
 
 6. Recompute permutation p-values:
-   The p=0.013 was NOT stored programmatically — it's hardcoded in
-   paper/draft/figures/fig4_measurement.py:297. The permutation test
+   The p=0.013 was NOT stored programmatically — it's hardcoded in the
+   archived long-draft Figure 4 script. The permutation test
    implementation is in scripts/uncertainty.py:paired_bootstrap_slope_difference()
    (lines 361-452). You'll need to either:
    - Adapt compute_faitheval_slope_difference.py for jailbreak data, OR
@@ -186,7 +186,7 @@ Option C — BOTH rulers ✅ SELECTED:
   scripts/analyze_csv2_control.py     — slope comparison (handles both schemas via --control_csv2_suffix)
   scripts/uncertainty.py:361-452      — paired_bootstrap_slope_difference() permutation test
   scripts/compute_faitheval_slope_difference.py — FaithEval version (template for jailbreak adaptation)
-  paper/draft/figures/fig4_measurement.py:297  — hardcoded p=0.013 to update
+  archived long-draft Figure 4 script — hardcoded p=0.013 to update
 
 ### What to update in the paper
   - main.tex L5 entry: replace "single-seed (p = 0.013); seeds 1–2 pending"
@@ -199,7 +199,7 @@ Option C — BOTH rulers ✅ SELECTED:
     resolved, not that the old effect is "more significant than we thought."
   - Add a sentence noting that v3 scoring eliminates the H-neuron jailbreak
     dose-response entirely, as additional measurement-sensitivity evidence
-  - fig4_measurement.py: replace hardcoded p=0.013 with computed value
+  - archived long-draft Figure 4 script: replace hardcoded p=0.013 with computed value
 
   Main-text phrasing should become something like:
 

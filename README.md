@@ -7,12 +7,15 @@ Current internal framing governor: [`notes/2026-04-21-claim-framing-governance.m
 Primary current narratives:
 
 - Site: [`site/`](site/)
-- Current paper draft: [`paper/draft/full_paper.md`](paper/draft/full_paper.md)
+- Current manuscript: [`paper/icml/main.tex`](paper/icml/main.tex)
+- Current manuscript provenance: [`paper/icml/number_provenance.md`](paper/icml/number_provenance.md)
 - Measurement contract: [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
+
+Historical long-draft materials were archived out of repo to `/home/hugo/Documents/Engineering/02-h-neurons-paper-draft-archive/`.
 
 ## Overview
 
-This is a research workspace for mechanistic intervention experiments in `google/gemma-3-4b-it`. It contains the original H-neuron replication funnel, intervention and negative-control runs across multiple benchmarks, evaluator and reporting audits, paper assembly tooling, and site-export paths for presenting current results. H-neurons remain the paper-faithful baseline, but not the whole thesis.
+This is a research workspace for mechanistic intervention experiments in `google/gemma-3-4b-it`. It contains the original H-neuron replication funnel, intervention and negative-control runs across multiple benchmarks, evaluator and reporting audits, manuscript and supplement tooling, and site-export paths for presenting current results. H-neurons remain the paper-faithful baseline, but not the whole thesis.
 
 ## Current Status
 
@@ -60,7 +63,7 @@ Canonical shell wrappers:
 
 Paper and site outputs:
 
-- `uv run python scripts/build_full_paper.py` assembles the current paper draft.
+- `cd paper/icml && make` builds the current workshop manuscript PDF.
 - `uv run python scripts/export_site_data.py` exports site-facing JSON summaries from committed outputs.
 - `scripts/infra/publish.sh site --slug aware-fresco-4a2q --client amp` publishes the site to its canonical URL.
 
@@ -72,8 +75,7 @@ If you need the original forked-paper examples, start with [`data/original_paper
 - [`scripts/infra/`](scripts/infra/) - canonical orchestration wrappers for larger runs
 - [`data/`](data/) - committed experiment outputs, semantic run directories, controls, and audits
 - [`notes/`](notes/) - planning documents, measurement contracts, and sprint notes
-- [`paper/`](paper/) - source shards, reviews, citations, and assembled draft for the current paper
-- [`paper/draft/`](paper/draft/) - source shards and assembled draft for the current paper
+- [`paper/`](paper/) - ICML manuscript sources, supplement materials, citations, and historical planning notes
 - [`site/`](site/) - public presentation site and consumers of exported result payloads
 - [`tests/`](tests/) - regression coverage for pipeline guards, reporting, evaluation, and exports
 - [`papers/`](papers/) - local paper corpus, H-neurons reference materials, and literature notes

@@ -18,7 +18,7 @@
 - E2 transfer synthesis: [2026-04-04-e2-triviaqa-transfer-synthesis.md](./2026-04-04-e2-triviaqa-transfer-synthesis.md)
 - Sprint context: [act3-sprint.md](../act3-sprint.md) (D4, D5)
 - Strategic assessment: [2026-04-11-strategic-assessment.md](../2026-04-11-strategic-assessment.md) (§4 Anchor 2)
-- Paper Section 5: `paper/draft/section_5_case_study_II.md`
+- Historical long-draft Section 5 (now archived out of repo)
 
 ## Data Files
 
@@ -342,7 +342,7 @@ Section 5.3 currently hedges with "dev-set point estimates" and cites Limitation
 - **Update** the failure-mode taxonomy from 5/10 flips to 30/43 (70%), noting the evasion mode as a secondary finding
 - **Update** the flip table from dev (3 w→r, 10 r→w) to test (14 w→r, 43 r→w)
 - **Keep** Box B (Thriller rescue) as qualitative illustration — it's from dev but still valid as a worked example
-- **Update** `paper/draft/number_provenance.md` Bridge (§5.3) table: all values now source from this report instead of the Phase 2 dev report
+- **Update** the archived long-draft Bridge (§5.3) number ledger: all values now source from this report instead of the Phase 2 dev report
 
 ### 10.2 What changes in the strategic assessment
 

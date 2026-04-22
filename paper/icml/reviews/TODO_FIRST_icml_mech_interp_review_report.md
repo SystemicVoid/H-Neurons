@@ -3,8 +3,8 @@
 Reviewed inputs:
 - `paper/icml/main.tex`
 - `paper/icml/number_provenance.md`
-- `paper/draft/full_paper.md`
-- `paper/draft/number_provenance.md`
+- historical long-form markdown manuscript (external archive)
+- historical long-draft provenance ledger (external archive)
 - `notes/2026-04-11-strategic-assessment.md`
 
 ## Bottom line
@@ -55,7 +55,7 @@ Line anchors below refer to the current `HEAD` contents of `paper/icml/main.tex`
 11. **Substitution examples table** — PRESENT with the corrected Buddy Holly / Big Bopper row. Current anchors: `main.tex:244-263`, especially `main.tex:256`. Commit trail: the benchmark-faithful question stubs and the corrected 1959 plane-crash row landed in [`b9a9963`](https://github.com/SystemicVoid/H-Neurons/commit/b9a996363dd75d34aae2e16282bb224cdf21beaa).
 12. **Know Thy Judge citation strengthening** — PRESENT. Current anchors: `main.tex:313-315`, `references.bib:94-99`. Commit trail: the bibliography entry already existed in the workshop draft, and the in-text measurement citation was added in [`b9a9963`](https://github.com/SystemicVoid/H-Neurons/commit/b9a996363dd75d34aae2e16282bb224cdf21beaa).
 13. **SimpleQA vs bridge hierarchy compression** — PRESENT. Current anchors: `main.tex:217-221`. Commit trail: the “SimpleQA serves as a supporting stress test, while the locked bridge benchmark below is the main externality result” wording landed in [`b9a9963`](https://github.com/SystemicVoid/H-Neurons/commit/b9a996363dd75d34aae2e16282bb224cdf21beaa), with the lead ITI sentence tightened in [`79b0029`](https://github.com/SystemicVoid/H-Neurons/commit/79b0029e27fba3c52e1f8615d82c0a2d8cda63d0).
-14. **ICML-specific provenance ledger** — PRESENT. Current anchors: `number_provenance.md:1-130`. Commit trail: the reviewer-facing ICML ledger was added in [`53aaf10`](https://github.com/SystemicVoid/H-Neurons/commit/53aaf1071728c5a9101d9f2a3932f100821f28b3). The older `paper/draft/number_provenance.md` remains the long-draft artifact.
+14. **ICML-specific provenance ledger** — PRESENT. Current anchors: `number_provenance.md:1-130`. Commit trail: the reviewer-facing ICML ledger was added in [`53aaf10`](https://github.com/SystemicVoid/H-Neurons/commit/53aaf1071728c5a9101d9f2a3932f100821f28b3). The older long-draft provenance ledger now lives in the external archive.
 
 ### Addressed in revision history, then intentionally revised again
 

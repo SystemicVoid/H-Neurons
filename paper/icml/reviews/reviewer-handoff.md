@@ -4,7 +4,7 @@
 **Track:** Long paper (8-page limit, excl. refs/appendix)
 **Deadline:** May 8, 2026 AOE
 **Portal:** OpenReview — `ICML.cc/2026/Workshop/Mech_Interp`
-**Source of truth for all numbers:** `paper/draft/full_paper.md` (72KB, 9 sections, ~25 equivalent pages)
+**Source of truth for all numbers:** `paper/icml/number_provenance.md` (reviewer-facing ledger for the current workshop manuscript)
 **This submission:** `paper/icml/main.tex` → `paper/icml/main.pdf` (~6 pages main body + 1.5 pages refs + 2 pages appendix)
 
 ---
@@ -171,7 +171,7 @@ The workshop also explicitly welcomes "rigorous negative results" and "position 
 - [ ] `pdffonts main.pdf` shows only Type-1 fonts
 - [ ] Main body ≤ 8 pages before `\bibliography`
 - [ ] `grep -ri "hugo\|nguyen\|github" main.tex main.pdf` returns nothing
-- [ ] All CIs, effect sizes, and sample sizes match `full_paper.md`
+- [ ] All CIs, effect sizes, and sample sizes match `paper/icml/number_provenance.md`
 - [ ] Impact statement is present
 - [ ] File size < 10MB
 - [ ] Figures are legible at column width (print at 100% and check)

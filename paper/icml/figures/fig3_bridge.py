@@ -1,7 +1,7 @@
 """
 Figure 3 (workshop): Surface-Local Control and Bridge Failure Modes.
 
-Simplified 2-panel version of paper/draft/figures/fig3_bridge_failure.py.
+Simplified 2-panel version of the archived long-draft Figure 3 script.
 Panel A: ITI effect across task types (bar chart).
 Panel B: Right-to-wrong flip taxonomy (horizontal bar).
 Panel C (substitution examples) becomes a LaTeX table in the paper.
