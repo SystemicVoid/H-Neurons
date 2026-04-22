@@ -38,7 +38,9 @@ load_truthfulqa_mc = run_intervention.load_truthfulqa_mc
 load_triviaqa_bridge = run_intervention.load_triviaqa_bridge
 run_truthfulqa_mc = run_intervention.run_truthfulqa_mc
 triviaqa_bridge_attempted = run_intervention.triviaqa_bridge_attempted
-run_faitheval_mc_logprob = run_intervention.run_faitheval_mc_logprob
+run_faitheval_anti_compliance_margin = (
+    run_intervention.run_faitheval_anti_compliance_margin
+)
 run_jailbreak = run_intervention.run_jailbreak
 extract_mc_answer = utils.extract_mc_answer
 format_alpha_label = utils.format_alpha_label
@@ -1548,65 +1550,51 @@ class TestDirectionSanityGate:
 # ---------------------------------------------------------------------------
 
 
-class TestFaithEvalMcLogprob:
+class TestFaithEvalAntiComplianceMargin:
     def test_picks_highest_logprob_letter_and_flags_compliance(
         self, tmp_path, monkeypatch
     ):
-        output_dir = tmp_path / "faitheval_mc"
+        output_dir = tmp_path / "faitheval_margin"
         output_dir.mkdir()
 
-        # D has highest log-likelihood, which matches counterfactual_key → compliant
-        scores_by_continuation = {
-            " A": {
-                "log_likelihood": -3.0,
-                "total_logprob": -3.0,
-                "avg_logprob": -3.0,
-                "token_count": 1,
-            },
-            " B": {
-                "log_likelihood": -2.0,
-                "total_logprob": -2.0,
-                "avg_logprob": -2.0,
-                "token_count": 1,
-            },
-            " C": {
-                "log_likelihood": -4.0,
-                "total_logprob": -4.0,
-                "avg_logprob": -4.0,
-                "token_count": 1,
-            },
-            " D": {
-                "log_likelihood": -0.5,
-                "total_logprob": -0.5,
-                "avg_logprob": -0.5,
-                "token_count": 1,
-            },
-        }
+        cached_prompt_ids = torch.tensor([1, 2, 3], dtype=torch.long)
+        observed_prompt_ids: list[torch.Tensor] = []
+
+        class LetterTokenizer:
+            def __call__(self, text, add_special_tokens=False, return_tensors=None):
+                del add_special_tokens
+                token_ids = torch.tensor([[ord(text[0])]], dtype=torch.long)
+                if return_tensors == "pt":
+                    return {"input_ids": token_ids}
+                return {"input_ids": token_ids.squeeze(0).tolist()}
 
         monkeypatch.setattr(
-            "run_intervention.score_continuation_decode_only",
-            lambda _model, _tokenizer, _prompt, continuation, scaler=None: (
-                scores_by_continuation[continuation]
+            "run_intervention.score_choice_logprobs_from_prompt_ids",
+            lambda _model, prompt_input_ids, _choice_token_ids, scaler=None: (
+                observed_prompt_ids.append(prompt_input_ids.clone())
+                or {"A": -3.0, "B": -2.0, "C": -4.0, "D": -0.5}
             ),
         )
 
-        run_faitheval_mc_logprob(
-            model=object(),
-            tokenizer=object(),
+        run_faitheval_anti_compliance_margin(
+            model=SimpleNamespace(device=torch.device("cpu")),
+            tokenizer=LetterTokenizer(),
             scaler=SimpleNamespace(alpha=1.0),
             samples=[
                 {
                     "id": "test_sample_1",
                     "context": "Some misleading context.",
-                    "question": "What is the capital of France?",
+                    "question": "Which option follows the misleading context?",
                     "choices_text": "A) Berlin\nB) Madrid\nC) Rome\nD) London",
                     "valid_letters": ["A", "B", "C", "D"],
                     "counterfactual_key": "D",
+                    "preferred_key": "A",
                     "num_options": 4,
                 }
             ],
             alpha=0.0,
             output_dir=str(output_dir),
+            prompt_cache={"test_sample_1": cached_prompt_ids},
         )
 
         records = [
@@ -1618,56 +1606,44 @@ class TestFaithEvalMcLogprob:
         assert rec["chosen"] == "D"
         assert rec["chosen_index"] == 3
         assert rec["compliance"] is True
-        assert rec["metric_name"] == "compliance"
-        assert rec["metric_value"] == 1.0
-        assert rec["choice_log_likelihoods"] == [-3.0, -2.0, -4.0, -0.5]
-        assert len(rec["choice_scores"]) == 4
-        assert rec["choice_scores"][0]["letter"] == "A"
+        assert rec["prompt_style"] == "anti_compliance"
+        assert rec["metric_name"] == "misleading_minus_preferred_logprob_margin"
+        assert rec["metric_value"] == pytest.approx(2.5)
+        assert rec["choice_logprobs"] == {
+            "A": -3.0,
+            "B": -2.0,
+            "C": -4.0,
+            "D": -0.5,
+        }
+        assert observed_prompt_ids[0].tolist() == cached_prompt_ids.tolist()
 
     def test_non_compliant_when_model_picks_non_counterfactual(
         self, tmp_path, monkeypatch
     ):
-        output_dir = tmp_path / "faitheval_mc_nc"
+        output_dir = tmp_path / "faitheval_margin_nc"
         output_dir.mkdir()
 
-        # A has highest log-likelihood, but counterfactual_key is C → not compliant
-        scores_by_continuation = {
-            " A": {
-                "log_likelihood": -0.1,
-                "total_logprob": -0.1,
-                "avg_logprob": -0.1,
-                "token_count": 1,
-            },
-            " B": {
-                "log_likelihood": -2.0,
-                "total_logprob": -2.0,
-                "avg_logprob": -2.0,
-                "token_count": 1,
-            },
-            " C": {
-                "log_likelihood": -3.0,
-                "total_logprob": -3.0,
-                "avg_logprob": -3.0,
-                "token_count": 1,
-            },
-            " D": {
-                "log_likelihood": -4.0,
-                "total_logprob": -4.0,
-                "avg_logprob": -4.0,
-                "token_count": 1,
-            },
-        }
+        class LetterTokenizer:
+            def __call__(self, text, add_special_tokens=False, return_tensors=None):
+                del add_special_tokens
+                token_ids = torch.tensor([[ord(text[0])]], dtype=torch.long)
+                if return_tensors == "pt":
+                    return {"input_ids": token_ids}
+                return {"input_ids": token_ids.squeeze(0).tolist()}
 
         monkeypatch.setattr(
-            "run_intervention.score_continuation_decode_only",
-            lambda _model, _tokenizer, _prompt, continuation, scaler=None: (
-                scores_by_continuation[continuation]
-            ),
+            "run_intervention.score_choice_logprobs_from_prompt_ids",
+            lambda _model, _prompt_input_ids, _choice_token_ids, scaler=None: {
+                "A": -0.1,
+                "B": -2.0,
+                "C": -3.0,
+                "D": -4.0,
+            },
         )
 
-        run_faitheval_mc_logprob(
-            model=object(),
-            tokenizer=object(),
+        run_faitheval_anti_compliance_margin(
+            model=SimpleNamespace(device=torch.device("cpu")),
+            tokenizer=LetterTokenizer(),
             scaler=SimpleNamespace(alpha=1.0),
             samples=[
                 {
@@ -1677,48 +1653,44 @@ class TestFaithEvalMcLogprob:
                     "choices_text": "A) Blue\nB) Red\nC) Green\nD) Yellow",
                     "valid_letters": ["A", "B", "C", "D"],
                     "counterfactual_key": "C",
+                    "preferred_key": "B",
                     "num_options": 4,
                 }
             ],
             alpha=0.0,
             output_dir=str(output_dir),
+            prompt_cache={"test_sample_2": torch.tensor([7, 8], dtype=torch.long)},
         )
 
         rec = json.loads((output_dir / "alpha_0.0.jsonl").read_text().splitlines()[0])
         assert rec["chosen"] == "A"
         assert rec["compliance"] is False
-        assert rec["metric_value"] == 0.0
+        assert rec["metric_value"] == pytest.approx(-1.0)
 
     def test_no_parse_failures_by_construction(self, tmp_path, monkeypatch):
-        """Log-prob scoring always produces a valid chosen letter."""
-        output_dir = tmp_path / "faitheval_mc_nopf"
+        """Margin scoring always produces a valid chosen letter."""
+        output_dir = tmp_path / "faitheval_margin_nopf"
         output_dir.mkdir()
 
-        scores_by_continuation = {
-            " A": {
-                "log_likelihood": -1.0,
-                "total_logprob": -1.0,
-                "avg_logprob": -1.0,
-                "token_count": 1,
-            },
-            " B": {
-                "log_likelihood": -1.0,
-                "total_logprob": -1.0,
-                "avg_logprob": -1.0,
-                "token_count": 1,
-            },
-        }
+        class LetterTokenizer:
+            def __call__(self, text, add_special_tokens=False, return_tensors=None):
+                del add_special_tokens
+                token_ids = torch.tensor([[ord(text[0])]], dtype=torch.long)
+                if return_tensors == "pt":
+                    return {"input_ids": token_ids}
+                return {"input_ids": token_ids.squeeze(0).tolist()}
 
         monkeypatch.setattr(
-            "run_intervention.score_continuation_decode_only",
-            lambda _model, _tokenizer, _prompt, continuation, scaler=None: (
-                scores_by_continuation[continuation]
-            ),
+            "run_intervention.score_choice_logprobs_from_prompt_ids",
+            lambda _model, _prompt_input_ids, _choice_token_ids, scaler=None: {
+                "A": -1.0,
+                "B": -1.0,
+            },
         )
 
-        run_faitheval_mc_logprob(
-            model=object(),
-            tokenizer=object(),
+        run_faitheval_anti_compliance_margin(
+            model=SimpleNamespace(device=torch.device("cpu")),
+            tokenizer=LetterTokenizer(),
             scaler=SimpleNamespace(alpha=1.0),
             samples=[
                 {
@@ -1728,11 +1700,13 @@ class TestFaithEvalMcLogprob:
                     "choices_text": "A) X\nB) Y",
                     "valid_letters": ["A", "B"],
                     "counterfactual_key": "A",
+                    "preferred_key": "B",
                     "num_options": 2,
                 }
             ],
             alpha=0.0,
             output_dir=str(output_dir),
+            prompt_cache={"test_nopf": torch.tensor([5], dtype=torch.long)},
         )
 
         rec = json.loads((output_dir / "alpha_0.0.jsonl").read_text().splitlines()[0])

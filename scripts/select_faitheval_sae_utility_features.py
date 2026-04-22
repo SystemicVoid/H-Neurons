@@ -32,10 +32,12 @@ from intervene_sae import (
 )
 from run_intervention import (
     FAITHEVAL_CANONICAL_LABELS,
-    _normalize_faitheval_choice_key,
+    _choice_token_ids,
     _faitheval_prompt,
     load_faitheval,
     load_model_and_tokenizer,
+    misleading_margin,
+    score_choice_logprobs_from_prompt_ids,
     tokenize_chat,
 )
 from utils import (
@@ -132,45 +134,6 @@ def _canonical_answer_position(sample: dict[str, Any]) -> str:
             f"(sample_id={sample.get('id')!r})"
         )
     return canonical_key
-
-
-def _resolve_choice_logprob_key(
-    sample: dict[str, Any],
-    *,
-    field_name: str,
-    choice_logprobs: dict[str, float],
-) -> str:
-    raw_value = sample.get(field_name)
-    if raw_value is None:
-        raise ValueError(f"Sample {sample['id']} is missing {field_name}")
-
-    candidates = [str(raw_value)]
-    canonical_field = f"{field_name}_canonical"
-    canonical_value = sample.get(canonical_field)
-    if canonical_value is not None:
-        candidates.append(str(canonical_value))
-
-    valid_letters = sample.get("valid_letters")
-    if valid_letters:
-        for candidate in list(candidates):
-            try:
-                normalized = _normalize_faitheval_choice_key(candidate, valid_letters)
-            except ValueError:
-                continue
-            candidates.append(normalized)
-
-    seen: set[str] = set()
-    for candidate in candidates:
-        if candidate in seen:
-            continue
-        seen.add(candidate)
-        if candidate in choice_logprobs:
-            return candidate
-
-    raise ValueError(
-        f"Missing {field_name} score for sample {sample['id']} "
-        f"(candidates={sorted(seen)!r})"
-    )
 
 
 def build_stratified_faitheval_split(
@@ -281,86 +244,6 @@ def build_prompt_cache(
             [{"role": "user", "content": prompt}],
         )
     return cache
-
-
-def _choice_token_ids(tokenizer, letters: list[str]) -> dict[str, torch.Tensor]:
-    """Tokenize answer labels exactly as the first assistant continuation.
-
-    The cached prompts already include ``add_generation_prompt=True``, so the
-    next decoded token is the first answer token itself, not a space-prefixed
-    continuation.
-    """
-    token_ids: dict[str, torch.Tensor] = {}
-    for letter in letters:
-        ids = tokenizer(letter, return_tensors="pt", add_special_tokens=False)[
-            "input_ids"
-        ].squeeze(0)
-        if ids.ndim != 1 or ids.numel() == 0:
-            raise ValueError(f"Choice continuation tokenization failed for {letter!r}")
-        token_ids[str(letter)] = ids.to(dtype=torch.long, device="cpu")
-    return token_ids
-
-
-def score_choice_logprobs_from_prompt_ids(
-    model,
-    prompt_input_ids: torch.Tensor,
-    choice_token_ids: dict[str, torch.Tensor],
-    *,
-    scaler=None,
-) -> dict[str, float]:
-    prompt_input_ids = prompt_input_ids.to(model.device)
-    if prompt_input_ids.ndim == 1:
-        prompt_input_ids = prompt_input_ids.unsqueeze(0)
-
-    if hasattr(scaler, "reset_sample_stats"):
-        scaler.reset_sample_stats()
-    if hasattr(scaler, "arm_first_decode_token"):
-        scaler.arm_first_decode_token()
-
-    with torch.inference_mode():
-        prompt_outputs = model(prompt_input_ids, use_cache=True)
-    prompt_logprobs = torch.log_softmax(prompt_outputs.logits[:, -1, :], dim=-1)
-    past_key_values = prompt_outputs.past_key_values
-
-    scores: dict[str, float] = {}
-    for letter, continuation_ids_cpu in choice_token_ids.items():
-        continuation_ids = continuation_ids_cpu.to(model.device)
-        total = float(prompt_logprobs[0, int(continuation_ids[0].item())].item())
-        if continuation_ids.numel() > 1:
-            running_past = past_key_values
-            for position in range(int(continuation_ids.numel()) - 1):
-                current_token = continuation_ids[position : position + 1].view(1, 1)
-                next_token = int(continuation_ids[position + 1].item())
-                with torch.inference_mode():
-                    outputs = model(
-                        current_token,
-                        use_cache=True,
-                        past_key_values=running_past,
-                    )
-                running_past = outputs.past_key_values
-                next_logprob = torch.log_softmax(outputs.logits[:, -1, :], dim=-1)[
-                    0, next_token
-                ]
-                total += float(next_logprob.item())
-        scores[letter] = total
-    return scores
-
-
-def misleading_margin(
-    sample: dict[str, Any],
-    choice_logprobs: dict[str, float],
-) -> float:
-    counterfactual = _resolve_choice_logprob_key(
-        sample,
-        field_name="counterfactual_key",
-        choice_logprobs=choice_logprobs,
-    )
-    preferred = _resolve_choice_logprob_key(
-        sample,
-        field_name="preferred_key",
-        choice_logprobs=choice_logprobs,
-    )
-    return float(choice_logprobs[counterfactual] - choice_logprobs[preferred])
 
 
 class PromptEndFeatureCollector:

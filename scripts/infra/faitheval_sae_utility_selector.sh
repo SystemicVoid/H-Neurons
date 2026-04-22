@@ -13,7 +13,7 @@ CLASSIFIER_SUMMARY="${CLASSIFIER_SUMMARY:-data/gemma3_4b/pipeline/classifier_sae
 
 BENCHMARKS=(
     "faitheval"
-    "faitheval_mc_logprob"
+    "faitheval_anti_compliance_margin"
 )
 FAMILIES=(
     "noop"
@@ -45,6 +45,33 @@ results_summary_exists() {
     compgen -G "${dir}/results.*.json" >/dev/null
 }
 
+artifact_is_fresh() {
+    local artifact="$1"
+    shift
+    [[ -e "${artifact}" ]] || return 1
+    local dep=""
+    for dep in "$@"; do
+        [[ -e "${dep}" ]] || return 1
+        [[ "${dep}" -nt "${artifact}" ]] && return 1
+    done
+    return 0
+}
+
+fresh_results_summary_exists() {
+    local dir="$1"
+    shift
+    local result_path=""
+    if [[ -f "${dir}/results.json" ]] && artifact_is_fresh "${dir}/results.json" "$@"; then
+        return 0
+    fi
+    while IFS= read -r result_path; do
+        if artifact_is_fresh "${result_path}" "$@"; then
+            return 0
+        fi
+    done < <(compgen -G "${dir}/results.*.json" || true)
+    return 1
+}
+
 selector_stage_complete() {
     local required=(
         "validation_manifest.json"
@@ -57,9 +84,16 @@ selector_stage_complete() {
         "matched_random_seed_2_features.json"
         "selector_summary.json"
     )
+    local deps=(
+        "scripts/select_faitheval_sae_utility_features.py"
+        "${CLASSIFIER_PATH}"
+        "${CLASSIFIER_SUMMARY}"
+    )
     local rel_path
     for rel_path in "${required[@]}"; do
-        [[ -f "${SELECTOR_DIR}/${rel_path}" ]] || return 1
+        local artifact="${SELECTOR_DIR}/${rel_path}"
+        [[ -f "${artifact}" ]] || return 1
+        artifact_is_fresh "${artifact}" "${deps[@]}" || return 1
     done
     return 0
 }
@@ -101,8 +135,40 @@ heldout_stage_complete() {
     dir="$(heldout_dir_for "${benchmark}" "${family}")"
     local alpha
     alpha="$(expected_alpha_for_family "${family}")"
-    [[ -f "${dir}/alpha_${alpha}.jsonl" ]] || return 1
-    results_summary_exists "${dir}"
+    local alpha_path="${dir}/alpha_${alpha}.jsonl"
+    local manifest_path
+    manifest_path="$(manifest_for_family "${family}")"
+    local deps=(
+        "scripts/run_intervention.py"
+        "${manifest_path}"
+        "${SELECTOR_DIR}/test_manifest.json"
+    )
+    [[ -f "${alpha_path}" ]] || return 1
+    artifact_is_fresh "${alpha_path}" "${deps[@]}" || return 1
+    fresh_results_summary_exists "${dir}" "${deps[@]}"
+}
+
+report_stage_complete() {
+    local summary_path="${REPORT_DIR}/heldout_summary.json"
+    local audit_path="${REPORT_DIR}/audit_note.md"
+    [[ -f "${summary_path}" ]] || return 1
+    [[ -f "${audit_path}" ]] || return 1
+
+    local deps=(
+        "scripts/report_faitheval_sae_utility_selector.py"
+        "${SELECTOR_DIR}/selector_summary.json"
+        "${SELECTOR_DIR}/test_manifest.json"
+    )
+    local benchmark=""
+    local family=""
+    for benchmark in "${BENCHMARKS[@]}"; do
+        for family in "${FAMILIES[@]}"; do
+            deps+=("$(heldout_dir_for "${benchmark}" "${family}")/alpha_$(expected_alpha_for_family "${family}").jsonl")
+        done
+    done
+
+    artifact_is_fresh "${summary_path}" "${deps[@]}" || return 1
+    artifact_is_fresh "${audit_path}" "${deps[@]}"
 }
 
 require_file "scripts/select_faitheval_sae_utility_features.py" "selector script"
@@ -137,7 +203,7 @@ for benchmark in "${BENCHMARKS[@]}"; do
         manifest_path="$(manifest_for_family "${family}")"
         if ! heldout_stage_complete "${benchmark}" "${family}"; then
             extra_args=()
-            if [[ "${benchmark}" == "faitheval" ]]; then
+            if [[ "${benchmark}" == "faitheval" || "${benchmark}" == "faitheval_anti_compliance_margin" ]]; then
                 extra_args+=(--prompt_style "anti_compliance")
             fi
             run_inhibited "FaithEval SAE utility held-out run ${benchmark}/${family}" \
@@ -158,11 +224,11 @@ for benchmark in "${BENCHMARKS[@]}"; do
     done
 done
 
-if [[ ! -f "${REPORT_DIR}/heldout_summary.json" ]]; then
+if ! report_stage_complete; then
     env PYTHONUNBUFFERED=1 uv run python scripts/report_faitheval_sae_utility_selector.py \
         --selector_dir "${SELECTOR_DIR}" \
         --heldout_root "${HELDOUT_ROOT}" \
         --output_dir "${ROOT}"
 else
-    echo "Skipping report stage; found ${REPORT_DIR}/heldout_summary.json"
+    echo "Skipping report stage; found fresh report outputs in ${REPORT_DIR}"
 fi

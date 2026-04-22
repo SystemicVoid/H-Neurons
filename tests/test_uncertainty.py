@@ -3,6 +3,7 @@ import pytest
 
 from scripts.uncertainty import (
     paired_bootstrap_binary_rate_difference,
+    paired_bootstrap_continuous_mean_difference_raw,
     paired_bootstrap_curve_effects,
     paired_bootstrap_slope_difference,
     stratified_bootstrap_classifier_metrics,
@@ -132,6 +133,21 @@ def test_paired_bootstrap_binary_rate_difference_reports_expected_point_estimate
     assert (
         summary["ci_pp"]["lower"] <= summary["estimate_pp"] <= summary["ci_pp"]["upper"]
     )
+
+
+def test_paired_bootstrap_continuous_mean_difference_raw_reports_expected_estimate():
+    baseline = np.array([0.0, 0.5, 1.0, 1.5], dtype=float)
+    comparison = np.array([0.5, 0.5, 1.0, 2.0], dtype=float)
+
+    summary = paired_bootstrap_continuous_mean_difference_raw(
+        baseline,
+        comparison,
+        n_resamples=500,
+        seed=11,
+    )
+
+    assert summary["estimate"] == pytest.approx(0.25)
+    assert summary["ci"]["lower"] <= summary["estimate"] <= summary["ci"]["upper"]
 
 
 def test_slope_difference_detects_known_divergence():
