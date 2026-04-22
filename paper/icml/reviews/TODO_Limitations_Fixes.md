@@ -217,12 +217,14 @@ The main-text framing would be:
 
 That is a better contribution than “SAEs failed.”
 
-## Priority 3 — Bridge logprob-margin mechanism check
+## Priority 3 — Bridge logprob-margin mechanism check — DONE (2026-04-21, directional outcome differs from prediction)
 
 **Value:** High.
 **Cost:** Low/medium.
 **Risk:** Low.
-**Where it appears:** Main text if clean; otherwise appendix.
+**Where it appears:** Supplement paragraph with one-line footnote in §4; not main-text headline.
+
+**Closure:** executed on n=257 cases (A=31 substitution, B=12 non-substitution, C=14 rescue, D=200 random-wrong controls) at ITI α=8.0, K=12, `first_3_tokens` scope. The broad claim survives — ITI compresses the gold-vs-wrong logprob margin on R→W (A first3 = −10.16 nats [−12.81, −7.60]) and expands it on W→R rescues (C = +4.73 [+2.27, +7.25]). **The TODO-predicted "clean result" shape (substitution > non-substitution > controls in margin-shift magnitude) did not obtain:** non-substitution cases show ~4× the margin compression of substitution cases (B = −40.06 [−50.09, −30.37]; A−B = +29.90, one-sided p = 1.0), primarily — but not exclusively — driven by the first-token answer frame. A vs. D (random controls) survives in the predicted direction but modestly (A−D = −5.10 [−8.22, −2.16], p = 0.0081). Precommit decision tree branch (iii) fires: drop the A<B headline; the behavioral substitution taxonomy does not index a distinct margin-shift signature, though it remains a reliable behavioral description (κ = 0.90 per [L4 closure](../reports/2026-04-21-bridge-irr-review.md)). Full analysis: [`../reports/2026-04-21-bridge-margin-precommit.md`](../reports/2026-04-21-bridge-margin-precommit.md) (post-run, with sealed precommit as Appendix A).
 
 This deepens the most tasteful part of the paper: wrong-entity substitution.
 

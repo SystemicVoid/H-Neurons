@@ -5,10 +5,12 @@ computes for each cohort (A/B/C/D) a bootstrap-CI summary of the gold vs.
 wrong-entity log-likelihood margin shift under the ITI intervention, plus
 between-cohort comparisons (A vs. B, A vs. D).
 
-**Confirmatory primary window: first-3-token log-probability.** This is
-locked before the full run (precommit note:
-``notes/act3-reports/2026-04-21-bridge-margin-precommit.md``); do not
-change it post-hoc to chase the numbers.
+**Confirmatory primary window: first-3-token log-probability.** This was
+locked before the full run; the post-run analysis and the sealed
+precommit decision tree both live at
+``paper/icml/reports/2026-04-21-bridge-margin-precommit.md`` (Appendix A
+preserves the precommit verbatim). Do not change the endpoint post-hoc
+to chase the numbers.
 
 **Sensitivity (locked secondary):** full-continuation joint log-probability.
 

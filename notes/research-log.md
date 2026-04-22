@@ -623,3 +623,27 @@ The R→W / W→R symmetry reshapes the interpretive story. Both directions are 
 ### What I will do next
 
 (1) Write a short dev-calibration narrative report documenting the §9 rule/prompt revision (two dev runs, prompt_hash `ab951cf3c3ee0bb7` → `a135761b05bf1533`). (2) Consider running the Priority-3 logprob-margin experiment before deadline — the labeled subset is ready.
+
+---
+
+## 2026-04-22
+
+### What I did
+
+Reviewed the Priority-3 bridge logprob-margin pipeline post-run. The scorer/analyzer/tests (commit `7edabc5`) had already produced `margins.jsonl` and `results.json` for the full 57+200 case set under a precommit-locked analysis plan from 2026-04-21. I audited the code path (teacher-forcing, ITI scope gating, ragged-length handling, permutation/bootstrap setup), walked the precommit decision tree against the actual numbers, and rewrote the precommit file in place as a full post-run analysis at [`paper/icml/reports/2026-04-21-bridge-margin-precommit.md`](../paper/icml/reports/2026-04-21-bridge-margin-precommit.md) (sealing the original precommit as Appendix A). Updated the TODO Priority-3 entry, the IRR review's §4.3/§5/§7.2 pointers, the `runs_to_analyse` queue, and the analyzer docstring path.
+
+### What I expected vs what happened
+
+Expected the "clean result" shape the TODO predicted: A (substitution) > B (non-substitution) > D (random) in gold-vs-wrong margin-shift magnitude. What happened: the directional hypothesis A < B is **rejected** (first3 shift A = −10.16 nats [−12.81, −7.60] vs. B = −40.06 [−50.09, −30.37]; ΔA−B = +29.90 nats, one-sided p=1.0). B is ~4× more compressed than A, with the gap partially but not entirely driven by position 0 (B pos0 = −21.74, A pos0 = −3.49; on tokens 2–3 alone B still leads A by ~17 nats). A vs. D survives in the predicted direction but only modestly (ΔA−D = −5.10 [−8.22, −2.16], p=0.0081). C (rescue) cleanly reverses sign as expected (+4.73 [+2.27, +7.25]).
+
+A surprise lurking in the baseline delta: B cases start with a much stronger baseline gold preference (+27.55 nats, 12/12 positive) than A cases (+3.41, 22/31 positive). Non-substitution R→W cases are behaviorally "model knew the answer and emitted a non-entity response anyway"; there is simply more standing margin for ITI to compress.
+
+### What this changes about my thinking
+
+The broad redistribution reading (§4.3 of the IRR review, item 7 in its uncertainty table) is *more* supported than before — the margin-shift signal is present across both R→W cohorts and reverses cleanly on rescues. The narrower substitution-specific mechanism claim the TODO was designed to test is *not* supported: the behavioral substitution taxonomy, though κ=0.90 reliable, does not index a distinct margin-shift signature. The paper's §4 externality claim (72.1% wrong-entity substitution, behavioral) is unaffected; this refines rather than undermines it. Planned paper placement: short supplement paragraph plus §4 one-line footnote, not a main-text mechanistic headline.
+
+The precommit protocol itself deserves a line: the Gate 2 sanity peek had already tempted an endpoint retune; the lock held, and branch (iii) of the decision tree fired as predicted. This is exactly the kind of work researcher-degrees-of-freedom guards are supposed to do, and worth preserving as the pattern for future audits.
+
+### What I will do next
+
+(1) Decide with the authorship whether the margin-shift finding lands in the §4 footnote or a short supplement paragraph; recommend footnote + supplement. (2) Optional short follow-up: regression test that α=0 is a bit-exact no-op (closes the only medium-severity pipeline gap); figure panels that separate pos-0 from pos-1+2 to make the answer-frame story visually legible.
