@@ -5,6 +5,7 @@ ROOT="data/gemma3_4b/intervention/faitheval_sae_utility_selector"
 SELECTOR_DIR="${ROOT}/selector"
 HELDOUT_ROOT="${ROOT}/heldout"
 REPORT_DIR="${ROOT}/report"
+SENTINEL_DIR="${ROOT}/sentinels"
 DID_GENERATE_DATA=0
 
 MODEL_PATH="${MODEL_PATH:-google/gemma-3-4b-it}"
@@ -201,6 +202,13 @@ if ! selector_stage_complete; then
     DID_GENERATE_DATA=1
 else
     echo "Skipping selector stage; found complete selector bundle in ${SELECTOR_DIR}"
+fi
+
+if env PYTHONUNBUFFERED=1 uv run python -m scripts.lib.pipeline check-sentinel \
+    --dir "${SENTINEL_DIR}" --name "stop_after_selector"; then
+    echo "Sentinel stop_after_selector detected. Stopping cleanly before held-out phase." >&2
+    echo "Remove ${SENTINEL_DIR}/stop_after_selector and rerun to resume into held-out." >&2
+    exit 0
 fi
 
 benchmark=""
