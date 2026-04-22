@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import random
 import subprocess
 import sys
@@ -317,7 +318,9 @@ def score_continuations(
         prompt_logprobs = torch.log_softmax(logits_last, dim=-1)
         past = prompt_out.past_key_values
         cont = torch.tensor(tok_ids, dtype=torch.long, device=device)
-        per_token: list[float] = [float(prompt_logprobs[0, int(cont[0])].item())]
+        first_lp = float(prompt_logprobs[0, int(cont[0])].item())
+        _guard_finite_logprob(first_lp, target_name=name, position=0)
+        per_token: list[float] = [first_lp]
         for position in range(cont.numel() - 1):
             cur = cont[position : position + 1].view(1, 1)
             nxt = int(cont[position + 1].item())
@@ -325,9 +328,23 @@ def score_continuations(
                 out = model(cur, use_cache=True, past_key_values=past)
             past = out.past_key_values
             lp = torch.log_softmax(out.logits[:, -1, :], dim=-1)[0, nxt]
-            per_token.append(float(lp.item()))
+            lp_f = float(lp.item())
+            _guard_finite_logprob(lp_f, target_name=name, position=position + 1)
+            per_token.append(lp_f)
         results[name] = per_token
     return results
+
+
+def _guard_finite_logprob(value: float, *, target_name: str, position: int) -> None:
+    """Fail fast on NaN/Inf log-probs rather than letting them poison the
+    downstream bootstrap silently. A surfaced exception during an overnight
+    run is recoverable; an analysed report built on tainted numbers is not.
+    """
+    if math.isnan(value) or math.isinf(value):
+        raise ValueError(
+            f"Non-finite log-prob at target={target_name!r} position={position}: "
+            f"{value!r}. Inspect the model/prompt rather than masking this record."
+        )
 
 
 def pick_gold_alias(

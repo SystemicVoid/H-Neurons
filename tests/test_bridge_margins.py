@@ -279,6 +279,23 @@ def test_summarize_per_token_handles_empty_and_short() -> None:
     assert longer["sum_logprob"] == pytest.approx(-10.0)
 
 
+def test_score_continuations_rejects_nonfinite_logprob() -> None:
+    """Guard from score_bridge_margins._guard_finite_logprob: NaN or Inf
+    per-token logprobs must raise, never be written into margins.jsonl.
+    Silent NaN would propagate through the bootstrap and corrupt all
+    downstream cohort CIs.
+    """
+    from score_bridge_margins import _guard_finite_logprob
+
+    _guard_finite_logprob(-3.14, target_name="gold", position=0)  # finite OK
+    with pytest.raises(ValueError, match="Non-finite"):
+        _guard_finite_logprob(float("nan"), target_name="gold", position=0)
+    with pytest.raises(ValueError, match="Non-finite"):
+        _guard_finite_logprob(float("-inf"), target_name="wrong", position=2)
+    with pytest.raises(ValueError, match="Non-finite"):
+        _guard_finite_logprob(float("inf"), target_name="wrong", position=1)
+
+
 def test_build_provenance_serializes_path_args_and_relative_output(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
