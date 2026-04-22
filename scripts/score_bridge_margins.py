@@ -190,7 +190,10 @@ def build_cohort_records(
         label = str(adj["label"])
         transition = str(adj["transition"])
         cohort = cohort_for_case(transition, label)
-        wrong_text = str(key_row["incorrect_response"])
+        # Strip incidental whitespace: tokenizers treat " Paris" and "Paris"
+        # as different BPE sequences, and the queue_key is hand-curated so
+        # leading/trailing spaces can slip in and silently distort margins.
+        wrong_text = str(key_row["incorrect_response"]).strip()
         record = {
             "case_id": case_id,
             "question_id": qid,
