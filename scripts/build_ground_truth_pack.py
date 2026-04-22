@@ -566,6 +566,9 @@ class Builder:
             "faitheval_remap": self.extract_faitheval_remap,
             "faitheval_sae_comparison": self.extract_faitheval_sae_comparison,
             "faitheval_sae_difference": self.extract_faitheval_sae_difference,
+            "faitheval_sae_utility_selector": self.extract_faitheval_sae_utility_selector,
+            "faitheval_sae_utility_selector_heldout": self.extract_faitheval_sae_utility_selector_heldout,
+            "faitheval_sae_utility_selector_augment": self.extract_faitheval_sae_utility_selector_augment,
             "falseqa_results": self.extract_falseqa_results,
             "bioasq_results": self.extract_bioasq_results,
             "bioasq_control_comparison": self.extract_bioasq_control_comparison,
@@ -579,6 +582,7 @@ class Builder:
             "available_jailbreak_evaluator_comparison": self.extract_available_jailbreak_evaluator_comparison,
             "bridge_irr_summary": self.extract_bridge_irr_summary,
             "bridge_phase3": self.extract_bridge_phase3,
+            "bridge_margins": self.extract_bridge_margins,
             "truthfulqa_mc_pool": self.extract_truthfulqa_mc_pool,
             "simpleqa_results": self.extract_simpleqa_results,
             "neuron_4288": self.extract_neuron_4288,
@@ -1092,6 +1096,249 @@ class Builder:
             unit="p_value",
             n=data["permutation_test"]["n_permutations"],
             locator="permutation_test.p_value",
+        )
+
+    def extract_faitheval_sae_utility_selector(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility.candidate_pool_size",
+            spec=spec,
+            metric_name="candidate_pool_size",
+            comparison_type="summary_value",
+            condition_a="selector_candidate_pool",
+            condition_b="selector_candidate_pool",
+            point=data["candidate_pool"]["n_features"],
+            unit="count",
+            n=data["candidate_pool"]["n_features"],
+            locator="candidate_pool.n_features",
+        )
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility.selected_k",
+            spec=spec,
+            metric_name="selected_k",
+            comparison_type="summary_value",
+            condition_a="utility_selected",
+            condition_b="utility_selected",
+            point=data["families"]["utility_selected"]["k"],
+            unit="count",
+            n=data["candidate_pool"]["n_features"],
+            locator="families.utility_selected.k",
+        )
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility.outside_old_shortlist_fraction",
+            spec=spec,
+            metric_name="outside_old_shortlist_fraction",
+            comparison_type="selector_diagnostic",
+            condition_a="utility_selected",
+            condition_b="old_shortlist",
+            point=data["families"]["utility_selected"]["outside_old_shortlist"][
+                "fraction"
+            ],
+            unit="proportion",
+            n=data["families"]["utility_selected"]["k"],
+            locator="families.utility_selected.outside_old_shortlist.fraction",
+        )
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility.readout_overlap_jaccard",
+            spec=spec,
+            metric_name="readout_overlap_jaccard",
+            comparison_type="selector_overlap",
+            condition_a="utility_selected",
+            condition_b="readout_selected",
+            point=data["family_overlap"]["utility_selected_vs_readout_selected"][
+                "jaccard"
+            ],
+            unit="proportion",
+            n=data["family_overlap"]["utility_selected_vs_readout_selected"][
+                "union_count"
+            ],
+            locator="family_overlap.utility_selected_vs_readout_selected.jaccard",
+        )
+
+    def extract_faitheval_sae_utility_selector_heldout(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility.heldout_sample_size",
+            spec=spec,
+            metric_name="heldout_sample_size",
+            comparison_type="summary_value",
+            condition_a="heldout_bundle",
+            condition_b="heldout_bundle",
+            point=data["n_samples"],
+            unit="count",
+            n=data["n_samples"],
+            locator="n_samples",
+        )
+
+        compliance = data["heldout_compliance"]
+        for family_name in ["utility_selected", "readout_selected"]:
+            family_data = compliance["families"][family_name]
+            self.add_metric_from_point(
+                metric_id=f"intervention.faitheval_sae_utility.{family_name}_compliance",
+                spec=spec,
+                metric_name=f"{family_name}_compliance",
+                comparison_type="heldout_rate",
+                condition_a=family_name,
+                condition_b=family_name,
+                point=family_data["estimate"],
+                unit="proportion",
+                n=family_data["n_total"],
+                ci_lower=family_data["ci"]["lower"],
+                ci_upper=family_data["ci"]["upper"],
+                ci_level=family_data["ci"]["level"],
+                ci_method=family_data["ci"]["method"],
+                locator=f"heldout_compliance.families.{family_name}.estimate",
+            )
+
+        for delta_name in ["utility_minus_readout", "utility_minus_noop"]:
+            delta = compliance["paired_deltas_pp"][delta_name]
+            minuend, subtrahend = delta_name.split("_minus_", 1)
+            self.add_metric_from_point(
+                metric_id=f"intervention.faitheval_sae_utility.{delta_name}_compliance_pp",
+                spec=spec,
+                metric_name=f"{delta_name}_compliance_pp",
+                comparison_type="paired_effect",
+                condition_a=subtrahend,
+                condition_b=minuend,
+                point=delta["estimate_pp"],
+                unit="pp",
+                n=data["n_samples"],
+                paired=True,
+                ci_lower=delta["ci_pp"]["lower"],
+                ci_upper=delta["ci_pp"]["upper"],
+                ci_level=delta["ci_pp"]["level"],
+                ci_method=delta["ci_pp"]["method"],
+                locator=f"heldout_compliance.paired_deltas_pp.{delta_name}.estimate_pp",
+            )
+
+        margin = data["heldout_anti_compliance_margin"]
+        for family_name in ["utility_selected", "readout_selected"]:
+            family_data = margin["families"][family_name]
+            self.add_metric_from_point(
+                metric_id=f"intervention.faitheval_sae_utility.{family_name}_margin",
+                spec=spec,
+                metric_name=f"{family_name}_margin",
+                comparison_type="heldout_margin",
+                condition_a=family_name,
+                condition_b=family_name,
+                point=family_data["estimate"],
+                unit="logprob_margin",
+                n=family_data["n"],
+                ci_lower=family_data["ci"]["lower"],
+                ci_upper=family_data["ci"]["upper"],
+                ci_level=family_data["ci"]["level"],
+                ci_method=family_data["ci"]["method"],
+                locator=f"heldout_anti_compliance_margin.families.{family_name}.estimate",
+            )
+
+        for delta_name in ["utility_minus_readout", "utility_minus_noop"]:
+            delta = margin["paired_deltas"][delta_name]
+            minuend, subtrahend = delta_name.split("_minus_", 1)
+            self.add_metric_from_point(
+                metric_id=f"intervention.faitheval_sae_utility.{delta_name}_margin",
+                spec=spec,
+                metric_name=f"{delta_name}_margin",
+                comparison_type="paired_effect",
+                condition_a=subtrahend,
+                condition_b=minuend,
+                point=delta["estimate"],
+                unit="logprob_margin",
+                n=data["n_samples"],
+                paired=True,
+                ci_lower=delta["ci"]["lower"],
+                ci_upper=delta["ci"]["upper"],
+                ci_level=delta["ci"]["level"],
+                ci_method=delta["ci"]["method"],
+                locator=f"heldout_anti_compliance_margin.paired_deltas.{delta_name}.estimate",
+            )
+
+    def extract_faitheval_sae_utility_selector_augment(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility_positive.selected_k",
+            spec=spec,
+            metric_name="selected_k",
+            comparison_type="summary_value",
+            condition_a="utility_positive_selected",
+            condition_b="utility_positive_selected",
+            point=data["augment_diagnostics"]["utility_positive_k"],
+            unit="count",
+            n=data["n_samples"],
+            locator="augment_diagnostics.utility_positive_k",
+        )
+
+        compliance = data["heldout_compliance"]
+        utility_compliance = compliance["families"]["utility_positive_selected"]
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility_positive.utility_positive_selected_compliance",
+            spec=spec,
+            metric_name="utility_positive_selected_compliance",
+            comparison_type="heldout_rate",
+            condition_a="utility_positive_selected",
+            condition_b="utility_positive_selected",
+            point=utility_compliance["estimate"],
+            unit="proportion",
+            n=utility_compliance["n_total"],
+            ci_lower=utility_compliance["ci"]["lower"],
+            ci_upper=utility_compliance["ci"]["upper"],
+            ci_level=utility_compliance["ci"]["level"],
+            ci_method=utility_compliance["ci"]["method"],
+            locator="heldout_compliance.families.utility_positive_selected.estimate",
+        )
+        compliance_delta = compliance["paired_deltas_pp"]["utility_positive_minus_noop"]
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_compliance_pp",
+            spec=spec,
+            metric_name="utility_positive_minus_noop_compliance_pp",
+            comparison_type="paired_effect",
+            condition_a="noop",
+            condition_b="utility_positive_selected",
+            point=compliance_delta["estimate_pp"],
+            unit="pp",
+            n=data["n_samples"],
+            paired=True,
+            ci_lower=compliance_delta["ci_pp"]["lower"],
+            ci_upper=compliance_delta["ci_pp"]["upper"],
+            ci_level=compliance_delta["ci_pp"]["level"],
+            ci_method=compliance_delta["ci_pp"]["method"],
+            locator="heldout_compliance.paired_deltas_pp.utility_positive_minus_noop.estimate_pp",
+        )
+
+        margin = data["heldout_anti_compliance_margin"]
+        utility_margin = margin["families"]["utility_positive_selected"]
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility_positive.utility_positive_selected_margin",
+            spec=spec,
+            metric_name="utility_positive_selected_margin",
+            comparison_type="heldout_margin",
+            condition_a="utility_positive_selected",
+            condition_b="utility_positive_selected",
+            point=utility_margin["estimate"],
+            unit="logprob_margin",
+            n=utility_margin["n"],
+            ci_lower=utility_margin["ci"]["lower"],
+            ci_upper=utility_margin["ci"]["upper"],
+            ci_level=utility_margin["ci"]["level"],
+            ci_method=utility_margin["ci"]["method"],
+            locator="heldout_anti_compliance_margin.families.utility_positive_selected.estimate",
+        )
+        margin_delta = margin["paired_deltas"]["utility_positive_minus_noop"]
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin",
+            spec=spec,
+            metric_name="utility_positive_minus_noop_margin",
+            comparison_type="paired_effect",
+            condition_a="noop",
+            condition_b="utility_positive_selected",
+            point=margin_delta["estimate"],
+            unit="logprob_margin",
+            n=data["n_samples"],
+            paired=True,
+            ci_lower=margin_delta["ci"]["lower"],
+            ci_upper=margin_delta["ci"]["upper"],
+            ci_level=margin_delta["ci"]["level"],
+            ci_method=margin_delta["ci"]["method"],
+            locator="heldout_anti_compliance_margin.paired_deltas.utility_positive_minus_noop.estimate",
         )
 
     def extract_falseqa_results(self, spec: JsonDict) -> None:
@@ -1756,6 +2003,80 @@ class Builder:
             unit="count",
             n=500,
             locator="conditions.iti_e0_alpha_8.n_not_attempted",
+        )
+
+    def extract_bridge_margins(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        self.add_metric_from_point(
+            metric_id="transfer.bridge_margins.sample_size",
+            spec=spec,
+            metric_name="sample_size",
+            comparison_type="summary_value",
+            condition_a="bridge_margin_bundle",
+            condition_b="bridge_margin_bundle",
+            point=data["n_records"],
+            unit="count",
+            n=data["n_records"],
+            locator="n_records",
+        )
+
+        cohort_slugs = {
+            "A_rw_substitution": "a_rw_substitution",
+            "B_rw_nonsubstitution": "b_rw_nonsubstitution",
+            "C_wr_rescue": "c_wr_rescue",
+            "D_random_control": "d_random_control",
+        }
+        for cohort_key, cohort_slug in cohort_slugs.items():
+            shift = data["cohorts"][cohort_key]["first3"]["shift_nats"]
+            self.add_metric_from_point(
+                metric_id=f"transfer.bridge_margins.{cohort_slug}.first3_shift_nats",
+                spec=spec,
+                metric_name=f"{cohort_slug}_first3_shift_nats",
+                comparison_type="within_cohort_shift",
+                condition_a=f"{cohort_key}_baseline_first3",
+                condition_b=f"{cohort_key}_iti_first3",
+                point=shift["estimate"],
+                unit="nats",
+                n=shift["n"],
+                paired=True,
+                ci_lower=shift["ci"]["lower"],
+                ci_upper=shift["ci"]["upper"],
+                ci_level=shift["ci"]["level"],
+                ci_method=shift["ci"]["method"],
+                locator=f"cohorts.{cohort_key}.first3.shift_nats.estimate",
+            )
+
+        comparison = data["between_cohort"]["A_vs_D"]["first3"]["shift_nats"]
+        comparison_n = int(comparison["n_a"]) + int(comparison["n_b"])
+        self.add_metric_from_point(
+            metric_id="transfer.bridge_margins.a_vs_d.first3_shift_nats_gap",
+            spec=spec,
+            metric_name="a_vs_d_first3_shift_nats_gap",
+            comparison_type="between_cohort_shift_gap",
+            condition_a="D_random_control",
+            condition_b="A_rw_substitution",
+            point=comparison["estimate"],
+            unit="nats",
+            n=comparison_n,
+            paired=False,
+            ci_lower=comparison["ci"]["lower"],
+            ci_upper=comparison["ci"]["upper"],
+            ci_level=comparison["ci"]["level"],
+            ci_method=comparison["ci"]["method"],
+            locator="between_cohort.A_vs_D.first3.shift_nats.estimate",
+        )
+        self.add_metric_from_point(
+            metric_id="transfer.bridge_margins.a_vs_d.first3_shift_nats_p",
+            spec=spec,
+            metric_name="a_vs_d_first3_shift_nats_p",
+            comparison_type="between_cohort_permutation_test",
+            condition_a="D_random_control",
+            condition_b="A_rw_substitution",
+            point=comparison["permutation_test"]["p_value"],
+            unit="p_value",
+            n=comparison_n,
+            paired=False,
+            locator="between_cohort.A_vs_D.first3.shift_nats.permutation_test.p_value",
         )
 
     def extract_truthfulqa_mc_pool(self, spec: JsonDict) -> None:

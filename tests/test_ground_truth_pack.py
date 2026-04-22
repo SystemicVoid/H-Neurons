@@ -293,6 +293,84 @@ def test_surface_crosswalk_covers_declared_scalars_and_structured_claims() -> No
     assert seen_unresolved == unresolved
 
 
+def test_sae_utility_selector_metrics_use_april_22_surfaces_not_legacy_control() -> (
+    None
+):
+    metrics = {
+        row["metric_id"]: row for row in load_jsonl(PACK_DIR / "metric_ledger.jsonl")
+    }
+    legacy_prefix = "data/gemma3_4b/intervention/faitheval_sae/control/"
+    expected = {
+        "intervention.faitheval_sae_utility.readout_overlap_jaccard": (
+            "faitheval_sae_utility_selector_summary",
+            "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/selector_summary.json",
+            "family_overlap.utility_selected_vs_readout_selected.jaccard",
+        ),
+        "intervention.faitheval_sae_utility.utility_minus_readout_margin": (
+            "faitheval_sae_utility_selector_heldout",
+            "data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json",
+            "heldout_anti_compliance_margin.paired_deltas.utility_minus_readout.estimate",
+        ),
+        "intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin": (
+            "faitheval_sae_utility_selector_augment",
+            "data/gemma3_4b/intervention/faitheval_sae_utility_selector/report_augment/augment_heldout_summary.json",
+            "heldout_anti_compliance_margin.paired_deltas.utility_positive_minus_noop.estimate",
+        ),
+    }
+
+    for metric_id, (artifact_id, source_path, locator) in expected.items():
+        metric = metrics[metric_id]
+        assert metric["source_artifact_ids"] == [artifact_id]
+        assert metric["source_locators"] == [
+            {
+                "artifact_id": artifact_id,
+                "source_path": source_path,
+                "locator": locator,
+                "derivation": "direct",
+            }
+        ]
+        assert all(
+            not ref["source_path"].startswith(legacy_prefix)
+            for ref in metric["source_locators"]
+        )
+
+
+def test_new_sae_utility_surfaces_have_manifest_and_crosswalk_coverage() -> None:
+    manifest = load_json(MANIFEST_PATH)
+    artifact_ids = {artifact["artifact_id"] for artifact in manifest["artifacts"]}
+    assert {
+        "faitheval_sae_utility_selector_summary",
+        "faitheval_sae_utility_selector_heldout",
+        "faitheval_sae_utility_selector_audit",
+        "faitheval_sae_utility_selector_augment",
+        "faitheval_sae_utility_selector_augment_audit",
+    } <= artifact_ids
+
+    crosswalk = {
+        row["surface_id"]: row
+        for row in load_jsonl(PACK_DIR / "surface_crosswalk.jsonl")
+    }
+    expected = {
+        "surface:data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/selector_summary.json:family_overlap.utility_selected_vs_readout_selected.jaccard": "intervention.faitheval_sae_utility.readout_overlap_jaccard",
+        "surface:data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json:heldout_anti_compliance_margin.paired_deltas.utility_minus_readout.estimate": "intervention.faitheval_sae_utility.utility_minus_readout_margin",
+        "surface:data/gemma3_4b/intervention/faitheval_sae_utility_selector/report_augment/augment_heldout_summary.json:heldout_anti_compliance_margin.paired_deltas.utility_positive_minus_noop.estimate": "intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin",
+    }
+    for surface_id, metric_id in expected.items():
+        assert crosswalk[surface_id]["coverage_status"] == "exact_metric"
+        assert crosswalk[surface_id]["ledger_metric_ids"] == [metric_id]
+
+    assert (
+        crosswalk["source:faitheval_sae_utility_selector_audit"]["coverage_status"]
+        == "markdown_fallback_only"
+    )
+    assert (
+        crosswalk["source:faitheval_sae_utility_selector_augment_audit"][
+            "coverage_status"
+        ]
+        == "markdown_fallback_only"
+    )
+
+
 def test_faitheval_mean_slope_difference_uses_seed_bootstrap_mean_contract() -> None:
     summary = load_json(
         ROOT
@@ -377,6 +455,75 @@ def test_d7_metric_contracts_use_real_raw_locators_and_exact_site_scalars() -> N
             site_locator,
         }
         assert "d7_comparison_site" in metric["source_artifact_ids"]
+        assert crosswalk[surface_id]["coverage_status"] == "exact_metric"
+        assert crosswalk[surface_id]["ledger_metric_ids"] == [metric_id]
+
+
+def test_bridge_margins_results_are_present_and_crosswalked() -> None:
+    results = load_json(
+        ROOT / "data/gemma3_4b/analysis/bridge_margins/test/results.json"
+    )
+    metrics = {
+        row["metric_id"]: row for row in load_jsonl(PACK_DIR / "metric_ledger.jsonl")
+    }
+    crosswalk = {
+        row["surface_id"]: row
+        for row in load_jsonl(PACK_DIR / "surface_crosswalk.jsonl")
+    }
+
+    sample_size = metrics["transfer.bridge_margins.sample_size"]
+    assert sample_size["estimate"] == results["n_records"]
+    assert sample_size["source_locators"] == [
+        {
+            "artifact_id": "bridge_margins_test_results",
+            "source_path": "data/gemma3_4b/analysis/bridge_margins/test/results.json",
+            "locator": "n_records",
+            "derivation": "direct",
+        }
+    ]
+
+    a_shift = results["cohorts"]["A_rw_substitution"]["first3"]["shift_nats"]
+    a_metric = metrics["transfer.bridge_margins.a_rw_substitution.first3_shift_nats"]
+    assert a_metric["estimate"] == pytest.approx(a_shift["estimate"])
+    assert a_metric["n"] == a_shift["n"]
+    assert a_metric["paired"] is True
+    assert a_metric["ci_lower"] == pytest.approx(a_shift["ci"]["lower"])
+    assert a_metric["ci_upper"] == pytest.approx(a_shift["ci"]["upper"])
+    assert a_metric["source_locators"] == [
+        {
+            "artifact_id": "bridge_margins_test_results",
+            "source_path": "data/gemma3_4b/analysis/bridge_margins/test/results.json",
+            "locator": "cohorts.A_rw_substitution.first3.shift_nats.estimate",
+            "derivation": "direct",
+        }
+    ]
+
+    comparison = results["between_cohort"]["A_vs_D"]["first3"]["shift_nats"]
+    gap_metric = metrics["transfer.bridge_margins.a_vs_d.first3_shift_nats_gap"]
+    p_metric = metrics["transfer.bridge_margins.a_vs_d.first3_shift_nats_p"]
+    assert gap_metric["estimate"] == pytest.approx(comparison["estimate"])
+    assert gap_metric["ci_lower"] == pytest.approx(comparison["ci"]["lower"])
+    assert gap_metric["ci_upper"] == pytest.approx(comparison["ci"]["upper"])
+    assert gap_metric["n"] == comparison["n_a"] + comparison["n_b"]
+    assert p_metric["estimate"] == pytest.approx(
+        comparison["permutation_test"]["p_value"]
+    )
+    assert p_metric["source_locators"] == [
+        {
+            "artifact_id": "bridge_margins_test_results",
+            "source_path": "data/gemma3_4b/analysis/bridge_margins/test/results.json",
+            "locator": "between_cohort.A_vs_D.first3.shift_nats.permutation_test.p_value",
+            "derivation": "direct",
+        }
+    ]
+
+    expected = {
+        "surface:data/gemma3_4b/analysis/bridge_margins/test/results.json:n_records": "transfer.bridge_margins.sample_size",
+        "surface:data/gemma3_4b/analysis/bridge_margins/test/results.json:cohorts.A_rw_substitution.first3.shift_nats.estimate": "transfer.bridge_margins.a_rw_substitution.first3_shift_nats",
+        "surface:data/gemma3_4b/analysis/bridge_margins/test/results.json:between_cohort.A_vs_D.first3.shift_nats.estimate": "transfer.bridge_margins.a_vs_d.first3_shift_nats_gap",
+        "surface:data/gemma3_4b/analysis/bridge_margins/test/results.json:between_cohort.A_vs_D.first3.shift_nats.permutation_test.p_value": "transfer.bridge_margins.a_vs_d.first3_shift_nats_p",
+    }
+    for surface_id, metric_id in expected.items():
         assert crosswalk[surface_id]["coverage_status"] == "exact_metric"
         assert crosswalk[surface_id]["ledger_metric_ids"] == [metric_id]
 

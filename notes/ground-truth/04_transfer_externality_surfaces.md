@@ -9,6 +9,7 @@ Template: neutral structured surface summary.
 | source_id | source_path | role | status |
 |---|---|---|---|
 | `bridge_irr_key` | `data/judge_validation/bridge_irr/test_queue_key.jsonl` | `example_pool` | `current` |
+| `bridge_margins_test_results` | `data/gemma3_4b/analysis/bridge_margins/test/results.json` | `margin_analysis_surface` | `current` |
 | `bridge_phase3_site` | `site/data/bridge_phase3.json` | `bridge_surface` | `current` |
 | `simpleqa_alpha_0_rows` | `data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_0.0.jsonl` | `example_pool` | `current` |
 | `simpleqa_alpha_8_rows` | `data/gemma3_4b/intervention/simpleqa_factual_phrase_iti-head_truthfulqa-paperfaithful_k-12_ranked_seed-42_iti-truthfulqa-paperfaithful-production-iti-head_79f3852513/experiment/alpha_8.0.jsonl` | `example_pool` | `current` |
@@ -50,6 +51,13 @@ Template: neutral structured surface summary.
 | `transfer.bridge.iti_not_attempted_count` | `triviaqa_bridge` | `iti_not_attempted_count` | `iti_e0_alpha_8.0` | `iti_e0_alpha_8.0` | 8 | `count` | 500 | `—` | `bridge_phase3_site` |
 | `transfer.bridge.mcnemar_p` | `triviaqa_bridge` | `mcnemar_p` | `baseline_alpha_1.0` | `iti_e0_alpha_8.0` | 0.0002 | `p_value` | 500 | `—` | `bridge_phase3_site` |
 | `transfer.bridge.sample_size` | `triviaqa_bridge` | `sample_size` | `baseline_alpha_1.0` | `baseline_alpha_1.0` | 500 | `count` | 500 | `—` | `bridge_phase3_site` |
+| `transfer.bridge_margins.a_rw_substitution.first3_shift_nats` | `triviaqa_bridge_margins` | `a_rw_substitution_first3_shift_nats` | `A_rw_substitution_baseline_first3` | `A_rw_substitution_iti_first3` | -10.15518472271581 | `nats` | 31 | `[-12.812432706548321, -7.595528576643236]` | `bridge_margins_test_results` |
+| `transfer.bridge_margins.a_vs_d.first3_shift_nats_gap` | `triviaqa_bridge_margins` | `a_vs_d_first3_shift_nats_gap` | `D_random_control` | `A_rw_substitution` | -5.100303097540333 | `nats` | 231 | `[-8.216220929961532, -2.16067600561342]` | `bridge_margins_test_results` |
+| `transfer.bridge_margins.a_vs_d.first3_shift_nats_p` | `triviaqa_bridge_margins` | `a_vs_d_first3_shift_nats_p` | `D_random_control` | `A_rw_substitution` | 0.008099190080991902 | `p_value` | 231 | `—` | `bridge_margins_test_results` |
+| `transfer.bridge_margins.b_rw_nonsubstitution.first3_shift_nats` | `triviaqa_bridge_margins` | `b_rw_nonsubstitution_first3_shift_nats` | `B_rw_nonsubstitution_baseline_first3` | `B_rw_nonsubstitution_iti_first3` | -40.05726317564646 | `nats` | 12 | `[-50.08804169694582, -30.371342892199763]` | `bridge_margins_test_results` |
+| `transfer.bridge_margins.c_wr_rescue.first3_shift_nats` | `triviaqa_bridge_margins` | `c_wr_rescue_first3_shift_nats` | `C_wr_rescue_baseline_first3` | `C_wr_rescue_iti_first3` | 4.72853547334671 | `nats` | 14 | `[2.2720494434237484, 7.251405043048517]` | `bridge_margins_test_results` |
+| `transfer.bridge_margins.d_random_control.first3_shift_nats` | `triviaqa_bridge_margins` | `d_random_control_first3_shift_nats` | `D_random_control_baseline_first3` | `D_random_control_iti_first3` | -5.054881625175476 | `nats` | 200 | `[-6.550223479285836, -3.599339650750161]` | `bridge_margins_test_results` |
+| `transfer.bridge_margins.sample_size` | `triviaqa_bridge_margins` | `sample_size` | `bridge_margin_bundle` | `bridge_margin_bundle` | 257 | `count` | 257 | `—` | `bridge_margins_test_results` |
 | `transfer.simpleqa.attempt_delta_0_to_8_pp` | `simpleqa` | `attempt_delta_0_to_8_pp` | `alpha_0.0` | `alpha_8.0` | -32.7 | `pp` | 1000 | `[-35.6, -29.8]` | `simpleqa_alpha_0_rows, simpleqa_alpha_8_rows` |
 | `transfer.simpleqa.attempt_rate_alpha_0` | `simpleqa` | `attempt_rate_alpha_0` | `alpha_0.0` | `alpha_0.0` | 0.997 | `proportion` | 1000 | `—` | `simpleqa_alpha_0_rows` |
 | `transfer.simpleqa.attempt_rate_alpha_8` | `simpleqa` | `attempt_rate_alpha_8` | `alpha_8.0` | `alpha_8.0` | 0.67 | `proportion` | 1000 | `—` | `simpleqa_alpha_8_rows` |
