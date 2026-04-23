@@ -86,6 +86,17 @@ def extract_section_bullets(text: str, heading: str) -> list[str]:
     return bullets
 
 
+def extract_section_body(text: str, start_heading: str, end_heading: str) -> str:
+    start_token = f"{start_heading}\n"
+    start_index = text.find(start_token)
+    assert start_index != -1, start_heading
+    body_start = start_index + len(start_token)
+    end_token = f"\n{end_heading}\n"
+    body_end = text.find(end_token, body_start)
+    assert body_end != -1, end_heading
+    return text[body_start:body_end].strip()
+
+
 def select_quantile_ids(
     rows: list[dict], score_key: str, tie_key: str, fractions: list[float]
 ) -> list[str]:
@@ -137,6 +148,7 @@ def test_pack_outputs_exist_and_rebuild_is_byte_stable() -> None:
         "03_measurement_surfaces.md",
         "04_transfer_externality_surfaces.md",
         "05_mechanism_diagnostic_surfaces.md",
+        "metric_tables_only.md",
         "artifact_manifest.jsonl",
         "metric_ledger.jsonl",
         "example_ledger.jsonl",
@@ -944,6 +956,38 @@ def test_markdown_docs_use_new_fixed_sections_and_grounded_citations() -> None:
         assert "```text" not in text
         assert "Paired example ids:" not in text
         assert "Question summary (" in text
+
+
+def test_combined_metric_tables_doc_uses_verbatim_table_blocks() -> None:
+    combined = (PACK_DIR / "metric_tables_only.md").read_text(encoding="utf-8")
+    assert combined.startswith("# Ground-Truth Metric Tables\n")
+
+    family_docs = [
+        ("Readout Surfaces", PACK_DIR / "01_readout_surfaces.md"),
+        ("Intervention Surfaces", PACK_DIR / "02_intervention_surfaces.md"),
+        ("Measurement Surfaces", PACK_DIR / "03_measurement_surfaces.md"),
+        (
+            "Transfer / Externality Surfaces",
+            PACK_DIR / "04_transfer_externality_surfaces.md",
+        ),
+        (
+            "Mechanism / Diagnostic Surfaces",
+            PACK_DIR / "05_mechanism_diagnostic_surfaces.md",
+        ),
+    ]
+    for title, path in family_docs:
+        source_text = path.read_text(encoding="utf-8")
+        source_body = extract_section_body(
+            source_text,
+            "## Grouped Metric Tables",
+            "## Representative Examples",
+        )
+        assert f"## {title}\n\n{source_body}\n" in combined
+
+    assert "## What This Surface Measures" not in combined
+    assert "## High-Signal Patterns" not in combined
+    assert "## Measurement / Interpretation Risks" not in combined
+    assert "## Representative Examples" not in combined
 
 
 def test_briefing_bullets_include_metric_and_artifact_citations() -> None:

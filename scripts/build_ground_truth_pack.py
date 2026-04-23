@@ -467,6 +467,24 @@ def find_markdown_match(text: str, pattern: str) -> re.Match[str]:
     return match
 
 
+def extract_markdown_section_body(
+    text: str, start_heading: str, end_heading: str | None = None
+) -> str:
+    start_token = f"{start_heading}\n"
+    start_index = text.find(start_token)
+    if start_index == -1:
+        raise ValueError(f"heading not found: {start_heading}")
+    body_start = start_index + len(start_token)
+    if end_heading is None:
+        body_end = len(text)
+    else:
+        end_token = f"\n{end_heading}\n"
+        body_end = text.find(end_token, body_start)
+        if body_end == -1:
+            raise ValueError(f"heading not found: {end_heading}")
+    return text[body_start:body_end].strip()
+
+
 def format_metric_value(row: JsonDict) -> str:
     value = row["estimate"]
     unit = row["unit"]
@@ -3777,6 +3795,18 @@ class Builder:
             "mechanism_diagnostic_surfaces": "Mechanism / Diagnostic Surfaces",
         }[family_id]
 
+    def _build_combined_metric_tables_doc(self) -> str:
+        lines = ["# Ground-Truth Metric Tables", ""]
+        for family_id, family_spec in self.family_specs.items():
+            family_doc = GROUND_TRUTH_DIR / family_spec["doc"]
+            table_body = extract_markdown_section_body(
+                family_doc.read_text(encoding="utf-8"),
+                "## Grouped Metric Tables",
+                "## Representative Examples",
+            )
+            lines.extend([f"## {self._family_title(family_id)}", "", table_body, ""])
+        return "\n".join(lines).rstrip() + "\n"
+
     def _metric_lookup(self) -> dict[str, JsonDict]:
         return {row["metric_id"]: row for row in self.metrics}
 
@@ -4408,6 +4438,10 @@ class Builder:
                 self._render_examples(family_id, examples_by_family[family_id])
             )
             path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+        (GROUND_TRUTH_DIR / "metric_tables_only.md").write_text(
+            self._build_combined_metric_tables_doc(),
+            encoding="utf-8",
+        )
 
     def build_readme(self, artifact_rows: list[JsonDict]) -> str:
         status_counts: dict[str, int] = defaultdict(int)
