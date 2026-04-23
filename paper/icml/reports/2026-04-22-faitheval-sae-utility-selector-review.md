@@ -17,8 +17,60 @@
 > restricted to existing extraction scope). The readout-vs-utility sign
 > divergence at the margin level is an independently interesting finding
 > that supports the paper's "good readout ≠ good steering handle"
-> thesis — but see the known-issues section before citing the
-> `matched_random` comparison as a clean null.
+> thesis. The original prompt-end `matched_random` caveat is now
+> superseded by the full-sequence rerun in §0; the old control is kept
+> only as archived provenance.
+
+## 0. Superseding Update — Full-Sequence Random Control
+
+On 2026-04-22, the live `matched_random*` families were rerun with a new
+control that supersedes the prompt-end zero-weight control discussed later
+in this note. The new control samples from the classifier-zero-weight SAE
+pool, excludes features with `token_activation_rate = 0`, matches the
+`utility_selected` / `utility_positive_selected` layer histogram exactly,
+and samples without replacement within each layer with weights
+proportional to full-sequence token activation rate on the frozen
+validation split (`selector/full_sequence_feature_stats.json`).
+
+The old prompt-end control was not deleted. Before rerunning, each affected
+held-out `experiment/` directory was archived under
+`experiment_2026-04-22_prompt_end_zero_weight_control`, so the original
+artifact remains available for audit and provenance.
+
+The new seed manifests are distinct:
+
+- Main `k=266`: `matched_random_seed_0=2e85887325ffe57f`,
+  `matched_random_seed_1=133681d0c976cc98`,
+  `matched_random_seed_2=dfc9d80ff04142d9`
+- Positive augment `k=154`: `matched_random_positive_seed_0=e90a13dcefdf81b8`,
+  `matched_random_positive_seed_1=e6954cc758b29f3d`,
+  `matched_random_positive_seed_2=5c69106e91f84d7f`
+
+Updated paper-facing contrasts vs the superseding control:
+
+- Main `utility_selected − matched_random_seed_i`, FaithEval compliance:
+  seed 0 `+0.714 pp` [`-0.833`, `+2.262`], seed 1 `-0.238 pp`
+  [`-1.667`, `+1.190`], seed 2 `-0.238 pp` [`-1.786`, `+1.310`]
+- Main `utility_selected − matched_random_seed_i`,
+  anti-compliance margin: seed 0 `-0.651 nats` [`-1.026`, `-0.273`],
+  seed 1 `-1.207 nats` [`-1.575`, `-0.822`], seed 2 `+0.143 nats`
+  [`-0.184`, `+0.478`]
+- Augment `utility_positive_selected − matched_random_positive_seed_i`,
+  FaithEval compliance: seed 0 `+0.476 pp` [`-0.952`, `+2.024`], seed 1
+  `+0.476 pp` [`-0.952`, `+1.905`], seed 2 `+0.119 pp`
+  [`-1.310`, `+1.667`]
+- Augment `utility_positive_selected − matched_random_positive_seed_i`,
+  anti-compliance margin: seed 0 `-0.735 nats` [`-1.095`, `-0.364`],
+  seed 1 `-0.813 nats` [`-1.155`, `-0.460`], seed 2 `-0.422 nats`
+  [`-0.751`, `-0.084`]
+
+Paper-facing summary under the superseding control: both main and augment
+compliance contrasts remain null across seeds, while the anti-compliance
+margin contrast ranges from `-1.207` to `+0.143` nats in the main `k=266`
+bundle and from `-0.813` to `-0.422` nats in the positive-only `k=154`
+augment. For any citation of `matched_random`, use the regenerated report
+artifacts and this update rather than the historical prompt-end control
+discussion below.
 
 ## Source Hierarchy
 
@@ -256,7 +308,12 @@ of the contrast (`utility` and `readout`) use the same α=0 intervention
 path on probe-nonzero features — the path artifact cancels in the paired
 delta.
 
-## 4. Issues surfaced by this review
+## 4. Issues surfaced by the original prompt-end control review
+
+Sections 4.1-4.3 document the failure mode of the original prompt-end
+`matched_random` control. They are retained as historical review evidence;
+the live control family has been superseded by the full-sequence rerun in
+§0.
 
 ### 4.1 `matched_random` "three seeds" are byte-identical *(material)*
 
@@ -357,15 +414,12 @@ paper. A wider SAE sweep would be a separate, larger experiment.
 
 ## 5. Suggested next steps (ranked)
 
-1. **Rerun `matched_random` with a proper control (≤½ day, high
-   information).** Either (a) sample uniformly at random from the
-   probe-nonzero candidate pool minus `utility_selected`, layer-matched
-   to the utility histogram (same number of active features per layer);
-   or (b) sample from the zero-weight pool but weight by full-sequence
-   activation probability (not just prompt-end). Three *actually
-   independent* seeds. This closes §4.1, §4.2, §4.3 in one artifact and
-   yields a clean `utility − random` null that the paper can cite without
-   caveats.
+1. **[Completed 2026-04-22] Rerun `matched_random` with a proper control.**
+   This was executed using option (b): sample from the zero-weight pool,
+   exclude `token_activation_rate = 0`, exact-match the layer histogram,
+   and weight by full-sequence validation-token activation rate with three
+   distinct seeds. The resulting control supersedes the prompt-end
+   artifact; see §0 for the live paper-facing numbers.
 2. **Add an intervention-path baseline (~1 hr).** Run α=0 on a manifest
    containing a single *guaranteed-dead* feature (flat_idx picked to have
    activation_frequency = 0 and zero classifier weight). This isolates
