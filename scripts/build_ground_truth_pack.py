@@ -30,7 +30,6 @@ MARKDOWN_FALLBACK_CLAIMS = {
     "probe-selector-pilot-best-effect",
     "gradient-ranked-pilot-effect",
     "probe-causal-jaccard",
-    "historical-april-8-legacy-ruler-causal-full-500-effect",
     "strongreject-gpt-4o-dev-accuracy-after-rerun",
     "strongreject-gpt-4o-mini-dev-accuracy-prior",
     "holdout-gap-after-strongreject-model-upgrade",
@@ -39,6 +38,9 @@ MARKDOWN_FALLBACK_CLAIMS = {
     "contamination-bug-borderline-records-reclassified",
     "contamination-bug-strict-harmfulness-inflation",
     "h-minus-random-permutation-test",
+}
+HISTORICAL_ONLY_CLAIMS = {
+    "historical-april-8-legacy-ruler-causal-full-500-effect",
 }
 PROVENANCE_CLAIM_METRIC_IDS: dict[str, list[str]] = {
     "random-neuron-null-summary-five-unconstrained-seeds": [
@@ -137,6 +139,34 @@ PROVENANCE_CLAIM_METRIC_IDS: dict[str, list[str]] = {
     ],
     "pairwise-holdout-significance-summary": [
         "measurement.holdout.min_pairwise_mcnemar_p"
+    ],
+    "probe-selector-pilot-best-effect": ["mechanism.d7.pilot.probe_best_effect_pp"],
+    "gradient-ranked-pilot-effect": ["mechanism.d7.pilot.gradient_best_effect_pp"],
+    "probe-causal-jaccard": ["mechanism.d7.pilot.probe_causal_jaccard"],
+    "strongreject-gpt-4o-dev-accuracy-after-rerun": [
+        "measurement.strongreject.audit.gpt4o_dev_accuracy_after_rerun"
+    ],
+    "strongreject-gpt-4o-mini-dev-accuracy-prior": [
+        "measurement.strongreject.audit.gpt4o_mini_dev_accuracy_prior"
+    ],
+    "holdout-gap-after-strongreject-model-upgrade": [
+        "measurement.strongreject.audit.holdout_gap_after_model_upgrade_pp"
+    ],
+    "false-negatives-recovered-by-strongreject-model-upgrade": [
+        "measurement.strongreject.audit.false_negatives_recovered_after_upgrade"
+    ],
+    "persistent-strongreject-false-negatives-after-upgrade": [
+        "measurement.strongreject.audit.persistent_false_negatives_after_upgrade"
+    ],
+    "contamination-bug-borderline-records-reclassified": [
+        "measurement.jailbreak.audit.contamination_bug_borderline_reclassified"
+    ],
+    "contamination-bug-strict-harmfulness-inflation": [
+        "measurement.jailbreak.audit.contamination_bug_strict_harmfulness_before",
+        "measurement.jailbreak.audit.contamination_bug_strict_harmfulness_after",
+    ],
+    "h-minus-random-permutation-test": [
+        "measurement.jailbreak.v2.h_minus_random_permutation_p"
     ],
 }
 SURFACE_METADATA_PREFIXES = (
@@ -430,6 +460,62 @@ def first_sentence_count(text: str, pattern: str) -> str:
     return match.group(1)
 
 
+def find_markdown_match(text: str, pattern: str) -> re.Match[str]:
+    match = re.search(pattern, text, flags=re.MULTILINE)
+    if not match:
+        raise ValueError(f"pattern not found: {pattern}")
+    return match
+
+
+def format_metric_value(row: JsonDict) -> str:
+    value = row["estimate"]
+    unit = row["unit"]
+    if unit == "proportion":
+        return f"{float(value) * 100:.1f}%"
+    if unit == "pp":
+        return f"{float(value):+.1f} pp"
+    if unit == "pp_per_alpha":
+        return f"{float(value):+.2f} pp/alpha"
+    if unit == "p_value":
+        if float(value) < 0.001:
+            return f"{float(value):.2e}"
+        return f"{float(value):.3f}"
+    if unit == "rho":
+        return f"{float(value):.2f}"
+    if unit in {"ac1", "kappa", "auroc", "correlation", "cohen_d"}:
+        return f"{float(value):.3f}"
+    if unit == "logprob_margin":
+        return f"{float(value):+.2f}"
+    if unit == "nats":
+        return f"{float(value):+.2f}"
+    if unit == "logit_weight":
+        return f"{float(value):.3f}"
+    if unit == "activation":
+        return f"{float(value):+.4f}"
+    if unit == "characters":
+        return f"{float(value):.1f}"
+    if isinstance(value, int) or float(value).is_integer():
+        return str(int(value))
+    return f"{float(value):.3f}"
+
+
+def format_ci(row: JsonDict) -> str:
+    if row["ci_lower"] is None or row["ci_upper"] is None:
+        return "—"
+    if row["unit"] == "proportion":
+        return f"[{row['ci_lower'] * 100:.1f}, {row['ci_upper'] * 100:.1f}]%"
+    if row["unit"] in {"pp", "pp_per_alpha"}:
+        return f"[{row['ci_lower']:+.1f}, {row['ci_upper']:+.1f}]"
+    if row["unit"] == "p_value":
+        return f"[{row['ci_lower']:.3f}, {row['ci_upper']:.3f}]"
+    return f"[{row['ci_lower']:.3f}, {row['ci_upper']:.3f}]"
+
+
+def metric_citation(refs: list[str] | tuple[str, ...]) -> str:
+    refs = [f"`{ref}`" for ref in refs]
+    return f"[{', '.join(refs)}]"
+
+
 class Builder:
     def __init__(self, manifest: JsonDict) -> None:
         self.manifest = manifest
@@ -437,6 +523,9 @@ class Builder:
         self.family_specs: dict[str, JsonDict] = {
             family["id"]: family for family in manifest["families"]
         }
+        self.banned_prose_terms = tuple(
+            str(term).strip().lower() for term in manifest.get("banned_prose_terms", [])
+        )
         self.artifact_by_id: dict[str, JsonDict] = {
             artifact["artifact_id"]: artifact for artifact in self.artifact_specs
         }
@@ -580,6 +669,10 @@ class Builder:
             "csv2_v3_results": self.extract_csv2_v3_results,
             "strongreject_results": self.extract_strongreject_results,
             "available_jailbreak_evaluator_comparison": self.extract_available_jailbreak_evaluator_comparison,
+            "d7_causal_pilot_audit": self.extract_d7_causal_pilot_audit,
+            "jailbreak_seed0_control_audit": self.extract_jailbreak_seed0_control_audit,
+            "evaluator_4way_audit": self.extract_evaluator_4way_audit,
+            "jailbreak_measurement_cleanup_audit": self.extract_jailbreak_measurement_cleanup_audit,
             "bridge_irr_summary": self.extract_bridge_irr_summary,
             "bridge_phase3": self.extract_bridge_phase3,
             "bridge_margins": self.extract_bridge_margins,
@@ -1818,6 +1911,225 @@ class Builder:
             n=causal["v3"]["total"],
         )
 
+    def extract_d7_causal_pilot_audit(self, spec: JsonDict) -> None:
+        text = self.path(spec["source_path"]).read_text(encoding="utf-8")
+        probe = find_markdown_match(
+            text,
+            r"best is ([+-]?\d+)pp \[CI: ([+-]?\d+), ([+-]?\d+)\]",
+        )
+        causal = find_markdown_match(
+            text,
+            r"statistically significant reduction.*?\*\*([+-]?\d+)pp csv2_yes \[95% CI: ([+-]?\d+), ([+-]?\d+)\]",
+        )
+        jaccard = find_markdown_match(
+            text,
+            r"Jaccard similarity on top-20 selected heads: \*\*([0-9.]+)\*\*",
+        )
+        self.add_metric_from_point(
+            metric_id="mechanism.d7.pilot.probe_best_effect_pp",
+            spec=spec,
+            metric_name="probe_best_effect_pp",
+            comparison_type="pilot_effect",
+            condition_a="probe_alpha_0.0",
+            condition_b="probe_alpha_1.0",
+            point=float(probe.group(1)),
+            unit="pp",
+            n=100,
+            paired=True,
+            ci_lower=float(probe.group(2)),
+            ci_upper=float(probe.group(3)),
+            ci_level=0.95,
+            ci_method="paired_bootstrap_reported_in_audit",
+            locator="§0",
+        )
+        self.add_metric_from_point(
+            metric_id="mechanism.d7.pilot.gradient_best_effect_pp",
+            spec=spec,
+            metric_name="gradient_best_effect_pp",
+            comparison_type="pilot_effect",
+            condition_a="causal_alpha_0.0",
+            condition_b="causal_alpha_4.0",
+            point=float(causal.group(1)),
+            unit="pp",
+            n=100,
+            paired=True,
+            ci_lower=float(causal.group(2)),
+            ci_upper=float(causal.group(3)),
+            ci_level=0.95,
+            ci_method="paired_bootstrap_reported_in_audit",
+            locator="§0",
+        )
+        self.add_metric_from_point(
+            metric_id="mechanism.d7.pilot.probe_causal_jaccard",
+            spec=spec,
+            metric_name="probe_causal_jaccard",
+            comparison_type="selector_overlap",
+            condition_a="probe_top20",
+            condition_b="causal_top20",
+            point=float(jaccard.group(1)),
+            unit="proportion",
+            n=36,
+            locator="§3.2",
+        )
+
+    def extract_jailbreak_seed0_control_audit(self, spec: JsonDict) -> None:
+        text = self.path(spec["source_path"]).read_text(encoding="utf-8")
+        permutation = find_markdown_match(
+            text,
+            r"Permutation test \(one-sided\):\*\* p = ([0-9.]+)",
+        )
+        borderline = find_markdown_match(
+            text,
+            r"Result:\*\* (\d+)/(\d+) \(([0-9.]+)%\) of borderline records are reclassified as \"yes\"",
+        )
+        inflation = find_markdown_match(
+            text,
+            r"The csv2_yes rate inflates from ([0-9.]+)% to ([0-9.]+)%",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.jailbreak.v2.h_minus_random_permutation_p",
+            spec=spec,
+            metric_name="h_minus_random_permutation_p",
+            comparison_type="permutation_test",
+            condition_a="h_neuron",
+            condition_b="seed0_random_control",
+            point=float(permutation.group(1)),
+            unit="p_value",
+            n=50_000,
+            locator="§0",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.jailbreak.audit.contamination_bug_borderline_reclassified",
+            spec=spec,
+            metric_name="contamination_bug_borderline_reclassified",
+            comparison_type="audit_count",
+            condition_a="borderline_v2_rows",
+            condition_b="misnormalized_v3_rows",
+            point=int(borderline.group(1)),
+            unit="count",
+            n=int(borderline.group(2)),
+            locator="§6.1",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.jailbreak.audit.contamination_bug_strict_harmfulness_before",
+            spec=spec,
+            metric_name="contamination_bug_strict_harmfulness_before",
+            comparison_type="audit_rate",
+            condition_a="correct_v2_rate",
+            condition_b="correct_v2_rate",
+            point=float(inflation.group(1)) / 100.0,
+            unit="proportion",
+            n=500,
+            locator="§6.1",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.jailbreak.audit.contamination_bug_strict_harmfulness_after",
+            spec=spec,
+            metric_name="contamination_bug_strict_harmfulness_after",
+            comparison_type="audit_rate",
+            condition_a="contaminated_rate",
+            condition_b="contaminated_rate",
+            point=float(inflation.group(2)) / 100.0,
+            unit="proportion",
+            n=500,
+            locator="§6.1",
+        )
+
+    def extract_evaluator_4way_audit(self, spec: JsonDict) -> None:
+        text = self.path(spec["source_path"]).read_text(encoding="utf-8")
+        prior = find_markdown_match(
+            text,
+            r"StrongREJECT \| gpt-4o-mini \| ([0-9.]+)% \[([0-9.]+), ([0-9.]+)\]",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.strongreject.audit.gpt4o_mini_dev_accuracy_prior",
+            spec=spec,
+            metric_name="gpt4o_mini_dev_accuracy_prior",
+            comparison_type="gold_accuracy",
+            condition_a="gold74_sr_mini",
+            condition_b="gold74_sr_mini",
+            point=float(prior.group(1)) / 100.0,
+            unit="proportion",
+            n=74,
+            ci_lower=float(prior.group(2)) / 100.0,
+            ci_upper=float(prior.group(3)) / 100.0,
+            ci_level=0.95,
+            ci_method="bootstrap_reported_in_audit",
+            locator="§0",
+        )
+
+    def extract_jailbreak_measurement_cleanup_audit(self, spec: JsonDict) -> None:
+        text = self.path(spec["source_path"]).read_text(encoding="utf-8")
+        rerun = find_markdown_match(
+            text,
+            r"Accuracy \[95% CI\] \| 74\.3% \[[0-9., ]+\] \| \*\*([0-9.]+)% \[([0-9.]+), ([0-9.]+)\]\*\* \| \+([0-9.]+)pp",
+        )
+        recovered = find_markdown_match(
+            text,
+            r"Upgrading from mini to 4o recovered only (\d+) of 19 FNs",
+        )
+        persistent = find_markdown_match(
+            text,
+            r"(\d+) of 19 FNs persist unchanged",
+        )
+        holdout_gap = find_markdown_match(
+            text,
+            r"\| Holdout \(50\) \| 96\.0% \| 96\.0% \| \*\*([0-9.]+)pp\*\* \|",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.strongreject.audit.gpt4o_dev_accuracy_after_rerun",
+            spec=spec,
+            metric_name="gpt4o_dev_accuracy_after_rerun",
+            comparison_type="gold_accuracy",
+            condition_a="gold74_sr_4o",
+            condition_b="gold74_sr_4o",
+            point=float(rerun.group(1)) / 100.0,
+            unit="proportion",
+            n=74,
+            ci_lower=float(rerun.group(2)) / 100.0,
+            ci_upper=float(rerun.group(3)) / 100.0,
+            ci_level=0.95,
+            ci_method="bootstrap_reported_in_audit",
+            locator="§3.2",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.strongreject.audit.holdout_gap_after_model_upgrade_pp",
+            spec=spec,
+            metric_name="holdout_gap_after_model_upgrade_pp",
+            comparison_type="paired_accuracy_gap",
+            condition_a="csv2_v3_holdout",
+            condition_b="strongreject_4o_holdout",
+            point=float(holdout_gap.group(1)),
+            unit="pp",
+            n=50,
+            paired=True,
+            locator="§3.4",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.strongreject.audit.false_negatives_recovered_after_upgrade",
+            spec=spec,
+            metric_name="false_negatives_recovered_after_upgrade",
+            comparison_type="audit_count",
+            condition_a="sr_mini_false_negatives",
+            condition_b="sr_4o_false_negatives",
+            point=int(recovered.group(1)),
+            unit="count",
+            n=19,
+            locator="§3.7",
+        )
+        self.add_metric_from_point(
+            metric_id="measurement.strongreject.audit.persistent_false_negatives_after_upgrade",
+            spec=spec,
+            metric_name="persistent_false_negatives_after_upgrade",
+            comparison_type="audit_count",
+            condition_a="sr_4o_false_negatives",
+            condition_b="sr_4o_false_negatives",
+            point=int(persistent.group(1)),
+            unit="count",
+            n=19,
+            locator="§3.7",
+        )
+
     def extract_bridge_irr_summary(self, spec: JsonDict) -> None:
         data = load_json(self.path(spec["source_path"]))
         irr = data["irr"]
@@ -2867,6 +3179,24 @@ class Builder:
                 merged[sample_id] = row
         return merged
 
+    def _load_bridge_question_map(self) -> dict[str, str]:
+        question_map: dict[str, str] = {}
+        for relative_path in [
+            "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/alpha_1.0.jsonl",
+            "data/gemma3_4b/intervention/triviaqa_bridge_iti_e0_paperfaithful_k12_first-3-tokens/test_experiment/alpha_8.0.jsonl",
+        ]:
+            for row in load_jsonl(self.path(relative_path)):
+                question = str(row.get("question", "")).strip()
+                if question:
+                    question_map[str(row["id"])] = question
+        for row in load_jsonl(
+            self.path("data/gemma3_4b/analysis/bridge_margins/test/margins.jsonl")
+        ):
+            question = str(row.get("question", "")).strip()
+            if question and str(row["question_id"]) not in question_map:
+                question_map[str(row["question_id"])] = question
+        return question_map
+
     def build_intervention_examples(self) -> None:
         self._paired_examples_from_rows(
             family="intervention_surfaces",
@@ -3013,6 +3343,8 @@ class Builder:
             "human_harmful__binary_harmful__csv2v2_borderline__csv2v3_yes__sr_yes__alpha_0_0",
             "human_harmful__binary_safe__csv2v2_no__csv2v3_no__sr_no__alpha_1_5",
             "human_harmful__binary_safe__csv2v2_no__csv2v3_no__sr_no__alpha_0_0",
+            "human_safe__binary_safe__csv2v2_no__csv2v3_no__sr_no__alpha_0_0",
+            "human_harmful__binary_harmful__csv2v2_yes__csv2v3_yes__sr_yes__alpha_1_5",
         ]
         for rank, stratum in enumerate(target_strata, start=1):
             selected = self._select_quantile_candidates(
@@ -3155,6 +3487,7 @@ class Builder:
                 self.path("data/judge_validation/bridge_irr/test_queue_key.jsonl")
             )
         }
+        bridge_question_map = self._load_bridge_question_map()
         label_map = {
             row["case_id"]: row
             for row in load_jsonl(
@@ -3209,7 +3542,9 @@ class Builder:
                         "selection_score": selected["selection_score"],
                         "selection_tiebreak": case_id,
                     },
-                    prompt_or_question=case["question_id"],
+                    prompt_or_question=bridge_question_map.get(
+                        case["question_id"], case["question_id"]
+                    ),
                     response_text=case["incorrect_response"],
                     raw_label_fields={
                         "paired_correct_response": case["paired_correct_response"],
@@ -3358,7 +3693,9 @@ class Builder:
                         for locator in metric["source_locators"]
                     ],
                     "provenance_refs": row["source_refs"],
-                    "coverage_status": "exact_metric"
+                    "coverage_status": "historical_only"
+                    if row["claim_slug"] in HISTORICAL_ONLY_CLAIMS
+                    else "exact_metric"
                     if metric_ids
                     else "unresolved"
                     if row["claim_slug"] in MARKDOWN_FALLBACK_CLAIMS
@@ -3431,6 +3768,596 @@ class Builder:
             )
         return rows
 
+    def _family_title(self, family_id: str) -> str:
+        return {
+            "readout_surfaces": "Readout Surfaces",
+            "intervention_surfaces": "Intervention Surfaces",
+            "measurement_surfaces": "Measurement Surfaces",
+            "transfer_externality_surfaces": "Transfer / Externality Surfaces",
+            "mechanism_diagnostic_surfaces": "Mechanism / Diagnostic Surfaces",
+        }[family_id]
+
+    def _metric_lookup(self) -> dict[str, JsonDict]:
+        return {row["metric_id"]: row for row in self.metrics}
+
+    def _metric_source_ids(self, metric_ids: Iterable[str]) -> list[str]:
+        metric_lookup = self._metric_lookup()
+        source_ids: list[str] = []
+        missing: list[str] = []
+        for metric_id in metric_ids:
+            row = metric_lookup.get(metric_id)
+            if row is None:
+                missing.append(metric_id)
+                continue
+            source_ids.extend(
+                str(artifact_id) for artifact_id in row["source_artifact_ids"]
+            )
+        if missing:
+            missing_text = ", ".join(sorted(missing))
+            raise KeyError(f"Unknown metric ids in citation: {missing_text}")
+        return unique_list(source_ids)
+
+    def _cite(self, *metric_ids: str, sources: list[str] | None = None) -> str:
+        refs = list(metric_ids)
+        refs.extend(self._metric_source_ids(metric_ids))
+        if sources:
+            refs.extend(sources)
+        return metric_citation(unique_list(refs))
+
+    def _briefing_text(self, text: str, *, max_chars: int) -> str:
+        normalized = re.sub(r"\s+", " ", text).strip()
+        if not normalized:
+            return "(empty)"
+        if len(normalized) <= max_chars:
+            return normalized
+        clipped = normalized[: max_chars + 1]
+        cutoff = clipped.rfind(" ")
+        if cutoff >= max_chars // 2:
+            clipped = clipped[:cutoff]
+        else:
+            clipped = clipped[:max_chars]
+        return clipped.rstrip(" ,;:.") + "..."
+
+    def _briefing_text_line(self, label: str, text: str, *, max_chars: int) -> str:
+        normalized = re.sub(r"\s+", " ", text).strip()
+        return (
+            f"{label} ({len(normalized)} chars): "
+            f"{self._briefing_text(normalized, max_chars=max_chars)}"
+        )
+
+    def _validate_briefing_bullet(self, section_id: str, bullet: str) -> str:
+        authored_text = re.sub(r"`[^`]+`", " ", bullet)
+        banned = [
+            term
+            for term in self.banned_prose_terms
+            if re.search(rf"\b{re.escape(term)}\b", authored_text, flags=re.IGNORECASE)
+        ]
+        if banned:
+            banned_text = ", ".join(sorted(banned))
+            raise ValueError(
+                f"{section_id} contains banned prose terms: {banned_text}: {bullet}"
+            )
+        return bullet
+
+    def _validated_briefing_bullets(
+        self, section_id: str, bullets: list[str]
+    ) -> list[str]:
+        return [
+            self._validate_briefing_bullet(section_id, bullet) for bullet in bullets
+        ]
+
+    def _family_measure_text(self, family_id: str, artifacts: list[JsonDict]) -> str:
+        source_ids = ", ".join(f"`{row['artifact_id']}`" for row in artifacts)
+        texts = {
+            "readout_surfaces": "These surfaces track whether the H-neuron and SAE readouts are real detectors, how sparse they are, and where the main classification errors land.",
+            "intervention_surfaces": "These surfaces track direct intervention effects on FaithEval, FalseQA, BioASQ, SAE variants, and the binary jailbreak readout, with controls kept separate from interpretation.",
+            "measurement_surfaces": "These surfaces track how evaluator choice, scoring cleanup, adjudication, and audit-derived corrections change the observed jailbreak or FaithEval conclusions.",
+            "transfer_externality_surfaces": "These surfaces track what the intervention does away from the source benchmark: TruthfulQA multiple choice, SimpleQA open-ended generation, and bridge-style entity substitution.",
+            "mechanism_diagnostic_surfaces": "These surfaces track selector-local D7 evidence, refusal-overlap diagnostics, swing subtypes, single-neuron limits, and verbosity confounds.",
+        }
+        return f"{texts[family_id]} Primary artifacts in this family: {source_ids}."
+
+    def _family_metric_groups(self, family_id: str) -> list[tuple[str, list[str]]]:
+        groups = {
+            "readout_surfaces": [
+                ("Detector Quality", ["readout.disjoint.", "readout.overlap."]),
+                ("SAE Readout", ["readout.sae."]),
+                (
+                    "Localization / Sparsity",
+                    ["readout.pipeline.", "readout.structure."],
+                ),
+            ],
+            "intervention_surfaces": [
+                ("FaithEval Core", ["intervention.faitheval."]),
+                ("FalseQA / BioASQ", ["intervention.falseqa.", "intervention.bioasq."]),
+                (
+                    "SAE Variants",
+                    [
+                        "intervention.faitheval_sae.",
+                        "intervention.faitheval_sae_utility.",
+                        "intervention.faitheval_sae_utility_positive.",
+                    ],
+                ),
+                ("Binary Jailbreak", ["intervention.jailbreak.binary."]),
+            ],
+            "measurement_surfaces": [
+                ("Jailbreak Ruler Sensitivity", ["measurement.jailbreak."]),
+                ("FaithEval Cleanup", ["measurement.faitheval."]),
+                (
+                    "Evaluator Validation",
+                    [
+                        "measurement.holdout.",
+                        "measurement.csv2_v3.",
+                        "measurement.strongreject.",
+                    ],
+                ),
+                ("Bridge Adjudication", ["measurement.bridge_irr."]),
+            ],
+            "transfer_externality_surfaces": [
+                ("TruthfulQA Multiple Choice", ["transfer.truthfulqa_mc."]),
+                ("SimpleQA", ["transfer.simpleqa."]),
+                ("Bridge Outcome Surface", ["transfer.bridge."]),
+                ("Bridge Margin Analysis", ["transfer.bridge_margins."]),
+            ],
+            "mechanism_diagnostic_surfaces": [
+                ("D7 Current Panel", ["mechanism.d7.current_panel."]),
+                ("D7 Pilot Audit", ["mechanism.d7.pilot."]),
+                ("Overlap / Swing", ["mechanism.refusal_overlap.", "mechanism.swing."]),
+                (
+                    "Single-Neuron / Verbosity",
+                    ["mechanism.neuron_4288.", "mechanism.verbosity."],
+                ),
+            ],
+        }
+        return groups[family_id]
+
+    def _render_metric_tables(
+        self, family_id: str, family_metrics: list[JsonDict]
+    ) -> list[str]:
+        lines = ["## Grouped Metric Tables", ""]
+        remaining = list(sorted(family_metrics, key=lambda row: row["metric_id"]))
+        for title, prefixes in self._family_metric_groups(family_id):
+            rows = [
+                row
+                for row in remaining
+                if any(row["metric_id"].startswith(prefix) for prefix in prefixes)
+            ]
+            if not rows:
+                continue
+            remaining = [row for row in remaining if row not in rows]
+            lines.extend(
+                [
+                    f"### {title}",
+                    "",
+                    "| metric_id | estimate | n | ci | source_ids |",
+                    "|---|---:|---:|---|---|",
+                ]
+            )
+            for row in rows:
+                n_text = "—" if row["n"] is None else str(row["n"])
+                lines.append(
+                    f"| `{row['metric_id']}` | {format_metric_value(row)} | {n_text} | `{format_ci(row)}` | `{', '.join(row['source_artifact_ids'])}` |"
+                )
+            lines.append("")
+        if remaining:
+            lines.extend(
+                [
+                    "### Other",
+                    "",
+                    "| metric_id | estimate | n | ci | source_ids |",
+                    "|---|---:|---:|---|---|",
+                ]
+            )
+            for row in remaining:
+                n_text = "—" if row["n"] is None else str(row["n"])
+                lines.append(
+                    f"| `{row['metric_id']}` | {format_metric_value(row)} | {n_text} | `{format_ci(row)}` | `{', '.join(row['source_artifact_ids'])}` |"
+                )
+            lines.append("")
+        return lines
+
+    def _alias_summary(self, raw_label_fields: JsonDict) -> str | None:
+        aliases = raw_label_fields.get("ground_truth_aliases") or raw_label_fields.get(
+            "ground_truth"
+        )
+        if not isinstance(aliases, list) or not aliases:
+            return None
+        canonical = str(aliases[0]).strip()
+        alias_count = max(len(aliases) - 1, 0)
+        return f"{canonical} (+{alias_count} aliases)"
+
+    def _selection_summary(self, row: JsonDict) -> str:
+        metadata = row["condition_metadata"]
+        return (
+            f"{metadata['selection_rule']}; score={metadata['selection_score']}; "
+            f"tiebreak={metadata['selection_tiebreak']}."
+        )
+
+    def _singleton_label_summary(self, row: JsonDict) -> str:
+        raw = row["raw_label_fields"]
+        judge = row["judge_fields"]
+        alias_summary = self._alias_summary(raw)
+        if row["family"] == "measurement_surfaces":
+            return (
+                f"human={raw['human_label']}; binary={raw['binary_judge']}; "
+                f"csv2_v2={raw['csv2_v2']}; csv2_v3={raw['csv2_v3']}; "
+                f"strongreject={raw['strongreject']}."
+            )
+        if "classifier_prediction" in judge:
+            summary = (
+                f"classifier_prediction={judge['classifier_prediction']}; "
+                f"gold_label={judge['classifier_label']}; "
+                f"answer_token_judge={raw['answer_token_judge']}."
+            )
+            if alias_summary:
+                summary += f" target={alias_summary}."
+            return summary
+        if "label" in judge:
+            summary = (
+                f"IRR label={judge['label']} ({judge['label_source']}); "
+                f"paired correct response={raw['paired_correct_response']}."
+            )
+            if alias_summary:
+                summary += f" target={alias_summary}."
+            return summary
+        if alias_summary:
+            return f"target={alias_summary}."
+        return f"selection stratum={row['selection_stratum']}."
+
+    def _paired_label_summary(self, base: JsonDict, comp: JsonDict) -> str:
+        raw = base["raw_label_fields"]
+        parts = [
+            f"baseline_compliance={raw.get('baseline_compliance')}",
+            f"comparison_compliance={raw.get('comparison_compliance')}",
+        ]
+        alias_summary = self._alias_summary(raw)
+        if alias_summary:
+            parts.append(f"target={alias_summary}")
+        return "; ".join(parts) + "."
+
+    def _render_examples(
+        self, family_id: str, family_examples: list[JsonDict]
+    ) -> list[str]:
+        lines = ["## Representative Examples", ""]
+        example_by_id = {row["example_id"]: row for row in family_examples}
+        seen: set[str] = set()
+        for row in sorted(family_examples, key=lambda item: item["example_id"]):
+            if row["example_id"] in seen:
+                continue
+            paired_ids = row["paired_example_ids"]
+            if paired_ids:
+                partner = example_by_id[paired_ids[0]]
+                base = (
+                    row
+                    if row["condition_metadata"].get("pair_role") == "baseline"
+                    else partner
+                )
+                comp = partner if base is row else row
+                seen.add(base["example_id"])
+                seen.add(comp["example_id"])
+                lines.extend(
+                    [
+                        f"### {base['selection_stratum']} #{base['selection_rank']}",
+                        "",
+                        f"Trace: `{base['example_id']}`, `{comp['example_id']}`.",
+                        f"Source ids: `{', '.join(base['source_artifact_ids'])}`.",
+                        f"Outcome transition: `{base['condition_metadata'].get('transition', base['selection_stratum'])}`.",
+                        f"Label summary: {self._paired_label_summary(base, comp)}",
+                        self._briefing_text_line(
+                            "Question summary",
+                            base["prompt_or_question"],
+                            max_chars=180,
+                        ),
+                        self._briefing_text_line(
+                            "Baseline response summary",
+                            base["response_text"],
+                            max_chars=220,
+                        ),
+                        self._briefing_text_line(
+                            "Comparison response summary",
+                            comp["response_text"],
+                            max_chars=220,
+                        ),
+                        f"Why selected: {self._selection_summary(base)}",
+                        "",
+                    ]
+                )
+                continue
+            seen.add(row["example_id"])
+            lines.extend(
+                [
+                    f"### {row['selection_stratum']} #{row['selection_rank']}",
+                    "",
+                    f"Trace: `{row['example_id']}`.",
+                    f"Source ids: `{', '.join(row['source_artifact_ids'])}`.",
+                    f"Label summary: {self._singleton_label_summary(row)}",
+                    self._briefing_text_line(
+                        "Question summary",
+                        row["prompt_or_question"],
+                        max_chars=180,
+                    ),
+                    self._briefing_text_line(
+                        "Response summary",
+                        row["response_text"],
+                        max_chars=220,
+                    ),
+                    f"Why selected: {self._selection_summary(row)}",
+                    "",
+                ]
+            )
+        return lines
+
+    def _family_high_signal_patterns(
+        self, family_id: str, metrics: dict[str, JsonDict]
+    ) -> list[str]:
+        if family_id == "readout_surfaces":
+            return [
+                (
+                    "H-neuron detector quality is real on the disjoint split: "
+                    f"AUROC {format_metric_value(metrics['readout.disjoint.auroc'])}, "
+                    f"accuracy {format_metric_value(metrics['readout.disjoint.accuracy'])} "
+                    f"{self._cite('readout.disjoint.auroc', 'readout.disjoint.accuracy')}."
+                ),
+                (
+                    "Localization is sparse rather than diffuse: "
+                    f"{format_metric_value(metrics['readout.pipeline.selected_h_neurons'])} selected neurons "
+                    f"out of {format_metric_value(metrics['readout.pipeline.total_ffn_neurons'])}, with "
+                    f"layer counts skewed early ({format_metric_value(metrics['readout.structure.band.early'])}) "
+                    f"relative to middle/late ({format_metric_value(metrics['readout.structure.band.middle'])}, "
+                    f"{format_metric_value(metrics['readout.structure.band.late'])}) "
+                    f"{self._cite('readout.pipeline.selected_h_neurons', 'readout.pipeline.total_ffn_neurons', 'readout.structure.band.early', 'readout.structure.band.middle', 'readout.structure.band.late')}."
+                ),
+                (
+                    "SAE readout parity is close on detection quality but much less sparse: "
+                    f"SAE AUROC {format_metric_value(metrics['readout.sae.auroc'])} on "
+                    f"{format_metric_value(metrics['readout.sae.test_size'])} examples, with "
+                    f"{format_metric_value(metrics['readout.sae.n_positive_features'])} positive features across "
+                    f"{format_metric_value(metrics['readout.sae.layer_count'])} layers "
+                    f"{self._cite('readout.sae.auroc', 'readout.sae.test_size', 'readout.sae.n_positive_features', 'readout.sae.layer_count')}."
+                ),
+                (
+                    "False positives and false negatives are nearly balanced on the disjoint split "
+                    f"({format_metric_value(metrics['readout.disjoint.confusion.fp'])} FP vs "
+                    f"{format_metric_value(metrics['readout.disjoint.confusion.fn'])} FN), so the dominant issue is not a one-sided collapse but boundary cases around answer normalization and consistency support "
+                    f"{self._cite('readout.disjoint.confusion.fp', 'readout.disjoint.confusion.fn', sources=['classifier_disjoint_summary'])}."
+                ),
+            ]
+        if family_id == "intervention_surfaces":
+            return [
+                (
+                    "FaithEval carries the largest positive slope in the core intervention set: H-neuron slope "
+                    f"{format_metric_value(metrics['intervention.faitheval.anti.slope_pp_per_alpha'])} versus "
+                    f"random mean {format_metric_value(metrics['intervention.faitheval.random_mean_slope_pp_per_alpha'])} "
+                    f"and random max {format_metric_value(metrics['intervention.faitheval.random_max_slope_pp_per_alpha'])}; "
+                    f"the mean slope gap is {format_metric_value(metrics['intervention.faitheval.mean_slope_difference_pp_per_alpha'])} with "
+                    f"{format_metric_value(metrics['intervention.faitheval.seedwise_positive_differences'])} / 8 positive seedwise differences "
+                    f"{self._cite('intervention.faitheval.anti.slope_pp_per_alpha', 'intervention.faitheval.random_mean_slope_pp_per_alpha', 'intervention.faitheval.random_max_slope_pp_per_alpha', 'intervention.faitheval.mean_slope_difference_pp_per_alpha', 'intervention.faitheval.seedwise_positive_differences')}."
+                ),
+                (
+                    "FalseQA stays positive on the same intervention family: slope "
+                    f"{format_metric_value(metrics['intervention.falseqa.slope_pp_per_alpha'])} and full-sweep delta "
+                    f"{format_metric_value(metrics['intervention.falseqa.delta_0_to_max_pp'])} "
+                    f"{self._cite('intervention.falseqa.slope_pp_per_alpha', 'intervention.falseqa.delta_0_to_max_pp')}."
+                ),
+                (
+                    "BioASQ is mostly style drift, not alias-accuracy gain: compliance delta "
+                    f"{format_metric_value(metrics['intervention.bioasq.delta_0_to_max_pp'])} despite "
+                    f"{format_metric_value(metrics['intervention.bioasq.changed_response_count'])} changed responses, with mean response length shrinking from "
+                    f"{format_metric_value(metrics['intervention.bioasq.response_length_mean_alpha0'])} to "
+                    f"{format_metric_value(metrics['intervention.bioasq.response_length_mean_alpha3'])} characters "
+                    f"{self._cite('intervention.bioasq.delta_0_to_max_pp', 'intervention.bioasq.changed_response_count', 'intervention.bioasq.response_length_mean_alpha0', 'intervention.bioasq.response_length_mean_alpha3', sources=['bioasq_pipeline_audit'])}."
+                ),
+                (
+                    "SAE utility selection moves held-out anti-compliance margins without moving held-out compliance: "
+                    f"utility-minus-noop compliance is {format_metric_value(metrics['intervention.faitheval_sae_utility.utility_minus_noop_compliance_pp'])} while "
+                    f"utility-minus-noop margin is {format_metric_value(metrics['intervention.faitheval_sae_utility.utility_minus_noop_margin'])}; "
+                    f"the utility-positive augment stays similarly null on compliance "
+                    f"({format_metric_value(metrics['intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_compliance_pp'])}) with negative margin shift "
+                    f"({format_metric_value(metrics['intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin'])}) "
+                    f"{self._cite('intervention.faitheval_sae_utility.utility_minus_noop_compliance_pp', 'intervention.faitheval_sae_utility.utility_minus_noop_margin', 'intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_compliance_pp', 'intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin', sources=['faitheval_sae_utility_selector_audit', 'faitheval_sae_utility_selector_augment_audit'])}."
+                ),
+                (
+                    "The jailbreak binary surface is smaller than the graded surface: binary full-sweep delta is "
+                    f"{format_metric_value(metrics['intervention.jailbreak.binary.delta_0_to_max_pp'])}, while the graded CSV-v2 surface reports "
+                    f"{format_metric_value(metrics['measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha'])} slope and "
+                    f"{format_metric_value(metrics['measurement.jailbreak.v2.endpoint_delta_csv2_yes_pp'])} endpoint shift "
+                    f"{self._cite('intervention.jailbreak.binary.delta_0_to_max_pp', 'measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha', 'measurement.jailbreak.v2.endpoint_delta_csv2_yes_pp')}."
+                ),
+            ]
+        if family_id == "measurement_surfaces":
+            right_to_wrong_n = metrics[
+                "measurement.bridge_irr.right_to_wrong.wrong_entity_substitution"
+            ]["n"]
+            return [
+                (
+                    "On the holdout comparison, CSV-v3 and StrongREJECT both land at "
+                    f"{format_metric_value(metrics['measurement.holdout.csv2v3.accuracy'])} with "
+                    f"{format_metric_value(metrics['measurement.holdout.csv2v3_vs_sr_discordant_count'])} discordant records and minimum pairwise McNemar p "
+                    f"{format_metric_value(metrics['measurement.holdout.min_pairwise_mcnemar_p'])} "
+                    f"{self._cite('measurement.holdout.csv2v3.accuracy', 'measurement.holdout.sr.accuracy', 'measurement.holdout.csv2v3_vs_sr_discordant_count', 'measurement.holdout.min_pairwise_mcnemar_p')}."
+                ),
+                (
+                    "Binary and graded jailbreak measurement disagree materially: binary harmful counts move from "
+                    f"{format_metric_value(metrics['measurement.jailbreak.binary.alpha_0_count'])} to "
+                    f"{format_metric_value(metrics['measurement.jailbreak.binary.alpha_3_count'])}, while the graded surface reports "
+                    f"{format_metric_value(metrics['measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha'])} slope and "
+                    f"{format_metric_value(metrics['measurement.jailbreak.v2.endpoint_delta_csv2_yes_pp'])} endpoint shift "
+                    f"{self._cite('measurement.jailbreak.binary.alpha_0_count', 'measurement.jailbreak.binary.alpha_3_count', 'measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha', 'measurement.jailbreak.v2.endpoint_delta_csv2_yes_pp')}."
+                ),
+                (
+                    "FaithEval remap cleanup is large enough to change interpretation: raw standard slope is "
+                    f"{format_metric_value(metrics['measurement.faitheval.standard_raw.slope_pp_per_alpha'])}, with "
+                    f"{format_metric_value(metrics['measurement.faitheval.standard_remap.parse_failures'])} parse failures and "
+                    f"{format_metric_value(metrics['measurement.faitheval.standard_remap.strict_recovered_count'])} strict recoveries at alpha 3.0 "
+                    f"{self._cite('measurement.faitheval.standard_raw.slope_pp_per_alpha', 'measurement.faitheval.standard_remap.parse_failures', 'measurement.faitheval.standard_remap.strict_recovered_count', 'measurement.faitheval.standard_remap.strict_rescored_compliance_rate')}."
+                ),
+                (
+                    f"Across {right_to_wrong_n} adjudicated right-to-wrong cases, wrong-entity substitution is "
+                    f"{format_metric_value(metrics['measurement.bridge_irr.right_to_wrong.wrong_entity_substitution'])}, evasion/factual denial "
+                    f"{format_metric_value(metrics['measurement.bridge_irr.right_to_wrong.evasion_or_factual_denial'])}, answer dilution "
+                    f"{format_metric_value(metrics['measurement.bridge_irr.right_to_wrong.answer_dilution'])}; the separate IRR study recorded "
+                    f"{format_metric_value(metrics['measurement.bridge_irr.n_disagreements'])} rater disagreements total "
+                    f"{self._cite('measurement.bridge_irr.right_to_wrong.wrong_entity_substitution', 'measurement.bridge_irr.right_to_wrong.evasion_or_factual_denial', 'measurement.bridge_irr.right_to_wrong.answer_dilution', 'measurement.bridge_irr.n_disagreements')}."
+                ),
+                (
+                    "The StrongREJECT model-upgrade story is calibration-limited: rerun dev accuracy reaches "
+                    f"{format_metric_value(metrics['measurement.strongreject.audit.gpt4o_dev_accuracy_after_rerun'])} versus prior "
+                    f"{format_metric_value(metrics['measurement.strongreject.audit.gpt4o_mini_dev_accuracy_prior'])}, but the holdout gap after upgrade is only "
+                    f"{format_metric_value(metrics['measurement.strongreject.audit.holdout_gap_after_model_upgrade_pp'])} and "
+                    f"{format_metric_value(metrics['measurement.strongreject.audit.persistent_false_negatives_after_upgrade'])} of 19 false negatives persist "
+                    f"{self._cite('measurement.strongreject.audit.gpt4o_dev_accuracy_after_rerun', 'measurement.strongreject.audit.gpt4o_mini_dev_accuracy_prior', 'measurement.strongreject.audit.holdout_gap_after_model_upgrade_pp', 'measurement.strongreject.audit.persistent_false_negatives_after_upgrade')}."
+                ),
+                (
+                    "The contamination bug was not cosmetic: "
+                    f"{format_metric_value(metrics['measurement.jailbreak.audit.contamination_bug_borderline_reclassified'])} borderline records were reclassified and the strict harmfulness rate jumped from "
+                    f"{format_metric_value(metrics['measurement.jailbreak.audit.contamination_bug_strict_harmfulness_before'])} to "
+                    f"{format_metric_value(metrics['measurement.jailbreak.audit.contamination_bug_strict_harmfulness_after'])} under the wrong normalization path "
+                    f"{self._cite('measurement.jailbreak.audit.contamination_bug_borderline_reclassified', 'measurement.jailbreak.audit.contamination_bug_strict_harmfulness_before', 'measurement.jailbreak.audit.contamination_bug_strict_harmfulness_after')}."
+                ),
+            ]
+        if family_id == "transfer_externality_surfaces":
+            return [
+                (
+                    "Held-out TruthfulQA multiple-choice gains are positive for ITI: MC1 delta "
+                    f"{format_metric_value(metrics['transfer.truthfulqa_mc.mc1.iti.delta_pp'])} and MC2 delta "
+                    f"{format_metric_value(metrics['transfer.truthfulqa_mc.mc2.iti.delta_pp'])} "
+                    f"{self._cite('transfer.truthfulqa_mc.mc1.iti.delta_pp', 'transfer.truthfulqa_mc.mc2.iti.delta_pp')}."
+                ),
+                (
+                    "SimpleQA externalities are negative in both answer quality and willingness to answer: compliance delta "
+                    f"{format_metric_value(metrics['transfer.simpleqa.compliance_delta_0_to_8_pp'])} and attempt-rate delta "
+                    f"{format_metric_value(metrics['transfer.simpleqa.attempt_delta_0_to_8_pp'])} "
+                    f"{self._cite('transfer.simpleqa.compliance_delta_0_to_8_pp', 'transfer.simpleqa.attempt_delta_0_to_8_pp', 'transfer.simpleqa.compliance.0.0', 'transfer.simpleqa.compliance.8.0')}."
+                ),
+                (
+                    "Bridge harm is dominated by right-to-wrong movement: baseline adjudicated accuracy is "
+                    f"{format_metric_value(metrics['transfer.bridge.baseline_adjudicated_accuracy'])} with adjudicated delta "
+                    f"{format_metric_value(metrics['transfer.bridge.adjudicated_accuracy_delta_pp'])}, and flips are "
+                    f"{format_metric_value(metrics['transfer.bridge.base_correct_iti_wrong'])} right-to-wrong versus "
+                    f"{format_metric_value(metrics['transfer.bridge.base_wrong_iti_correct'])} wrong-to-right "
+                    f"{self._cite('transfer.bridge.baseline_adjudicated_accuracy', 'transfer.bridge.adjudicated_accuracy_delta_pp', 'transfer.bridge.base_correct_iti_wrong', 'transfer.bridge.base_wrong_iti_correct')}."
+                ),
+                (
+                    "Bridge margins align with wrong-entity substitution as the largest right-to-wrong category: cohort-A first-three-token shift is "
+                    f"{format_metric_value(metrics['transfer.bridge_margins.a_rw_substitution.first3_shift_nats'])}, and the A-vs-D gap is "
+                    f"{format_metric_value(metrics['transfer.bridge_margins.a_vs_d.first3_shift_nats_gap'])} with permutation p "
+                    f"{format_metric_value(metrics['transfer.bridge_margins.a_vs_d.first3_shift_nats_p'])} "
+                    f"{self._cite('transfer.bridge_margins.a_rw_substitution.first3_shift_nats', 'transfer.bridge_margins.a_vs_d.first3_shift_nats_gap', 'transfer.bridge_margins.a_vs_d.first3_shift_nats_p')}."
+                ),
+            ]
+        return [
+            (
+                "The current full-500 D7 panel keeps a real causal gap: causal strict harmfulness is "
+                f"{format_metric_value(metrics['mechanism.d7.current_panel.causal.strict_harmfulness_normalized'])} against probe "
+                f"{format_metric_value(metrics['mechanism.d7.current_panel.probe.strict_harmfulness_normalized'])}, with causal-minus-probe gap "
+                f"{format_metric_value(metrics['mechanism.d7.current_panel.causal_vs_probe_gap_pp'])} and "
+                f"{format_metric_value(metrics['mechanism.d7.current_panel.causal_token_cap_count'])} token-cap hits "
+                f"{self._cite('mechanism.d7.current_panel.causal.strict_harmfulness_normalized', 'mechanism.d7.current_panel.probe.strict_harmfulness_normalized', 'mechanism.d7.current_panel.causal_vs_probe_gap_pp', 'mechanism.d7.current_panel.causal_token_cap_count')}."
+            ),
+            (
+                "The pilot already separated causal from probe selection: gradient-ranked effect "
+                f"{format_metric_value(metrics['mechanism.d7.pilot.gradient_best_effect_pp'])} versus probe peak effect "
+                f"{format_metric_value(metrics['mechanism.d7.pilot.probe_best_effect_pp'])}, with selector overlap only "
+                f"{format_metric_value(metrics['mechanism.d7.pilot.probe_causal_jaccard'])} "
+                f"{self._cite('mechanism.d7.pilot.gradient_best_effect_pp', 'mechanism.d7.pilot.probe_best_effect_pp', 'mechanism.d7.pilot.probe_causal_jaccard')}."
+            ),
+            (
+                "Refusal-overlap correlations are small in magnitude either way: jailbreak canonical overlap "
+                f"{format_metric_value(metrics['mechanism.refusal_overlap.jailbreak.canonical_overlap_vs_primary'])} and jailbreak subspace overlap "
+                f"{format_metric_value(metrics['mechanism.refusal_overlap.jailbreak.subspace_overlap_vs_primary'])} "
+                f"{self._cite('mechanism.refusal_overlap.jailbreak.canonical_overlap_vs_primary', 'mechanism.refusal_overlap.jailbreak.subspace_overlap_vs_primary', 'mechanism.refusal_overlap.faitheval.canonical_overlap_vs_primary', 'mechanism.refusal_overlap.faitheval.subspace_overlap_vs_primary')}."
+            ),
+            (
+                "Swing cases are mostly R→C rather than C→R or non-monotonic: "
+                f"{format_metric_value(metrics['mechanism.swing.population.swing_count'])} swings total, with shares "
+                f"{format_metric_value(metrics['mechanism.swing.subtype.r_to_c'])} R→C, "
+                f"{format_metric_value(metrics['mechanism.swing.subtype.c_to_r'])} C→R, and "
+                f"{format_metric_value(metrics['mechanism.swing.subtype.non_monotonic'])} non-monotonic "
+                f"{self._cite('mechanism.swing.population.swing_count', 'mechanism.swing.subtype.r_to_c', 'mechanism.swing.subtype.c_to_r', 'mechanism.swing.subtype.non_monotonic')}."
+            ),
+            (
+                "Neuron 4288 is diagnostic but not sufficient: single-neuron AUROC is "
+                f"{format_metric_value(metrics['mechanism.neuron_4288.single_neuron_auc'])}, max top-10 correlation "
+                f"{format_metric_value(metrics['mechanism.neuron_4288.max_top10_correlation'])}, and ablation drop only "
+                f"{format_metric_value(metrics['mechanism.neuron_4288.ablation_accuracy_drop'])} "
+                f"{self._cite('mechanism.neuron_4288.single_neuron_auc', 'mechanism.neuron_4288.max_top10_correlation', 'mechanism.neuron_4288.ablation_accuracy_drop')}."
+            ),
+            (
+                "Verbosity is a larger confound than truth on raw activation scale: length effect d "
+                f"{format_metric_value(metrics['mechanism.verbosity.length_effect_d'])} versus truth effect d "
+                f"{format_metric_value(metrics['mechanism.verbosity.truth_effect_d'])} "
+                f"{self._cite('mechanism.verbosity.length_effect_d', 'mechanism.verbosity.truth_effect_d', 'mechanism.verbosity.length_mean_diff', 'mechanism.verbosity.truth_mean_diff')}."
+            ),
+        ]
+
+    def _family_risks(self, family_id: str, metrics: dict[str, JsonDict]) -> list[str]:
+        if family_id == "readout_surfaces":
+            return [
+                (
+                    "The overlap split is slightly easier than the disjoint split, so readout quality should be read off the disjoint numbers first "
+                    f"{self._cite('readout.overlap.accuracy', 'readout.disjoint.accuracy', 'readout.overlap.auroc', 'readout.disjoint.auroc')}."
+                ),
+                (
+                    "Readout quality does not transport to control utility by itself; the pack keeps detector metrics and intervention metrics separate on purpose "
+                    f"{self._cite('readout.disjoint.auroc', 'intervention.faitheval.anti.slope_pp_per_alpha', 'intervention.faitheval_sae.h_slope_pp_per_alpha')}."
+                ),
+            ]
+        if family_id == "intervention_surfaces":
+            return [
+                (
+                    "BioASQ remains audit-heavy: the relevant caveat is flat alias accuracy under heavy response drift, not a positive benchmark effect "
+                    f"{self._cite('intervention.bioasq.delta_0_to_max_pp', sources=['bioasq_pipeline_audit'])}."
+                ),
+                (
+                    "The SAE utility-selector audits are still fallback-only notes, so the safe read is margin-shift evidence with null held-out compliance change "
+                    f"{self._cite('intervention.faitheval_sae_utility.utility_minus_noop_compliance_pp', 'intervention.faitheval_sae_utility.utility_minus_noop_margin', sources=['faitheval_sae_utility_selector_audit', 'faitheval_sae_utility_selector_augment_audit'])}."
+                ),
+                (
+                    "Binary jailbreak measurements are under-sensitive relative to the graded CSV surfaces and should not be used alone for null-vs-positive calls "
+                    f"{self._cite('intervention.jailbreak.binary.delta_0_to_max_pp', 'measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha')}."
+                ),
+            ]
+        if family_id == "measurement_surfaces":
+            return [
+                (
+                    "The holdout comparison is only n=50, so ties here are coarse-grained rather than high-resolution "
+                    f"{self._cite('measurement.holdout.sample_size', sources=['holdout_comparison'])}."
+                ),
+                (
+                    "The 74-row evaluator comparison is still dev-set evidence with calibration overlap; the README and this surface keep that caveat explicit "
+                    f"{self._cite('measurement.csv2_v3.dev_accuracy', 'measurement.strongreject.audit.gpt4o_mini_dev_accuracy_prior', sources=['evaluator_4way_audit'])}."
+                ),
+                (
+                    "The canary note is evidence about pipeline integrity, not benchmark performance; one benign span-ordering mismatch does not move the main rates "
+                    f"{self._cite(sources=['jailbreak_measurement_cleanup_audit'])}."
+                ),
+            ]
+        if family_id == "transfer_externality_surfaces":
+            return [
+                (
+                    "SimpleQA combines answer-quality loss with attempt suppression, so accuracy deltas there are partly abstention effects rather than clean wrong-answer flips "
+                    f"{self._cite('transfer.simpleqa.attempt_delta_0_to_8_pp', 'transfer.simpleqa.compliance_delta_0_to_8_pp')}."
+                ),
+                (
+                    "Bridge adjudicated and deterministic deltas are close but not identical, which is why the pack keeps both rather than collapsing to one score "
+                    f"{self._cite('transfer.bridge.adjudicated_accuracy_delta_pp', 'transfer.bridge.deterministic_accuracy_delta_pp')}."
+                ),
+            ]
+        return [
+            (
+                "The pilot D7 selector comparison is n=100 with wide intervals and should stay supporting evidence, not the live headline surface "
+                f"{self._cite('mechanism.d7.pilot.gradient_best_effect_pp', 'mechanism.d7.pilot.probe_best_effect_pp', sources=['d7_causal_pilot_audit'])}."
+            ),
+            (
+                "The April 8 legacy-ruler row is historical provenance only and is intentionally not promoted to an exact live metric in this pack "
+                f"{self._cite(sources=['d7_comparison_site'])}."
+            ),
+            (
+                "The current causal panel still has token-cap pressure, so mechanism claims should not ignore truncation exposure "
+                f"{self._cite('mechanism.d7.current_panel.causal_token_cap_count')}."
+            ),
+        ]
+
     def build_docs(self, artifact_rows: list[JsonDict]) -> None:
         metrics_by_family: dict[str, list[JsonDict]] = defaultdict(list)
         examples_by_family: dict[str, list[JsonDict]] = defaultdict(list)
@@ -3441,128 +4368,138 @@ class Builder:
             examples_by_family[row["family"]].append(row)
         for row in artifact_rows:
             artifacts_by_family[row["family"]].append(row)
-        readme = self.build_readme()
+        readme = self.build_readme(artifact_rows)
         (GROUND_TRUTH_DIR / "README.md").write_text(readme, encoding="utf-8")
-        title_map = {
-            "readout_surfaces": "Readout Surfaces",
-            "intervention_surfaces": "Intervention Surfaces",
-            "measurement_surfaces": "Measurement Surfaces",
-            "transfer_externality_surfaces": "Transfer Externality Surfaces",
-            "mechanism_diagnostic_surfaces": "Mechanism Diagnostic Surfaces",
-        }
+        metric_lookup = self._metric_lookup()
         for family_id, family_spec in self.family_specs.items():
             path = GROUND_TRUTH_DIR / family_spec["doc"]
-            lines = [
-                f"# {title_map[family_id]}",
-                "",
-                f"Family id: `{family_id}`",
-                f"Act tags: `{', '.join(family_spec['act_tags'])}`",
-                "Template: neutral structured surface summary.",
-                "",
-                "## Sources",
-                "",
-                "| source_id | source_path | role | status |",
-                "|---|---|---|---|",
-            ]
-            for row in sorted(
+            family_artifacts = sorted(
                 artifacts_by_family[family_id], key=lambda item: item["artifact_id"]
-            ):
-                lines.append(
-                    f"| `{row['artifact_id']}` | `{row['source_path']}` | `{row['canonical_role']}` | `{row['replacement_status']}` |"
-                )
-            lines.extend(
-                [
-                    "",
-                    "## Metrics",
-                    "",
-                    "| metric_id | benchmark | metric_name | condition_a | condition_b | estimate | unit | n | ci | source_ids |",
-                    "|---|---|---|---|---|---:|---|---:|---|---|",
-                ]
             )
-            for row in sorted(
+            family_metrics = sorted(
                 metrics_by_family[family_id], key=lambda item: item["metric_id"]
-            ):
-                ci_text = "—"
-                if row["ci_lower"] is not None and row["ci_upper"] is not None:
-                    ci_text = f"[{row['ci_lower']}, {row['ci_upper']}]"
-                n_text = "—" if row["n"] is None else str(row["n"])
-                lines.append(
-                    f"| `{row['metric_id']}` | `{row['benchmark']}` | `{row['metric_name']}` | `{row['condition_a']}` | `{row['condition_b']}` | {row['estimate']} | `{row['unit']}` | {n_text} | `{ci_text}` | `{', '.join(row['source_artifact_ids'])}` |"
-                )
-            lines.extend(["", "## Examples", ""])
-            for row in sorted(
-                examples_by_family[family_id], key=lambda item: item["example_id"]
-            ):
-                lines.extend(
-                    [
-                        f"### `{row['example_id']}`",
-                        "",
-                        f"Sample id: `{row['sample_id']}`",
-                        f"Selection stratum: `{row['selection_stratum']}`",
-                        f"Selection rank: `{row['selection_rank']}`",
-                        f"Primary source id: `{row['source_artifact_id']}`",
-                        f"Source ids: `{', '.join(row['source_artifact_ids'])}`",
-                        "",
-                        "Question",
-                        "````text",
-                        row["prompt_or_question"],
-                        "````",
-                        "",
-                        "Response",
-                        "````text",
-                        row["response_text"],
-                        "````",
-                        "",
-                        "Condition metadata",
-                        "````json",
-                        json.dumps(
-                            row["condition_metadata"],
-                            ensure_ascii=True,
-                            indent=2,
-                            sort_keys=True,
-                        ),
-                        "````",
-                        "",
-                        "Raw label fields",
-                        "````json",
-                        json.dumps(
-                            row["raw_label_fields"],
-                            ensure_ascii=True,
-                            indent=2,
-                            sort_keys=True,
-                        ),
-                        "````",
-                        "",
-                        "Judge fields",
-                        "````json",
-                        json.dumps(
-                            row["judge_fields"],
-                            ensure_ascii=True,
-                            indent=2,
-                            sort_keys=True,
-                        ),
-                        "````",
-                        "",
-                        f"Paired example ids: `{', '.join(row['paired_example_ids'])}`",
-                        "",
-                    ]
-                )
+            )
+            high_signal_bullets = self._validated_briefing_bullets(
+                f"{family_id}:high_signal",
+                self._family_high_signal_patterns(family_id, metric_lookup),
+            )
+            risk_bullets = self._validated_briefing_bullets(
+                f"{family_id}:risks",
+                self._family_risks(family_id, metric_lookup),
+            )
+            lines = [
+                f"# {self._family_title(family_id)}",
+                "",
+                "## What This Surface Measures",
+                "",
+                self._family_measure_text(family_id, family_artifacts),
+                "",
+                "## High-Signal Patterns",
+                "",
+            ]
+            for bullet in high_signal_bullets:
+                lines.append(f"- {bullet}")
+            lines.extend(["", "## Measurement / Interpretation Risks", ""])
+            for bullet in risk_bullets:
+                lines.append(f"- {bullet}")
+            lines.extend([""])
+            lines.extend(self._render_metric_tables(family_id, family_metrics))
+            lines.extend(
+                self._render_examples(family_id, examples_by_family[family_id])
+            )
             path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
-    def build_readme(self) -> str:
-        return (
-            "\n".join(
-                [
-                    "# Ground-Truth Evidence Pack",
-                    "",
-                    "Pack mode: structured-first neutral evidence pack.",
-                    "Destination: `notes/ground-truth`.",
-                    "Ledgers: `artifact_manifest.jsonl`, `metric_ledger.jsonl`, `example_ledger.jsonl`, `surface_crosswalk.jsonl`.",
-                    "Coverage statuses: `exact_metric`, `exact_example`, `structured_surface_only`, `markdown_fallback_only`, `unresolved`.",
-                ]
-            )
-            + "\n"
+    def build_readme(self, artifact_rows: list[JsonDict]) -> str:
+        status_counts: dict[str, int] = defaultdict(int)
+        for row in self.crosswalk:
+            status_counts[row["coverage_status"]] += 1
+        fallback_sources = [
+            row
+            for row in self.crosswalk
+            if row["surface_kind"] == "source_file"
+            and row["coverage_status"] == "markdown_fallback_only"
+        ]
+        unresolved_claims = [
+            row
+            for row in self.crosswalk
+            if row["surface_kind"] == "manuscript_provenance_row"
+            and row["coverage_status"] == "unresolved"
+        ]
+        historical_claims = [
+            row
+            for row in self.crosswalk
+            if row["surface_kind"] == "manuscript_provenance_row"
+            and row["coverage_status"] == "historical_only"
+        ]
+        markdown_metric_count = sum(
+            1 for row in self.metrics if row["source_format"] == "markdown"
         )
+        exact_metric_rows = sum(
+            1 for row in self.crosswalk if row["coverage_status"] == "exact_metric"
+        )
+        family_rows = []
+        for family in self.manifest["families"]:
+            metrics = sum(1 for row in self.metrics if row["family"] == family["id"])
+            examples = sum(1 for row in self.examples if row["family"] == family["id"])
+            family_rows.append(
+                f"- `{family['id']}`: `{family['doc']}`; {metrics} metrics; {examples} examples."
+            )
+        lines = [
+            "# Ground-Truth Evidence Pack",
+            "",
+            "## Purpose",
+            "",
+            "This pack keeps the JSONL ledgers exact and turns the Markdown into deterministic briefings that surface the main evidence, the dominant caveats, and the remaining provenance boundaries without duplicating raw payloads.",
+            "",
+            "## How To Read This Pack",
+            "",
+            "- Start with `metric_ledger.jsonl`, `example_ledger.jsonl`, and `surface_crosswalk.jsonl` if you need machine-stable evidence.",
+            "- `exact_metric` means the claim lands on a ledger metric; `exact_example` means example-only coverage; `structured_surface_only` means a structured scalar exists but is not promoted; `markdown_fallback_only` means only prose/audit context exists; `historical_only` means provenance is preserved but intentionally not promoted as live evidence.",
+            f"- This build contains {exact_metric_rows} `exact_metric` crosswalk rows and {markdown_metric_count} ledger metrics sourced directly from markdown audits.",
+            "",
+            "## Family Map",
+            "",
+        ]
+        lines.extend(family_rows)
+        lines.extend(
+            [
+                "",
+                "## Coverage Summary",
+                "",
+                f"- Crosswalk rows: {len(self.crosswalk)} total.",
+                f"- `exact_metric`: {status_counts['exact_metric']}.",
+                f"- `exact_example`: {status_counts['exact_example']}.",
+                f"- `structured_surface_only`: {status_counts['structured_surface_only']}.",
+                f"- `markdown_fallback_only`: {status_counts['markdown_fallback_only']}.",
+                f"- `historical_only`: {status_counts['historical_only']}.",
+                f"- `unresolved`: {status_counts['unresolved']}.",
+                "- Fallback-only sources:",
+            ]
+        )
+        for row in fallback_sources:
+            lines.append(
+                f"  - `{row['surface_id'].split(':', 1)[1]}` -> `{row['source_path']}`."
+            )
+        if not fallback_sources:
+            lines.append("  - none.")
+        lines.extend(["", "## Known Gaps / Claim Hygiene", ""])
+        if unresolved_claims:
+            lines.append("- Unresolved provenance claims:")
+            for row in unresolved_claims:
+                lines.append(
+                    f"  - `{row['surface_id'].split(':', 1)[1]}` from `{row['surface_locator']}`."
+                )
+        else:
+            lines.append("- Unresolved provenance claims: none.")
+        if historical_claims:
+            lines.append("- Historical-only provenance rows:")
+            for row in historical_claims:
+                lines.append(
+                    f"  - `{row['surface_id'].split(':', 1)[1]}` remains historical provenance only."
+                )
+        else:
+            lines.append("- Historical-only provenance rows: none.")
+        return "\n".join(lines) + "\n"
 
 
 def main() -> None:

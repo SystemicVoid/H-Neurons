@@ -71,6 +71,21 @@ def strip_authored_markdown(text: str) -> list[str]:
     return lines
 
 
+def extract_section_bullets(text: str, heading: str) -> list[str]:
+    bullets: list[str] = []
+    in_section = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped == heading:
+            in_section = True
+            continue
+        if in_section and stripped.startswith("## "):
+            break
+        if in_section and stripped.startswith("- "):
+            bullets.append(stripped[2:])
+    return bullets
+
+
 def select_quantile_ids(
     rows: list[dict], score_key: str, tie_key: str, fractions: list[float]
 ) -> list[str]:
@@ -267,30 +282,18 @@ def test_surface_crosswalk_covers_declared_scalars_and_structured_claims() -> No
     provenance_rows = [
         row for row in crosswalk if row["surface_kind"] == "manuscript_provenance_row"
     ]
-    unresolved = {
-        "contamination-bug-borderline-records-reclassified",
-        "contamination-bug-strict-harmfulness-inflation",
-        "false-negatives-recovered-by-strongreject-model-upgrade",
-        "gradient-ranked-pilot-effect",
-        "h-minus-random-permutation-test",
-        "historical-april-8-legacy-ruler-causal-full-500-effect",
-        "holdout-gap-after-strongreject-model-upgrade",
-        "persistent-strongreject-false-negatives-after-upgrade",
-        "probe-causal-jaccard",
-        "probe-selector-pilot-best-effect",
-        "strongreject-gpt-4o-dev-accuracy-after-rerun",
-        "strongreject-gpt-4o-mini-dev-accuracy-prior",
-    }
-    seen_unresolved = set()
+    historical_only = {"historical-april-8-legacy-ruler-causal-full-500-effect"}
+    seen_historical = set()
     for row in provenance_rows:
         slug = row["surface_id"].split("provenance:", 1)[1]
-        if slug in unresolved:
-            assert row["coverage_status"] == "unresolved"
-            seen_unresolved.add(slug)
+        if slug in historical_only:
+            assert row["coverage_status"] == "historical_only"
+            assert not row["ledger_metric_ids"]
+            seen_historical.add(slug)
         else:
             assert row["coverage_status"] == "exact_metric"
             assert row["ledger_metric_ids"]
-    assert seen_unresolved == unresolved
+    assert seen_historical == historical_only
 
 
 def test_sae_utility_selector_metrics_use_april_22_surfaces_not_legacy_control() -> (
@@ -674,7 +677,7 @@ def test_measurement_examples_recompute_from_complete_join_and_use_neutral_pheno
         for row in load_jsonl(PACK_DIR / "example_ledger.jsonl")
         if row["example_id"].startswith("example.measurement.")
     ]
-    assert len(examples) == 7
+    assert len(examples) == 9
     for row in examples:
         assert row["selection_stratum"].startswith("human_")
         for token in PACK.NEUTRAL_STRATUM_BANNED_TOKENS:
@@ -693,6 +696,10 @@ def test_measurement_examples_recompute_from_complete_join_and_use_neutral_pheno
             [0.5],
         )[0]
         assert row["sample_id"].split("@", 1)[0] == expected_id
+    assert {
+        "human_safe__binary_safe__csv2v2_no__csv2v3_no__sr_no__alpha_0_0",
+        "human_harmful__binary_harmful__csv2v2_yes__csv2v3_yes__sr_yes__alpha_1_5",
+    } <= {row["selection_stratum"] for row in examples}
 
 
 def test_paired_examples_recompute_from_median_length_delta_and_bridge_irr_examples_from_median_incorrect_length() -> (
@@ -906,38 +913,188 @@ def test_paired_examples_recompute_from_median_length_delta_and_bridge_irr_examp
         assert row["sample_id"] == expected
 
 
-def test_generated_markdown_matches_neutral_template_allowlist() -> None:
-    allowed = [
-        re.compile(r"^# .+$"),
-        re.compile(r"^## (Sources|Metrics|Examples)$"),
-        re.compile(r"^### `.+`$"),
-        re.compile(r"^Family id: `.+`$"),
-        re.compile(r"^Act tags: `.+`$"),
-        re.compile(r"^Template: neutral structured surface summary\.$"),
-        re.compile(r"^Sample id: `.+`$"),
-        re.compile(r"^Selection stratum: `.+`$"),
-        re.compile(r"^Selection rank: `\d+`$"),
-        re.compile(r"^Primary source id: `.+`$"),
-        re.compile(r"^Source ids: `.*`$"),
-        re.compile(r"^Question$"),
-        re.compile(r"^Response$"),
-        re.compile(r"^Condition metadata$"),
-        re.compile(r"^Raw label fields$"),
-        re.compile(r"^Judge fields$"),
-        re.compile(r"^Paired example ids: `.*`$"),
-        re.compile(r"^Pack mode: structured-first neutral evidence pack\.$"),
-        re.compile(r"^Destination: `notes/ground-truth`\.$"),
-        re.compile(r"^Ledgers: .+$"),
-        re.compile(r"^Coverage statuses: .+$"),
-    ]
-    doc_paths = [
-        PACK_DIR / "README.md",
+def test_markdown_docs_use_new_fixed_sections_and_grounded_citations() -> None:
+    readme = (PACK_DIR / "README.md").read_text(encoding="utf-8")
+    for section in [
+        "## Purpose",
+        "## How To Read This Pack",
+        "## Family Map",
+        "## Coverage Summary",
+        "## Known Gaps / Claim Hygiene",
+    ]:
+        assert section in readme
+    for path in [
         PACK_DIR / "01_readout_surfaces.md",
         PACK_DIR / "02_intervention_surfaces.md",
         PACK_DIR / "03_measurement_surfaces.md",
         PACK_DIR / "04_transfer_externality_surfaces.md",
         PACK_DIR / "05_mechanism_diagnostic_surfaces.md",
+    ]:
+        text = path.read_text(encoding="utf-8")
+        for section in [
+            "## What This Surface Measures",
+            "## High-Signal Patterns",
+            "## Measurement / Interpretation Risks",
+            "## Grouped Metric Tables",
+            "## Representative Examples",
+        ]:
+            assert section in text
+        assert "`" in text
+        assert "```json" not in text
+        assert "```text" not in text
+        assert "Paired example ids:" not in text
+        assert "Question summary (" in text
+
+
+def test_briefing_bullets_include_metric_and_artifact_citations() -> None:
+    builder = PACK.Builder(load_json(MANIFEST_PATH))
+    builder.build_metrics()
+    metric_lookup = builder._metric_lookup()
+
+    for family_id in builder.family_specs:
+        bullets = builder._family_high_signal_patterns(
+            family_id, metric_lookup
+        ) + builder._family_risks(family_id, metric_lookup)
+        for bullet in bullets:
+            refs = set(re.findall(r"`([^`]+)`", bullet))
+            metric_ids = [ref for ref in refs if ref in metric_lookup]
+            if not metric_ids:
+                continue
+            expected_source_ids = {
+                artifact_id
+                for metric_id in metric_ids
+                for artifact_id in metric_lookup[metric_id]["source_artifact_ids"]
+            }
+            assert expected_source_ids <= refs, (
+                family_id,
+                bullet,
+                sorted(expected_source_ids - refs),
+            )
+
+
+def test_briefing_bullets_avoid_manifest_banned_prose_terms() -> None:
+    manifest = load_json(MANIFEST_PATH)
+    builder = PACK.Builder(manifest)
+    builder.build_metrics()
+    metric_lookup = builder._metric_lookup()
+
+    for family_id in builder.family_specs:
+        bullets = builder._family_high_signal_patterns(
+            family_id, metric_lookup
+        ) + builder._family_risks(family_id, metric_lookup)
+        for bullet in bullets:
+            authored_text = re.sub(r"`[^`]+`", " ", bullet)
+            for term in manifest["banned_prose_terms"]:
+                assert not re.search(
+                    rf"\b{re.escape(term)}\b", authored_text, flags=re.IGNORECASE
+                ), (family_id, term, bullet)
+
+
+def test_measurement_doc_bridge_irr_summary_separates_case_denominator_from_irr_disagreements() -> (
+    None
+):
+    metrics = {
+        row["metric_id"]: row for row in load_jsonl(PACK_DIR / "metric_ledger.jsonl")
+    }
+    text = (PACK_DIR / "03_measurement_surfaces.md").read_text(encoding="utf-8")
+    right_to_wrong_n = metrics[
+        "measurement.bridge_irr.right_to_wrong.wrong_entity_substitution"
+    ]["n"]
+    n_disagreements = int(metrics["measurement.bridge_irr.n_disagreements"]["estimate"])
+
+    assert f"Across {right_to_wrong_n} adjudicated right-to-wrong cases" in text
+    assert f"{n_disagreements} rater disagreements total" in text
+    assert f"with {n_disagreements} adjudicated disagreements total" not in text
+
+
+def test_readme_counts_fallback_sources_and_historical_claim_match_crosswalk() -> None:
+    readme = (PACK_DIR / "README.md").read_text(encoding="utf-8")
+    crosswalk = load_jsonl(PACK_DIR / "surface_crosswalk.jsonl")
+    status_counts: dict[str, int] = defaultdict(int)
+    for row in crosswalk:
+        status_counts[row["coverage_status"]] += 1
+    for status in [
+        "exact_metric",
+        "exact_example",
+        "structured_surface_only",
+        "markdown_fallback_only",
+        "historical_only",
+        "unresolved",
+    ]:
+        assert f"`{status}`: {status_counts[status]}." in readme
+
+    fallback_sources = [
+        row
+        for row in crosswalk
+        if row["surface_kind"] == "source_file"
+        and row["coverage_status"] == "markdown_fallback_only"
     ]
-    for path in doc_paths:
-        for line in strip_authored_markdown(path.read_text(encoding="utf-8")):
-            assert any(pattern.match(line) for pattern in allowed), (path, line)
+    for row in fallback_sources:
+        assert row["surface_id"].split(":", 1)[1] in readme
+        assert row["source_path"] in readme
+
+    assert "Unresolved provenance claims: none." in readme
+    assert "historical-april-8-legacy-ruler-causal-full-500-effect" in readme
+
+
+def test_bridge_irr_examples_use_real_question_text_not_bridge_ids() -> None:
+    examples = [
+        row
+        for row in load_jsonl(PACK_DIR / "example_ledger.jsonl")
+        if row["example_id"].startswith("example.transfer.bridge_irr.")
+    ]
+    assert examples
+    for row in examples:
+        assert not row["prompt_or_question"].startswith("tqa_bridge_")
+        assert "?" in row["prompt_or_question"]
+
+
+def test_new_audit_artifacts_and_metrics_are_manifested_and_crosswalked() -> None:
+    manifest = load_json(MANIFEST_PATH)
+    artifact_ids = {artifact["artifact_id"] for artifact in manifest["artifacts"]}
+    assert {
+        "d7_causal_pilot_audit",
+        "jailbreak_seed0_control_audit",
+        "evaluator_4way_audit",
+        "jailbreak_measurement_cleanup_audit",
+    } <= artifact_ids
+
+    metrics = {
+        row["metric_id"]: row for row in load_jsonl(PACK_DIR / "metric_ledger.jsonl")
+    }
+    expected_metric_sources = {
+        "mechanism.d7.pilot.probe_best_effect_pp": "d7_causal_pilot_audit",
+        "mechanism.d7.pilot.gradient_best_effect_pp": "d7_causal_pilot_audit",
+        "mechanism.d7.pilot.probe_causal_jaccard": "d7_causal_pilot_audit",
+        "measurement.jailbreak.v2.h_minus_random_permutation_p": "jailbreak_seed0_control_audit",
+        "measurement.strongreject.audit.gpt4o_mini_dev_accuracy_prior": "evaluator_4way_audit",
+        "measurement.strongreject.audit.gpt4o_dev_accuracy_after_rerun": "jailbreak_measurement_cleanup_audit",
+        "measurement.strongreject.audit.holdout_gap_after_model_upgrade_pp": "jailbreak_measurement_cleanup_audit",
+        "measurement.strongreject.audit.false_negatives_recovered_after_upgrade": "jailbreak_measurement_cleanup_audit",
+        "measurement.strongreject.audit.persistent_false_negatives_after_upgrade": "jailbreak_measurement_cleanup_audit",
+        "measurement.jailbreak.audit.contamination_bug_borderline_reclassified": "jailbreak_seed0_control_audit",
+        "measurement.jailbreak.audit.contamination_bug_strict_harmfulness_before": "jailbreak_seed0_control_audit",
+        "measurement.jailbreak.audit.contamination_bug_strict_harmfulness_after": "jailbreak_seed0_control_audit",
+    }
+    for metric_id, artifact_id in expected_metric_sources.items():
+        assert metrics[metric_id]["source_artifact_ids"] == [artifact_id]
+
+    crosswalk = {
+        row["surface_id"]: row
+        for row in load_jsonl(PACK_DIR / "surface_crosswalk.jsonl")
+    }
+    for surface_id in [
+        "provenance:probe-selector-pilot-best-effect",
+        "provenance:gradient-ranked-pilot-effect",
+        "provenance:probe-causal-jaccard",
+        "provenance:h-minus-random-permutation-test",
+        "provenance:strongreject-gpt-4o-dev-accuracy-after-rerun",
+        "provenance:strongreject-gpt-4o-mini-dev-accuracy-prior",
+        "provenance:holdout-gap-after-strongreject-model-upgrade",
+        "provenance:false-negatives-recovered-by-strongreject-model-upgrade",
+        "provenance:persistent-strongreject-false-negatives-after-upgrade",
+        "provenance:contamination-bug-borderline-records-reclassified",
+        "provenance:contamination-bug-strict-harmfulness-inflation",
+    ]:
+        assert crosswalk[surface_id]["coverage_status"] == "exact_metric"
+        assert crosswalk[surface_id]["ledger_metric_ids"]

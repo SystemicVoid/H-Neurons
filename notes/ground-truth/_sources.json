@@ -764,6 +764,48 @@
       "extractor": "available_jailbreak_evaluator_comparison"
     },
     {
+      "artifact_id": "jailbreak_seed0_control_audit",
+      "family": "measurement_surfaces",
+      "act_tags": ["act3"],
+      "source_path": "notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md",
+      "content_type": "markdown",
+      "granularity": "report",
+      "benchmark": "jailbreak",
+      "model": "gpt-4o",
+      "intervention_family": "random_control",
+      "canonical_role": "audit_note",
+      "replacement_status": "current",
+      "extractor": "jailbreak_seed0_control_audit"
+    },
+    {
+      "artifact_id": "evaluator_4way_audit",
+      "family": "measurement_surfaces",
+      "act_tags": ["act3"],
+      "source_path": "notes/act3-reports/2026-04-12-4way-evaluator-comparison.md",
+      "content_type": "markdown",
+      "granularity": "report",
+      "benchmark": "jailbreak_gold",
+      "model": "gpt-4o-mini",
+      "intervention_family": "",
+      "canonical_role": "audit_note",
+      "replacement_status": "current",
+      "extractor": "evaluator_4way_audit"
+    },
+    {
+      "artifact_id": "jailbreak_measurement_cleanup_audit",
+      "family": "measurement_surfaces",
+      "act_tags": ["act3"],
+      "source_path": "notes/act3-reports/2026-04-13-jailbreak-measurement-cleanup.md",
+      "content_type": "markdown",
+      "granularity": "report",
+      "benchmark": "jailbreak_gold",
+      "model": "gpt-4o",
+      "intervention_family": "",
+      "canonical_role": "audit_note",
+      "replacement_status": "current",
+      "extractor": "jailbreak_measurement_cleanup_audit"
+    },
+    {
       "artifact_id": "bridge_irr_summary",
       "family": "measurement_surfaces",
       "act_tags": ["act3"],
@@ -1266,6 +1308,20 @@
       "canonical_role": "raw_summary",
       "replacement_status": "current",
       "extractor": "none"
+    },
+    {
+      "artifact_id": "d7_causal_pilot_audit",
+      "family": "mechanism_diagnostic_surfaces",
+      "act_tags": ["act3"],
+      "source_path": "notes/act3-reports/2026-04-07-d7-causal-pilot-audit.md",
+      "content_type": "markdown",
+      "granularity": "report",
+      "benchmark": "jailbreak_d7_pilot100",
+      "model": "google/gemma-3-4b-it",
+      "intervention_family": "causal_vs_probe",
+      "canonical_role": "audit_note",
+      "replacement_status": "current",
+      "extractor": "d7_causal_pilot_audit"
     },
     {
       "artifact_id": "d7_baseline_alpha_1_rows",
