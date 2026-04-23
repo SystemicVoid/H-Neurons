@@ -32,6 +32,7 @@ from run_intervention import (  # noqa: E402
 )
 from select_faitheval_sae_utility_features import (  # noqa: E402
     build_stratified_faitheval_split,
+    layer_histogram,
     match_random_zero_weight_features,
 )
 
@@ -265,24 +266,27 @@ def test_build_faitheval_sample_uses_arc_answer_for_preferred_key() -> None:
     )
 
 
-def test_random_matching_is_layer_exact_and_avoids_selected_overlap() -> None:
+def test_random_matching_is_layer_exact_without_replacement() -> None:
     selected = [
         {"layer": 5, "feature": 0, "flat_idx": 0},
+        {"layer": 5, "feature": 1, "flat_idx": 1},
         {"layer": 9, "feature": 0, "flat_idx": 4},
     ]
     zero_pool = [
-        {"layer": 5, "feature": 1, "flat_idx": 1},
         {"layer": 5, "feature": 2, "flat_idx": 2},
+        {"layer": 5, "feature": 3, "flat_idx": 3},
+        {"layer": 5, "feature": 4, "flat_idx": 7},
         {"layer": 9, "feature": 1, "flat_idx": 5},
         {"layer": 9, "feature": 2, "flat_idx": 6},
+        {"layer": 9, "feature": 3, "flat_idx": 8},
     ]
     feature_stats = {
-        0: {"activation_frequency": 0.10, "decoder_norm": 1.00},
-        1: {"activation_frequency": 0.11, "decoder_norm": 1.01},
-        2: {"activation_frequency": 0.40, "decoder_norm": 1.90},
-        4: {"activation_frequency": 0.30, "decoder_norm": 0.80},
-        5: {"activation_frequency": 0.31, "decoder_norm": 0.82},
-        6: {"activation_frequency": 0.70, "decoder_norm": 1.70},
+        2: {"token_activation_rate": 0.50},
+        3: {"token_activation_rate": 0.00},
+        7: {"token_activation_rate": 0.20},
+        5: {"token_activation_rate": 0.70},
+        6: {"token_activation_rate": 0.40},
+        8: {"token_activation_rate": 0.10},
     }
 
     matched = match_random_zero_weight_features(
@@ -292,11 +296,101 @@ def test_random_matching_is_layer_exact_and_avoids_selected_overlap() -> None:
         seed=0,
     )
 
-    assert {row["flat_idx"] for row in matched} == {1, 5}
-    assert [row["layer"] for row in matched] == [5, 9]
+    assert len(matched) == len(selected)
+    assert layer_histogram(matched) == {"5": 2, "9": 1}
     assert {row["flat_idx"] for row in matched}.isdisjoint(
         row["flat_idx"] for row in selected
     )
+    assert len({row["flat_idx"] for row in matched}) == len(matched)
+    assert all(float(row["token_activation_rate"]) > 0.0 for row in matched)
+
+
+def test_random_matching_is_deterministic_for_fixed_seed() -> None:
+    selected = [
+        {"layer": 5, "feature": 0, "flat_idx": 0},
+        {"layer": 9, "feature": 0, "flat_idx": 4},
+    ]
+    zero_pool = [
+        {"layer": 5, "feature": 2, "flat_idx": 2},
+        {"layer": 5, "feature": 3, "flat_idx": 3},
+        {"layer": 9, "feature": 1, "flat_idx": 5},
+        {"layer": 9, "feature": 2, "flat_idx": 6},
+    ]
+    feature_stats = {
+        2: {"token_activation_rate": 0.6},
+        3: {"token_activation_rate": 0.4},
+        5: {"token_activation_rate": 0.7},
+        6: {"token_activation_rate": 0.3},
+    }
+
+    matched_a = match_random_zero_weight_features(
+        selected,
+        zero_pool,
+        feature_stats,
+        seed=11,
+    )
+    matched_b = match_random_zero_weight_features(
+        selected,
+        zero_pool,
+        feature_stats,
+        seed=11,
+    )
+
+    assert [row["flat_idx"] for row in matched_a] == [
+        row["flat_idx"] for row in matched_b
+    ]
+
+
+def test_random_matching_uses_only_positive_token_activation_rate() -> None:
+    selected = [{"layer": 5, "feature": 0, "flat_idx": 0}]
+    zero_pool = [
+        {"layer": 5, "feature": 1, "flat_idx": 1},
+        {"layer": 5, "feature": 2, "flat_idx": 2},
+    ]
+    feature_stats = {
+        1: {"token_activation_rate": 0.0},
+        2: {"token_activation_rate": 0.9},
+    }
+
+    matched = match_random_zero_weight_features(
+        selected,
+        zero_pool,
+        feature_stats,
+        seed=0,
+    )
+
+    assert [row["flat_idx"] for row in matched] == [2]
+
+
+def test_random_matching_changes_across_seeds_on_nondegenerate_fixture() -> None:
+    selected = [{"layer": 9, "feature": 0, "flat_idx": 4}]
+    zero_pool = [
+        {"layer": 9, "feature": 1, "flat_idx": 5},
+        {"layer": 9, "feature": 2, "flat_idx": 6},
+        {"layer": 9, "feature": 3, "flat_idx": 8},
+    ]
+    feature_stats = {
+        5: {"token_activation_rate": 0.6},
+        6: {"token_activation_rate": 0.5},
+        8: {"token_activation_rate": 0.4},
+    }
+
+    matched_seed_0 = match_random_zero_weight_features(
+        selected,
+        zero_pool,
+        feature_stats,
+        seed=0,
+    )
+    matched_seed_1 = match_random_zero_weight_features(
+        selected,
+        zero_pool,
+        feature_stats,
+        seed=1,
+    )
+
+    assert [row["flat_idx"] for row in matched_seed_0] != [
+        row["flat_idx"] for row in matched_seed_1
+    ]
 
 
 def test_report_summary_covers_full_bundle_schema() -> None:
@@ -532,6 +626,7 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
         "test_manifest.json",
         "candidate_pool.json",
         "feature_stats.json",
+        "full_sequence_feature_stats.json",
         "utility_scores.jsonl",
         "utility_selected_features.json",
         "readout_selected_features.json",
@@ -584,7 +679,7 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
         encoding="utf-8",
     )
     (bin_dir / "uv").write_text(
-        '#!/usr/bin/env bash\necho "uv $*" >>"$LOG_FILE"\nexit 0\n',
+        '#!/usr/bin/env bash\necho "uv $*" >>"$LOG_FILE"\nif [[ "$*" == *"check-sentinel"* ]]; then\n  exit 1\nfi\nexit 0\n',
         encoding="utf-8",
     )
     for executable in [bin_dir / "nvitop", bin_dir / "systemd-inhibit", bin_dir / "uv"]:
@@ -647,6 +742,7 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
         "test_manifest.json",
         "candidate_pool.json",
         "feature_stats.json",
+        "full_sequence_feature_stats.json",
         "utility_scores.jsonl",
         "utility_selected_features.json",
         "readout_selected_features.json",
@@ -704,7 +800,7 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
         encoding="utf-8",
     )
     (bin_dir / "uv").write_text(
-        '#!/usr/bin/env bash\necho "uv $*" >>"$LOG_FILE"\nexit 0\n',
+        '#!/usr/bin/env bash\necho "uv $*" >>"$LOG_FILE"\nif [[ "$*" == *"check-sentinel"* ]]; then\n  exit 1\nfi\nexit 0\n',
         encoding="utf-8",
     )
     for executable in [bin_dir / "nvitop", bin_dir / "systemd-inhibit", bin_dir / "uv"]:

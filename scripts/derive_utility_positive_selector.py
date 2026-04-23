@@ -17,7 +17,7 @@ to the main selector.
 
 Inputs (from the completed selector run):
   - selector/utility_scores.jsonl
-  - selector/feature_stats.json
+  - selector/full_sequence_feature_stats.json
   - selector/utility_selected_features.json (source of extraction_metadata)
   - selector/selector_summary.json (source of split_metadata / prompt_style / alpha)
   - models/sae_detector.pkl (classifier — enumerate zero-weight pool)
@@ -86,7 +86,10 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json_dumps(payload), encoding="utf-8")
+    content = json_dumps(payload)
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        return
+    path.write_text(content, encoding="utf-8")
 
 
 def main() -> None:
@@ -127,7 +130,9 @@ def main() -> None:
         prompt_style = str(selector_summary["prompt_style"])
         alpha = float(selector_summary["alpha"])
 
-        feature_stats_payload = _load_json(selector_dir / "feature_stats.json")
+        feature_stats_payload = _load_json(
+            selector_dir / "full_sequence_feature_stats.json"
+        )
         stats_by_flat_idx: dict[int, dict[str, Any]] = {
             int(row["flat_idx"]): row for row in feature_stats_payload["features"]
         }
@@ -164,8 +169,12 @@ def main() -> None:
             )
         ]
 
-        matched_layer_histograms: list[dict[str, int]] = []
-        matched_fingerprints: list[str] = []
+        eligible_zero_weight_pool = [
+            feature
+            for feature in zero_weight_pool
+            if float(feature.get("token_activation_rate", 0.0)) > 0.0
+        ]
+        matched_seed_diagnostics: dict[str, Any] = {}
         for seed in range(3):
             matched = match_random_zero_weight_features(
                 positive_rows,
@@ -182,14 +191,17 @@ def main() -> None:
                 prompt_style=prompt_style,
             )
             _write_json(matched_manifest_paths[seed], matched_manifest)
-            matched_layer_histograms.append(layer_histogram(matched))
-            matched_fingerprints.append(
-                fingerprint_ids([_feature_id(feature) for feature in matched])
-            )
+            matched_seed_diagnostics[f"matched_random_positive_seed_{seed}"] = {
+                "k": len(matched),
+                "layer_histogram": layer_histogram(matched),
+                "fingerprint": fingerprint_ids(
+                    [_feature_id(feature) for feature in matched]
+                ),
+            }
 
         positive_layer_histogram = layer_histogram(positive_rows)
         augment_summary = {
-            "schema_version": "faitheval_sae_utility_positive_augment/v1",
+            "schema_version": "faitheval_sae_utility_positive_augment/v2",
             "benchmark": "faitheval",
             "prompt_style": prompt_style,
             "sae_steering_mode": "delta_only",
@@ -209,14 +221,28 @@ def main() -> None:
                     "no size match to readout."
                 ),
                 "matched_random_policy": (
-                    "Zero-weight SAE features layer-matched to the utility-"
-                    "positive selection by activation frequency and decoder "
-                    "norm. 3 seeds."
+                    "Zero-weight SAE features sampled without replacement "
+                    "from the token-active pool, exact-matched to the "
+                    "utility-positive layer histogram, with within-layer "
+                    "weights proportional to full-sequence token activation "
+                    "rate on the frozen validation split. 3 seeds."
                 ),
                 "noop_reference": (
                     "Uses the shared noop (α=1.0) held-out bundle produced by "
                     "faitheval_sae_utility_selector.sh Phase 1."
                 ),
+            },
+            "matched_random_controls": {
+                "pool_name": "classifier_zero_weight",
+                "eligibility_rule": "token_activation_rate > 0 on frozen validation split",
+                "layer_matching": "exact utility_positive_selected layer histogram",
+                "sampling": "weighted_without_replacement_by_token_activation_rate_within_layer",
+                "source_stats_artifact": "full_sequence_feature_stats.json",
+                "eligible_pool_n": len(eligible_zero_weight_pool),
+                "eligible_pool_layer_histogram": layer_histogram(
+                    eligible_zero_weight_pool
+                ),
+                "seed_families": matched_seed_diagnostics,
             },
             "family_diagnostics": {
                 "utility_positive_selected": {
@@ -246,8 +272,18 @@ def main() -> None:
                         )
                     ),
                 },
-                "matched_random_positive_layer_histograms": matched_layer_histograms,
-                "matched_random_positive_fingerprints": matched_fingerprints,
+                "matched_random_positive_layer_histograms": [
+                    matched_seed_diagnostics[f"matched_random_positive_seed_{seed}"][
+                        "layer_histogram"
+                    ]
+                    for seed in range(3)
+                ],
+                "matched_random_positive_fingerprints": [
+                    matched_seed_diagnostics[f"matched_random_positive_seed_{seed}"][
+                        "fingerprint"
+                    ]
+                    for seed in range(3)
+                ],
             },
         }
         _write_json(augment_summary_path, augment_summary)

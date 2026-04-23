@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 import json
+import math
 from pathlib import Path
 import random
 from typing import Any
@@ -101,6 +102,21 @@ def parse_args() -> argparse.Namespace:
 def _load_classifier_summary(path: str) -> dict[str, Any]:
     with open(path, encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def _load_json(path: Path) -> dict[str, Any]:
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _load_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
 
 
 def _feature_key(feature: dict[str, Any]) -> tuple[int, int]:
@@ -224,15 +240,18 @@ def build_split_manifest(
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json_dumps(payload), encoding="utf-8")
+    content = json_dumps(payload)
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        return
+    path.write_text(content, encoding="utf-8")
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as handle:
-        for row in rows:
-            handle.write(json.dumps(row, sort_keys=True))
-            handle.write("\n")
+    content = "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows)
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        return
+    path.write_text(content, encoding="utf-8")
 
 
 def build_prompt_cache(
@@ -305,6 +324,53 @@ class PromptEndFeatureCollector:
         self.hooks.clear()
 
 
+class FullSequenceFeatureCollector:
+    """Capture full-sequence SAE activations for the selected layers."""
+
+    def __init__(self, model, saes: dict[int, Any], layer_indices: list[int]):
+        self.layer_indices = sorted(layer_indices)
+        self.saes = saes
+        self.captured: dict[int, torch.Tensor] = {}
+        self.hooks: list[Any] = []
+        for name, module in model.named_modules():
+            if "post_feedforward_layernorm" not in name:
+                continue
+            layer_idx = self._extract_layer_idx(name)
+            if layer_idx is None or layer_idx not in self.layer_indices:
+                continue
+            self.hooks.append(module.register_forward_hook(self._make_hook(layer_idx)))
+
+    @staticmethod
+    def _extract_layer_idx(name: str) -> int | None:
+        for part in name.split("."):
+            if part.isdigit():
+                return int(part)
+        return None
+
+    def _make_hook(self, layer_idx: int):
+        def hook_fn(module, inputs, output):
+            self.captured[layer_idx] = output.detach()
+
+        return hook_fn
+
+    def clear(self) -> None:
+        self.captured.clear()
+
+    def encode_full_sequence(self) -> dict[int, torch.Tensor]:
+        encoded: dict[int, torch.Tensor] = {}
+        for layer_idx in self.layer_indices:
+            hidden = self.captured[layer_idx].float().to(self.saes[layer_idx].device)
+            with torch.inference_mode():
+                features = self.saes[layer_idx].encode(hidden).detach().cpu()
+            encoded[layer_idx] = features.squeeze(0)
+        return encoded
+
+    def remove(self) -> None:
+        for hook in self.hooks:
+            hook.remove()
+        self.hooks.clear()
+
+
 def collect_prompt_end_feature_stats(
     model,
     saes: dict[int, Any],
@@ -354,6 +420,68 @@ def collect_prompt_end_feature_stats(
                 ),
                 "mean_activation": float(
                     activation_sums[layer_idx][feature_idx] / n_samples
+                ),
+                "decoder_norm": float(decoder_norms[feature_idx]),
+            }
+    return stats
+
+
+def collect_full_sequence_feature_stats(
+    model,
+    saes: dict[int, Any],
+    samples: list[dict[str, Any]],
+    prompt_cache: dict[str, torch.Tensor],
+    *,
+    layer_indices: list[int],
+    d_sae: int,
+) -> dict[int, dict[str, float | int]]:
+    collector = FullSequenceFeatureCollector(model, saes, layer_indices)
+    token_active_counts = {
+        layer_idx: np.zeros(d_sae, dtype=np.int64) for layer_idx in layer_indices
+    }
+    activation_sums = {
+        layer_idx: np.zeros(d_sae, dtype=np.float64) for layer_idx in layer_indices
+    }
+    n_validation_tokens = 0
+
+    try:
+        for sample in tqdm(samples, desc="Full-sequence SAE stats"):
+            collector.clear()
+            input_ids = prompt_cache[str(sample["id"])].to(model.device)
+            with torch.inference_mode():
+                model(input_ids)
+            encoded = collector.encode_full_sequence()
+            for layer_idx, features in encoded.items():
+                values = features.numpy()
+                n_tokens = values.shape[0]
+                n_validation_tokens += n_tokens if layer_idx == layer_indices[0] else 0
+                token_active_counts[layer_idx] += (
+                    (values > 0).sum(axis=0).astype(np.int64)
+                )
+                activation_sums[layer_idx] += values.sum(axis=0)
+    finally:
+        collector.remove()
+
+    stats: dict[int, dict[str, float | int]] = {}
+    for layer_pos, layer_idx in enumerate(layer_indices):
+        sae = saes[layer_idx]
+        decoder = sae.W_dec.detach().float().cpu().numpy()
+        decoder_norms = np.linalg.norm(decoder, axis=1)
+        for feature_idx in range(d_sae):
+            flat_idx = layer_pos * d_sae + feature_idx
+            stats[flat_idx] = {
+                "flat_idx": int(flat_idx),
+                "layer": int(layer_idx),
+                "feature": int(feature_idx),
+                "token_active_count": int(token_active_counts[layer_idx][feature_idx]),
+                "token_activation_rate": float(
+                    token_active_counts[layer_idx][feature_idx]
+                    / max(1, n_validation_tokens)
+                ),
+                "n_validation_tokens": int(n_validation_tokens),
+                "mean_activation": float(
+                    activation_sums[layer_idx][feature_idx]
+                    / max(1, n_validation_tokens)
                 ),
                 "decoder_norm": float(decoder_norms[feature_idx]),
             }
@@ -486,7 +614,10 @@ def match_random_zero_weight_features(
     rng = random.Random(seed)
     pool_by_layer: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for feature in zero_weight_pool:
-        pool_by_layer[int(feature["layer"])].append(feature)
+        merged = {**feature, **feature_stats[int(feature["flat_idx"])]}
+        if float(merged.get("token_activation_rate", 0.0)) <= 0.0:
+            continue
+        pool_by_layer[int(feature["layer"])].append(merged)
 
     selected_by_layer: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for feature in selected_features:
@@ -497,31 +628,29 @@ def match_random_zero_weight_features(
         pool = list(pool_by_layer[layer])
         if len(pool) < len(selected_by_layer[layer]):
             raise ValueError(
-                f"Layer {layer} only has {len(pool)} zero-weight controls for "
+                f"Layer {layer} only has {len(pool)} eligible zero-weight controls "
+                f"(token_activation_rate > 0) for "
                 f"{len(selected_by_layer[layer])} selected features"
             )
-        targets = list(selected_by_layer[layer])
-        rng.shuffle(targets)
-        for target in targets:
-            target_stats = feature_stats[int(target["flat_idx"])]
-            best_idx = None
-            best_distance = None
-            for idx, candidate in enumerate(pool):
-                candidate_stats = feature_stats[int(candidate["flat_idx"])]
-                distance = float(
-                    np.hypot(
-                        float(candidate_stats["activation_frequency"])
-                        - float(target_stats["activation_frequency"]),
-                        float(candidate_stats["decoder_norm"])
-                        - float(target_stats["decoder_norm"]),
-                    )
+        priorities: list[tuple[float, int, dict[str, Any]]] = []
+        for candidate in pool:
+            weight = float(candidate["token_activation_rate"])
+            if weight <= 0.0:
+                continue
+            uniform = rng.random()
+            while uniform <= 0.0:
+                uniform = rng.random()
+            priorities.append(
+                (
+                    math.log(uniform) / weight,
+                    int(candidate["flat_idx"]),
+                    candidate,
                 )
-                candidate_key = (distance, int(candidate["flat_idx"]))
-                if best_distance is None or candidate_key < best_distance:
-                    best_distance = candidate_key
-                    best_idx = idx
-            assert best_idx is not None
-            matched.append(pool.pop(best_idx))
+            )
+        priorities.sort(key=lambda item: (-item[0], item[1]))
+        matched.extend(
+            candidate for _, _, candidate in priorities[: len(selected_by_layer[layer])]
+        )
     matched.sort(key=lambda feature: int(feature["flat_idx"]))
     return matched
 
@@ -558,6 +687,7 @@ def main() -> None:
         output_dir / "validation_manifest.json",
         output_dir / "test_manifest.json",
         output_dir / "feature_stats.json",
+        output_dir / "full_sequence_feature_stats.json",
         output_dir / "utility_scores.jsonl",
         output_dir / "utility_selected_features.json",
         output_dir / "readout_selected_features.json",
@@ -631,18 +761,26 @@ def main() -> None:
             ),
         )
 
+        feature_stats_path = output_dir / "feature_stats.json"
+        utility_scores_path = output_dir / "utility_scores.jsonl"
+        utility_selected_manifest_path = output_dir / "utility_selected_features.json"
+        readout_selected_manifest_path = output_dir / "readout_selected_features.json"
+        can_reuse_selector_scoring = all(
+            path.exists()
+            for path in [
+                feature_stats_path,
+                utility_scores_path,
+                utility_selected_manifest_path,
+                readout_selected_manifest_path,
+            ]
+        )
+
         model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
         prompt_cache = build_prompt_cache(
             tokenizer,
             validation_samples,
             prompt_style=args.prompt_style,
         )
-        choice_token_cache = {
-            str(sample["id"]): _choice_token_ids(
-                tokenizer, list(sample["valid_letters"])
-            )
-            for sample in validation_samples
-        }
 
         sae_layers = sorted({int(feature["layer"]) for feature in candidate_pool})
         saes = load_saes(
@@ -653,7 +791,102 @@ def main() -> None:
             str(next(model.parameters()).device),
         )
 
-        stats_by_flat_idx = collect_prompt_end_feature_stats(
+        if can_reuse_selector_scoring:
+            feature_stats_payload = _load_json(feature_stats_path)
+            stats_by_flat_idx = {
+                int(row["flat_idx"]): row for row in feature_stats_payload["features"]
+            }
+            utility_rows = _load_jsonl(utility_scores_path)
+            utility_selected = _load_json(utility_selected_manifest_path)["features"]
+            readout_selected = _load_json(readout_selected_manifest_path)["features"]
+        else:
+            stats_by_flat_idx = collect_prompt_end_feature_stats(
+                model,
+                saes,
+                validation_samples,
+                prompt_cache,
+                layer_indices=layer_indices,
+                d_sae=d_sae,
+            )
+            _write_json(
+                feature_stats_path,
+                {
+                    "schema_version": "sae_feature_stats/v1",
+                    "benchmark": "faitheval",
+                    "prompt_style": args.prompt_style,
+                    "n_validation_samples": len(validation_samples),
+                    "features": [
+                        stats_by_flat_idx[flat_idx]
+                        for flat_idx in range(len(stats_by_flat_idx))
+                    ],
+                },
+            )
+
+            choice_token_cache = {
+                str(sample["id"]): _choice_token_ids(
+                    tokenizer, list(sample["valid_letters"])
+                )
+                for sample in validation_samples
+            }
+            baseline_margin_by_id = baseline_margins(
+                model,
+                validation_samples,
+                prompt_cache,
+                choice_token_cache,
+            )
+            utility_rows = []
+            for feature in tqdm(candidate_pool, desc="Utility scoring"):
+                scored = score_candidate_feature(
+                    model,
+                    saes,
+                    validation_samples,
+                    prompt_cache,
+                    choice_token_cache,
+                    baseline_margin_by_id,
+                    feature=feature,
+                    alpha=args.alpha,
+                )
+                scored.update(stats_by_flat_idx[int(feature["flat_idx"])])
+                utility_rows.append(scored)
+
+            utility_rows.sort(
+                key=lambda row: (-float(row["selector_score"]), int(row["flat_idx"]))
+            )
+            _write_jsonl(utility_scores_path, utility_rows)
+
+            utility_selected = utility_rows[: args.top_k]
+            utility_manifest = feature_manifest_with_selector_metadata(
+                utility_selected,
+                extraction_metadata=extraction_metadata,
+                selector_name="validation_logprob_margin",
+                split_metadata=split_metadata,
+                alpha=args.alpha,
+                prompt_style=args.prompt_style,
+            )
+            _write_json(utility_selected_manifest_path, utility_manifest)
+
+            readout_selected = get_positive_sae_features_from_classifier(
+                args.classifier_path,
+                layer_indices=layer_indices,
+                d_sae=d_sae,
+            )
+            if len(readout_selected) != args.top_k:
+                raise ValueError(
+                    "FaithEval held-out comparison requires matched feature-set "
+                    f"sizes: expected {args.top_k} readout-selected SAE features, "
+                    f"found {len(readout_selected)}"
+                )
+            readout_manifest = feature_manifest_with_selector_metadata(
+                readout_selected,
+                extraction_metadata=extraction_metadata,
+                selector_name="classifier_positive_readout",
+                split_metadata=split_metadata,
+                alpha=args.alpha,
+                prompt_style=args.prompt_style,
+            )
+            _write_json(readout_selected_manifest_path, readout_manifest)
+
+        full_sequence_stats_by_flat_idx = collect_full_sequence_feature_stats(
             model,
             saes,
             validation_samples,
@@ -662,60 +895,27 @@ def main() -> None:
             d_sae=d_sae,
         )
         _write_json(
-            output_dir / "feature_stats.json",
+            output_dir / "full_sequence_feature_stats.json",
             {
-                "schema_version": "sae_feature_stats/v1",
+                "schema_version": "sae_full_sequence_feature_stats/v1",
                 "benchmark": "faitheval",
                 "prompt_style": args.prompt_style,
                 "n_validation_samples": len(validation_samples),
+                "n_validation_tokens": int(
+                    next(
+                        iter(full_sequence_stats_by_flat_idx.values()),
+                    )["n_validation_tokens"]
+                ),
                 "features": [
-                    stats_by_flat_idx[flat_idx]
-                    for flat_idx in range(len(stats_by_flat_idx))
+                    full_sequence_stats_by_flat_idx[flat_idx]
+                    for flat_idx in range(len(full_sequence_stats_by_flat_idx))
                 ],
             },
         )
-
-        baseline_margin_by_id = baseline_margins(
-            model,
-            validation_samples,
-            prompt_cache,
-            choice_token_cache,
-        )
-        utility_rows: list[dict[str, Any]] = []
-        for feature in tqdm(candidate_pool, desc="Utility scoring"):
-            scored = score_candidate_feature(
-                model,
-                saes,
-                validation_samples,
-                prompt_cache,
-                choice_token_cache,
-                baseline_margin_by_id,
-                feature=feature,
-                alpha=args.alpha,
-            )
-            scored.update(stats_by_flat_idx[int(feature["flat_idx"])])
-            utility_rows.append(scored)
-
-        utility_rows.sort(
-            key=lambda row: (-float(row["selector_score"]), int(row["flat_idx"]))
-        )
-        _write_jsonl(output_dir / "utility_scores.jsonl", utility_rows)
-
-        utility_selected = utility_rows[: args.top_k]
-        utility_manifest = feature_manifest_with_selector_metadata(
-            utility_selected,
-            extraction_metadata=extraction_metadata,
-            selector_name="validation_logprob_margin",
-            split_metadata=split_metadata,
-            alpha=args.alpha,
-            prompt_style=args.prompt_style,
-        )
-        _write_json(output_dir / "utility_selected_features.json", utility_manifest)
-
         zero_weight_pool = [
             {
                 **entry,
-                **stats_by_flat_idx[int(entry["flat_idx"])],
+                **full_sequence_stats_by_flat_idx[int(entry["flat_idx"])],
             }
             for entry in build_sae_feature_entries(
                 get_zero_weight_sae_feature_indices(args.classifier_path).tolist(),
@@ -723,33 +923,16 @@ def main() -> None:
                 d_sae=d_sae,
             )
         ]
-        readout_selected = get_positive_sae_features_from_classifier(
-            args.classifier_path,
-            layer_indices=layer_indices,
-            d_sae=d_sae,
-        )
-        if len(readout_selected) != args.top_k:
-            raise ValueError(
-                "FaithEval held-out comparison requires matched feature-set sizes: "
-                f"expected {args.top_k} readout-selected SAE features, "
-                f"found {len(readout_selected)}"
-            )
-        readout_manifest = feature_manifest_with_selector_metadata(
-            readout_selected,
-            extraction_metadata=extraction_metadata,
-            selector_name="classifier_positive_readout",
-            split_metadata=split_metadata,
-            alpha=args.alpha,
-            prompt_style=args.prompt_style,
-        )
-        _write_json(output_dir / "readout_selected_features.json", readout_manifest)
-
+        matched_random_seed_diagnostics: dict[str, Any] = {}
         for seed in range(3):
             matched = match_random_zero_weight_features(
                 utility_selected,
                 zero_weight_pool,
-                stats_by_flat_idx,
+                full_sequence_stats_by_flat_idx,
                 seed=seed,
+            )
+            matched_fingerprint = fingerprint_ids(
+                [_feature_id(feature) for feature in matched]
             )
             matched_manifest = feature_manifest_with_selector_metadata(
                 matched,
@@ -763,6 +946,11 @@ def main() -> None:
                 output_dir / f"matched_random_seed_{seed}_features.json",
                 matched_manifest,
             )
+            matched_random_seed_diagnostics[f"matched_random_seed_{seed}"] = {
+                "k": len(matched),
+                "fingerprint": matched_fingerprint,
+                "layer_histogram": layer_histogram(matched),
+            }
 
         outside_old_shortlist = [
             feature
@@ -770,8 +958,13 @@ def main() -> None:
             if not bool(feature["in_old_shortlist"])
         ]
         overlap = jaccard_overlap(utility_selected, readout_selected)
+        eligible_zero_weight_pool = [
+            feature
+            for feature in zero_weight_pool
+            if float(feature.get("token_activation_rate", 0.0)) > 0.0
+        ]
         selector_summary = {
-            "schema_version": "faitheval_sae_utility_selector/v3",
+            "schema_version": "faitheval_sae_utility_selector/v4",
             "benchmark": "faitheval",
             "prompt_style": args.prompt_style,
             "sae_steering_mode": "delta_only",
@@ -804,8 +997,11 @@ def main() -> None:
                         "misleading-minus-preferred logprob margin."
                     ),
                     "matched_random": (
-                        "Zero-weight SAE features matched to the utility-selected "
-                        "set by layer, activation frequency, and decoder norm."
+                        "Zero-weight SAE features sampled without replacement "
+                        "from the token-active pool, exact-matched to the "
+                        "utility-selected layer histogram, with within-layer "
+                        "weights proportional to full-sequence token activation "
+                        "rate on the frozen validation split."
                     ),
                 },
             },
@@ -827,6 +1023,18 @@ def main() -> None:
                 "fingerprint": fingerprint_ids(
                     [_feature_id(feature) for feature in candidate_pool]
                 ),
+            },
+            "matched_random_controls": {
+                "pool_name": "classifier_zero_weight",
+                "eligibility_rule": "token_activation_rate > 0 on frozen validation split",
+                "layer_matching": "exact utility_selected layer histogram",
+                "sampling": "weighted_without_replacement_by_token_activation_rate_within_layer",
+                "source_stats_artifact": "full_sequence_feature_stats.json",
+                "eligible_pool_n": len(eligible_zero_weight_pool),
+                "eligible_pool_layer_histogram": layer_histogram(
+                    eligible_zero_weight_pool
+                ),
+                "seed_families": matched_random_seed_diagnostics,
             },
             "families": {
                 "utility_selected": {
