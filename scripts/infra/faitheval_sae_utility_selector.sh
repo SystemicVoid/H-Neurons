@@ -19,7 +19,7 @@ BENCHMARKS=(
     "faitheval_anti_compliance_margin"
 )
 FAMILIES=("noop" "readout_selected" "utility_selected")
-for ((seed=0; seed<${N_RANDOM_SEEDS}; seed++)); do
+for ((seed=0; seed<N_RANDOM_SEEDS; seed++)); do
     FAMILIES+=("matched_random_seed_${seed}")
 done
 FAMILIES+=("matched_zero_dead")
@@ -86,7 +86,7 @@ selector_stage_complete() {
         "selector_summary.json"
     )
     local seed=""
-    for ((seed=0; seed<${N_RANDOM_SEEDS}; seed++)); do
+    for ((seed=0; seed<N_RANDOM_SEEDS; seed++)); do
         required+=("matched_random_seed_${seed}_features.json")
     done
     local deps=(
