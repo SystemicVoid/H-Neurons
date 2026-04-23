@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-04-23
+
+### What I did
+
+Scientific-rigor review of the 2026-04-22 rerun of the FaithEval SAE utility-selector matched_random control. Verified six reran held-out families (3 main k=266 seeds + 3 augment k=154 seeds) across both `faitheval` and `faitheval_anti_compliance_margin` benchmarks: 12 provenance sidecars with `status=completed`, 840 records each, test-manifest ID parity (hash `c2ad5a31…`) consistent across all families. Checked the new `match_random_zero_weight_features` implementation (Efraimidis-Spirakis weighted-without-replacement on the `token_activation_rate > 0` pool, exact layer-histogram match) — distinct fingerprints confirmed for all six seeds against `selector_summary.matched_random_controls.seed_families` and the augment counterpart. Compliance counts and mean margins reproduced directly from the alpha_0.0 jsonl files match the regenerated `heldout_summary.json` and `augment_heldout_summary.json` to rounding; `audit_ci_coverage.py` passes. Consolidated the `paper/icml/reports/2026-04-22-faitheval-sae-utility-selector-review.md` so the §0 superseding update is merged into a single canonical body; the old §4.1–§4.4 prompt-end-control essay is collapsed to a short historical paragraph pointing at the archived `experiment_2026-04-22_prompt_end_zero_weight_control/` dirs.
+
+### What this changes about my thinking
+
+The new control recovers a proper 3-seed null, but at the cost of exposing how noisy the main k=266 `utility − matched_random` contrast actually is: across seeds it spans −1.21 to +0.14 nats with seed sd ≈ 0.68 nats, i.e. comparable to the effect itself. In seed_2, random features beat utility-selected on the margin. The strictly-positive k=154 augment is much better behaved — sign-consistent across all three seeds, seed sd ≈ 0.21 nats, all CIs excluding 0. So the paper-facing margin claim should lean on the augment (k=154) for the selection-specific story and not on the main k=266 contrast, while the headline accuracy null and the `readout − noop`/`utility − readout` contrasts (which don't depend on `matched_random` at all) remain the cleanest evidence.
+
+### What I will do next
+
+Keep items 2–6 from the 2026-04-22 audit's §5. Highest-leverage cheap follow-up is adding 7–10 additional random-null seeds for the main bundle (≈30 min GPU) so the main-bundle contrast can be summarised as a permutation distribution with a seed-mean CI, rather than three noisy point estimates.
+
+---
+
 ## 2026-04-22
 
 ### What I did

@@ -1,76 +1,43 @@
-# FaithEval SAE Utility-Selector Ablation — L2/L3 Review — 2026-04-22
+# FaithEval SAE Utility-Selector Ablation — L2/L3 Review
+
+> **Status:** canonical (refreshed 2026-04-23). This is the single source of
+> truth for the FaithEval SAE utility-selector ablation. The original
+> 2026-04-22 draft relied on a broken *prompt-end zero-weight* random
+> control; it was replaced by a full-sequence, activity-weighted,
+> layer-matched null rerun on 2026-04-22 and is summarised in §4 only as
+> historical archive.
 
 > **Verdict (data):** On n=840 held-out FaithEval test items, every SAE
-> target-selection family (readout-selected k=266, utility-selected k=266,
-> utility-positive k=154, layer-matched zero-weight k∈{266,154}) yields a
-> null accuracy delta (all paired 95% CIs include 0; point estimates ≤0.5 pp).
-> On the anti-compliance margin endpoint, utility-selected reduces the
-> counterfactual-minus-preferred logprob margin by −0.76 nats vs noop
-> [−1.08, −0.42] and by −0.35 nats vs layer-matched-zero-weight
-> [−0.65, −0.05]; readout-selected moves the margin in the *wrong* direction
-> by +0.92 nats vs noop [+0.61, +1.23].
+> target-selection family (`readout_selected` k=266, `utility_selected`
+> k=266, `utility_positive_selected` k=154, three layer-matched
+> zero-weight seeds per bundle) yields a null accuracy delta — all paired
+> 95% CIs include 0 and all point estimates are ≤0.72 pp. On the
+> anti-compliance logprob margin, `readout_selected` moves the
+> misleading-preferred margin in the *wrong* direction (+0.92 nats vs
+> noop [+0.61, +1.23]); `utility_selected` reduces it by −0.76 nats
+> [−1.08, −0.42]; the paired `utility − readout` delta is −1.68 nats
+> [−2.17, −1.19]. Under the full-sequence-weighted random null
+> (three seeds, distinct fingerprints), the `utility − matched_random`
+> margin contrast ranges **−1.21 … +0.14** nats across the main k=266
+> bundle (seed mean ≈ −0.57 nats, seed sd ≈ 0.68) and **−0.81 … −0.42**
+> nats across the positive-only k=154 augment (seed mean ≈ −0.66 nats,
+> seed sd ≈ 0.21). Only the augment is sign-consistent across seeds.
 >
-> **Verdict (interpretation):** Utility-aware SAE target selection, directly
-> optimized on a held-out selection criterion, does not recover FaithEval
-> behavioral control in this setting. This closes L2 as "the SAE null is a
-> feature-selection artifact." It does not fully close L3 (layer coverage
-> restricted to existing extraction scope). The readout-vs-utility sign
-> divergence at the margin level is an independently interesting finding
-> that supports the paper's "good readout ≠ good steering handle"
-> thesis. The original prompt-end `matched_random` caveat is now
-> superseded by the full-sequence rerun in §0; the old control is kept
-> only as archived provenance.
-
-## 0. Superseding Update — Full-Sequence Random Control
-
-On 2026-04-22, the live `matched_random*` families were rerun with a new
-control that supersedes the prompt-end zero-weight control discussed later
-in this note. The new control samples from the classifier-zero-weight SAE
-pool, excludes features with `token_activation_rate = 0`, matches the
-`utility_selected` / `utility_positive_selected` layer histogram exactly,
-and samples without replacement within each layer with weights
-proportional to full-sequence token activation rate on the frozen
-validation split (`selector/full_sequence_feature_stats.json`).
-
-The old prompt-end control was not deleted. Before rerunning, each affected
-held-out `experiment/` directory was archived under
-`experiment_2026-04-22_prompt_end_zero_weight_control`, so the original
-artifact remains available for audit and provenance.
-
-The new seed manifests are distinct:
-
-- Main `k=266`: `matched_random_seed_0=2e85887325ffe57f`,
-  `matched_random_seed_1=133681d0c976cc98`,
-  `matched_random_seed_2=dfc9d80ff04142d9`
-- Positive augment `k=154`: `matched_random_positive_seed_0=e90a13dcefdf81b8`,
-  `matched_random_positive_seed_1=e6954cc758b29f3d`,
-  `matched_random_positive_seed_2=5c69106e91f84d7f`
-
-Updated paper-facing contrasts vs the superseding control:
-
-- Main `utility_selected − matched_random_seed_i`, FaithEval compliance:
-  seed 0 `+0.714 pp` [`-0.833`, `+2.262`], seed 1 `-0.238 pp`
-  [`-1.667`, `+1.190`], seed 2 `-0.238 pp` [`-1.786`, `+1.310`]
-- Main `utility_selected − matched_random_seed_i`,
-  anti-compliance margin: seed 0 `-0.651 nats` [`-1.026`, `-0.273`],
-  seed 1 `-1.207 nats` [`-1.575`, `-0.822`], seed 2 `+0.143 nats`
-  [`-0.184`, `+0.478`]
-- Augment `utility_positive_selected − matched_random_positive_seed_i`,
-  FaithEval compliance: seed 0 `+0.476 pp` [`-0.952`, `+2.024`], seed 1
-  `+0.476 pp` [`-0.952`, `+1.905`], seed 2 `+0.119 pp`
-  [`-1.310`, `+1.667`]
-- Augment `utility_positive_selected − matched_random_positive_seed_i`,
-  anti-compliance margin: seed 0 `-0.735 nats` [`-1.095`, `-0.364`],
-  seed 1 `-0.813 nats` [`-1.155`, `-0.460`], seed 2 `-0.422 nats`
-  [`-0.751`, `-0.084`]
-
-Paper-facing summary under the superseding control: both main and augment
-compliance contrasts remain null across seeds, while the anti-compliance
-margin contrast ranges from `-1.207` to `+0.143` nats in the main `k=266`
-bundle and from `-0.813` to `-0.422` nats in the positive-only `k=154`
-augment. For any citation of `matched_random`, use the regenerated report
-artifacts and this update rather than the historical prompt-end control
-discussion below.
+> **Verdict (interpretation):** Utility-aware SAE target selection does
+> not recover FaithEval *accuracy*, closing L2 as a feature-selection
+> artifact. The "good readout ≠ good steering handle" claim (readout and
+> utility pick features with opposite-sign effect on the margin inside
+> the same probe-nonzero pool) survives any random-null redesign because
+> it is an α=0-paired contrast where intervention-path drift cancels.
+> The strictly-positive **k=154 augment** beats all three random seeds
+> at the margin (every CI excludes 0) — a sign-consistent but small
+> signal. The main **k=266 bundle** does not: in seed_2 of the new
+> random null, random features produce a *lower* mean margin than the
+> utility-selected set itself. Selection-specific margin signal in the
+> main bundle is therefore weaker than the original single-draw
+> `utility − matched_random` estimate suggested, and the seed-to-seed
+> variability of the random null (sd ≈ 0.68 nats) is comparable to the
+> effect itself. L3 (layer coverage) remains only partially addressed.
 
 ## Source Hierarchy
 
@@ -94,39 +61,62 @@ discussion below.
 | Selector summary (k=266 main) | [selector/selector_summary.json](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/selector_summary.json) |
 | Selector utility scores | [selector/utility_scores.jsonl](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/utility_scores.jsonl) |
 | Augment summary (k=154) | [selector/utility_positive_summary.json](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/utility_positive_summary.json) |
+| Full-sequence feature stats (validation split) | [selector/full_sequence_feature_stats.json](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/full_sequence_feature_stats.json) |
 | Held-out report (main, k=266) | [report/heldout_summary.json](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json) |
 | Held-out audit note (main) | [report/audit_note.md](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/audit_note.md) |
 | Held-out report (augment) | [report_augment/augment_heldout_summary.json](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/report_augment/augment_heldout_summary.json) |
 | Held-out audit note (augment) | [report_augment/augment_audit_note.md](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/report_augment/augment_audit_note.md) |
+| Per-seed zero-weight feature manifests | `selector/matched_random_seed_{0,1,2}_features.json`, `selector/matched_random_positive_seed_{0,1,2}_features.json` |
 | Frozen validation manifest (n=160) | `selector/validation_manifest.json`, fingerprint `6fc512b3027fc4a0` |
 | Frozen test manifest (n=840) | `selector/test_manifest.json`, fingerprint `781fd7eafa5f2573` |
+| Archived prompt-end control (superseded) | `heldout/**/experiment_2026-04-22_prompt_end_zero_weight_control/` (see §4) |
 | Provenance sidecars | `*.provenance.*.json` under selector/, heldout/, report/, report_augment/ |
 
 ## 1. Design recap
 
 ### Candidate pool and split
 
-- Candidate pool: 509 SAE features with non-zero weight in the frozen FaithEval
-  SAE classifier (`models/sae_detector.pkl`). Of these, 266 positive-weight
-  features are used as `readout_selected`; the full 509 are used as the search
-  pool for utility scoring.
-- Split: stratified 160 / 840 validation/test by `(num_options,
-  counterfactual_key_canonical)`, seed=42. `validation ∩ test = 0` confirmed.
-- SAE scope: existing extraction layers `[0, 5, 6, 7, 13, 14, 15, 16, 17, 20]`
-  at `d_sae = 16384`. No wider-layer sweep (design choice; L3 is therefore
-  only partially addressed).
+- Candidate pool: 509 SAE features with non-zero weight in the frozen
+  FaithEval SAE classifier (`models/sae_detector.pkl`). Of these, 266
+  positive-weight features are used as `readout_selected`; the full 509
+  are the utility-scoring search pool.
+- Stratified 160 / 840 validation/test split by
+  `(num_options, counterfactual_key_canonical)`, seed=42, with
+  `validation ∩ test = ∅` verified.
+- SAE scope: existing extraction layers
+  `[0, 5, 6, 7, 13, 14, 15, 16, 17, 20]` at `d_sae = 16 384`. No
+  wider-layer sweep (design choice; L3 only partially closed).
 
 ### Selector
 
-- Operator: SAE `delta_only` ablation at α=0.0 (encode, multiply target
-  feature by 0, decode, take delta, add to residual).
+- Operator: SAE `delta_only` ablation at α=0.0 (encode → multiply target
+  feature by 0 → decode → take delta → add to residual).
 - Selector metric on validation: `baseline_margin − ablated_margin`,
   averaged across 160 items. Margin is
-  `logp(counterfactual_key) − logp(preferred_key)` at the prompt-end position
-  in a single-token forced-choice score.
-- Top-k = 266 features picked in descending selector score (ties broken by
-  `flat_idx`). Of the 509 candidates: 154 have strictly positive validation
-  utility, 329 negative, 26 zero.
+  `logp(counterfactual_key) − logp(preferred_key)` at the prompt-end
+  position in a single-token forced-choice score.
+- Top-k = 266 features chosen in descending selector score
+  (`flat_idx` tiebreak). Of the 509 candidates: 154 strictly-positive
+  validation utility, 329 negative, 26 zero.
+
+### Random-null construction (live since 2026-04-22 rerun)
+
+Per `select_faitheval_sae_utility_features.match_random_zero_weight_features`:
+
+- Pool: classifier-zero-weight SAE features, filtered to
+  `token_activation_rate > 0` on the frozen validation split. Eligible
+  pool size = 112 004 (layer histogram in
+  `selector_summary.matched_random_controls`).
+- Layer match: **exact** per-layer histogram match against
+  `utility_selected` (main) / `utility_positive_selected` (augment).
+- Within-layer sampling: **weighted without replacement** by
+  `token_activation_rate` via Efraimidis-Spirakis A-Res
+  (`key = log(uniform) / weight`, top-k by key).
+- Three seeds `{0, 1, 2}` produce distinct `flat_idx` fingerprints
+  — verified main seeds `2e85887325ffe57f / 133681d0c976cc98 /
+  dfc9d80ff04142d9` and augment seeds `e90a13dcefdf81b8 /
+  e6954cc758b29f3d / 5c69106e91f84d7f` in `selector_summary.json` and
+  `utility_positive_summary.json`.
 
 ### Families on test (n=840)
 
@@ -135,338 +125,351 @@ discussion below.
 | `noop` | — | 1.0 (shortcut path) | Baseline |
 | `readout_selected` | 266 | 0.0 | "Original paper" SAE steering target |
 | `utility_selected` | 266 | 0.0 | Intervention-aware target (main L2 attack) |
-| `matched_random_seed_{0,1,2}` | 266 | 0.0 | Layer / activation-freq / decoder-norm matched null — *see §4* |
-| `utility_positive_selected` | 154 | 0.0 | Only strictly-positive-utility augment (prevents "size-match dilution" objection) |
-| `matched_random_positive_seed_{0,1,2}` | 154 | 0.0 | Layer-matched zero-weight null for the augment — *see §4* |
+| `matched_random_seed_{0,1,2}` | 266 | 0.0 | Layer + full-sequence-activity matched zero-weight null |
+| `utility_positive_selected` | 154 | 0.0 | Strictly-positive-utility augment (guards against size-match dilution) |
+| `matched_random_positive_seed_{0,1,2}` | 154 | 0.0 | Layer-matched zero-weight null for the augment |
 
 ### Endpoints
 
 1. `faitheval` compliance (binary accuracy, generation-based).
-2. `faitheval_anti_compliance_margin` (continuous logprob margin at prompt-end).
+2. `faitheval_anti_compliance_margin` (continuous logprob margin at
+   prompt-end).
 
-Per-family CIs are binomial Wilson for accuracy; bootstrap-percentile mean
-CIs for margin. Paired deltas use 10 000-sample paired bootstrap by
-sample_id, seed=42.
+Per-family CIs: binomial Wilson (accuracy); bootstrap-percentile mean
+(margin). Paired deltas: 10 000-sample paired bootstrap keyed on
+`sample_id`, seed=42.
 
-## 2. Data
+## 2. Data (canonical numbers)
 
 ### 2.1 Main bundle (k=266)
 
 **FaithEval compliance, n=840**
 
-| Family | Compliance | Wilson 95% CI |
-| --- | --- | --- |
-| `noop` | 0.6643 (558/840) | [0.632, 0.695] |
-| `readout_selected` | 0.6595 (554/840) | [0.627, 0.691] |
-| `utility_selected` | 0.6619 (556/840) | [0.629, 0.693] |
-| `matched_random_seed_{0,1,2}` | 0.6667 (560/840) | [0.634, 0.698] |
+| Family | Compliance | n_compliant | Wilson 95% CI |
+| --- | ---: | ---: | --- |
+| `noop` | 0.6643 | 558 / 840 | [0.632, 0.695] |
+| `readout_selected` | 0.6595 | 554 / 840 | [0.627, 0.691] |
+| `utility_selected` | 0.6619 | 556 / 840 | [0.629, 0.693] |
+| `matched_random_seed_0` | 0.6548 | 550 / 840 | [0.622, 0.687] |
+| `matched_random_seed_1` | 0.6643 | 558 / 840 | [0.632, 0.695] |
+| `matched_random_seed_2` | 0.6643 | 558 / 840 | [0.632, 0.695] |
 
-Paired deltas vs `utility_selected` (paired bootstrap, 10 000 resamples):
+Paired deltas vs `utility_selected`:
 
 | Contrast | Δ (pp) | 95% CI |
 | --- | ---: | --- |
 | `utility − readout` | +0.238 | [−1.31, +1.79] |
 | `utility − noop` | −0.238 | [−1.67, +1.19] |
-| `utility − matched_random_seed_*` | −0.476 | [−1.90, +0.95] |
+| `utility − matched_random_seed_0` | +0.714 | [−0.83, +2.26] |
+| `utility − matched_random_seed_1` | −0.238 | [−1.67, +1.19] |
+| `utility − matched_random_seed_2` | −0.238 | [−1.79, +1.31] |
 
-All three deltas are null (CIs include zero, point estimates ≤0.5 pp).
+All six deltas are null (every CI includes 0; |point estimate| ≤ 0.72 pp).
 
-**FaithEval anti-compliance margin (logprob nats), n=840**
+**Anti-compliance margin (logprob nats), n=840**
 
 | Family | Mean margin | Bootstrap 95% CI |
 | --- | ---: | --- |
 | `noop` | +8.309 | [+7.10, +9.50] |
 | `readout_selected` | +9.227 | [+7.86, +10.57] |
 | `utility_selected` | +7.546 | [+6.47, +8.60] |
-| `matched_random_seed_{0,1,2}` | +7.900 | [+6.77, +9.03] |
+| `matched_random_seed_0` | +8.198 | [+6.99, +9.39] |
+| `matched_random_seed_1` | +8.754 | [+7.49, +10.00] |
+| `matched_random_seed_2` | +7.404 | [+6.33, +8.47] |
 
 Paired deltas vs `utility_selected`:
 
 | Contrast | Δ (nats) | 95% CI |
 | --- | ---: | --- |
-| `utility − readout` | −1.681 | [−2.17, −1.19] |
-| `utility − noop` | −0.763 | [−1.08, −0.42] |
-| `utility − matched_random_seed_*` | −0.353 | [−0.65, −0.05] |
+| `utility − readout` | −1.681 | [−2.171, −1.190] |
+| `utility − noop` | −0.763 | [−1.084, −0.422] |
+| `utility − matched_random_seed_0` | −0.651 | [−1.026, −0.273] |
+| `utility − matched_random_seed_1` | −1.207 | [−1.575, −0.822] |
+| `utility − matched_random_seed_2` | +0.143 | [−0.184, +0.478] |
 
-Supplementary contrasts (this review, same 10 000-sample paired bootstrap,
-seed=42):
+Supplementary contrasts (same 10 000-sample paired bootstrap, seed=42):
 
 | Contrast | Δ (nats) | 95% CI |
 | --- | ---: | --- |
 | `readout − noop` | +0.918 | [+0.61, +1.23] |
-| `matched_random_seed_0 − noop` | −0.409 | [−0.56, −0.25] |
 
 ### 2.2 Augment bundle (k=154)
 
 **FaithEval compliance, n=840**
 
-| Family | Compliance |
-| --- | --- |
-| `noop` (reused α=1.0) | 0.6643 (558/840) |
-| `utility_positive_selected` | 0.6655 (559/840) |
-| `matched_random_positive_seed_{0,1,2}` | 0.6655 (559/840) |
+| Family | Compliance | n_compliant |
+| --- | ---: | ---: |
+| `noop` (reused α=1.0) | 0.6643 | 558 / 840 |
+| `utility_positive_selected` | 0.6655 | 559 / 840 |
+| `matched_random_positive_seed_0` | 0.6607 | 555 / 840 |
+| `matched_random_positive_seed_1` | 0.6607 | 555 / 840 |
+| `matched_random_positive_seed_2` | 0.6643 | 558 / 840 |
 
 Paired deltas vs `utility_positive_selected`:
 
 | Contrast | Δ (pp) | 95% CI |
 | --- | ---: | --- |
 | `utility_positive − noop` | +0.119 | [−1.31, +1.55] |
-| `utility_positive − matched_random_positive_*` | 0.000 | [−1.43, +1.43] |
+| `utility_positive − matched_random_positive_seed_0` | +0.476 | [−0.95, +2.02] |
+| `utility_positive − matched_random_positive_seed_1` | +0.476 | [−0.95, +1.90] |
+| `utility_positive − matched_random_positive_seed_2` | +0.119 | [−1.31, +1.67] |
 
-**FaithEval anti-compliance margin (nats), n=840**
+All null.
 
-| Family | Mean margin |
-| --- | --- |
-| `noop` | +8.309 |
-| `utility_positive_selected` | +7.586 |
-| `matched_random_positive_seed_{0,1,2}` | +7.993 |
+**Anti-compliance margin (nats), n=840**
+
+| Family | Mean margin | Bootstrap 95% CI |
+| --- | ---: | --- |
+| `noop` | +8.309 | [+7.10, +9.50] |
+| `utility_positive_selected` | +7.586 | [+6.51, +8.64] |
+| `matched_random_positive_seed_0` | +8.320 | [+7.10, +9.52] |
+| `matched_random_positive_seed_1` | +8.399 | [+7.16, +9.62] |
+| `matched_random_positive_seed_2` | +8.008 | [+6.85, +9.16] |
 
 Paired deltas vs `utility_positive_selected`:
 
 | Contrast | Δ (nats) | 95% CI |
 | --- | ---: | --- |
-| `utility_positive − noop` | −0.723 | [−1.04, −0.38] |
-| `utility_positive − matched_random_positive_*` | −0.407 | [−0.71, −0.09] |
+| `utility_positive − noop` | −0.723 | [−1.041, −0.385] |
+| `utility_positive − matched_random_positive_seed_0` | −0.735 | [−1.095, −0.364] |
+| `utility_positive − matched_random_positive_seed_1` | −0.813 | [−1.155, −0.460] |
+| `utility_positive − matched_random_positive_seed_2` | −0.422 | [−0.751, −0.084] |
 
-### 2.3 Selector diagnostics
+All four margin contrasts are negative; all CIs exclude 0.
+
+### 2.3 Across-seed summary (new)
+
+Across the three seeds of each bundle, the `utility − matched_random`
+margin contrast shows:
+
+| Bundle | Seed 0 | Seed 1 | Seed 2 | Seed mean | Seed sd |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Main k=266 | −0.651 | −1.207 | +0.143 | −0.572 | 0.678 |
+| Augment k=154 | −0.735 | −0.813 | −0.422 | −0.657 | 0.207 |
+
+The main-bundle seed sd (0.68 nats) is comparable to the within-seed
+bootstrap CI half-widths (~0.3–0.4 nats) and to the point estimate
+itself, so with three seeds the selection-specific margin signal for the
+main bundle cannot be confidently bounded away from random-feature
+noise. The augment-bundle seed sd (0.21 nats) is ~3× smaller and all
+three draws agree in sign. (Seed sd computed on n=3 with Bessel
+correction; it is itself highly uncertain.)
+
+### 2.4 Selector diagnostics
 
 - Utility vs readout overlap: |∩| = 132 of 266, Jaccard = 0.33.
 - Utility-selected with strictly positive validation score: 154 of 266.
-  The remaining 112 of 266 have ≤0 validation utility (size-matching to the
-  readout cardinality crossed the sign boundary; hence the k=154 augment).
-- Features "outside old shortlist" (|weight| ≤ 10⁻³): 75 of 266 utility-
-  selected = 28.2%.
-- Utility layer histogram concentrates in layer 20 (109 of 266), 17 (40),
-  16 (29), 13 (25), 14 (18), 15 (17), 0 (19), 5 (2), 6 (3), 7 (4).
-  Candidate-pool layer histogram peaks at layer 20 (189 of 509). Utility
-  and readout pick from roughly the same layer support.
+  The remaining 112 have ≤0 validation utility (size-matching to the
+  readout cardinality crossed the sign boundary; hence the k=154
+  augment).
+- Features "outside old shortlist" (|weight| ≤ 10⁻³): 75 of 266 = 28.2%.
+- Utility layer histogram: `{0: 19, 5: 2, 6: 3, 7: 4, 13: 25, 14: 18,
+  15: 17, 16: 29, 17: 40, 20: 109}`; candidate pool peaks at layer 20
+  (189 of 509).
 - Utility weight-sign counts: 134 negative / 132 positive probe weight
-  (near-balanced). Readout: 266/266 positive probe weight (by construction).
+  (near-balanced). Readout: 266/266 positive probe weight (by
+  construction).
 
 ## 3. Interpretation
 
 ### 3.1 What the data supports
 
 1. **Accuracy is null across every SAE target-selection rule tried.**
-   Even when the selector is optimized on the same held-out metric family
-   used for scoring (validation logprob margin), the behavioral endpoint
-   is unmoved (all paired 95% accuracy CIs include 0; all point estimates
-   are ≤0.5 pp). A reviewer cannot attribute the FaithEval SAE null to
-   "you picked the wrong features" — within the candidate pool, no picking
-   rule works.
-2. **Utility selection transfers to test on the margin endpoint.**
-   The validation-selected utility set reduces misleading-preferred margin
-   by −0.76 nats vs noop on test. Confidence interval excludes 0. The
-   generalization-to-test gap is not measured directly here but the signal
-   is non-vanishing.
-3. **Readout-selected features shift the margin in the *wrong* direction.**
-   Ablating the top-266 positive-probe-weight SAE features increases the
-   misleading-preferred margin by +0.92 nats vs noop
-   [+0.61, +1.23]. This is a symmetric but *opposite-sign* effect to
-   utility selection. Within the same candidate pool, utility and readout
+   Even when the selector is optimised on the same held-out metric
+   family used for scoring (validation logprob margin), the behavioural
+   endpoint is unmoved (all paired 95 % accuracy CIs include 0; all
+   point estimates are ≤ 0.72 pp). A reviewer cannot attribute the
+   FaithEval SAE null to "you picked the wrong features" — within the
+   candidate pool, no picking rule works.
+2. **Readout-selected features shift the margin in the *wrong*
+   direction.** Ablating the top-266 positive-probe-weight SAE features
+   increases the misleading-preferred margin by +0.92 nats vs noop
+   [+0.61, +1.23]. Within the same candidate pool, utility and readout
    rules pick features with opposite causal effect on the margin (even
-   though their overlap is 132/266).
-4. **Size-match dilution is not driving the null.** The k=154
-   strictly-positive augment, which the "diluted-with-harmful-features"
-   objection cannot attack, replicates the accuracy null and the margin
-   direction (−0.72 nats vs noop).
+   though their overlap is 132/266). This is the cleanest form of the
+   "good readout ≠ good steering handle" claim and does *not* depend on
+   any random-null construction.
+3. **Strictly-positive augment has a sign-consistent margin signal.**
+   The k=154 augment reduces the margin by −0.72 nats vs noop
+   [−1.04, −0.39] and beats all three layer-matched random seeds by
+   0.42–0.81 nats (CIs exclude 0 for all three). Size-match dilution
+   cannot explain this contrast.
+4. **Main-bundle margin signal is weaker under the new control than the
+   original report implied.** In seed_2, a layer-matched activity-matched
+   random draw yields a *lower* mean margin (7.40 nats) than
+   `utility_selected` itself (7.55 nats). The seed-to-seed spread of the
+   random null (sd ≈ 0.68 nats on the contrast) is comparable to the
+   effect size, so with only three seeds we cannot claim a clean
+   selection-specific margin improvement in the main bundle.
 
 ### 3.2 What survives scrutiny vs what does not
 
-- **Cleanly survives**: the accuracy null across families; the
-  `utility − readout` margin delta (−1.68 nats); the `readout − noop`
-  margin delta (+0.92 nats); the cardinality control via the k=154 augment.
-  These are the claims that support the paper's thesis.
-- **Survives with caveat**: the `utility − noop` margin delta (−0.76 nats).
-  About half of this is an intervention-path artifact shared with
-  `matched_random` (−0.41 nats path drift, §4). The selection-specific
-  increment is −0.35 nats — real but small.
-- **Does not cleanly survive**: the `utility − matched_random` comparison
-  as a bona-fide random-features null. The matched_random families are
-  compromised by the issues in §4.
+- **Cleanly survives** (use in paper main line):
+  - the accuracy null across all families,
+  - the `utility − readout` margin delta (−1.68 nats [−2.17, −1.19]),
+  - the `readout − noop` margin delta (+0.92 nats [+0.61, +1.23]),
+  - the augment `utility_positive − matched_random_positive_*` contrast
+    being negative in 3/3 seeds with CIs excluding 0,
+  - the cardinality control via the k=154 augment.
+- **Survives with caveat** (cite only with explicit framing):
+  - the `utility_positive − noop` margin delta (−0.72 nats). Some of
+    this overlaps with shared α=0 path artefacts; the matched-random
+    contrast is the cleaner statement.
+- **Does not cleanly survive**:
+  - a single summary number for `utility − matched_random` in the main
+    k=266 bundle. With three seeds spanning −1.21 to +0.14 nats, no
+    population point estimate is well-constrained; the seed-SD
+    dominates the within-seed CI at this seed count.
 
 ### 3.3 Framing implication for the paper
 
-A defensible set of claims, ordered from safest to most ambitious:
+Defensible claims, ordered from safest to most ambitious:
 
 1. *Even with intervention-aware SAE target selection, FaithEval
-   accuracy does not move.* (Safest, headline, closes L2 as an artifact
-   concern.)
+   accuracy does not move.* (Safest, headline, closes L2 as a
+   target-selection artefact concern.)
 2. *Within the probe-nonzero candidate pool, utility-aware and
-   readout-selected rules pick features that shift the margin in opposite
-   directions. The classifier's top-weighted features are not usable
-   steering handles in this setting — they are, if anything,
-   counter-productive.* (Secondary, but scientifically interesting; this
-   is the "good readout ≠ good steering handle" claim in its cleanest
-   form.)
-3. *A weak but statistically detectable selection-specific margin signal
-   exists over a near-noop random null.* (Third-tier; cite with the
-   matched-random caveats from §4 if used at all.)
+   readout-selected rules pick features that shift the margin in
+   opposite directions. The classifier's top-weighted features are not
+   usable steering handles in this setting — they are, if anything,
+   counter-productive.* (Secondary, scientifically interesting; does
+   not depend on `matched_random`.)
+3. *On the strictly-positive augment (k=154), utility-selected SAE
+   features reduce the misleading-preferred margin relative to three
+   layer-matched, activity-matched random nulls in a sign-consistent
+   way. Magnitude is small (−0.42 to −0.81 nats) and does not reach the
+   accuracy endpoint.* (Third-tier; the k=154 bundle is the one where
+   the random-null contrast is clean.)
 
-Note that claim 2 *does not depend* on `matched_random` because both sides
-of the contrast (`utility` and `readout`) use the same α=0 intervention
-path on probe-nonzero features — the path artifact cancels in the paired
-delta.
+Claim 2 does not depend on `matched_random` because both sides of the
+contrast use the same α=0 intervention path — any path artefact
+cancels.
 
-## 4. Issues surfaced by the original prompt-end control review
+## 4. Historical note — original prompt-end random control (superseded)
 
-Sections 4.1-4.3 document the failure mode of the original prompt-end
-`matched_random` control. They are retained as historical review evidence;
-the live control family has been superseded by the full-sequence rerun in
-§0.
+The 2026-04-22 first draft of this review used a different
+`match_random_zero_weight_features` implementation that layer-matched on
+prompt-end `activation_frequency` and `decoder_norm`. Two flaws
+surfaced in the adversarial audit of that draft:
 
-### 4.1 `matched_random` "three seeds" are byte-identical *(material)*
+1. **Seed collapse.** 99.46 % of zero-weight features had
+   `activation_frequency = 0` at prompt-end on the validation split, and
+   Gemma Scope SAE decoders are unit-norm — so both matching coordinates
+   were effectively constant. The `(distance, flat_idx)` greedy tiebreak
+   then produced byte-identical manifests for seeds 0, 1, 2 (verified
+   by hash). The "three seeds" were a single deterministic draw.
+2. **Path-drift artefact.** α=0 on a manifest of near-dead features
+   still routes through encode → scale → decode, introducing a
+   ≈ −0.41 nats margin drift vs the α=1 shortcut path. This drift
+   inflated `utility − noop` in the original table.
 
-**Finding.** `scripts/select_faitheval_sae_utility_features.py:479`
-defines `match_random_zero_weight_features(seed=...)` which is intended
-to produce three independent random draws of layer-matched zero-weight
-features. In practice all three seeds produce byte-identical feature
-manifests:
+The live `match_random_zero_weight_features`
+(`scripts/select_faitheval_sae_utility_features.py:607`) now: (a) filters
+to `token_activation_rate > 0` (pool size 112 004), (b) exact-matches
+the utility-family layer histogram, (c) samples without replacement with
+weights proportional to full-sequence validation-token activation rate
+(Efraimidis-Spirakis keys), and (d) produces three genuinely-distinct
+seeds. The resulting matched_random margins bracket `noop` from both
+sides (seed_2 = 7.40 nats < noop 8.31 < seed_1 = 8.75), so the
+mean-level path drift concern is weakened — any path-drift is dominated
+by seed-level variance on this pool.
+
+Historical artefacts are retained (not deleted) at:
 
 ```
-seed 0 hash = 70b9a73733042251 (k=266)
-seed 1 hash = 70b9a73733042251 (k=266)
-seed 2 hash = 70b9a73733042251 (k=266)
+data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout/<benchmark>/matched_random*/experiment_2026-04-22_prompt_end_zero_weight_control/
 ```
 
-And the same holds for `matched_random_positive_seed_{0,1,2}` in the
-augment. The three held-out held-out results are therefore byte-identical
-as well (e.g. FaithEval compliance = 560/840, margin = +7.8996 across all
-three main seeds).
+for every reran family and both benchmarks. Provenance sidecars for
+those dirs keep the original selector invocation and hashes.
 
-**Mechanism.** The matching function layer-matches, processes targets in
-a shuffled order, and greedy-picks the nearest zero-weight candidate by
-`(distance, flat_idx)` where `distance = hypot(Δ activation_frequency, Δ
-decoder_norm)`. But in the FaithEval zero-weight pool:
+**L3 closure remains partial by design** (unchanged). The selector
+searches all non-zero probe-support features within the existing SAE
+extraction layers, not a wider SAE sweep. Cite L3 honestly in the paper.
 
-- All ~16 000 zero-weight features per layer have `decoder_norm ≈ 1.0`
-  (Gemma Scope SAE decoders are unit-norm; verified 0 of 163 331 features
-  deviate by >0.01 from 1.0).
-- 99.46% of zero-weight features have `activation_frequency = 0` at
-  prompt-end on the validation split (882 of 163 331 activate at all).
-
-Because both matching coordinates are effectively ~constant, every
-candidate tied on `distance`. The `flat_idx` tiebreak then deterministically
-picks the lowest-indexed zero-weight features per layer, regardless of
-target shuffle order — so the three seeds degenerate to the same fixed
-set. Confirmed by direct simulation.
-
-**Implications.**
-
-- Any "mean ± seed variance" interpretation of the three matched-random
-  numbers is unsupported. There is effectively one matched-random draw,
-  not three. The provenance / audit claim of "3 matched random seeds" is
-  wrong as written.
-- The CI on `utility − matched_random` reflects only sample-level
-  variability under a fixed single-feature-set null, not
-  selection-variability.
-- The "lowest-flat_idx zero-weight features per layer" is not a
-  meaningful layer-matched random control: it is a deterministic pick
-  that happens to be almost entirely dead features.
-
-### 4.2 The `matched_random` null is a near-noop intervention *(material)*
-
-**Finding.** The `matched_random` families at α=0 produce a margin shift
-of −0.41 nats vs noop [−0.56, −0.25] — not ≈0. This is an
-intervention-path artifact: the α=1 shortcut in `SAEFeatureScaler` returns
-the residual unchanged, while α=0 runs encode → multiply-by-0 → decode →
-add-delta, which on dead features is mathematically zero but numerically
-introduces small drift (float precision, bf16/fp32 conversion in the
-encode/decode path, minor reconstruction noise on non-target features).
-
-**Implication.** Any comparison that uses noop as its baseline conflates
-"selection-specific effect" with "intervention-path drift". In the main
-bundle, roughly 54% of the `utility − noop` margin effect is attributable
-to path drift (−0.41 nats) and 46% to selection specificity (−0.35 nats).
-The paper must either (a) use `utility − matched_random` as the primary
-contrast (clean on path drift but compromised by §4.1), (b) use a
-properly-constructed α=0 ablation-at-no-target baseline (e.g. ablate a
-single dummy feature that is definitely dead everywhere), or (c) restrict
-claims to `utility − readout`, where both sides share the α=0 path.
-
-### 4.3 `matched_random` is matched on prompt-end stats only *(moderate)*
-
-The stats used for layer-matching (`activation_frequency`, `decoder_norm`)
-are computed at the prompt-end position only
-(`PromptEndFeatureCollector`). Many features that appear dead at
-prompt-end are active at intermediate positions and thus contribute
-meaningfully through subsequent attention. The intended "match by
-activation frequency" is therefore not matching the quantity that
-actually drives the intervention. Pool-level richness is not preserved
-in the match.
-
-### 4.4 Stats field not propagated into matched manifests *(cosmetic)*
-
+**Cosmetic note** (unchanged since original audit):
 `readout_selected_features.json` labels all 266 features as
-`weight_sign = "unknown"` despite each having a positive probe weight (the
-`weight` field is present; `weight_sign` is not set by
-`get_positive_sae_features_from_classifier`). `readout_weight_sign_counts`
-in the selector summary therefore says `{unknown: 266}` instead of
-`{positive: 266}`. Purely cosmetic; does not affect results.
-
-### 4.5 L3 closure is partial by design *(known and acknowledged)*
-
-The design docstring and `selector_summary.json:selector_design.layer_coverage_note`
-both state this explicitly: *"Partial L3 closure only: selection searches
-all non-zero probe-support features within the existing SAE extraction
-layers, not a wider SAE sweep."* Good hygiene, but cite L3 honestly in the
-paper. A wider SAE sweep would be a separate, larger experiment.
+`weight_sign = "unknown"` despite each having a positive probe weight.
+`readout_weight_sign_counts` therefore shows `{unknown: 266}` instead of
+`{positive: 266}`. Does not affect numbers.
 
 ## 5. Suggested next steps (ranked)
 
-1. **[Completed 2026-04-22] Rerun `matched_random` with a proper control.**
-   This was executed using option (b): sample from the zero-weight pool,
-   exclude `token_activation_rate = 0`, exact-match the layer histogram,
-   and weight by full-sequence validation-token activation rate with three
-   distinct seeds. The resulting control supersedes the prompt-end
-   artifact; see §0 for the live paper-facing numbers.
+1. **[DONE 2026-04-22]** Rerun `matched_random` with a full-sequence
+   activity-weighted control. Three genuinely-distinct seeds; results
+   above in §2.
 2. **Add an intervention-path baseline (~1 hr).** Run α=0 on a manifest
-   containing a single *guaranteed-dead* feature (flat_idx picked to have
-   activation_frequency = 0 and zero classifier weight). This isolates
-   the pure path-drift number and lets every `X − noop` delta be
-   decomposed into "path drift + selection specificity".
+   containing a single guaranteed-dead feature (flat_idx with
+   `token_activation_rate = 0` and zero classifier weight) to isolate
+   the pure path-drift number. Under the new random control this
+   artefact appears small, but an explicit measurement would let every
+   `X − noop` delta be decomposed cleanly.
 3. **Sharpen the readout-worsens-margin finding.** Move the
-   `readout − noop = +0.92 [+0.61, +1.23]` nats contrast into the paper's
-   main line. It is a cleaner way to make the "readout ≠ steering handle"
-   point than "utility − readout", and does not need `matched_random`.
-4. **If paper space permits, a minimal wider-layer probe.** Not a sweep —
-   pick one new layer outside the existing SAE extraction set, re-run the
-   selector pipeline, and check whether the accuracy null survives one
-   layer-family extension. Partial L3 closure only. Do not open a general
-   SAE sweep.
-5. **Limitations-table edit.** L2 moves from "central weakness" to
-   "addressed via target-selection ablation; readout features are
-   counter-productive at the margin level; utility-selected features show
-   detectable but tiny margin signal insufficient to shift accuracy". L3
-   remains "partially addressed — layer coverage is bounded by existing
-   SAE extraction".
+   `readout − noop = +0.92 [+0.61, +1.23]` nats contrast into the
+   paper's main line. It is a cleaner way to make the
+   "readout ≠ steering handle" point than `utility − readout` alone and
+   does not need `matched_random`.
+4. **Add more random-null seeds for the main bundle (cheap).** With
+   only three seeds and seed sd ≈ 0.68 nats on the contrast, the main
+   bundle's selection-specific margin signal is not bounded away from
+   zero. 7–10 additional seeds (≈ 30 min GPU) would turn the
+   across-seed null into a respectable permutation distribution and
+   let us bootstrap the seed-mean CI.
+5. **If paper space permits, a minimal wider-layer probe.** Not a
+   sweep — pick one new layer outside the existing SAE extraction set,
+   rerun the selector pipeline, check whether the accuracy null
+   survives one layer-family extension. Partial L3 closure only. Do
+   not open a general SAE sweep.
+6. **Limitations-table edit.** L2 moves from "central weakness" to
+   "addressed via target-selection ablation: accuracy null across
+   readout / utility / layer-matched-activity-weighted random; readout
+   ablation is counter-productive at the margin level; utility-selected
+   margin signal is small and, in the main k=266 bundle, not robustly
+   separable from random-features noise at three seeds". L3 remains
+   "partially addressed — layer coverage bounded by existing SAE
+   extraction".
 
-Items 1–3 together would tighten the Priority-2 result to genuine main-
-text quality. Items 4–5 are paper-hygiene.
+Items 1–4 together would lift the Priority-2 result to main-text
+quality. Items 5–6 are paper hygiene.
 
 ## 6. Uncertainty register
 
-- **High confidence**: accuracy null across all families; readout-noop
-  margin increase; utility-noop margin decrease at population level.
-- **Medium confidence**: the *magnitude* of selection-specific margin
-  signal (current estimate −0.35 nats, but the random null it is
-  compared to is biased in the §4 ways).
-- **Low confidence**: any seed-variance interpretation of the reported
-  matched-random bootstraps (§4.1 collapses this to a single-draw null).
-- **Explicitly out of scope**: "SAE steering cannot work on FaithEval"
-  (would require a broader SAE sweep and wider operator family).
+- **High confidence**: accuracy null across all families;
+  `readout − noop` margin increase; `utility − readout` margin direction;
+  the augment `utility_positive − matched_random_positive_*` being
+  sign-consistent across three seeds.
+- **Medium confidence**: the *magnitude* of the augment
+  selection-specific margin signal (point estimates −0.42 to −0.81 nats
+  across seeds; seed mean −0.66 nats with seed sd ≈ 0.21 on n=3).
+- **Low confidence**: any single summary estimate of the main-bundle
+  `utility − matched_random` margin contrast. Three seeds span
+  −1.21 to +0.14 nats; seed sd ≈ 0.68 nats ≈ effect magnitude.
+- **Explicitly out of scope**: "SAE steering cannot work on
+  FaithEval" — would require a broader SAE sweep and a wider operator
+  family.
 
 ## 7. Provenance integrity
 
-All seven pipeline stages (selector, six held-out families per benchmark,
-two reports) emitted `*.provenance.*.json` sidecars with
-`status = "completed"`. The test manifest fingerprint `781fd7eafa5f2573`
-is consistent across all held-out outputs (verified by direct ID set
-equality against `selector/test_manifest.json`). No
-`sentinels/stop_after_selector` was active during the runs. No partial
-alpha files; no missing ID parity errors.
+All pipeline stages — selector (both original and rerun), 12 held-out
+family × benchmark runs (6 reran on 2026-04-22 at 16:39–17:25), two
+reports — emitted `*.provenance.*.json` sidecars with
+`status = "completed"`. Verified on 2026-04-23:
 
-The `schema_version` markers
-(`faitheval_sae_utility_selector_report/v4` and
-`faitheval_sae_utility_positive_augment_report/v1`) distinguish the main
-and augment summaries cleanly.
+- `test_manifest.json` fingerprint `781fd7eafa5f2573` is consistent
+  across all 12 held-out outputs (ID-set hash parity on sample IDs).
+- Every rerun alpha file contains exactly 840 records; every
+  rerun provenance sidecar references the intended seed-specific
+  feature manifest (`matched_random_seed_{0,1,2}_features.json` or
+  `matched_random_positive_seed_{0,1,2}_features.json`).
+- Per-seed flat_idx fingerprints are distinct across seeds in both
+  bundles (`selector_summary.matched_random_controls.seed_families` and
+  `utility_positive_summary.matched_random_controls.seed_families`).
+- Archived prompt-end experiment dirs
+  (`experiment_2026-04-22_prompt_end_zero_weight_control/`) retain their
+  own provenance sidecars.
+- No `sentinels/stop_after_selector` was active during the reruns; no
+  partial alpha files; no missing-ID parity errors.
+
+Schema version markers:
+`faitheval_sae_utility_selector_report/v4` (main),
+`faitheval_sae_utility_positive_augment_report/v1` (augment).
