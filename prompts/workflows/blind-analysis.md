@@ -9,14 +9,7 @@ Most of your effort should go into generating, sharpening, and pressure-testing 
 Core stance:
 Assume prior framing is contaminated by path dependence. Do not preserve it, search for it, reconstruct it, or defer to it.
 Treat filenames, section titles, family IDs, act tags, metric prefixes, and other organizational labels as bookkeeping rather than theory.
-Judge candidate framings by:
-- evidential support
-- explanatory compression
-- benefits AI safety
-- surprise
-- mechanistic interest
-- reviewer defensibility
-- likely literature-facing novelty
+Judge candidate framings by evidential support, explanatory compression, mechanistic interest, reviewer defensibility, and plausible novelty.
 
 Important:
 Do not optimize for breadth, flatteringness, or continuity with existing storylines.
@@ -29,75 +22,17 @@ Use only the files in the evidence pack unless a listed file directly references
 Do not let the markdown organization dictate the paper's conceptual frame.
 
 ## Working method
-
-### Phase 1 — Ledger-first discovery
 Start from raw data, not the prose.
-
-Extract the strongest empirical facts in plain language, stripped of inherited labels.
-Look for:
-- asymmetries
-- dissociations
-- reversals
-- transfer failures
-- cross-surface inconsistencies
-- externalities
-- cases where strong internal signal does not translate into useful or safe control
-- cases where intervention effects depend heavily on the measurement surface
-- cases where the mechanism suggested by one surface is contradicted or refined by another
-
 Prioritize patterns that recur across multiple metrics, surfaces, or intervention families.
-
-### Phase 2 — Candidate framing generation
 Do not lock onto the first plausible headline.
-
 Generate at least 6 candidate framings that explain the evidence from meaningfully different angles.
-The search space should include both broader and narrower possibilities, including:
-- framings centered on control rather than detection
-- framings centered on externalities or transfer structure
-- framings centered on measurement-induced illusion
-- framings centered on intervention-surface mismatch
-- framings centered on a deeper mechanistic dissociation
-- at least one tempting framing that sounds good but is not actually well-supported
-
-For each candidate framing, ask:
-- What exact empirical pattern does this framing compress?
-- What does it explain that rivals do not?
-- What evidence is doing most of the work?
-- What evidence makes this framing fragile, narrow, or misleading?
-- Would this still feel like a mech-interp contribution rather than a generic cautionary note?
-- What would a skeptical reviewer say this framing is over-claiming?
-
-### Phase 3 — Compression and de-duplication
 After generating the candidates, compress the analysis rather than restating it.
-
 Do not declare an overall winner.
 Do not create a separate comparison section that merely repeats evidence already given under each candidate.
 Instead, fold only the non-redundant comparative signal into the candidate entries themselves: where each framing is strongest relative to rivals, where it overreaches, and what assumptions would justify preferring it later.
 
-Penalize framings that are true but generic.
-Penalize framings that depend on one evaluator, one benchmark, or one intervention family unless that dependence is itself the story.
-Penalize framings that merely restate a well-known methodological cliche.
-Reward framings that expose a specific, non-obvious field-level lesson about what mechanistic signals can and cannot buy you.
-
-## Anti-genericity rule
-Downgrade any framing that can be paraphrased as:
-- "measurement matters"
-- "correlation is not causation"
-- "steering has tradeoffs"
-- "good readouts are not necessarily good steering targets"
-
-Those may be locally true, but they are not sufficient paper framings on their own.
-If one of those lines survives, sharpen it into the more specific claim that this evidence uniquely supports.
-
 ## Claim hygiene
-For every important statement, distinguish among:
-- directly evidenced by the pack
-- interpretation supported by the pack
-- plausible literature-facing novelty hypothesis
-- not yet earned
-
-Do not state literature novelty as fact. Literature is out of scope unless explicitly provided.
-You may, however, state what kind of literature-facing novelty claim each live framing would need to beat if later validated.
+Distinguish clearly among direct evidence, supported interpretation, novelty hypothesis, and claims not yet earned. Do not state literature novelty as fact.
 
 ## Deliverable
 Output a single markdown report artifact and nothing else.
@@ -128,6 +63,8 @@ For each candidate include:
 - risk of sounding derivative or generic
 - current status: `live`, `plausible but narrow`, or `tempting but under-earned`
 
+Downgrade framings that collapse into generic lines like "measurement matters", "correlation is not causation", "steering has tradeoffs", or "good readouts are not necessarily good steering targets" unless the candidate sharpens that into a more specific claim uniquely supported by the evidence.
+
 ## 2. Claim hygiene
 List:
 - strongest claims fully earned now
@@ -145,6 +82,19 @@ For each objection include:
 - whether it is fatal, serious but survivable, or mostly containable
 - the most honest containment, concession, or reframing
 
+## 4. What Would Most Likely Change The Conclusion With Additional Evidence
+Identify the highest-ROI additional evidence that could materially change which framings remain live, which framing becomes most defensible, or which claims can be stated cleanly.
+
+Do not give a generic future-work list.
+Focus on the smallest number of additional experiments, slices, or observations that would most reduce uncertainty or overturn the current framing picture.
+
+For each item include:
+- what additional evidence to collect
+- which candidate framings it would most help discriminate among
+- what result pattern would strengthen one framing or weaken another
+- why this is high ROI relative to other plausible follow-up work
+- whether it mainly resolves a conceptual ambiguity, a measurement ambiguity, or an external-validity ambiguity
+
 ## Style
 - analytical, not diplomatic
 - ruthless but fair
@@ -156,9 +106,3 @@ For each objection include:
 - no deference to pre-existing narratives
 - keep multiple live options visible
 - do not manufacture false resolution
-
-Final instruction:
-I care more about discovering the right paper than preserving any existing one.
-If the best framings are narrower, stranger, more conditional, or less flattering than the obvious headline, say so.
-Spend your marginal tokens on the candidate framings inside the markdown artifact, not on conversational response scaffolding.
-Take all the time you need and do your absolute best.
