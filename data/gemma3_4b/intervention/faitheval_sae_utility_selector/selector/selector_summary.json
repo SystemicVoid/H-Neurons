@@ -108,6 +108,7 @@
     },
     "eligible_pool_n": 112004,
     "layer_matching": "exact utility_selected layer histogram",
+    "n_random_seeds": 10,
     "pool_name": "classifier_zero_weight",
     "sampling": "weighted_without_replacement_by_token_activation_rate_within_layer",
     "seed_families": {
@@ -158,13 +159,137 @@
           "6": 3,
           "7": 4
         }
+      },
+      "matched_random_seed_3": {
+        "fingerprint": "99156f41f2719149",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      },
+      "matched_random_seed_4": {
+        "fingerprint": "67e06a2977813bcb",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      },
+      "matched_random_seed_5": {
+        "fingerprint": "3ad01f58c2147fa3",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      },
+      "matched_random_seed_6": {
+        "fingerprint": "658100286d3965dc",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      },
+      "matched_random_seed_7": {
+        "fingerprint": "963cad4de7a11994",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      },
+      "matched_random_seed_8": {
+        "fingerprint": "3c1c1a4ae56d5067",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      },
+      "matched_random_seed_9": {
+        "fingerprint": "834c542e463b7ceb",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
       }
     },
     "source_stats_artifact": "full_sequence_feature_stats.json"
   },
+  "path_drift_control": {
+    "family": "matched_zero_dead",
+    "feature": {
+      "feature": 17,
+      "flat_idx": 147473,
+      "layer": 20,
+      "token_activation_rate": 0.0
+    },
+    "fingerprint": "e5132cf1b03a0386",
+    "k": 1,
+    "selection_rule": "Smallest layer-20 flat_idx with zero classifier weight and token_activation_rate == 0 on the frozen validation split."
+  },
   "prompt_style": "anti_compliance",
   "sae_steering_mode": "delta_only",
-  "schema_version": "faitheval_sae_utility_selector/v4",
+  "schema_version": "faitheval_sae_utility_selector/v5",
   "selector_design": {
     "heldout_policy": "Run one locked held-out evaluation bundle on the test manifest.",
     "layer_coverage_note": "Partial L3 closure only: selection searches all non-zero probe-support features within the existing SAE extraction layers, not a wider SAE sweep.",
@@ -185,6 +310,18 @@
     "margin_definition": "logp(counterfactual_key) - logp(preferred_key)",
     "name": "validation_logprob_margin",
     "utility_definition": "baseline_margin - ablated_margin"
+  },
+  "selector_scoring": {
+    "cache_mode": "exact_input_hash",
+    "cache_status": "reused",
+    "input_hash": "10dd5a34e5ae50f779a2a67079fec9d93d9eab39f119183c96447e83d8a5ed98",
+    "reused_artifacts": [
+      "feature_stats.json",
+      "full_sequence_feature_stats.json",
+      "utility_scores.jsonl",
+      "utility_selected_features.json",
+      "readout_selected_features.json"
+    ]
   },
   "split_metadata": {
     "seed": 42,

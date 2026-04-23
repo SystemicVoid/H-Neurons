@@ -1,0 +1,55 @@
+{
+  "args": {
+    "heldout_root": "data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout",
+    "output_dir": "data/gemma3_4b/intervention/faitheval_sae_utility_selector",
+    "selector_dir": "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/report_faitheval_sae_utility_selector.py",
+    "--selector_dir",
+    "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector",
+    "--heldout_root",
+    "data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout",
+    "--output_dir",
+    "data/gemma3_4b/intervention/faitheval_sae_utility_selector"
+  ],
+  "benchmarks": [
+    "faitheval",
+    "faitheval_anti_compliance_margin"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/report_faitheval_sae_utility_selector.py --selector_dir data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector --heldout_root data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout --output_dir data/gemma3_4b/intervention/faitheval_sae_utility_selector",
+  "completed_at_utc": "2026-04-23T17:13:56.399660+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "families": [
+    "noop",
+    "readout_selected",
+    "utility_selected",
+    "matched_random_seed_0",
+    "matched_random_seed_1",
+    "matched_random_seed_2",
+    "matched_random_seed_3",
+    "matched_random_seed_4",
+    "matched_random_seed_5",
+    "matched_random_seed_6",
+    "matched_random_seed_7",
+    "matched_random_seed_8",
+    "matched_random_seed_9",
+    "matched_zero_dead"
+  ],
+  "git_dirty": true,
+  "git_sha": "a2264fec6b27bb1c0e572b1552dcad63583893cc",
+  "hostname": "excurio",
+  "n_samples": 840,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/report",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/audit_note.md"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "report_faitheval_sae_utility_selector.py",
+  "started_at_utc": "2026-04-23T17:13:52.715332+00:00",
+  "status": "completed"
+}
