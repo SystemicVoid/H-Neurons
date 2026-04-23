@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -66,9 +67,12 @@ DEFAULT_OUTPUT_DIR = (
 DEFAULT_VALIDATION_SIZE = 160
 DEFAULT_SELECTION_SEED = 42
 DEFAULT_TOP_K = 266
+DEFAULT_N_RANDOM_SEEDS = 10
 DEFAULT_PROMPT_STYLE = "anti_compliance"
 DEFAULT_ALPHA = 0.0
 DEFAULT_OLD_SHORTLIST_THRESHOLD = 1e-3
+PATH_DRIFT_CONTROL_FAMILY = "matched_zero_dead"
+PATH_DRIFT_CONTROL_LAYER = 20
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,6 +93,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--validation_size", type=int, default=DEFAULT_VALIDATION_SIZE)
     parser.add_argument("--seed", type=int, default=DEFAULT_SELECTION_SEED)
     parser.add_argument("--top_k", type=int, default=DEFAULT_TOP_K)
+    parser.add_argument("--n_random_seeds", type=int, default=DEFAULT_N_RANDOM_SEEDS)
     parser.add_argument("--prompt_style", type=str, default=DEFAULT_PROMPT_STYLE)
     parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA)
     parser.add_argument(
@@ -252,6 +257,196 @@ def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     if path.exists() and path.read_text(encoding="utf-8") == content:
         return
     path.write_text(content, encoding="utf-8")
+
+
+def _sha256_hexdigest(payload: dict[str, Any]) -> str:
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _file_sha256_hexdigest(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _artifacts_are_fresh_against_dependencies(
+    artifact_paths: list[Path],
+    *,
+    dependency_paths: list[Path],
+) -> bool:
+    if not artifact_paths or not dependency_paths:
+        return False
+    newest_dependency_mtime_ns = max(
+        path.stat().st_mtime_ns for path in dependency_paths if path.exists()
+    )
+    oldest_artifact_mtime_ns = min(path.stat().st_mtime_ns for path in artifact_paths)
+    return oldest_artifact_mtime_ns >= newest_dependency_mtime_ns
+
+
+def _completed_selector_provenance(output_dir: Path) -> dict[str, Any] | None:
+    candidates = sorted(
+        output_dir.glob("select_faitheval_sae_utility_features.provenance.*.json"),
+        reverse=True,
+    )
+    for path in candidates:
+        payload = _load_json(path)
+        if payload.get("status") == "completed":
+            payload["_path"] = str(path)
+            return payload
+    return None
+
+
+def _selector_scoring_input_payload(
+    args: argparse.Namespace,
+    *,
+    extraction_metadata: dict[str, Any],
+    candidate_pool: list[dict[str, Any]],
+    split_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "benchmark": "faitheval",
+        "model_path": str(args.model_path),
+        "device_map": str(args.device_map),
+        "classifier_path": str(args.classifier_path),
+        "classifier_sha256": _file_sha256_hexdigest(Path(args.classifier_path)),
+        "classifier_summary": str(args.classifier_summary),
+        "classifier_summary_sha256": _sha256_hexdigest(
+            _load_classifier_summary(args.classifier_summary)
+        ),
+        "validation_size": int(args.validation_size),
+        "seed": int(args.seed),
+        "top_k": int(args.top_k),
+        "prompt_style": str(args.prompt_style),
+        "alpha": float(args.alpha),
+        "old_shortlist_threshold": float(args.old_shortlist_threshold),
+        "layer_indices": [int(layer) for layer in extraction_metadata["layer_indices"]],
+        "d_sae": int(extraction_metadata["d_sae"]),
+        "candidate_pool_fingerprint": fingerprint_ids(
+            [_feature_id(feature) for feature in candidate_pool]
+        ),
+        "candidate_pool_n": int(len(candidate_pool)),
+        "validation_fingerprint": str(split_metadata["validation_fingerprint"]),
+        "test_fingerprint": str(split_metadata["test_fingerprint"]),
+    }
+
+
+def _provenance_args_match_current(
+    provenance_payload: dict[str, Any] | None,
+    args: argparse.Namespace,
+) -> bool:
+    if provenance_payload is None:
+        return False
+    recorded_args = provenance_payload.get("args")
+    if not isinstance(recorded_args, dict):
+        return False
+    expected_args = {
+        "model_path": str(args.model_path),
+        "device_map": str(args.device_map),
+        "classifier_path": str(args.classifier_path),
+        "classifier_summary": str(args.classifier_summary),
+        "output_dir": str(args.output_dir),
+        "validation_size": int(args.validation_size),
+        "seed": int(args.seed),
+        "top_k": int(args.top_k),
+        "prompt_style": str(args.prompt_style),
+        "alpha": float(args.alpha),
+        "old_shortlist_threshold": float(args.old_shortlist_threshold),
+    }
+    return recorded_args == expected_args
+
+
+def _resolve_selector_scoring_cache(
+    *,
+    output_dir: Path,
+    feature_stats_path: Path,
+    full_sequence_stats_path: Path,
+    utility_scores_path: Path,
+    utility_selected_manifest_path: Path,
+    readout_selected_manifest_path: Path,
+    current_input_hash: str,
+    current_input_payload: dict[str, Any],
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    required_paths = [
+        feature_stats_path,
+        full_sequence_stats_path,
+        utility_scores_path,
+        utility_selected_manifest_path,
+        readout_selected_manifest_path,
+    ]
+    if not all(path.exists() for path in required_paths):
+        return {
+            "cache_status": "computed",
+            "cache_mode": "fresh_compute",
+            "missing_artifacts": [
+                str(path.name) for path in required_paths if not path.exists()
+            ],
+        }
+
+    selector_summary_path = output_dir / "selector_summary.json"
+    legacy_summary = (
+        _load_json(selector_summary_path) if selector_summary_path.exists() else {}
+    )
+    selector_scoring = legacy_summary.get("selector_scoring")
+    if (
+        isinstance(selector_scoring, dict)
+        and str(selector_scoring.get("input_hash", "")) == current_input_hash
+    ):
+        return {
+            "cache_status": "reused",
+            "cache_mode": "exact_input_hash",
+            "input_hash": current_input_hash,
+            "reused_artifacts": [path.name for path in required_paths],
+        }
+
+    legacy_split = legacy_summary.get("split_metadata")
+    legacy_candidate_pool = legacy_summary.get("candidate_pool")
+    provenance_payload = _completed_selector_provenance(output_dir)
+    cache_artifacts_are_fresh = (
+        provenance_payload is not None
+        and _artifacts_are_fresh_against_dependencies(
+            [
+                *required_paths,
+                selector_summary_path,
+                Path(str(provenance_payload["_path"])),
+            ],
+            dependency_paths=[
+                Path(args.classifier_path),
+                Path(args.classifier_summary),
+            ],
+        )
+    )
+    if (
+        isinstance(legacy_split, dict)
+        and isinstance(legacy_candidate_pool, dict)
+        and provenance_payload is not None
+        and cache_artifacts_are_fresh
+        and str(legacy_split.get("validation_fingerprint", ""))
+        == str(current_input_payload["validation_fingerprint"])
+        and str(legacy_split.get("test_fingerprint", ""))
+        == str(current_input_payload["test_fingerprint"])
+        and str(legacy_candidate_pool.get("fingerprint", ""))
+        == str(current_input_payload["candidate_pool_fingerprint"])
+        and int(legacy_candidate_pool.get("n_features", -1))
+        == int(current_input_payload["candidate_pool_n"])
+        and _provenance_args_match_current(provenance_payload, args)
+    ):
+        return {
+            "cache_status": "reused",
+            "cache_mode": "legacy_provenance_args_and_frozen_metadata",
+            "input_hash": current_input_hash,
+            "reused_artifacts": [path.name for path in required_paths],
+            "legacy_source_provenance": provenance_payload["_path"],
+        }
+
+    return {
+        "cache_status": "computed",
+        "cache_mode": "fresh_compute",
+        "input_hash": current_input_hash,
+    }
 
 
 def build_prompt_cache(
@@ -678,9 +873,35 @@ def feature_manifest_with_selector_metadata(
     )
 
 
+def select_zero_dead_path_drift_control(
+    zero_weight_pool: list[dict[str, Any]],
+    full_sequence_feature_stats: dict[int, dict[str, float | int]],
+    *,
+    target_layer: int = PATH_DRIFT_CONTROL_LAYER,
+) -> dict[str, Any]:
+    candidates: list[dict[str, Any]] = []
+    for feature in zero_weight_pool:
+        merged = {**feature, **full_sequence_feature_stats[int(feature["flat_idx"])]}
+        if int(merged["layer"]) != target_layer:
+            continue
+        if float(merged.get("token_activation_rate", 0.0)) != 0.0:
+            continue
+        candidates.append(merged)
+    if not candidates:
+        raise ValueError(
+            "No zero-weight dead-feature path-drift control found for "
+            f"layer {target_layer}"
+        )
+    return min(candidates, key=lambda feature: int(feature["flat_idx"]))
+
+
 def main() -> None:
     args = parse_args()
     output_dir = Path(args.output_dir)
+    matched_manifest_paths = [
+        output_dir / f"matched_random_seed_{seed}_features.json"
+        for seed in range(args.n_random_seeds)
+    ]
     output_targets = [
         output_dir,
         output_dir / "candidate_pool.json",
@@ -691,9 +912,8 @@ def main() -> None:
         output_dir / "utility_scores.jsonl",
         output_dir / "utility_selected_features.json",
         output_dir / "readout_selected_features.json",
-        output_dir / "matched_random_seed_0_features.json",
-        output_dir / "matched_random_seed_1_features.json",
-        output_dir / "matched_random_seed_2_features.json",
+        *matched_manifest_paths,
+        output_dir / f"{PATH_DRIFT_CONTROL_FAMILY}_features.json",
         output_dir / "selector_summary.json",
     ]
     provenance_handle = start_run_provenance(
@@ -762,44 +982,60 @@ def main() -> None:
         )
 
         feature_stats_path = output_dir / "feature_stats.json"
+        full_sequence_stats_path = output_dir / "full_sequence_feature_stats.json"
         utility_scores_path = output_dir / "utility_scores.jsonl"
         utility_selected_manifest_path = output_dir / "utility_selected_features.json"
         readout_selected_manifest_path = output_dir / "readout_selected_features.json"
-        can_reuse_selector_scoring = all(
-            path.exists()
-            for path in [
-                feature_stats_path,
-                utility_scores_path,
-                utility_selected_manifest_path,
-                readout_selected_manifest_path,
-            ]
+        selector_scoring_input_payload = _selector_scoring_input_payload(
+            args,
+            extraction_metadata=extraction_metadata,
+            candidate_pool=candidate_pool,
+            split_metadata=split_metadata,
+        )
+        selector_scoring_input_hash = _sha256_hexdigest(selector_scoring_input_payload)
+        selector_scoring_cache = _resolve_selector_scoring_cache(
+            output_dir=output_dir,
+            feature_stats_path=feature_stats_path,
+            full_sequence_stats_path=full_sequence_stats_path,
+            utility_scores_path=utility_scores_path,
+            utility_selected_manifest_path=utility_selected_manifest_path,
+            readout_selected_manifest_path=readout_selected_manifest_path,
+            current_input_hash=selector_scoring_input_hash,
+            current_input_payload=selector_scoring_input_payload,
+            args=args,
         )
 
-        model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
-        prompt_cache = build_prompt_cache(
-            tokenizer,
-            validation_samples,
-            prompt_style=args.prompt_style,
-        )
-
-        sae_layers = sorted({int(feature["layer"]) for feature in candidate_pool})
-        saes = load_saes(
-            extraction_metadata["sae_release"],
-            sae_layers,
-            extraction_metadata["sae_width"],
-            extraction_metadata["sae_l0"],
-            str(next(model.parameters()).device),
-        )
-
-        if can_reuse_selector_scoring:
+        if selector_scoring_cache["cache_status"] == "reused":
             feature_stats_payload = _load_json(feature_stats_path)
             stats_by_flat_idx = {
                 int(row["flat_idx"]): row for row in feature_stats_payload["features"]
+            }
+            full_sequence_stats_payload = _load_json(full_sequence_stats_path)
+            full_sequence_stats_by_flat_idx = {
+                int(row["flat_idx"]): row
+                for row in full_sequence_stats_payload["features"]
             }
             utility_rows = _load_jsonl(utility_scores_path)
             utility_selected = _load_json(utility_selected_manifest_path)["features"]
             readout_selected = _load_json(readout_selected_manifest_path)["features"]
         else:
+            model, tokenizer = load_model_and_tokenizer(
+                args.model_path, args.device_map
+            )
+            prompt_cache = build_prompt_cache(
+                tokenizer,
+                validation_samples,
+                prompt_style=args.prompt_style,
+            )
+
+            sae_layers = sorted({int(feature["layer"]) for feature in candidate_pool})
+            saes = load_saes(
+                extraction_metadata["sae_release"],
+                sae_layers,
+                extraction_metadata["sae_width"],
+                extraction_metadata["sae_l0"],
+                str(next(model.parameters()).device),
+            )
             stats_by_flat_idx = collect_prompt_end_feature_stats(
                 model,
                 saes,
@@ -885,33 +1121,32 @@ def main() -> None:
                 prompt_style=args.prompt_style,
             )
             _write_json(readout_selected_manifest_path, readout_manifest)
-
-        full_sequence_stats_by_flat_idx = collect_full_sequence_feature_stats(
-            model,
-            saes,
-            validation_samples,
-            prompt_cache,
-            layer_indices=layer_indices,
-            d_sae=d_sae,
-        )
-        _write_json(
-            output_dir / "full_sequence_feature_stats.json",
-            {
-                "schema_version": "sae_full_sequence_feature_stats/v1",
-                "benchmark": "faitheval",
-                "prompt_style": args.prompt_style,
-                "n_validation_samples": len(validation_samples),
-                "n_validation_tokens": int(
-                    next(
-                        iter(full_sequence_stats_by_flat_idx.values()),
-                    )["n_validation_tokens"]
-                ),
-                "features": [
-                    full_sequence_stats_by_flat_idx[flat_idx]
-                    for flat_idx in range(len(full_sequence_stats_by_flat_idx))
-                ],
-            },
-        )
+            full_sequence_stats_by_flat_idx = collect_full_sequence_feature_stats(
+                model,
+                saes,
+                validation_samples,
+                prompt_cache,
+                layer_indices=layer_indices,
+                d_sae=d_sae,
+            )
+            _write_json(
+                full_sequence_stats_path,
+                {
+                    "schema_version": "sae_full_sequence_feature_stats/v1",
+                    "benchmark": "faitheval",
+                    "prompt_style": args.prompt_style,
+                    "n_validation_samples": len(validation_samples),
+                    "n_validation_tokens": int(
+                        next(
+                            iter(full_sequence_stats_by_flat_idx.values()),
+                        )["n_validation_tokens"]
+                    ),
+                    "features": [
+                        full_sequence_stats_by_flat_idx[flat_idx]
+                        for flat_idx in range(len(full_sequence_stats_by_flat_idx))
+                    ],
+                },
+            )
         zero_weight_pool = [
             {
                 **entry,
@@ -924,7 +1159,7 @@ def main() -> None:
             )
         ]
         matched_random_seed_diagnostics: dict[str, Any] = {}
-        for seed in range(3):
+        for seed in range(args.n_random_seeds):
             matched = match_random_zero_weight_features(
                 utility_selected,
                 zero_weight_pool,
@@ -942,15 +1177,29 @@ def main() -> None:
                 alpha=args.alpha,
                 prompt_style=args.prompt_style,
             )
-            _write_json(
-                output_dir / f"matched_random_seed_{seed}_features.json",
-                matched_manifest,
-            )
+            _write_json(matched_manifest_paths[seed], matched_manifest)
             matched_random_seed_diagnostics[f"matched_random_seed_{seed}"] = {
                 "k": len(matched),
                 "fingerprint": matched_fingerprint,
                 "layer_histogram": layer_histogram(matched),
             }
+
+        matched_zero_dead_feature = select_zero_dead_path_drift_control(
+            zero_weight_pool,
+            full_sequence_stats_by_flat_idx,
+        )
+        matched_zero_dead_manifest = feature_manifest_with_selector_metadata(
+            [matched_zero_dead_feature],
+            extraction_metadata=extraction_metadata,
+            selector_name="layer20_zero_weight_dead_feature_path_drift_control",
+            split_metadata=split_metadata,
+            alpha=args.alpha,
+            prompt_style=args.prompt_style,
+        )
+        _write_json(
+            output_dir / f"{PATH_DRIFT_CONTROL_FAMILY}_features.json",
+            matched_zero_dead_manifest,
+        )
 
         outside_old_shortlist = [
             feature
@@ -964,11 +1213,15 @@ def main() -> None:
             if float(feature.get("token_activation_rate", 0.0)) > 0.0
         ]
         selector_summary = {
-            "schema_version": "faitheval_sae_utility_selector/v4",
+            "schema_version": "faitheval_sae_utility_selector/v5",
             "benchmark": "faitheval",
             "prompt_style": args.prompt_style,
             "sae_steering_mode": "delta_only",
             "alpha": float(args.alpha),
+            "selector_scoring": {
+                **selector_scoring_cache,
+                "input_hash": selector_scoring_input_hash,
+            },
             "selector_design": {
                 "review_limitation_targets": ["L2", "L3"],
                 "question": (
@@ -1030,11 +1283,31 @@ def main() -> None:
                 "layer_matching": "exact utility_selected layer histogram",
                 "sampling": "weighted_without_replacement_by_token_activation_rate_within_layer",
                 "source_stats_artifact": "full_sequence_feature_stats.json",
+                "n_random_seeds": int(args.n_random_seeds),
                 "eligible_pool_n": len(eligible_zero_weight_pool),
                 "eligible_pool_layer_histogram": layer_histogram(
                     eligible_zero_weight_pool
                 ),
                 "seed_families": matched_random_seed_diagnostics,
+            },
+            "path_drift_control": {
+                "family": PATH_DRIFT_CONTROL_FAMILY,
+                "k": 1,
+                "fingerprint": fingerprint_ids(
+                    [_feature_id(matched_zero_dead_feature)]
+                ),
+                "selection_rule": (
+                    "Smallest layer-20 flat_idx with zero classifier weight and "
+                    "token_activation_rate == 0 on the frozen validation split."
+                ),
+                "feature": {
+                    "flat_idx": int(matched_zero_dead_feature["flat_idx"]),
+                    "layer": int(matched_zero_dead_feature["layer"]),
+                    "feature": int(matched_zero_dead_feature["feature"]),
+                    "token_activation_rate": float(
+                        matched_zero_dead_feature["token_activation_rate"]
+                    ),
+                },
             },
             "families": {
                 "utility_selected": {
@@ -1085,6 +1358,10 @@ def main() -> None:
         provenance_extra["test_n"] = len(test_samples)
         provenance_extra["selected_k"] = len(utility_selected)
         provenance_extra["candidate_n"] = len(candidate_pool)
+        provenance_extra["n_random_seeds"] = int(args.n_random_seeds)
+        provenance_extra["selector_scoring_cache_status"] = selector_scoring_cache[
+            "cache_status"
+        ]
     except BaseException as exc:
         provenance_status = provenance_status_for_exception(exc)
         provenance_extra["error"] = provenance_error_message(exc)

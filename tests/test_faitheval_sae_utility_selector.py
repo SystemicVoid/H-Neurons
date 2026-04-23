@@ -19,8 +19,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from intervene_sae import load_sae_feature_manifest  # noqa: E402
 from report_faitheval_sae_utility_selector import (  # noqa: E402
-    FAMILY_ORDER,
+    DEFAULT_N_RANDOM_SEEDS,
+    PATH_DRIFT_FAMILY,
     build_audit_note,
+    build_main_family_order,
     build_heldout_summary,
 )
 from run_intervention import (  # noqa: E402
@@ -31,10 +33,18 @@ from run_intervention import (  # noqa: E402
     resolve_sae_target_features,
 )
 from select_faitheval_sae_utility_features import (  # noqa: E402
+    _resolve_selector_scoring_cache,
+    _selector_scoring_input_payload,
+    _sha256_hexdigest,
     build_stratified_faitheval_split,
     layer_histogram,
     match_random_zero_weight_features,
+    select_zero_dead_path_drift_control,
 )
+
+
+MAIN_FAMILY_ORDER = build_main_family_order(DEFAULT_N_RANDOM_SEEDS)
+THREE_SEED_FAMILY_ORDER = build_main_family_order(3)
 
 
 def _extraction_metadata() -> dict[str, object]:
@@ -90,6 +100,181 @@ def _family_rows(
 def _set_mtime(path: Path, timestamp: int) -> None:
     path.touch(exist_ok=True)
     os.utime(path, (timestamp, timestamp))
+
+
+def test_selector_scoring_input_hash_tracks_classifier_and_summary_contents(
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "sae_detector.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    summary_path = tmp_path / "classifier_sae_summary.json"
+    summary_path.write_text(
+        json.dumps({"sae_release": "release-a", "sae_width": "16k"}),
+        encoding="utf-8",
+    )
+    args = Namespace(
+        model_path="google/gemma-3-4b-it",
+        device_map="cuda:0",
+        classifier_path=str(classifier_path),
+        classifier_summary=str(summary_path),
+        output_dir=str(tmp_path / "selector"),
+        validation_size=8,
+        seed=42,
+        top_k=3,
+        prompt_style="anti_compliance",
+        alpha=0.0,
+        old_shortlist_threshold=1e-3,
+    )
+    candidate_pool = [{"layer": 5, "feature": 1, "flat_idx": 1}]
+    split_metadata = {
+        "validation_fingerprint": "val-fingerprint",
+        "test_fingerprint": "test-fingerprint",
+    }
+
+    initial_hash = _sha256_hexdigest(
+        _selector_scoring_input_payload(
+            args,
+            extraction_metadata=_extraction_metadata(),
+            candidate_pool=candidate_pool,
+            split_metadata=split_metadata,
+        )
+    )
+
+    classifier_path.write_bytes(b"classifier-v2")
+    classifier_hash = _sha256_hexdigest(
+        _selector_scoring_input_payload(
+            args,
+            extraction_metadata=_extraction_metadata(),
+            candidate_pool=candidate_pool,
+            split_metadata=split_metadata,
+        )
+    )
+
+    summary_path.write_text(
+        json.dumps({"sae_release": "release-b", "sae_width": "16k"}),
+        encoding="utf-8",
+    )
+    summary_hash = _sha256_hexdigest(
+        _selector_scoring_input_payload(
+            args,
+            extraction_metadata=_extraction_metadata(),
+            candidate_pool=candidate_pool,
+            split_metadata=split_metadata,
+        )
+    )
+
+    assert classifier_hash != initial_hash
+    assert summary_hash != classifier_hash
+
+
+def test_selector_scoring_cache_recomputes_when_legacy_bundle_is_stale(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "selector"
+    output_dir.mkdir()
+    classifier_path = tmp_path / "sae_detector.pkl"
+    classifier_path.write_bytes(b"classifier-v2")
+    summary_path = tmp_path / "classifier_sae_summary.json"
+    summary_path.write_text(
+        json.dumps({"sae_release": "release-a", "sae_width": "16k"}),
+        encoding="utf-8",
+    )
+    args = Namespace(
+        model_path="google/gemma-3-4b-it",
+        device_map="cuda:0",
+        classifier_path=str(classifier_path),
+        classifier_summary=str(summary_path),
+        output_dir=str(output_dir),
+        validation_size=8,
+        seed=42,
+        top_k=3,
+        prompt_style="anti_compliance",
+        alpha=0.0,
+        old_shortlist_threshold=1e-3,
+    )
+    candidate_pool = [{"layer": 5, "feature": 1, "flat_idx": 1}]
+    split_metadata = {
+        "validation_fingerprint": "val-fingerprint",
+        "test_fingerprint": "test-fingerprint",
+    }
+    current_input_payload = _selector_scoring_input_payload(
+        args,
+        extraction_metadata=_extraction_metadata(),
+        candidate_pool=candidate_pool,
+        split_metadata=split_metadata,
+    )
+    artifact_timestamp = 1_700_000_000
+    dependency_timestamp = artifact_timestamp + 60
+
+    required_paths = [
+        output_dir / "feature_stats.json",
+        output_dir / "full_sequence_feature_stats.json",
+        output_dir / "utility_scores.jsonl",
+        output_dir / "utility_selected_features.json",
+        output_dir / "readout_selected_features.json",
+    ]
+    for path in required_paths:
+        path.write_text("{}", encoding="utf-8")
+        _set_mtime(path, artifact_timestamp)
+
+    selector_summary_path = output_dir / "selector_summary.json"
+    selector_summary_path.write_text(
+        json.dumps(
+            {
+                "split_metadata": split_metadata,
+                "candidate_pool": {
+                    "fingerprint": current_input_payload["candidate_pool_fingerprint"],
+                    "n_features": 1,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    _set_mtime(selector_summary_path, artifact_timestamp)
+
+    provenance_path = (
+        output_dir / "select_faitheval_sae_utility_features.provenance.20260423.json"
+    )
+    provenance_path.write_text(
+        json.dumps(
+            {
+                "status": "completed",
+                "args": {
+                    "model_path": str(args.model_path),
+                    "device_map": str(args.device_map),
+                    "classifier_path": str(args.classifier_path),
+                    "classifier_summary": str(args.classifier_summary),
+                    "output_dir": str(args.output_dir),
+                    "validation_size": int(args.validation_size),
+                    "seed": int(args.seed),
+                    "top_k": int(args.top_k),
+                    "prompt_style": str(args.prompt_style),
+                    "alpha": float(args.alpha),
+                    "old_shortlist_threshold": float(args.old_shortlist_threshold),
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    _set_mtime(provenance_path, artifact_timestamp)
+
+    _set_mtime(classifier_path, dependency_timestamp)
+    _set_mtime(summary_path, artifact_timestamp)
+
+    cache_resolution = _resolve_selector_scoring_cache(
+        output_dir=output_dir,
+        feature_stats_path=required_paths[0],
+        full_sequence_stats_path=required_paths[1],
+        utility_scores_path=required_paths[2],
+        utility_selected_manifest_path=required_paths[3],
+        readout_selected_manifest_path=required_paths[4],
+        current_input_hash=_sha256_hexdigest(current_input_payload),
+        current_input_payload=current_input_payload,
+        args=args,
+    )
+
+    assert cache_resolution["cache_status"] == "computed"
+    assert cache_resolution["cache_mode"] == "fresh_compute"
 
 
 class SpaceSensitiveTokenizer:
@@ -393,6 +578,45 @@ def test_random_matching_changes_across_seeds_on_nondegenerate_fixture() -> None
     ]
 
 
+def test_path_drift_control_uses_smallest_layer20_dead_zero_weight_feature() -> None:
+    zero_weight_pool = [
+        {"layer": 17, "feature": 0, "flat_idx": 131072},
+        {"layer": 20, "feature": 18, "flat_idx": 147474},
+        {"layer": 20, "feature": 17, "flat_idx": 147473},
+        {"layer": 20, "feature": 99, "flat_idx": 147555},
+    ]
+    feature_stats = {
+        131072: {"token_activation_rate": 0.0},
+        147473: {"token_activation_rate": 0.0},
+        147474: {"token_activation_rate": 0.0},
+        147555: {"token_activation_rate": 0.2},
+    }
+
+    matched = select_zero_dead_path_drift_control(zero_weight_pool, feature_stats)
+
+    assert matched["layer"] == 20
+    assert matched["feature"] == 17
+    assert matched["flat_idx"] == 147473
+
+
+def test_main_family_order_expands_with_random_seed_count() -> None:
+    assert build_main_family_order(0) == (
+        "noop",
+        "readout_selected",
+        "utility_selected",
+        PATH_DRIFT_FAMILY,
+    )
+    assert build_main_family_order(3) == (
+        "noop",
+        "readout_selected",
+        "utility_selected",
+        "matched_random_seed_0",
+        "matched_random_seed_1",
+        "matched_random_seed_2",
+        PATH_DRIFT_FAMILY,
+    )
+
+
 def test_report_summary_covers_full_bundle_schema() -> None:
     ordered_ids = ["a", "b", "c", "d"]
     selector_summary = {
@@ -402,6 +626,263 @@ def test_report_summary_covers_full_bundle_schema() -> None:
                 "readout_selected": "probe-positive",
                 "utility_selected": "validation margin",
                 "matched_random": "zero-weight matched",
+            },
+        },
+        "matched_random_controls": {
+            "n_random_seeds": 3,
+            "seed_families": {
+                "matched_random_seed_0": {},
+                "matched_random_seed_1": {},
+                "matched_random_seed_2": {},
+            },
+        },
+        "path_drift_control": {"family": PATH_DRIFT_FAMILY},
+        "candidate_pool": {
+            "n_features": 5,
+            "layer_histogram": {"5": 3, "9": 2},
+            "weight_sign_counts": {"negative": 2, "positive": 3},
+        },
+        "families": {
+            "utility_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 1, "9": 1},
+                "weight_sign_counts": {"negative": 1, "positive": 1},
+                "outside_old_shortlist": {"count": 1, "fraction": 0.5},
+            },
+            "readout_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 2},
+                "weight_sign_counts": {"positive": 2},
+            },
+        },
+        "family_overlap": {
+            "utility_selected_vs_readout_selected": {
+                "intersection_count": 1,
+                "union_count": 3,
+                "jaccard": 1 / 3,
+            }
+        },
+    }
+    heldout_rows_by_benchmark = {
+        "faitheval": {
+            "noop": _family_rows(ordered_ids, {"a", "c"}),
+            "readout_selected": _family_rows(ordered_ids, {"a"}),
+            "utility_selected": _family_rows(ordered_ids, {"c"}),
+            "matched_random_seed_0": _family_rows(ordered_ids, {"a", "d"}),
+            "matched_random_seed_1": _family_rows(ordered_ids, {"b"}),
+            "matched_random_seed_2": _family_rows(ordered_ids, {"a", "b"}),
+            PATH_DRIFT_FAMILY: _family_rows(ordered_ids, {"a", "c"}),
+        },
+        "faitheval_anti_compliance_margin": {
+            "noop": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.5, "b": 0.5, "c": 0.5, "d": 0.5},
+            ),
+            "readout_selected": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.0, "b": 0.0, "c": 0.0, "d": 0.0},
+            ),
+            "utility_selected": _family_rows(
+                ordered_ids,
+                metric_values={"a": 1.0, "b": 0.5, "c": -0.5, "d": 0.0},
+            ),
+            "matched_random_seed_0": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.25, "b": 0.25, "c": 0.25, "d": 0.25},
+            ),
+            "matched_random_seed_1": _family_rows(
+                ordered_ids,
+                metric_values={"a": -0.5, "b": -0.25, "c": -0.25, "d": 0.0},
+            ),
+            "matched_random_seed_2": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.75, "b": 0.25, "c": 0.0, "d": -0.25},
+            ),
+            PATH_DRIFT_FAMILY: _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.4, "b": 0.4, "c": 0.4, "d": 0.4},
+            ),
+        },
+    }
+
+    summary = build_heldout_summary(
+        selector_summary=selector_summary,
+        ordered_ids=ordered_ids,
+        heldout_rows_by_benchmark=heldout_rows_by_benchmark,
+    )
+
+    assert summary["schema_version"] == "faitheval_sae_utility_selector_report/v5"
+    assert summary["heldout_compliance"]["families"]["noop"]["n_compliant"] == 2
+    assert (
+        summary["heldout_compliance"]["families"]["utility_selected"]["n_compliant"]
+        == 1
+    )
+    assert (
+        summary["heldout_compliance"]["paired_deltas_pp"]["utility_minus_noop"][
+            "estimate_pp"
+        ]
+        == -25.0
+    )
+    assert summary["heldout_anti_compliance_margin"]["families"]["utility_selected"][
+        "estimate"
+    ] == pytest.approx(0.25)
+    assert set(summary["heldout_compliance"]["families"]) == set(
+        THREE_SEED_FAMILY_ORDER
+    )
+    assert set(summary["heldout_anti_compliance_margin"]["families"]) == set(
+        THREE_SEED_FAMILY_ORDER
+    )
+    expected_delta_keys = {
+        "utility_minus_readout",
+        "utility_minus_noop",
+        "utility_minus_matched_random_seed_0",
+        "utility_minus_matched_random_seed_1",
+        "utility_minus_matched_random_seed_2",
+    }
+    assert set(summary["heldout_compliance"]["paired_deltas_pp"]) == expected_delta_keys
+    assert (
+        summary["heldout_anti_compliance_margin"]["metric_name"]
+        == "misleading_minus_preferred_logprob_margin"
+    )
+    assert (
+        summary["heldout_anti_compliance_margin"]["margin_definition"]
+        == "logp(counterfactual_key) - logp(preferred_key)"
+    )
+    assert summary["heldout_anti_compliance_margin"]["delta_units"] == "logprob_margin"
+    assert set(summary["heldout_anti_compliance_margin"]["paired_deltas"]) == (
+        expected_delta_keys
+    )
+    assert summary["heldout_compliance"]["across_seeds"]["seed_family_order"] == [
+        "matched_random_seed_0",
+        "matched_random_seed_1",
+        "matched_random_seed_2",
+    ]
+    assert (
+        summary["heldout_compliance"]["across_seeds"]["seed_mean_summary"][
+            "primary_ci_method"
+        ]
+        == "nested_bootstrap"
+    )
+    assert (
+        summary["heldout_compliance"]["across_seeds"]["seed_mean_summary"][
+            "headline_supporting_ci_method"
+        ]
+        == "naive_seed_bootstrap"
+    )
+    assert summary["heldout_anti_compliance_margin"]["across_seeds"][
+        "seed_mean_summary"
+    ]["estimate"] == pytest.approx((0.0 + 0.5 + 0.0625) / 3)
+    assert summary["heldout_anti_compliance_margin"]["paired_deltas"][
+        "utility_minus_readout"
+    ]["estimate"] == pytest.approx(0.25)
+    assert summary["heldout_anti_compliance_margin"]["paired_deltas"][
+        "utility_minus_noop"
+    ]["estimate"] == pytest.approx(-0.25)
+    assert summary["heldout_anti_compliance_margin"]["path_drift"]["paired_delta"][
+        "estimate"
+    ] == pytest.approx(-0.1)
+    assert summary["heldout_anti_compliance_margin"]["path_drift"]["dead_family_mean"][
+        "estimate"
+    ] == pytest.approx(0.4)
+    assert summary["selector_diagnostics"]["candidate_pool_n"] == 5
+    assert summary["selector_diagnostics"]["utility_weight_sign_counts"] == {
+        "negative": 1,
+        "positive": 1,
+    }
+    assert summary["selector_diagnostics"]["target_families"]["matched_random"] == (
+        "zero-weight matched"
+    )
+    assert summary["selector_diagnostics"]["layer_coverage_note"] == (
+        "Partial L3 closure only."
+    )
+    assert summary["selector_diagnostics"]["outside_old_shortlist_fraction"] == 0.5
+    assert summary["selector_diagnostics"]["calibration_to_heldout_gap"] is None
+
+    audit_note = build_audit_note(summary)
+    assert "FaithEval anti-compliance margin families" in audit_note
+    assert "FaithEval anti-compliance margin paired deltas" in audit_note
+    assert "FaithEval random-null across seeds" in audit_note
+    assert "Path drift (matched_zero_dead - noop)" in audit_note
+    assert "Candidate pool scope" in audit_note
+    assert "Layer-coverage status" in audit_note
+    assert "FaithEval MC-logprob" not in audit_note
+    margin_line = next(
+        line
+        for line in audit_note.splitlines()
+        if line.startswith("- FaithEval anti-compliance margin paired deltas:")
+    )
+    assert " pp " not in margin_line
+
+
+def test_report_summary_requires_exact_sample_id_parity() -> None:
+    ordered_ids = ["a", "b"]
+    family_order = build_main_family_order(3)
+    selector_summary = {
+        "matched_random_controls": {"n_random_seeds": 3},
+        "path_drift_control": {"family": PATH_DRIFT_FAMILY},
+        "families": {
+            "utility_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 2},
+                "outside_old_shortlist": {"count": 0, "fraction": 0.0},
+            },
+            "readout_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 2},
+            },
+        },
+        "family_overlap": {
+            "utility_selected_vs_readout_selected": {
+                "intersection_count": 2,
+                "union_count": 2,
+                "jaccard": 1.0,
+            }
+        },
+    }
+    benchmark_rows = {
+        family: _family_rows(ordered_ids, {"a"}) for family in family_order
+    }
+    benchmark_rows["readout_selected"] = [{"id": "a", "compliance": True}]
+
+    heldout_rows_by_benchmark = {
+        "faitheval": benchmark_rows,
+        "faitheval_anti_compliance_margin": {
+            family: _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.0, "b": 0.0},
+            )
+            for family in family_order
+        },
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="Held-out sample-ID parity failed for faitheval/readout_selected",
+    ):
+        build_heldout_summary(
+            selector_summary=selector_summary,
+            ordered_ids=ordered_ids,
+            heldout_rows_by_benchmark=heldout_rows_by_benchmark,
+        )
+
+
+def test_build_audit_note_supports_legacy_bundle_without_path_drift() -> None:
+    ordered_ids = ["a", "b", "c", "d"]
+    selector_summary = {
+        "selector_design": {
+            "layer_coverage_note": "Partial L3 closure only.",
+            "target_families": {
+                "readout_selected": "probe-positive",
+                "utility_selected": "validation margin",
+                "matched_random": "zero-weight matched",
+            },
+        },
+        "matched_random_controls": {
+            "n_random_seeds": 3,
+            "seed_families": {
+                "matched_random_seed_0": {},
+                "matched_random_seed_1": {},
+                "matched_random_seed_2": {},
             },
         },
         "candidate_pool": {
@@ -472,127 +953,15 @@ def test_report_summary_covers_full_bundle_schema() -> None:
         ordered_ids=ordered_ids,
         heldout_rows_by_benchmark=heldout_rows_by_benchmark,
     )
-
-    assert summary["schema_version"] == "faitheval_sae_utility_selector_report/v4"
-    assert summary["heldout_compliance"]["families"]["noop"]["n_compliant"] == 2
-    assert (
-        summary["heldout_compliance"]["families"]["utility_selected"]["n_compliant"]
-        == 1
-    )
-    assert (
-        summary["heldout_compliance"]["paired_deltas_pp"]["utility_minus_noop"][
-            "estimate_pp"
-        ]
-        == -25.0
-    )
-    assert summary["heldout_anti_compliance_margin"]["families"]["utility_selected"][
-        "estimate"
-    ] == pytest.approx(0.25)
-    assert set(summary["heldout_compliance"]["families"]) == set(FAMILY_ORDER)
-    assert set(summary["heldout_anti_compliance_margin"]["families"]) == set(
-        FAMILY_ORDER
-    )
-    expected_delta_keys = {
-        "utility_minus_readout",
-        "utility_minus_noop",
-        "utility_minus_matched_random_seed_0",
-        "utility_minus_matched_random_seed_1",
-        "utility_minus_matched_random_seed_2",
-    }
-    assert set(summary["heldout_compliance"]["paired_deltas_pp"]) == expected_delta_keys
-    assert (
-        summary["heldout_anti_compliance_margin"]["metric_name"]
-        == "misleading_minus_preferred_logprob_margin"
-    )
-    assert (
-        summary["heldout_anti_compliance_margin"]["margin_definition"]
-        == "logp(counterfactual_key) - logp(preferred_key)"
-    )
-    assert summary["heldout_anti_compliance_margin"]["delta_units"] == "logprob_margin"
-    assert set(summary["heldout_anti_compliance_margin"]["paired_deltas"]) == (
-        expected_delta_keys
-    )
-    assert summary["heldout_anti_compliance_margin"]["paired_deltas"][
-        "utility_minus_readout"
-    ]["estimate"] == pytest.approx(0.25)
-    assert summary["heldout_anti_compliance_margin"]["paired_deltas"][
-        "utility_minus_noop"
-    ]["estimate"] == pytest.approx(-0.25)
-    assert summary["selector_diagnostics"]["candidate_pool_n"] == 5
-    assert summary["selector_diagnostics"]["utility_weight_sign_counts"] == {
-        "negative": 1,
-        "positive": 1,
-    }
-    assert summary["selector_diagnostics"]["target_families"]["matched_random"] == (
-        "zero-weight matched"
-    )
-    assert summary["selector_diagnostics"]["layer_coverage_note"] == (
-        "Partial L3 closure only."
-    )
-    assert summary["selector_diagnostics"]["outside_old_shortlist_fraction"] == 0.5
-    assert summary["selector_diagnostics"]["calibration_to_heldout_gap"] is None
-
     audit_note = build_audit_note(summary)
-    assert "FaithEval anti-compliance margin families" in audit_note
-    assert "FaithEval anti-compliance margin paired deltas" in audit_note
-    assert "Candidate pool scope" in audit_note
-    assert "Layer-coverage status" in audit_note
-    assert "FaithEval MC-logprob" not in audit_note
-    margin_line = next(
-        line
-        for line in audit_note.splitlines()
-        if line.startswith("- FaithEval anti-compliance margin paired deltas:")
+
+    assert PATH_DRIFT_FAMILY not in summary["heldout_compliance"]["families"]
+    assert (
+        PATH_DRIFT_FAMILY not in summary["heldout_anti_compliance_margin"]["families"]
     )
-    assert " pp " not in margin_line
-
-
-def test_report_summary_requires_exact_sample_id_parity() -> None:
-    ordered_ids = ["a", "b"]
-    selector_summary = {
-        "families": {
-            "utility_selected": {
-                "k": 2,
-                "layer_histogram": {"5": 2},
-                "outside_old_shortlist": {"count": 0, "fraction": 0.0},
-            },
-            "readout_selected": {
-                "k": 2,
-                "layer_histogram": {"5": 2},
-            },
-        },
-        "family_overlap": {
-            "utility_selected_vs_readout_selected": {
-                "intersection_count": 2,
-                "union_count": 2,
-                "jaccard": 1.0,
-            }
-        },
-    }
-    benchmark_rows = {
-        family: _family_rows(ordered_ids, {"a"}) for family in FAMILY_ORDER
-    }
-    benchmark_rows["readout_selected"] = [{"id": "a", "compliance": True}]
-
-    heldout_rows_by_benchmark = {
-        "faitheval": benchmark_rows,
-        "faitheval_anti_compliance_margin": {
-            family: _family_rows(
-                ordered_ids,
-                metric_values={"a": 0.0, "b": 0.0},
-            )
-            for family in FAMILY_ORDER
-        },
-    }
-
-    with pytest.raises(
-        ValueError,
-        match="Held-out sample-ID parity failed for faitheval/readout_selected",
-    ):
-        build_heldout_summary(
-            selector_summary=selector_summary,
-            ordered_ids=ordered_ids,
-            heldout_rows_by_benchmark=heldout_rows_by_benchmark,
-        )
+    assert "Path drift (matched_zero_dead - noop)" not in audit_note
+    assert "matched_zero_dead=" not in audit_note
+    assert "FaithEval families: noop=" in audit_note
 
 
 def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
@@ -621,7 +990,7 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
         workdir / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector"
     )
     selector_dir.mkdir(parents=True, exist_ok=True)
-    for name in [
+    selector_files = [
         "validation_manifest.json",
         "test_manifest.json",
         "candidate_pool.json",
@@ -630,11 +999,14 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
         "utility_scores.jsonl",
         "utility_selected_features.json",
         "readout_selected_features.json",
-        "matched_random_seed_0_features.json",
-        "matched_random_seed_1_features.json",
-        "matched_random_seed_2_features.json",
+        *[
+            f"matched_random_seed_{seed}_features.json"
+            for seed in range(DEFAULT_N_RANDOM_SEEDS)
+        ],
+        "matched_zero_dead_features.json",
         "selector_summary.json",
-    ]:
+    ]
+    for name in selector_files:
         artifact_path = selector_dir / name
         artifact_path.write_text("{}", encoding="utf-8")
         _set_mtime(artifact_path, dep_timestamp)
@@ -643,7 +1015,7 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
         workdir / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout"
     )
     for benchmark in ["faitheval", "faitheval_anti_compliance_margin"]:
-        for family in FAMILY_ORDER:
+        for family in MAIN_FAMILY_ORDER:
             alpha_label = "1.0" if family == "noop" else "0.0"
             family_dir = heldout_root / benchmark / family / "experiment"
             family_dir.mkdir(parents=True, exist_ok=True)
@@ -701,7 +1073,7 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
 
     assert completed.returncode == 0, completed.stderr
     assert "Skipping selector stage; found complete selector bundle" in completed.stdout
-    assert completed.stdout.count("Skipping held-out stage; found") == 12
+    assert completed.stdout.count("Skipping held-out stage; found") == 28
     assert "Skipping report stage; found fresh report outputs" in completed.stdout
     assert not log_file.exists() or "run_intervention.py" not in log_file.read_text(
         encoding="utf-8"
@@ -746,9 +1118,11 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
         "utility_scores.jsonl",
         "utility_selected_features.json",
         "readout_selected_features.json",
-        "matched_random_seed_0_features.json",
-        "matched_random_seed_1_features.json",
-        "matched_random_seed_2_features.json",
+        *[
+            f"matched_random_seed_{seed}_features.json"
+            for seed in range(DEFAULT_N_RANDOM_SEEDS)
+        ],
+        "matched_zero_dead_features.json",
         "selector_summary.json",
     ]
     for name in selector_files:
@@ -760,7 +1134,7 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
         workdir / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout"
     )
     for benchmark in ["faitheval", "faitheval_anti_compliance_margin"]:
-        for family in FAMILY_ORDER:
+        for family in MAIN_FAMILY_ORDER:
             alpha_label = "1.0" if family == "noop" else "0.0"
             family_dir = heldout_root / benchmark / family / "experiment"
             family_dir.mkdir(parents=True, exist_ok=True)

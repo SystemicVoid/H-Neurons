@@ -12,19 +12,17 @@ MODEL_PATH="${MODEL_PATH:-google/gemma-3-4b-it}"
 DEVICE_MAP="${DEVICE_MAP:-cuda:0}"
 CLASSIFIER_PATH="${CLASSIFIER_PATH:-models/sae_detector.pkl}"
 CLASSIFIER_SUMMARY="${CLASSIFIER_SUMMARY:-data/gemma3_4b/pipeline/classifier_sae_summary.json}"
+N_RANDOM_SEEDS="${N_RANDOM_SEEDS:-10}"
 
 BENCHMARKS=(
     "faitheval"
     "faitheval_anti_compliance_margin"
 )
-FAMILIES=(
-    "noop"
-    "readout_selected"
-    "utility_selected"
-    "matched_random_seed_0"
-    "matched_random_seed_1"
-    "matched_random_seed_2"
-)
+FAMILIES=("noop" "readout_selected" "utility_selected")
+for ((seed=0; seed<${N_RANDOM_SEEDS}; seed++)); do
+    FAMILIES+=("matched_random_seed_${seed}")
+done
+FAMILIES+=("matched_zero_dead")
 
 require_file() {
     local path="$1"
@@ -84,11 +82,13 @@ selector_stage_complete() {
         "utility_scores.jsonl"
         "utility_selected_features.json"
         "readout_selected_features.json"
-        "matched_random_seed_0_features.json"
-        "matched_random_seed_1_features.json"
-        "matched_random_seed_2_features.json"
+        "matched_zero_dead_features.json"
         "selector_summary.json"
     )
+    local seed=""
+    for ((seed=0; seed<${N_RANDOM_SEEDS}; seed++)); do
+        required+=("matched_random_seed_${seed}_features.json")
+    done
     local deps=(
         "scripts/select_faitheval_sae_utility_features.py"
         "${CLASSIFIER_PATH}"
@@ -199,6 +199,7 @@ if ! selector_stage_complete; then
             --device_map "${DEVICE_MAP}" \
             --classifier_path "${CLASSIFIER_PATH}" \
             --classifier_summary "${CLASSIFIER_SUMMARY}" \
+            --n_random_seeds "${N_RANDOM_SEEDS}" \
             --output_dir "${SELECTOR_DIR}"
     DID_GENERATE_DATA=1
 else
