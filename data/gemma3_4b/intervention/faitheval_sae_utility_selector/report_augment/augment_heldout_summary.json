@@ -1,6 +1,6 @@
 {
   "augment_design": {
-    "matched_random_policy": "Zero-weight SAE features layer-matched to the utility-positive selection by activation frequency and decoder norm. 3 seeds.",
+    "matched_random_policy": "Zero-weight SAE features sampled without replacement from the token-active pool, exact-matched to the utility-positive layer histogram, with within-layer weights proportional to full-sequence token activation rate on the frozen validation split. 3 seeds.",
     "noop_reference": "Uses the shared noop (\u03b1=1.0) held-out bundle produced by faitheval_sae_utility_selector.sh Phase 1.",
     "review_loophole_targeted": "Size-matched k=266 utility family crosses selector_score=0 (only 154/509 features have strictly positive validation utility). This slice selects only the positive-utility features so paired comparisons cannot be attacked as 'diluted by neutral or harmful features to match readout cardinality'.",
     "selection_rule": "selector_score > 0",
@@ -77,11 +77,11 @@
         },
         "ci": {
           "level": 0.95,
-          "lower": 6.839246153888248,
+          "lower": 7.1042804755873625,
           "method": "bootstrap_percentile_mean",
-          "upper": 9.129330315185445
+          "upper": 9.52200911420087
         },
-        "estimate": 7.992997000898634,
+        "estimate": 8.320413323811122,
         "n": 840
       },
       "matched_random_positive_seed_1": {
@@ -93,11 +93,11 @@
         },
         "ci": {
           "level": 0.95,
-          "lower": 6.839246153888248,
+          "lower": 7.164671648574018,
           "method": "bootstrap_percentile_mean",
-          "upper": 9.129330315185445
+          "upper": 9.618505317551039
         },
-        "estimate": 7.992997000898634,
+        "estimate": 8.399241919602666,
         "n": 840
       },
       "matched_random_positive_seed_2": {
@@ -109,11 +109,11 @@
         },
         "ci": {
           "level": 0.95,
-          "lower": 6.839246153888248,
+          "lower": 6.847093795388937,
           "method": "bootstrap_percentile_mean",
-          "upper": 9.129330315185445
+          "upper": 9.157763664775661
         },
-        "estimate": 7.992997000898634,
+        "estimate": 8.008065564575649,
         "n": 840
       },
       "noop": {
@@ -169,11 +169,11 @@
         },
         "ci": {
           "level": 0.95,
-          "lower": -0.7149254008240641,
+          "lower": -1.0951340193017602,
           "method": "bootstrap_percentile_paired_continuous",
-          "upper": -0.09462194807472694
+          "upper": -0.36376869436885706
         },
-        "estimate": -0.4071105440457661
+        "estimate": -0.7345268669582543
       },
       "utility_positive_minus_matched_random_positive_seed_1": {
         "bootstrap": {
@@ -185,11 +185,11 @@
         },
         "ci": {
           "level": 0.95,
-          "lower": -0.7149254008240641,
+          "lower": -1.1550754365360454,
           "method": "bootstrap_percentile_paired_continuous",
-          "upper": -0.09462194807472694
+          "upper": -0.4598126232730493
         },
-        "estimate": -0.4071105440457661
+        "estimate": -0.8133554627497981
       },
       "utility_positive_minus_matched_random_positive_seed_2": {
         "bootstrap": {
@@ -201,11 +201,11 @@
         },
         "ci": {
           "level": 0.95,
-          "lower": -0.7149254008240641,
+          "lower": -0.7514105769672557,
           "method": "bootstrap_percentile_paired_continuous",
-          "upper": -0.09462194807472694
+          "upper": -0.08385278055710438
         },
-        "estimate": -0.4071105440457661
+        "estimate": -0.4221791077227808
       },
       "utility_positive_minus_noop": {
         "bootstrap": {
@@ -240,34 +240,34 @@
       "matched_random_positive_seed_0": {
         "ci": {
           "level": 0.95,
-          "lower": 0.6328795174651836,
+          "lower": 0.6280289576513253,
           "method": "wilson",
-          "upper": 0.6965662535313224
+          "upper": 0.6919363595035547
         },
-        "estimate": 0.6654761904761904,
-        "n_compliant": 559,
+        "estimate": 0.6607142857142857,
+        "n_compliant": 555,
         "n_total": 840
       },
       "matched_random_positive_seed_1": {
         "ci": {
           "level": 0.95,
-          "lower": 0.6328795174651836,
+          "lower": 0.6280289576513253,
           "method": "wilson",
-          "upper": 0.6965662535313224
+          "upper": 0.6919363595035547
         },
-        "estimate": 0.6654761904761904,
-        "n_compliant": 559,
+        "estimate": 0.6607142857142857,
+        "n_compliant": 555,
         "n_total": 840
       },
       "matched_random_positive_seed_2": {
         "ci": {
           "level": 0.95,
-          "lower": 0.6328795174651836,
+          "lower": 0.631666539437531,
           "method": "wilson",
-          "upper": 0.6965662535313224
+          "upper": 0.6954091180985685
         },
-        "estimate": 0.6654761904761904,
-        "n_compliant": 559,
+        "estimate": 0.6642857142857143,
+        "n_compliant": 558,
         "n_total": 840
       },
       "noop": {
@@ -312,11 +312,11 @@
         },
         "ci_pp": {
           "level": 0.95,
-          "lower": -1.4285714285714235,
+          "lower": -0.9523809523809601,
           "method": "bootstrap_percentile_paired",
-          "upper": 1.4285714285714346
+          "upper": 2.0238095238095166
         },
-        "estimate_pp": 0.0
+        "estimate_pp": 0.4761904761904745
       },
       "utility_positive_minus_matched_random_positive_seed_1": {
         "bootstrap": {
@@ -328,11 +328,11 @@
         },
         "ci_pp": {
           "level": 0.95,
-          "lower": -1.4285714285714235,
+          "lower": -0.952380952380949,
           "method": "bootstrap_percentile_paired",
-          "upper": 1.4285714285714346
+          "upper": 1.904761904761909
         },
-        "estimate_pp": 0.0
+        "estimate_pp": 0.4761904761904745
       },
       "utility_positive_minus_matched_random_positive_seed_2": {
         "bootstrap": {
@@ -344,11 +344,11 @@
         },
         "ci_pp": {
           "level": 0.95,
-          "lower": -1.4285714285714235,
+          "lower": -1.309523809523816,
           "method": "bootstrap_percentile_paired",
-          "upper": 1.4285714285714346
+          "upper": 1.6666666666666607
         },
-        "estimate_pp": 0.0
+        "estimate_pp": 0.11904761904761862
       },
       "utility_positive_minus_noop": {
         "bootstrap": {

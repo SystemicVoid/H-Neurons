@@ -92,9 +92,79 @@
       "union_count": 400
     }
   },
+  "matched_random_controls": {
+    "eligibility_rule": "token_activation_rate > 0 on frozen validation split",
+    "eligible_pool_layer_histogram": {
+      "0": 14250,
+      "13": 8560,
+      "14": 9502,
+      "15": 10783,
+      "16": 11991,
+      "17": 10921,
+      "20": 11745,
+      "5": 10639,
+      "6": 12624,
+      "7": 10989
+    },
+    "eligible_pool_n": 112004,
+    "layer_matching": "exact utility_selected layer histogram",
+    "pool_name": "classifier_zero_weight",
+    "sampling": "weighted_without_replacement_by_token_activation_rate_within_layer",
+    "seed_families": {
+      "matched_random_seed_0": {
+        "fingerprint": "2e85887325ffe57f",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      },
+      "matched_random_seed_1": {
+        "fingerprint": "133681d0c976cc98",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      },
+      "matched_random_seed_2": {
+        "fingerprint": "dfc9d80ff04142d9",
+        "k": 266,
+        "layer_histogram": {
+          "0": 19,
+          "13": 25,
+          "14": 18,
+          "15": 17,
+          "16": 29,
+          "17": 40,
+          "20": 109,
+          "5": 2,
+          "6": 3,
+          "7": 4
+        }
+      }
+    },
+    "source_stats_artifact": "full_sequence_feature_stats.json"
+  },
   "prompt_style": "anti_compliance",
   "sae_steering_mode": "delta_only",
-  "schema_version": "faitheval_sae_utility_selector/v3",
+  "schema_version": "faitheval_sae_utility_selector/v4",
   "selector_design": {
     "heldout_policy": "Run one locked held-out evaluation bundle on the test manifest.",
     "layer_coverage_note": "Partial L3 closure only: selection searches all non-zero probe-support features within the existing SAE extraction layers, not a wider SAE sweep.",
@@ -104,7 +174,7 @@
       "L3"
     ],
     "target_families": {
-      "matched_random": "Zero-weight SAE features matched to the utility-selected set by layer, activation frequency, and decoder norm.",
+      "matched_random": "Zero-weight SAE features sampled without replacement from the token-active pool, exact-matched to the utility-selected layer histogram, with within-layer weights proportional to full-sequence token activation rate on the frozen validation split.",
       "readout_selected": "Top positive probe-weight SAE features from the original FaithEval readout.",
       "utility_selected": "Top-k SAE features ranked by validation reduction in misleading-minus-preferred logprob margin."
     },
