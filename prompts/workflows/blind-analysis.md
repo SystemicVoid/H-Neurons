@@ -1,75 +1,162 @@
-You are doing a blind narrative synthesis from a tightly scoped ground-truth evidence pack for an ICML mechanistic interpretability paper.
+You are doing a clean-room narrative synthesis over a tightly scoped ground-truth evidence pack for an ICML mechanistic interpretability paper.
 
-Your job is not to summarize the pack. Your job is to infer the strongest, most original, highest-signal paper framing that is actually compelled by the data, while resisting all legacy framing pressure.
+This is not a summarization task. It is not a prose-polish task. It is not a benchmark-report task.
 
-Hard scope:
-Read only these files and nothing else unless you are blocked by a missing reference inside them:
-- `notes/ground-truth/README.md`
-- `notes/ground-truth/metric_ledger.jsonl`
-- `notes/ground-truth/01_readout_surfaces.md`
-- `notes/ground-truth/02_intervention_surfaces.md`
-- `notes/ground-truth/03_measurement_surfaces.md`
-- `notes/ground-truth/04_transfer_externality_surfaces.md`
-- `notes/ground-truth/05_mechanism_diagnostic_surfaces.md`
+Your job is to infer the strongest paper framing that is actually earned by the evidence: the framing that best compresses the results, yields the sharpest non-obvious thesis, feels genuinely mech-interp rather than merely evaluative, and survives hostile scrutiny.
 
-This must be a clean-room read. Assume prior framing is contaminated. Do not preserve it, search for it, or reconstruct it.
+Core stance:
+Assume prior framing is contaminated by path dependence. Do not preserve it, search for it, reconstruct it, or defer to it.
+Treat filenames, section titles, family IDs, act tags, metric prefixes, and other organizational labels as bookkeeping rather than theory.
+A framing earns selection only if it beats plausible alternatives on:
+- evidential support
+- explanatory compression
+- benefits AI safety
+- surprise
+- mechanistic interest
+- reviewer defensibility
+- likely literature-facing novelty
 
-Critical anti-bias rule:
-The pack’s filenames, section names, family ids, act tags, and metric-id prefixes are organizational metadata, not the paper’s correct conceptual frame. In particular, do not default to any existing scaffold just because the pack is grouped that way. If a familiar frame emerges, it must earn its place by beating alternative framings on compression, surprise, and explanatory power.
+Important:
+Do not optimize for breadth, flatteringness, or continuity with existing storylines.
+If the strongest framing is narrower, stranger, more asymmetric, or less grand than the obvious headline, choose it.
 
-Working method:
-1. Start from `metric_ledger.jsonl`, not the markdown prose.
-2. Rewrite the evidence to yourself in plain language, stripping away family labels and prior category names.
-3. Identify the biggest non-obvious patterns, asymmetries, dissociations, reversals, and constraints.
-4. Look especially for findings that cut against the naive story a reader would expect from “good internal signal -> good intervention target”.
-5. Only then use the markdown files to recover source semantics, examples, and any nuance needed to interpret the structured metrics.
-6. Actively search for the most interesting alternative framings, not just the most available one.
-7. Treat every tempting headline as guilty until defended by multiple independent metrics.
-8. Separate what is directly evidenced from what is interpretation, and separate both from what would still need literature validation.
+## Scope and evidence discipline
+Use only the files in the evidence pack unless a listed file directly references a missing dependency that is essential for interpretation.
 
-What I want you to optimize for:
-- highest signal-to-claim ratio
-- most defensible central paper thesis
-- most surprising framing that is still genuinely supported
-- minimal contamination from prior report language
-- a framing that would make a strong mech-interp paper, not just an evaluation paper and not just a benchmark audit
+Do not let the markdown organization dictate the paper’s conceptual frame.
 
-What to avoid:
-- generic “measurement matters” summaries
-- generic “correlation is not causation” summaries
-- generic “steering has tradeoffs” summaries
-- language that sounds inherited from the pack organization rather than discovered from the evidence
-- absolute claims like “X never works”
-- literature novelty claims stated as facts; you do not have literature in scope
+## Working method
 
-Deliverable:
+### Phase 1 — Ledger-first discovery
+Start from `metric_ledger.jsonl`, not the prose.
+
+Extract the strongest empirical facts in plain language, stripped of inherited labels.
+Look for:
+- asymmetries
+- dissociations
+- reversals
+- transfer failures
+- cross-surface inconsistencies
+- externalities
+- cases where strong internal signal does not translate into useful or safe control
+- cases where intervention effects depend heavily on the measurement surface
+- cases where the mechanism suggested by one surface is contradicted or refined by another
+
+Prioritize patterns that recur across multiple metrics, surfaces, or intervention families.
+
+### Phase 2 — Rival framing search
+Do not lock onto the first plausible headline.
+
+Search for rival framings that explain the evidence from meaningfully different angles.
+The search space should include both broader and narrower possibilities, including:
+- framings centered on control rather than detection
+- framings centered on externalities or transfer structure
+- framings centered on measurement-induced illusion
+- framings centered on intervention-surface mismatch
+- framings centered on a deeper mechanistic dissociation
+- at least one tempting framing that sounds good but is not actually well-supported
+
+For each candidate framing, ask:
+- What exact empirical pattern does this framing compress?
+- What does it explain that rivals do not?
+- What evidence is doing most of the work?
+- What evidence makes this framing fragile, narrow, or misleading?
+- Would this still feel like a mech-interp contribution rather than a generic cautionary note?
+
+### Phase 3 — Selection
+Choose the single framing that best balances surprise and survivability.
+
+Penalize framings that are true but generic.
+Penalize framings that depend on one evaluator, one benchmark, or one intervention family unless that dependence is itself the story.
+Penalize framings that merely restate a well-known methodological cliché.
+Reward framings that expose a specific, non-obvious field-level lesson about what mechanistic signals can and cannot buy you.
+
+## Anti-genericity rule
+Downgrade any framing that can be paraphrased as:
+- “measurement matters”
+- “correlation is not causation”
+- “steering has tradeoffs”
+- “good readouts are not necessarily good steering targets”
+
+Those may be locally true, but they are not sufficient paper framings on their own.
+If one of those lines survives, sharpen it into the more specific claim that this evidence uniquely supports.
+
+## Claim hygiene
+For every important statement, distinguish among:
+- directly evidenced by the pack
+- interpretation supported by the pack
+- plausible literature-facing novelty hypothesis
+- not yet earned
+
+Do not state literature novelty as fact. Literature is out of scope unless explicitly provided.
+You may, however, state what kind of literature-facing novelty claim the chosen framing would need to beat if later validated.
+
+## Deliverable
 Produce exactly these sections.
 
-## 2. Candidate framings
-Give 5 candidate paper framings.
-For each framing include:
-- one-sentence thesis
-- why it is high-signal
-- what evidence most strongly supports it
-- what evidence weakens or limits it
-- risk of sounding derivative or generic
-- verdict: 1-10 `strong contender (10)`, `backup(5)`, or `reject(1)`
+## 1. Chosen framing
+Provide:
+- a title-like framing label
+- a one-sentence thesis
+- a concise explanation of why this is the strongest paper story
+- the specific empirical pattern it compresses
+- why it reads as mech-interp rather than merely evaluation or benchmarking
+- the most important caveat on this framing
 
-Candidates must be meaningfully different from the obvious “good readouts are unreliable steering targets” line.
+## 2. Candidate framings
+Give 6 candidate paper framings.
+
+They must be meaningfully different from one another.
+At most one candidate may be close to the obvious “good readouts are unreliable steering targets” line, and if included it must be made more specific and less generic.
+
+For each candidate include:
+- framing label
+- one-sentence thesis
+- what empirical pattern it compresses
+- why it is high-signal
+- why it could matter for mech-interp specifically
+- what evidence most strongly supports it
+- what evidence weakens, narrows, or limits it
+- likely literature-facing novelty, stated only as a hypothesis
+- risk of sounding derivative or generic
+- verdict: `strong contender (10)`, `backup (5)`, or `reject (1)` with a 1–10 score
+
+## 3. Why the winner beats the runners-up
+Compare the chosen framing against the two closest alternatives.
+Focus on:
+- explanatory compression
+- surprise
+- reviewer defensibility
+- dependence on fragile assumptions
+- whether the framing makes the paper feel like a real contribution instead of a bag of results
+
+## 4. Claim hygiene
+List:
+- strongest claims fully earned now
+- strong claims that are still interpretation-laden
+- claims that would require literature validation before being made
+- tempting claims that should not appear in the paper
 
 ## 5. Hostile self-critique
-Attack your chosen framing.
-List the 5 strongest objections a skeptical reviewer could raise from this same evidence pack alone.
-Then state whether each objection is fatal, serious but survivable, or mostly containable.
+Attack the chosen framing.
 
+List the 5 strongest objections a skeptical reviewer could raise from this evidence pack alone.
+For each objection include:
+- why it bites
+- whether it is fatal, serious but survivable, or mostly containable
+- the most honest containment, concession, or reframing
 
-Style rules:
-- be analytical, not diplomatic
-- think like a ruthless but fair ICML reviewer with taste
-- prefer sharp synthesis over exhaustive coverage
-- do not mention prior framing, prior reports, or literature unless clearly labeled as out of scope
-- do not produce a generic summary first
-- do not hedge away the main decision; choose a framing
+## Style
+- analytical, not diplomatic
+- ruthless but fair
+- sharp synthesis over exhaustive coverage
+- no generic summary first
+- no inherited jargon unless the evidence forces it
+- no deference to pre-existing narratives
+- make a real decision
+- do not hedge away the central choice
 
-Final constraint:
-I care much more about discovering the right narrative than about preserving any pre-existing one. If the strongest framing is narrower, stranger, or less flattering than an obvious headline, say so.
+Final instruction:
+I care more about discovering the right paper than preserving any existing one.
+If the best framing is narrower, stranger, more conditional, or less flattering than the obvious headline, say so.
+Take all the time you need and do your absolute best ! 
