@@ -4,7 +4,23 @@
 
 ---
 
-## 2026-04-23
+## 2026-04-23 (evening — 10-seed + path-drift extension)
+
+### What I did
+
+Executed the two highest-leverage follow-ups from the 2026-04-22 audit's §5 in a single pipeline pass: (1) extended `matched_random` for the main k=266 FaithEval SAE bundle from 3 to 10 seeds, (2) added a dedicated path-drift control (`matched_zero_dead`) using a single layer-20 SAE feature with zero classifier weight and zero validation-token activation (`flat_idx`=147 473), run at α=0 under `delta_only` steering. Pipeline regenerated `selector_summary.json`, `heldout_summary.json`, and `audit_note.md` (schema bumped to v5) with cache-reuse confirming the underlying utility scores, feature stats, and selection manifests were carried forward unchanged. Independently reproduced every family mean margin and compliance count from the raw `alpha_0.0.jsonl` files (14/14 exact match on margins, 14/14 match on compliance counts), verified pairwise Jaccard overlap of 0.019–0.051 across the 10 matched-random seed manifests, and re-derived the nested paired bootstrap and naive seed bootstrap CIs for the 10-seed contrast. `audit_ci_coverage.py` passes. Refreshed [paper/icml/reports/2026-04-22-faitheval-sae-utility-selector-review.md](../paper/icml/reports/2026-04-22-faitheval-sae-utility-selector-review.md) to reflect the extended bundle; the augment k=154 section is unchanged (still 3 seeds, still the single cleanest selection-specific result).
+
+### What this changes about my thinking
+
+Three upgrades to the 2026-04-22 stance. First, the main-bundle selection-specific margin signal that the 3-seed analysis had downgraded to "not robustly separable from noise" is in fact bounded away from zero at 10 seeds: seed-mean contrast −0.897 nats, nested paired bootstrap [−1.22, −0.56], naive seed bootstrap [−1.17, −0.61]; 9 of 10 seeds are negative. Seed SD (0.489 nats) is now ≈half the effect size rather than comparable to it. Seed_2 remains the single outlier where random-selected features produce a lower margin than utility-selected, but it is 1 of 10 rather than 1 of 3. The "rely on the k=154 augment, not the main k=266 bundle" framing from earlier today is too conservative — the main bundle now survives on the same seed-mean terms. Second, the `matched_zero_dead − noop` path drift is +8.2 × 10⁻⁸ nats (paired CI [−2.4 × 10⁻³, +2.1 × 10⁻³]) with 0 compliance flips and only 8/840 per-sample differences, all quantised at bf16 rounding scales (±0.25 / ±0.5 nats) and near-balanced in sign. This empirically falsifies "maybe all the utility/readout/random effects are just artifacts of running the SAE code path at α=0" — that hypothesis is four orders of magnitude below the observed effects. Third, because the path-drift control is a measured zero, the `utility − noop` and `utility_positive − noop` deltas (which the 2026-04-22 report qualified as "may include intervention-path artifacts") can now be read as genuine selection+firing effects — though the matched-random contrast remains the more informative statement because it also controls for "any 266 zero-weight layer-matched features fire non-trivially".
+
+### What I will do next
+
+Done this session: updated the L2 closure narrative and limitations-table entry in `paper/icml/reviews/TODO_Limitations_Fixes.md` to reflect the 10-seed + path-drift evidence. Primary remaining follow-up: extend the k=154 augment from 3 to 10 seeds for parity (item 7 from §5), so the augment has a proper seed-mean CI instead of a 3-seed descriptive range — this is the last seed-count gap and costs ≈45 min GPU. Secondary: move `readout − noop = +0.92 nats` into the main-text framing (item 3 from §5). Out of scope today: the L3 wider-layer extension (item 5) and the readout-weight-sign cosmetic fix.
+
+---
+
+## 2026-04-23 (morning)
 
 ### What I did
 
