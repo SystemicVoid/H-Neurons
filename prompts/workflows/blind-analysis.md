@@ -67,11 +67,12 @@ For each candidate framing, ask:
 - Would this still feel like a mech-interp contribution rather than a generic cautionary note?
 - What would a skeptical reviewer say this framing is over-claiming?
 
-### Phase 3 — Comparative adjudication without a winner
-After generating the candidates, compare the most live ones directly.
+### Phase 3 — Compression and de-duplication
+After generating the candidates, compress the analysis rather than restating it.
 
 Do not declare an overall winner.
-Instead, surface where each framing is strongest, where it overreaches, and what assumptions would justify preferring it later.
+Do not create a separate comparison section that merely repeats evidence already given under each candidate.
+Instead, fold only the non-redundant comparative signal into the candidate entries themselves: where each framing is strongest relative to rivals, where it overreaches, and what assumptions would justify preferring it later.
 
 Penalize framings that are true but generic.
 Penalize framings that depend on one evaluator, one benchmark, or one intervention family unless that dependence is itself the story.
@@ -99,7 +100,11 @@ Do not state literature novelty as fact. Literature is out of scope unless expli
 You may, however, state what kind of literature-facing novelty claim each live framing would need to beat if later validated.
 
 ## Deliverable
-Produce exactly these sections.
+Output a single markdown report artifact and nothing else.
+Do not add any in-chat preamble, throat-clearing, process narration, or concluding note outside the artifact.
+Maximize information density and avoid repeating the same evidence in multiple sections.
+
+Produce exactly these sections in the artifact.
 
 ## 1. Six candidate framings
 Give exactly 6 candidate paper framings.
@@ -117,6 +122,8 @@ For each candidate include:
 - evidence in favor
 - evidence against or limiting evidence
 - what assumptions or interpretive moves the framing relies on
+- relative edge over the other candidates
+- main blocker that prevents it from being decisively preferred now
 - what kind of literature-facing novelty claim it might support, stated only as a hypothesis
 - risk of sounding derivative or generic
 - current status: `live`, `plausible but narrow`, or `tempting but under-earned`
@@ -128,21 +135,7 @@ List:
 - claims that would require literature validation before being made
 - tempting claims that should not appear in the paper
 
-## 3. Comparative case for and against the leading framings
-Take the 3 most defensible candidates from section 1 and compare them without picking a winner.
-
-For each of the 3 candidates include:
-- best evidence for it
-- best evidence against it
-- why a reasonable author might still prefer it
-- why a reasonable reviewer might still resist it
-- what would justify preferring it over the others later
-- what currently blocks that preference from being decisive
-
-The goal of this section is not to resolve the competition.
-The goal is to make the unresolved tradeoffs explicit and well-justified.
-
-## 4. Hostile self-critique
+## 3. Hostile self-critique
 Attack the overall framing space, especially the leading candidates.
 
 List the 3 strongest objections a skeptical reviewer could raise from this evidence pack alone.
@@ -157,6 +150,8 @@ For each objection include:
 - ruthless but fair
 - sharp synthesis over exhaustive coverage
 - no generic summary first
+- one markdown artifact only
+- no duplicated analysis across sections
 - no inherited jargon unless the evidence forces it
 - no deference to pre-existing narratives
 - keep multiple live options visible
@@ -165,5 +160,5 @@ For each objection include:
 Final instruction:
 I care more about discovering the right paper than preserving any existing one.
 If the best framings are narrower, stranger, more conditional, or less flattering than the obvious headline, say so.
-Spend your marginal tokens on the candidate framings and the evidence for and against them.
+Spend your marginal tokens on the candidate framings inside the markdown artifact, not on conversational response scaffolding.
 Take all the time you need and do your absolute best.
