@@ -80,6 +80,7 @@ selector_stage_complete() {
         "test_manifest.json"
         "candidate_pool.json"
         "feature_stats.json"
+        "full_sequence_feature_stats.json"
         "utility_scores.jsonl"
         "utility_selected_features.json"
         "readout_selected_features.json"
@@ -254,6 +255,6 @@ fi
 if [[ "${DID_GENERATE_DATA}" -eq 1 ]]; then
     env PYTHONUNBUFFERED=1 uv run python -m scripts.lib.pipeline log-run \
         --run-dir "${ROOT}" \
-        --description "FaithEval SAE utility-selector ablation + held-out bundle (anti-compliance, delta-only, validation-selected/readout-selected/matched-random)" \
-        --key-files "selector/selector_summary.json, heldout/*/*/alpha_*.jsonl, report/heldout_summary.json, *.provenance.json"
+        --description "FaithEval SAE utility-selector ablation + held-out bundle (anti-compliance, delta-only, validation-selected/readout-selected/full-sequence-token-activation-weighted matched-random controls)" \
+        --key-files "selector/selector_summary.json, selector/full_sequence_feature_stats.json, heldout/*/*/alpha_*.jsonl, report/heldout_summary.json, *.provenance.json"
 fi

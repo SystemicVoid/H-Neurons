@@ -75,7 +75,7 @@ derive_stage_complete() {
     local deps=(
         "scripts/derive_utility_positive_selector.py"
         "${SELECTOR_DIR}/utility_scores.jsonl"
-        "${SELECTOR_DIR}/feature_stats.json"
+        "${SELECTOR_DIR}/full_sequence_feature_stats.json"
         "${SELECTOR_DIR}/selector_summary.json"
         "${CLASSIFIER_PATH}"
     )
@@ -151,7 +151,8 @@ require_file "scripts/report_faitheval_sae_utility_positive_augment.py" "augment
 require_file "scripts/run_intervention.py" "intervention script"
 require_file "scripts/lib/pipeline.py" "pipeline guard library"
 require_file "${SELECTOR_DIR}/utility_scores.jsonl" "utility scores (Phase 1 output)"
-require_file "${SELECTOR_DIR}/feature_stats.json" "feature stats (Phase 1 output)"
+require_file "${SELECTOR_DIR}/full_sequence_feature_stats.json" \
+    "full-sequence feature stats (Phase 1 output)"
 require_file "${SELECTOR_DIR}/selector_summary.json" "selector summary (Phase 1 output)"
 require_file "${SELECTOR_DIR}/test_manifest.json" "test manifest (Phase 1 output)"
 require_file "${SELECTOR_DIR}/utility_selected_features.json" "utility_selected manifest (Phase 1 output)"
@@ -219,6 +220,6 @@ fi
 if [[ "${DID_GENERATE_DATA}" -eq 1 ]]; then
     env PYTHONUNBUFFERED=1 uv run python -m scripts.lib.pipeline log-run \
         --run-dir "${REPORT_DIR}" \
-        --description "FaithEval SAE utility-positive augment bundle (k=154 positive-only, 3 layer-matched zero-weight seeds × 2 benchmarks, α=0.0; noop α=1.0 reused from Phase 1)" \
-        --key-files "selector/utility_positive_*.json, selector/matched_random_positive_*.json, heldout/*/utility_positive_selected/experiment/alpha_0.0.jsonl, heldout/*/matched_random_positive_*/experiment/alpha_0.0.jsonl, report_augment/augment_heldout_summary.json, report_augment/augment_audit_note.md, *.provenance.json"
+        --description "FaithEval SAE utility-positive augment bundle (k=154 positive-only, 3 full-sequence-token-activation-weighted zero-weight seeds × 2 benchmarks, α=0.0; noop α=1.0 reused from Phase 1)" \
+        --key-files "selector/utility_positive_*.json, selector/matched_random_positive_*.json, selector/full_sequence_feature_stats.json, heldout/*/utility_positive_selected/experiment/alpha_0.0.jsonl, heldout/*/matched_random_positive_*/experiment/alpha_0.0.jsonl, report_augment/augment_heldout_summary.json, report_augment/augment_audit_note.md, *.provenance.json"
 fi
