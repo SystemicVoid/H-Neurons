@@ -1,43 +1,55 @@
 # FaithEval SAE Utility-Selector Ablation — L2/L3 Review
 
-> **Status:** canonical (refreshed 2026-04-23). This is the single source of
-> truth for the FaithEval SAE utility-selector ablation. The original
-> 2026-04-22 draft relied on a broken *prompt-end zero-weight* random
-> control; it was replaced by a full-sequence, activity-weighted,
-> layer-matched null rerun on 2026-04-22 and is summarised in §4 only as
-> historical archive.
+> **Status:** canonical (refreshed 2026-04-23 — 10-seed random null and
+> dedicated path-drift control added; report schema v5). This is the
+> single source of truth for the FaithEval SAE utility-selector ablation.
+> The original 2026-04-22 draft relied on a broken *prompt-end
+> zero-weight* random control; it was replaced by a full-sequence,
+> activity-weighted, layer-matched null rerun on 2026-04-22 (3 seeds) and
+> extended to 10 seeds + an explicit path-drift control on 2026-04-23.
+> §4 retains the historical narrative; current numbers are in §2.
 
 > **Verdict (data):** On n=840 held-out FaithEval test items, every SAE
 > target-selection family (`readout_selected` k=266, `utility_selected`
-> k=266, `utility_positive_selected` k=154, three layer-matched
-> zero-weight seeds per bundle) yields a null accuracy delta — all paired
-> 95% CIs include 0 and all point estimates are ≤0.72 pp. On the
-> anti-compliance logprob margin, `readout_selected` moves the
+> k=266, `utility_positive_selected` k=154, ten layer-matched
+> zero-weight seeds for the main bundle, three for the augment, plus one
+> single-feature dead path-drift control) yields a null accuracy delta —
+> all paired 95% CIs include 0 and all point estimates are ≤0.72 pp. On
+> the anti-compliance logprob margin, `readout_selected` moves the
 > misleading-preferred margin in the *wrong* direction (+0.92 nats vs
 > noop [+0.61, +1.23]); `utility_selected` reduces it by −0.76 nats
 > [−1.08, −0.42]; the paired `utility − readout` delta is −1.68 nats
-> [−2.17, −1.19]. Under the full-sequence-weighted random null
-> (three seeds, distinct fingerprints), the `utility − matched_random`
-> margin contrast ranges **−1.21 … +0.14** nats across the main k=266
-> bundle (seed mean ≈ −0.57 nats, seed sd ≈ 0.68) and **−0.81 … −0.42**
-> nats across the positive-only k=154 augment (seed mean ≈ −0.66 nats,
-> seed sd ≈ 0.21). Only the augment is sign-consistent across seeds.
+> [−2.17, −1.19]. Under the full-sequence-weighted random null, the
+> `utility − matched_random` margin contrast spans **−1.75 … +0.14**
+> nats across ten seeds of the main k=266 bundle (9/10 seeds negative;
+> seed mean −0.90 nats, seed sd 0.49; nested paired bootstrap
+> [−1.22, −0.56], naive seed bootstrap [−1.17, −0.61]) and **−0.81 …
+> −0.42** nats across three seeds of the k=154 positive-only augment
+> (seed mean −0.66 nats, seed sd 0.21). Both bundles are now
+> sign-consistent at the seed-mean level. The dedicated path-drift
+> control (`matched_zero_dead`: k=1 layer-20 feature with zero classifier
+> weight and zero validation-token activation) produces a mean margin
+> shift of **+8.2 × 10⁻⁸ nats [−2.4 × 10⁻³, +2.1 × 10⁻³]** vs noop — four
+> orders of magnitude smaller than the selection-specific effects — with
+> zero compliance flips.
 >
 > **Verdict (interpretation):** Utility-aware SAE target selection does
 > not recover FaithEval *accuracy*, closing L2 as a feature-selection
 > artifact. The "good readout ≠ good steering handle" claim (readout and
 > utility pick features with opposite-sign effect on the margin inside
 > the same probe-nonzero pool) survives any random-null redesign because
-> it is an α=0-paired contrast where intervention-path drift cancels.
-> The strictly-positive **k=154 augment** beats all three random seeds
-> at the margin (every CI excludes 0) — a sign-consistent but small
-> signal. The main **k=266 bundle** does not: in seed_2 of the new
-> random null, random features produce a *lower* mean margin than the
-> utility-selected set itself. Selection-specific margin signal in the
-> main bundle is therefore weaker than the original single-draw
-> `utility − matched_random` estimate suggested, and the seed-to-seed
-> variability of the random null (sd ≈ 0.68 nats) is comparable to the
-> effect itself. L3 (layer coverage) remains only partially addressed.
+> it is an α=0-paired contrast where intervention-path drift cancels —
+> and the path-drift control now directly confirms that cancellation
+> hypothesis (drift indistinguishable from 0 at machine precision). With
+> ten seeds, the **main k=266 bundle's** selection-specific margin signal
+> is now bounded away from zero (seed mean −0.90 nats; both seed-mean
+> CIs exclude 0 by >0.5 nats), upgrading a claim the 3-seed report had
+> downgraded to "not robustly separable". The **k=154 augment** remains
+> the single cleanest selection-specific signal (every seed CI excludes
+> 0). Seed_2 of the main bundle is still the lone outlier where a
+> matched-random draw beats `utility_selected` on the margin, but it is
+> 1/10 rather than 1/3. L3 (layer coverage) remains only partially
+> addressed.
 
 ## Source Hierarchy
 
@@ -66,7 +78,9 @@
 | Held-out audit note (main) | [report/audit_note.md](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/audit_note.md) |
 | Held-out report (augment) | [report_augment/augment_heldout_summary.json](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/report_augment/augment_heldout_summary.json) |
 | Held-out audit note (augment) | [report_augment/augment_audit_note.md](../../../data/gemma3_4b/intervention/faitheval_sae_utility_selector/report_augment/augment_audit_note.md) |
-| Per-seed zero-weight feature manifests | `selector/matched_random_seed_{0,1,2}_features.json`, `selector/matched_random_positive_seed_{0,1,2}_features.json` |
+| Per-seed zero-weight feature manifests (main, 10 seeds) | `selector/matched_random_seed_{0..9}_features.json` |
+| Per-seed zero-weight feature manifests (augment, 3 seeds) | `selector/matched_random_positive_seed_{0,1,2}_features.json` |
+| Path-drift control manifest (single dead feature) | `selector/matched_zero_dead_features.json` |
 | Frozen validation manifest (n=160) | `selector/validation_manifest.json`, fingerprint `6fc512b3027fc4a0` |
 | Frozen test manifest (n=840) | `selector/test_manifest.json`, fingerprint `781fd7eafa5f2573` |
 | Archived prompt-end control (superseded) | `heldout/**/experiment_2026-04-22_prompt_end_zero_weight_control/` (see §4) |
