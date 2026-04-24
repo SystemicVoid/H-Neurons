@@ -1,7 +1,5 @@
 # Repository Guidelines
 
-**Prioritize steps by information gained per unit time. After every result, ask what was learned, what branch of the search tree was ruled out, and whether the failure was conceptual, methodological, or merely implementation-level.**
-
 ## Always-On Defaults
 
 - Use the literature when building experiments based on related work; start with `papers/INDEX.md`.
@@ -11,7 +9,7 @@
 
 ## Scoped Guidance
 
-Read the narrower instruction file before working in or substantially changing these areas:
+Read the narrower instruction file before working in these areas:
 
 - `scripts/AGENTS.md` for Python scripts, evaluation helpers, and experiment entrypoints.
 - `scripts/infra/AGENTS.md` for long GPU jobs, pipeline wrappers, tmux/systemd-inhibit orchestration, and remote-run scripts.
