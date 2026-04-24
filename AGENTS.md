@@ -31,8 +31,4 @@ Read the narrower instruction file before working in or substantially changing t
 
 ## Quantitative Reporting Standards
 
-Every quantitative claim in presentation materials must include uncertainty estimates (bootstrap 95% CIs or binomial proportion CIs). Treat `docs/ci_manifest.json` as the source-of-truth registry. Before finishing any change that touches quantitative reporting surfaces, run:
-
-```bash
-uv run python scripts/audit_ci_coverage.py
-```
+For claim-bearing quantitative reporting, read `docs/quantitative-reporting-standards.md`.

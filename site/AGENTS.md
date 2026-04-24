@@ -17,7 +17,7 @@ The site is a static presentation site with shared CSS/JS and generated JSON pay
 uv run python scripts/export_site_data.py
 ```
 
-- Quantitative site claims need uncertainty estimates and registry coverage in `docs/ci_manifest.json`.
+- Quantitative site claims need metric-appropriate evidence; follow `docs/quantitative-reporting-standards.md`.
 - Before finishing site changes that touch quantitative claims, run:
 
 ```bash
