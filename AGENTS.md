@@ -2,94 +2,37 @@
 
 **Prioritize steps by information gained per unit time. After every result, ask what was learned, what branch of the search tree was ruled out, and whether the failure was conceptual, methodological, or merely implementation-level.**
 
-- Use the literature when building experiments based on related work, start with `papers/INDEX.md`.
-- When the user asks for a handoff prompt for another agent, output only the prompt body. Do not prepend framing such as `Use this as the handoff prompt:` or wrap it in explanatory prose, because the user may paste it directly into another agent.
-- Commit safety for run outputs: check `.pre-commit-config.yaml`'s `active-run-git-guard`; run `uv run python -m scripts.lib.pipeline active-run-status` before staging data/output paths.
+## Always-On Defaults
+
+- Use the literature when building experiments based on related work; start with `papers/INDEX.md`.
+- When the user asks for a handoff prompt for another agent, output only the prompt body. Do not prepend framing or wrap it in explanatory prose.
+- Follow existing conventional commits pattern.
+- For run-output commit safety, check `.pre-commit-config.yaml`'s `active-run-git-guard`; run `uv run python -m scripts.lib.pipeline active-run-status` before staging data or output paths.
+
+## Scoped Guidance
+
+Read the narrower instruction file before working in or substantially changing these areas:
+
+- `scripts/AGENTS.md` for Python scripts, evaluation helpers, and experiment entrypoints.
+- `scripts/infra/AGENTS.md` for long GPU jobs, pipeline wrappers, tmux/systemd-inhibit orchestration, and remote-run scripts.
+- `scripts/lib/AGENTS.md` for pipeline guard-library changes.
+- `data/AGENTS.md` for committed run outputs, provenance sidecars, and run-directory layout.
+- `site/AGENTS.md` for the static site, site data exports, and deployment.
+- `notes/AGENTS.md` for notes, claim routing, and research-log hygiene.
 
 ## Build, Test, and Development Commands
 
-- `uv add <package>` adds a dependency; regenerate `requirements.txt` with `uv export --no-hashes --frozen --no-emit-project > requirements.txt` in the same change.
+- Use `uv add <package>` for Python dependencies; regenerate `requirements.txt` with `uv export --no-hashes --frozen --no-emit-project > requirements.txt` in the same change.
 - `ruff check scripts` and `ruff format scripts` lint and format Python before review.
-- `ty check` type-checks `scripts/` (configured in `[tool.ty]` in pyproject.toml; resolves third-party imports from `../.venv`).
-- `ruff`, `ty`, and `prek` are global tools on PATH (installed via `uv tool`).
-Tests live in `tests/` and run via `uv run pytest`. Core evaluation helpers (`normalize_answer`, `extract_mc_answer`) have unit tests in `tests/test_utils.py`.
-- `ty check` MUST pass with zero diagnostics before committing.
-- Follow existing conventional commits pattern.
-
-## Coding Style & Naming Conventions
-
-Follow PEP 8 naming conventions, enforced by ruff's `pep8-naming` (N) rules:
-- **Functions and variables**: `snake_case` (e.g., `load_data`, `train_ids`)
-- **Classes**: `PascalCase` (e.g., `HNeuronScaler`, `TokenExtractor`)
-- **Constants**: `UPPER_SNAKE_CASE` (e.g., `TARGET_IDX`, `ALPHAS`)
-- **ML convention exception**: uppercase `X`, `X_train`, `X_test`, `C`, `C_values` are allowed for scikit-learn feature matrices and regularization parameters (configured in `[tool.ruff.lint.pep8-naming]` ignore-names).
+- `ty check` type-checks `scripts/` and must pass with zero diagnostics before committing.
+- Tests live in `tests/` and run via `uv run pytest`.
+- Core evaluation helpers (`normalize_answer`, `extract_mc_answer`) have unit tests in `tests/test_utils.py`.
+- `ruff`, `ty`, and `prek` are global tools on PATH.
 
 ## Quantitative Reporting Standards
 
-Every quantitative claim in presentation materials must include uncertainty estimates (bootstrap 95% CIs or binomial proportion CIs). Treat `docs/ci_manifest.json` as the source-of-truth registry. Before finishing any change that touches quantitative reporting surfaces, run `uv run python scripts/audit_ci_coverage.py`.
-
-## Site Deployment
-
-To redeploy the project site at its canonical URL:
+Every quantitative claim in presentation materials must include uncertainty estimates (bootstrap 95% CIs or binomial proportion CIs). Treat `docs/ci_manifest.json` as the source-of-truth registry. Before finishing any change that touches quantitative reporting surfaces, run:
 
 ```bash
-scripts/infra/publish.sh site --slug aware-fresco-4a2q --client amp
+uv run python scripts/audit_ci_coverage.py
 ```
-
-## Run Directory Conventions
-
-Keep the existing semantic layout `data/<model>/intervention/<benchmark>/experiment/`. The provenance sidecars already carry the "when" and "how."
-
-When a re-run would overwrite an existing `experiment/` directory that contains committed or analysed data, archive it first:
-
-```
-data/<model>/intervention/<benchmark>/experiment_YYYY-MM-DD_<reason>/
-```
-
-For genuinely new experiments (new benchmark, new method), create a new semantic directory rather than just timestamped one. Prefer names that describe what varies, not just when it ran.
-
-## GPU Run Constitution
-
-<important if="running GPU jobs or pipeline scripts">
-
-- Never run long GPU jobs ad hoc.
-- Always launch via a dedicated bash script in a tmux window.
-- Use `set -euo pipefail`.
-- Use `systemd-inhibit` for runs longer than ~20 minutes.
-- Check `nvitop -1` before launch.
-
-Non-negotiable properties for long runs:
-- **idempotent**
-- **incrementally persisted**
-- **resumable**
-- **failure-visible**
-
-Forbidden:
-- keeping hours of results only in memory
-- “collect everything, write at end” designs
-- manual multi-step shell driving for critical runs
-- bypassing provenance sidecars
-
-Required patterns:
-- write outputs incrementally (`jsonl`, shards, per-batch/per-split artifacts)
-- flush/close files regularly
-- checkpoint expensive stages
-- on restart, skip completed work via existence/integrity guards
-- fail fast with clear logs and non-zero exits
-
-Never delete, bypass, or overwrite `*.provenance.json`.
-
-After successful completion, append to `notes/runs_to_analyse.md`:
-
-```markdown
-## <ISO timestamp> | <run_dir relative path>
-What: <one-line: benchmark + method + alpha grid>
-Key files: results.json, *.provenance.json, activations/responses.jsonl
-Status: awaiting analysis
-```
-
-Remove the entry once analysed.
-
-If killing the process loses substantial work, the pipeline is misdesigned.
-
-</important> ```
