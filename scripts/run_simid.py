@@ -199,6 +199,24 @@ def output_dir_has_alpha_rows(output_dir: Path) -> bool:
     )
 
 
+def configless_alpha_rows_error(output_dir: Path) -> ValueError:
+    return ValueError(
+        f"Cannot resume {output_dir}: alpha output rows already exist but "
+        "run_config.json is missing, so existing rows cannot be proven "
+        "compatible with the requested runtime config. Archive the old run "
+        "or choose a new output directory."
+    )
+
+
+def refuse_configless_alpha_rows(
+    *,
+    output_dir: Path,
+    run_config_path: Path,
+) -> None:
+    if not run_config_path.exists() and output_dir_has_alpha_rows(output_dir):
+        raise configless_alpha_rows_error(output_dir)
+
+
 def build_resume_contract(
     *,
     args: argparse.Namespace,
@@ -270,7 +288,10 @@ def write_or_validate_run_config(
     run_config: dict[str, Any],
     output_dir: Path,
 ) -> None:
+    has_partial_outputs = output_dir_has_alpha_rows(output_dir)
     if not path.exists():
+        if has_partial_outputs:
+            raise configless_alpha_rows_error(output_dir)
         path.write_text(
             json.dumps(run_config, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
@@ -280,7 +301,6 @@ def write_or_validate_run_config(
     existing = json.loads(path.read_text(encoding="utf-8"))
     existing_fingerprint = existing.get("resume_fingerprint")
     new_fingerprint = run_config["resume_fingerprint"]
-    has_partial_outputs = output_dir_has_alpha_rows(output_dir)
     if existing_fingerprint is None:
         if has_partial_outputs:
             raise ValueError(
@@ -1214,6 +1234,11 @@ def main(argv: list[str] | None = None) -> None:
         )
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    run_config_path = output_dir / "run_config.json"
+    refuse_configless_alpha_rows(
+        output_dir=output_dir,
+        run_config_path=run_config_path,
+    )
     locked_manifest_path = output_dir / "manifest.locked.json"
     rows = load_or_create_locked_manifest(
         source_manifest=args.manifest,
@@ -1232,7 +1257,6 @@ def main(argv: list[str] | None = None) -> None:
         iti_k=args.iti_k,
         decode_scope=args.decode_scope,
     )
-    run_config_path = output_dir / "run_config.json"
     provenance = start_run_provenance(
         args,
         primary_target=output_dir,

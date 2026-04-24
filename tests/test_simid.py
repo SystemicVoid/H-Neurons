@@ -234,6 +234,27 @@ def test_bridge_distractor_selection_excludes_own_gold_aliases() -> None:
     assert len(texts) == 2
 
 
+def test_bridge_distractor_selection_rejects_options_containing_gold_alias() -> None:
+    item = BridgeItem("q1", "Question?", ["OIL"])
+    candidates = [
+        ("q2", "Oil refining"),
+        ("q3", "Natural gas"),
+        ("q4", "Solar power"),
+    ]
+
+    distractors = select_bridge_distractors(
+        item,
+        all_candidates=candidates,
+        baseline_wrong_by_qid={"q1": "Oil refining"},
+        n_distractors=2,
+        seed=7,
+    )
+
+    texts = {record.text for record in distractors}
+    assert "Oil refining" not in texts
+    assert len(texts) == 2
+
+
 def test_bridge_distractor_selection_preserves_seeded_randomness() -> None:
     item = BridgeItem("q1", "Question?", ["Paris"])
     candidates = [
@@ -385,6 +406,62 @@ def test_resume_refuses_runtime_config_change_with_existing_rows(
             run_config=changed_run_config,
             output_dir=output_dir,
         )
+
+
+def test_resume_refuses_configless_directory_with_existing_rows(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "run"
+    alpha_path = output_dir / "selected" / "alpha_0.0.jsonl"
+    alpha_path.parent.mkdir(parents=True)
+    alpha_path.write_text(json.dumps({"sample_id": "simid_a"}) + "\n", encoding="utf-8")
+    rows = [_manifest_row("simid_a", "Question?")]
+    conditions = [simid_runner.CONDITION_SPECS["selected"]]
+    iti_config = build_iti_config(
+        model_path="model",
+        tokenizer_path="model",
+        iti_artifact_path="iti.pt",
+        iti_artifact_sha256="abc",
+        iti_family="truthfulqa_paperfaithful",
+        iti_k=12,
+        decode_scope="first_3_tokens",
+    )
+    run_config = build_run_config(
+        args=_run_args(),
+        output_dir=output_dir,
+        rows=rows,
+        conditions=conditions,
+        iti_config=iti_config,
+        locked_manifest_path=output_dir / "manifest.locked.json",
+    )
+
+    with pytest.raises(ValueError, match="run_config.json is missing"):
+        write_or_validate_run_config(
+            path=output_dir / "run_config.json",
+            run_config=run_config,
+            output_dir=output_dir,
+        )
+
+
+def test_run_main_refuses_configless_rows_before_writing_locked_manifest(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "run"
+    alpha_path = output_dir / "selected" / "alpha_0.0.jsonl"
+    alpha_path.parent.mkdir(parents=True)
+    alpha_path.write_text(json.dumps({"sample_id": "simid_a"}) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="run_config.json is missing"):
+        simid_runner.main(
+            [
+                "--output-dir",
+                str(output_dir),
+                "--manifest",
+                str(tmp_path / "manifest.json"),
+            ]
+        )
+
+    assert not (output_dir / "manifest.locked.json").exists()
 
 
 def test_iti_config_records_runtime_overrides() -> None:
@@ -590,6 +667,62 @@ def test_analyzer_reports_dataset_endpoint_strata() -> None:
     ] == pytest.approx(0.0)
 
 
+def test_analyzer_splits_truthfulqa_strata_by_leakage_metadata(
+    tmp_path: Path,
+) -> None:
+    rows = []
+    for sample_id, split, seen in [
+        ("truthful_heldout", "test", False),
+        ("truthful_fitted", "train", True),
+    ]:
+        for alpha in [0.0, 8.0]:
+            row = _analysis_row(
+                sample_id=sample_id,
+                alpha=alpha,
+                dataset="truthfulqa",
+                mc_endpoint="truthfulqa_mc1",
+            )
+            row.update(
+                {
+                    "truthfulqa_artifact_split": split,
+                    "truthfulqa_seen_in_iti_fit": seen,
+                    "truthfulqa_leakage_policy": "allow_fitted",
+                }
+            )
+            rows.append(row)
+
+    summary = summarize_condition(
+        index_rows(rows),
+        condition="selected",
+        alphas=[0.0, 8.0],
+        baseline_alpha=0.0,
+        n_resamples=100,
+        seed=1,
+    )
+    report_path = tmp_path / "report.md"
+    write_report({"conditions": {"selected": summary}}, report_path)
+
+    strata = summary["dataset_endpoint_summaries"]
+    heldout_key = (
+        "truthfulqa::truthfulqa_mc1::truthfulqa_artifact_split=test::"
+        "truthfulqa_seen_in_iti_fit=false::truthfulqa_leakage_policy=allow_fitted"
+    )
+    fitted_key = (
+        "truthfulqa::truthfulqa_mc1::truthfulqa_artifact_split=train::"
+        "truthfulqa_seen_in_iti_fit=true::truthfulqa_leakage_policy=allow_fitted"
+    )
+    assert sorted(strata) == [heldout_key, fitted_key]
+    assert strata[heldout_key]["truthfulqa_leakage_metadata"] == {
+        "truthfulqa_artifact_split": "test",
+        "truthfulqa_seen_in_iti_fit": "false",
+        "truthfulqa_leakage_policy": "allow_fitted",
+    }
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "artifact_split=test" in report_text
+    assert "seen_in_iti_fit=false" in report_text
+    assert "leakage_policy=allow_fitted" in report_text
+
+
 def test_load_run_rows_recovers_mc_endpoint_from_locked_manifest(
     tmp_path: Path,
 ) -> None:
@@ -599,6 +732,9 @@ def test_load_run_rows_recovers_mc_endpoint_from_locked_manifest(
     manifest_row = _manifest_row("simid_a", "Question?")
     manifest_row["dataset"] = "truthfulqa"
     manifest_row["mc_endpoint"] = "truthfulqa_mc1"
+    manifest_row["truthfulqa_artifact_split"] = "test"
+    manifest_row["truthfulqa_seen_in_iti_fit"] = False
+    manifest_row["truthfulqa_leakage_policy"] = "heldout_only"
     (run_dir / "manifest.locked.json").write_text(
         json.dumps(
             {"schema_version": "simid_locked_manifest/v1", "rows": [manifest_row]}
@@ -615,6 +751,9 @@ def test_load_run_rows_recovers_mc_endpoint_from_locked_manifest(
 
     assert rows[0]["dataset"] == "truthfulqa"
     assert rows[0]["mc_endpoint"] == "truthfulqa_mc1"
+    assert rows[0]["truthfulqa_artifact_split"] == "test"
+    assert rows[0]["truthfulqa_seen_in_iti_fit"] is False
+    assert rows[0]["truthfulqa_leakage_policy"] == "heldout_only"
 
 
 def test_control_slope_requires_matching_replicates_across_controls() -> None:

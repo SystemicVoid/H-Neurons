@@ -116,6 +116,20 @@ def word_len_bucket(text: str) -> int:
     return min(max(1, len(str(text).split())), 6)
 
 
+def normalized_text_contains_alias(candidate_norm: str, alias_norms: set[str]) -> bool:
+    candidate_tokens = candidate_norm.split()
+    if not candidate_tokens:
+        return False
+    for alias_norm in alias_norms:
+        alias_tokens = alias_norm.split()
+        if not alias_tokens or len(alias_tokens) > len(candidate_tokens):
+            continue
+        for start in range(len(candidate_tokens) - len(alias_tokens) + 1):
+            if candidate_tokens[start : start + len(alias_tokens)] == alias_tokens:
+                return True
+    return False
+
+
 def open_prompt_for_question(question: str) -> str:
     return f"Question: {question}\nAnswer with a single short factual phrase only."
 
@@ -359,26 +373,26 @@ def build_truthfulqa_rows(
             OptionRecord(
                 text=best,
                 is_gold=True,
-                    provenance={
-                        "source": "truthfulqa_best_answer",
-                        "dataset": "truthfulqa",
-                        "source_id": csv_idx,
-                    },
-                )
-            ]
+                provenance={
+                    "source": "truthfulqa_best_answer",
+                    "dataset": "truthfulqa",
+                    "source_id": csv_idx,
+                },
+            )
+        ]
         options.extend(
             OptionRecord(
                 text=answer,
                 is_gold=False,
-                    provenance={
-                        "source": "truthfulqa_incorrect_answer",
-                        "dataset": "truthfulqa",
-                        "source_id": csv_idx,
-                        "incorrect_answer_index": incorrect_idx,
-                    },
-                )
-                for incorrect_idx, answer in enumerate(incorrect)
+                provenance={
+                    "source": "truthfulqa_incorrect_answer",
+                    "dataset": "truthfulqa",
+                    "source_id": csv_idx,
+                    "incorrect_answer_index": incorrect_idx,
+                },
             )
+            for incorrect_idx, answer in enumerate(incorrect)
+        )
         sample_id = f"simid_truthfulqa_{csv_idx}"
         for replicate_idx in range(option_order_replicates):
             rows.append(
@@ -406,8 +420,7 @@ def build_truthfulqa_rows(
                         "truthfulqa_split_metadata_path": split_metadata[
                             "metadata_path"
                         ],
-                        "truthfulqa_seen_in_iti_fit": split
-                        in {"train", "val", "dev"},
+                        "truthfulqa_seen_in_iti_fit": split in {"train", "val", "dev"},
                         "truthfulqa_best_answer": best,
                         "truthfulqa_correct_answers": correct,
                         "truthfulqa_incorrect_answers": incorrect,
@@ -472,7 +485,7 @@ def load_bridge_baseline_wrong_answers(path: Path) -> dict[str, str]:
             )
             aliases = [str(alias) for alias in row.get("ground_truth_aliases") or []]
             alias_norms = {normalize_answer(alias) for alias in aliases}
-            if normalize_answer(response) in alias_norms:
+            if normalized_text_contains_alias(normalize_answer(response), alias_norms):
                 continue
             wrong_by_qid[qid] = response
     return wrong_by_qid
@@ -502,7 +515,7 @@ def select_bridge_distractors(
     baseline_wrong = baseline_wrong_by_qid.get(item.question_id)
     if baseline_wrong:
         norm_wrong = normalize_answer(baseline_wrong)
-        if norm_wrong and norm_wrong not in chosen_norms:
+        if norm_wrong and not normalized_text_contains_alias(norm_wrong, own_norms):
             distractors.append(
                 OptionRecord(
                     text=baseline_wrong,
@@ -531,6 +544,7 @@ def select_bridge_distractors(
         if (
             source_qid == item.question_id
             or not norm_alias
+            or normalized_text_contains_alias(norm_alias, own_norms)
             or norm_alias in chosen_norms
         ):
             continue

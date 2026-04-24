@@ -30,8 +30,20 @@ from utils import (
 MetricFn = Callable[[dict[str, Any]], float | bool]
 RowGroup = list[dict[str, Any]]
 Panel = dict[float, dict[str, RowGroup]]
+StratumKey = tuple[str, str, tuple[tuple[str, str], ...]]
 PRIMARY_MC_RATE_METRIC = "mc_letter_likelihood_correct"
 PRIMARY_MC_MARGIN_METRIC = "mc_full_margin"
+TRUTHFULQA_LEAKAGE_METADATA_FIELDS = (
+    "truthfulqa_artifact_split",
+    "truthfulqa_seen_in_iti_fit",
+    "truthfulqa_leakage_policy",
+)
+LOCKED_MANIFEST_METADATA_FIELDS = (
+    "base_sample_id",
+    "dataset",
+    "mc_endpoint",
+    *TRUTHFULQA_LEAKAGE_METADATA_FIELDS,
+)
 
 
 BOOL_METRICS: dict[str, MetricFn] = {
@@ -86,9 +98,7 @@ def load_locked_manifest_metadata(run_dir: Path) -> dict[str, dict[str, Any]]:
         if not isinstance(row, dict) or "sample_id" not in row:
             continue
         metadata[str(row["sample_id"])] = {
-            "base_sample_id": row.get("base_sample_id"),
-            "dataset": row.get("dataset"),
-            "mc_endpoint": row.get("mc_endpoint"),
+            field: row.get(field) for field in LOCKED_MANIFEST_METADATA_FIELDS
         }
     return metadata
 
@@ -161,6 +171,60 @@ def dataset_endpoint_for_group(rows: RowGroup) -> tuple[str, str]:
 
 def dataset_endpoint_key(dataset: str, mc_endpoint: str) -> str:
     return f"{dataset}::{mc_endpoint}"
+
+
+def render_stratum_metadata_value(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def truthfulqa_leakage_metadata_for_group(
+    rows: RowGroup,
+    *,
+    dataset: str,
+) -> tuple[tuple[str, str], ...]:
+    if dataset != "truthfulqa":
+        return ()
+    has_leakage_metadata = any(
+        any(field in row for field in TRUTHFULQA_LEAKAGE_METADATA_FIELDS)
+        for row in rows
+    )
+    if not has_leakage_metadata:
+        return ()
+    metadata: list[tuple[str, str]] = []
+    for field in TRUTHFULQA_LEAKAGE_METADATA_FIELDS:
+        values = {render_stratum_metadata_value(row.get(field)) for row in rows}
+        if len(values) != 1:
+            raise ValueError(
+                "SIMID TruthfulQA replicate group mixes leakage metadata for "
+                f"{field}: {sorted(values)}"
+            )
+        metadata.append((field, next(iter(values))))
+    return tuple(metadata)
+
+
+def analysis_stratum_for_group(rows: RowGroup) -> StratumKey:
+    dataset, mc_endpoint = dataset_endpoint_for_group(rows)
+    return (
+        dataset,
+        mc_endpoint,
+        truthfulqa_leakage_metadata_for_group(rows, dataset=dataset),
+    )
+
+
+def analysis_stratum_key(
+    dataset: str,
+    mc_endpoint: str,
+    leakage_metadata: tuple[tuple[str, str], ...],
+) -> str:
+    key = dataset_endpoint_key(dataset, mc_endpoint)
+    if not leakage_metadata:
+        return key
+    suffix = "::".join(f"{field}={value}" for field, value in leakage_metadata)
+    return f"{key}::{suffix}"
 
 
 def flatten_groups(groups_by_id: dict[str, RowGroup]) -> list[dict[str, Any]]:
@@ -441,21 +505,21 @@ def summarize_sample_ids(
     }
 
 
-def dataset_endpoint_sample_ids(
+def analysis_stratum_sample_ids(
     sample_ids: list[str],
     panel: Panel,
     *,
     alphas: list[float],
     baseline_alpha: float,
-) -> dict[tuple[str, str], list[str]]:
-    strata: dict[tuple[str, str], list[str]] = defaultdict(list)
+) -> dict[StratumKey, list[str]]:
+    strata: dict[StratumKey, list[str]] = defaultdict(list)
     for sample_id in sample_ids:
-        reference = dataset_endpoint_for_group(panel[baseline_alpha][sample_id])
+        reference = analysis_stratum_for_group(panel[baseline_alpha][sample_id])
         for alpha in alphas:
-            alpha_value = dataset_endpoint_for_group(panel[alpha][sample_id])
+            alpha_value = analysis_stratum_for_group(panel[alpha][sample_id])
             if alpha_value != reference:
                 raise ValueError(
-                    f"SIMID sample_id={sample_id} changes dataset/MC endpoint "
+                    f"SIMID sample_id={sample_id} changes analysis stratum "
                     f"between alpha={baseline_alpha} and alpha={alpha}: "
                     f"{reference} vs {alpha_value}"
                 )
@@ -484,7 +548,11 @@ def summarize_condition(
         seed=seed,
     )
     strata: dict[str, Any] = {}
-    for (dataset, mc_endpoint), stratum_ids in dataset_endpoint_sample_ids(
+    for (
+        dataset,
+        mc_endpoint,
+        leakage_metadata,
+    ), stratum_ids in analysis_stratum_sample_ids(
         sample_ids,
         panel,
         alphas=alphas,
@@ -500,7 +568,11 @@ def summarize_condition(
         )
         stratum_summary["dataset"] = dataset
         stratum_summary["mc_endpoint"] = mc_endpoint
-        strata[dataset_endpoint_key(dataset, mc_endpoint)] = stratum_summary
+        if leakage_metadata:
+            stratum_summary["truthfulqa_leakage_metadata"] = dict(leakage_metadata)
+        strata[analysis_stratum_key(dataset, mc_endpoint, leakage_metadata)] = (
+            stratum_summary
+        )
 
     return {
         "condition": condition,
@@ -858,14 +930,25 @@ def write_report(results: dict[str, Any], path: Path) -> None:
         strata = summary.get("dataset_endpoint_summaries", {})
         if strata:
             lines.append("")
-            lines.append("Dataset / MC endpoint strata:")
+            lines.append(
+                "Dataset / MC endpoint strata (TruthfulQA leakage split when available):"
+            )
             for key in sorted(strata):
                 stratum = strata[key]
                 stratum_baseline = str(stratum["baseline_alpha"])
                 stratum_open = stratum["rates"][stratum_baseline]["open_correct"]
                 stratum_mc = stratum["rates"][stratum_baseline][PRIMARY_MC_RATE_METRIC]
+                leakage_metadata = stratum.get("truthfulqa_leakage_metadata", {})
+                leakage_label = ""
+                if leakage_metadata:
+                    rendered = ", ".join(
+                        f"{field.removeprefix('truthfulqa_')}={value}"
+                        for field, value in leakage_metadata.items()
+                    )
+                    leakage_label = f" ({rendered})"
                 lines.append(
-                    f"- {stratum['dataset']} / {stratum['mc_endpoint']}: "
+                    f"- {stratum['dataset']} / {stratum['mc_endpoint']}"
+                    f"{leakage_label}: "
                     f"n={stratum['n_paired_items']}; "
                     f"lettered MC={format_ci(stratum_mc)}; "
                     f"open={format_ci(stratum_open)}"
