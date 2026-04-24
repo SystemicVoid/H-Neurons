@@ -4,6 +4,7 @@
 
 - Use the literature when building experiments based on related work, start with `papers/INDEX.md`.
 - When the user asks for a handoff prompt for another agent, output only the prompt body. Do not prepend framing such as `Use this as the handoff prompt:` or wrap it in explanatory prose, because the user may paste it directly into another agent.
+- Commit safety for run outputs: check `.pre-commit-config.yaml`'s `active-run-git-guard`; run `uv run python -m scripts.lib.pipeline active-run-status` before staging data/output paths.
 
 ## Build, Test, and Development Commands
 
