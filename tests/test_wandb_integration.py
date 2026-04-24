@@ -626,6 +626,84 @@ class TestRunProvenance:
         assert second_payload["completed_at_utc"] is not None
         assert "error" not in second_payload
 
+    def test_start_and_finish_run_provenance_writes_active_run_lock(
+        self, monkeypatch, tmp_path
+    ):
+        subprocess.run(
+            ["git", "init"],
+            cwd=tmp_path,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("utils.get_git_sha", lambda: None)
+        monkeypatch.setattr("utils.get_git_dirty", lambda: False)
+        monkeypatch.setattr("utils.sys.argv", ["scripts/run_intervention.py"])
+        monkeypatch.setattr(
+            "utils.sys.orig_argv",
+            ["uv", "run", "python", "scripts/run_intervention.py"],
+            raising=False,
+        )
+
+        output_dir = tmp_path / "data" / "new_run"
+        handle = start_run_provenance(
+            args={},
+            primary_target=output_dir,
+            output_targets=[output_dir],
+            primary_target_is_dir=True,
+        )
+        assert handle is not None
+        lock_path = handle["active_run_lock_path"]
+        assert lock_path is not None
+        lock_payload = json.loads(Path(lock_path).read_text())
+        assert lock_payload["run_id"] == handle["payload"]["run_id"]
+        assert lock_payload["protected_paths"] == [
+            {"kind": "directory", "path": str(output_dir.resolve())},
+            {"kind": "file", "path": str(handle["path"].resolve())},
+        ]
+
+        finish_run_provenance(handle, "completed")
+
+        assert not Path(lock_path).exists()
+
+    def test_pipeline_guard_imports_when_script_dir_is_only_project_sys_path(self):
+        script = """
+import sys
+from pathlib import Path
+
+repo = Path(sys.argv[1]).resolve()
+scripts_dir = repo / "scripts"
+filtered = []
+for entry in sys.path:
+    if entry == "":
+        continue
+    try:
+        if Path(entry).resolve() == repo:
+            continue
+    except OSError:
+        pass
+    filtered.append(entry)
+sys.path[:] = [str(scripts_dir), *filtered]
+
+import utils
+
+pipeline_guard = utils._load_pipeline_guard_module()
+assert pipeline_guard is not None
+assert pipeline_guard.__name__ == "scripts.lib.pipeline"
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script, str(REPO_ROOT)],
+            cwd=REPO_ROOT,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+
 
 class TestProvenanceExceptionHelpers:
     def test_marks_interrupt_signals_as_interrupted(self):

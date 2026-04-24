@@ -7,6 +7,12 @@ repos:
 
   - repo: local
     hooks:
+      - id: active-run-git-guard
+        name: active run Git guard
+        entry: uv run python -m scripts.lib.pipeline check-active-run-git-guard
+        language: system
+        pass_filenames: false
+
       - id: ruff-check
         name: ruff check
         entry: ruff check --force-exclude

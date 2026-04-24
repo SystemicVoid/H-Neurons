@@ -7,17 +7,25 @@ a GPU pipeline would silently skip incomplete data or lose work.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import socket
+import subprocess
 
 import pytest
 
 from scripts.lib.pipeline import (
     _count_lines,
+    active_run_registry_dir,
     check_stage_complete,
+    check_live_output_track_state,
     check_sentinel,
+    check_staged_paths_against_live_runs,
+    current_process_start_identity,
     log_run,
     main,
     manifest_count,
+    path_intersects_live_run,
 )
 from scripts.utils import format_alpha_label
 
@@ -49,6 +57,54 @@ def _write_alpha(stage_dir: Path, alpha: float, n_lines: int) -> Path:
         "".join(f'{{"id": "id_{i}", "alpha": {alpha}}}\n' for i in range(n_lines))
     )
     return f
+
+
+def _current_start_identity_or_skip() -> str:
+    identity = current_process_start_identity()
+    if identity is None:
+        pytest.skip("/proc start identity unavailable on this platform")
+    return identity
+
+
+def _write_active_run_lock(
+    registry_dir: Path,
+    protected_path: Path,
+    *,
+    kind: str = "file",
+    run_id: str = "test-live-run",
+    pid: int | None = None,
+    start_identity: str | None = None,
+    hostname: str | None = None,
+) -> Path:
+    registry_dir.mkdir(parents=True, exist_ok=True)
+    process_id = os.getpid() if pid is None else pid
+    identity = (
+        _current_start_identity_or_skip() if start_identity is None else start_identity
+    )
+    lock = {
+        "schema_version": "active_run_lock/v1",
+        "run_id": run_id,
+        "hostname": hostname or socket.gethostname(),
+        "pid": process_id,
+        "process_start_identity": {"start_ticks": identity},
+        "protected_paths": [
+            {"path": str(protected_path.resolve()), "kind": kind},
+        ],
+    }
+    path = registry_dir / f"{run_id}.json"
+    path.write_text(json.dumps(lock))
+    return path
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -206,6 +262,229 @@ class TestCheckSentinel:
         sentinel = tmp_path / "stop_after_pre_canary"
         sentinel.write_text("pause after canary\n")
         assert check_sentinel(tmp_path, "stop_after_pre_canary") == "pause after canary"
+
+
+# ---------------------------------------------------------------------------
+# active-run Git guard
+# ---------------------------------------------------------------------------
+
+
+class TestActiveRunGitGuard:
+    """Incident: 2026-04-24 — a commit touched JSONL files during a live run."""
+
+    def test_registry_dir_resolves_git_common_dir_from_subdirectory(
+        self, tmp_path: Path
+    ) -> None:
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init")
+        subdir = repo / "scripts"
+        subdir.mkdir()
+
+        registry = active_run_registry_dir(subdir)
+
+        assert registry == (repo / ".git" / "h-neurons-active-runs").resolve()
+
+    def test_live_lock_blocks_staged_file_target(self, tmp_path: Path) -> None:
+        registry = tmp_path / "registry"
+        protected = tmp_path / "data" / "run" / "utility_scores.jsonl"
+        _write_active_run_lock(registry, protected, kind="file")
+
+        violations = check_staged_paths_against_live_runs(
+            ["data/run/utility_scores.jsonl"],
+            registry_dir=registry,
+            repo_root=tmp_path,
+        )
+
+        assert len(violations) == 1
+        assert violations[0].staged_path == "data/run/utility_scores.jsonl"
+        assert path_intersects_live_run(
+            "data/run/utility_scores.jsonl",
+            json.loads((registry / "test-live-run.json").read_text()),
+            repo_root=tmp_path,
+        )
+
+    def test_live_lock_blocks_staged_path_below_directory(self, tmp_path: Path) -> None:
+        registry = tmp_path / "registry"
+        protected_dir = tmp_path / "data" / "run"
+        _write_active_run_lock(registry, protected_dir, kind="directory")
+
+        violations = check_staged_paths_against_live_runs(
+            ["data/run/answer_span_scores.jsonl"],
+            registry_dir=registry,
+            repo_root=tmp_path,
+        )
+
+        assert len(violations) == 1
+        assert violations[0].protected_kind == "directory"
+
+    def test_unrelated_staged_path_passes(self, tmp_path: Path) -> None:
+        registry = tmp_path / "registry"
+        _write_active_run_lock(
+            registry,
+            tmp_path / "data" / "run",
+            kind="directory",
+        )
+
+        violations = check_staged_paths_against_live_runs(
+            ["notes/research-log.md"],
+            registry_dir=registry,
+            repo_root=tmp_path,
+        )
+
+        assert violations == []
+
+    def test_stale_missing_pid_passes(self, tmp_path: Path) -> None:
+        registry = tmp_path / "registry"
+        _write_active_run_lock(
+            registry,
+            tmp_path / "data" / "run",
+            kind="directory",
+            pid=999_999_999,
+            start_identity="1",
+        )
+
+        violations = check_staged_paths_against_live_runs(
+            ["data/run/out.jsonl"],
+            registry_dir=registry,
+            repo_root=tmp_path,
+        )
+
+        assert violations == []
+
+    def test_reused_pid_with_mismatched_start_identity_passes(
+        self, tmp_path: Path
+    ) -> None:
+        registry = tmp_path / "registry"
+        _write_active_run_lock(
+            registry,
+            tmp_path / "data" / "run",
+            kind="directory",
+            start_identity="not-the-current-process-start",
+        )
+
+        violations = check_staged_paths_against_live_runs(
+            ["data/run/out.jsonl"],
+            registry_dir=registry,
+            repo_root=tmp_path,
+        )
+
+        assert violations == []
+
+    def test_malformed_lock_warns_but_passes(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        registry = tmp_path / "registry"
+        registry.mkdir()
+        (registry / "bad.json").write_text("{not json")
+
+        violations = check_staged_paths_against_live_runs(
+            ["data/run/out.jsonl"],
+            registry_dir=registry,
+            repo_root=tmp_path,
+        )
+
+        captured = capsys.readouterr()
+        assert violations == []
+        assert "ignoring malformed lock" in captured.err
+
+    def test_cli_blocks_staged_path_owned_by_live_run(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init")
+        registry = repo / ".git" / "h-neurons-active-runs"
+        protected_dir = repo / "data" / "run"
+        protected_dir.mkdir(parents=True)
+        _write_active_run_lock(registry, protected_dir, kind="directory")
+        staged_file = protected_dir / "out.jsonl"
+        staged_file.write_text("{}\n")
+        _git(repo, "add", "data/run/out.jsonl")
+        monkeypatch.chdir(repo)
+
+        rc = main(["check-active-run-git-guard"])
+
+        captured = capsys.readouterr()
+        assert rc == 1
+        assert "Active run Git guard blocked this commit" in captured.err
+        assert "data/run/out.jsonl" in captured.err
+
+
+class TestLiveOutputTrackState:
+    def test_tracked_output_target_detection_blocks_tracked_file(
+        self, tmp_path: Path
+    ) -> None:
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init")
+        tracked_file = repo / "data" / "run" / "results.json"
+        tracked_file.parent.mkdir(parents=True)
+        tracked_file.write_text("{}\n")
+        _git(repo, "add", "data/run/results.json")
+
+        violations = check_live_output_track_state(
+            [repo / "data" / "run"],
+            repo_root=repo,
+        )
+
+        assert len(violations) == 1
+        assert violations[0].tracked_path == "data/run/results.json"
+
+    def test_tracked_output_target_detection_passes_for_untracked_file(
+        self, tmp_path: Path
+    ) -> None:
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init")
+        output_file = repo / "data" / "run" / "new_results.json"
+
+        violations = check_live_output_track_state([output_file], repo_root=repo)
+
+        assert violations == []
+
+    def test_repo_relative_target_uses_explicit_repo_root_from_other_cwd(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init")
+        tracked_file = repo / "data" / "run" / "results.json"
+        tracked_file.parent.mkdir(parents=True)
+        tracked_file.write_text("{}\n")
+        _git(repo, "add", "data/run/results.json")
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        monkeypatch.chdir(outside)
+
+        violations = check_live_output_track_state(["data/run"], repo_root=repo)
+
+        assert len(violations) == 1
+        assert violations[0].output_target == tracked_file.parent.resolve()
+        assert violations[0].tracked_path == "data/run/results.json"
+
+    def test_repo_relative_target_uses_detected_repo_root_from_subdirectory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init")
+        tracked_file = repo / "data" / "run" / "results.json"
+        tracked_file.parent.mkdir(parents=True)
+        tracked_file.write_text("{}\n")
+        _git(repo, "add", "data/run/results.json")
+        subdir = repo / "scripts"
+        subdir.mkdir()
+        monkeypatch.chdir(subdir)
+
+        violations = check_live_output_track_state(["data/run"])
+
+        assert len(violations) == 1
+        assert violations[0].output_target == tracked_file.parent.resolve()
+        assert violations[0].tracked_path == "data/run/results.json"
 
 
 # ---------------------------------------------------------------------------

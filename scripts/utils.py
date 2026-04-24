@@ -297,6 +297,27 @@ def _safe_env() -> dict[str, str]:
     return {key: value for key in keys if (value := os.environ.get(key)) is not None}
 
 
+def _load_pipeline_guard_module() -> Any | None:
+    """Import the lightweight pipeline guard module without requiring GPU deps."""
+    repo_root = Path(__file__).resolve().parent.parent
+    repo_root_text = str(repo_root)
+    if repo_root_text not in sys.path:
+        sys.path.insert(0, repo_root_text)
+    if __name__ == "utils":
+        sys.modules.setdefault("scripts.utils", sys.modules[__name__])
+
+    try:
+        from scripts.lib import pipeline as pipeline_guard
+
+        return pipeline_guard
+    except ImportError as exc:
+        print(
+            f"Warning: active-run guard unavailable; continuing without registry: {exc}",
+            file=sys.stderr,
+        )
+        return None
+
+
 def init_wandb_run(
     wandb_module: Any,
     args: Any,
@@ -390,6 +411,7 @@ def start_run_provenance(
     *,
     primary_target_is_dir: bool = False,
     run_ts: str | None = None,
+    allow_tracked_live_outputs: bool = False,
 ) -> dict[str, Any] | None:
     """Write initial run provenance sidecar and return a mutable handle."""
     run_ts = run_ts or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -400,14 +422,25 @@ def start_run_provenance(
         is_dir=primary_target_is_dir,
         run_ts=run_ts,
     )
+    pipeline_guard = _load_pipeline_guard_module()
+    if pipeline_guard is not None and not allow_tracked_live_outputs:
+        tracked_violations = pipeline_guard.check_live_output_track_state(
+            output_targets
+        )
+        if tracked_violations:
+            raise RuntimeError(
+                pipeline_guard.format_tracked_live_output_error(tracked_violations)
+            )
     if primary_target_is_dir:
         Path(primary_target).mkdir(parents=True, exist_ok=True)
     else:
         sidecar_path.parent.mkdir(parents=True, exist_ok=True)
     argv, command = _build_command()
     args_dict = vars(args) if hasattr(args, "__dict__") else dict(args)
+    run_id = f"{script_stem}-{run_ts}-{os.getpid()}"
     payload = {
         "schema_version": "run_provenance/v1",
+        "run_id": run_id,
         "script": os.path.basename(sys.argv[0]),
         "argv": argv,
         "command": command,
@@ -433,10 +466,30 @@ def start_run_provenance(
         "payload": payload,
         "finalized": False,
         "run_ts": run_ts,
+        "active_run_lock_path": None,
     }
+    if pipeline_guard is not None:
+        try:
+            active_lock_path = pipeline_guard.create_active_run_lock(
+                run_id=run_id,
+                provenance_path=sidecar_path,
+                output_targets=output_targets,
+                started_at_utc=payload["started_at_utc"],
+                script=payload["script"],
+                argv=argv,
+                cwd=Path.cwd(),
+                directory_targets=[primary_target] if primary_target_is_dir else [],
+            )
+            if active_lock_path is not None:
+                payload["active_run_lock_path"] = str(active_lock_path)
+                handle["active_run_lock_path"] = active_lock_path
+        except Exception as exc:
+            raise RuntimeError(f"failed to create active-run lock: {exc}") from exc
     try:
         _write_provenance_file(sidecar_path, payload)
     except Exception as exc:
+        if pipeline_guard is not None:
+            pipeline_guard.remove_active_run_lock(handle.get("active_run_lock_path"))
         print(
             f"Warning: failed to write run provenance to {sidecar_path}: {exc}",
             file=sys.stderr,
@@ -468,6 +521,11 @@ def finish_run_provenance(
             f"Warning: failed to finalize run provenance at {handle['path']}: {exc}",
             file=sys.stderr,
         )
+        return
+
+    pipeline_guard = _load_pipeline_guard_module()
+    if pipeline_guard is not None:
+        pipeline_guard.remove_active_run_lock(handle.get("active_run_lock_path"))
 
 
 def json_dumps(payload: dict[str, Any]) -> str:
