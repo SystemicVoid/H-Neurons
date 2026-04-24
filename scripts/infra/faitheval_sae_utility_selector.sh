@@ -17,12 +17,26 @@ N_RANDOM_SEEDS="${N_RANDOM_SEEDS:-10}"
 BENCHMARKS=(
     "faitheval"
     "faitheval_anti_compliance_margin"
+    "faitheval_answer_span_margin"
 )
-FAMILIES=("noop" "readout_selected" "utility_selected")
+ANSWER_SPAN_FAMILIES=(
+    "noop"
+    "readout_selected"
+    "utility_selected"
+    "answer_span_selected"
+)
+EXPANDED_FAMILIES=(
+    "noop"
+    "readout_selected"
+    "utility_selected"
+    "answer_span_selected"
+)
 for ((seed=0; seed<N_RANDOM_SEEDS; seed++)); do
-    FAMILIES+=("matched_random_seed_${seed}")
+    ANSWER_SPAN_FAMILIES+=("matched_random_answer_span_seed_${seed}")
+    EXPANDED_FAMILIES+=("matched_random_seed_${seed}")
+    EXPANDED_FAMILIES+=("matched_random_answer_span_seed_${seed}")
 done
-FAMILIES+=("matched_zero_dead")
+EXPANDED_FAMILIES+=("matched_zero_dead")
 
 require_file() {
     local path="$1"
@@ -80,7 +94,9 @@ selector_stage_complete() {
         "feature_stats.json"
         "full_sequence_feature_stats.json"
         "utility_scores.jsonl"
+        "answer_span_scores.jsonl"
         "utility_selected_features.json"
+        "answer_span_selected_features.json"
         "readout_selected_features.json"
         "matched_zero_dead_features.json"
         "selector_summary.json"
@@ -88,6 +104,7 @@ selector_stage_complete() {
     local seed=""
     for ((seed=0; seed<N_RANDOM_SEEDS; seed++)); do
         required+=("matched_random_seed_${seed}_features.json")
+        required+=("matched_random_answer_span_seed_${seed}_features.json")
     done
     local deps=(
         "scripts/select_faitheval_sae_utility_features.py"
@@ -133,6 +150,15 @@ heldout_dir_for() {
     echo "${HELDOUT_ROOT}/${benchmark}/${family}/experiment"
 }
 
+families_for_benchmark() {
+    local benchmark="$1"
+    if [[ "${benchmark}" == "faitheval_answer_span_margin" ]]; then
+        printf '%s\n' "${ANSWER_SPAN_FAMILIES[@]}"
+    else
+        printf '%s\n' "${EXPANDED_FAMILIES[@]}"
+    fi
+}
+
 heldout_stage_complete() {
     local benchmark="$1"
     local family="$2"
@@ -171,9 +197,9 @@ report_stage_complete() {
     local benchmark=""
     local family=""
     for benchmark in "${BENCHMARKS[@]}"; do
-        for family in "${FAMILIES[@]}"; do
+        while IFS= read -r family; do
             deps+=("$(heldout_dir_for "${benchmark}" "${family}")/alpha_$(expected_alpha_for_family "${family}").jsonl")
-        done
+        done < <(families_for_benchmark "${benchmark}")
     done
 
     artifact_is_fresh "${summary_path}" "${deps[@]}" || return 1
@@ -216,13 +242,13 @@ fi
 benchmark=""
 family=""
 for benchmark in "${BENCHMARKS[@]}"; do
-    for family in "${FAMILIES[@]}"; do
+    while IFS= read -r family; do
         dir="$(heldout_dir_for "${benchmark}" "${family}")"
         alpha="$(expected_alpha_for_family "${family}")"
         manifest_path="$(manifest_for_family "${family}")"
         if ! heldout_stage_complete "${benchmark}" "${family}"; then
             extra_args=()
-            if [[ "${benchmark}" == "faitheval" || "${benchmark}" == "faitheval_anti_compliance_margin" ]]; then
+            if [[ "${benchmark}" == "faitheval" || "${benchmark}" == "faitheval_anti_compliance_margin" || "${benchmark}" == "faitheval_answer_span_margin" ]]; then
                 extra_args+=(--prompt_style "anti_compliance")
             fi
             run_inhibited "FaithEval SAE utility held-out run ${benchmark}/${family}" \
@@ -241,7 +267,7 @@ for benchmark in "${BENCHMARKS[@]}"; do
         else
             echo "Skipping held-out stage; found ${benchmark}/${family} outputs in ${dir}"
         fi
-    done
+    done < <(families_for_benchmark "${benchmark}")
 done
 
 if ! report_stage_complete; then
@@ -256,6 +282,6 @@ fi
 if [[ "${DID_GENERATE_DATA}" -eq 1 ]]; then
     env PYTHONUNBUFFERED=1 uv run python -m scripts.lib.pipeline log-run \
         --run-dir "${ROOT}" \
-        --description "FaithEval SAE utility-selector ablation + held-out bundle (anti-compliance, delta-only, validation-selected/readout-selected/full-sequence-token-activation-weighted matched-random controls)" \
+        --description "FaithEval SAE utility-selector ablation + held-out bundle (anti-compliance, delta-only, validation-selected answer-span-selected/readout-selected/full-sequence-token-activation-weighted matched-random controls)" \
         --key-files "selector/selector_summary.json, selector/full_sequence_feature_stats.json, heldout/*/*/alpha_*.jsonl, report/heldout_summary.json, *.provenance.json"
 fi

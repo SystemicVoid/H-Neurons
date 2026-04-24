@@ -19,11 +19,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from intervene_sae import load_sae_feature_manifest  # noqa: E402
 from report_faitheval_sae_utility_selector import (  # noqa: E402
+    ANSWER_SPAN_MARGIN_METRIC_NAME,
     DEFAULT_N_RANDOM_SEEDS,
     PATH_DRIFT_FAMILY,
+    _report_load_configs,
     build_audit_note,
-    build_main_family_order,
+    build_answer_span_family_order,
     build_heldout_summary,
+    build_main_family_order,
 )
 from run_intervention import (  # noqa: E402
     _choice_token_ids,
@@ -33,6 +36,9 @@ from run_intervention import (  # noqa: E402
     resolve_sae_target_features,
 )
 from select_faitheval_sae_utility_features import (  # noqa: E402
+    _append_jsonl_row,
+    _load_completed_score_rows,
+    _prepare_incremental_score_cache,
     _resolve_selector_scoring_cache,
     _selector_scoring_input_payload,
     _sha256_hexdigest,
@@ -45,6 +51,37 @@ from select_faitheval_sae_utility_features import (  # noqa: E402
 
 MAIN_FAMILY_ORDER = build_main_family_order(DEFAULT_N_RANDOM_SEEDS)
 THREE_SEED_FAMILY_ORDER = build_main_family_order(3)
+THREE_SEED_ANSWER_SPAN_FAMILY_ORDER = build_answer_span_family_order(3)
+
+
+def _selector_wrapper_families_by_benchmark() -> dict[str, list[str]]:
+    expanded_families = [
+        "noop",
+        "readout_selected",
+        "utility_selected",
+        "answer_span_selected",
+        *[f"matched_random_seed_{seed}" for seed in range(DEFAULT_N_RANDOM_SEEDS)],
+        *[
+            f"matched_random_answer_span_seed_{seed}"
+            for seed in range(DEFAULT_N_RANDOM_SEEDS)
+        ],
+        PATH_DRIFT_FAMILY,
+    ]
+    answer_span_families = [
+        "noop",
+        "readout_selected",
+        "utility_selected",
+        "answer_span_selected",
+        *[
+            f"matched_random_answer_span_seed_{seed}"
+            for seed in range(DEFAULT_N_RANDOM_SEEDS)
+        ],
+    ]
+    return {
+        "faitheval": expanded_families,
+        "faitheval_anti_compliance_margin": expanded_families,
+        "faitheval_answer_span_margin": answer_span_families,
+    }
 
 
 def _extraction_metadata() -> dict[str, object]:
@@ -210,7 +247,9 @@ def test_selector_scoring_cache_recomputes_when_legacy_bundle_is_stale(
         output_dir / "feature_stats.json",
         output_dir / "full_sequence_feature_stats.json",
         output_dir / "utility_scores.jsonl",
+        output_dir / "answer_span_scores.jsonl",
         output_dir / "utility_selected_features.json",
+        output_dir / "answer_span_selected_features.json",
         output_dir / "readout_selected_features.json",
     ]
     for path in required_paths:
@@ -266,8 +305,10 @@ def test_selector_scoring_cache_recomputes_when_legacy_bundle_is_stale(
         feature_stats_path=required_paths[0],
         full_sequence_stats_path=required_paths[1],
         utility_scores_path=required_paths[2],
-        utility_selected_manifest_path=required_paths[3],
-        readout_selected_manifest_path=required_paths[4],
+        answer_span_scores_path=required_paths[3],
+        utility_selected_manifest_path=required_paths[4],
+        answer_span_selected_manifest_path=required_paths[5],
+        readout_selected_manifest_path=required_paths[6],
         current_input_hash=_sha256_hexdigest(current_input_payload),
         current_input_payload=current_input_payload,
         args=args,
@@ -275,6 +316,83 @@ def test_selector_scoring_cache_recomputes_when_legacy_bundle_is_stale(
 
     assert cache_resolution["cache_status"] == "computed"
     assert cache_resolution["cache_mode"] == "fresh_compute"
+
+
+def test_incremental_score_cache_resumes_only_current_completed_rows(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "selector"
+    utility_scores_path = output_dir / "utility_scores.jsonl"
+    answer_span_scores_path = output_dir / "answer_span_scores.jsonl"
+    current_input_hash = "input-v1"
+
+    first_state = _prepare_incremental_score_cache(
+        output_dir=output_dir,
+        current_input_hash=current_input_hash,
+        score_paths=[utility_scores_path, answer_span_scores_path],
+    )
+    assert first_state["incremental_cache_status"] == "initialized"
+
+    candidate_pool = [
+        {"flat_idx": 1, "layer": 5, "feature": 1},
+        {"flat_idx": 2, "layer": 5, "feature": 2},
+    ]
+    _append_jsonl_row(
+        answer_span_scores_path,
+        {
+            "flat_idx": 1,
+            "layer": 5,
+            "feature": 1,
+            "selector_score": 0.25,
+            "selector_score_std": 0.0,
+            "selector_score_sum": 0.5,
+            "selector_score_full_span": 0.5,
+            "selector_score_full_span_std": 0.0,
+            "selector_score_full_span_sum": 1.0,
+            "validation_n": 2,
+        },
+    )
+    _append_jsonl_row(
+        answer_span_scores_path,
+        {
+            "flat_idx": 99,
+            "layer": 9,
+            "feature": 9,
+            "selector_score": 9.0,
+            "validation_n": 2,
+        },
+    )
+
+    resumed_state = _prepare_incremental_score_cache(
+        output_dir=output_dir,
+        current_input_hash=current_input_hash,
+        score_paths=[utility_scores_path, answer_span_scores_path],
+    )
+    rows = _load_completed_score_rows(
+        answer_span_scores_path,
+        candidate_pool=candidate_pool,
+        validation_n=2,
+        required_score_fields=(
+            "selector_score",
+            "selector_score_std",
+            "selector_score_sum",
+            "selector_score_full_span",
+            "selector_score_full_span_std",
+            "selector_score_full_span_sum",
+        ),
+    )
+
+    assert resumed_state["incremental_cache_status"] == "resumed"
+    assert [row["flat_idx"] for row in rows] == [1]
+
+    reset_state = _prepare_incremental_score_cache(
+        output_dir=output_dir,
+        current_input_hash="input-v2",
+        score_paths=[utility_scores_path, answer_span_scores_path],
+    )
+
+    assert reset_state["incremental_cache_status"] == "initialized"
+    assert answer_span_scores_path.read_text(encoding="utf-8") == ""
 
 
 class SpaceSensitiveTokenizer:
@@ -615,6 +733,56 @@ def test_main_family_order_expands_with_random_seed_count() -> None:
         "matched_random_seed_2",
         PATH_DRIFT_FAMILY,
     )
+    assert build_answer_span_family_order(0) == (
+        "noop",
+        "readout_selected",
+        "utility_selected",
+        "answer_span_selected",
+    )
+    assert build_answer_span_family_order(3) == (
+        "noop",
+        "readout_selected",
+        "utility_selected",
+        "answer_span_selected",
+        "matched_random_answer_span_seed_0",
+        "matched_random_answer_span_seed_1",
+        "matched_random_answer_span_seed_2",
+    )
+
+
+def test_report_load_configs_include_answer_span_families_for_reused_benchmarks() -> (
+    None
+):
+    selector_summary = {
+        "matched_random_controls": {
+            "n_random_seeds": 1,
+        },
+        "matched_random_answer_span_controls": {
+            "n_random_seeds": 2,
+        },
+        "families": {
+            "utility_selected": {},
+            "answer_span_selected": {},
+        },
+    }
+
+    configs = _report_load_configs(selector_summary)
+
+    reused_families = configs["faitheval"]["family_order"]
+    assert "answer_span_selected" in reused_families
+    assert "matched_random_answer_span_seed_0" in reused_families
+    assert "matched_random_answer_span_seed_1" in reused_families
+    assert (
+        configs["faitheval_anti_compliance_margin"]["family_order"] == reused_families
+    )
+    assert configs["faitheval_answer_span_margin"]["family_order"] == [
+        "noop",
+        "readout_selected",
+        "utility_selected",
+        "answer_span_selected",
+        "matched_random_answer_span_seed_0",
+        "matched_random_answer_span_seed_1",
+    ]
 
 
 def test_report_summary_covers_full_bundle_schema() -> None:
@@ -626,6 +794,8 @@ def test_report_summary_covers_full_bundle_schema() -> None:
                 "readout_selected": "probe-positive",
                 "utility_selected": "validation margin",
                 "matched_random": "zero-weight matched",
+                "answer_span_selected": "answer-span validation margin",
+                "matched_random_answer_span": "answer-span zero-weight matched",
             },
         },
         "matched_random_controls": {
@@ -634,6 +804,14 @@ def test_report_summary_covers_full_bundle_schema() -> None:
                 "matched_random_seed_0": {},
                 "matched_random_seed_1": {},
                 "matched_random_seed_2": {},
+            },
+        },
+        "matched_random_answer_span_controls": {
+            "n_random_seeds": 3,
+            "seed_families": {
+                "matched_random_answer_span_seed_0": {},
+                "matched_random_answer_span_seed_1": {},
+                "matched_random_answer_span_seed_2": {},
             },
         },
         "path_drift_control": {"family": PATH_DRIFT_FAMILY},
@@ -649,6 +827,12 @@ def test_report_summary_covers_full_bundle_schema() -> None:
                 "weight_sign_counts": {"negative": 1, "positive": 1},
                 "outside_old_shortlist": {"count": 1, "fraction": 0.5},
             },
+            "answer_span_selected": {
+                "k": 2,
+                "layer_histogram": {"5": 2},
+                "weight_sign_counts": {"positive": 2},
+                "outside_old_shortlist": {"count": 0, "fraction": 0.0},
+            },
             "readout_selected": {
                 "k": 2,
                 "layer_histogram": {"5": 2},
@@ -660,7 +844,17 @@ def test_report_summary_covers_full_bundle_schema() -> None:
                 "intersection_count": 1,
                 "union_count": 3,
                 "jaccard": 1 / 3,
-            }
+            },
+            "answer_span_selected_vs_readout_selected": {
+                "intersection_count": 2,
+                "union_count": 2,
+                "jaccard": 1.0,
+            },
+            "answer_span_selected_vs_utility_selected": {
+                "intersection_count": 1,
+                "union_count": 3,
+                "jaccard": 1 / 3,
+            },
         },
     }
     heldout_rows_by_benchmark = {
@@ -668,9 +862,13 @@ def test_report_summary_covers_full_bundle_schema() -> None:
             "noop": _family_rows(ordered_ids, {"a", "c"}),
             "readout_selected": _family_rows(ordered_ids, {"a"}),
             "utility_selected": _family_rows(ordered_ids, {"c"}),
+            "answer_span_selected": _family_rows(ordered_ids, {"a", "d"}),
             "matched_random_seed_0": _family_rows(ordered_ids, {"a", "d"}),
             "matched_random_seed_1": _family_rows(ordered_ids, {"b"}),
             "matched_random_seed_2": _family_rows(ordered_ids, {"a", "b"}),
+            "matched_random_answer_span_seed_0": _family_rows(ordered_ids, {"a"}),
+            "matched_random_answer_span_seed_1": _family_rows(ordered_ids, {"b", "d"}),
+            "matched_random_answer_span_seed_2": _family_rows(ordered_ids, {"c"}),
             PATH_DRIFT_FAMILY: _family_rows(ordered_ids, {"a", "c"}),
         },
         "faitheval_anti_compliance_margin": {
@@ -686,6 +884,10 @@ def test_report_summary_covers_full_bundle_schema() -> None:
                 ordered_ids,
                 metric_values={"a": 1.0, "b": 0.5, "c": -0.5, "d": 0.0},
             ),
+            "answer_span_selected": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.75, "b": 0.5, "c": 0.25, "d": -0.25},
+            ),
             "matched_random_seed_0": _family_rows(
                 ordered_ids,
                 metric_values={"a": 0.25, "b": 0.25, "c": 0.25, "d": 0.25},
@@ -698,9 +900,58 @@ def test_report_summary_covers_full_bundle_schema() -> None:
                 ordered_ids,
                 metric_values={"a": 0.75, "b": 0.25, "c": 0.0, "d": -0.25},
             ),
+            "matched_random_answer_span_seed_0": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.4, "b": 0.1, "c": 0.0, "d": -0.1},
+            ),
+            "matched_random_answer_span_seed_1": _family_rows(
+                ordered_ids,
+                metric_values={"a": -0.2, "b": 0.0, "c": 0.2, "d": 0.3},
+            ),
+            "matched_random_answer_span_seed_2": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.1, "b": 0.1, "c": 0.1, "d": 0.1},
+            ),
             PATH_DRIFT_FAMILY: _family_rows(
                 ordered_ids,
                 metric_values={"a": 0.4, "b": 0.4, "c": 0.4, "d": 0.4},
+            ),
+        },
+        "faitheval_answer_span_margin": {
+            "noop": _family_rows(
+                ordered_ids,
+                metric_values={"a": -0.5, "b": -0.5, "c": -0.5, "d": -0.5},
+                metric_name=ANSWER_SPAN_MARGIN_METRIC_NAME,
+            ),
+            "readout_selected": _family_rows(
+                ordered_ids,
+                metric_values={"a": -0.25, "b": -0.25, "c": -0.25, "d": -0.25},
+                metric_name=ANSWER_SPAN_MARGIN_METRIC_NAME,
+            ),
+            "utility_selected": _family_rows(
+                ordered_ids,
+                metric_values={"a": -0.1, "b": -0.2, "c": -0.3, "d": -0.4},
+                metric_name=ANSWER_SPAN_MARGIN_METRIC_NAME,
+            ),
+            "answer_span_selected": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.4, "b": 0.2, "c": 0.0, "d": -0.2},
+                metric_name=ANSWER_SPAN_MARGIN_METRIC_NAME,
+            ),
+            "matched_random_answer_span_seed_0": _family_rows(
+                ordered_ids,
+                metric_values={"a": -0.3, "b": -0.1, "c": 0.0, "d": 0.1},
+                metric_name=ANSWER_SPAN_MARGIN_METRIC_NAME,
+            ),
+            "matched_random_answer_span_seed_1": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.0, "b": 0.0, "c": 0.0, "d": 0.0},
+                metric_name=ANSWER_SPAN_MARGIN_METRIC_NAME,
+            ),
+            "matched_random_answer_span_seed_2": _family_rows(
+                ordered_ids,
+                metric_values={"a": 0.1, "b": -0.1, "c": 0.1, "d": -0.1},
+                metric_name=ANSWER_SPAN_MARGIN_METRIC_NAME,
             ),
         },
     }
@@ -711,7 +962,7 @@ def test_report_summary_covers_full_bundle_schema() -> None:
         heldout_rows_by_benchmark=heldout_rows_by_benchmark,
     )
 
-    assert summary["schema_version"] == "faitheval_sae_utility_selector_report/v5"
+    assert summary["schema_version"] == "faitheval_sae_utility_selector_report/v6"
     assert summary["heldout_compliance"]["families"]["noop"]["n_compliant"] == 2
     assert (
         summary["heldout_compliance"]["families"]["utility_selected"]["n_compliant"]
@@ -731,6 +982,12 @@ def test_report_summary_covers_full_bundle_schema() -> None:
     )
     assert set(summary["heldout_anti_compliance_margin"]["families"]) == set(
         THREE_SEED_FAMILY_ORDER
+    )
+    assert set(summary["heldout_compliance_answer_span_selected"]["families"]) == set(
+        THREE_SEED_ANSWER_SPAN_FAMILY_ORDER
+    )
+    assert set(summary["heldout_answer_span_margin"]["families"]) == set(
+        THREE_SEED_ANSWER_SPAN_FAMILY_ORDER
     )
     expected_delta_keys = {
         "utility_minus_readout",
@@ -757,6 +1014,18 @@ def test_report_summary_covers_full_bundle_schema() -> None:
         "matched_random_seed_1",
         "matched_random_seed_2",
     ]
+    assert summary["heldout_answer_span_margin"]["metric_name"] == (
+        ANSWER_SPAN_MARGIN_METRIC_NAME
+    )
+    assert summary["heldout_answer_span_margin"]["families"]["answer_span_selected"][
+        "estimate"
+    ] == pytest.approx(0.1)
+    assert summary["heldout_answer_span_margin"]["paired_deltas"][
+        "answer_span_selected_minus_utility_selected"
+    ]["estimate"] == pytest.approx(0.35)
+    assert summary["heldout_compliance_answer_span_selected"]["paired_deltas_pp"][
+        "answer_span_selected_minus_utility_selected"
+    ]["estimate_pp"] == pytest.approx(25.0)
     assert (
         summary["heldout_compliance"]["across_seeds"]["seed_mean_summary"][
             "primary_ci_method"
@@ -789,18 +1058,30 @@ def test_report_summary_covers_full_bundle_schema() -> None:
         "negative": 1,
         "positive": 1,
     }
+    assert summary["selector_diagnostics"]["answer_span_weight_sign_counts"] == {
+        "positive": 2
+    }
     assert summary["selector_diagnostics"]["target_families"]["matched_random"] == (
         "zero-weight matched"
+    )
+    assert (
+        summary["selector_diagnostics"]["target_families"]["matched_random_answer_span"]
+        == "answer-span zero-weight matched"
     )
     assert summary["selector_diagnostics"]["layer_coverage_note"] == (
         "Partial L3 closure only."
     )
     assert summary["selector_diagnostics"]["outside_old_shortlist_fraction"] == 0.5
+    assert summary["selector_diagnostics"]["answer_span_overlap_with_utility"][
+        "jaccard"
+    ] == pytest.approx(1 / 3)
     assert summary["selector_diagnostics"]["calibration_to_heldout_gap"] is None
 
     audit_note = build_audit_note(summary)
     assert "FaithEval anti-compliance margin families" in audit_note
     assert "FaithEval anti-compliance margin paired deltas" in audit_note
+    assert "FaithEval answer-span-selected compliance paired deltas" in audit_note
+    assert "FaithEval answer-span-margin paired deltas" in audit_note
     assert "FaithEval random-null across seeds" in audit_note
     assert "Path drift (matched_zero_dead - noop)" in audit_note
     assert "Candidate pool scope" in audit_note
@@ -997,10 +1278,16 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
         "feature_stats.json",
         "full_sequence_feature_stats.json",
         "utility_scores.jsonl",
+        "answer_span_scores.jsonl",
         "utility_selected_features.json",
+        "answer_span_selected_features.json",
         "readout_selected_features.json",
         *[
             f"matched_random_seed_{seed}_features.json"
+            for seed in range(DEFAULT_N_RANDOM_SEEDS)
+        ],
+        *[
+            f"matched_random_answer_span_seed_{seed}_features.json"
             for seed in range(DEFAULT_N_RANDOM_SEEDS)
         ],
         "matched_zero_dead_features.json",
@@ -1014,8 +1301,9 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
     heldout_root = (
         workdir / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout"
     )
-    for benchmark in ["faitheval", "faitheval_anti_compliance_margin"]:
-        for family in MAIN_FAMILY_ORDER:
+    families_by_benchmark = _selector_wrapper_families_by_benchmark()
+    for benchmark, families in families_by_benchmark.items():
+        for family in families:
             alpha_label = "1.0" if family == "noop" else "0.0"
             family_dir = heldout_root / benchmark / family / "experiment"
             family_dir.mkdir(parents=True, exist_ok=True)
@@ -1073,7 +1361,9 @@ def test_wrapper_skips_expanded_bundle_when_all_outputs_exist(
 
     assert completed.returncode == 0, completed.stderr
     assert "Skipping selector stage; found complete selector bundle" in completed.stdout
-    assert completed.stdout.count("Skipping held-out stage; found") == 28
+    assert completed.stdout.count("Skipping held-out stage; found") == (
+        sum(len(families) for families in families_by_benchmark.values())
+    )
     assert "Skipping report stage; found fresh report outputs" in completed.stdout
     assert not log_file.exists() or "run_intervention.py" not in log_file.read_text(
         encoding="utf-8"
@@ -1116,10 +1406,16 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
         "feature_stats.json",
         "full_sequence_feature_stats.json",
         "utility_scores.jsonl",
+        "answer_span_scores.jsonl",
         "utility_selected_features.json",
+        "answer_span_selected_features.json",
         "readout_selected_features.json",
         *[
             f"matched_random_seed_{seed}_features.json"
+            for seed in range(DEFAULT_N_RANDOM_SEEDS)
+        ],
+        *[
+            f"matched_random_answer_span_seed_{seed}_features.json"
             for seed in range(DEFAULT_N_RANDOM_SEEDS)
         ],
         "matched_zero_dead_features.json",
@@ -1133,8 +1429,9 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
     heldout_root = (
         workdir / "data/gemma3_4b/intervention/faitheval_sae_utility_selector/heldout"
     )
-    for benchmark in ["faitheval", "faitheval_anti_compliance_margin"]:
-        for family in MAIN_FAMILY_ORDER:
+    families_by_benchmark = _selector_wrapper_families_by_benchmark()
+    for benchmark, families in families_by_benchmark.items():
+        for family in families:
             alpha_label = "1.0" if family == "noop" else "0.0"
             family_dir = heldout_root / benchmark / family / "experiment"
             family_dir.mkdir(parents=True, exist_ok=True)
@@ -1203,5 +1500,17 @@ def test_wrapper_reruns_stale_heldout_outputs_when_manifest_is_newer(
     assert (
         "run_intervention.py --model_path google/gemma-3-4b-it --device_map cuda:0 --benchmark faitheval_anti_compliance_margin --prompt_style anti_compliance --intervention_mode sae --sae_feature_manifest data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/utility_selected_features.json"
         in log_text
+    )
+    assert (
+        "run_intervention.py --model_path google/gemma-3-4b-it --device_map cuda:0 --benchmark faitheval_answer_span_margin --prompt_style anti_compliance --intervention_mode sae --sae_feature_manifest data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/utility_selected_features.json"
+        in log_text
+    )
+    assert (
+        "benchmark faitheval_answer_span_margin --prompt_style anti_compliance --intervention_mode sae --sae_feature_manifest data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/matched_random_seed_0_features.json"
+        not in log_text
+    )
+    assert (
+        "benchmark faitheval_answer_span_margin --prompt_style anti_compliance --intervention_mode sae --sae_feature_manifest data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/matched_zero_dead_features.json"
+        not in log_text
     )
     assert "python -m scripts.lib.pipeline log-run" in log_text

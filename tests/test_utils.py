@@ -41,6 +41,16 @@ triviaqa_bridge_attempted = run_intervention.triviaqa_bridge_attempted
 run_faitheval_anti_compliance_margin = (
     run_intervention.run_faitheval_anti_compliance_margin
 )
+run_faitheval_answer_span_margin = run_intervention.run_faitheval_answer_span_margin
+assistant_content_continuation_ids_from_chat_messages = (
+    run_intervention.assistant_content_continuation_ids_from_chat_messages
+)
+score_faitheval_answer_text_targets_from_prompt_ids = (
+    run_intervention.score_faitheval_answer_text_targets_from_prompt_ids
+)
+FAITHEVAL_ANSWER_SPAN_MARGIN_METRIC_NAME = (
+    run_intervention.FAITHEVAL_ANSWER_SPAN_MARGIN_METRIC_NAME
+)
 run_jailbreak = run_intervention.run_jailbreak
 extract_mc_answer = utils.extract_mc_answer
 format_alpha_label = utils.format_alpha_label
@@ -1713,3 +1723,215 @@ class TestFaithEvalAntiComplianceMargin:
         # chosen is always a valid letter, never None
         assert rec["chosen"] in ["A", "B"]
         assert rec["chosen"] is not None
+
+
+class TestFaithEvalAnswerSpanMargin:
+    def test_chat_template_continuation_strips_assistant_suffix(self):
+        class ChatTokenizer:
+            def __init__(self):
+                self.vocab = {
+                    "<user>": 1,
+                    "</user>": 2,
+                    "<assistant>": 3,
+                    "</assistant>": 4,
+                    "Question?": 10,
+                    "alpha": 11,
+                    "beta": 12,
+                    "gamma": 13,
+                    "delta": 14,
+                }
+
+            def _encode(self, text):
+                return [self.vocab[token] for token in text.split() if token]
+
+            def apply_chat_template(
+                self,
+                messages,
+                tokenize=False,
+                add_generation_prompt=False,
+                return_tensors=None,
+            ):
+                ids = []
+                for message in messages:
+                    if message["role"] == "user":
+                        ids.extend(
+                            [
+                                self.vocab["<user>"],
+                                *self._encode(message["content"]),
+                                self.vocab["</user>"],
+                            ]
+                        )
+                    elif message["role"] == "assistant":
+                        ids.extend(
+                            [
+                                self.vocab["<assistant>"],
+                                *self._encode(message["content"]),
+                                self.vocab["</assistant>"],
+                            ]
+                        )
+                if add_generation_prompt:
+                    ids.append(self.vocab["<assistant>"])
+                if tokenize:
+                    return ids
+                if return_tensors == "pt":
+                    return torch.tensor([ids], dtype=torch.long)
+                return ids
+
+        tokenizer = ChatTokenizer()
+        prompt_messages = [{"role": "user", "content": "Question?"}]
+        continuation_ids = assistant_content_continuation_ids_from_chat_messages(
+            tokenizer,
+            prompt_messages,
+            "alpha beta gamma delta",
+        )
+
+        assert continuation_ids.tolist() == [11, 12, 13, 14]
+
+    def test_continuation_scoring_isolates_mutable_prompt_cache_per_target(self):
+        class MutableCache:
+            def __init__(self):
+                self.tokens: list[int] = []
+
+        class MutableCacheModel:
+            def __init__(self):
+                self.device = torch.device("cpu")
+                self.prompt_cache: MutableCache | None = None
+                self.decode_cache_histories: list[tuple[int, ...]] = []
+
+            def __call__(self, input_ids, *, use_cache, past_key_values=None):
+                assert use_cache is True
+                vocab_size = 32
+                logits = torch.full(
+                    (1, input_ids.shape[1], vocab_size),
+                    -100.0,
+                    dtype=torch.float32,
+                )
+                if past_key_values is None:
+                    self.prompt_cache = MutableCache()
+                    logits[0, -1, 10] = 0.0
+                    logits[0, -1, 20] = 0.0
+                    return SimpleNamespace(
+                        logits=logits,
+                        past_key_values=self.prompt_cache,
+                    )
+
+                history = tuple(past_key_values.tokens)
+                self.decode_cache_histories.append(history)
+                current_token = int(input_ids[0, 0].item())
+                past_key_values.tokens.append(current_token)
+                next_token = {10: 11, 20: 21}[current_token]
+                logits[0, -1, next_token if not history else 0] = 0.0
+                return SimpleNamespace(
+                    logits=logits,
+                    past_key_values=past_key_values,
+                )
+
+        model = MutableCacheModel()
+
+        scores = run_intervention.score_continuation_logprobs_by_name_from_prompt_ids(
+            model,
+            torch.tensor([1, 2, 3], dtype=torch.long),
+            {
+                "counterfactual": torch.tensor([10, 11], dtype=torch.long),
+                "preferred": torch.tensor([20, 21], dtype=torch.long),
+            },
+        )
+
+        assert model.decode_cache_histories == [(), ()]
+        assert model.prompt_cache is not None
+        assert model.prompt_cache.tokens == []
+        assert scores["counterfactual"][1] == pytest.approx(0.0, abs=1e-6)
+        assert scores["preferred"][1] == pytest.approx(0.0, abs=1e-6)
+
+    def test_answer_text_scoring_computes_first3_and_full_margins(self, monkeypatch):
+        monkeypatch.setattr(
+            "run_intervention.score_continuation_logprobs_by_name_from_prompt_ids",
+            lambda _model, _prompt_ids, _targets, scaler=None: {
+                "counterfactual": [-1.0, -2.0, -3.0, -4.0],
+                "preferred": [-0.5, -1.0, -1.5, -2.0],
+            },
+        )
+
+        diagnostics = score_faitheval_answer_text_targets_from_prompt_ids(
+            model=SimpleNamespace(device=torch.device("cpu")),
+            prompt_input_ids=torch.tensor([1, 2, 3], dtype=torch.long),
+            target_token_ids_by_name={
+                "counterfactual": torch.tensor([11, 12, 13, 14], dtype=torch.long),
+                "preferred": torch.tensor([21, 22, 23, 24], dtype=torch.long),
+            },
+        )
+
+        assert diagnostics["targets"]["counterfactual"]["first3"]["sum_logprob"] == (
+            pytest.approx(-6.0)
+        )
+        assert diagnostics["targets"]["preferred"]["first3"]["sum_logprob"] == (
+            pytest.approx(-3.0)
+        )
+        assert diagnostics["margins"]["first3"] == pytest.approx(-3.0)
+        assert diagnostics["margins"]["full"] == pytest.approx(-5.0)
+
+    def test_run_writes_answer_span_metric_and_nested_diagnostics(
+        self, tmp_path, monkeypatch
+    ):
+        output_dir = tmp_path / "faitheval_answer_span"
+        output_dir.mkdir()
+
+        monkeypatch.setattr(
+            "run_intervention.build_faitheval_answer_text_target_token_cache",
+            lambda _tokenizer, samples, prompt_style, prompt_cache=None: {
+                str(sample["id"]): {
+                    "counterfactual": torch.tensor([11, 12, 13], dtype=torch.long),
+                    "preferred": torch.tensor([21, 22, 23], dtype=torch.long),
+                }
+                for sample in samples
+            },
+        )
+        monkeypatch.setattr(
+            "run_intervention.score_faitheval_answer_text_targets_from_prompt_ids",
+            lambda _model, _prompt_ids, _targets, scaler=None, primary_window_tokens=3: {
+                "primary_window_tokens": primary_window_tokens,
+                "targets": {
+                    "counterfactual": {
+                        "per_token_logprobs": [-1.0, -2.0, -3.0, -4.0],
+                        "first3": {"sum_logprob": -6.0, "n_tokens": 3},
+                        "full": {"sum_logprob": -10.0, "n_tokens": 4},
+                    },
+                    "preferred": {
+                        "per_token_logprobs": [-0.5, -1.0, -1.5, -2.0],
+                        "first3": {"sum_logprob": -3.0, "n_tokens": 3},
+                        "full": {"sum_logprob": -5.0, "n_tokens": 4},
+                    },
+                },
+                "margins": {"first3": -3.0, "full": -5.0},
+            },
+        )
+
+        run_faitheval_answer_span_margin(
+            model=SimpleNamespace(device=torch.device("cpu")),
+            tokenizer=SimpleNamespace(),
+            scaler=SimpleNamespace(alpha=1.0),
+            samples=[
+                {
+                    "id": "answer_span_1",
+                    "question": "Q?",
+                    "counterfactual_key": "B",
+                    "preferred_key": "A",
+                    "counterfactual_answer_text": "beta gamma delta",
+                    "preferred_answer_text": "alpha beta gamma",
+                }
+            ],
+            alpha=0.0,
+            output_dir=str(output_dir),
+            prompt_cache={"answer_span_1": torch.tensor([7, 8], dtype=torch.long)},
+        )
+
+        rec = json.loads((output_dir / "alpha_0.0.jsonl").read_text().splitlines()[0])
+        assert rec["metric_name"] == FAITHEVAL_ANSWER_SPAN_MARGIN_METRIC_NAME
+        assert rec["metric_value"] == pytest.approx(-3.0)
+        assert rec["answer_text_diagnostics"]["margins"]["full"] == pytest.approx(-5.0)
+        assert (
+            rec["answer_text_diagnostics"]["targets"]["counterfactual"]["first3"][
+                "n_tokens"
+            ]
+            == 3
+        )

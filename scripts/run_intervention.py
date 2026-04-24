@@ -19,6 +19,7 @@ Usage:
 """
 
 import argparse
+import copy
 from collections import Counter
 from functools import lru_cache
 import hashlib
@@ -94,6 +95,10 @@ CANONICAL_JAILBREAK_GENERATION = {
     "top_p": 0.8,
     "max_new_tokens": 5000,
 }
+FAITHEVAL_ANSWER_SPAN_PRIMARY_WINDOW_TOKENS = 3
+FAITHEVAL_ANSWER_SPAN_MARGIN_METRIC_NAME = (
+    "counterfactual_minus_preferred_answer_text_logprob_margin_first3"
+)
 
 
 def _slugify_path_component(value: str, *, max_length: int = 48) -> str:
@@ -490,6 +495,105 @@ def tokenize_chat(tokenizer, messages):
         messages, return_tensors="pt", add_generation_prompt=True
     )
     return unwrap_chat_template_output(inputs)
+
+
+def _chat_template_token_ids(
+    tokenizer,
+    messages,
+    *,
+    add_generation_prompt: bool,
+) -> list[int]:
+    rendered = tokenizer.apply_chat_template(
+        messages,
+        tokenize=True,
+        add_generation_prompt=add_generation_prompt,
+    )
+    rendered = unwrap_chat_template_output(rendered)
+    if isinstance(rendered, torch.Tensor):
+        ids = rendered.squeeze(0).tolist()
+    else:
+        ids = rendered
+        if isinstance(ids, list) and ids and isinstance(ids[0], list):
+            if len(ids) != 1:
+                raise ValueError(
+                    "Expected a single chat-template sequence when extracting "
+                    "assistant continuation token IDs"
+                )
+            ids = ids[0]
+    return [int(token_id) for token_id in ids]
+
+
+def _longest_common_prefix_len(a: list[int], b: list[int]) -> int:
+    n = 0
+    for left, right in zip(a, b, strict=False):
+        if left != right:
+            break
+        n += 1
+    return n
+
+
+def assistant_content_continuation_ids_from_chat_messages(
+    tokenizer,
+    prompt_messages: list[dict[str, str]],
+    assistant_content: str,
+    *,
+    prompt_input_ids: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Extract assistant-content continuation IDs under the active chat template."""
+    if prompt_input_ids is None:
+        prompt_ids = _chat_template_token_ids(
+            tokenizer,
+            prompt_messages,
+            add_generation_prompt=True,
+        )
+    else:
+        prompt_ids = [
+            int(token_id) for token_id in prompt_input_ids.squeeze(0).tolist()
+        ]
+
+    full_messages = [
+        *prompt_messages,
+        {"role": "assistant", "content": assistant_content},
+    ]
+    empty_assistant_messages = [
+        *prompt_messages,
+        {"role": "assistant", "content": ""},
+    ]
+    full_ids = _chat_template_token_ids(
+        tokenizer,
+        full_messages,
+        add_generation_prompt=False,
+    )
+    empty_ids = _chat_template_token_ids(
+        tokenizer,
+        empty_assistant_messages,
+        add_generation_prompt=False,
+    )
+
+    prefix_len = _longest_common_prefix_len(prompt_ids, full_ids)
+    if prefix_len != len(prompt_ids):
+        raise ValueError(
+            "Chat-template mismatch: generation prompt is not a full prefix of the "
+            "assistant-completed sequence"
+        )
+
+    suffix_ids = empty_ids[prefix_len:]
+    tail_ids = full_ids[prefix_len:]
+    if (
+        suffix_ids
+        and len(tail_ids) >= len(suffix_ids)
+        and tail_ids[-len(suffix_ids) :] == suffix_ids
+    ):
+        content_tail = tail_ids[: -len(suffix_ids)]
+    else:
+        content_tail = tail_ids
+
+    if not content_tail:
+        raise ValueError(
+            "Assistant-content continuation extraction produced no content tokens "
+            f"for assistant_content={assistant_content!r}"
+        )
+    return torch.tensor(content_tail, dtype=torch.long, device="cpu")
 
 
 def generate_response(
@@ -1514,33 +1618,56 @@ def _choice_token_ids(tokenizer, letters: list[str]) -> dict[str, torch.Tensor]:
     return token_ids
 
 
-def score_choice_logprobs_from_prompt_ids(
+def _clone_past_key_values(past_key_values):
+    if past_key_values is None:
+        return None
+    if isinstance(past_key_values, torch.Tensor):
+        return past_key_values.clone()
+    if isinstance(past_key_values, tuple):
+        return tuple(_clone_past_key_values(value) for value in past_key_values)
+    if isinstance(past_key_values, list):
+        return [_clone_past_key_values(value) for value in past_key_values]
+    if isinstance(past_key_values, dict):
+        return {
+            key: _clone_past_key_values(value) for key, value in past_key_values.items()
+        }
+    try:
+        return copy.deepcopy(past_key_values)
+    except Exception as exc:
+        raise RuntimeError(
+            "Unable to isolate model prompt cache for continuation scoring"
+        ) from exc
+
+
+def score_continuation_logprobs_by_name_from_prompt_ids(
     model,
     prompt_input_ids: torch.Tensor,
-    choice_token_ids: dict[str, torch.Tensor],
+    continuation_token_ids_by_name: dict[str, torch.Tensor],
     *,
     scaler=None,
-) -> dict[str, float]:
+) -> dict[str, list[float]]:
     prompt_input_ids = prompt_input_ids.to(model.device)
     if prompt_input_ids.ndim == 1:
         prompt_input_ids = prompt_input_ids.unsqueeze(0)
 
-    if hasattr(scaler, "reset_sample_stats"):
-        scaler.reset_sample_stats()
-    if hasattr(scaler, "arm_first_decode_token"):
-        scaler.arm_first_decode_token()
+    _reset_scaler_sample_stats(scaler)
+    _arm_scaler_first_decode_token(scaler)
 
     with torch.inference_mode():
         prompt_outputs = model(prompt_input_ids, use_cache=True)
     prompt_logprobs = torch.log_softmax(prompt_outputs.logits[:, -1, :], dim=-1)
     past_key_values = prompt_outputs.past_key_values
 
-    scores: dict[str, float] = {}
-    for letter, continuation_ids_cpu in choice_token_ids.items():
+    scores: dict[str, list[float]] = {}
+    for name, continuation_ids_cpu in continuation_token_ids_by_name.items():
         continuation_ids = continuation_ids_cpu.to(model.device)
-        total = float(prompt_logprobs[0, int(continuation_ids[0].item())].item())
+        if continuation_ids.ndim != 1 or continuation_ids.numel() == 0:
+            raise ValueError(
+                f"Continuation token IDs for {name!r} must be a non-empty 1D tensor"
+            )
+        per_token = [float(prompt_logprobs[0, int(continuation_ids[0].item())].item())]
         if continuation_ids.numel() > 1:
-            running_past = past_key_values
+            running_past = _clone_past_key_values(past_key_values)
             for position in range(int(continuation_ids.numel()) - 1):
                 current_token = continuation_ids[position : position + 1].view(1, 1)
                 next_token = int(continuation_ids[position + 1].item())
@@ -1554,9 +1681,97 @@ def score_choice_logprobs_from_prompt_ids(
                 next_logprob = torch.log_softmax(outputs.logits[:, -1, :], dim=-1)[
                     0, next_token
                 ]
-                total += float(next_logprob.item())
-        scores[letter] = total
+                per_token.append(float(next_logprob.item()))
+        scores[name] = per_token
     return scores
+
+
+def summarize_teacher_forced_logprobs(
+    per_token_logprobs: list[float],
+    *,
+    primary_window_tokens: int = FAITHEVAL_ANSWER_SPAN_PRIMARY_WINDOW_TOKENS,
+) -> dict[str, Any]:
+    per_token = [float(value) for value in per_token_logprobs]
+    first_window = per_token[:primary_window_tokens]
+    return {
+        "per_token_logprobs": [round(value, 6) for value in per_token],
+        "first3": {
+            "sum_logprob": round(float(sum(first_window)), 6),
+            "n_tokens": int(min(len(per_token), primary_window_tokens)),
+        },
+        "full": {
+            "sum_logprob": round(float(sum(per_token)), 6),
+            "n_tokens": int(len(per_token)),
+        },
+    }
+
+
+def score_faitheval_answer_text_targets_from_prompt_ids(
+    model,
+    prompt_input_ids: torch.Tensor,
+    target_token_ids_by_name: dict[str, torch.Tensor],
+    *,
+    scaler=None,
+    primary_window_tokens: int = FAITHEVAL_ANSWER_SPAN_PRIMARY_WINDOW_TOKENS,
+) -> dict[str, Any]:
+    expected_targets = {"counterfactual", "preferred"}
+    if set(target_token_ids_by_name) != expected_targets:
+        raise ValueError(
+            "Expected FaithEval answer-text targets {'counterfactual', 'preferred'}, "
+            f"got {sorted(target_token_ids_by_name)!r}"
+        )
+    per_target_logprobs = score_continuation_logprobs_by_name_from_prompt_ids(
+        model,
+        prompt_input_ids,
+        target_token_ids_by_name,
+        scaler=scaler,
+    )
+    targets = {
+        name: summarize_teacher_forced_logprobs(
+            per_target_logprobs[name],
+            primary_window_tokens=primary_window_tokens,
+        )
+        for name in ("counterfactual", "preferred")
+    }
+    return {
+        "primary_window_tokens": int(primary_window_tokens),
+        "targets": targets,
+        "margins": {
+            "first3": round(
+                float(
+                    targets["counterfactual"]["first3"]["sum_logprob"]
+                    - targets["preferred"]["first3"]["sum_logprob"]
+                ),
+                6,
+            ),
+            "full": round(
+                float(
+                    targets["counterfactual"]["full"]["sum_logprob"]
+                    - targets["preferred"]["full"]["sum_logprob"]
+                ),
+                6,
+            ),
+        },
+    }
+
+
+def score_choice_logprobs_from_prompt_ids(
+    model,
+    prompt_input_ids: torch.Tensor,
+    choice_token_ids: dict[str, torch.Tensor],
+    *,
+    scaler=None,
+) -> dict[str, float]:
+    per_target_logprobs = score_continuation_logprobs_by_name_from_prompt_ids(
+        model,
+        prompt_input_ids,
+        choice_token_ids,
+        scaler=scaler,
+    )
+    return {
+        name: float(sum(per_token_logprobs))
+        for name, per_token_logprobs in per_target_logprobs.items()
+    }
 
 
 def misleading_margin(
@@ -1582,10 +1797,60 @@ def _faitheval_prompt_input_ids(
     *,
     prompt_style: str,
 ) -> torch.Tensor:
-    return tokenize_chat(
+    return tokenize_chat(tokenizer, _faitheval_prompt_messages(sample, prompt_style))
+
+
+def _faitheval_prompt_messages(
+    sample: dict[str, Any],
+    prompt_style: str,
+) -> list[dict[str, str]]:
+    return [{"role": "user", "content": _faitheval_prompt(sample, prompt_style)}]
+
+
+def _faitheval_answer_text_continuation_ids(
+    tokenizer,
+    sample: dict[str, Any],
+    *,
+    prompt_style: str,
+    answer_text: str,
+    prompt_input_ids: torch.Tensor | None = None,
+) -> torch.Tensor:
+    return assistant_content_continuation_ids_from_chat_messages(
         tokenizer,
-        [{"role": "user", "content": _faitheval_prompt(sample, prompt_style)}],
+        _faitheval_prompt_messages(sample, prompt_style),
+        answer_text,
+        prompt_input_ids=prompt_input_ids,
     )
+
+
+def build_faitheval_answer_text_target_token_cache(
+    tokenizer,
+    samples: list[dict[str, Any]],
+    *,
+    prompt_style: str,
+    prompt_cache: dict[str, torch.Tensor] | None = None,
+) -> dict[str, dict[str, torch.Tensor]]:
+    cache: dict[str, dict[str, torch.Tensor]] = {}
+    for sample in samples:
+        sample_id = str(sample["id"])
+        prompt_input_ids = prompt_cache.get(sample_id) if prompt_cache else None
+        cache[sample_id] = {
+            "counterfactual": _faitheval_answer_text_continuation_ids(
+                tokenizer,
+                sample,
+                prompt_style=prompt_style,
+                answer_text=str(sample["counterfactual_answer_text"]),
+                prompt_input_ids=prompt_input_ids,
+            ),
+            "preferred": _faitheval_answer_text_continuation_ids(
+                tokenizer,
+                sample,
+                prompt_style=prompt_style,
+                answer_text=str(sample["preferred_answer_text"]),
+                prompt_input_ids=prompt_input_ids,
+            ),
+        }
+    return cache
 
 
 def run_faitheval(
@@ -1769,6 +2034,114 @@ def run_faitheval_anti_compliance_margin(
             "metric_name": "misleading_minus_preferred_logprob_margin",
             "metric_value": margin,
             "margin_definition": "logp(counterfactual_key) - logp(preferred_key)",
+        }
+        finalize_record(
+            out_path,
+            record,
+            {
+                "template_s": 0.0,
+                "h2d_s": 0.0,
+                "generate_s": round(score_t1 - score_t0, 4),
+                "decode_s": 0.0,
+                "total_s": round(score_t1 - score_t0, 4),
+                "prompt_tokens": int(cached_ids.numel()),
+                "generated_tokens": 0,
+                "hit_token_cap": False,
+            },
+            scaler=scaler,
+            wall_start_ts=wall_start_ts,
+            benchmark=benchmark_name,
+            alpha=alpha,
+            alpha_idx=alpha_idx,
+            wandb_module=wandb_module,
+            throughput_state=throughput_state,
+            throughput_session_id=throughput_session_id,
+        )
+
+    compliant_total, n_total = _count_compliance(out_path)
+    return {"compliant_total": compliant_total, "n_total": n_total}
+
+
+def run_faitheval_answer_span_margin(
+    model,
+    tokenizer,
+    scaler,
+    samples,
+    alpha,
+    output_dir,
+    max_samples=None,
+    prompt_style="anti_compliance",
+    prompt_cache=None,
+    wandb_module=None,
+    alpha_idx=0,
+    throughput_state=None,
+    benchmark_name="faitheval_answer_span_margin",
+    throughput_session_id: str | None = None,
+):
+    """Run FaithEval with teacher-forced answer-text margin scoring."""
+    if prompt_style != "anti_compliance":
+        raise ValueError(
+            "faitheval_answer_span_margin requires --prompt_style anti_compliance"
+        )
+
+    alpha_label = format_alpha_label(alpha)
+    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
+    existing_ids = load_existing_ids(out_path)
+
+    if max_samples:
+        samples = samples[:max_samples]
+
+    scaler.alpha = alpha
+    target_token_cache = build_faitheval_answer_text_target_token_cache(
+        tokenizer,
+        samples,
+        prompt_style=prompt_style,
+        prompt_cache=prompt_cache,
+    )
+
+    for sample in tqdm(
+        samples,
+        desc=f"FaithEval answer-span margin α={alpha_label}",
+    ):
+        if sample["id"] in existing_ids:
+            continue
+
+        wall_start_ts = time.time()
+        sample_id = str(sample["id"])
+        cached_ids = prompt_cache.get(sample_id) if prompt_cache else None
+        if cached_ids is None:
+            cached_ids = _faitheval_prompt_input_ids(
+                tokenizer,
+                sample,
+                prompt_style=prompt_style,
+            )
+
+        score_t0 = time.perf_counter()
+        answer_text_diagnostics = score_faitheval_answer_text_targets_from_prompt_ids(
+            model,
+            cached_ids,
+            target_token_cache[sample_id],
+            scaler=scaler,
+            primary_window_tokens=FAITHEVAL_ANSWER_SPAN_PRIMARY_WINDOW_TOKENS,
+        )
+        score_t1 = time.perf_counter()
+
+        record = {
+            "id": sample["id"],
+            "alpha": alpha,
+            "prompt_style": prompt_style,
+            "question": sample["question"],
+            "counterfactual_key": sample["counterfactual_key"],
+            "preferred_key": sample["preferred_key"],
+            "counterfactual_answer_text": sample["counterfactual_answer_text"],
+            "preferred_answer_text": sample["preferred_answer_text"],
+            "metric_name": FAITHEVAL_ANSWER_SPAN_MARGIN_METRIC_NAME,
+            "metric_value": answer_text_diagnostics["margins"]["first3"],
+            "margin_definition": (
+                "logp(counterfactual_answer_text first 3 assistant-content tokens) - "
+                "logp(preferred_answer_text first 3 assistant-content tokens)"
+            ),
+            "answer_text_diagnostics": answer_text_diagnostics,
         }
         finalize_record(
             out_path,
@@ -3648,6 +4021,7 @@ def parse_args(argv: list[str] | None = None):
         choices=[
             "faitheval",
             "faitheval_anti_compliance_margin",
+            "faitheval_answer_span_margin",
             "falseqa",
             "bioasq",
             "simpleqa",
@@ -4164,6 +4538,9 @@ def main():
         elif args.benchmark == "faitheval_anti_compliance_margin":
             samples = load_faitheval()
             run_fn = run_faitheval_anti_compliance_margin
+        elif args.benchmark == "faitheval_answer_span_margin":
+            samples = load_faitheval()
+            run_fn = run_faitheval_answer_span_margin
         elif args.benchmark == "falseqa":
             samples = load_falseqa(args.falseqa_path)
             run_fn = run_falseqa
@@ -4253,7 +4630,11 @@ def main():
 
         # Sweep alpha values
         extra_kwargs = {}
-        if args.benchmark == "faitheval":
+        if args.benchmark in (
+            "faitheval",
+            "faitheval_anti_compliance_margin",
+            "faitheval_answer_span_margin",
+        ):
             extra_kwargs["prompt_style"] = args.prompt_style
             print(f"FaithEval prompt style: {args.prompt_style}")
         elif args.benchmark == "simpleqa":
@@ -4289,7 +4670,11 @@ def main():
         # Each entry maps sample_id -> CPU-side input_ids tensor.
         effective_samples = samples[: args.max_samples] if args.max_samples else samples
         prompt_cache = {}
-        if args.benchmark in ("faitheval", "faitheval_anti_compliance_margin"):
+        if args.benchmark in (
+            "faitheval",
+            "faitheval_anti_compliance_margin",
+            "faitheval_answer_span_margin",
+        ):
             for s in effective_samples:
                 prompt_cache[s["id"]] = _faitheval_prompt_input_ids(
                     tokenizer,

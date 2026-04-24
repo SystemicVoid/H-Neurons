@@ -32,13 +32,23 @@ PATH_DRIFT_FAMILY = "matched_zero_dead"
 BENCHMARK_TO_SECTION = {
     "faitheval": "heldout_compliance",
     "faitheval_anti_compliance_margin": "heldout_anti_compliance_margin",
+    "faitheval_answer_span_margin": "heldout_answer_span_margin",
 }
+ANSWER_SPAN_MARGIN_METRIC_NAME = (
+    "counterfactual_minus_preferred_answer_text_logprob_margin_first3"
+)
 
 
 def matched_random_seed_families(n_random_seeds: int) -> list[str]:
     if n_random_seeds < 0:
         raise ValueError("n_random_seeds must be non-negative")
     return [f"matched_random_seed_{seed}" for seed in range(n_random_seeds)]
+
+
+def matched_random_answer_span_seed_families(n_random_seeds: int) -> list[str]:
+    if n_random_seeds < 0:
+        raise ValueError("n_random_seeds must be non-negative")
+    return [f"matched_random_answer_span_seed_{seed}" for seed in range(n_random_seeds)]
 
 
 def build_main_family_order(
@@ -57,6 +67,18 @@ def build_main_family_order(
     return tuple(families)
 
 
+def build_answer_span_family_order(
+    n_random_seeds: int,
+) -> tuple[str, ...]:
+    return (
+        "noop",
+        "readout_selected",
+        "utility_selected",
+        "answer_span_selected",
+        *matched_random_answer_span_seed_families(n_random_seeds),
+    )
+
+
 def _random_seed_index(family: str) -> int:
     return int(family.rsplit("_", 1)[-1])
 
@@ -65,13 +87,27 @@ def _alpha_by_family(family_order: list[str]) -> dict[str, float]:
     return {family: (1.0 if family == "noop" else 0.0) for family in family_order}
 
 
-def _pairwise_delta_baselines(
+def _utility_pairwise_delta_baselines(
     random_seed_families: list[str],
 ) -> tuple[tuple[str, str], ...]:
     return (
         ("readout_selected", "utility_minus_readout"),
         ("noop", "utility_minus_noop"),
         *((family, f"utility_minus_{family}") for family in random_seed_families),
+    )
+
+
+def _answer_span_pairwise_delta_baselines(
+    random_seed_families: list[str],
+) -> tuple[tuple[str, str], ...]:
+    return (
+        ("readout_selected", "answer_span_selected_minus_readout"),
+        ("noop", "answer_span_selected_minus_noop"),
+        ("utility_selected", "answer_span_selected_minus_utility_selected"),
+        *(
+            (family, f"answer_span_selected_minus_{family}")
+            for family in random_seed_families
+        ),
     )
 
 
@@ -251,17 +287,18 @@ def _bootstrap_mean_summary(values: np.ndarray) -> dict[str, Any]:
     }
 
 
-def _infer_random_seed_families(
+def _infer_seed_families(
     selector_summary: dict[str, Any],
     heldout_rows_by_benchmark: dict[str, dict[str, list[dict[str, Any]]]] | None = None,
+    *,
+    family_prefix: str,
+    controls_key: str,
 ) -> list[str]:
     if heldout_rows_by_benchmark:
         shared: set[str] | None = None
         for benchmark_rows in heldout_rows_by_benchmark.values():
             benchmark_families = {
-                family
-                for family in benchmark_rows
-                if family.startswith("matched_random_seed_")
+                family for family in benchmark_rows if family.startswith(family_prefix)
             }
             shared = (
                 benchmark_families if shared is None else shared & benchmark_families
@@ -269,7 +306,7 @@ def _infer_random_seed_families(
         if shared:
             return sorted(shared, key=_random_seed_index)
 
-    controls = selector_summary.get("matched_random_controls")
+    controls = selector_summary.get(controls_key)
     if isinstance(controls, dict):
         seed_families = controls.get("seed_families")
         if isinstance(seed_families, dict) and seed_families:
@@ -279,9 +316,37 @@ def _infer_random_seed_families(
             )
         n_random_seeds = controls.get("n_random_seeds")
         if isinstance(n_random_seeds, int):
-            return matched_random_seed_families(n_random_seeds)
+            if family_prefix == "matched_random_seed_":
+                return matched_random_seed_families(n_random_seeds)
+            return matched_random_answer_span_seed_families(n_random_seeds)
 
-    return matched_random_seed_families(DEFAULT_N_RANDOM_SEEDS)
+    if family_prefix == "matched_random_seed_":
+        return matched_random_seed_families(DEFAULT_N_RANDOM_SEEDS)
+    return matched_random_answer_span_seed_families(DEFAULT_N_RANDOM_SEEDS)
+
+
+def _infer_random_seed_families(
+    selector_summary: dict[str, Any],
+    heldout_rows_by_benchmark: dict[str, dict[str, list[dict[str, Any]]]] | None = None,
+) -> list[str]:
+    return _infer_seed_families(
+        selector_summary,
+        heldout_rows_by_benchmark,
+        family_prefix="matched_random_seed_",
+        controls_key="matched_random_controls",
+    )
+
+
+def _infer_answer_span_seed_families(
+    selector_summary: dict[str, Any],
+    heldout_rows_by_benchmark: dict[str, dict[str, list[dict[str, Any]]]] | None = None,
+) -> list[str]:
+    return _infer_seed_families(
+        selector_summary,
+        heldout_rows_by_benchmark,
+        family_prefix="matched_random_answer_span_seed_",
+        controls_key="matched_random_answer_span_controls",
+    )
 
 
 def _include_path_drift_family(
@@ -327,8 +392,81 @@ def _bundle_config(
         "family_order": family_order,
         "alpha_by_family": alpha_by_family,
         "random_seed_families": random_seed_families,
-        "pairwise_delta_baselines": _pairwise_delta_baselines(random_seed_families),
+        "pairwise_delta_baselines": _utility_pairwise_delta_baselines(
+            random_seed_families
+        ),
+        "primary_family": "utility_selected",
+        "delta_key_prefix": "utility",
     }
+
+
+def _answer_span_bundle_config(
+    selector_summary: dict[str, Any],
+    heldout_rows_by_benchmark: dict[str, dict[str, list[dict[str, Any]]]] | None = None,
+) -> dict[str, Any]:
+    random_seed_families = _infer_answer_span_seed_families(
+        selector_summary,
+        heldout_rows_by_benchmark,
+    )
+    family_order = list(build_answer_span_family_order(len(random_seed_families)))
+    if random_seed_families:
+        family_order = [
+            "noop",
+            "readout_selected",
+            "utility_selected",
+            "answer_span_selected",
+            *random_seed_families,
+        ]
+    return {
+        "family_order": family_order,
+        "alpha_by_family": _alpha_by_family(family_order),
+        "random_seed_families": random_seed_families,
+        "pairwise_delta_baselines": _answer_span_pairwise_delta_baselines(
+            random_seed_families
+        ),
+        "primary_family": "answer_span_selected",
+        "delta_key_prefix": "answer_span_selected",
+    }
+
+
+def _merge_family_order(*family_orders: list[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for family_order in family_orders:
+        for family in family_order:
+            if family not in seen:
+                merged.append(family)
+                seen.add(family)
+    return merged
+
+
+def _report_load_configs(selector_summary: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    config = _bundle_config(selector_summary)
+    benchmark_configs = {
+        "faitheval": config,
+        "faitheval_anti_compliance_margin": config,
+    }
+    if isinstance(
+        selector_summary.get("families", {}).get("answer_span_selected"),
+        dict,
+    ):
+        answer_span_config = _answer_span_bundle_config(selector_summary)
+        reused_benchmark_config = {
+            **config,
+            "family_order": _merge_family_order(
+                config["family_order"],
+                answer_span_config["family_order"],
+            ),
+        }
+        reused_benchmark_config["alpha_by_family"] = _alpha_by_family(
+            reused_benchmark_config["family_order"]
+        )
+        benchmark_configs = {
+            "faitheval": reused_benchmark_config,
+            "faitheval_anti_compliance_margin": reused_benchmark_config,
+            "faitheval_answer_span_margin": answer_span_config,
+        }
+    return benchmark_configs
 
 
 def _seed_mean_summary(
@@ -403,12 +541,13 @@ def _across_seed_summary(
     utility_values: np.ndarray,
     baseline_by_family: dict[str, np.ndarray],
     scale: float,
+    delta_key_prefix: str,
 ) -> dict[str, Any]:
     per_seed: list[dict[str, Any]] = []
     point_estimates: list[float] = []
     per_item_differences: list[np.ndarray] = []
     for family in random_seed_families:
-        delta_key = f"utility_minus_{family}"
+        delta_key = f"{delta_key_prefix}_minus_{family}"
         paired_delta = delta_by_key[delta_key]
         per_seed.append(
             {
@@ -464,11 +603,11 @@ def _build_measurement_section(
         )
 
     paired_deltas_pp: dict[str, Any] = {}
-    utility = compliance_by_family["utility_selected"]
+    primary = compliance_by_family[config["primary_family"]]
     for baseline_family, delta_key in config["pairwise_delta_baselines"]:
         paired_deltas_pp[delta_key] = paired_bootstrap_binary_rate_difference(
             compliance_by_family[baseline_family],
-            utility,
+            primary,
         )
 
     return {
@@ -476,6 +615,7 @@ def _build_measurement_section(
         "prompt_style": "anti_compliance",
         "metric_name": "compliance",
         "delta_units": "percentage_points",
+        "primary_family": config["primary_family"],
         "family_order": list(config["family_order"]),
         "alpha_by_family": dict(config["alpha_by_family"]),
         "families": families,
@@ -483,12 +623,13 @@ def _build_measurement_section(
         "across_seeds": _across_seed_summary(
             random_seed_families=config["random_seed_families"],
             delta_by_key=paired_deltas_pp,
-            utility_values=utility.astype(float),
+            utility_values=primary.astype(float),
             baseline_by_family={
                 family: compliance_by_family[family]
                 for family in config["random_seed_families"]
             },
             scale=100.0,
+            delta_key_prefix=config["delta_key_prefix"],
         ),
     }
 
@@ -499,6 +640,8 @@ def _build_margin_measurement_section(
     rows_by_family: dict[str, list[dict[str, Any]]],
     ordered_ids: list[str],
     config: dict[str, Any],
+    metric_name: str,
+    margin_definition: str,
 ) -> dict[str, Any]:
     metric_by_family: dict[str, np.ndarray] = {}
     families: dict[str, Any] = {}
@@ -509,25 +652,26 @@ def _build_margin_measurement_section(
             expected_ids=ordered_ids,
             benchmark=benchmark,
             family=family,
-            metric_name="misleading_minus_preferred_logprob_margin",
+            metric_name=metric_name,
         )
         metric_by_family[family] = values
         families[family] = _bootstrap_mean_summary(values)
 
     paired_deltas: dict[str, Any] = {}
-    utility = metric_by_family["utility_selected"]
+    primary = metric_by_family[config["primary_family"]]
     for baseline_family, delta_key in config["pairwise_delta_baselines"]:
         paired_deltas[delta_key] = paired_bootstrap_continuous_mean_difference_raw(
             metric_by_family[baseline_family],
-            utility,
+            primary,
         )
 
     section = {
         "benchmark": benchmark,
         "prompt_style": "anti_compliance",
-        "metric_name": "misleading_minus_preferred_logprob_margin",
-        "margin_definition": "logp(counterfactual_key) - logp(preferred_key)",
+        "metric_name": metric_name,
+        "margin_definition": margin_definition,
         "delta_units": "logprob_margin",
+        "primary_family": config["primary_family"],
         "family_order": list(config["family_order"]),
         "alpha_by_family": dict(config["alpha_by_family"]),
         "families": families,
@@ -535,12 +679,13 @@ def _build_margin_measurement_section(
         "across_seeds": _across_seed_summary(
             random_seed_families=config["random_seed_families"],
             delta_by_key=paired_deltas,
-            utility_values=utility,
+            utility_values=primary,
             baseline_by_family={
                 family: metric_by_family[family]
                 for family in config["random_seed_families"]
             },
             scale=1.0,
+            delta_key_prefix=config["delta_key_prefix"],
         ),
     }
     if PATH_DRIFT_FAMILY in metric_by_family:
@@ -580,11 +725,20 @@ def build_heldout_summary(
     config = _bundle_config(selector_summary, heldout_rows_by_benchmark)
     selector_design = _selector_design(selector_summary)
     utility_family = selector_summary["families"]["utility_selected"]
+    answer_span_family = selector_summary.get("families", {}).get(
+        "answer_span_selected"
+    )
     readout_family = selector_summary["families"]["readout_selected"]
     overlap = selector_summary["family_overlap"]["utility_selected_vs_readout_selected"]
+    answer_span_overlap = selector_summary.get("family_overlap", {}).get(
+        "answer_span_selected_vs_readout_selected"
+    )
+    answer_span_vs_utility_overlap = selector_summary.get("family_overlap", {}).get(
+        "answer_span_selected_vs_utility_selected"
+    )
     candidate_pool = selector_summary.get("candidate_pool", {})
-    return {
-        "schema_version": "faitheval_sae_utility_selector_report/v5",
+    summary = {
+        "schema_version": "faitheval_sae_utility_selector_report/v6",
         "n_samples": len(ordered_ids),
         "sample_ids_fingerprint": fingerprint_ids(ordered_ids),
         "heldout_compliance": _build_measurement_section(
@@ -600,6 +754,8 @@ def build_heldout_summary(
             ],
             ordered_ids=ordered_ids,
             config=config,
+            metric_name="misleading_minus_preferred_logprob_margin",
+            margin_definition="logp(counterfactual_key) - logp(preferred_key)",
         ),
         "selector_design": selector_design,
         "selector_diagnostics": {
@@ -625,6 +781,62 @@ def build_heldout_summary(
             "target_families": selector_design.get("target_families"),
         },
     }
+    answer_span_available = (
+        isinstance(answer_span_family, dict)
+        and "faitheval_answer_span_margin" in heldout_rows_by_benchmark
+    )
+    if answer_span_available:
+        answer_span_config = _answer_span_bundle_config(
+            selector_summary,
+            heldout_rows_by_benchmark,
+        )
+        summary["heldout_compliance_answer_span_selected"] = _build_measurement_section(
+            benchmark="faitheval",
+            rows_by_family=heldout_rows_by_benchmark["faitheval"],
+            ordered_ids=ordered_ids,
+            config=answer_span_config,
+        )
+        summary["heldout_anti_compliance_margin_answer_span_selected"] = (
+            _build_margin_measurement_section(
+                benchmark="faitheval_anti_compliance_margin",
+                rows_by_family=heldout_rows_by_benchmark[
+                    "faitheval_anti_compliance_margin"
+                ],
+                ordered_ids=ordered_ids,
+                config=answer_span_config,
+                metric_name="misleading_minus_preferred_logprob_margin",
+                margin_definition="logp(counterfactual_key) - logp(preferred_key)",
+            )
+        )
+        summary["heldout_answer_span_margin"] = _build_margin_measurement_section(
+            benchmark="faitheval_answer_span_margin",
+            rows_by_family=heldout_rows_by_benchmark["faitheval_answer_span_margin"],
+            ordered_ids=ordered_ids,
+            config=answer_span_config,
+            metric_name=ANSWER_SPAN_MARGIN_METRIC_NAME,
+            margin_definition=(
+                "logp(counterfactual_answer_text first 3 assistant-content tokens) - "
+                "logp(preferred_answer_text first 3 assistant-content tokens)"
+            ),
+        )
+        summary["selector_diagnostics"].update(
+            {
+                "answer_span_selected_k": answer_span_family["k"],
+                "answer_span_layer_histogram": answer_span_family["layer_histogram"],
+                "answer_span_weight_sign_counts": answer_span_family.get(
+                    "weight_sign_counts"
+                ),
+                "answer_span_overlap_with_readout": answer_span_overlap,
+                "answer_span_overlap_with_utility": answer_span_vs_utility_overlap,
+                "answer_span_outside_old_shortlist_count": answer_span_family[
+                    "outside_old_shortlist"
+                ]["count"],
+                "answer_span_outside_old_shortlist_fraction": answer_span_family[
+                    "outside_old_shortlist"
+                ]["fraction"],
+            }
+        )
+    return summary
 
 
 def _format_rate(stats: dict[str, Any]) -> str:
@@ -683,10 +895,12 @@ def _format_family_summary(
     families: dict[str, Any],
     *,
     formatter,
+    ordered_families: list[str] | tuple[str, ...] | None = None,
 ) -> str:
-    ordered_families = ["noop", "readout_selected", "utility_selected"]
-    if PATH_DRIFT_FAMILY in families:
-        ordered_families.append(PATH_DRIFT_FAMILY)
+    if ordered_families is None:
+        ordered_families = ["noop", "readout_selected", "utility_selected"]
+        if PATH_DRIFT_FAMILY in families:
+            ordered_families.append(PATH_DRIFT_FAMILY)
     return "; ".join(
         f"{family}={formatter(families[family])}" for family in ordered_families
     )
@@ -731,6 +945,62 @@ def build_audit_note(summary: dict[str, Any]) -> str:
             f"{_format_across_seed_line(margin)}"
         ),
     ]
+    answer_span_compliance = summary.get("heldout_compliance_answer_span_selected")
+    answer_span_margin = summary.get(
+        "heldout_anti_compliance_margin_answer_span_selected"
+    )
+    heldout_answer_span = summary.get("heldout_answer_span_margin")
+    if (
+        isinstance(answer_span_compliance, dict)
+        and isinstance(answer_span_margin, dict)
+        and isinstance(heldout_answer_span, dict)
+    ):
+        lines.extend(
+            [
+                (
+                    "- FaithEval answer-span-selected compliance families: "
+                    f"{_format_family_summary(answer_span_compliance['families'], formatter=_format_rate, ordered_families=['noop', 'readout_selected', 'utility_selected', 'answer_span_selected'])}"
+                ),
+                (
+                    "- FaithEval answer-span-selected compliance paired deltas: "
+                    f"answer_span_selected_minus_readout={_format_pair_delta(answer_span_compliance['paired_deltas_pp']['answer_span_selected_minus_readout'])}; "
+                    f"answer_span_selected_minus_noop={_format_pair_delta(answer_span_compliance['paired_deltas_pp']['answer_span_selected_minus_noop'])}; "
+                    f"answer_span_selected_minus_utility_selected={_format_pair_delta(answer_span_compliance['paired_deltas_pp']['answer_span_selected_minus_utility_selected'])}"
+                ),
+                (
+                    "- FaithEval answer-span-selected compliance random-null across seeds: "
+                    f"{_format_across_seed_line(answer_span_compliance)}"
+                ),
+                (
+                    "- FaithEval answer-span-selected anti-compliance margin families: "
+                    f"{_format_family_summary(answer_span_margin['families'], formatter=_format_mean, ordered_families=['noop', 'readout_selected', 'utility_selected', 'answer_span_selected'])}"
+                ),
+                (
+                    "- FaithEval answer-span-selected anti-compliance margin paired deltas: "
+                    f"answer_span_selected_minus_readout={_format_pair_delta(answer_span_margin['paired_deltas']['answer_span_selected_minus_readout'])}; "
+                    f"answer_span_selected_minus_noop={_format_pair_delta(answer_span_margin['paired_deltas']['answer_span_selected_minus_noop'])}; "
+                    f"answer_span_selected_minus_utility_selected={_format_pair_delta(answer_span_margin['paired_deltas']['answer_span_selected_minus_utility_selected'])}"
+                ),
+                (
+                    "- FaithEval answer-span-selected anti-compliance margin random-null across seeds: "
+                    f"{_format_across_seed_line(answer_span_margin)}"
+                ),
+                (
+                    "- FaithEval answer-span-margin families: "
+                    f"{_format_family_summary(heldout_answer_span['families'], formatter=_format_mean, ordered_families=['noop', 'readout_selected', 'utility_selected', 'answer_span_selected'])}"
+                ),
+                (
+                    "- FaithEval answer-span-margin paired deltas: "
+                    f"answer_span_selected_minus_readout={_format_pair_delta(heldout_answer_span['paired_deltas']['answer_span_selected_minus_readout'])}; "
+                    f"answer_span_selected_minus_noop={_format_pair_delta(heldout_answer_span['paired_deltas']['answer_span_selected_minus_noop'])}; "
+                    f"answer_span_selected_minus_utility_selected={_format_pair_delta(heldout_answer_span['paired_deltas']['answer_span_selected_minus_utility_selected'])}"
+                ),
+                (
+                    "- FaithEval answer-span-margin random-null across seeds: "
+                    f"{_format_across_seed_line(heldout_answer_span)}"
+                ),
+            ]
+        )
     path_drift = margin.get("path_drift")
     if isinstance(path_drift, dict):
         lines.append(
@@ -787,6 +1057,33 @@ def build_audit_note(summary: dict[str, Any]) -> str:
             ),
         ]
     )
+    if diagnostics.get("answer_span_selected_k") is not None:
+        lines.extend(
+            [
+                (
+                    "- Answer-span-selected sign counts: "
+                    f"{json.dumps(diagnostics.get('answer_span_weight_sign_counts'), sort_keys=True)}"
+                ),
+                (
+                    "- Answer-span-selected outside old |w|>1e-3 shortlist: "
+                    f"{diagnostics['answer_span_outside_old_shortlist_count']} / "
+                    f"{diagnostics['answer_span_selected_k']} "
+                    f"({diagnostics['answer_span_outside_old_shortlist_fraction']:.4f})"
+                ),
+                (
+                    "- Answer-span vs readout overlap: "
+                    f"{json.dumps(diagnostics['answer_span_overlap_with_readout'], sort_keys=True)}"
+                ),
+                (
+                    "- Answer-span vs utility overlap: "
+                    f"{json.dumps(diagnostics['answer_span_overlap_with_utility'], sort_keys=True)}"
+                ),
+                (
+                    "- Answer-span layer histogram: "
+                    f"{json.dumps(diagnostics['answer_span_layer_histogram'], sort_keys=True)}"
+                ),
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -806,14 +1103,14 @@ def main() -> None:
     try:
         selector_summary = _load_json(args.selector_dir / "selector_summary.json")
         ordered_ids = _load_manifest_ids(args.selector_dir / "test_manifest.json")
-        config = _bundle_config(selector_summary)
+        benchmark_configs = _report_load_configs(selector_summary)
 
         heldout_rows_by_benchmark: dict[str, dict[str, list[dict[str, Any]]]] = {}
-        for benchmark in BENCHMARK_TO_SECTION:
+        for benchmark, benchmark_config in benchmark_configs.items():
             heldout_rows_by_benchmark[benchmark] = {}
-            for family in config["family_order"]:
+            for family in benchmark_config["family_order"]:
                 run_dir = args.heldout_root / benchmark / family / "experiment"
-                alpha = config["alpha_by_family"][family]
+                alpha = benchmark_config["alpha_by_family"][family]
                 heldout_rows_by_benchmark[benchmark][family] = _load_jsonl(
                     _alpha_path(run_dir, alpha)
                 )
@@ -830,8 +1127,11 @@ def main() -> None:
         )
         audit_path.write_text(build_audit_note(summary) + "\n", encoding="utf-8")
         provenance_extra["n_samples"] = summary["n_samples"]
-        provenance_extra["benchmarks"] = list(BENCHMARK_TO_SECTION)
-        provenance_extra["families"] = list(config["family_order"])
+        provenance_extra["benchmarks"] = list(benchmark_configs)
+        provenance_extra["families"] = {
+            benchmark: benchmark_configs[benchmark]["family_order"]
+            for benchmark in benchmark_configs
+        }
     except BaseException as exc:
         provenance_status = provenance_status_for_exception(exc)
         provenance_extra["error"] = provenance_error_message(exc)
