@@ -105,6 +105,8 @@ data/benchmarks/StrongREJECT-2402.10260v2.pdf
 # AI-generated research brainstorms (local refs only; see intervention_findings.md for final analysis)
 docs/extensions-ideas/
 docs/write-up-bits.md
+notes/causal-decomposition-dossier/
+paper/icml/reports/causal-decomposition-dossier/
 
 # Archived docs (completed/closed investigation plans)
 docs/archive/
