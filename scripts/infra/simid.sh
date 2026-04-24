@@ -143,7 +143,7 @@ case "$MODE" in
     ensure_not_analyzed "$RUN_DIR"
     uv run python scripts/build_simid_manifest.py \
       --seed 42 \
-      --truthfulqa-leakage-policy "${SIMID_TRUTHFULQA_LEAKAGE_POLICY:-heldout_only}" \
+      --truthfulqa-leakage-policy "${SIMID_TRUTHFULQA_LEAKAGE_POLICY:-drop_if_no_heldout}" \
       --model-path "$MODEL_PATH" \
       --iti-artifact-path "$ITI_ARTIFACT" \
       --output "$MANIFEST"

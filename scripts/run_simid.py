@@ -27,7 +27,13 @@ from typing import Any
 import numpy as np
 import torch
 
-from build_simid_manifest import DEFAULT_ITI_ARTIFACT, load_simid_manifest
+from build_simid_manifest import (
+    DEFAULT_ITI_ARTIFACT,
+    SCHEMA_VERSION,
+    file_sha256,
+    load_simid_manifest,
+    validate_manifest,
+)
 from intervene_iti import ITIHeadScaler, load_iti_artifact
 from run_intervention import (
     assistant_content_continuation_ids_from_chat_messages,
@@ -133,6 +139,75 @@ def load_existing_sample_ids(path: Path) -> set[str]:
             if sample_id is not None:
                 ids.add(str(sample_id))
     return ids
+
+
+def normalize_iti_family(iti_family: str) -> str:
+    return iti_family if iti_family.startswith("iti_") else f"iti_{iti_family}"
+
+
+def build_iti_config(
+    *,
+    model_path: str,
+    tokenizer_path: str,
+    iti_artifact_path: str,
+    iti_artifact_sha256: str | None,
+    iti_family: str,
+    iti_k: int,
+    decode_scope: str,
+) -> dict[str, Any]:
+    return {
+        "model_path": model_path,
+        "tokenizer_path": tokenizer_path,
+        "iti_artifact_path": iti_artifact_path,
+        "iti_artifact_sha256": iti_artifact_sha256,
+        "family": iti_family,
+        "effective_family": normalize_iti_family(iti_family),
+        "k": int(iti_k),
+        "decode_scope": decode_scope,
+    }
+
+
+def load_locked_manifest(path: Path) -> list[dict[str, Any]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{path} must be a JSON object")
+    rows = payload.get("rows")
+    if not isinstance(rows, list):
+        raise ValueError(f"{path} must contain a rows list")
+    validate_manifest({"schema_version": SCHEMA_VERSION, "rows": rows})
+    return [dict(row) for row in rows]
+
+
+def load_or_create_locked_manifest(
+    *,
+    source_manifest: str,
+    output_dir: Path,
+    max_items: int | None,
+) -> list[dict[str, Any]]:
+    locked_manifest_path = output_dir / "manifest.locked.json"
+    if locked_manifest_path.exists():
+        return load_locked_manifest(locked_manifest_path)
+
+    rows = load_simid_manifest(source_manifest)
+    if max_items is not None:
+        rows = rows[:max_items]
+    if not rows:
+        raise ValueError("No SIMID rows selected")
+    locked_manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "simid_locked_manifest/v1",
+                "source_manifest": source_manifest,
+                "max_items": max_items,
+                "rows": rows,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return rows
 
 
 def append_jsonl(path: Path, row: dict[str, Any]) -> None:
@@ -685,6 +760,7 @@ def score_simid_item(
     scaler: ITIHeadScaler | None,
     alpha: float,
     condition: ConditionSpec,
+    iti_config: dict[str, Any],
     top_k_first_token: int,
     mc_max_new_tokens: int,
     open_max_new_tokens: int,
@@ -788,15 +864,7 @@ def score_simid_item(
         "open_grade": open_grade,
         "open_margins": open_margins,
         "topk_first_token_logprobs": topk,
-        "iti_config": {
-            "model_path": row.get("model_path"),
-            "tokenizer_path": row.get("tokenizer_path"),
-            "iti_artifact_path": row.get("iti_artifact_path"),
-            "iti_artifact_sha256": row.get("iti_artifact_sha256"),
-            "family": "truthfulqa_paperfaithful",
-            "k": 12,
-            "decode_scope": "first_3_tokens",
-        },
+        "iti_config": dict(iti_config),
         "control_metadata": condition_payload,
         "timings": {
             "wall_start_ts": round(wall_start, 6),
@@ -891,12 +959,11 @@ def install_condition_scaler(
 ) -> ITIHeadScaler | None:
     if condition.name == "unhooked":
         return None
-    family = iti_family if iti_family.startswith("iti_") else f"iti_{iti_family}"
     return ITIHeadScaler(
         model,
         artifact,
         device,
-        family=family,
+        family=normalize_iti_family(iti_family),
         k=iti_k,
         selection_strategy=condition.selection_strategy,
         random_seed=condition.random_seed,
@@ -915,6 +982,7 @@ def run_condition_alpha(
     scaler: ITIHeadScaler | None,
     alpha: float,
     condition: ConditionSpec,
+    iti_config: dict[str, Any],
     output_dir: Path,
     top_k_first_token: int,
     mc_max_new_tokens: int,
@@ -936,6 +1004,7 @@ def run_condition_alpha(
             scaler=scaler,
             alpha=alpha,
             condition=condition,
+            iti_config=iti_config,
             top_k_first_token=top_k_first_token,
             mc_max_new_tokens=mc_max_new_tokens,
             open_max_new_tokens=open_max_new_tokens,
@@ -996,20 +1065,29 @@ def main(argv: list[str] | None = None) -> None:
         )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    rows = load_simid_manifest(args.manifest)
-    if args.max_items is not None:
-        rows = rows[: args.max_items]
-    if not rows:
-        raise ValueError("No SIMID rows selected")
-
+    locked_manifest_path = output_dir / "manifest.locked.json"
+    rows = load_or_create_locked_manifest(
+        source_manifest=args.manifest,
+        output_dir=output_dir,
+        max_items=args.max_items,
+    )
     conditions = resolve_conditions(
         args.conditions, include_unhooked=args.include_unhooked
+    )
+    iti_config = build_iti_config(
+        model_path=args.model_path,
+        tokenizer_path=args.model_path,
+        iti_artifact_path=args.iti_artifact_path,
+        iti_artifact_sha256=file_sha256(args.iti_artifact_path),
+        iti_family=args.iti_family,
+        iti_k=args.iti_k,
+        decode_scope=args.decode_scope,
     )
     run_config_path = output_dir / "run_config.json"
     provenance = start_run_provenance(
         args,
         primary_target=output_dir,
-        output_targets=[output_dir, run_config_path],
+        output_targets=[output_dir, run_config_path, locked_manifest_path],
         extra={
             "simid_schema": "simid_run/v1",
             "n_manifest_rows": len(rows),
@@ -1021,21 +1099,12 @@ def main(argv: list[str] | None = None) -> None:
     extra: dict[str, Any] = {}
     scaler: ITIHeadScaler | None = None
     try:
-        locked_manifest_path = output_dir / "manifest.locked.json"
-        if not locked_manifest_path.exists():
-            locked_manifest_path.write_text(
-                json.dumps(
-                    {"source_manifest": args.manifest, "rows": rows},
-                    indent=2,
-                    ensure_ascii=False,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
         run_config = {
             "schema_version": "simid_run_config/v1",
             "args": sanitize_run_config(vars(args)),
             "manifest": args.manifest,
+            "locked_manifest": str(locked_manifest_path),
+            "iti_config": iti_config,
             "n_rows": len(rows),
             "conditions": [asdict(condition) for condition in conditions],
             "alphas": [float(alpha) for alpha in args.alphas],
@@ -1076,6 +1145,7 @@ def main(argv: list[str] | None = None) -> None:
                             scaler=scaler,
                             alpha=alpha,
                             condition=condition,
+                            iti_config=iti_config,
                             output_dir=output_dir,
                             top_k_first_token=args.top_k_first_token,
                             mc_max_new_tokens=args.mc_max_new_tokens,

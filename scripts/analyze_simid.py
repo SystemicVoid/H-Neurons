@@ -663,8 +663,8 @@ def write_report(results: dict[str, Any], path: Path) -> None:
         baseline_mc = summary["rates"][baseline][PRIMARY_MC_RATE_METRIC]
         lines.append(
             "Baseline rates: "
-            f"lettered MC={baseline_mc['estimate']:.3f}, "
-            f"open={baseline_open['estimate']:.3f}"
+            f"lettered MC={format_ci(baseline_mc)}, "
+            f"open={format_ci(baseline_open)}"
         )
         for alpha, deltas in summary["paired_deltas_vs_baseline"].items():
             mc = deltas[PRIMARY_MC_RATE_METRIC]
