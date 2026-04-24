@@ -175,8 +175,8 @@ On the same 1,000 FaithEval items, similar held-out readout quality did not pred
 To test whether the SAE null reflects a poor target-selection rule rather than the SAE family, we ran an on-pool ablation on the same 509-feature candidate set using a single $\alpha = 0$ delta-only operator (feature zeroing) on a frozen $160/840$ validation/test FaithEval split.
 Three selection rules on 266 features each---top-266 readout weight, top-266 validation utility, and ten layer-matched activation-weighted random zero-weight seeds---all produced null compliance deltas on the $n = 840$ test split (all paired $95\%$ CIs include zero; point estimates $\le 0.72$~pp).
 On the anti-compliance logprob margin, readout-selected features shifted the margin in the \emph{wrong} direction (+$0.92$~nats $[+0.61, +1.23]$ vs.\ no-op), while utility-selected features reduced it by $-0.76$~nats $[-1.08, -0.42]$; the paired utility-minus-readout delta was $-1.68$~nats $[-2.17, -1.19]$.
-Because both sides of that contrast share the same $\alpha = 0$ delta-only operator, any path artifact cancels; a dedicated path-drift control ($\alpha = 0$ on a single provably-dead zero-weight feature) independently moved the margin by only $+8.2\times 10^{-8}$~nats, four orders of magnitude below the selection-specific effects.
-Within the same candidate pool, two held-out readout criteria pick features with opposite-sign margin effects, and no rule reaches the accuracy endpoint (Appendix~\ref{app:saeselector}).
+Because both sides of that contrast share the same $\alpha = 0$ delta-only operator, any path artifact cancels; a dedicated path-drift control ($\alpha = 0$ on a single provably-dead zero-weight feature) independently moved the margin by only $+8.2\times 10^{-8}$~nats $[-2.4\times10^{-3}, +2.1\times10^{-3}]$.
+Within the same candidate pool, readout- and utility-based criteria pick features with opposite-sign margin effects, and no rule reaches the accuracy endpoint (Appendix~\ref{app:saeselector}).
 
 \subsection{Synthesis}
 
@@ -186,7 +186,7 @@ The narrower claim is that readout quality alone is an unreliable heuristic for 
 SAE features matched H-neurons on the quantity most commonly used to justify steering (held-out AUROC) and failed on the downstream behavioral test.
 
 A natural objection is that this comparable-readout design confounds representational basis with readout quality: SAE features and neurons differ in operator form, layer coverage, and feature granularity.
-The within-SAE ablation above partly closes that gap: with operator form and layer coverage held fixed, readout- and utility-based selectors move the margin in opposite directions, and neither reaches the accuracy endpoint.
+The within-SAE ablation above partly closes that gap: with operator form and the available extraction layers held fixed, readout- and utility-based selectors move the margin in opposite directions, and neither reaches the accuracy endpoint.
 The remaining basis confound narrows the across-family inference, but readout quality alone did not suffice to predict steering utility in either the cross-representational comparison or within the SAE pool.
 We discuss this limitation further in~\S\ref{sec:framework}.
 
@@ -248,7 +248,7 @@ Raw agreement was 96.5\% (Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96); the two d
 Of the 43 R$\to$W flips, 31 fell in the wrong-entity substitution category: the model replaces a correct factual answer with a different entity from the same semantic neighborhood ($31/43 = 72\%$; 95\% CI $[57, 83]$; Table~\ref{tab:substitution}).
 The remaining 12 flips split into evasion/factual denial (9/43, 21\%), answer dilution (3/43, 7\%), and formal refusal (0/43).
 This profile is consistent with a coarse behavior-level reweighting toward nearby but wrong candidates rather than suppression of generation; we treat it as a behavioral diagnosis, not a claim about the exact internal circuit mechanism.
-A teacher-forced gold-vs-wrong logprob-margin analysis on the same 57 discordant cases plus 200 length-matched random wrong-entity controls (Appendix~\ref{app:bridge_margin}) confirms that ITI causally compresses the gold-vs-wrong margin on right-to-wrong flips and expands it on rescues, but the behavioral taxonomy does not index a distinct mechanistic signature: non-substitution flips show \emph{larger} margin compression than substitution flips, so the taxonomy remains a reliable behavioral description rather than a margin-level fingerprint.
+A teacher-forced gold-vs-wrong log-likelihood-margin check (Appendix~\ref{app:bridge_margin}) has the same directional R$\to$W/W$\to$R sign, but no substitution-specific signature: non-substitution flips show larger compression than substitution flips.
 
 The 14 wrong-to-right rescues show that the intervention is behaviorally active in both directions; all 14 are themselves coded as wrong-entity substitutions (Wilson 95\% CI $[78.5, 100]$), reinforcing the reweighting reading, and on this surface the damage rate is larger than the rescue rate.
 
@@ -522,19 +522,19 @@ Three 266-feature selection rules are compared (readout: top probe weight; utili
 
 \begin{table*}[ht]
 \centering
-\caption{SAE target-selection ablation on FaithEval ($n = 840$). Matched-random row aggregates ten seeds (compliance mean $\pm$ seed SD; margin mean $\pm$ seed SD). Paired $\Delta$-vs-no-op CIs are 10\,000-sample paired bootstrap ($95\%$).}
+\caption{SAE target-selection ablation on FaithEval ($n = 840$). Matched-random row aggregates ten seeds (compliance mean $\pm$ seed SD; margin mean $\pm$ seed SD). Readout, utility, and path-drift contrasts are vs.\ no-op; the matched-random contrast is the per-seed utility-minus-random range. CIs are 10\,000-sample paired bootstrap ($95\%$).}
 \label{tab:sae_selector}
 \vskip 0.1in
 \small
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Family} & \textbf{Compliance} & \textbf{Margin (nats)} & \textbf{$\Delta$ margin vs.\ no-op (nats)} \\
+\textbf{Family} & \textbf{Compliance} & \textbf{Margin (nats)} & \textbf{Margin contrast (nats)} \\
 \midrule
 No-op                     & $66.4\%$              & $+8.31$                & --- \\
 Readout-selected ($k{=}266$) & $66.0\%$           & $+9.23$                & $+0.92$ $[+0.61, +1.23]$ \\
 Utility-selected ($k{=}266$) & $66.2\%$           & $+7.55$                & $-0.76$ $[-1.08, -0.42]$ \\
-Matched-random (10 seeds)  & $66.4\% \pm 0.7$     & $+8.33 \pm 0.53$       & $\approx 0$ (per-seed range $[-1.75, +0.14]$) \\
-Path-drift ($k{=}1$ dead)  & $66.4\%$             & $+8.31$                & $+8.2{\times}10^{-8}$ \\
+Matched-random (10 seeds)  & $66.4\% \pm 0.7$     & $+8.33 \pm 0.53$       & utility$-$random seed range $[-1.75, +0.14]$ \\
+Path-drift ($k{=}1$ dead)  & $66.4\%$             & $+8.31$                & $+8.2{\times}10^{-8}$ $[-2.4{\times}10^{-3}, +2.1{\times}10^{-3}]$ \\
 \bottomrule
 \end{tabular}
 \vskip -0.1in
@@ -542,14 +542,14 @@ Path-drift ($k{=}1$ dead)  & $66.4\%$             & $+8.31$                & $+8
 
 All four active families produce null compliance deltas (all paired $95\%$ CIs include zero; point estimates $\le 0.72$~pp), so the FaithEval accuracy null is not rescued by any selection rule we tried.
 On the anti-compliance margin, readout-selected features shift the margin in the \emph{wrong} direction while utility-selected features modestly improve it; the paired utility-minus-readout delta is $-1.68$~nats $[-2.17, -1.19]$.
-This within-pool contrast is immune to path drift because both sides share the same $\alpha = 0$ delta-only operator; the explicit path-drift control ($+8.2\times 10^{-8}$~nats) independently places any code-path artifact four orders of magnitude below the selection-specific effects.
+This within-pool contrast is immune to path drift because both sides share the same $\alpha = 0$ delta-only operator; the explicit path-drift control ($+8.2\times 10^{-8}$~nats $[-2.4\times10^{-3}, +2.1\times10^{-3}]$) independently bounds invocation-only code-path drift far below the selection-specific effects.
 
-A strictly-positive-utility augment ($k = 154$) guards against size-match dilution and reduces the margin by $-0.72$~nats $[-1.04, -0.39]$ vs.\ no-op, with three layer-matched random-positive seeds yielding paired deltas $-0.42$ to $-0.81$~nats (all CIs exclude zero).
+A strictly-positive-utility augment ($k = 154$) guards against size-match dilution and reduces the margin by $-0.72$~nats $[-1.04, -0.39]$ vs.\ no-op, with three layer-matched random-positive seeds yielding paired deltas $-0.74$ $[-1.10, -0.36]$, $-0.81$ $[-1.16, -0.46]$, and $-0.42$ $[-0.75, -0.08]$~nats.
 The ten-seed matched-random ensemble for the main bundle gives a seed-mean utility-minus-matched-random contrast of $-0.90$~nats (nested paired bootstrap $[-1.22, -0.56]$; naive seed bootstrap $[-1.17, -0.61]$); 9~of~10 seeds produce a negative paired delta.
 The selector was frozen before any test labels were scored, and the random-null construction, the path-drift control, and the 10-seed extension were added sequentially in response to the adversarial audit flagged in our provenance notes.
 
 \paragraph{Reading.}
-Within the same candidate pool, two held-out readout criteria pick features with opposite-sign margin effects, and no rule reaches the accuracy endpoint.
+Within the same candidate pool, readout- and utility-based criteria pick features with opposite-sign margin effects, and no rule reaches the accuracy endpoint.
 The FaithEval SAE null is therefore not a readout-selection artifact within the available SAE extraction layers (L2 in Table~\ref{tab:limitations}).
 Neither contrast elevates the SAE intervention to a successful steering handle; the margin-level separation between selection rules does not transfer to the behavioral endpoint.
 
@@ -578,7 +578,7 @@ BioASQ         & 1,600 & flat                & ${\sim}2$ pp \\
 \label{app:bridge_margin}
 
 Section~\ref{sec:externality} reported the bridge wrong-entity-substitution taxonomy as a behavioral diagnosis.
-This appendix quantifies the corresponding teacher-forced logprob-margin shifts at the same intervention ($\alpha = 8$, $K = 12$, \texttt{first\_3\_tokens} decode scope) and states what the analysis does and does not support.
+This appendix quantifies the corresponding teacher-forced log-likelihood-margin shifts at the same intervention ($\alpha = 8$, $K = 12$, \texttt{first\_3\_tokens} decode scope) and states what the analysis does and does not support.
 
 \paragraph{Design.}
 For each case we sum per-token gold and wrong-entity logprobs over the first three continuation positions under baseline and ITI conditions, and report the per-case shift $\Delta_\text{margin} = \Delta_\text{ITI} - \Delta_\text{base}$, where $\Delta = \log p(\text{gold}) - \log p(\text{wrong})$.
@@ -587,7 +587,7 @@ The analysis plan (endpoints, cohort partition, one-sided permutation direction)
 
 \begin{table}[ht]
 \centering
-\caption{Teacher-forced gold-vs-wrong logprob-margin shift on the TriviaQA-bridge discordant set (first-$3$ tokens, ITI $\alpha = 8$ vs.\ baseline). Bootstrap $95\%$ CIs, 10\,000 resamples, seed~42.}
+\caption{Teacher-forced gold-vs-wrong log-likelihood-margin shift on the TriviaQA-bridge discordant set (first-$3$ tokens, ITI $\alpha = 8$ vs.\ baseline). Bootstrap $95\%$ CIs, 10\,000 resamples, seed~42.}
 \label{tab:bridge_margin}
 \vskip 0.1in
 \small
@@ -596,7 +596,7 @@ The analysis plan (endpoints, cohort partition, one-sided permutation direction)
 \textbf{Cohort} & $n$ & $\Delta_\text{margin}$ & 95\% CI \\
 \midrule
 A: R$\to$W substitution     & 31 & $-10.16$ & $[-12.81, -7.60]$ \\
-B: R$\to$W non-subst.       & 12 & $-40.06$ & $[-50.1, -30.4]$ \\
+B: R$\to$W non-subst.       & 12 & $-40.06$ & $[-50.09, -30.37]$ \\
 C: W$\to$R rescue           & 14 & $+4.73$  & $[+2.27, +7.25]$ \\
 D: random control           & 200 & $-5.05$ & $[-6.55, -3.60]$ \\
 \bottomrule
@@ -609,9 +609,9 @@ ITI causally compresses the gold-vs-wrong margin on R$\to$W cases and expands it
 Substitution cases are significantly more compressed than length-matched random wrong-entity controls (A~$-$~D $= -5.10$~nats $[-8.22, -2.16]$, one-sided permutation $p = 0.0081$).
 
 \paragraph{What does not hold.}
-Non-substitution R$\to$W flips show \emph{larger} margin compression than substitution flips ($A - B = +29.90$~nats $[+19.91, +40.54]$; the substitution-specific prediction is formally reversed), concentrated but not exclusively at the first-token answer frame ($B$ position-$0 = -21.74$~nats vs.\ $A$ position-$0 = -3.49$~nats).
-The behavioral wrong-entity-substitution taxonomy ($\kappa = 0.90$) is therefore a reliable description of \emph{what} the model emits, but does not correspond to a distinct margin-shift signature at the logprob level.
-This refines rather than contradicts the §\ref{sec:externality} externality claim: the dominant-failure-mode statement is behavioral and interrater-defensible, and the margin analysis confirms ITI shifts probability mass in the predicted direction but broadens the mechanistic reading from substitution-specific entity suppression to answer-commitment margin compression on R$\to$W flips in general.
+Non-substitution R$\to$W flips show \emph{larger} margin compression than substitution flips ($A - B = +29.90$~nats $[+19.91, +40.54]$; the substitution-specific prediction is formally reversed), concentrated but not exclusively at the first-token answer frame (position~0: $B = -21.74$~nats $[-29.48, -14.85]$ vs.\ $A = -3.49$~nats $[-5.14, -1.97]$).
+The behavioral wrong-entity-substitution taxonomy ($\kappa = 0.90$) is therefore a reliable description of \emph{what} the model emits, but does not correspond to a distinct margin-shift signature at the log-likelihood level.
+This refines rather than contradicts the §\ref{sec:externality} externality claim: the dominant-failure-mode statement is behavioral and interrater-defensible, and the margin analysis confirms ITI shifts probability mass in the predicted direction but changes the margin-level reading from substitution-specific entity suppression to answer-commitment margin compression on R$\to$W flips in general.
 
 \section{Limitation Inventory}
 \label{app:limitations}
