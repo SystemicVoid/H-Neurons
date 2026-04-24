@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 # scripts/ uses flat sibling imports; add relevant dirs for test discovery.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
@@ -667,6 +669,48 @@ class TestRunProvenance:
         finish_run_provenance(handle, "completed")
 
         assert not Path(lock_path).exists()
+
+    def test_start_run_provenance_write_failure_keeps_active_run_lock(
+        self, monkeypatch, tmp_path
+    ):
+        subprocess.run(
+            ["git", "init"],
+            cwd=tmp_path,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("utils.get_git_sha", lambda: None)
+        monkeypatch.setattr("utils.get_git_dirty", lambda: False)
+        monkeypatch.setattr("utils.sys.argv", ["scripts/run_intervention.py"])
+        monkeypatch.setattr(
+            "utils.sys.orig_argv",
+            ["uv", "run", "python", "scripts/run_intervention.py"],
+            raising=False,
+        )
+
+        def fail_write(_path, _payload):
+            raise OSError("transient write failure")
+
+        output_dir = tmp_path / "data" / "new_run"
+        monkeypatch.setattr("utils._write_provenance_file", fail_write)
+
+        with pytest.raises(RuntimeError, match="failed to write run provenance"):
+            start_run_provenance(
+                args={},
+                primary_target=output_dir,
+                output_targets=[output_dir / "results.json"],
+                primary_target_is_dir=True,
+            )
+
+        lock_paths = list((tmp_path / ".git" / "h-neurons-active-runs").glob("*.json"))
+        assert len(lock_paths) == 1
+        lock_payload = json.loads(lock_paths[0].read_text())
+        assert {"kind": "directory", "path": str(output_dir.resolve())} in lock_payload[
+            "protected_paths"
+        ]
 
     def test_pipeline_guard_imports_when_script_dir_is_only_project_sys_path(self):
         script = """

@@ -488,13 +488,15 @@ def start_run_provenance(
     try:
         _write_provenance_file(sidecar_path, payload)
     except Exception as exc:
-        if pipeline_guard is not None:
-            pipeline_guard.remove_active_run_lock(handle.get("active_run_lock_path"))
-        print(
-            f"Warning: failed to write run provenance to {sidecar_path}: {exc}",
-            file=sys.stderr,
+        active_lock_path = handle.get("active_run_lock_path")
+        lock_note = (
+            f"; active-run lock remains at {active_lock_path}"
+            if active_lock_path is not None
+            else ""
         )
-        return None
+        raise RuntimeError(
+            f"failed to write run provenance to {sidecar_path}{lock_note}: {exc}"
+        ) from exc
     return handle
 
 

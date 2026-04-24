@@ -17,6 +17,7 @@ import pytest
 from scripts.lib.pipeline import (
     _count_lines,
     active_run_registry_dir,
+    build_active_run_lock,
     check_stage_complete,
     check_live_output_track_state,
     check_sentinel,
@@ -284,6 +285,43 @@ class TestActiveRunGitGuard:
         registry = active_run_registry_dir(subdir)
 
         assert registry == (repo / ".git" / "h-neurons-active-runs").resolve()
+
+    def test_directory_targets_are_protected_even_when_outputs_are_files(
+        self, tmp_path: Path
+    ) -> None:
+        output_dir = tmp_path / "data" / "run"
+        lock = build_active_run_lock(
+            run_id="file-output-dir-run",
+            provenance_path=output_dir / "run.provenance.json",
+            output_targets=[output_dir / "results.json"],
+            directory_targets=[output_dir],
+            started_at_utc="2026-04-24T00:00:00+00:00",
+            script="run_intervention.py",
+            argv=["run_intervention.py"],
+            cwd=tmp_path,
+        )
+
+        protected_paths = {
+            (Path(item["path"]), item["kind"]) for item in lock["protected_paths"]
+        }
+
+        assert (output_dir.resolve(), "directory") in protected_paths
+        assert path_intersects_live_run(
+            "data/run/answer_span_scores.jsonl",
+            lock,
+            repo_root=tmp_path,
+        )
+
+    def test_pre_commit_guard_runs_without_filename_selection(self) -> None:
+        config = (
+            Path(__file__).resolve().parents[1] / ".pre-commit-config.yaml"
+        ).read_text()
+        hook_start = config.index("      - id: active-run-git-guard")
+        next_hook = config.index("\n      - id:", hook_start + 1)
+        hook_block = config[hook_start:next_hook]
+
+        assert "pass_filenames: false" in hook_block
+        assert "always_run: true" in hook_block
 
     def test_live_lock_blocks_staged_file_target(self, tmp_path: Path) -> None:
         registry = tmp_path / "registry"

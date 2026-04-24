@@ -640,6 +640,8 @@ def _build_protected_path_payload(
             return
         protected_by_path[path_text] = kind
 
+    for target in directory_targets:
+        add_path(target, "directory")
     for target in output_targets:
         target_path = Path(target).expanduser().resolve()
         target_kind: ProtectedPathKind

@@ -12,6 +12,7 @@ repos:
         entry: uv run python -m scripts.lib.pipeline check-active-run-git-guard
         language: system
         pass_filenames: false
+        always_run: true
 
       - id: ruff-check
         name: ruff check
