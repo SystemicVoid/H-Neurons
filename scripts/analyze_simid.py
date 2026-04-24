@@ -12,7 +12,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from run_simid import assert_noop_equivalence, load_jsonl
+from run_simid import OPEN_GRADING_METHOD, assert_noop_equivalence, load_jsonl
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
@@ -56,7 +56,9 @@ CONTINUOUS_METRICS: dict[str, MetricFn] = {
     "mc_option_text_full_margin": lambda row: float(
         row["mc_likelihood"]["full"]["margin"]
     ),
-    "mc_option_text_avg_margin": lambda row: float(row["mc_likelihood"]["avg"]["margin"]),
+    "mc_option_text_avg_margin": lambda row: float(
+        row["mc_likelihood"]["avg"]["margin"]
+    ),
     "open_first_token_margin": lambda row: float(
         row["open_margins"]["first_token"]["margin"]
     ),
@@ -73,13 +75,37 @@ def parse_alpha_label(path: Path) -> float:
     return float(stem.removeprefix("alpha_"))
 
 
+def load_locked_manifest_metadata(run_dir: Path) -> dict[str, dict[str, Any]]:
+    path = run_dir / "manifest.locked.json"
+    if not path.exists():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    rows = payload.get("rows", []) if isinstance(payload, dict) else []
+    metadata: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict) or "sample_id" not in row:
+            continue
+        metadata[str(row["sample_id"])] = {
+            "base_sample_id": row.get("base_sample_id"),
+            "dataset": row.get("dataset"),
+            "mc_endpoint": row.get("mc_endpoint"),
+        }
+    return metadata
+
+
 def load_run_rows(run_dir: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    manifest_metadata = load_locked_manifest_metadata(run_dir)
     for path in sorted(run_dir.glob("*/alpha_*.jsonl")):
         alpha = parse_alpha_label(path)
         condition = path.parent.name
         for row in load_jsonl(path):
             row = dict(row)
+            metadata = manifest_metadata.get(str(row.get("sample_id")))
+            if metadata:
+                for key, value in metadata.items():
+                    if value is not None:
+                        row.setdefault(key, value)
             row.setdefault("condition", condition)
             row.setdefault("alpha", alpha)
             rows.append(row)
@@ -116,6 +142,25 @@ def replicate_key(row: dict[str, Any]) -> str:
 
 def replicate_key_set(rows: RowGroup) -> set[str]:
     return {replicate_key(row) for row in rows}
+
+
+def row_mc_endpoint(row: dict[str, Any]) -> str:
+    return str(row.get("mc_endpoint") or "unknown")
+
+
+def dataset_endpoint_for_group(rows: RowGroup) -> tuple[str, str]:
+    datasets = {str(row.get("dataset") or "unknown") for row in rows}
+    endpoints = {row_mc_endpoint(row) for row in rows}
+    if len(datasets) != 1 or len(endpoints) != 1:
+        raise ValueError(
+            "SIMID base-item replicate group mixes datasets or MC endpoints: "
+            f"datasets={sorted(datasets)}, mc_endpoints={sorted(endpoints)}"
+        )
+    return next(iter(datasets)), next(iter(endpoints))
+
+
+def dataset_endpoint_key(dataset: str, mc_endpoint: str) -> str:
+    return f"{dataset}::{mc_endpoint}"
 
 
 def flatten_groups(groups_by_id: dict[str, RowGroup]) -> list[dict[str, Any]]:
@@ -176,7 +221,10 @@ def paired_rate_delta(
     seed: int,
 ) -> dict[str, Any]:
     baseline = np.array(
-        [group_metric_value(baseline_rows[sample_id], metric) for sample_id in sample_ids],
+        [
+            group_metric_value(baseline_rows[sample_id], metric)
+            for sample_id in sample_ids
+        ],
         dtype=float,
     )
     comparison = np.array(
@@ -260,7 +308,9 @@ def rate_at_alpha(
     n_resamples: int,
     seed: int,
 ) -> dict[str, Any]:
-    values = [group_metric_value(rows_by_id[sample_id], metric) for sample_id in sample_ids]
+    values = [
+        group_metric_value(rows_by_id[sample_id], metric) for sample_id in sample_ids
+    ]
     return bootstrap_mean_summary(values, n_resamples=n_resamples, seed=seed)
 
 
@@ -293,7 +343,10 @@ def paired_continuous_delta(
     seed: int,
 ) -> dict[str, Any]:
     baseline = np.array(
-        [group_metric_value(baseline_rows[sample_id], metric) for sample_id in sample_ids],
+        [
+            group_metric_value(baseline_rows[sample_id], metric)
+            for sample_id in sample_ids
+        ],
         dtype=float,
     )
     comparison = np.array(
@@ -311,18 +364,15 @@ def paired_continuous_delta(
     )
 
 
-def summarize_condition(
-    indexed: dict[str, Panel],
+def summarize_sample_ids(
+    panel: Panel,
     *,
-    condition: str,
+    sample_ids: list[str],
     alphas: list[float],
     baseline_alpha: float,
     n_resamples: int,
     seed: int,
 ) -> dict[str, Any]:
-    sample_ids, panel = require_paired_panel(
-        indexed, condition=condition, alphas=alphas
-    )
     baseline_rows = panel[baseline_alpha]
     rates: dict[str, Any] = {}
     deltas: dict[str, Any] = {}
@@ -376,10 +426,11 @@ def summarize_condition(
         flips[str(alpha)] = flip_table(sample_ids, baseline_rows, comparison_rows)
 
     return {
-        "condition": condition,
         "n_paired_items": len(sample_ids),
         "pairing_unit": "base_sample_id",
-        "n_rows_at_baseline": sum(len(baseline_rows[sample_id]) for sample_id in sample_ids),
+        "n_rows_at_baseline": sum(
+            len(baseline_rows[sample_id]) for sample_id in sample_ids
+        ),
         "alphas": alphas,
         "baseline_alpha": baseline_alpha,
         "rates": rates,
@@ -387,6 +438,75 @@ def summarize_condition(
         "paired_margin_deltas_vs_baseline": continuous_deltas,
         "mc_open_interactions": interactions,
         "flip_tables_vs_baseline": flips,
+    }
+
+
+def dataset_endpoint_sample_ids(
+    sample_ids: list[str],
+    panel: Panel,
+    *,
+    alphas: list[float],
+    baseline_alpha: float,
+) -> dict[tuple[str, str], list[str]]:
+    strata: dict[tuple[str, str], list[str]] = defaultdict(list)
+    for sample_id in sample_ids:
+        reference = dataset_endpoint_for_group(panel[baseline_alpha][sample_id])
+        for alpha in alphas:
+            alpha_value = dataset_endpoint_for_group(panel[alpha][sample_id])
+            if alpha_value != reference:
+                raise ValueError(
+                    f"SIMID sample_id={sample_id} changes dataset/MC endpoint "
+                    f"between alpha={baseline_alpha} and alpha={alpha}: "
+                    f"{reference} vs {alpha_value}"
+                )
+        strata[reference].append(sample_id)
+    return {key: sorted(ids) for key, ids in strata.items()}
+
+
+def summarize_condition(
+    indexed: dict[str, Panel],
+    *,
+    condition: str,
+    alphas: list[float],
+    baseline_alpha: float,
+    n_resamples: int,
+    seed: int,
+) -> dict[str, Any]:
+    sample_ids, panel = require_paired_panel(
+        indexed, condition=condition, alphas=alphas
+    )
+    summary = summarize_sample_ids(
+        panel,
+        sample_ids=sample_ids,
+        alphas=alphas,
+        baseline_alpha=baseline_alpha,
+        n_resamples=n_resamples,
+        seed=seed,
+    )
+    strata: dict[str, Any] = {}
+    for (dataset, mc_endpoint), stratum_ids in dataset_endpoint_sample_ids(
+        sample_ids,
+        panel,
+        alphas=alphas,
+        baseline_alpha=baseline_alpha,
+    ).items():
+        stratum_summary = summarize_sample_ids(
+            panel,
+            sample_ids=stratum_ids,
+            alphas=alphas,
+            baseline_alpha=baseline_alpha,
+            n_resamples=n_resamples,
+            seed=seed,
+        )
+        stratum_summary["dataset"] = dataset
+        stratum_summary["mc_endpoint"] = mc_endpoint
+        strata[dataset_endpoint_key(dataset, mc_endpoint)] = stratum_summary
+
+    return {
+        "condition": condition,
+        "summary_scope": "pooled_across_dataset_and_mc_endpoint",
+        **summary,
+        "dataset_endpoint_summaries": strata,
     }
 
 
@@ -513,6 +633,28 @@ def per_item_slopes(
     return slopes
 
 
+def require_selected_control_replicate_pairing(
+    *,
+    selected_panel: Panel,
+    control_panel: Panel,
+    sample_ids: list[str],
+    alphas: list[float],
+    control: str,
+) -> None:
+    for alpha in alphas:
+        for sample_id in sample_ids:
+            selected_replicates = replicate_key_set(selected_panel[alpha][sample_id])
+            control_replicates = replicate_key_set(control_panel[alpha][sample_id])
+            if selected_replicates != control_replicates:
+                raise ValueError(
+                    f"Selected/control replicate sets differ for control={control}, "
+                    f"sample_id={sample_id}, alpha={alpha}; "
+                    f"missing vs selected="
+                    f"{sorted(selected_replicates - control_replicates)[:5]}; "
+                    f"extra={sorted(control_replicates - selected_replicates)[:5]}"
+                )
+
+
 def selected_minus_control_slope_summaries(
     indexed: dict[str, Panel],
     *,
@@ -536,6 +678,13 @@ def selected_minus_control_slope_summaries(
                 "SIMID slope summaries require item-level pairing"
             )
         sample_ids = sorted(selected_ids)
+        require_selected_control_replicate_pairing(
+            selected_panel=selected_panel,
+            control_panel=control_panel,
+            sample_ids=sample_ids,
+            alphas=alphas,
+            control=control,
+        )
         metric_summaries: dict[str, Any] = {}
         for metric_name in ("mc_full_margin", "open_first3_margin", "open_full_margin"):
             metric = CONTINUOUS_METRICS[metric_name]
@@ -558,7 +707,30 @@ def selected_minus_control_slope_summaries(
 def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     queue: list[dict[str, Any]] = []
     for row in rows:
-        if bool(row["open_grade"]["correct"]):
+        grade = row["open_grade"]
+        audit_reason: str | None = None
+        if bool(grade["correct"]):
+            if row.get("dataset") != "triviaqa_bridge":
+                audit_reason = (
+                    "non_bridge_deterministic_alias_correct_requires_adjudication"
+                )
+            elif grade.get("match_tier") != "exact":
+                audit_reason = "non_exact_deterministic_alias_correct_requires_audit"
+            if audit_reason is not None:
+                queue.append(
+                    {
+                        "sample_id": row["sample_id"],
+                        "condition": row["condition"],
+                        "alpha": row["alpha"],
+                        "dataset": row.get("dataset"),
+                        "mc_endpoint": row.get("mc_endpoint"),
+                        "question": row.get("question"),
+                        "response": row["open_generation"]["response"],
+                        "gold_aliases": row.get("gold_aliases"),
+                        "open_grade": row.get("open_grade"),
+                        "reason": audit_reason,
+                    }
+                )
             continue
         margin = float(row["open_margins"]["full"]["margin"])
         if margin <= 0.0:
@@ -569,6 +741,7 @@ def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "condition": row["condition"],
                 "alpha": row["alpha"],
                 "dataset": row.get("dataset"),
+                "mc_endpoint": row.get("mc_endpoint"),
                 "question": row.get("question"),
                 "response": row["open_generation"]["response"],
                 "gold_aliases": row.get("gold_aliases"),
@@ -653,10 +826,17 @@ def write_report(results: dict[str, Any], path: Path) -> None:
         "",
         "All primary estimates use base-item pairing and bootstrap 95% CIs. "
         "The primary MC endpoint is the lettered forced-choice likelihood prompt.",
+        "Open correctness is deterministic alias-grader correctness "
+        "(not adjudicated human/judge correctness). Claimable open-ended results "
+        "require adjudication or an explicit audit.",
         "",
     ]
     for condition, summary in results["conditions"].items():
         lines.append(f"## {condition}")
+        lines.append(
+            "Pooled aggregate scope: all datasets and MC endpoints in the selected "
+            "condition panel."
+        )
         lines.append(f"Paired items: {summary['n_paired_items']}")
         baseline = str(summary["baseline_alpha"])
         baseline_open = summary["rates"][baseline]["open_correct"]
@@ -675,6 +855,28 @@ def write_report(results: dict[str, Any], path: Path) -> None:
                 f"open delta {format_ci(open_delta, unit=' pp')}; "
                 f"attempt delta {format_ci(attempted, unit=' pp')}"
             )
+        strata = summary.get("dataset_endpoint_summaries", {})
+        if strata:
+            lines.append("")
+            lines.append("Dataset / MC endpoint strata:")
+            for key in sorted(strata):
+                stratum = strata[key]
+                stratum_baseline = str(stratum["baseline_alpha"])
+                stratum_open = stratum["rates"][stratum_baseline]["open_correct"]
+                stratum_mc = stratum["rates"][stratum_baseline][PRIMARY_MC_RATE_METRIC]
+                lines.append(
+                    f"- {stratum['dataset']} / {stratum['mc_endpoint']}: "
+                    f"n={stratum['n_paired_items']}; "
+                    f"lettered MC={format_ci(stratum_mc)}; "
+                    f"open={format_ci(stratum_open)}"
+                )
+                for alpha, deltas in stratum["paired_deltas_vs_baseline"].items():
+                    mc = deltas[PRIMARY_MC_RATE_METRIC]
+                    open_delta = deltas["open_correct"]
+                    lines.append(
+                        f"  - alpha {alpha}: MC delta {format_ci(mc, unit=' pp')}; "
+                        f"open delta {format_ci(open_delta, unit=' pp')}"
+                    )
         lines.append("")
     if results.get("selected_minus_control_slopes"):
         lines.append("## Selected Minus Control Slopes")
@@ -703,7 +905,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--noop-tolerance", type=float, default=1e-5)
     parser.add_argument("--output-json", default=None)
     parser.add_argument("--report-md", default=None)
+    parser.add_argument("--allow-overwrite", action="store_true")
     return parser.parse_args(argv)
+
+
+def refuse_analysis_output_overwrite(
+    paths: list[Path], *, allow_overwrite: bool
+) -> None:
+    if allow_overwrite:
+        return
+    existing = [path for path in dict.fromkeys(paths) if path.exists()]
+    if existing:
+        rendered = ", ".join(str(path) for path in existing)
+        raise FileExistsError(
+            f"Refusing to overwrite existing SIMID analysis outputs: {rendered}. "
+            "Pass --allow-overwrite to replace them explicitly."
+        )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -714,6 +931,10 @@ def main(argv: list[str] | None = None) -> None:
     )
     report_md = Path(args.report_md) if args.report_md else run_dir / "report.md"
     alias_queue_path = run_dir / "alias_audit_queue.jsonl"
+    refuse_analysis_output_overwrite(
+        [output_json, report_md, alias_queue_path],
+        allow_overwrite=args.allow_overwrite,
+    )
     provenance = start_run_provenance(
         args,
         primary_target=output_json,
@@ -772,6 +993,7 @@ def main(argv: list[str] | None = None) -> None:
             "alphas": alphas,
             "conditions": condition_summaries,
             "selected_minus_control_slopes": slope_summaries,
+            "open_grading": OPEN_GRADING_METHOD,
             "alias_audit_queue": {
                 "path": str(alias_queue_path),
                 "n": len(alias_queue),

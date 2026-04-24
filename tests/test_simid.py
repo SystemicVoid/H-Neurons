@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -10,8 +11,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import run_simid as simid_runner
 from analyze_simid import (
+    build_alias_audit_queue,
     index_rows,
+    load_run_rows,
+    main as analyze_main,
     require_paired_panel,
+    selected_minus_control_slope_summaries,
     summarize_condition,
     write_report,
 )
@@ -27,10 +32,12 @@ from build_truthfulqa_splits import stable_question_id
 from run_simid import (
     assert_noop_equivalence,
     build_iti_config,
+    build_run_config,
     compute_mc_margin,
     load_existing_sample_ids,
     load_or_create_locked_manifest,
     simid_output_id,
+    write_or_validate_run_config,
 )
 
 
@@ -55,6 +62,8 @@ def _analysis_row(
     condition: str = "selected",
     alpha: float = 0.0,
     option_order_replicate: int = 0,
+    dataset: str = "fixture",
+    mc_endpoint: str = "fixture_mc1",
     mc_letter_correct: bool = True,
     mc_option_text_correct: bool = False,
     open_correct: bool = True,
@@ -65,7 +74,8 @@ def _analysis_row(
         "condition": condition,
         "alpha": alpha,
         "option_order_replicate": option_order_replicate,
-        "dataset": "fixture",
+        "dataset": dataset,
+        "mc_endpoint": mc_endpoint,
         "question": "Question?",
         "mc_options": ["Gold", "Wrong"],
         "mc_letter_likelihood": {
@@ -129,6 +139,34 @@ def _manifest_row(sample_id: str, question: str) -> dict:
         iti_artifact_path="iti.pt",
         iti_artifact_sha256="abc",
     )
+
+
+def _run_args(**overrides: object) -> argparse.Namespace:
+    defaults: dict[str, object] = {
+        "manifest": "manifest.json",
+        "model_path": "model",
+        "device_map": "cuda:0",
+        "iti_artifact_path": "iti.pt",
+        "iti_family": "truthfulqa_paperfaithful",
+        "iti_k": 12,
+        "decode_scope": "first_3_tokens",
+        "alphas": [0.0, 8.0],
+        "conditions": ["selected"],
+        "include_unhooked": False,
+        "max_items": None,
+        "top_k_first_token": 10,
+        "mc_max_new_tokens": 4,
+        "open_max_new_tokens": 64,
+        "collect_debug_stats": False,
+        "seed": 42,
+        "noop_check": False,
+        "noop_tolerance": 1e-5,
+        "allow_analyzed_overwrite": False,
+        "output_dir": None,
+        "run_name": None,
+    }
+    defaults.update(overrides)
+    return argparse.Namespace(**defaults)
 
 
 def test_manifest_row_schema_and_option_order_are_deterministic() -> None:
@@ -295,6 +333,60 @@ def test_resume_uses_existing_locked_manifest_when_source_changes(
     assert resumed_rows[0]["question"] == "Original?"
 
 
+def test_resume_refuses_runtime_config_change_with_existing_rows(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "run"
+    output_dir.mkdir()
+    rows = [_manifest_row("simid_a", "Question?")]
+    conditions = [simid_runner.CONDITION_SPECS["selected"]]
+    iti_config = build_iti_config(
+        model_path="model",
+        tokenizer_path="model",
+        iti_artifact_path="iti.pt",
+        iti_artifact_sha256="abc",
+        iti_family="truthfulqa_paperfaithful",
+        iti_k=12,
+        decode_scope="first_3_tokens",
+    )
+    run_config_path = output_dir / "run_config.json"
+    locked_manifest_path = output_dir / "manifest.locked.json"
+    run_config = build_run_config(
+        args=_run_args(),
+        output_dir=output_dir,
+        rows=rows,
+        conditions=conditions,
+        iti_config=iti_config,
+        locked_manifest_path=locked_manifest_path,
+    )
+    write_or_validate_run_config(
+        path=run_config_path,
+        run_config=run_config,
+        output_dir=output_dir,
+    )
+    alpha_path = output_dir / "selected" / "alpha_0.0.jsonl"
+    alpha_path.parent.mkdir()
+    alpha_path.write_text(json.dumps({"sample_id": "simid_a"}) + "\n", encoding="utf-8")
+
+    changed_config = dict(iti_config)
+    changed_config["k"] = 7
+    changed_run_config = build_run_config(
+        args=_run_args(iti_k=7),
+        output_dir=output_dir,
+        rows=rows,
+        conditions=conditions,
+        iti_config=changed_config,
+        locked_manifest_path=locked_manifest_path,
+    )
+
+    with pytest.raises(ValueError, match="Cannot resume"):
+        write_or_validate_run_config(
+            path=run_config_path,
+            run_config=changed_run_config,
+            output_dir=output_dir,
+        )
+
+
 def test_iti_config_records_runtime_overrides() -> None:
     config = build_iti_config(
         model_path="override-model",
@@ -386,14 +478,12 @@ def test_analyzer_uses_lettered_mc_as_primary_mc_behavior() -> None:
         seed=1,
     )
 
-    assert (
-        summary["rates"]["0.0"]["mc_letter_likelihood_correct"]["estimate"]
-        == pytest.approx(1.0)
-    )
-    assert (
-        summary["rates"]["0.0"]["mc_likelihood_full_correct"]["estimate"]
-        == pytest.approx(0.0)
-    )
+    assert summary["rates"]["0.0"]["mc_letter_likelihood_correct"][
+        "estimate"
+    ] == pytest.approx(1.0)
+    assert summary["rates"]["0.0"]["mc_likelihood_full_correct"][
+        "estimate"
+    ] == pytest.approx(0.0)
 
 
 def test_analyzer_groups_option_order_replicates_by_base_item() -> None:
@@ -440,10 +530,144 @@ def test_analyzer_groups_option_order_replicates_by_base_item() -> None:
 
     assert summary["n_paired_items"] == 2
     assert summary["n_rows_at_baseline"] == 3
-    assert (
-        summary["rates"]["0.0"]["mc_letter_likelihood_correct"]["estimate"]
-        == pytest.approx(0.75)
+    assert summary["rates"]["0.0"]["mc_letter_likelihood_correct"][
+        "estimate"
+    ] == pytest.approx(0.75)
+
+
+def test_analyzer_reports_dataset_endpoint_strata() -> None:
+    rows = [
+        _analysis_row(
+            sample_id="truthful_1",
+            alpha=0.0,
+            dataset="truthfulqa",
+            mc_endpoint="truthfulqa_mc1",
+            mc_letter_correct=True,
+        ),
+        _analysis_row(
+            sample_id="truthful_1",
+            alpha=8.0,
+            dataset="truthfulqa",
+            mc_endpoint="truthfulqa_mc1",
+            mc_letter_correct=True,
+        ),
+        _analysis_row(
+            sample_id="bridge_1",
+            alpha=0.0,
+            dataset="triviaqa_bridge",
+            mc_endpoint="synthetic_mc1",
+            mc_letter_correct=False,
+        ),
+        _analysis_row(
+            sample_id="bridge_1",
+            alpha=8.0,
+            dataset="triviaqa_bridge",
+            mc_endpoint="synthetic_mc1",
+            mc_letter_correct=False,
+        ),
+    ]
+
+    summary = summarize_condition(
+        index_rows(rows),
+        condition="selected",
+        alphas=[0.0, 8.0],
+        baseline_alpha=0.0,
+        n_resamples=100,
+        seed=1,
     )
+
+    strata = summary["dataset_endpoint_summaries"]
+    truthfulqa = strata["truthfulqa::truthfulqa_mc1"]
+    bridge = strata["triviaqa_bridge::synthetic_mc1"]
+    assert summary["summary_scope"] == "pooled_across_dataset_and_mc_endpoint"
+    assert truthfulqa["n_paired_items"] == 1
+    assert bridge["n_paired_items"] == 1
+    assert truthfulqa["rates"]["0.0"]["mc_letter_likelihood_correct"][
+        "estimate"
+    ] == pytest.approx(1.0)
+    assert bridge["rates"]["0.0"]["mc_letter_likelihood_correct"][
+        "estimate"
+    ] == pytest.approx(0.0)
+
+
+def test_load_run_rows_recovers_mc_endpoint_from_locked_manifest(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    selected_dir = run_dir / "selected"
+    selected_dir.mkdir(parents=True)
+    manifest_row = _manifest_row("simid_a", "Question?")
+    manifest_row["dataset"] = "truthfulqa"
+    manifest_row["mc_endpoint"] = "truthfulqa_mc1"
+    (run_dir / "manifest.locked.json").write_text(
+        json.dumps(
+            {"schema_version": "simid_locked_manifest/v1", "rows": [manifest_row]}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (selected_dir / "alpha_0.0.jsonl").write_text(
+        json.dumps({"sample_id": "simid_a"}) + "\n",
+        encoding="utf-8",
+    )
+
+    rows = load_run_rows(run_dir)
+
+    assert rows[0]["dataset"] == "truthfulqa"
+    assert rows[0]["mc_endpoint"] == "truthfulqa_mc1"
+
+
+def test_control_slope_requires_matching_replicates_across_controls() -> None:
+    rows = [
+        _analysis_row(
+            sample_id="s1",
+            base_sample_id="base1",
+            alpha=0.0,
+            option_order_replicate=0,
+        ),
+        _analysis_row(
+            sample_id="s1__ord1",
+            base_sample_id="base1",
+            alpha=0.0,
+            option_order_replicate=1,
+        ),
+        _analysis_row(
+            sample_id="s1",
+            base_sample_id="base1",
+            alpha=8.0,
+            option_order_replicate=0,
+        ),
+        _analysis_row(
+            sample_id="s1__ord1",
+            base_sample_id="base1",
+            alpha=8.0,
+            option_order_replicate=1,
+        ),
+        _analysis_row(
+            sample_id="control_s1",
+            base_sample_id="base1",
+            condition="random_head_seed1",
+            alpha=0.0,
+            option_order_replicate=0,
+        ),
+        _analysis_row(
+            sample_id="control_s1",
+            base_sample_id="base1",
+            condition="random_head_seed1",
+            alpha=8.0,
+            option_order_replicate=0,
+        ),
+    ]
+
+    with pytest.raises(ValueError, match="Selected/control replicate sets differ"):
+        selected_minus_control_slope_summaries(
+            index_rows(rows),
+            selected_condition="selected",
+            control_conditions=["random_head_seed1"],
+            alphas=[0.0, 8.0],
+            n_resamples=100,
+            seed=1,
+        )
 
 
 def test_report_baseline_rates_include_ci(tmp_path: Path) -> None:
@@ -474,8 +698,45 @@ def test_report_baseline_rates_include_ci(tmp_path: Path) -> None:
     )
 
     text = path.read_text(encoding="utf-8")
+    assert "deterministic alias-grader correctness" in text
+    assert "Pooled aggregate scope" in text
     assert "lettered MC=0.7500 [0.5000, 1.0000]" in text
     assert "open=0.5000 [0.2500, 0.7500]" in text
+
+
+def test_analysis_refuses_existing_outputs_by_default(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "results.json").write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(FileExistsError, match="Refusing to overwrite"):
+        analyze_main(["--run-dir", str(run_dir)])
+
+
+def test_open_grading_is_labeled_and_audited_for_non_bridge_rows() -> None:
+    grade = simid_runner.grade_open_response(
+        {
+            "dataset": "truthfulqa",
+            "gold_aliases": ["Gold"],
+            "mc_options": ["Gold", "Wrong"],
+            "gold_option_indices": [0],
+        },
+        "Gold",
+    )
+    row = _analysis_row(
+        sample_id="truthful_1",
+        dataset="truthfulqa",
+        mc_endpoint="truthfulqa_mc1",
+        open_correct=True,
+    )
+    row["open_grade"] = grade
+
+    queue = build_alias_audit_queue([row])
+
+    assert grade["grader"]["name"] == "deterministic_alias_grader"
+    assert queue[0]["reason"] == (
+        "non_bridge_deterministic_alias_correct_requires_adjudication"
+    )
 
 
 def test_truthfulqa_heldout_policy_excludes_fitted_items(tmp_path: Path) -> None:

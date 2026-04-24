@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -63,6 +64,14 @@ DEFAULT_MODEL_PATH = "google/gemma-3-4b-it"
 DEFAULT_MANIFEST = "data/manifests/simid_truthfulqa_bridge_seed42.json"
 DEFAULT_ALPHAS = [-8.0, 0.0, 4.0, 8.0]
 PRIMARY_WINDOW_TOKENS = 3
+OPEN_GRADING_METHOD = {
+    "name": "deterministic_alias_grader",
+    "implementation": "triviaqa_bridge_alias_matcher",
+    "scope": "diagnostic_not_adjudicated",
+    "claim_requirement": (
+        "human_or_judge_adjudication_required_for_claimable_open_correctness"
+    ),
+}
 NOOP_COMPARE_PATHS = (
     ("mc_likelihood", "full", "margin"),
     ("mc_likelihood", "avg", "margin"),
@@ -165,6 +174,143 @@ def build_iti_config(
         "k": int(iti_k),
         "decode_scope": decode_scope,
     }
+
+
+def stable_payload_sha256(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def alpha_output_has_rows(path: Path) -> bool:
+    if not path.exists():
+        return False
+    with path.open(encoding="utf-8") as handle:
+        return any(line.strip() for line in handle)
+
+
+def output_dir_has_alpha_rows(output_dir: Path) -> bool:
+    return any(
+        alpha_output_has_rows(path) for path in output_dir.glob("*/alpha_*.jsonl")
+    )
+
+
+def build_resume_contract(
+    *,
+    args: argparse.Namespace,
+    rows: list[dict[str, Any]],
+    conditions: list[ConditionSpec],
+    iti_config: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": "simid_resume_contract/v1",
+        "manifest_rows_sha256": stable_payload_sha256(rows),
+        "iti_config": iti_config,
+        "conditions": [asdict(condition) for condition in conditions],
+        "alphas": [float(alpha) for alpha in args.alphas],
+        "generation": {
+            "top_k_first_token": int(args.top_k_first_token),
+            "mc_max_new_tokens": int(args.mc_max_new_tokens),
+            "open_max_new_tokens": int(args.open_max_new_tokens),
+        },
+        "runtime": {
+            "device_map": args.device_map,
+            "seed": args.seed,
+            "collect_debug_stats": bool(args.collect_debug_stats),
+        },
+    }
+
+
+def build_run_config(
+    *,
+    args: argparse.Namespace,
+    output_dir: Path,
+    rows: list[dict[str, Any]],
+    conditions: list[ConditionSpec],
+    iti_config: dict[str, Any],
+    locked_manifest_path: Path,
+) -> dict[str, Any]:
+    resume_contract = build_resume_contract(
+        args=args,
+        rows=rows,
+        conditions=conditions,
+        iti_config=iti_config,
+    )
+    return {
+        "schema_version": "simid_run_config/v1",
+        "args": sanitize_run_config(vars(args)),
+        "manifest": args.manifest,
+        "locked_manifest": str(locked_manifest_path),
+        "iti_config": iti_config,
+        "n_rows": len(rows),
+        "conditions": [asdict(condition) for condition in conditions],
+        "alphas": [float(alpha) for alpha in args.alphas],
+        "output_dir": str(output_dir),
+        "started_at_utc": datetime.now(timezone.utc).isoformat(),
+        "resume_contract": resume_contract,
+        "resume_fingerprint": stable_payload_sha256(resume_contract),
+    }
+
+
+def changed_contract_keys(left: dict[str, Any], right: dict[str, Any]) -> list[str]:
+    changed: list[str] = []
+    for key in sorted(set(left) | set(right)):
+        if left.get(key) != right.get(key):
+            changed.append(key)
+    return changed
+
+
+def write_or_validate_run_config(
+    *,
+    path: Path,
+    run_config: dict[str, Any],
+    output_dir: Path,
+) -> None:
+    if not path.exists():
+        path.write_text(
+            json.dumps(run_config, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        return
+
+    existing = json.loads(path.read_text(encoding="utf-8"))
+    existing_fingerprint = existing.get("resume_fingerprint")
+    new_fingerprint = run_config["resume_fingerprint"]
+    has_partial_outputs = output_dir_has_alpha_rows(output_dir)
+    if existing_fingerprint is None:
+        if has_partial_outputs:
+            raise ValueError(
+                f"Cannot resume {output_dir}: existing run_config.json has no "
+                "resume_fingerprint, so existing alpha rows cannot be proven "
+                "compatible with the requested runtime config"
+            )
+        path.write_text(
+            json.dumps(run_config, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        return
+
+    if existing_fingerprint != new_fingerprint:
+        if not has_partial_outputs:
+            path.write_text(
+                json.dumps(run_config, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            return
+        changed = changed_contract_keys(
+            existing.get("resume_contract", {}),
+            run_config["resume_contract"],
+        )
+        raise ValueError(
+            f"Cannot resume {output_dir}: requested runtime config does not match "
+            "the existing run_config.json resume_fingerprint. "
+            f"Changed contract keys: {changed or ['unknown']}. "
+            "Archive the old run or choose a new output directory."
+        )
 
 
 def load_locked_manifest(path: Path) -> list[dict[str, Any]]:
@@ -672,6 +818,8 @@ def grade_open_response(row: dict[str, Any], response: str) -> dict[str, Any]:
         "match_tier": grade["match_tier"],
         "matched_alias": grade["matched_alias"],
         "failure_type": failure_type,
+        "grader": dict(OPEN_GRADING_METHOD),
+        "grader_dataset": row.get("dataset"),
     }
 
 
@@ -843,6 +991,7 @@ def score_simid_item(
         "base_sample_id": row.get("base_sample_id", row["sample_id"]),
         "output_id": simid_output_id(str(row["sample_id"]), condition.name, alpha),
         "dataset": row["dataset"],
+        "mc_endpoint": row.get("mc_endpoint", "unknown"),
         "source_id": row.get("source_id"),
         "alpha": float(alpha),
         "condition": condition.name,
@@ -1099,22 +1248,20 @@ def main(argv: list[str] | None = None) -> None:
     extra: dict[str, Any] = {}
     scaler: ITIHeadScaler | None = None
     try:
-        run_config = {
-            "schema_version": "simid_run_config/v1",
-            "args": sanitize_run_config(vars(args)),
-            "manifest": args.manifest,
-            "locked_manifest": str(locked_manifest_path),
-            "iti_config": iti_config,
-            "n_rows": len(rows),
-            "conditions": [asdict(condition) for condition in conditions],
-            "alphas": [float(alpha) for alpha in args.alphas],
-            "output_dir": str(output_dir),
-            "started_at_utc": datetime.now(timezone.utc).isoformat(),
-        }
-        run_config_path.write_text(
-            json.dumps(run_config, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
+        run_config = build_run_config(
+            args=args,
+            output_dir=output_dir,
+            rows=rows,
+            conditions=conditions,
+            iti_config=iti_config,
+            locked_manifest_path=locked_manifest_path,
         )
+        write_or_validate_run_config(
+            path=run_config_path,
+            run_config=run_config,
+            output_dir=output_dir,
+        )
+        extra["resume_fingerprint"] = run_config["resume_fingerprint"]
 
         print(f"Loading model: {args.model_path}")
         model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
