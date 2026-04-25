@@ -106,18 +106,95 @@ selector_stage_complete() {
         required+=("matched_random_seed_${seed}_features.json")
         required+=("matched_random_answer_span_seed_${seed}_features.json")
     done
-    local deps=(
-        "scripts/select_faitheval_sae_utility_features.py"
-        "${CLASSIFIER_PATH}"
-        "${CLASSIFIER_SUMMARY}"
-    )
     local rel_path
     for rel_path in "${required[@]}"; do
         local artifact="${SELECTOR_DIR}/${rel_path}"
         [[ -f "${artifact}" ]] || return 1
-        artifact_is_fresh "${artifact}" "${deps[@]}" || return 1
     done
-    return 0
+    env PYTHONUNBUFFERED=1 uv run python - "${SELECTOR_DIR}" "${N_RANDOM_SEEDS}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+selector_dir = Path(sys.argv[1])
+n_random_seeds = int(sys.argv[2])
+
+
+def load_json(path: Path) -> dict:
+    with path.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def load_jsonl(path: Path) -> list[dict]:
+    with path.open(encoding="utf-8") as handle:
+        return [json.loads(line) for line in handle if line.strip()]
+
+
+summary = load_json(selector_dir / "selector_summary.json")
+state = load_json(selector_dir / "selector_scoring_state.json")
+selector_scoring = summary.get("selector_scoring", {})
+if selector_scoring.get("input_hash") != state.get("input_hash"):
+    raise SystemExit("selector scoring cache hash mismatch")
+
+candidate_features = load_json(selector_dir / "candidate_pool.json")["features"]
+candidate_flat_idxs = {int(feature["flat_idx"]) for feature in candidate_features}
+if len(candidate_flat_idxs) != int(summary["candidate_pool"]["n_features"]):
+    raise SystemExit("candidate pool count mismatch")
+
+score_requirements = {
+    "utility_scores.jsonl": {
+        "flat_idx",
+        "selector_score",
+        "selector_score_std",
+        "selector_score_sum",
+    },
+    "answer_span_scores.jsonl": {
+        "flat_idx",
+        "selector_score",
+        "selector_score_std",
+        "selector_score_sum",
+        "selector_score_full_span",
+        "selector_score_full_span_std",
+        "selector_score_full_span_sum",
+    },
+}
+for filename, required_fields in score_requirements.items():
+    rows = load_jsonl(selector_dir / filename)
+    row_flat_idxs = {int(row["flat_idx"]) for row in rows}
+    if row_flat_idxs != candidate_flat_idxs:
+        raise SystemExit(f"{filename} does not cover the candidate pool")
+    if any(not required_fields.issubset(row.keys()) for row in rows):
+        raise SystemExit(f"{filename} rows missing required fields")
+
+families = summary["families"]
+for family in ("utility_selected", "answer_span_selected", "readout_selected"):
+    manifest = load_json(selector_dir / f"{family}_features.json")
+    if len(manifest["features"]) != int(families[family]["k"]):
+        raise SystemExit(f"{family} manifest count mismatch")
+
+if len(load_json(selector_dir / "matched_zero_dead_features.json")["features"]) != 1:
+    raise SystemExit("matched_zero_dead manifest count mismatch")
+
+random_controls = summary["matched_random_controls"]["seed_families"]
+answer_span_random_controls = summary["matched_random_answer_span_controls"][
+    "seed_families"
+]
+for seed in range(n_random_seeds):
+    family = f"matched_random_seed_{seed}"
+    manifest = load_json(selector_dir / f"{family}_features.json")
+    if len(manifest["features"]) != int(random_controls[family]["k"]):
+        raise SystemExit(f"{family} manifest count mismatch")
+
+    family = f"matched_random_answer_span_seed_{seed}"
+    manifest = load_json(selector_dir / f"{family}_features.json")
+    if len(manifest["features"]) != int(answer_span_random_controls[family]["k"]):
+        raise SystemExit(f"{family} manifest count mismatch")
+
+for manifest_name in ("validation_manifest.json", "test_manifest.json"):
+    manifest = load_json(selector_dir / manifest_name)
+    if int(manifest.get("n_ids", 0)) <= 0:
+        raise SystemExit(f"{manifest_name} is empty")
+PY
 }
 
 expected_alpha_for_family() {
@@ -167,20 +244,12 @@ heldout_stage_complete() {
     local alpha
     alpha="$(expected_alpha_for_family "${family}")"
     local alpha_path="${dir}/alpha_${alpha}.jsonl"
-    local manifest_path
-    manifest_path="$(manifest_for_family "${family}")"
-    local deps=(
-        "scripts/run_intervention.py"
-        "${manifest_path}"
-        "${SELECTOR_DIR}/test_manifest.json"
-    )
     [[ -f "${alpha_path}" ]] || return 1
-    artifact_is_fresh "${alpha_path}" "${deps[@]}" || return 1
     env PYTHONUNBUFFERED=1 uv run python -m scripts.lib.pipeline check-stage \
         --output-dir "${dir}" \
         --manifest "${SELECTOR_DIR}/test_manifest.json" \
         --alphas "${alpha}" >/dev/null || return 1
-    fresh_results_summary_exists "${dir}" "${deps[@]}"
+    results_summary_exists "${dir}"
 }
 
 report_stage_complete() {
