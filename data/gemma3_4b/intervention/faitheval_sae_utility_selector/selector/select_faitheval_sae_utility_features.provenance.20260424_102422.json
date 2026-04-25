@@ -1,4 +1,5 @@
 {
+  "answer_span_selected_k": 266,
   "args": {
     "alpha": 0.0,
     "classifier_path": "models/sae_detector.pkl",
@@ -29,12 +30,14 @@
     "--output_dir",
     "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector"
   ],
+  "candidate_n": 509,
   "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/select_faitheval_sae_utility_features.py --model_path google/gemma-3-4b-it --device_map cuda:0 --classifier_path models/sae_detector.pkl --classifier_summary data/gemma3_4b/pipeline/classifier_sae_summary.json --n_random_seeds 10 --output_dir data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector",
-  "completed_at_utc": null,
+  "completed_at_utc": "2026-04-24T21:50:46.117258+00:00",
   "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
   "git_dirty": false,
   "git_sha": "0a12e42a8c9582077640a97039fd41776b66ba31",
   "hostname": "excurio",
+  "n_random_seeds": 10,
   "output_targets": [
     "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector",
     "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/candidate_pool.json",
@@ -75,6 +78,10 @@
   "safe_env": {},
   "schema_version": "run_provenance/v1",
   "script": "select_faitheval_sae_utility_features.py",
+  "selected_k": 266,
+  "selector_scoring_cache_status": "computed",
   "started_at_utc": "2026-04-24T10:24:22.090314+00:00",
-  "status": "running"
+  "status": "completed",
+  "test_n": 840,
+  "validation_n": 160
 }

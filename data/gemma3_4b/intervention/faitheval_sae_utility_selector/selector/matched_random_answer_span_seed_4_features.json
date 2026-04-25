@@ -1,0 +1,2732 @@
+{
+  "alpha": 0.0,
+  "benchmark": "faitheval",
+  "extraction_metadata": {
+    "aggregation_method": "mean",
+    "d_in": 2560,
+    "d_sae": 16384,
+    "hook_point": "post_feedforward_layernorm",
+    "layer_indices": [
+      0,
+      5,
+      6,
+      7,
+      13,
+      14,
+      15,
+      16,
+      17,
+      20
+    ],
+    "sae_l0": "small",
+    "sae_release": "gemma-scope-2-4b-it-mlp-all",
+    "sae_width": "16k",
+    "source_locations": {
+      "test": "answer_tokens",
+      "train_answer": "answer_tokens",
+      "train_other": "all_except_answer_tokens"
+    },
+    "train_mode": "3-vs-1"
+  },
+  "feature_count": 266,
+  "feature_space": "sae",
+  "features": [
+    {
+      "decoder_norm": 1.0,
+      "feature": 58,
+      "flat_idx": 58,
+      "layer": 0,
+      "mean_activation": 2.3480550649095147,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.015033709948739685,
+      "token_active_count": 1135
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 118,
+      "flat_idx": 118,
+      "layer": 0,
+      "mean_activation": 0.9184952421908502,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0074704955163781344,
+      "token_active_count": 564
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 424,
+      "flat_idx": 424,
+      "layer": 0,
+      "mean_activation": 0.6677480843884551,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0117620567704677,
+      "token_active_count": 888
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1805,
+      "flat_idx": 1805,
+      "layer": 0,
+      "mean_activation": 0.14471395528857936,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0023047273401592115,
+      "token_active_count": 174
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 4508,
+      "flat_idx": 4508,
+      "layer": 0,
+      "mean_activation": 0.1932405385677124,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002529901850404652,
+      "token_active_count": 191
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 4678,
+      "flat_idx": 4678,
+      "layer": 0,
+      "mean_activation": 0.1066931718699747,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002132535067618581,
+      "token_active_count": 161
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 5599,
+      "flat_idx": 5599,
+      "layer": 0,
+      "mean_activation": 0.3611126845692389,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0025166562909784496,
+      "token_active_count": 190
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 6012,
+      "flat_idx": 6012,
+      "layer": 0,
+      "mean_activation": 0.26328367517267864,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002543147409830854,
+      "token_active_count": 192
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 6137,
+      "flat_idx": 6137,
+      "layer": 0,
+      "mean_activation": 0.2109541505267671,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0021192895081923787,
+      "token_active_count": 160
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 6561,
+      "flat_idx": 6561,
+      "layer": 0,
+      "mean_activation": 0.19447167558221737,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0021192895081923787,
+      "token_active_count": 160
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 10496,
+      "flat_idx": 10496,
+      "layer": 0,
+      "mean_activation": 0.23685349203781483,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0021192895081923787,
+      "token_active_count": 160
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 11706,
+      "flat_idx": 11706,
+      "layer": 0,
+      "mean_activation": 0.20530159247907306,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0021192895081923787,
+      "token_active_count": 160
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 12816,
+      "flat_idx": 12816,
+      "layer": 0,
+      "mean_activation": 0.03838957743826172,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.001125872551227201,
+      "token_active_count": 85
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 13398,
+      "flat_idx": 13398,
+      "layer": 0,
+      "mean_activation": 0.14859013447725597,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004980330344252089,
+      "token_active_count": 376
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 15035,
+      "flat_idx": 15035,
+      "layer": 0,
+      "mean_activation": 0.17515951260425575,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002132535067618581,
+      "token_active_count": 161
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 15053,
+      "flat_idx": 15053,
+      "layer": 0,
+      "mean_activation": 0.16259832523806306,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0021192895081923787,
+      "token_active_count": 160
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 15168,
+      "flat_idx": 15168,
+      "layer": 0,
+      "mean_activation": 0.14739506137635228,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0021192895081923787,
+      "token_active_count": 160
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 137,
+      "flat_idx": 16521,
+      "layer": 5,
+      "mean_activation": 0.03042725948159571,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00011921003483582129,
+      "token_active_count": 9
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 61,
+      "flat_idx": 32829,
+      "layer": 6,
+      "mean_activation": 1.8688046820332964,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.037590897651562316,
+      "token_active_count": 2838
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1371,
+      "flat_idx": 34139,
+      "layer": 6,
+      "mean_activation": 0.2118855426900047,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.008887770374981787,
+      "token_active_count": 671
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 6725,
+      "flat_idx": 39493,
+      "layer": 6,
+      "mean_activation": 0.06627810629654896,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.003430599891386413,
+      "token_active_count": 259
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 29,
+      "flat_idx": 49181,
+      "layer": 7,
+      "mean_activation": 1.3207597179138224,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.018186153092175847,
+      "token_active_count": 1373
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 893,
+      "flat_idx": 50045,
+      "layer": 7,
+      "mean_activation": 0.015054928744371542,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0006225412930315112,
+      "token_active_count": 47
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2101,
+      "flat_idx": 51253,
+      "layer": 7,
+      "mean_activation": 0.10403063080728528,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.003139197584009961,
+      "token_active_count": 237
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 94,
+      "flat_idx": 65630,
+      "layer": 13,
+      "mean_activation": 11.030048618705461,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.1209319575612276,
+      "token_active_count": 9130
+    },
+    {
+      "decoder_norm": 0.9999997615814209,
+      "feature": 219,
+      "flat_idx": 65755,
+      "layer": 13,
+      "mean_activation": 11.594869369421342,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.09139436004079632,
+      "token_active_count": 6900
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 336,
+      "flat_idx": 65872,
+      "layer": 13,
+      "mean_activation": 34.62402094749005,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.14866815899969535,
+      "token_active_count": 11224
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 450,
+      "flat_idx": 65986,
+      "layer": 13,
+      "mean_activation": 1.9753788236463452,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.01035802747129025,
+      "token_active_count": 782
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 485,
+      "flat_idx": 66021,
+      "layer": 13,
+      "mean_activation": 0.4766713380924128,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.003549809926222234,
+      "token_active_count": 268
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 515,
+      "flat_idx": 66051,
+      "layer": 13,
+      "mean_activation": 1.8486752214925293,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.023047273401592117,
+      "token_active_count": 1740
+    },
+    {
+      "decoder_norm": 0.9999998211860657,
+      "feature": 541,
+      "flat_idx": 66077,
+      "layer": 13,
+      "mean_activation": 15.456491978520257,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0745062717723883,
+      "token_active_count": 5625
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 562,
+      "flat_idx": 66098,
+      "layer": 13,
+      "mean_activation": 8.813812616829974,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.07984423222114787,
+      "token_active_count": 6028
+    },
+    {
+      "decoder_norm": 0.9999998211860657,
+      "feature": 596,
+      "flat_idx": 66132,
+      "layer": 13,
+      "mean_activation": 5.263510657365472,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.08266553637892897,
+      "token_active_count": 6241
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1050,
+      "flat_idx": 66586,
+      "layer": 13,
+      "mean_activation": 45.008430423456396,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.38649217849715883,
+      "token_active_count": 29179
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1100,
+      "flat_idx": 66636,
+      "layer": 13,
+      "mean_activation": 15.13180234500212,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0777911705100865,
+      "token_active_count": 5873
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1451,
+      "flat_idx": 66987,
+      "layer": 13,
+      "mean_activation": 0.6834988017975103,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.009218909360636846,
+      "token_active_count": 696
+    },
+    {
+      "decoder_norm": 0.9999998211860657,
+      "feature": 1946,
+      "flat_idx": 67482,
+      "layer": 13,
+      "mean_activation": 0.07696597272374543,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0012848192643416295,
+      "token_active_count": 97
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 2717,
+      "flat_idx": 68253,
+      "layer": 13,
+      "mean_activation": 0.024287318568173653,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0003841212233598686,
+      "token_active_count": 29
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 10696,
+      "flat_idx": 76232,
+      "layer": 13,
+      "mean_activation": 0.052264743762841986,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0005828046147529041,
+      "token_active_count": 44
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 10726,
+      "flat_idx": 76262,
+      "layer": 13,
+      "mean_activation": 0.1322672470393717,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0010199080758175822,
+      "token_active_count": 77
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 12157,
+      "flat_idx": 77693,
+      "layer": 13,
+      "mean_activation": 0.07978084317683852,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0009536802786865703,
+      "token_active_count": 72
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 16350,
+      "flat_idx": 81886,
+      "layer": 13,
+      "mean_activation": 0.3256151355547512,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.005231995973349934,
+      "token_active_count": 395
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 170,
+      "flat_idx": 82090,
+      "layer": 14,
+      "mean_activation": 4.05499689262927,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.058386425950700024,
+      "token_active_count": 4408
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 270,
+      "flat_idx": 82190,
+      "layer": 14,
+      "mean_activation": 11.211494300179664,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.14133011907757925,
+      "token_active_count": 10670
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 428,
+      "flat_idx": 82348,
+      "layer": 14,
+      "mean_activation": 18.415418708173007,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.22020742546061434,
+      "token_active_count": 16625
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 434,
+      "flat_idx": 82354,
+      "layer": 14,
+      "mean_activation": 9.37674549859235,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.09820257758586434,
+      "token_active_count": 7414
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 501,
+      "flat_idx": 82421,
+      "layer": 14,
+      "mean_activation": 8.812731826393971,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0923877769977615,
+      "token_active_count": 6975
+    },
+    {
+      "decoder_norm": 0.9999997615814209,
+      "feature": 592,
+      "flat_idx": 82512,
+      "layer": 14,
+      "mean_activation": 4.331102725289374,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.04467727194458058,
+      "token_active_count": 3373
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 692,
+      "flat_idx": 82612,
+      "layer": 14,
+      "mean_activation": 1.2309854864854677,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.011444163344238844,
+      "token_active_count": 864
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 941,
+      "flat_idx": 82861,
+      "layer": 14,
+      "mean_activation": 0.6605750643177655,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.009722240618832536,
+      "token_active_count": 734
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1046,
+      "flat_idx": 82966,
+      "layer": 14,
+      "mean_activation": 0.6970181669218075,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.012781964846285283,
+      "token_active_count": 965
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2089,
+      "flat_idx": 84009,
+      "layer": 14,
+      "mean_activation": 2.353328661632716,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.02766997364133674,
+      "token_active_count": 2089
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 2106,
+      "flat_idx": 84026,
+      "layer": 14,
+      "mean_activation": 0.41979267673084925,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006357868524577135,
+      "token_active_count": 480
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 13057,
+      "flat_idx": 94977,
+      "layer": 14,
+      "mean_activation": 0.1879895757722187,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0023047273401592115,
+      "token_active_count": 174
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 13901,
+      "flat_idx": 95821,
+      "layer": 14,
+      "mean_activation": 0.12157734378605664,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002212008424175795,
+      "token_active_count": 167
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 95,
+      "flat_idx": 98399,
+      "layer": 15,
+      "mean_activation": 9.208041343151855,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.06720796852855081,
+      "token_active_count": 5074
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 195,
+      "flat_idx": 98499,
+      "layer": 15,
+      "mean_activation": 5.0593237202661765,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.06082360888512126,
+      "token_active_count": 4592
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 512,
+      "flat_idx": 98816,
+      "layer": 15,
+      "mean_activation": 2.0745569329651032,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.024676477211015006,
+      "token_active_count": 1863
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 535,
+      "flat_idx": 98839,
+      "layer": 15,
+      "mean_activation": 16.982966365799303,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.13262778653456428,
+      "token_active_count": 10013
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1002,
+      "flat_idx": 99306,
+      "layer": 15,
+      "mean_activation": 2.1445205773161153,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.025537438573718162,
+      "token_active_count": 1928
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1082,
+      "flat_idx": 99386,
+      "layer": 15,
+      "mean_activation": 0.25904432712318815,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0035365643667960318,
+      "token_active_count": 267
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1534,
+      "flat_idx": 99838,
+      "layer": 15,
+      "mean_activation": 11.65450381746336,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.1607481091963919,
+      "token_active_count": 12136
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 2227,
+      "flat_idx": 100531,
+      "layer": 15,
+      "mean_activation": 0.2554463276220827,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004437262407777792,
+      "token_active_count": 335
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 2490,
+      "flat_idx": 100794,
+      "layer": 15,
+      "mean_activation": 0.7752901422855392,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.008993734850391406,
+      "token_active_count": 679
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 2551,
+      "flat_idx": 100855,
+      "layer": 15,
+      "mean_activation": 4.106688099788423,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.05116759606341974,
+      "token_active_count": 3863
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 3904,
+      "flat_idx": 102208,
+      "layer": 15,
+      "mean_activation": 0.2293923445685342,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002675603004092878,
+      "token_active_count": 202
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 5150,
+      "flat_idx": 103454,
+      "layer": 15,
+      "mean_activation": 1.182776426415378,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.01556353232578778,
+      "token_active_count": 1175
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 5571,
+      "flat_idx": 103875,
+      "layer": 15,
+      "mean_activation": 1.3165350819931334,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.01843781872127369,
+      "token_active_count": 1392
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 9477,
+      "flat_idx": 107781,
+      "layer": 15,
+      "mean_activation": 4.831682227407163,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.04349841715564857,
+      "token_active_count": 3284
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 12740,
+      "flat_idx": 111044,
+      "layer": 15,
+      "mean_activation": 0.37984815245077513,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0021192895081923787,
+      "token_active_count": 160
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 13401,
+      "flat_idx": 111705,
+      "layer": 15,
+      "mean_activation": 0.36833998220829683,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004887611428268673,
+      "token_active_count": 369
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 15508,
+      "flat_idx": 113812,
+      "layer": 15,
+      "mean_activation": 0.917548219101308,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.009761977297111143,
+      "token_active_count": 737
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 34,
+      "flat_idx": 114722,
+      "layer": 16,
+      "mean_activation": 0.586345328866803,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004238579016384757,
+      "token_active_count": 320
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 108,
+      "flat_idx": 114796,
+      "layer": 16,
+      "mean_activation": 274.84012118238144,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.7600964276726228,
+      "token_active_count": 57385
+    },
+    {
+      "decoder_norm": 1.000000238418579,
+      "feature": 131,
+      "flat_idx": 114819,
+      "layer": 16,
+      "mean_activation": 7.401602888769846,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0330476707683749,
+      "token_active_count": 2495
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 167,
+      "flat_idx": 114855,
+      "layer": 16,
+      "mean_activation": 5.532591382912463,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.021298859557333405,
+      "token_active_count": 1608
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 364,
+      "flat_idx": 115052,
+      "layer": 16,
+      "mean_activation": 3.069642111710565,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.015629760122918793,
+      "token_active_count": 1180
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 420,
+      "flat_idx": 115108,
+      "layer": 16,
+      "mean_activation": 3.630921880313099,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.020861756096268724,
+      "token_active_count": 1575
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 432,
+      "flat_idx": 115120,
+      "layer": 16,
+      "mean_activation": 4.432318130433137,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0375379154138575,
+      "token_active_count": 2834
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 594,
+      "flat_idx": 115282,
+      "layer": 16,
+      "mean_activation": 159.32344610961363,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.7671298197279363,
+      "token_active_count": 57916
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 774,
+      "flat_idx": 115462,
+      "layer": 16,
+      "mean_activation": 1.7544592945493953,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.022332013192577188,
+      "token_active_count": 1686
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 845,
+      "flat_idx": 115533,
+      "layer": 16,
+      "mean_activation": 6.528823434370995,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.07036041167198696,
+      "token_active_count": 5312
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 940,
+      "flat_idx": 115628,
+      "layer": 16,
+      "mean_activation": 2.404352500650054,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.028928301786825966,
+      "token_active_count": 2184
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1085,
+      "flat_idx": 115773,
+      "layer": 16,
+      "mean_activation": 0.6436267444872279,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.009656012821701525,
+      "token_active_count": 729
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1269,
+      "flat_idx": 115957,
+      "layer": 16,
+      "mean_activation": 0.2835852193512178,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0030199875491741393,
+      "token_active_count": 228
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1873,
+      "flat_idx": 116561,
+      "layer": 16,
+      "mean_activation": 4.234572824823027,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.04066386743844126,
+      "token_active_count": 3070
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 2184,
+      "flat_idx": 116872,
+      "layer": 16,
+      "mean_activation": 0.2377926463826403,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0032054253811409725,
+      "token_active_count": 242
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2291,
+      "flat_idx": 116979,
+      "layer": 16,
+      "mean_activation": 0.6953011437760461,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.010278554114733036,
+      "token_active_count": 776
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 2500,
+      "flat_idx": 117188,
+      "layer": 16,
+      "mean_activation": 2.1996094980452967,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.011391181106534035,
+      "token_active_count": 860
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2855,
+      "flat_idx": 117543,
+      "layer": 16,
+      "mean_activation": 18.226753244463563,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.19217982171477013,
+      "token_active_count": 14509
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 4273,
+      "flat_idx": 118961,
+      "layer": 16,
+      "mean_activation": 28.167673532843775,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.23422122733353642,
+      "token_active_count": 17683
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 4515,
+      "flat_idx": 119203,
+      "layer": 16,
+      "mean_activation": 0.12585482486253075,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0016159582499966885,
+      "token_active_count": 122
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 4859,
+      "flat_idx": 119547,
+      "layer": 16,
+      "mean_activation": 0.07095497410564275,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0005960501741791065,
+      "token_active_count": 45
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 5515,
+      "flat_idx": 120203,
+      "layer": 16,
+      "mean_activation": 1.11639988701402,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.010768639813502524,
+      "token_active_count": 813
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 5694,
+      "flat_idx": 120382,
+      "layer": 16,
+      "mean_activation": 2.2682459464772298,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.020742546061432904,
+      "token_active_count": 1566
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 6290,
+      "flat_idx": 120978,
+      "layer": 16,
+      "mean_activation": 2.3183272754975337,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.027696464760189148,
+      "token_active_count": 2091
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 6610,
+      "flat_idx": 121298,
+      "layer": 16,
+      "mean_activation": 1.0760466549866012,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.01035802747129025,
+      "token_active_count": 782
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 10874,
+      "flat_idx": 125562,
+      "layer": 16,
+      "mean_activation": 0.009732863583362584,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00011921003483582129,
+      "token_active_count": 9
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 11363,
+      "flat_idx": 126051,
+      "layer": 16,
+      "mean_activation": 0.3097553109422239,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0032054253811409725,
+      "token_active_count": 242
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 11956,
+      "flat_idx": 126644,
+      "layer": 16,
+      "mean_activation": 0.02293780573279971,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00025166562909784493,
+      "token_active_count": 19
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 13888,
+      "flat_idx": 128576,
+      "layer": 16,
+      "mean_activation": 0.1726250388975126,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0016689404877014982,
+      "token_active_count": 126
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 14762,
+      "flat_idx": 129450,
+      "layer": 16,
+      "mean_activation": 0.2563733462000663,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002675603004092878,
+      "token_active_count": 202
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 30,
+      "flat_idx": 131102,
+      "layer": 17,
+      "mean_activation": 20.28094200678866,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0844801780203187,
+      "token_active_count": 6378
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 46,
+      "flat_idx": 131118,
+      "layer": 17,
+      "mean_activation": 2.8101191236282568,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006530060797117767,
+      "token_active_count": 493
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 53,
+      "flat_idx": 131125,
+      "layer": 17,
+      "mean_activation": 54.06027589724178,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.12307773818827238,
+      "token_active_count": 9292
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 54,
+      "flat_idx": 131126,
+      "layer": 17,
+      "mean_activation": 0.5073997464917636,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004159105659827543,
+      "token_active_count": 314
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 75,
+      "flat_idx": 131147,
+      "layer": 17,
+      "mean_activation": 2.02333423977241,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.010053379604487595,
+      "token_active_count": 759
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 84,
+      "flat_idx": 131156,
+      "layer": 17,
+      "mean_activation": 5.572699578760166,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006543306356543968,
+      "token_active_count": 494
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 284,
+      "flat_idx": 131356,
+      "layer": 17,
+      "mean_activation": 3.507325968224524,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.018013960819635216,
+      "token_active_count": 1360
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 342,
+      "flat_idx": 131414,
+      "layer": 17,
+      "mean_activation": 72.94304258105869,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.39099566870206764,
+      "token_active_count": 29519
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 347,
+      "flat_idx": 131419,
+      "layer": 17,
+      "mean_activation": 2.2036153735051145,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0069274275799038375,
+      "token_active_count": 523
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 374,
+      "flat_idx": 131446,
+      "layer": 17,
+      "mean_activation": 29.335296978894856,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.17374200299349643,
+      "token_active_count": 13117
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 403,
+      "flat_idx": 131475,
+      "layer": 17,
+      "mean_activation": 2.8423796594036332,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.015272130018411328,
+      "token_active_count": 1153
+    },
+    {
+      "decoder_norm": 1.000000238418579,
+      "feature": 428,
+      "flat_idx": 131500,
+      "layer": 17,
+      "mean_activation": 19.189962416113183,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.11101103355100203,
+      "token_active_count": 8381
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 461,
+      "flat_idx": 131533,
+      "layer": 17,
+      "mean_activation": 3.1681629182272455,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.030809171225346703,
+      "token_active_count": 2326
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 498,
+      "flat_idx": 131570,
+      "layer": 17,
+      "mean_activation": 14.657746227576716,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.10905069075592408,
+      "token_active_count": 8233
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 617,
+      "flat_idx": 131689,
+      "layer": 17,
+      "mean_activation": 0.726240781417251,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006675761950805993,
+      "token_active_count": 504
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 635,
+      "flat_idx": 131707,
+      "layer": 17,
+      "mean_activation": 0.24663099713399209,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002503410731552247,
+      "token_active_count": 189
+    },
+    {
+      "decoder_norm": 0.9999998211860657,
+      "feature": 644,
+      "flat_idx": 131716,
+      "layer": 17,
+      "mean_activation": 0.1495271453317785,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002132535067618581,
+      "token_active_count": 161
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 912,
+      "flat_idx": 131984,
+      "layer": 17,
+      "mean_activation": 21.900549846584344,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.18768957706928752,
+      "token_active_count": 14170
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1029,
+      "flat_idx": 132101,
+      "layer": 17,
+      "mean_activation": 0.972394834122522,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.008636104745883942,
+      "token_active_count": 652
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1151,
+      "flat_idx": 132223,
+      "layer": 17,
+      "mean_activation": 0.11670931743808426,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0010993814323747963,
+      "token_active_count": 83
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 1311,
+      "flat_idx": 132383,
+      "layer": 17,
+      "mean_activation": 0.32273923782774483,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002609375206961866,
+      "token_active_count": 197
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1425,
+      "flat_idx": 132497,
+      "layer": 17,
+      "mean_activation": 1.474680060965921,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.011060042120878976,
+      "token_active_count": 835
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1461,
+      "flat_idx": 132533,
+      "layer": 17,
+      "mean_activation": 58.11709707059966,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.41396346874710255,
+      "token_active_count": 31253
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1497,
+      "flat_idx": 132569,
+      "layer": 17,
+      "mean_activation": 3.0007485689427744,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.02642489105527372,
+      "token_active_count": 1995
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1504,
+      "flat_idx": 132576,
+      "layer": 17,
+      "mean_activation": 2.880407557641661,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.025563929692570566,
+      "token_active_count": 1930
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1910,
+      "flat_idx": 132982,
+      "layer": 17,
+      "mean_activation": 1.84251532816171,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.01517941110242791,
+      "token_active_count": 1146
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2325,
+      "flat_idx": 133397,
+      "layer": 17,
+      "mean_activation": 0.03488389263074505,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00039736678278607095,
+      "token_active_count": 30
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2338,
+      "flat_idx": 133410,
+      "layer": 17,
+      "mean_activation": 0.8779171319482014,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.007602951110640158,
+      "token_active_count": 574
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 2455,
+      "flat_idx": 133527,
+      "layer": 17,
+      "mean_activation": 6.845506486973924,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.049710584526537475,
+      "token_active_count": 3753
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2646,
+      "flat_idx": 133718,
+      "layer": 17,
+      "mean_activation": 10.75737373114267,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.061340185702743154,
+      "token_active_count": 4631
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2687,
+      "flat_idx": 133759,
+      "layer": 17,
+      "mean_activation": 0.14507927370303209,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0014040292991774508,
+      "token_active_count": 106
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2729,
+      "flat_idx": 133801,
+      "layer": 17,
+      "mean_activation": 1.544661792854313,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.016331774772507517,
+      "token_active_count": 1233
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 3065,
+      "flat_idx": 134137,
+      "layer": 17,
+      "mean_activation": 0.04086084379866191,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00037087566393366624,
+      "token_active_count": 28
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 3348,
+      "flat_idx": 134420,
+      "layer": 17,
+      "mean_activation": 0.03599974248769819,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0003311389856550591,
+      "token_active_count": 25
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 3386,
+      "flat_idx": 134458,
+      "layer": 17,
+      "mean_activation": 0.6161390275486681,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.003218670940567175,
+      "token_active_count": 243
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 3697,
+      "flat_idx": 134769,
+      "layer": 17,
+      "mean_activation": 0.9598943661138336,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006477078559412957,
+      "token_active_count": 489
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 5960,
+      "flat_idx": 137032,
+      "layer": 17,
+      "mean_activation": 0.16978763294486504,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0014570115368822602,
+      "token_active_count": 110
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 7039,
+      "flat_idx": 138111,
+      "layer": 17,
+      "mean_activation": 0.8340019028914746,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.005576380518431196,
+      "token_active_count": 421
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 7532,
+      "flat_idx": 138604,
+      "layer": 17,
+      "mean_activation": 3.8338800770324677,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.031418466958952014,
+      "token_active_count": 2372
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 7839,
+      "flat_idx": 138911,
+      "layer": 17,
+      "mean_activation": 0.4869544023185136,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0035763010450746385,
+      "token_active_count": 270
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 8317,
+      "flat_idx": 139389,
+      "layer": 17,
+      "mean_activation": 1.1752802432226845,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.009682503940553928,
+      "token_active_count": 731
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 8746,
+      "flat_idx": 139818,
+      "layer": 17,
+      "mean_activation": 0.14814982320832337,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0012980648237678318,
+      "token_active_count": 98
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 10650,
+      "flat_idx": 141722,
+      "layer": 17,
+      "mean_activation": 0.6102028880884883,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0038941944713034955,
+      "token_active_count": 294
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 11491,
+      "flat_idx": 142563,
+      "layer": 17,
+      "mean_activation": 1.6306652368873231,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.009550048346291905,
+      "token_active_count": 721
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 12425,
+      "flat_idx": 143497,
+      "layer": 17,
+      "mean_activation": 0.7020023937678324,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.005722081672119422,
+      "token_active_count": 432
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 14649,
+      "flat_idx": 145721,
+      "layer": 17,
+      "mean_activation": 1.2281738697194844,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.007828125620885598,
+      "token_active_count": 591
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 15068,
+      "flat_idx": 146140,
+      "layer": 17,
+      "mean_activation": 0.17659583896959483,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0014040292991774508,
+      "token_active_count": 106
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 31,
+      "flat_idx": 147487,
+      "layer": 20,
+      "mean_activation": 196.82208176525225,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.6551121236605428,
+      "token_active_count": 49459
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 67,
+      "flat_idx": 147523,
+      "layer": 20,
+      "mean_activation": 2.395499167799869,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.010675920897519106,
+      "token_active_count": 806
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 116,
+      "flat_idx": 147572,
+      "layer": 20,
+      "mean_activation": 8.707763283821501,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.039498258208935454,
+      "token_active_count": 2982
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 135,
+      "flat_idx": 147591,
+      "layer": 20,
+      "mean_activation": 0.8983195535643697,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006702253069658397,
+      "token_active_count": 506
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 174,
+      "flat_idx": 147630,
+      "layer": 20,
+      "mean_activation": 3.4947918191932503,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.010702412016371511,
+      "token_active_count": 808
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 181,
+      "flat_idx": 147637,
+      "layer": 20,
+      "mean_activation": 8.306427255400566,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.038504841251970276,
+      "token_active_count": 2907
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 203,
+      "flat_idx": 147659,
+      "layer": 20,
+      "mean_activation": 11.243813054489644,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.05144575281136999,
+      "token_active_count": 3884
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 206,
+      "flat_idx": 147662,
+      "layer": 20,
+      "mean_activation": 0.8302863791650299,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0050200670225306965,
+      "token_active_count": 379
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 219,
+      "flat_idx": 147675,
+      "layer": 20,
+      "mean_activation": 3.1006229925669127,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.008583122508179133,
+      "token_active_count": 648
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 224,
+      "flat_idx": 147680,
+      "layer": 20,
+      "mean_activation": 11.908993492963711,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.045167357643350066,
+      "token_active_count": 3410
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 230,
+      "flat_idx": 147686,
+      "layer": 20,
+      "mean_activation": 6.31773249397534,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.01602712690570486,
+      "token_active_count": 1210
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 238,
+      "flat_idx": 147694,
+      "layer": 20,
+      "mean_activation": 6.104369721857998,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.017139753897505862,
+      "token_active_count": 1294
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 261,
+      "flat_idx": 147717,
+      "layer": 20,
+      "mean_activation": 2.671988777892186,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.016265546975376504,
+      "token_active_count": 1228
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 276,
+      "flat_idx": 147732,
+      "layer": 20,
+      "mean_activation": 4.186127047722741,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.02166973522126707,
+      "token_active_count": 1636
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 282,
+      "flat_idx": 147738,
+      "layer": 20,
+      "mean_activation": 3.50596717787886,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00907320820694862,
+      "token_active_count": 685
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 290,
+      "flat_idx": 147746,
+      "layer": 20,
+      "mean_activation": 2.001436730082456,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.010238817436454429,
+      "token_active_count": 773
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 299,
+      "flat_idx": 147755,
+      "layer": 20,
+      "mean_activation": 8.704686265343119,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.020848510536842522,
+      "token_active_count": 1574
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 305,
+      "flat_idx": 147761,
+      "layer": 20,
+      "mean_activation": 5.024042116050943,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.02345788574380439,
+      "token_active_count": 1771
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 346,
+      "flat_idx": 147802,
+      "layer": 20,
+      "mean_activation": 3.9766244543579754,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.022292276514298583,
+      "token_active_count": 1683
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 353,
+      "flat_idx": 147809,
+      "layer": 20,
+      "mean_activation": 6.961915666454462,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.03275626846099845,
+      "token_active_count": 2473
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 368,
+      "flat_idx": 147824,
+      "layer": 20,
+      "mean_activation": 1.7289102163918249,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006318131846298528,
+      "token_active_count": 477
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 396,
+      "flat_idx": 147852,
+      "layer": 20,
+      "mean_activation": 3.0503403097610216,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.013139594950792748,
+      "token_active_count": 992
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 401,
+      "flat_idx": 147857,
+      "layer": 20,
+      "mean_activation": 1.544758832301361,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.009112944885227228,
+      "token_active_count": 688
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 406,
+      "flat_idx": 147862,
+      "layer": 20,
+      "mean_activation": 4.625571737005589,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.021285613997907203,
+      "token_active_count": 1607
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 407,
+      "flat_idx": 147863,
+      "layer": 20,
+      "mean_activation": 4.192449148628733,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.012530299217187438,
+      "token_active_count": 946
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 420,
+      "flat_idx": 147876,
+      "layer": 20,
+      "mean_activation": 58.67779929635035,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.10463991946699869,
+      "token_active_count": 7900
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 517,
+      "flat_idx": 147973,
+      "layer": 20,
+      "mean_activation": 9.899907042431115,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.03229267388108137,
+      "token_active_count": 2438
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 566,
+      "flat_idx": 148022,
+      "layer": 20,
+      "mean_activation": 1.1521493242830894,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006993655377034849,
+      "token_active_count": 528
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 571,
+      "flat_idx": 148027,
+      "layer": 20,
+      "mean_activation": 13.179554400883685,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.05890300276832192,
+      "token_active_count": 4447
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 634,
+      "flat_idx": 148090,
+      "layer": 20,
+      "mean_activation": 0.5936241031162015,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0028875319549121156,
+      "token_active_count": 218
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 694,
+      "flat_idx": 148150,
+      "layer": 20,
+      "mean_activation": 2.9684731792070638,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.011576618938500868,
+      "token_active_count": 874
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 742,
+      "flat_idx": 148198,
+      "layer": 20,
+      "mean_activation": 1.1997300306958079,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002702094122945283,
+      "token_active_count": 204
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 763,
+      "flat_idx": 148219,
+      "layer": 20,
+      "mean_activation": 2.0033772741657017,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.011934249043008332,
+      "token_active_count": 901
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 801,
+      "flat_idx": 148257,
+      "layer": 20,
+      "mean_activation": 2.1004961308042587,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.012291879147515795,
+      "token_active_count": 928
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 918,
+      "flat_idx": 148374,
+      "layer": 20,
+      "mean_activation": 0.5725768578517219,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0022649906618806047,
+      "token_active_count": 171
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 921,
+      "flat_idx": 148377,
+      "layer": 20,
+      "mean_activation": 1.539273850912795,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.008583122508179133,
+      "token_active_count": 648
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 931,
+      "flat_idx": 148387,
+      "layer": 20,
+      "mean_activation": 9.566136349090238,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.048452256381048255,
+      "token_active_count": 3658
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1074,
+      "flat_idx": 148530,
+      "layer": 20,
+      "mean_activation": 1.0453532069737146,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0066890075102321945,
+      "token_active_count": 505
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1110,
+      "flat_idx": 148566,
+      "layer": 20,
+      "mean_activation": 1.1257598825212658,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0033511265348291986,
+      "token_active_count": 253
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1113,
+      "flat_idx": 148569,
+      "layer": 20,
+      "mean_activation": 0.3851307359473087,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0033246354159767936,
+      "token_active_count": 251
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1122,
+      "flat_idx": 148578,
+      "layer": 20,
+      "mean_activation": 5.54717706973637,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.03320661748148933,
+      "token_active_count": 2507
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1215,
+      "flat_idx": 148671,
+      "layer": 20,
+      "mean_activation": 67.732823368085,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.3455236631919149,
+      "token_active_count": 26086
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1226,
+      "flat_idx": 148682,
+      "layer": 20,
+      "mean_activation": 1.5736706153379205,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.012609772573744652,
+      "token_active_count": 952
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 1345,
+      "flat_idx": 148801,
+      "layer": 20,
+      "mean_activation": 18.88668734030305,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.11154085592805012,
+      "token_active_count": 8421
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1372,
+      "flat_idx": 148828,
+      "layer": 20,
+      "mean_activation": 3.8742415098227725,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.016252301415950302,
+      "token_active_count": 1227
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1515,
+      "flat_idx": 148971,
+      "layer": 20,
+      "mean_activation": 0.3944448907149508,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0018543783196683311,
+      "token_active_count": 140
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1603,
+      "flat_idx": 149059,
+      "layer": 20,
+      "mean_activation": 4.024868833511377,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.019735883545041525,
+      "token_active_count": 1490
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1650,
+      "flat_idx": 149106,
+      "layer": 20,
+      "mean_activation": 0.7102303674906733,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004437262407777792,
+      "token_active_count": 335
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1699,
+      "flat_idx": 149155,
+      "layer": 20,
+      "mean_activation": 0.25972367055555345,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0015099937745870697,
+      "token_active_count": 114
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1749,
+      "flat_idx": 149205,
+      "layer": 20,
+      "mean_activation": 1.5975950084882176,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.009563293905718109,
+      "token_active_count": 722
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 1907,
+      "flat_idx": 149363,
+      "layer": 20,
+      "mean_activation": 0.22416296947213524,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0013907837397512484,
+      "token_active_count": 105
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 1982,
+      "flat_idx": 149438,
+      "layer": 20,
+      "mean_activation": 2.5899666380544044,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.016133091381114482,
+      "token_active_count": 1218
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2131,
+      "flat_idx": 149587,
+      "layer": 20,
+      "mean_activation": 6.504874149205639,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.019881584698729752,
+      "token_active_count": 1501
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 2318,
+      "flat_idx": 149774,
+      "layer": 20,
+      "mean_activation": 2.6372802848365717,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.012570035895466045,
+      "token_active_count": 949
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2342,
+      "flat_idx": 149798,
+      "layer": 20,
+      "mean_activation": 0.77264481947997,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006013483979495874,
+      "token_active_count": 454
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2354,
+      "flat_idx": 149810,
+      "layer": 20,
+      "mean_activation": 1.2304397385545174,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002529901850404652,
+      "token_active_count": 191
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 2395,
+      "flat_idx": 149851,
+      "layer": 20,
+      "mean_activation": 4.3574004722326505,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.01920606116799343,
+      "token_active_count": 1450
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 2538,
+      "flat_idx": 149994,
+      "layer": 20,
+      "mean_activation": 2.5922994954331147,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.013536961733578818,
+      "token_active_count": 1022
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 2888,
+      "flat_idx": 150344,
+      "layer": 20,
+      "mean_activation": 0.2616103290650984,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0013907837397512484,
+      "token_active_count": 105
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 2919,
+      "flat_idx": 150375,
+      "layer": 20,
+      "mean_activation": 0.152706637825194,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0009536802786865703,
+      "token_active_count": 72
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 3102,
+      "flat_idx": 150558,
+      "layer": 20,
+      "mean_activation": 0.4096896484096895,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0016159582499966885,
+      "token_active_count": 122
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 3299,
+      "flat_idx": 150755,
+      "layer": 20,
+      "mean_activation": 0.6441758968802413,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0041855967786799475,
+      "token_active_count": 316
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 3353,
+      "flat_idx": 150809,
+      "layer": 20,
+      "mean_activation": 0.299313682397394,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002317972899585414,
+      "token_active_count": 175
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 3520,
+      "flat_idx": 150976,
+      "layer": 20,
+      "mean_activation": 0.8034372902570839,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004410771288925388,
+      "token_active_count": 333
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 3634,
+      "flat_idx": 151090,
+      "layer": 20,
+      "mean_activation": 0.9733182296551829,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006331377405724731,
+      "token_active_count": 478
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 4038,
+      "flat_idx": 151494,
+      "layer": 20,
+      "mean_activation": 0.6356203846816696,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002066307270487569,
+      "token_active_count": 156
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 4203,
+      "flat_idx": 151659,
+      "layer": 20,
+      "mean_activation": 0.9419530331445031,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.005563134959004993,
+      "token_active_count": 420
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 4253,
+      "flat_idx": 151709,
+      "layer": 20,
+      "mean_activation": 3.4745307122103997,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.023815515848311854,
+      "token_active_count": 1798
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 4268,
+      "flat_idx": 151724,
+      "layer": 20,
+      "mean_activation": 0.24216820262499306,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0014570115368822602,
+      "token_active_count": 110
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 4352,
+      "flat_idx": 151808,
+      "layer": 20,
+      "mean_activation": 5.248795975091001,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.015801952395459423,
+      "token_active_count": 1193
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 4404,
+      "flat_idx": 151860,
+      "layer": 20,
+      "mean_activation": 0.23851226390695782,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0007682424467197372,
+      "token_active_count": 58
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 4452,
+      "flat_idx": 151908,
+      "layer": 20,
+      "mean_activation": 0.11274335853551093,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0004371034610646781,
+      "token_active_count": 33
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 4476,
+      "flat_idx": 151932,
+      "layer": 20,
+      "mean_activation": 0.24417993229303994,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0014437659774560578,
+      "token_active_count": 109
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 4592,
+      "flat_idx": 152048,
+      "layer": 20,
+      "mean_activation": 6.9176940719899775,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.03906115474787077,
+      "token_active_count": 2949
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 4899,
+      "flat_idx": 152355,
+      "layer": 20,
+      "mean_activation": 0.35521302092528045,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002357709577864021,
+      "token_active_count": 178
+    },
+    {
+      "decoder_norm": 0.9999998211860657,
+      "feature": 4934,
+      "flat_idx": 152390,
+      "layer": 20,
+      "mean_activation": 0.11836750288158827,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0007682424467197372,
+      "token_active_count": 58
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 5235,
+      "flat_idx": 152691,
+      "layer": 20,
+      "mean_activation": 0.20411913081371405,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0008344702438507491,
+      "token_active_count": 63
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 5240,
+      "flat_idx": 152696,
+      "layer": 20,
+      "mean_activation": 5.341520715110679,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.030650224512232274,
+      "token_active_count": 2314
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 5601,
+      "flat_idx": 153057,
+      "layer": 20,
+      "mean_activation": 0.3521011732306002,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0019470972356517477,
+      "token_active_count": 147
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 5667,
+      "flat_idx": 153123,
+      "layer": 20,
+      "mean_activation": 0.013062006079039151,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 6.622779713101183e-05,
+      "token_active_count": 5
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 5752,
+      "flat_idx": 153208,
+      "layer": 20,
+      "mean_activation": 0.6274888795428,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.003549809926222234,
+      "token_active_count": 268
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 5947,
+      "flat_idx": 153403,
+      "layer": 20,
+      "mean_activation": 4.746019148331743,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.012781964846285283,
+      "token_active_count": 965
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 6527,
+      "flat_idx": 153983,
+      "layer": 20,
+      "mean_activation": 0.1409043500124591,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0006357868524577135,
+      "token_active_count": 48
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 6752,
+      "flat_idx": 154208,
+      "layer": 20,
+      "mean_activation": 0.20119305574819896,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0009006980409817609,
+      "token_active_count": 68
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 6786,
+      "flat_idx": 154242,
+      "layer": 20,
+      "mean_activation": 0.061589811221415464,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0002781567479502497,
+      "token_active_count": 21
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 6857,
+      "flat_idx": 154313,
+      "layer": 20,
+      "mean_activation": 1.1358916375132313,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006477078559412957,
+      "token_active_count": 489
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 7007,
+      "flat_idx": 154463,
+      "layer": 20,
+      "mean_activation": 0.5959638213616155,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.003298144297124389,
+      "token_active_count": 249
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 7058,
+      "flat_idx": 154514,
+      "layer": 20,
+      "mean_activation": 0.24079812052884758,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0016027126905704863,
+      "token_active_count": 121
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 7207,
+      "flat_idx": 154663,
+      "layer": 20,
+      "mean_activation": 0.10353485284875506,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0006357868524577135,
+      "token_active_count": 48
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 7595,
+      "flat_idx": 155051,
+      "layer": 20,
+      "mean_activation": 0.0017764527306600344,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 1.3245559426202366e-05,
+      "token_active_count": 1
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 8033,
+      "flat_idx": 155489,
+      "layer": 20,
+      "mean_activation": 0.7522479642082865,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004410771288925388,
+      "token_active_count": 333
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 8758,
+      "flat_idx": 156214,
+      "layer": 20,
+      "mean_activation": 0.2476408596769703,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0010199080758175822,
+      "token_active_count": 77
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 8946,
+      "flat_idx": 156402,
+      "layer": 20,
+      "mean_activation": 22.460221547762245,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.07376452044452098,
+      "token_active_count": 5569
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 9211,
+      "flat_idx": 156667,
+      "layer": 20,
+      "mean_activation": 0.2883514189452672,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0012053459077844154,
+      "token_active_count": 91
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 9997,
+      "flat_idx": 157453,
+      "layer": 20,
+      "mean_activation": 0.021935333789973133,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00013245559426202367,
+      "token_active_count": 10
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 10458,
+      "flat_idx": 157914,
+      "layer": 20,
+      "mean_activation": 0.10957574462243869,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0006490324118839159,
+      "token_active_count": 49
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 10489,
+      "flat_idx": 157945,
+      "layer": 20,
+      "mean_activation": 1.8067591862578924,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.007245321006132694,
+      "token_active_count": 547
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 10773,
+      "flat_idx": 158229,
+      "layer": 20,
+      "mean_activation": 0.9770029464813236,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004609454680318423,
+      "token_active_count": 348
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 11079,
+      "flat_idx": 158535,
+      "layer": 20,
+      "mean_activation": 2.691414362137126,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.010490483065552274,
+      "token_active_count": 792
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 11987,
+      "flat_idx": 159443,
+      "layer": 20,
+      "mean_activation": 0.21177702827867437,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0011126269918009988,
+      "token_active_count": 84
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 12549,
+      "flat_idx": 160005,
+      "layer": 20,
+      "mean_activation": 0.4299562723208373,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0020795528299137715,
+      "token_active_count": 157
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 12771,
+      "flat_idx": 160227,
+      "layer": 20,
+      "mean_activation": 0.7078316738042209,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.004212087897532352,
+      "token_active_count": 318
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 12840,
+      "flat_idx": 160296,
+      "layer": 20,
+      "mean_activation": 0.16821738578013914,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0009139436004079632,
+      "token_active_count": 69
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 13063,
+      "flat_idx": 160519,
+      "layer": 20,
+      "mean_activation": 0.17039758816730716,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0010463991946699869,
+      "token_active_count": 79
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 13147,
+      "flat_idx": 160603,
+      "layer": 20,
+      "mean_activation": 0.24907208364407796,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.001483502655734665,
+      "token_active_count": 112
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 13367,
+      "flat_idx": 160823,
+      "layer": 20,
+      "mean_activation": 3.7993696997389486,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.01282170152456389,
+      "token_active_count": 968
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 13792,
+      "flat_idx": 161248,
+      "layer": 20,
+      "mean_activation": 0.23287719514749966,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0011126269918009988,
+      "token_active_count": 84
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 14076,
+      "flat_idx": 161532,
+      "layer": 20,
+      "mean_activation": 0.5460811473360813,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00296700531146933,
+      "token_active_count": 224
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 14171,
+      "flat_idx": 161627,
+      "layer": 20,
+      "mean_activation": 0.2599183725584709,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0015497304528656768,
+      "token_active_count": 117
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 14526,
+      "flat_idx": 161982,
+      "layer": 20,
+      "mean_activation": 0.9208535423376327,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0045829635614660184,
+      "token_active_count": 346
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 14829,
+      "flat_idx": 162285,
+      "layer": 20,
+      "mean_activation": 0.6293210363426589,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.002980250870895532,
+      "token_active_count": 225
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 14856,
+      "flat_idx": 162312,
+      "layer": 20,
+      "mean_activation": 0.0497902147213838,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00019868339139303548,
+      "token_active_count": 15
+    },
+    {
+      "decoder_norm": 1.0,
+      "feature": 14916,
+      "flat_idx": 162372,
+      "layer": 20,
+      "mean_activation": 0.7960898335700632,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.00397366782786071,
+      "token_active_count": 300
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 15928,
+      "flat_idx": 163384,
+      "layer": 20,
+      "mean_activation": 0.04199674783600026,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0002781567479502497,
+      "token_active_count": 21
+    },
+    {
+      "decoder_norm": 0.9999998807907104,
+      "feature": 16142,
+      "flat_idx": 163598,
+      "layer": 20,
+      "mean_activation": 0.42764265330066403,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.0023444640184378186,
+      "token_active_count": 177
+    },
+    {
+      "decoder_norm": 1.0000001192092896,
+      "feature": 16158,
+      "flat_idx": 163614,
+      "layer": 20,
+      "mean_activation": 1.6732329156084016,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.007682424467197372,
+      "token_active_count": 580
+    },
+    {
+      "decoder_norm": 0.9999999403953552,
+      "feature": 16358,
+      "flat_idx": 163814,
+      "layer": 20,
+      "mean_activation": 1.4731763593171283,
+      "n_validation_tokens": 75497,
+      "token_activation_rate": 0.006198921811462707,
+      "token_active_count": 468
+    }
+  ],
+  "prompt_style": "anti_compliance",
+  "sae_steering_mode": "delta_only",
+  "schema_version": "sae_feature_manifest/v1",
+  "selector_name": "layer_matched_zero_weight_answer_span_seed_4",
+  "split_metadata": {
+    "seed": 42,
+    "strata_test_counts": {
+      "3::A": 1,
+      "3::B": 1,
+      "3::C": 1,
+      "4::A": 219,
+      "4::B": 198,
+      "4::C": 197,
+      "4::D": 221,
+      "5::A": 1,
+      "5::D": 1
+    },
+    "strata_validation_counts": {
+      "3::A": 0,
+      "3::B": 0,
+      "3::C": 0,
+      "4::A": 42,
+      "4::B": 38,
+      "4::C": 38,
+      "4::D": 42,
+      "5::A": 0,
+      "5::D": 0
+    },
+    "stratify_by": [
+      "num_options",
+      "counterfactual_key_canonical"
+    ],
+    "test_fingerprint": "781fd7eafa5f2573",
+    "test_size": 840,
+    "validation_fingerprint": "6fc512b3027fc4a0",
+    "validation_size": 160
+  }
+}
