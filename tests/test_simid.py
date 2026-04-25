@@ -25,6 +25,7 @@ from build_simid_manifest import (
     OptionRecord,
     build_manifest_row,
     build_truthfulqa_rows,
+    main as build_manifest_main,
     select_bridge_distractors,
     validate_manifest,
 )
@@ -947,12 +948,49 @@ def test_truthfulqa_heldout_policy_refuses_artifact_without_test_ids(
         )
 
 
-def test_mvp_default_drops_truthfulqa_when_no_heldout_ids() -> None:
-    script = Path(__file__).resolve().parent.parent / "scripts/infra/simid.sh"
-
-    assert "SIMID_TRUTHFULQA_LEAKAGE_POLICY:-drop_if_no_heldout" in script.read_text(
-        encoding="utf-8"
+def test_manifest_builder_can_require_truthfulqa_rows(tmp_path: Path) -> None:
+    csv_path = tmp_path / "truthfulqa.csv"
+    _write_truthfulqa_csv(csv_path, ["Fitted?"])
+    metadata_path = tmp_path / "extraction_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "question_ids_train": [stable_question_id("Fitted?")],
+                "question_ids_val": [],
+                "question_ids_dev": [stable_question_id("Fitted?")],
+                "question_ids_test": [],
+            }
+        ),
+        encoding="utf-8",
     )
+
+    with pytest.raises(ValueError, match="enough TruthfulQA rows"):
+        build_manifest_main(
+            [
+                "--truthfulqa-csv",
+                str(csv_path),
+                "--truthfulqa-split-metadata",
+                str(metadata_path),
+                "--truthfulqa-leakage-policy",
+                "drop_if_no_heldout",
+                "--truthfulqa-n",
+                "1",
+                "--bridge-n",
+                "0",
+                "--min-truthfulqa-rows",
+                "1",
+                "--output",
+                str(tmp_path / "simid.json"),
+            ]
+        )
+
+
+def test_mvp_default_requires_truthfulqa_rows() -> None:
+    script = Path(__file__).resolve().parent.parent / "scripts/infra/simid.sh"
+    text = script.read_text(encoding="utf-8")
+
+    assert "SIMID_TRUTHFULQA_LEAKAGE_POLICY:-heldout_only" in text
+    assert "SIMID_MIN_TRUTHFULQA_ROWS:-1" in text
 
 
 def test_noop_equivalence_check_fails_on_hooked_alpha0_divergence() -> None:

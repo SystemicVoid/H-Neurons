@@ -18,7 +18,14 @@ Usage:
 
 Environment overrides:
   SIMID_RUN_NAME, SIMID_RUN_DIR, SIMID_MANIFEST, SIMID_MODEL_PATH,
-  SIMID_ITI_ARTIFACT, SIMID_DEVICE_MAP, SIMID_TRUTHFULQA_LEAKAGE_POLICY
+  SIMID_ITI_ARTIFACT, SIMID_DEVICE_MAP, SIMID_TRUTHFULQA_LEAKAGE_POLICY,
+  SIMID_MIN_TRUTHFULQA_ROWS, SIMID_MIN_BRIDGE_ROWS
+
+Notes:
+  mvp is claim-oriented and requires both TruthfulQA and Bridge rows by default.
+  The production paper-faithful artifact has no held-out TruthfulQA IDs, so use
+  a fold artifact for claimable TruthfulQA or override the row minimum only for
+  an explicitly nonclaimable/debug run.
 USAGE
 }
 
@@ -57,12 +64,16 @@ build_manifest() {
   local bridge_n="$3"
   local replicates="$4"
   local truthfulqa_leakage_policy="$5"
+  local min_truthfulqa_rows="${6:-0}"
+  local min_bridge_rows="${7:-0}"
   uv run python scripts/build_simid_manifest.py \
     --seed 42 \
     --truthfulqa-n "$truthfulqa_n" \
     --truthfulqa-leakage-policy "$truthfulqa_leakage_policy" \
     --bridge-n "$bridge_n" \
     --option-order-replicates "$replicates" \
+    --min-truthfulqa-rows "$min_truthfulqa_rows" \
+    --min-bridge-rows "$min_bridge_rows" \
     --model-path "$MODEL_PATH" \
     --iti-artifact-path "$ITI_ARTIFACT" \
     --output "$output"
@@ -75,7 +86,7 @@ append_run_note() {
   cat >> notes/runs_to_analyse.md <<EOF
 
 ## ${iso_ts} | ${run_dir}
-What: SIMID same-item held-out TruthfulQA MC1 when available + TriviaQA Bridge, ITI paper-faithful k=12 first-3-token scope, alpha grid -8/0/4/8, selected + random-head + random-direction controls
+What: SIMID same-item held-out TruthfulQA MC1 + TriviaQA Bridge, ITI paper-faithful k=12 first-3-token scope, alpha grid -8/0/4/8, selected + random-head + random-direction controls
 Key files: selected/alpha_0.0.jsonl, selected/alpha_8.0.jsonl, random_head_seed1/alpha_8.0.jsonl, random_direction_seed1/alpha_8.0.jsonl, run_config.json, manifest.locked.json
 Status: awaiting analysis
 EOF
@@ -88,7 +99,7 @@ case "$MODE" in
     RUN_DIR="${SIMID_RUN_DIR:-${BASE_RUN_ROOT}/smoke_${TIMESTAMP}_nonclaimable}"
     MANIFEST="${SIMID_MANIFEST:-data/manifests/simid_smoke_seed42.json}"
     ensure_not_analyzed "$RUN_DIR"
-    build_manifest "$MANIFEST" 2 2 1 allow_fitted
+    build_manifest "$MANIFEST" 2 2 1 allow_fitted 1 1
     gpu_preflight
     uv run python scripts/run_simid.py \
       --manifest "$MANIFEST" \
@@ -112,7 +123,7 @@ case "$MODE" in
     RUN_DIR="${SIMID_RUN_DIR:-${BASE_RUN_ROOT}/phase0_${TIMESTAMP}_gates}"
     MANIFEST="${SIMID_MANIFEST:-data/manifests/simid_phase0_seed42.json}"
     ensure_not_analyzed "$RUN_DIR"
-    build_manifest "$MANIFEST" 8 8 2 allow_fitted
+    build_manifest "$MANIFEST" 8 8 2 allow_fitted 1 1
     gpu_preflight
     uv run python scripts/run_simid.py \
       --manifest "$MANIFEST" \
@@ -143,7 +154,9 @@ case "$MODE" in
     ensure_not_analyzed "$RUN_DIR"
     uv run python scripts/build_simid_manifest.py \
       --seed 42 \
-      --truthfulqa-leakage-policy "${SIMID_TRUTHFULQA_LEAKAGE_POLICY:-drop_if_no_heldout}" \
+      --truthfulqa-leakage-policy "${SIMID_TRUTHFULQA_LEAKAGE_POLICY:-heldout_only}" \
+      --min-truthfulqa-rows "${SIMID_MIN_TRUTHFULQA_ROWS:-1}" \
+      --min-bridge-rows "${SIMID_MIN_BRIDGE_ROWS:-1}" \
       --model-path "$MODEL_PATH" \
       --iti-artifact-path "$ITI_ARTIFACT" \
       --output "$MANIFEST"

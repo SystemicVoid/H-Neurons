@@ -776,10 +776,62 @@ def selected_minus_control_slope_summaries(
     return summaries
 
 
+def _audit_queue_append(
+    queue: list[dict[str, Any]],
+    seen: set[tuple[str, str, float, str]],
+    row: dict[str, Any],
+    *,
+    reason: str,
+    extra: dict[str, Any] | None = None,
+) -> None:
+    key = (
+        str(row["sample_id"]),
+        str(row["condition"]),
+        float(row["alpha"]),
+        reason,
+    )
+    if key in seen:
+        return
+    seen.add(key)
+    item = {
+        "sample_id": row["sample_id"],
+        "condition": row["condition"],
+        "alpha": row["alpha"],
+        "dataset": row.get("dataset"),
+        "mc_endpoint": row.get("mc_endpoint"),
+        "question": row.get("question"),
+        "response": row["open_generation"]["response"],
+        "gold_aliases": row.get("gold_aliases"),
+        "open_grade": row.get("open_grade"),
+        "mc_letter_likelihood": {
+            "chosen_letter": row.get("mc_letter_likelihood", {}).get("chosen_letter"),
+            "chosen_index": row.get("mc_letter_likelihood", {}).get("chosen_index"),
+            "chosen_is_gold": row.get("mc_letter_likelihood", {}).get("chosen_is_gold"),
+        },
+        "reason": reason,
+    }
+    if extra:
+        item.update(extra)
+    queue.append(item)
+
+
 def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     queue: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, float, str]] = set()
     for row in rows:
         grade = row["open_grade"]
+        mc_correct = bool(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](row))
+        open_correct = bool(grade["correct"])
+        attempted = bool(grade["attempted"])
+
+        if mc_correct != open_correct:
+            _audit_queue_append(
+                queue,
+                seen,
+                row,
+                reason="mc_open_disagreement_requires_adjudication",
+            )
+
         audit_reason: str | None = None
         if bool(grade["correct"]):
             if row.get("dataset") != "triviaqa_bridge":
@@ -804,25 +856,151 @@ def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     }
                 )
             continue
+        if row.get("dataset") != "triviaqa_bridge":
+            _audit_queue_append(
+                queue,
+                seen,
+                row,
+                reason=(
+                    "non_bridge_not_attempted_requires_adjudication"
+                    if not attempted
+                    else "non_bridge_deterministic_alias_incorrect_requires_adjudication"
+                ),
+            )
         margin = float(row["open_margins"]["full"]["margin"])
         if margin <= 0.0:
             continue
-        queue.append(
-            {
-                "sample_id": row["sample_id"],
-                "condition": row["condition"],
-                "alpha": row["alpha"],
-                "dataset": row.get("dataset"),
-                "mc_endpoint": row.get("mc_endpoint"),
-                "question": row.get("question"),
-                "response": row["open_generation"]["response"],
-                "gold_aliases": row.get("gold_aliases"),
-                "open_grade": row.get("open_grade"),
-                "open_full_margin": margin,
-                "reason": "open_incorrect_but_gold_margin_positive",
-            }
+        _audit_queue_append(
+            queue,
+            seen,
+            row,
+            reason="open_incorrect_but_gold_margin_positive",
+            extra={"open_full_margin": margin},
         )
     return queue
+
+
+def option_order_stability_gate(groups: dict[str, RowGroup]) -> dict[str, Any]:
+    replicate_values: defaultdict[str, list[float]] = defaultdict(list)
+    for rows in groups.values():
+        for row in rows:
+            replicate_values[replicate_key(row)].append(
+                float(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](row))
+            )
+    rates = {
+        key: float(np.mean(values)) for key, values in sorted(replicate_values.items())
+    }
+    if len(rates) < 2:
+        return {
+            "passed": False,
+            "reason": "requires at least two option-order replicates",
+            "replicate_rates": rates,
+        }
+    spread = max(rates.values()) - min(rates.values())
+    n_base_items = len(groups)
+    return {
+        "passed": spread <= 0.25,
+        "replicate_rates": rates,
+        "max_rate_spread": spread,
+        "n_base_items": n_base_items,
+        "threshold": 0.25,
+        "rate_unit": PRIMARY_MC_RATE_METRIC,
+    }
+
+
+def gold_position_balance_gate(groups: dict[str, RowGroup]) -> dict[str, Any]:
+    counts: Counter[int] = Counter()
+    n_options_values: set[int] = set()
+    n_rows = 0
+    for rows in groups.values():
+        for row in rows:
+            gold_indices = [int(idx) for idx in row.get("gold_option_indices", [])]
+            if len(gold_indices) != 1:
+                continue
+            counts[gold_indices[0]] += 1
+            n_options_values.add(len(row.get("mc_options", [])))
+            n_rows += 1
+    if not counts or len(n_options_values) != 1:
+        return {
+            "passed": False,
+            "reason": "requires single-gold rows with a fixed option count",
+            "counts": dict(sorted(counts.items())),
+        }
+    n_options = n_options_values.pop()
+    expected = n_rows / n_options if n_options else 0.0
+    max_abs_deviation = (
+        max(abs(counts.get(idx, 0) - expected) for idx in range(n_options))
+        if expected
+        else 0.0
+    )
+    max_abs_deviation_share = max_abs_deviation / n_rows if n_rows else 0.0
+    return {
+        "passed": max_abs_deviation_share <= 0.20 or n_rows < 30,
+        "counts": {str(idx): counts.get(idx, 0) for idx in range(n_options)},
+        "n_rows": n_rows,
+        "n_options": n_options,
+        "max_abs_deviation_share": max_abs_deviation_share,
+        "threshold": 0.20,
+        "small_n_leniency": n_rows < 30,
+    }
+
+
+def option_length_balance_gate(groups: dict[str, RowGroup]) -> dict[str, Any]:
+    diffs: list[float] = []
+    for rows in groups.values():
+        for row in rows:
+            options = [str(option) for option in row.get("mc_options", [])]
+            gold_indices = {int(idx) for idx in row.get("gold_option_indices", [])}
+            if not options or not gold_indices:
+                continue
+            gold_lens = [
+                len(options[idx].split()) for idx in gold_indices if idx < len(options)
+            ]
+            distractor_lens = [
+                len(option.split())
+                for idx, option in enumerate(options)
+                if idx not in gold_indices
+            ]
+            if not gold_lens or not distractor_lens:
+                continue
+            diffs.append(float(np.mean(gold_lens) - np.mean(distractor_lens)))
+    if not diffs:
+        return {"passed": False, "reason": "no length-comparable MC rows"}
+    mean_diff = float(np.mean(diffs))
+    return {
+        "passed": abs(mean_diff) <= 0.75,
+        "mean_gold_minus_distractor_word_length": mean_diff,
+        "n_rows": len(diffs),
+        "threshold_abs_words": 0.75,
+    }
+
+
+def open_margin_alignment_gate(groups: dict[str, RowGroup]) -> dict[str, Any]:
+    correct_margins: list[float] = []
+    incorrect_margins: list[float] = []
+    for rows in groups.values():
+        for row in rows:
+            margin = float(row["open_margins"]["full"]["margin"])
+            if bool(row["open_grade"]["correct"]):
+                correct_margins.append(margin)
+            else:
+                incorrect_margins.append(margin)
+    if not correct_margins or not incorrect_margins:
+        return {
+            "passed": False,
+            "reason": "requires both open-correct and open-incorrect rows",
+            "n_correct": len(correct_margins),
+            "n_incorrect": len(incorrect_margins),
+        }
+    correct_mean = float(np.mean(correct_margins))
+    incorrect_mean = float(np.mean(incorrect_margins))
+    return {
+        "passed": correct_mean > incorrect_mean,
+        "correct_mean_open_full_margin": correct_mean,
+        "incorrect_mean_open_full_margin": incorrect_mean,
+        "n_correct": len(correct_margins),
+        "n_incorrect": len(incorrect_margins),
+    }
 
 
 def run_phase0_gates(
@@ -877,6 +1055,23 @@ def run_phase0_gates(
                 "n_base_items": len(bridge_groups),
                 "replicate_policy": "mean_within_base_sample_id",
             }
+            bridge_groups_by_id = {
+                sample_id: group
+                for sample_id, group in groups.items()
+                if any(row.get("dataset") == "triviaqa_bridge" for row in group)
+            }
+            gates["bridge_option_order_stability"] = option_order_stability_gate(
+                bridge_groups_by_id
+            )
+            gates["bridge_gold_position_balance"] = gold_position_balance_gate(
+                bridge_groups_by_id
+            )
+            gates["bridge_option_length_balance"] = option_length_balance_gate(
+                bridge_groups_by_id
+            )
+            gates["bridge_open_margin_alignment"] = open_margin_alignment_gate(
+                bridge_groups_by_id
+            )
     return gates
 
 

@@ -737,6 +737,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--bridge-n", type=int, default=None)
     parser.add_argument("--n-options", type=int, default=4)
     parser.add_argument("--option-order-replicates", type=int, default=1)
+    parser.add_argument(
+        "--min-truthfulqa-rows",
+        type=int,
+        default=0,
+        help=(
+            "Fail unless at least this many TruthfulQA manifest rows are built. "
+            "Use this for claimable SIMID runs so held-out TruthfulQA cannot be "
+            "silently dropped."
+        ),
+    )
+    parser.add_argument(
+        "--min-bridge-rows",
+        type=int,
+        default=0,
+        help="Fail unless at least this many TriviaQA Bridge manifest rows are built.",
+    )
     parser.add_argument("--model-path", default=DEFAULT_MODEL_PATH)
     parser.add_argument("--tokenizer-path", default=None)
     parser.add_argument("--iti-artifact-path", default=DEFAULT_ITI_ARTIFACT)
@@ -795,6 +811,22 @@ def main(argv: list[str] | None = None) -> None:
                 iti_artifact_sha256=iti_artifact_sha,
             ),
         ]
+        n_truthfulqa_rows = sum(row["dataset"] == "truthfulqa" for row in rows)
+        n_bridge_rows = sum(row["dataset"] == "triviaqa_bridge" for row in rows)
+        if n_truthfulqa_rows < args.min_truthfulqa_rows:
+            raise ValueError(
+                "SIMID manifest does not contain enough TruthfulQA rows: "
+                f"built {n_truthfulqa_rows}, required {args.min_truthfulqa_rows}. "
+                "For a claimable same-item TruthfulQA block, use an ITI artifact "
+                "whose extraction metadata exposes held-out question_ids_test, "
+                "or lower --min-truthfulqa-rows only for an explicitly "
+                "nonclaimable/debug run."
+            )
+        if n_bridge_rows < args.min_bridge_rows:
+            raise ValueError(
+                "SIMID manifest does not contain enough TriviaQA Bridge rows: "
+                f"built {n_bridge_rows}, required {args.min_bridge_rows}."
+            )
         payload = {
             "schema_version": SCHEMA_VERSION,
             "builder_version": BUILDER_VERSION,
@@ -828,10 +860,12 @@ def main(argv: list[str] | None = None) -> None:
                 "option_order_replicates": args.option_order_replicates,
                 "n_rows": len(rows),
                 "datasets": {
-                    "truthfulqa": sum(row["dataset"] == "truthfulqa" for row in rows),
-                    "triviaqa_bridge": sum(
-                        row["dataset"] == "triviaqa_bridge" for row in rows
-                    ),
+                    "truthfulqa": n_truthfulqa_rows,
+                    "triviaqa_bridge": n_bridge_rows,
+                },
+                "minimum_rows": {
+                    "truthfulqa": args.min_truthfulqa_rows,
+                    "triviaqa_bridge": args.min_bridge_rows,
                 },
             },
             "rows": rows,
