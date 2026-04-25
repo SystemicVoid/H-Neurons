@@ -1,0 +1,78 @@
+{
+  "benchmark": "faitheval",
+  "model": "google/gemma-3-4b-it",
+  "intervention_mode": "sae",
+  "run_profile": "canonical",
+  "comparability_class": "claimable",
+  "generation_fingerprint": {
+    "id": "d5bcdf62e59ed349",
+    "spec": {
+      "run_profile": "canonical",
+      "intervention_mode": "sae",
+      "iti_decode_scope": null,
+      "jailbreak_generation": null
+    }
+  },
+  "n_h_neurons": 266,
+  "results": {
+    "0.0": {
+      "compliance_rate": 0.6655,
+      "n_compliant": 559,
+      "n_judged": 840,
+      "n_total": 840,
+      "judging_complete": true,
+      "compliance": {
+        "estimate": 0.6654761904761904,
+        "n_compliant": 559,
+        "n_total": 840,
+        "ci": {
+          "lower": 0.6328795174651836,
+          "upper": 0.6965662535313224,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "parse_failures": 0,
+      "parse_failure": {
+        "estimate": 0.0,
+        "count": 0,
+        "n_total": 840,
+        "ci": {
+          "lower": 0.0,
+          "upper": 0.004552346629262249,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    }
+  },
+  "effects": {},
+  "throughput": {
+    "by_alpha": {
+      "0.0": {
+        "samples_completed": 840,
+        "record_count_total": 840,
+        "instrumented_row_count": 840,
+        "instrumented_coverage": 1.0,
+        "generated_tokens_total": 1753,
+        "prompt_tokens_total": 393965,
+        "wall_total_s": 192.6277,
+        "wall_measured_s": 192.4621,
+        "generate_total_s": 192.3545,
+        "mean_generated_tokens": 2.0869,
+        "mean_generate_s": 0.229,
+        "samples_per_s_wall": 4.3607,
+        "tokens_per_s_wall": 9.1005,
+        "tokens_per_s_generate": 9.1134,
+        "inter_sample_gap_count": 839,
+        "inter_sample_gap_mean_s": 0.000195,
+        "inter_sample_gap_p50_s": 0.000182,
+        "inter_sample_gap_p95_s": 0.000212
+      }
+    }
+  },
+  "sae_feature_manifest": "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/matched_random_answer_span_seed_4_features.json",
+  "sae_steering_mode": "delta_only",
+  "n_sae_features": 266,
+  "prompt_style": "anti_compliance"
+}

@@ -1,0 +1,34 @@
+# FaithEval SAE Utility Selector Audit
+
+- Held-out diagnostic bundle on a single locked test manifest (n=840).
+- FaithEval families: noop=0.6643 (558/840); readout_selected=0.6595 (554/840); utility_selected=0.6619 (556/840); matched_zero_dead=0.6643 (558/840)
+- FaithEval paired deltas: utility_minus_readout=+0.238 pp [-1.310, +1.786]; utility_minus_noop=-0.238 pp [-1.667, +1.190]
+- FaithEval random-null across seeds: range=-1.667..+0.714 pp; seed_mean=-0.179 pp [-1.441, +1.083] nested primary; naive seed bootstrap [-0.607, +0.202]
+- FaithEval anti-compliance margin families: noop=+8.3090 [+7.1014, +9.4986]; readout_selected=+9.2274 [+7.8619, +10.5731]; utility_selected=+7.5461 [+6.4747, +8.5985]; matched_zero_dead=+8.3090 [+7.1017, +9.4987]
+- FaithEval anti-compliance margin paired deltas: utility_minus_readout=-1.6813 [-2.1707, -1.1897]; utility_minus_noop=-0.7628 [-1.0839, -0.4224]
+- FaithEval anti-compliance margin random-null across seeds: range=-1.7528..+0.1425; seed_mean=-0.8968 [-1.2177, -0.5576] nested primary; naive seed bootstrap [-1.1737, -0.6055]
+- FaithEval answer-span-selected compliance families: noop=0.6643 (558/840); readout_selected=0.6595 (554/840); utility_selected=0.6619 (556/840); answer_span_selected=0.6738 (566/840)
+- FaithEval answer-span-selected compliance paired deltas: answer_span_selected_minus_readout=+1.429 pp [-0.357, +3.214]; answer_span_selected_minus_noop=+0.952 pp [-0.833, +2.738]; answer_span_selected_minus_utility_selected=+1.190 pp [-0.357, +2.738]
+- FaithEval answer-span-selected compliance random-null across seeds: range=-0.476..+1.429 pp; seed_mean=+0.821 pp [-0.798, +2.452] nested primary; naive seed bootstrap [+0.381, +1.190]
+- FaithEval answer-span-selected anti-compliance margin families: noop=+8.3090 [+7.1014, +9.4986]; readout_selected=+9.2274 [+7.8619, +10.5731]; utility_selected=+7.5461 [+6.4747, +8.5985]; answer_span_selected=+8.0042 [+6.8971, +9.0885]
+- FaithEval answer-span-selected anti-compliance margin paired deltas: answer_span_selected_minus_readout=-1.2232 [-1.7730, -0.6650]; answer_span_selected_minus_noop=-0.3048 [-0.7276, +0.1195]; answer_span_selected_minus_utility_selected=+0.4581 [+0.1606, +0.7497]
+- FaithEval answer-span-selected anti-compliance margin random-null across seeds: range=-1.2199..+0.7238; seed_mean=-0.4458 [-0.8569, -0.0316] nested primary; naive seed bootstrap [-0.7182, -0.1344]
+- FaithEval answer-span-margin families: noop=+2.1262 [+1.3833, +2.8845]; readout_selected=+2.7754 [+1.9335, +3.6245]; utility_selected=+2.0242 [+1.3064, +2.7589]; answer_span_selected=+1.7999 [+1.0686, +2.5359]
+- FaithEval answer-span-margin paired deltas: answer_span_selected_minus_readout=-0.9755 [-1.3801, -0.5655]; answer_span_selected_minus_noop=-0.3263 [-0.6078, -0.0551]; answer_span_selected_minus_utility_selected=-0.2244 [-0.4680, +0.0083]
+- FaithEval answer-span-margin random-null across seeds: range=-0.8008..-0.3686; seed_mean=-0.5303 [-0.8107, -0.2616] nested primary; naive seed bootstrap [-0.6251, -0.4470]
+- Path drift (matched_zero_dead - noop): +0.0000 [-0.0024, +0.0021]; matched_zero_dead_mean=+8.3090 [+7.1017, +9.4987]; noop_mean=+8.3090 [+7.1014, +9.4986]
+- Candidate pool scope: 509 non-zero probe-support SAE features from the existing extraction scope; layer histogram={"0": 39, "13": 49, "14": 42, "15": 38, "16": 49, "17": 75, "20": 189, "5": 6, "6": 9, "7": 13}
+- Candidate-pool sign counts: {"negative": 243, "positive": 266}
+- Utility-selected sign counts: {"negative": 134, "positive": 132}
+- Readout-selected sign counts: {"unknown": 266}
+- Outside old |w|>1e-3 shortlist: 75 / 266 (0.2820)
+- Utility vs readout overlap: {"intersection_count": 132, "jaccard": 0.33, "union_count": 400}
+- Utility layer histogram: {"0": 19, "13": 25, "14": 18, "15": 17, "16": 29, "17": 40, "20": 109, "5": 2, "6": 3, "7": 4}
+- Readout layer histogram: {"0": 26, "13": 26, "14": 23, "15": 19, "16": 28, "17": 39, "20": 93, "5": 3, "6": 4, "7": 5}
+- Target-family definitions: {"answer_span_selected": "Top-k SAE features ranked by validation reduction in counterfactual-minus-preferred answer-text logprob margin over the first 3 assistant-content tokens.", "matched_random": "Zero-weight SAE features sampled without replacement from the token-active pool, exact-matched to the utility-selected layer histogram, with within-layer weights proportional to full-sequence token activation rate on the frozen validation split.", "matched_random_answer_span": "Zero-weight SAE features sampled without replacement from the token-active pool, exact-matched to the answer-span-selected layer histogram, with within-layer weights proportional to full-sequence token activation rate on the frozen validation split.", "readout_selected": "Top positive probe-weight SAE features from the original FaithEval readout.", "utility_selected": "Top-k SAE features ranked by validation reduction in misleading-minus-preferred logprob margin."}
+- Layer-coverage status: Partial L3 closure only: selection searches all non-zero probe-support features within the existing SAE extraction layers, not a wider SAE sweep.
+- Answer-span-selected sign counts: {"negative": 126, "positive": 140}
+- Answer-span-selected outside old |w|>1e-3 shortlist: 87 / 266 (0.3271)
+- Answer-span vs readout overlap: {"intersection_count": 140, "jaccard": 0.35714285714285715, "union_count": 392}
+- Answer-span vs utility overlap: {"intersection_count": 167, "jaccard": 0.4575342465753425, "union_count": 365}
+- Answer-span layer histogram: {"0": 17, "13": 18, "14": 13, "15": 17, "16": 30, "17": 47, "20": 117, "5": 1, "6": 3, "7": 3}
