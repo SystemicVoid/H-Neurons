@@ -1,13 +1,19 @@
 # FaithEval SAE Utility-Selector Ablation — L2/L3 Review
 
-> **Status:** canonical (refreshed 2026-04-23 — 10-seed random null and
-> dedicated path-drift control added; report schema v5). This is the
-> single source of truth for the FaithEval SAE utility-selector ablation.
-> The original 2026-04-22 draft relied on a broken *prompt-end
-> zero-weight* random control; it was replaced by a full-sequence,
-> activity-weighted, layer-matched null rerun on 2026-04-22 (3 seeds) and
-> extended to 10 seeds + an explicit path-drift control on 2026-04-23.
-> §4 retains the historical narrative; current numbers are in §2.
+> **Status:** canonical for the original `utility_selected` (k=266),
+> `utility_positive` augment (k=154), 10-seed `matched_random`, and
+> `matched_zero_dead` path-drift evidence (refreshed 2026-04-23). The
+> 2026-04-25 answer-span pool extension lives in
+> [2026-04-25-faitheval-answer-span-extension.md](./2026-04-25-faitheval-answer-span-extension.md)
+> (selector-summary schema bumped to v6 there); read both reports
+> together for the full L2 closure picture. Numbers in §2 below are
+> unchanged by the extension. The original 2026-04-22 draft relied on a
+> broken *prompt-end zero-weight* random control; it was replaced by a
+> full-sequence, activity-weighted, layer-matched null rerun on
+> 2026-04-22 (3 seeds) and extended to 10 seeds + an explicit path-drift
+> control on 2026-04-23. §4 retains the historical narrative; current
+> numbers for the utility / readout / matched_random / path-drift
+> families are in §2.
 
 > **Verdict (data):** On n=840 held-out FaithEval test items, every SAE
 > target-selection family (`readout_selected` k=266, `utility_selected`
@@ -65,6 +71,7 @@
 - Framing governance: [notes/2026-04-21-claim-framing-governance.md](../../../notes/2026-04-21-claim-framing-governance.md)
 - Measurement contract: [notes/measurement-blueprint.md](../../../notes/measurement-blueprint.md)
 - Related sibling reports: [2026-04-21-bridge-irr-review.md](./2026-04-21-bridge-irr-review.md), [2026-04-21-bridge-margin-report.md](./2026-04-21-bridge-margin-report.md)
+- Answer-span pool extension (canonical for `answer_span_selected`, `matched_random_answer_span_*`, `faitheval_answer_span_margin`): [2026-04-25-faitheval-answer-span-extension.md](./2026-04-25-faitheval-answer-span-extension.md)
 
 ## Data Files
 
