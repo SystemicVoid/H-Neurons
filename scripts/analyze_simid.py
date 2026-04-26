@@ -42,8 +42,10 @@ LOCKED_MANIFEST_METADATA_FIELDS = (
     "base_sample_id",
     "dataset",
     "mc_endpoint",
+    "option_order_replicate",
     *TRUTHFULQA_LEAKAGE_METADATA_FIELDS,
 )
+OPTION_ORDER_STABILITY_THRESHOLD = 0.25
 
 
 BOOL_METRICS: dict[str, MetricFn] = {
@@ -148,6 +150,23 @@ def replicate_key(row: dict[str, Any]) -> str:
     if "option_order_replicate" in row:
         return f"ord:{int(row['option_order_replicate'])}"
     return f"sample:{row['sample_id']}"
+
+
+def require_option_order_replicate(row: dict[str, Any]) -> int:
+    if "option_order_replicate" not in row or row["option_order_replicate"] is None:
+        raise ValueError(
+            "missing option_order_replicate metadata for "
+            f"sample_id={row.get('sample_id')!r}; rerun with updated SIMID rows "
+            "or analyze a run directory that contains manifest.locked.json"
+        )
+    try:
+        return int(row["option_order_replicate"])
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "invalid option_order_replicate metadata for "
+            f"sample_id={row.get('sample_id')!r}: "
+            f"{row['option_order_replicate']!r}"
+        ) from exc
 
 
 def replicate_key_set(rows: RowGroup) -> set[str]:
@@ -880,30 +899,141 @@ def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return queue
 
 
-def option_order_stability_gate(groups: dict[str, RowGroup]) -> dict[str, Any]:
-    replicate_values: defaultdict[str, list[float]] = defaultdict(list)
+def chosen_letter_distribution(groups: dict[str, RowGroup]) -> dict[str, Any]:
+    counts: Counter[str] = Counter()
+    n_rows = 0
     for rows in groups.values():
         for row in rows:
-            replicate_values[replicate_key(row)].append(
-                float(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](row))
-            )
+            letter = row.get("mc_letter_likelihood", {}).get("chosen_letter")
+            counts[str(letter) if letter is not None else "missing"] += 1
+            n_rows += 1
+    return {
+        "counts": dict(sorted(counts.items())),
+        "n_rows": n_rows,
+    }
+
+
+def gold_position_correctness_table(groups: dict[str, RowGroup]) -> dict[str, Any]:
+    counts: Counter[int] = Counter()
+    correct_counts: Counter[int] = Counter()
+    n_options_values: set[int] = set()
+    n_rows = 0
+    for rows in groups.values():
+        for row in rows:
+            gold_indices = [int(idx) for idx in row.get("gold_option_indices", [])]
+            if len(gold_indices) != 1:
+                continue
+            position = gold_indices[0]
+            counts[position] += 1
+            correct_counts[position] += int(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](row))
+            n_options_values.add(len(row.get("mc_options", [])))
+            n_rows += 1
+
+    n_options = max(n_options_values) if n_options_values else 0
+    positions: dict[str, dict[str, Any]] = {}
+    for position in range(n_options):
+        n_at_position = counts.get(position, 0)
+        correct = correct_counts.get(position, 0)
+        positions[str(position)] = {
+            "n": n_at_position,
+            "correct": correct,
+            "rate": correct / n_at_position if n_at_position else None,
+        }
+    return {
+        "positions": positions,
+        "n_rows": n_rows,
+        "n_options_values": sorted(n_options_values),
+        "rate_unit": PRIMARY_MC_RATE_METRIC,
+    }
+
+
+def option_order_stability_gate(groups: dict[str, RowGroup]) -> dict[str, Any]:
+    replicate_values: defaultdict[int, list[float]] = defaultdict(list)
+    replicate_sets_by_base_id: dict[str, set[int]] = {}
+    flipped_base_sample_ids: list[str] = []
+    n_rows = 0
+
+    try:
+        for base_sample_id, rows in sorted(groups.items()):
+            rows_by_replicate: dict[int, dict[str, Any]] = {}
+            for row in rows:
+                replicate = require_option_order_replicate(row)
+                if replicate in rows_by_replicate:
+                    return {
+                        "passed": False,
+                        "reason": (
+                            "duplicate option_order_replicate metadata for "
+                            f"base_sample_id={base_sample_id!r}, replicate={replicate}"
+                        ),
+                    }
+                rows_by_replicate[replicate] = row
+                value = float(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](row))
+                replicate_values[replicate].append(value)
+                n_rows += 1
+
+            replicate_sets_by_base_id[base_sample_id] = set(rows_by_replicate)
+            item_values = {
+                bool(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](row))
+                for row in rows_by_replicate.values()
+            }
+            if len(item_values) > 1:
+                flipped_base_sample_ids.append(base_sample_id)
+    except ValueError as exc:
+        return {
+            "passed": False,
+            "reason": str(exc),
+            "rate_unit": PRIMARY_MC_RATE_METRIC,
+        }
+
     rates = {
-        key: float(np.mean(values)) for key, values in sorted(replicate_values.items())
+        f"ord:{replicate}": float(np.mean(values))
+        for replicate, values in sorted(replicate_values.items())
     }
     if len(rates) < 2:
         return {
             "passed": False,
             "reason": "requires at least two option-order replicates",
             "replicate_rates": rates,
+            "n_base_items": len(groups),
+            "n_rows": n_rows,
+            "rate_unit": PRIMARY_MC_RATE_METRIC,
         }
+
+    expected_replicates = next(iter(replicate_sets_by_base_id.values()), set())
+    mismatched = {
+        base_sample_id: sorted(replicates)
+        for base_sample_id, replicates in replicate_sets_by_base_id.items()
+        if replicates != expected_replicates
+    }
+    if mismatched:
+        return {
+            "passed": False,
+            "reason": "inconsistent option_order_replicate sets across base items",
+            "expected_replicates": sorted(expected_replicates),
+            "mismatched_base_items": dict(sorted(mismatched.items())),
+            "replicate_rates": rates,
+            "n_base_items": len(groups),
+            "n_rows": n_rows,
+            "rate_unit": PRIMARY_MC_RATE_METRIC,
+        }
+
     spread = max(rates.values()) - min(rates.values())
     n_base_items = len(groups)
+    item_flip_count = len(flipped_base_sample_ids)
     return {
-        "passed": spread <= 0.25,
+        "passed": spread <= OPTION_ORDER_STABILITY_THRESHOLD,
         "replicate_rates": rates,
+        "global_max_rate_spread": spread,
         "max_rate_spread": spread,
+        "item_flip_count": item_flip_count,
+        "item_flip_rate": item_flip_count / n_base_items if n_base_items else 0.0,
+        "item_flip_base_sample_ids": flipped_base_sample_ids,
+        "chosen_letter_distribution": chosen_letter_distribution(groups),
+        "gold_position_correctness": gold_position_correctness_table(groups),
+        "expected_replicates": sorted(expected_replicates),
         "n_base_items": n_base_items,
-        "threshold": 0.25,
+        "n_rows": n_rows,
+        "threshold": OPTION_ORDER_STABILITY_THRESHOLD,
         "rate_unit": PRIMARY_MC_RATE_METRIC,
     }
 
@@ -1085,6 +1215,65 @@ def format_ci(result: dict[str, Any], *, unit: str = "") -> str:
     return f"{result['estimate']:.4f}{unit} [{ci['lower']:.4f}, {ci['upper']:.4f}]"
 
 
+def format_rate(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return f"{float(value):.4f}"
+
+
+def format_phase0_gate_line(name: str, gate: dict[str, Any]) -> str:
+    status = "PASS" if gate.get("passed") else "FAIL"
+    if name == "bridge_option_order_stability":
+        spread = gate.get("global_max_rate_spread", gate.get("max_rate_spread"))
+        flip_count = gate.get("item_flip_count")
+        flip_rate = gate.get("item_flip_rate")
+        n_base_items = gate.get("n_base_items")
+        if spread is not None and flip_count is not None and flip_rate is not None:
+            return (
+                f"- {name}: {status} "
+                f"(global replicate spread={float(spread):.4f}; "
+                f"item flips={flip_count}/{n_base_items}, "
+                f"rate={float(flip_rate):.4f})"
+            )
+    reason = gate.get("reason")
+    suffix = f" ({reason})" if reason else ""
+    return f"- {name}: {status}{suffix}"
+
+
+def append_option_order_gate_details(
+    lines: list[str],
+    gate: dict[str, Any],
+) -> None:
+    rates = gate.get("replicate_rates", {})
+    if rates:
+        rendered_rates = ", ".join(
+            f"{key}={format_rate(value)}" for key, value in sorted(rates.items())
+        )
+        lines.append(f"  - replicate rates: {rendered_rates}")
+    distribution = gate.get("chosen_letter_distribution", {}).get("counts", {})
+    if distribution:
+        rendered_counts = ", ".join(
+            f"{letter}={count}" for letter, count in sorted(distribution.items())
+        )
+        lines.append(f"  - chosen letters: {rendered_counts}")
+    positions = gate.get("gold_position_correctness", {}).get("positions", {})
+    if positions:
+        rendered_positions = []
+        for position, payload in sorted(
+            positions.items(), key=lambda item: int(item[0])
+        ):
+            rendered_positions.append(
+                f"pos {position}: {payload['correct']}/{payload['n']}="
+                f"{format_rate(payload['rate'])}"
+            )
+        lines.append("  - gold-position correctness: " + "; ".join(rendered_positions))
+    flipped = gate.get("item_flip_base_sample_ids", [])
+    if flipped:
+        preview = ", ".join(str(sample_id) for sample_id in flipped[:10])
+        suffix = " ..." if len(flipped) > 10 else ""
+        lines.append(f"  - flipped base items: {preview}{suffix}")
+
+
 def write_report(results: dict[str, Any], path: Path) -> None:
     lines = [
         "# SIMID Report",
@@ -1166,7 +1355,9 @@ def write_report(results: dict[str, Any], path: Path) -> None:
     if results.get("phase0_gates"):
         lines.append("## Phase 0 Gates")
         for name, gate in results["phase0_gates"].items():
-            lines.append(f"- {name}: {'PASS' if gate.get('passed') else 'FAIL'}")
+            lines.append(format_phase0_gate_line(name, gate))
+            if name == "bridge_option_order_stability":
+                append_option_order_gate_details(lines, gate)
         lines.append("")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

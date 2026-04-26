@@ -15,6 +15,7 @@ from analyze_simid import (
     index_rows,
     load_run_rows,
     main as analyze_main,
+    option_order_stability_gate,
     require_paired_panel,
     selected_minus_control_slope_summaries,
     summarize_condition,
@@ -69,6 +70,7 @@ def _analysis_row(
     mc_option_text_correct: bool = False,
     open_correct: bool = True,
 ) -> dict:
+    chosen_index = 0 if mc_letter_correct else 1
     return {
         "sample_id": sample_id,
         "base_sample_id": base_sample_id or sample_id,
@@ -79,7 +81,10 @@ def _analysis_row(
         "mc_endpoint": mc_endpoint,
         "question": "Question?",
         "mc_options": ["Gold", "Wrong"],
+        "gold_option_indices": [0],
         "mc_letter_likelihood": {
+            "chosen_letter": chr(ord("A") + chosen_index),
+            "chosen_index": chosen_index,
             "chosen_is_gold": mc_letter_correct,
             "full": {"margin": 1.0 if mc_letter_correct else -1.0},
             "avg": {"margin": 1.0 if mc_letter_correct else -1.0},
@@ -530,6 +535,77 @@ def test_run_condition_alpha_passes_iti_config_to_scoring(
     assert captured_configs == [iti_config]
 
 
+def test_score_simid_item_includes_option_order_replicate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    row = _manifest_row("simid_a", "Question?")
+    row["option_order_replicate"] = 1
+    responses = iter(["A", "Gold"])
+
+    monkeypatch.setattr(
+        simid_runner,
+        "score_mc_likelihood",
+        lambda *args, **kwargs: ({"endpoint": "option_text_teacher_forced"}, 0.1),
+    )
+    monkeypatch.setattr(
+        simid_runner,
+        "score_mc_letters",
+        lambda *args, **kwargs: (
+            {
+                "endpoint": "letter_teacher_forced",
+                "valid_letters": ["A", "B"],
+                "chosen_letter": "A",
+                "chosen_index": 0,
+                "chosen_is_gold": True,
+                "full": {"margin": 1.0},
+                "avg": {"margin": 1.0},
+            },
+            object(),
+            0.1,
+        ),
+    )
+    monkeypatch.setattr(
+        simid_runner,
+        "generate_response",
+        lambda *args, **kwargs: (next(responses), {"total_s": 0.1}),
+    )
+    monkeypatch.setattr(simid_runner, "tokenize_chat", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        simid_runner,
+        "score_open_margins",
+        lambda *args, **kwargs: (
+            {
+                "endpoint": "open_prompt_gold_vs_distractor_teacher_forced",
+                "full": {"margin": 1.0},
+                "avg": {"margin": 1.0},
+            },
+            0.1,
+        ),
+    )
+    monkeypatch.setattr(
+        simid_runner,
+        "topk_first_token_logprobs",
+        lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(simid_runner, "get_git_sha", lambda: "abc123")
+
+    scored = simid_runner.score_simid_item(
+        model=object(),
+        tokenizer=object(),
+        row=row,
+        scaler=None,
+        alpha=0.0,
+        condition=simid_runner.CONDITION_SPECS["selected"],
+        iti_config={"model_path": "model"},
+        top_k_first_token=5,
+        mc_max_new_tokens=4,
+        open_max_new_tokens=64,
+    )
+
+    assert scored["option_order_seed"] == row["option_order_seed"]
+    assert scored["option_order_replicate"] == 1
+
+
 def test_analyzer_refuses_unpaired_condition_alpha_rows() -> None:
     rows = [
         {"condition": "selected", "alpha": 0.0, "sample_id": "s1"},
@@ -611,6 +687,97 @@ def test_analyzer_groups_option_order_replicates_by_base_item() -> None:
     assert summary["rates"]["0.0"]["mc_letter_likelihood_correct"][
         "estimate"
     ] == pytest.approx(0.75)
+
+
+def test_option_order_gate_computes_global_spread_by_replicate_index() -> None:
+    groups = {
+        "base1": [
+            _analysis_row(
+                sample_id="base1_ord0",
+                base_sample_id="base1",
+                option_order_replicate=0,
+                mc_letter_correct=True,
+            ),
+            _analysis_row(
+                sample_id="base1_ord1",
+                base_sample_id="base1",
+                option_order_replicate=1,
+                mc_letter_correct=True,
+            ),
+        ],
+        "base2": [
+            _analysis_row(
+                sample_id="base2_ord0",
+                base_sample_id="base2",
+                option_order_replicate=0,
+                mc_letter_correct=True,
+            ),
+            _analysis_row(
+                sample_id="base2_ord1",
+                base_sample_id="base2",
+                option_order_replicate=1,
+                mc_letter_correct=False,
+            ),
+        ],
+    }
+
+    gate = option_order_stability_gate(groups)
+
+    assert gate["replicate_rates"] == {"ord:0": 1.0, "ord:1": 0.5}
+    assert gate["global_max_rate_spread"] == pytest.approx(0.5)
+    assert gate["passed"] is False
+
+
+def test_option_order_gate_reports_item_flips_separately_from_global_spread() -> None:
+    groups = {
+        "base1": [
+            _analysis_row(
+                sample_id="base1_ord0",
+                base_sample_id="base1",
+                option_order_replicate=0,
+                mc_letter_correct=True,
+            ),
+            _analysis_row(
+                sample_id="base1_ord1",
+                base_sample_id="base1",
+                option_order_replicate=1,
+                mc_letter_correct=False,
+            ),
+        ],
+        "base2": [
+            _analysis_row(
+                sample_id="base2_ord0",
+                base_sample_id="base2",
+                option_order_replicate=0,
+                mc_letter_correct=False,
+            ),
+            _analysis_row(
+                sample_id="base2_ord1",
+                base_sample_id="base2",
+                option_order_replicate=1,
+                mc_letter_correct=True,
+            ),
+        ],
+    }
+
+    gate = option_order_stability_gate(groups)
+
+    assert gate["replicate_rates"] == {"ord:0": 0.5, "ord:1": 0.5}
+    assert gate["global_max_rate_spread"] == pytest.approx(0.0)
+    assert gate["item_flip_count"] == 2
+    assert gate["item_flip_rate"] == pytest.approx(1.0)
+    assert gate["item_flip_base_sample_ids"] == ["base1", "base2"]
+    assert gate["passed"] is True
+
+
+def test_option_order_gate_fails_clearly_without_replicate_metadata() -> None:
+    row = _analysis_row(sample_id="base1_ord0", base_sample_id="base1")
+    del row["option_order_replicate"]
+
+    gate = option_order_stability_gate({"base1": [row]})
+
+    assert gate["passed"] is False
+    assert "missing option_order_replicate metadata" in gate["reason"]
 
 
 def test_analyzer_reports_dataset_endpoint_strata() -> None:
@@ -733,6 +900,7 @@ def test_load_run_rows_recovers_mc_endpoint_from_locked_manifest(
     manifest_row = _manifest_row("simid_a", "Question?")
     manifest_row["dataset"] = "truthfulqa"
     manifest_row["mc_endpoint"] = "truthfulqa_mc1"
+    manifest_row["option_order_replicate"] = 1
     manifest_row["truthfulqa_artifact_split"] = "test"
     manifest_row["truthfulqa_seen_in_iti_fit"] = False
     manifest_row["truthfulqa_leakage_policy"] = "heldout_only"
@@ -752,6 +920,7 @@ def test_load_run_rows_recovers_mc_endpoint_from_locked_manifest(
 
     assert rows[0]["dataset"] == "truthfulqa"
     assert rows[0]["mc_endpoint"] == "truthfulqa_mc1"
+    assert rows[0]["option_order_replicate"] == 1
     assert rows[0]["truthfulqa_artifact_split"] == "test"
     assert rows[0]["truthfulqa_seen_in_iti_fit"] is False
     assert rows[0]["truthfulqa_leakage_policy"] == "heldout_only"
@@ -842,6 +1011,46 @@ def test_report_baseline_rates_include_ci(tmp_path: Path) -> None:
     assert "Pooled aggregate scope" in text
     assert "lettered MC=0.7500 [0.5000, 1.0000]" in text
     assert "open=0.5000 [0.2500, 0.7500]" in text
+
+
+def test_report_phase0_option_order_details_are_human_readable(tmp_path: Path) -> None:
+    path = tmp_path / "report.md"
+    write_report(
+        {
+            "conditions": {},
+            "phase0_gates": {
+                "bridge_option_order_stability": {
+                    "passed": True,
+                    "global_max_rate_spread": 0.125,
+                    "item_flip_count": 1,
+                    "item_flip_rate": 0.125,
+                    "item_flip_base_sample_ids": ["simid_bridge_1"],
+                    "replicate_rates": {"ord:0": 0.875, "ord:1": 1.0},
+                    "chosen_letter_distribution": {
+                        "counts": {"A": 1, "B": 2},
+                    },
+                    "gold_position_correctness": {
+                        "positions": {
+                            "0": {"n": 2, "correct": 1, "rate": 0.5},
+                            "1": {"n": 1, "correct": 1, "rate": 1.0},
+                        }
+                    },
+                    "n_base_items": 8,
+                }
+            },
+        },
+        path,
+    )
+
+    text = path.read_text(encoding="utf-8")
+    assert (
+        "bridge_option_order_stability: PASS "
+        "(global replicate spread=0.1250; item flips=1/8, rate=0.1250)"
+    ) in text
+    assert "replicate rates: ord:0=0.8750, ord:1=1.0000" in text
+    assert "chosen letters: A=1, B=2" in text
+    assert "gold-position correctness: pos 0: 1/2=0.5000" in text
+    assert "flipped base items: simid_bridge_1" in text
 
 
 def test_analysis_refuses_existing_outputs_by_default(tmp_path: Path) -> None:

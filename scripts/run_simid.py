@@ -1022,6 +1022,7 @@ def score_simid_item(
         "gold_aliases": row["gold_aliases"],
         "distractor_provenance": row["distractor_provenance"],
         "option_order_seed": row["option_order_seed"],
+        "option_order_replicate": int(row["option_order_replicate"]),
         "mc_likelihood": mc_likelihood,
         "mc_letter_likelihood": mc_letter_likelihood,
         "mc_generated_letter": mc_generated,
