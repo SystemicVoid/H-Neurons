@@ -1,0 +1,80 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/run_simid-20260426_113709-31825.json",
+  "args": {
+    "allow_analyzed_overwrite": false,
+    "alphas": [
+      0.0
+    ],
+    "collect_debug_stats": false,
+    "conditions": [
+      "selected"
+    ],
+    "decode_scope": "first_3_tokens",
+    "device_map": "cuda:0",
+    "include_unhooked": true,
+    "iti_artifact_path": "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful/final_fold0/iti_heads.pt",
+    "iti_family": "truthfulqa_paperfaithful",
+    "iti_k": 12,
+    "manifest": "data/manifests/simid_phase0_seed42_20260426_113707.json",
+    "max_items": null,
+    "mc_max_new_tokens": 4,
+    "model_path": "google/gemma-3-4b-it",
+    "noop_check": true,
+    "noop_tolerance": 1e-05,
+    "open_max_new_tokens": 64,
+    "output_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates",
+    "run_name": null,
+    "seed": 42
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/run_simid.py",
+    "--manifest",
+    "data/manifests/simid_phase0_seed42_20260426_113707.json",
+    "--output-dir",
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates",
+    "--model-path",
+    "google/gemma-3-4b-it",
+    "--iti-artifact-path",
+    "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful/final_fold0/iti_heads.pt",
+    "--device-map",
+    "cuda:0",
+    "--alphas",
+    "0.0",
+    "--conditions",
+    "selected",
+    "--include-unhooked",
+    "--noop-check",
+    "--top-k-first-token",
+    "[REDACTED]",
+    "--mc-max-new-tokens",
+    "4",
+    "--open-max-new-tokens",
+    "64"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/run_simid.py --manifest data/manifests/simid_phase0_seed42_20260426_113707.json --output-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates --model-path google/gemma-3-4b-it --iti-artifact-path data/contrastive/truthfulness/iti_truthfulqa_paperfaithful/final_fold0/iti_heads.pt --device-map cuda:0 --alphas 0.0 --conditions selected --include-unhooked --noop-check --top-k-first-token '[REDACTED]' --mc-max-new-tokens 4 --open-max-new-tokens 64",
+  "completed_at_utc": "2026-04-26T11:41:22.152921+00:00",
+  "conditions": [
+    "unhooked",
+    "selected"
+  ],
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "bf877229552a68cb364823891b40bf88f401d4d6",
+  "hostname": "excurio",
+  "n_manifest_rows": 32,
+  "n_rows": 32,
+  "output_targets": [
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates/unhooked/alpha_0.0.jsonl",
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates/selected/alpha_0.0.jsonl"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "resume_fingerprint": "2147804fd839813cf154536b488a9b7b2237f271c4d1f7fc98d972fb45fed398",
+  "run_id": "run_simid-20260426_113709-31825",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "run_simid.py",
+  "simid_schema": "simid_run/v1",
+  "started_at_utc": "2026-04-26T11:37:09.939239+00:00",
+  "status": "completed"
+}

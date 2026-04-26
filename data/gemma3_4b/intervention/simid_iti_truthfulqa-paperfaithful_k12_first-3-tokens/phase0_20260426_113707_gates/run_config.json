@@ -1,0 +1,111 @@
+{
+  "schema_version": "simid_run_config/v1",
+  "args": {
+    "manifest": "data/manifests/simid_phase0_seed42_20260426_113707.json",
+    "output_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates",
+    "run_name": null,
+    "model_path": "google/gemma-3-4b-it",
+    "device_map": "cuda:0",
+    "iti_artifact_path": "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful/final_fold0/iti_heads.pt",
+    "iti_family": "truthfulqa_paperfaithful",
+    "iti_k": 12,
+    "decode_scope": "first_3_tokens",
+    "alphas": [
+      0.0
+    ],
+    "conditions": [
+      "selected"
+    ],
+    "include_unhooked": true,
+    "max_items": null,
+    "mc_max_new_tokens": 4,
+    "open_max_new_tokens": 64,
+    "collect_debug_stats": false,
+    "seed": 42,
+    "noop_check": true,
+    "noop_tolerance": 1e-05,
+    "allow_analyzed_overwrite": false
+  },
+  "manifest": "data/manifests/simid_phase0_seed42_20260426_113707.json",
+  "locked_manifest": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates/manifest.locked.json",
+  "iti_config": {
+    "model_path": "google/gemma-3-4b-it",
+    "tokenizer_path": "google/gemma-3-4b-it",
+    "iti_artifact_path": "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful/final_fold0/iti_heads.pt",
+    "iti_artifact_sha256": "a6b52a983a461c5fc1bf1455a2e7b9af8e280a2cda3ac5ec3ef38f7166f016b2",
+    "family": "truthfulqa_paperfaithful",
+    "effective_family": "iti_truthfulqa_paperfaithful",
+    "k": 12,
+    "decode_scope": "first_3_tokens"
+  },
+  "n_rows": 32,
+  "conditions": [
+    {
+      "name": "unhooked",
+      "selection_strategy": "ranked",
+      "random_seed": 42,
+      "direction_mode": "artifact",
+      "direction_random_seed": null,
+      "control_type": "unhooked"
+    },
+    {
+      "name": "selected",
+      "selection_strategy": "ranked",
+      "random_seed": 42,
+      "direction_mode": "artifact",
+      "direction_random_seed": null,
+      "control_type": "selected"
+    }
+  ],
+  "alphas": [
+    0.0
+  ],
+  "output_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates",
+  "started_at_utc": "2026-04-26T11:37:09.961341+00:00",
+  "resume_contract": {
+    "schema_version": "simid_resume_contract/v1",
+    "manifest_rows_sha256": "55b437abd8aee80f7e357efe5f279a43596d98396bd6705b74b6af57bd2f1fab",
+    "iti_config": {
+      "model_path": "google/gemma-3-4b-it",
+      "tokenizer_path": "google/gemma-3-4b-it",
+      "iti_artifact_path": "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful/final_fold0/iti_heads.pt",
+      "iti_artifact_sha256": "a6b52a983a461c5fc1bf1455a2e7b9af8e280a2cda3ac5ec3ef38f7166f016b2",
+      "family": "truthfulqa_paperfaithful",
+      "effective_family": "iti_truthfulqa_paperfaithful",
+      "k": 12,
+      "decode_scope": "first_3_tokens"
+    },
+    "conditions": [
+      {
+        "name": "unhooked",
+        "selection_strategy": "ranked",
+        "random_seed": 42,
+        "direction_mode": "artifact",
+        "direction_random_seed": null,
+        "control_type": "unhooked"
+      },
+      {
+        "name": "selected",
+        "selection_strategy": "ranked",
+        "random_seed": 42,
+        "direction_mode": "artifact",
+        "direction_random_seed": null,
+        "control_type": "selected"
+      }
+    ],
+    "alphas": [
+      0.0
+    ],
+    "generation": {
+      "top_k_first_token": 5,
+      "mc_max_new_tokens": 4,
+      "open_max_new_tokens": 64
+    },
+    "runtime": {
+      "device_map": "cuda:0",
+      "seed": 42,
+      "collect_debug_stats": false
+    }
+  },
+  "resume_fingerprint": "2147804fd839813cf154536b488a9b7b2237f271c4d1f7fc98d972fb45fed398"
+}
