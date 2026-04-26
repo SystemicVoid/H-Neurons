@@ -1,0 +1,55 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/analyze_simid-20260425_133630-179630.json",
+  "args": {
+    "allow_overwrite": false,
+    "alphas": [
+      0.0
+    ],
+    "baseline_alpha": 0.0,
+    "conditions": [
+      "unhooked",
+      "selected"
+    ],
+    "n_resamples": 2000,
+    "noop_tolerance": 1e-05,
+    "output_json": null,
+    "phase0_gates": true,
+    "report_md": null,
+    "run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260425_133215_gates",
+    "seed": 42
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/analyze_simid.py",
+    "--run-dir",
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260425_133215_gates",
+    "--conditions",
+    "unhooked",
+    "selected",
+    "--alphas",
+    "0.0",
+    "--phase0-gates",
+    "--n-resamples",
+    "2000"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/analyze_simid.py --run-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260425_133215_gates --conditions unhooked selected --alphas 0.0 --phase0-gates --n-resamples 2000",
+  "completed_at_utc": "2026-04-25T13:36:31.124338+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "c27d0021da6bd021bc41c956821b19ebe828b16d",
+  "hostname": "excurio",
+  "n_alias_audit_rows": 68,
+  "n_rows": 64,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260425_133215_gates/results.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260425_133215_gates/report.md",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260425_133215_gates/alias_audit_queue.jsonl"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "analyze_simid-20260425_133630-179630",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "analyze_simid.py",
+  "started_at_utc": "2026-04-25T13:36:30.494732+00:00",
+  "status": "completed"
+}
