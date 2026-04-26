@@ -54,6 +54,7 @@ REQUIRED_ROW_FIELDS = {
     "gold_aliases",
     "distractor_provenance",
     "option_order_seed",
+    "option_order_replicate",
     "model_path",
     "tokenizer_path",
     "iti_artifact_path",
@@ -670,6 +671,15 @@ def validate_manifest_row(row: dict[str, Any]) -> None:
     if not isinstance(provenance, list) or len(provenance) != len(mc_options):
         raise ValueError(
             f"{row['sample_id']}: distractor_provenance must align with mc_options"
+        )
+    replicate = row["option_order_replicate"]
+    if not isinstance(replicate, int) or isinstance(replicate, bool):
+        raise ValueError(
+            f"{row['sample_id']}: option_order_replicate must be an integer"
+        )
+    if replicate < 0:
+        raise ValueError(
+            f"{row['sample_id']}: option_order_replicate must be non-negative"
         )
     if not isinstance(row["gold_aliases"], list) or not row["gold_aliases"]:
         raise ValueError(f"{row['sample_id']}: gold_aliases cannot be empty")

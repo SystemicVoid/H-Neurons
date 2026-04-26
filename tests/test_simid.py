@@ -216,6 +216,14 @@ def test_manifest_row_schema_and_option_order_are_deterministic() -> None:
     validate_manifest({"schema_version": "simid_manifest/v1", "rows": [row_a]})
 
 
+def test_manifest_validation_requires_option_order_replicate() -> None:
+    row = _manifest_row("simid_test_1", "Question?")
+    del row["option_order_replicate"]
+
+    with pytest.raises(ValueError, match="option_order_replicate"):
+        validate_manifest({"schema_version": "simid_manifest/v1", "rows": [row]})
+
+
 def test_bridge_distractor_selection_excludes_own_gold_aliases() -> None:
     item = BridgeItem("q1", "Question?", ["Paris", "City of Paris"])
     candidates = [
