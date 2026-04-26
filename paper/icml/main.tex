@@ -173,10 +173,11 @@ On the same 1,000 FaithEval items, similar held-out readout quality did not pred
 
 \paragraph{Within-SAE target-selection ablation.}
 To test whether the SAE null reflects a poor target-selection rule rather than the SAE family, we ran an on-pool ablation on the same 509-feature candidate set using a single $\alpha = 0$ delta-only operator (feature zeroing) on a frozen $160/840$ validation/test FaithEval split.
-Three selection rules on 266 features each---top-266 readout weight, top-266 validation utility, and ten layer-matched activation-weighted random zero-weight seeds---all produced null compliance deltas on the $n = 840$ test split (all paired $95\%$ CIs include zero; point estimates $\le 0.72$~pp).
-On the anti-compliance logprob margin, readout-selected features shifted the margin in the \emph{wrong} direction (+$0.92$~nats $[+0.61, +1.23]$ vs.\ no-op), while utility-selected features reduced it by $-0.76$~nats $[-1.08, -0.42]$; the paired utility-minus-readout delta was $-1.68$~nats $[-2.17, -1.19]$.
+The first ablation compared top-266 readout features, top-266 prompt-end validation-utility features, and ten layer-matched activation-weighted random zero-weight controls; all produced null compliance deltas on the $n = 840$ test split (all paired $95\%$ CIs include zero; point estimates $\le 0.72$~pp).
+On the anti-compliance logprob margin, readout-selected features shifted the margin in the \emph{wrong} direction (+$0.92$~nats $[+0.61, +1.23]$ vs.\ no-op), while prompt-end utility-selected features reduced it by $-0.76$~nats $[-1.08, -0.42]$; the paired utility-minus-readout delta was $-1.68$~nats $[-2.17, -1.19]$.
 Because both sides of that contrast share the same $\alpha = 0$ delta-only operator, any path artifact cancels; a dedicated path-drift control ($\alpha = 0$ on a single provably-dead zero-weight feature) independently moved the margin by only $+8.2\times 10^{-8}$~nats $[-2.4\times10^{-3}, +2.1\times10^{-3}]$.
-Within the same candidate pool, readout- and utility-based criteria pick features with opposite-sign margin effects, and no rule reaches the accuracy endpoint (Appendix~\ref{app:saeselector}).
+A later answer-span selector on the same pool added a narrower finding: it reduced its native first-3-token answer-text margin ($-0.33$~nats $[-0.61, -0.06]$ vs.\ no-op), but left compliance null and underperformed the prompt-end utility selector on the original prompt-end margin ($+0.46$~nats $[+0.16, +0.75]$).
+Within the same candidate pool, readout-, prompt-end-utility-, and answer-span-utility criteria therefore induce metric-specific margin effects, and no rule reaches the accuracy endpoint (Appendix~\ref{app:saeselector}).
 
 \subsection{Synthesis}
 
@@ -186,7 +187,7 @@ The narrower claim is that readout quality alone is an unreliable heuristic for 
 SAE features matched H-neurons on the quantity most commonly used to justify steering (held-out AUROC) and failed on the downstream behavioral test.
 
 A natural objection is that this comparable-readout design confounds representational basis with readout quality: SAE features and neurons differ in operator form, layer coverage, and feature granularity.
-The within-SAE ablation above partly closes that gap: with operator form and the available extraction layers held fixed, readout- and utility-based selectors move the margin in opposite directions, and neither reaches the accuracy endpoint.
+The within-SAE ablation above partly closes that gap: with operator form and the available extraction layers held fixed, readout-, prompt-end-utility-, and answer-span-utility selectors produce metric-specific margin effects, and none reaches the accuracy endpoint.
 The remaining basis confound narrows the across-family inference, but readout quality alone did not suffice to predict steering utility in either the cross-representational comparison or within the SAE pool.
 We discuss this limitation further in~\S\ref{sec:framework}.
 
@@ -419,6 +420,7 @@ Cross-surface effects belong next to the headline result, not in the footnotes.
 
 All experiments use a single model (Gemma-3-4B-IT); the dissociations may not replicate across architectures or scales, though \citet{gao2025hneurons} report qualitatively similar H-neuron compliance effects across six models.
 The comparable-readout design keeps held-out AUROC close but cannot rule out that some other property of the feature family (operator form, layer coverage) explains the steering divergence.
+The within-SAE selector ablations reduce the target-selection concern but do not remove the cross-family operator-form confound.
 SAE layer coverage is partial; a different SAE width or layer selection could yield non-null results.
 The bridge failure-mode second rater is an LLM judge (GPT-4o), not an independent human coder, so we present the agreement reported in \S\ref{sec:externality} as a sensitivity check rather than strong-form human--human IRR.
 Jailbreak H-neuron specificity is single-seed ($p = 0.013$); additional seeds are needed.
@@ -516,40 +518,44 @@ Section~\ref{sec:localization} briefly reported a within-SAE target-selection ab
 Candidate pool: 509 SAE features with non-zero weight in the frozen FaithEval SAE classifier, drawn from the existing extraction layers $\{0, 5, 6, 7, 13, 14, 15, 16, 17, 20\}$ at $d_{\text{SAE}} = 16\,384$.
 Stratified $160/840$ validation/test split by $(\text{num\_options}, \text{counterfactual\_key})$, seed~42, with $\text{validation} \cap \text{test} = \emptyset$.
 Operator: SAE delta-only ablation at $\alpha = 0$ (encode $\to$ zero the target feature $\to$ decode $\to$ add the delta to the residual stream).
-Three 266-feature selection rules are compared (readout: top probe weight; utility: top validation selector score; matched-random: ten layer-matched zero-weight seeds, sampled without replacement with weights proportional to validation-token activation rate via Efraimidis-Spirakis keys, eligible pool 112\,004), plus a single-feature \emph{path-drift control} ($\alpha = 0$ on a layer-20 feature with zero classifier weight \emph{and} zero validation-token activation) that isolates the residual contribution of routing through the SAE hook when the targeted feature is provably dead.
+Three 266-feature selection rules are compared (readout: top probe weight; prompt-end utility: top validation reduction in the forced-choice anti-compliance margin; answer-span utility: top validation reduction in the first-3-token answer-text margin).
+The utility and answer-span selectors each receive ten layer-matched zero-weight random seeds, sampled without replacement with weights proportional to validation-token activation rate via Efraimidis-Spirakis keys from a 112\,004-feature eligible pool.
+A single-feature \emph{path-drift control} ($\alpha = 0$ on a layer-20 feature with zero classifier weight \emph{and} zero validation-token activation) isolates the residual contribution of routing through the SAE hook when the targeted feature is provably dead.
 
-\paragraph{Results.} Table~\ref{tab:sae_selector} reports compliance and anti-compliance margin across families on the frozen $n = 840$ test split.
+\paragraph{Results.} Table~\ref{tab:sae_selector} reports compliance and the two margin endpoints on the frozen $n = 840$ test split.
 
 \begin{table*}[ht]
 \centering
-\caption{SAE target-selection ablation on FaithEval ($n = 840$). Matched-random row aggregates ten seeds (compliance mean $\pm$ seed SD; margin mean $\pm$ seed SD). Readout, utility, and path-drift contrasts are vs.\ no-op; the matched-random contrast is the per-seed utility-minus-random range. CIs are 10\,000-sample paired bootstrap ($95\%$).}
+\caption{SAE target-selection ablation on FaithEval ($n = 840$). Margin contrasts are vs.\ no-op; lower margins are better because they reduce the misleading-vs-preferred logprob gap. CIs are 10\,000-sample paired bootstrap ($95\%$).}
 \label{tab:sae_selector}
 \vskip 0.1in
-\small
-\begin{tabular}{@{}lccc@{}}
+\footnotesize
+\begin{tabular}{@{}L{4.3cm}L{2.1cm}L{4.2cm}L{4.2cm}@{}}
 \toprule
-\textbf{Family} & \textbf{Compliance} & \textbf{Margin (nats)} & \textbf{Margin contrast (nats)} \\
+\textbf{Family} & \textbf{Compliance} & \textbf{Prompt-end margin contrast} & \textbf{Answer-span margin contrast} \\
 \midrule
-No-op                     & $66.4\%$              & $+8.31$                & --- \\
-Readout-selected ($k{=}266$) & $66.0\%$           & $+9.23$                & $+0.92$ $[+0.61, +1.23]$ \\
-Utility-selected ($k{=}266$) & $66.2\%$           & $+7.55$                & $-0.76$ $[-1.08, -0.42]$ \\
-Matched-random (10 seeds)  & $66.4\% \pm 0.7$     & $+8.33 \pm 0.53$       & utility$-$random seed range $[-1.75, +0.14]$ \\
-Path-drift ($k{=}1$ dead)  & $66.4\%$             & $+8.31$                & $+8.2{\times}10^{-8}$ $[-2.4{\times}10^{-3}, +2.1{\times}10^{-3}]$ \\
+No-op                     & $66.4\%$              & --- & --- \\
+Readout-selected ($k{=}266$) & $66.0\%$           & $+0.92$ $[+0.61, +1.23]$ & $+0.65$ $[+0.30, +0.99]$ \\
+Prompt-end utility-selected ($k{=}266$) & $66.2\%$ & $-0.76$ $[-1.08, -0.42]$ & $-0.10$ $[-0.30, +0.10]$ \\
+Answer-span utility-selected ($k{=}266$) & $67.4\%$ & $-0.31$ $[-0.73, +0.12]$ & $-0.33$ $[-0.61, -0.06]$ \\
+Path-drift ($k{=}1$ dead)  & $66.4\%$             & $+8.2{\times}10^{-8}$ $[-2.4{\times}10^{-3}, +2.1{\times}10^{-3}]$ & n/a \\
 \bottomrule
 \end{tabular}
 \vskip -0.1in
 \end{table*}
 
-All four active families produce null compliance deltas (all paired $95\%$ CIs include zero; point estimates $\le 0.72$~pp), so the FaithEval accuracy null is not rescued by any selection rule we tried.
-On the anti-compliance margin, readout-selected features shift the margin in the \emph{wrong} direction while utility-selected features modestly improve it; the paired utility-minus-readout delta is $-1.68$~nats $[-2.17, -1.19]$.
+All selector families produce null compliance deltas (all paired $95\%$ CIs include zero; the answer-span selector's largest point estimate is $+0.95$~pp $[-0.83, +2.74]$ vs.\ no-op), so the FaithEval accuracy null is not rescued by any selection rule we tried.
+On the prompt-end anti-compliance margin, readout-selected features shift the margin in the \emph{wrong} direction while prompt-end utility-selected features modestly improve it; the paired utility-minus-readout delta is $-1.68$~nats $[-2.17, -1.19]$.
 This within-pool contrast is immune to path drift because both sides share the same $\alpha = 0$ delta-only operator; the explicit path-drift control ($+8.2\times 10^{-8}$~nats $[-2.4\times10^{-3}, +2.1\times10^{-3}]$) independently bounds invocation-only code-path drift far below the selection-specific effects.
 
 A strictly-positive-utility augment ($k = 154$) guards against size-match dilution and reduces the margin by $-0.72$~nats $[-1.04, -0.39]$ vs.\ no-op, with three layer-matched random-positive seeds yielding paired deltas $-0.74$ $[-1.10, -0.36]$, $-0.81$ $[-1.16, -0.46]$, and $-0.42$ $[-0.75, -0.08]$~nats.
 The ten-seed matched-random ensemble for the main bundle gives a seed-mean utility-minus-matched-random contrast of $-0.90$~nats (nested paired bootstrap $[-1.22, -0.56]$; naive seed bootstrap $[-1.17, -0.61]$); 9~of~10 seeds produce a negative paired delta.
-The selector was frozen before any test labels were scored, and the random-null construction, the path-drift control, and the 10-seed extension were added sequentially in response to the adversarial audit flagged in our provenance notes.
+The answer-span selector also improves over its own ten-seed matched-random null on its native margin (seed-mean $-0.53$~nats, nested $[-0.81, -0.26]$), but this is within-metric generalization from validation to test: the more conservative cross-metric contrast is mixed, with answer-span selection worse than prompt-end utility selection by $+0.46$~nats $[+0.16, +0.75]$ on the original prompt-end margin.
+The selector was frozen before any test labels were scored, and the random-null construction, the path-drift control, the 10-seed extension, and the answer-span extension were added sequentially in response to the adversarial audit flagged in our provenance notes.
 
 \paragraph{Reading.}
-Within the same candidate pool, readout- and utility-based criteria pick features with opposite-sign margin effects, and no rule reaches the accuracy endpoint.
+Within the same candidate pool, readout-, prompt-end-utility-, and answer-span-utility criteria pick feature sets with metric-specific margin effects, and no rule reaches the accuracy endpoint.
+The two intervention-aware $k=266$ sets share 167 features (Jaccard $0.46$), so the contrast is best read as evidence that the intervention objective is load-bearing within this pool, not as evidence that either objective discovers a behavioral steering handle.
 The FaithEval SAE null is therefore not a readout-selection artifact within the available SAE extraction layers (L2 in Table~\ref{tab:limitations}).
 Neither contrast elevates the SAE intervention to a successful steering handle; the margin-level separation between selection rules does not transfer to the behavioral endpoint.
 
@@ -627,7 +633,7 @@ This refines rather than contradicts the §\ref{sec:externality} externality cla
 \textbf{\#} & \textbf{Limitation} \\
 \midrule
 L1 & Single model (Gemma-3-4B-IT); all claims. \\
-L2 & Matched-readout confound: the target-selection artifact form is addressed within the SAE pool (readout- and utility-based selectors give opposite-sign margin effects with a null accuracy endpoint; Appendix~\ref{app:saeselector}); operator-form differences across families remain untested. \\
+L2 & Matched-readout confound: the target-selection artifact form is addressed within the SAE pool (readout-, prompt-end-utility-, and answer-span-utility selectors give metric-specific margin effects with a null accuracy endpoint; Appendix~\ref{app:saeselector}); operator-form differences across families remain untested. \\
 L3 & SAE layer coverage is partially addressed (selector searched all probe-nonzero features in the existing extraction layers); a different width or layer family could yield non-null results. \\
 L4 & Bridge failure-mode second rater is an LLM judge (GPT-4o), not an independent human coder; raw agreement 96.5\% ($\kappa = 0.90$, AC1 = 0.96). \\
 L5 & Jailbreak H-neuron specificity is single-seed ($p = 0.013$); seeds 1--2 pending. \\

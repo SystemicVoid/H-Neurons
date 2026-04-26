@@ -38,6 +38,17 @@ Abstract headline numbers are covered by the section-level rows below rather tha
 | Neuron-minus-SAE slope difference | +1.93 pp/α | [+0.94, +2.92] | `data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json` (`slope_difference_pp_per_alpha`) |
 | Neuron-minus-SAE directional permutation test | one-sided p < 0.001 | saved value `9.9998e-05` | same file (`permutation_test`); supporting audit: `notes/act3-reports/2026-04-13-faitheval-slope-difference-reporting-audit.md` §1.3 |
 | FaithEval evaluation size | 1,000 items | — | `notes/measurement-blueprint.md` |
+| Within-SAE selector split | 160 validation / 840 test | stratified, seed 42 | `data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json` (`selector_design.validation_policy`); audit report: `paper/icml/reports/2026-04-25-faitheval-answer-span-extension.md` |
+| Within-SAE candidate pool | 509 probe-nonzero SAE features | k = 266 selector size | same file (`selector_diagnostics.candidate_pool_n`, `selected_k`, `answer_span_selected_k`) |
+| Readout-selected prompt-end margin effect | +0.92 nats | [+0.61, +1.23] | `paper/icml/reports/2026-04-25-faitheval-answer-span-extension.md` §3.4; canonical means in `heldout_summary.json` (`heldout_anti_compliance_margin.families`) |
+| Prompt-end utility-selected prompt-end margin effect | -0.76 nats | [-1.08, -0.42] | `data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json` (`heldout_anti_compliance_margin.paired_deltas.utility_minus_noop`) |
+| Prompt-end utility minus readout prompt-end margin | -1.68 nats | [-2.17, -1.19] | same file (`heldout_anti_compliance_margin.paired_deltas.utility_minus_readout`) |
+| Path-drift prompt-end margin effect | +8.2e-8 nats | [-2.4e-3, +2.1e-3] | same file (`heldout_anti_compliance_margin.path_drift.paired_delta`) |
+| Answer-span selector compliance effect | +0.95 pp | [-0.83, +2.74] | same file (`heldout_compliance_answer_span_selected.paired_deltas_pp.answer_span_selected_minus_noop`) |
+| Answer-span selector native answer-text margin effect | -0.33 nats | [-0.61, -0.06] | same file (`heldout_answer_span_margin.paired_deltas.answer_span_selected_minus_noop`) |
+| Answer-span selector native random-null contrast | -0.53 nats | nested bootstrap [-0.81, -0.26] | same file (`heldout_answer_span_margin.across_seeds.seed_mean_summary`) |
+| Answer-span selector vs prompt-end utility on prompt-end margin | +0.46 nats | [+0.16, +0.75] | same file (`heldout_anti_compliance_margin_answer_span_selected.paired_deltas.answer_span_selected_minus_utility_selected`) |
+| Prompt-end utility / answer-span selector overlap | 167 / 266 shared features | Jaccard 0.46 | same file (`selector_diagnostics.answer_span_overlap_with_utility`) |
 
 ### Section 4. Control Is Surface-Local and Can Externalize (`\S\ref{sec:externality}`)
 
