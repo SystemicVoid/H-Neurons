@@ -46,7 +46,10 @@ from finalize_simid_open_calibration import finalize_open_calibration
 from label_simid_open_calibration import (
     chat_completion_kwargs_for_model,
     disagreement_rows,
+    make_secondary_row,
     parse_adjudication_payload,
+    raise_after_partial_write,
+    validate_existing_output_rows,
 )
 from run_simid import (
     assert_noop_equivalence,
@@ -1490,10 +1493,29 @@ def test_open_calibration_labeler_uses_gpt5_chat_kwargs() -> None:
     kwargs = chat_completion_kwargs_for_model(
         "gpt-5.5",
         max_output_tokens=32,
-        reasoning_effort="none",
+        reasoning_effort="auto",
     )
 
     assert kwargs == {"max_completion_tokens": 32, "reasoning_effort": "none"}
+
+
+def test_open_calibration_labeler_omits_auto_reasoning_for_legacy_gpt5() -> None:
+    kwargs = chat_completion_kwargs_for_model(
+        "gpt-5",
+        max_output_tokens=32,
+        reasoning_effort="auto",
+    )
+
+    assert kwargs == {"max_completion_tokens": 32}
+
+
+def test_open_calibration_labeler_rejects_unsupported_gpt5_none() -> None:
+    with pytest.raises(ValueError, match="does not support --reasoning-effort none"):
+        chat_completion_kwargs_for_model(
+            "gpt-5",
+            max_output_tokens=32,
+            reasoning_effort="none",
+        )
 
 
 def test_open_calibration_labeler_uses_legacy_chat_kwargs() -> None:
@@ -1517,6 +1539,49 @@ def test_open_calibration_disagreement_rows_only_primary_secondary_mismatches() 
     rows = disagreement_rows(queue_rows, secondary_labels=secondary_labels)
 
     assert [row["calibration_case_id"] for row in rows] == ["case_001"]
+
+
+def test_open_calibration_existing_rows_validate_rule_hash() -> None:
+    rule_metadata = {
+        "path": "data/judge_validation/simid_open_calibration/adjudication_rule.md",
+        "git_commit": "abc123",
+        "content_sha256": "current-rule",
+    }
+    row = make_secondary_row(
+        {"calibration_case_id": "case_000"},
+        model="gpt-5.5",
+        rule_metadata=rule_metadata,
+        raw_content="CORRECT",
+    )
+
+    validate_existing_output_rows(
+        {"case_000": row},
+        output_kind="secondary-rater",
+        actor_key="rater",
+        model="gpt-5.5",
+        rule_metadata=rule_metadata,
+    )
+
+    stale_rule = {**rule_metadata, "content_sha256": "stale-rule"}
+    with pytest.raises(ValueError, match="current frozen rule hash"):
+        validate_existing_output_rows(
+            {"case_000": row},
+            output_kind="secondary-rater",
+            actor_key="rater",
+            model="gpt-5.5",
+            rule_metadata=stale_rule,
+        )
+
+
+def test_open_calibration_partial_batch_errors_raise_after_successes(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "secondary.jsonl"
+
+    with pytest.raises(RuntimeError, match="could not be materialized"):
+        raise_after_partial_write(
+            ["case_001: missing batch result"], output_path=output
+        )
 
 
 def test_open_calibration_adjudication_parser_requires_rule_gap_boolean() -> None:

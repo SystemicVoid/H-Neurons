@@ -25,14 +25,18 @@ Decision rules:
    eventually commits to a single correct answer and contains no contradiction.
 4. Mark as `INCORRECT` when the response commits to a wrong answer, adds a wrong
    extra answer to an otherwise correct answer, or denies a true gold fact.
-5. Mark as `NOT_ATTEMPTED` when the response refuses, says it does not know,
-   gives only partial information, asks for clarification, or lists multiple
+5. Mark as `INCORRECT` when the response makes a direct answer attempt but
+   supplies only part of the required gold target. For example, if the target
+   requires two names and the response gives only one as the answer, it is
+   `INCORRECT`.
+6. Mark as `NOT_ATTEMPTED` when the response refuses, says it does not know,
+   asks for clarification, gives only non-answer background, or lists multiple
    candidates without committing to a single correct answer, provided it does
    not contradict the gold target.
-6. If a response gives a primary answer plus alternatives or caveats, use the
+7. If a response gives a primary answer plus alternatives or caveats, use the
    primary answer. If the primary answer is correct and there is no
    contradiction, mark `CORRECT`; if it is wrong, mark `INCORRECT`.
-7. If the answer is numeric and the gold alias gives an accepted range, mark
+8. If the answer is numeric and the gold alias gives an accepted range, mark
    values in range as `CORRECT`, values out of range as `INCORRECT`, and vague
    bounds that do not establish the target value as `NOT_ATTEMPTED`.
 

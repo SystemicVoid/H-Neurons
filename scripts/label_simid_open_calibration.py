@@ -10,11 +10,19 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 from typing import Any
 
 from analyze_simid import SIMID_OPEN_FINAL_GRADES
+from bridge_irr import build_adjudication_rule_metadata
 from evaluate_intervention import parse_simpleqa_verdict
 from finalize_simid_open_calibration import grade_from_row, index_by_case, load_jsonl
+from utils import (
+    finish_run_provenance,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
 
 SECONDARY_SCHEMA_VERSION = "simid_open_calibration_secondary_label/v1"
 ADJUDICATION_SCHEMA_VERSION = "simid_open_calibration_adjudication/v1"
@@ -54,6 +62,31 @@ def model_uses_max_completion_tokens(model: str) -> bool:
     return normalized.startswith("gpt-5") or normalized.startswith("o")
 
 
+def model_supports_reasoning_effort_none(model: str) -> bool:
+    normalized = model.strip().lower()
+    if normalized.startswith("gpt-5."):
+        minor_match = re.match(r"gpt-5\.(\d+)", normalized)
+        return minor_match is not None and int(minor_match.group(1)) >= 1
+    return False
+
+
+def resolve_reasoning_effort(model: str, reasoning_effort: str | None) -> str | None:
+    if reasoning_effort in {None, "", "auto"}:
+        return "none" if model_supports_reasoning_effort_none(model) else None
+    normalized = model.strip().lower()
+    if "pro" in normalized and reasoning_effort != "high":
+        raise ValueError(
+            f"{model} only supports --reasoning-effort high in this labeler; "
+            f"got {reasoning_effort!r}"
+        )
+    if reasoning_effort == "none" and not model_supports_reasoning_effort_none(model):
+        raise ValueError(
+            f"{model} does not support --reasoning-effort none; use auto or a "
+            "supported value"
+        )
+    return reasoning_effort
+
+
 def chat_completion_kwargs_for_model(
     model: str,
     *,
@@ -62,8 +95,9 @@ def chat_completion_kwargs_for_model(
 ) -> dict[str, Any]:
     if model_uses_max_completion_tokens(model):
         kwargs: dict[str, Any] = {"max_completion_tokens": max_output_tokens}
-        if reasoning_effort is not None and model.strip().lower().startswith("gpt-5"):
-            kwargs["reasoning_effort"] = reasoning_effort
+        resolved_reasoning_effort = resolve_reasoning_effort(model, reasoning_effort)
+        if resolved_reasoning_effort is not None:
+            kwargs["reasoning_effort"] = resolved_reasoning_effort
         return kwargs
     return {"temperature": 0.0, "max_tokens": max_output_tokens}
 
@@ -195,6 +229,46 @@ def validate_existing_cases(
         )
 
 
+def nested_str(row: dict[str, Any], *path: str) -> str | None:
+    current: Any = row
+    for key in path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    if current is None:
+        return None
+    return str(current)
+
+
+def validate_existing_output_rows(
+    existing: dict[str, dict[str, Any]],
+    *,
+    output_kind: str,
+    actor_key: str,
+    model: str,
+    rule_metadata: dict[str, str],
+) -> None:
+    expected_rule_hash = rule_metadata["content_sha256"]
+    for case_id, row in existing.items():
+        grade_from_row(row, row_kind=output_kind)
+        if nested_str(row, actor_key, "model") != model:
+            raise ValueError(
+                f"Existing {output_kind} row for {case_id} was produced by "
+                f"{nested_str(row, actor_key, 'model')!r}, expected {model!r}"
+            )
+        if nested_str(row, actor_key, "prompt_version") != PROMPT_VERSION:
+            raise ValueError(
+                f"Existing {output_kind} row for {case_id} has prompt version "
+                f"{nested_str(row, actor_key, 'prompt_version')!r}, expected "
+                f"{PROMPT_VERSION!r}"
+            )
+        if nested_str(row, "rule", "content_sha256") != expected_rule_hash:
+            raise ValueError(
+                f"Existing {output_kind} row for {case_id} does not match the "
+                "current frozen rule hash"
+            )
+
+
 def build_secondary_requests(
     queue_rows: list[dict[str, Any]],
     *,
@@ -233,6 +307,7 @@ def make_secondary_row(
     row: dict[str, Any],
     *,
     model: str,
+    rule_metadata: dict[str, str],
     raw_content: str | None,
 ) -> dict[str, Any]:
     label = parse_label(raw_content)
@@ -246,6 +321,7 @@ def make_secondary_row(
             "model": model,
             "prompt_version": PROMPT_VERSION,
         },
+        "rule": rule_metadata,
         "labeled_at_utc": datetime.now(timezone.utc).isoformat(),
         "raw_judge_response_excerpt": bounded_excerpt(raw_content),
     }
@@ -321,6 +397,7 @@ def make_adjudication_row(
     *,
     secondary_label: str,
     model: str,
+    rule_metadata: dict[str, str],
     raw_content: str | None,
 ) -> dict[str, Any]:
     payload = parse_adjudication_payload(raw_content)
@@ -339,6 +416,7 @@ def make_adjudication_row(
             "model": model,
             "prompt_version": PROMPT_VERSION,
         },
+        "rule": rule_metadata,
         "adjudicated_at_utc": datetime.now(timezone.utc).isoformat(),
         "raw_judge_response_excerpt": bounded_excerpt(raw_content),
     }
@@ -376,13 +454,45 @@ def run_batch(
     )
 
 
-def run_secondary(args: argparse.Namespace, queue_rows: list[dict[str, Any]]) -> None:
+def result_error_summary(entry: dict[str, Any] | None) -> str:
+    if entry is None:
+        return "missing batch result"
+    response = entry.get("response") if isinstance(entry, dict) else None
+    status = response.get("status_code") if isinstance(response, dict) else None
+    error = entry.get("error") if isinstance(entry, dict) else None
+    return f"status={status!r} error={error!r}"
+
+
+def raise_after_partial_write(errors: list[str], *, output_path: Path) -> None:
+    if not errors:
+        return
+    preview = "; ".join(errors[:5])
+    extra = "" if len(errors) <= 5 else f"; ... {len(errors) - 5} more"
+    raise RuntimeError(
+        f"{len(errors)} batch result(s) could not be materialized after writing "
+        f"successful rows to {output_path}: {preview}{extra}"
+    )
+
+
+def run_secondary(
+    args: argparse.Namespace,
+    queue_rows: list[dict[str, Any]],
+    *,
+    rule_metadata: dict[str, str],
+) -> dict[str, Any]:
     rule_text = load_rule(args.rule_path)
     existing = load_existing_rows(args.output)
     validate_existing_cases(
         existing,
         allowed_case_ids={str(row["calibration_case_id"]) for row in queue_rows},
         output_kind="secondary",
+    )
+    validate_existing_output_rows(
+        existing,
+        output_kind="secondary",
+        actor_key="rater",
+        model=args.model,
+        rule_metadata=rule_metadata,
     )
     requests, request_map = build_secondary_requests(
         queue_rows,
@@ -394,7 +504,13 @@ def run_secondary(args: argparse.Namespace, queue_rows: list[dict[str, Any]]) ->
     )
     if not requests:
         print(f"Secondary labels already complete: {len(existing)}/{len(queue_rows)}")
-        return
+        return {
+            "mode": "secondary",
+            "n_queue_rows": len(queue_rows),
+            "n_existing_rows": len(existing),
+            "n_requested": 0,
+            "n_written": 0,
+        }
     results = run_batch(
         requests,
         state_path=args.output.with_suffix(".batch_state.json"),
@@ -404,36 +520,69 @@ def run_secondary(args: argparse.Namespace, queue_rows: list[dict[str, Any]]) ->
         max_enqueued_tokens=args.batch_max_enqueued_tokens,
     )
     rows = []
+    errors: list[str] = []
     from openai_batch import parse_chat_content
 
     for custom_id, row in request_map.items():
-        rows.append(
-            make_secondary_row(
-                row,
-                model=args.model,
-                raw_content=parse_chat_content(results.get(custom_id, {})),
+        entry = results.get(custom_id)
+        try:
+            rows.append(
+                make_secondary_row(
+                    row,
+                    model=args.model,
+                    rule_metadata=rule_metadata,
+                    raw_content=parse_chat_content(entry or {}),
+                )
             )
-        )
+        except Exception as exc:
+            errors.append(
+                f"{row['calibration_case_id']} ({custom_id}): "
+                f"{type(exc).__name__}: {exc}; {result_error_summary(entry)}"
+            )
     append_jsonl(args.output, rows)
     print(
         "Wrote SIMID secondary calibration labels: "
         f"{len(rows)} new, {len(existing) + len(rows)}/{len(queue_rows)} total"
     )
+    raise_after_partial_write(errors, output_path=args.output)
+    return {
+        "mode": "secondary",
+        "n_queue_rows": len(queue_rows),
+        "n_existing_rows": len(existing),
+        "n_requested": len(requests),
+        "n_written": len(rows),
+    }
 
 
-def run_adjudicate(args: argparse.Namespace, queue_rows: list[dict[str, Any]]) -> None:
+def run_adjudicate(
+    args: argparse.Namespace,
+    queue_rows: list[dict[str, Any]],
+    *,
+    rule_metadata: dict[str, str],
+) -> dict[str, Any]:
     if args.secondary_rater_path is None:
         raise ValueError("--secondary-rater-path is required in adjudicate mode")
     rule_text = load_rule(args.rule_path)
     secondary_rows = load_jsonl(args.secondary_rater_path)
     secondary_labels = secondary_label_by_case(secondary_rows)
     expected_case_ids = {str(row["calibration_case_id"]) for row in queue_rows}
-    missing_secondary = expected_case_ids - set(secondary_labels)
-    if missing_secondary:
+    secondary_case_ids = set(secondary_labels)
+    if secondary_case_ids != expected_case_ids:
+        missing_secondary = expected_case_ids - secondary_case_ids
+        extra_secondary = secondary_case_ids - expected_case_ids
         raise ValueError(
-            "Secondary labels must cover every calibration case before adjudication; "
-            f"missing {len(missing_secondary)}"
+            "Secondary labels must cover exactly every calibration case before "
+            f"adjudication; missing {len(missing_secondary)}, "
+            f"extra {len(extra_secondary)}"
         )
+    secondary_by_case = index_by_case(secondary_rows, row_kind="secondary-rater")
+    validate_existing_output_rows(
+        secondary_by_case,
+        output_kind="secondary-rater",
+        actor_key="rater",
+        model=args.secondary_model,
+        rule_metadata=rule_metadata,
+    )
     disagreements = disagreement_rows(queue_rows, secondary_labels=secondary_labels)
     disagreement_ids = {str(row["calibration_case_id"]) for row in disagreements}
     existing = load_existing_rows(args.output)
@@ -442,10 +591,24 @@ def run_adjudicate(args: argparse.Namespace, queue_rows: list[dict[str, Any]]) -
         allowed_case_ids=disagreement_ids,
         output_kind="adjudication",
     )
+    validate_existing_output_rows(
+        existing,
+        output_kind="adjudication",
+        actor_key="adjudicator",
+        model=args.model,
+        rule_metadata=rule_metadata,
+    )
     if not disagreements:
         write_empty_jsonl(args.output)
         print("No primary/secondary disagreements; wrote empty adjudication file")
-        return
+        return {
+            "mode": "adjudicate",
+            "n_queue_rows": len(queue_rows),
+            "n_disagreements": 0,
+            "n_existing_rows": len(existing),
+            "n_requested": 0,
+            "n_written": 0,
+        }
     requests, request_map = build_adjudication_requests(
         disagreements,
         secondary_labels=secondary_labels,
@@ -460,7 +623,14 @@ def run_adjudicate(args: argparse.Namespace, queue_rows: list[dict[str, Any]]) -
             "Adjudication already complete: "
             f"{len(existing)}/{len(disagreements)} disagreements"
         )
-        return
+        return {
+            "mode": "adjudicate",
+            "n_queue_rows": len(queue_rows),
+            "n_disagreements": len(disagreements),
+            "n_existing_rows": len(existing),
+            "n_requested": 0,
+            "n_written": 0,
+        }
     results = run_batch(
         requests,
         state_path=args.output.with_suffix(".batch_state.json"),
@@ -470,23 +640,41 @@ def run_adjudicate(args: argparse.Namespace, queue_rows: list[dict[str, Any]]) -
         max_enqueued_tokens=args.batch_max_enqueued_tokens,
     )
     rows = []
+    errors: list[str] = []
     from openai_batch import parse_chat_content
 
     for custom_id, row in request_map.items():
         case_id = str(row["calibration_case_id"])
-        rows.append(
-            make_adjudication_row(
-                row,
-                secondary_label=secondary_labels[case_id],
-                model=args.model,
-                raw_content=parse_chat_content(results.get(custom_id, {})),
+        entry = results.get(custom_id)
+        try:
+            rows.append(
+                make_adjudication_row(
+                    row,
+                    secondary_label=secondary_labels[case_id],
+                    model=args.model,
+                    rule_metadata=rule_metadata,
+                    raw_content=parse_chat_content(entry or {}),
+                )
             )
-        )
+        except Exception as exc:
+            errors.append(
+                f"{case_id} ({custom_id}): {type(exc).__name__}: {exc}; "
+                f"{result_error_summary(entry)}"
+            )
     append_jsonl(args.output, rows)
     print(
         "Wrote SIMID calibration adjudications: "
         f"{len(rows)} new, {len(existing) + len(rows)}/{len(disagreements)} total"
     )
+    raise_after_partial_write(errors, output_path=args.output)
+    return {
+        "mode": "adjudicate",
+        "n_queue_rows": len(queue_rows),
+        "n_disagreements": len(disagreements),
+        "n_existing_rows": len(existing),
+        "n_requested": len(requests),
+        "n_written": len(rows),
+    }
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -497,11 +685,32 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--secondary-rater-path", type=Path)
     parser.add_argument("--model", default="gpt-5.5")
+    parser.add_argument("--secondary-model", default="gpt-5.5")
     parser.add_argument("--api-key")
     parser.add_argument("--batch-max-enqueued-tokens", type=int)
-    parser.add_argument("--reasoning-effort", default="none")
+    parser.add_argument("--reasoning-effort", default="auto")
     parser.add_argument("--max-output-tokens", type=int)
     return parser.parse_args(argv)
+
+
+def provenance_extra_for_args(
+    args: argparse.Namespace,
+    *,
+    queue_rows: list[dict[str, Any]],
+    rule_text: str,
+    rule_metadata: dict[str, str],
+) -> dict[str, Any]:
+    return {
+        "mode": args.mode,
+        "queue_path": str(args.queue_path),
+        "rule_path": str(args.rule_path),
+        "rule_content_sha256": rule_metadata["content_sha256"],
+        "rule": rule_metadata,
+        "judge_model": args.model,
+        "secondary_model": args.secondary_model,
+        "prompt_version": PROMPT_VERSION,
+        "n_queue_rows": len(queue_rows),
+    }
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -509,10 +718,37 @@ def main(argv: list[str] | None = None) -> None:
     if args.max_output_tokens is None:
         args.max_output_tokens = 200 if args.mode == "adjudicate" else 32
     queue_rows = load_jsonl(args.queue_path)
-    if args.mode == "secondary":
-        run_secondary(args, queue_rows)
-    else:
-        run_adjudicate(args, queue_rows)
+    rule_text = load_rule(args.rule_path)
+    rule_metadata = build_adjudication_rule_metadata(args.rule_path)
+    output_targets = [
+        args.output,
+        args.output.with_suffix(".batch_state.json"),
+        args.output.with_suffix(".batch_state.results.jsonl"),
+    ]
+    provenance = start_run_provenance(
+        args,
+        primary_target=args.output,
+        output_targets=output_targets,
+        extra=provenance_extra_for_args(
+            args,
+            queue_rows=queue_rows,
+            rule_text=rule_text,
+            rule_metadata=rule_metadata,
+        ),
+    )
+    status = "completed"
+    extra: dict[str, Any] = {}
+    try:
+        if args.mode == "secondary":
+            extra = run_secondary(args, queue_rows, rule_metadata=rule_metadata)
+        else:
+            extra = run_adjudicate(args, queue_rows, rule_metadata=rule_metadata)
+    except BaseException as exc:
+        status = provenance_status_for_exception(exc)
+        extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance, status, extra)
 
 
 if __name__ == "__main__":
