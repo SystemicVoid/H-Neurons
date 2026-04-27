@@ -43,6 +43,11 @@ from build_simid_manifest import (
 )
 from build_truthfulqa_splits import stable_question_id
 from finalize_simid_open_calibration import finalize_open_calibration
+from label_simid_open_calibration import (
+    chat_completion_kwargs_for_model,
+    disagreement_rows,
+    parse_adjudication_payload,
+)
 from run_simid import (
     assert_noop_equivalence,
     build_iti_config,
@@ -1479,6 +1484,52 @@ def test_finalize_open_calibration_leaves_single_grade_kappa_unrecorded(
     assert summary["claimability"]["passed"] is False
     assert "cohen_kappa_not_recorded" in summary["claimability"]["blockers"]
     assert "n_cases_below_minimum" not in summary["claimability"]["blockers"]
+
+
+def test_open_calibration_labeler_uses_gpt5_chat_kwargs() -> None:
+    kwargs = chat_completion_kwargs_for_model(
+        "gpt-5.5",
+        max_output_tokens=32,
+        reasoning_effort="none",
+    )
+
+    assert kwargs == {"max_completion_tokens": 32, "reasoning_effort": "none"}
+
+
+def test_open_calibration_labeler_uses_legacy_chat_kwargs() -> None:
+    kwargs = chat_completion_kwargs_for_model(
+        "gpt-4.1",
+        max_output_tokens=32,
+        reasoning_effort="none",
+    )
+
+    assert kwargs == {"temperature": 0.0, "max_tokens": 32}
+
+
+def test_open_calibration_disagreement_rows_only_primary_secondary_mismatches() -> None:
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT", "NOT_ATTEMPTED"])
+    secondary_labels = {
+        "case_000": "CORRECT",
+        "case_001": "CORRECT",
+        "case_002": "NOT_ATTEMPTED",
+    }
+
+    rows = disagreement_rows(queue_rows, secondary_labels=secondary_labels)
+
+    assert [row["calibration_case_id"] for row in rows] == ["case_001"]
+
+
+def test_open_calibration_adjudication_parser_requires_rule_gap_boolean() -> None:
+    with pytest.raises(ValueError, match="rule_gap must be boolean"):
+        parse_adjudication_payload(
+            json.dumps(
+                {
+                    "label": "CORRECT",
+                    "rule_gap": "false",
+                    "notes": "R1",
+                }
+            )
+        )
 
 
 def test_report_labels_adjudicated_open_metrics(tmp_path: Path) -> None:
