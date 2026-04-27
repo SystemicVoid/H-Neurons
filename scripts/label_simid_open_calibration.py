@@ -64,6 +64,8 @@ def model_uses_max_completion_tokens(model: str) -> bool:
 
 def model_supports_reasoning_effort_none(model: str) -> bool:
     normalized = model.strip().lower()
+    if "pro" in normalized:
+        return False
     if normalized.startswith("gpt-5."):
         minor_match = re.match(r"gpt-5\.(\d+)", normalized)
         return minor_match is not None and int(minor_match.group(1)) >= 1
@@ -71,14 +73,16 @@ def model_supports_reasoning_effort_none(model: str) -> bool:
 
 
 def resolve_reasoning_effort(model: str, reasoning_effort: str | None) -> str | None:
-    if reasoning_effort in {None, "", "auto"}:
-        return "none" if model_supports_reasoning_effort_none(model) else None
     normalized = model.strip().lower()
+    if "pro" in normalized and reasoning_effort in {None, "", "auto"}:
+        return "high"
     if "pro" in normalized and reasoning_effort != "high":
         raise ValueError(
             f"{model} only supports --reasoning-effort high in this labeler; "
             f"got {reasoning_effort!r}"
         )
+    if reasoning_effort in {None, "", "auto"}:
+        return "none" if model_supports_reasoning_effort_none(model) else None
     if reasoning_effort == "none" and not model_supports_reasoning_effort_none(model):
         raise ValueError(
             f"{model} does not support --reasoning-effort none; use auto or a "
@@ -102,9 +106,21 @@ def chat_completion_kwargs_for_model(
     return {"temperature": 0.0, "max_tokens": max_output_tokens}
 
 
-def case_custom_id(case_id: str, *, mode: str, model: str) -> str:
+def case_custom_id(
+    case_id: str,
+    *,
+    mode: str,
+    model: str,
+    rule_metadata: dict[str, str],
+) -> str:
     payload = json.dumps(
-        {"case_id": case_id, "mode": mode, "model": model},
+        {
+            "case_id": case_id,
+            "mode": mode,
+            "model": model,
+            "prompt_version": PROMPT_VERSION,
+            "rule_content_sha256": rule_metadata["content_sha256"],
+        },
         ensure_ascii=True,
         sort_keys=True,
     )
@@ -274,6 +290,7 @@ def build_secondary_requests(
     *,
     existing_rows: dict[str, dict[str, Any]],
     rule_text: str,
+    rule_metadata: dict[str, str],
     model: str,
     max_output_tokens: int,
     reasoning_effort: str | None,
@@ -291,7 +308,12 @@ def build_secondary_requests(
         case_id = str(row["calibration_case_id"])
         if case_id in existing_rows:
             continue
-        custom_id = case_custom_id(case_id, mode="secondary", model=model)
+        custom_id = case_custom_id(
+            case_id,
+            mode="secondary",
+            model=model,
+            rule_metadata=rule_metadata,
+        )
         request = build_chat_request(
             custom_id=custom_id,
             model=model,
@@ -358,6 +380,7 @@ def build_adjudication_requests(
     secondary_labels: dict[str, str],
     existing_rows: dict[str, dict[str, Any]],
     rule_text: str,
+    rule_metadata: dict[str, str],
     model: str,
     max_output_tokens: int,
     reasoning_effort: str | None,
@@ -376,7 +399,12 @@ def build_adjudication_requests(
         case_id = str(row["calibration_case_id"])
         if case_id in existing_rows:
             continue
-        custom_id = case_custom_id(case_id, mode="adjudicate", model=model)
+        custom_id = case_custom_id(
+            case_id,
+            mode="adjudicate",
+            model=model,
+            rule_metadata=rule_metadata,
+        )
         request = build_chat_request(
             custom_id=custom_id,
             model=model,
@@ -498,6 +526,7 @@ def run_secondary(
         queue_rows,
         existing_rows=existing,
         rule_text=rule_text,
+        rule_metadata=rule_metadata,
         model=args.model,
         max_output_tokens=args.max_output_tokens,
         reasoning_effort=args.reasoning_effort,
@@ -614,6 +643,7 @@ def run_adjudicate(
         secondary_labels=secondary_labels,
         existing_rows=existing,
         rule_text=rule_text,
+        rule_metadata=rule_metadata,
         model=args.model,
         max_output_tokens=args.max_output_tokens,
         reasoning_effort=args.reasoning_effort,

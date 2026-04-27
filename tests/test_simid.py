@@ -44,6 +44,7 @@ from build_simid_manifest import (
 from build_truthfulqa_splits import stable_question_id
 from finalize_simid_open_calibration import finalize_open_calibration
 from label_simid_open_calibration import (
+    case_custom_id,
     chat_completion_kwargs_for_model,
     disagreement_rows,
     make_secondary_row,
@@ -1518,6 +1519,16 @@ def test_open_calibration_labeler_rejects_unsupported_gpt5_none() -> None:
         )
 
 
+def test_open_calibration_labeler_uses_high_reasoning_for_gpt5_pro_auto() -> None:
+    kwargs = chat_completion_kwargs_for_model(
+        "gpt-5.5-pro",
+        max_output_tokens=32,
+        reasoning_effort="auto",
+    )
+
+    assert kwargs == {"max_completion_tokens": 32, "reasoning_effort": "high"}
+
+
 def test_open_calibration_labeler_uses_legacy_chat_kwargs() -> None:
     kwargs = chat_completion_kwargs_for_model(
         "gpt-4.1",
@@ -1539,6 +1550,23 @@ def test_open_calibration_disagreement_rows_only_primary_secondary_mismatches() 
     rows = disagreement_rows(queue_rows, secondary_labels=secondary_labels)
 
     assert [row["calibration_case_id"] for row in rows] == ["case_001"]
+
+
+def test_open_calibration_custom_id_depends_on_rule_hash() -> None:
+    first = case_custom_id(
+        "case_000",
+        mode="secondary",
+        model="gpt-5.5",
+        rule_metadata={"content_sha256": "rule-a"},
+    )
+    second = case_custom_id(
+        "case_000",
+        mode="secondary",
+        model="gpt-5.5",
+        rule_metadata={"content_sha256": "rule-b"},
+    )
+
+    assert first != second
 
 
 def test_open_calibration_existing_rows_validate_rule_hash() -> None:
