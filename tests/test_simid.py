@@ -19,11 +19,13 @@ from analyze_simid import (
     index_rows,
     load_open_adjudications,
     load_run_rows,
+    make_open_adjudication_row,
     main as analyze_main,
     option_order_stability_gate,
     parse_simpleqa_verdict,
     require_paired_panel,
     selected_minus_control_slope_summaries,
+    summarize_open_grading,
     summarize_condition,
     write_report,
 )
@@ -1134,6 +1136,29 @@ def test_effective_open_grade_falls_back_to_deterministic_without_adjudication()
     assert grade["claimable"] is False
 
 
+def test_mixed_open_grade_sources_block_claimability(tmp_path: Path) -> None:
+    adjudicated = _analysis_row(sample_id="s1", open_correct=False)
+    adjudicated["open_adjudication"] = {"judge_grade": "CORRECT"}
+    deterministic = _analysis_row(sample_id="s2", open_correct=True)
+
+    summary = summarize_open_grading(
+        [adjudicated, deterministic],
+        adjudication_path=tmp_path / "open_adjudication.jsonl",
+        adjudication_run=None,
+    )
+
+    assert summary["metric_correct"] == "adjudicated_open_correct"
+    assert summary["effective_grade_source_counts"] == {
+        "adjudication": 1,
+        "deterministic_alias": 1,
+    }
+    assert summary["claimable_open_correctness"] is False
+    assert (
+        summary["claimability_blocker"]
+        == "mixed_adjudication_and_deterministic_sources"
+    )
+
+
 def test_report_labels_adjudicated_open_metrics(tmp_path: Path) -> None:
     path = tmp_path / "report.md"
     write_report(
@@ -1186,6 +1211,24 @@ def test_unknown_judge_verdict_does_not_become_claimable_correctness() -> None:
     assert grade["claimable"] is False
 
 
+def test_unknown_judge_verdict_records_null_deterministic_disagreement(
+    tmp_path: Path,
+) -> None:
+    row = _analysis_row(sample_id="s1", open_correct=True)
+
+    adjudication = make_open_adjudication_row(
+        row,
+        judge_model="gpt-test",
+        batch_custom_id="batch-1",
+        batch_state_path=tmp_path / "open_adjudication.batch_state.json",
+        batch_result_entry=None,
+        raw_content="MAYBE",
+    )
+
+    assert adjudication["parse_result"]["valid"] is False
+    assert adjudication["judge_disagrees_with_deterministic"] is None
+
+
 def test_simid_open_batch_request_contains_question_aliases_and_response() -> None:
     row = _analysis_row(sample_id="s1", open_correct=False)
     row["question"] = "Who wrote Hamlet?"
@@ -1200,6 +1243,47 @@ def test_simid_open_batch_request_contains_question_aliases_and_response() -> No
     assert "Who wrote Hamlet?" in prompt
     assert "William Shakespeare; Shakespeare" in prompt
     assert "The answer is Shakespeare." in prompt
+
+
+def test_simid_open_batch_deduplicates_identical_base_alpha_responses() -> None:
+    rows = [
+        _analysis_row(
+            sample_id="s1_order0",
+            base_sample_id="base1",
+            condition="selected",
+            option_order_replicate=0,
+            dataset="truthfulqa",
+            mc_endpoint="truthfulqa_mc1",
+            open_correct=True,
+        ),
+        _analysis_row(
+            sample_id="s1_order1",
+            base_sample_id="base1",
+            condition="selected",
+            option_order_replicate=1,
+            dataset="truthfulqa",
+            mc_endpoint="truthfulqa_mc1",
+            open_correct=True,
+        ),
+        _analysis_row(
+            sample_id="s1_unhooked_order0",
+            base_sample_id="base1",
+            condition="unhooked",
+            option_order_replicate=0,
+            dataset="truthfulqa",
+            mc_endpoint="truthfulqa_mc1",
+            open_correct=True,
+        ),
+    ]
+
+    requests, request_map = build_simid_open_adjudication_requests(
+        rows,
+        existing_adjudications={},
+        judge_model="gpt-test",
+    )
+
+    assert len(requests) == 1
+    assert len(request_map[requests[0]["custom_id"]]) == 3
 
 
 def test_simid_open_batch_retries_non_final_existing_adjudication_rows() -> None:
@@ -1232,6 +1316,7 @@ def test_simid_open_batch_retries_non_final_existing_adjudication_rows() -> None
 
     assert len(requests) == 1
     assert set(request_map) == {requests[0]["custom_id"]}
+    assert request_map[requests[0]["custom_id"]] == [row]
 
 
 def test_simpleqa_parser_handles_word_and_letter_outputs() -> None:
@@ -1241,6 +1326,13 @@ def test_simpleqa_parser_handles_word_and_letter_outputs() -> None:
     assert parse_simpleqa_verdict("A") == "CORRECT"
     assert parse_simpleqa_verdict("B") == "INCORRECT"
     assert parse_simpleqa_verdict("C") == "NOT_ATTEMPTED"
+
+
+def test_simpleqa_parser_does_not_match_correct_inside_incorrect() -> None:
+    assert (
+        parse_simpleqa_verdict("The judge marked this response INCORRECT.")
+        == "INCORRECT"
+    )
 
 
 def test_open_grading_is_labeled_and_audited_for_non_bridge_rows() -> None:

@@ -69,6 +69,8 @@ OPEN_CORRECTNESS_CLAIM_CONTRACT = (
 )
 OPEN_CORRECTNESS_JUDGE_BLOCKER = "calibration_evidence_not_recorded"
 OPEN_CORRECTNESS_NO_JUDGE_BLOCKER = "judge_adjudication_not_loaded"
+OPEN_CORRECTNESS_MIXED_SOURCE_BLOCKER = "mixed_adjudication_and_deterministic_sources"
+OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER = "judge_verdict_unknown_or_error"
 
 
 def deterministic_open_correct(row: dict[str, Any]) -> bool:
@@ -130,7 +132,7 @@ def effective_open_grade(row: dict[str, Any]) -> dict[str, Any]:
         "judge_grade": verdict,
         "parse_valid": False,
         "claimable": False,
-        "claimability_blocker": "judge_verdict_unknown_or_error",
+        "claimability_blocker": OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER,
     }
 
 
@@ -232,6 +234,7 @@ def load_run_rows(run_dir: Path) -> list[dict[str, Any]]:
 
 
 OpenAdjudicationKey = tuple[str, str, float]
+OpenAdjudicationDedupKey = tuple[str, str, str, tuple[str, ...], str]
 
 
 def open_adjudication_key(row: dict[str, Any]) -> OpenAdjudicationKey:
@@ -241,6 +244,25 @@ def open_adjudication_key(row: dict[str, Any]) -> OpenAdjudicationKey:
 def open_adjudication_key_payload(row: dict[str, Any]) -> dict[str, Any]:
     sample_id, condition, alpha = open_adjudication_key(row)
     return {"sample_id": sample_id, "condition": condition, "alpha": alpha}
+
+
+def open_adjudication_dedup_key(row: dict[str, Any]) -> OpenAdjudicationDedupKey:
+    """Return the conservative judge-prompt identity for open adjudication.
+
+    Condition and MC option-order are intentionally absent: they do not appear
+    in the open-response judge prompt. Alpha is retained so a full intervention
+    sweep does not silently merge otherwise identical answers from different
+    treatment strengths.
+    """
+    aliases = tuple(str(alias) for alias in row.get("gold_aliases", []))
+    response = row.get("open_generation", {}).get("response")
+    return (
+        str(row.get("base_sample_id") or row["sample_id"]),
+        format_alpha_label(float(row["alpha"])),
+        str(row["question"]),
+        aliases,
+        str(response),
+    )
 
 
 def load_open_adjudications(path: Path) -> dict[OpenAdjudicationKey, dict[str, Any]]:
@@ -319,10 +341,9 @@ def eligible_for_open_adjudication(row: dict[str, Any]) -> bool:
 
 
 def simid_open_adjudication_custom_id(row: dict[str, Any]) -> str:
-    key = open_adjudication_key(row)
-    digest = hashlib.sha256(
-        f"{key[0]}|{key[1]}|{format_alpha_label(key[2])}".encode("utf-8")
-    ).hexdigest()[:16]
+    key = open_adjudication_dedup_key(row)
+    payload = json.dumps(key, ensure_ascii=True, sort_keys=True)
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
     return f"simid_open_{digest}"
 
 
@@ -358,26 +379,36 @@ def build_simid_open_adjudication_requests(
     judge_model: str,
     prompt_cache_retention: str | None = None,
     limit: int | None = None,
-) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
-    requests: list[dict[str, Any]] = []
-    request_map: dict[str, dict[str, Any]] = {}
+) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+    request_groups: dict[OpenAdjudicationDedupKey, list[dict[str, Any]]] = {}
+    request_group_order: list[OpenAdjudicationDedupKey] = []
     for row in rows:
-        if limit is not None and len(requests) >= limit:
-            break
         if not eligible_for_open_adjudication(row):
             continue
         if open_adjudication_has_final_grade(
             existing_adjudications.get(open_adjudication_key(row))
         ):
             continue
+        dedup_key = open_adjudication_dedup_key(row)
+        if dedup_key not in request_groups:
+            if limit is not None and len(request_group_order) >= limit:
+                continue
+            request_groups[dedup_key] = []
+            request_group_order.append(dedup_key)
+        request_groups[dedup_key].append(row)
+
+    requests: list[dict[str, Any]] = []
+    request_map: dict[str, list[dict[str, Any]]] = {}
+    for dedup_key in request_group_order:
+        grouped_rows = request_groups[dedup_key]
         request = build_simid_open_adjudication_request(
-            row,
+            grouped_rows[0],
             judge_model=judge_model,
             prompt_cache_retention=prompt_cache_retention,
         )
         custom_id = str(request["custom_id"])
         requests.append(request)
-        request_map[custom_id] = row
+        request_map[custom_id] = grouped_rows
     return requests, request_map
 
 
@@ -514,6 +545,7 @@ def adjudicate_open_responses_batch(
             "n_requested": 0,
             "n_written": 0,
             "n_existing": len(existing),
+            "n_deduplicated_rows": 0,
         }
 
     client = OpenAI(api_key=resolved_api_key)
@@ -530,19 +562,22 @@ def adjudicate_open_responses_batch(
         max_enqueued_tokens=max_enqueued_tokens,
     )
     adjudication_rows: list[dict[str, Any]] = []
-    for custom_id, row in request_map.items():
+    n_deduplicated_rows = 0
+    for custom_id, grouped_rows in request_map.items():
+        n_deduplicated_rows += max(0, len(grouped_rows) - 1)
         entry = results.get(custom_id)
         content = parse_chat_content(entry) if entry is not None else None
-        adjudication_rows.append(
-            make_open_adjudication_row(
-                row,
-                judge_model=judge_model,
-                batch_custom_id=custom_id,
-                batch_state_path=state_path,
-                batch_result_entry=entry,
-                raw_content=content,
+        for row in grouped_rows:
+            adjudication_rows.append(
+                make_open_adjudication_row(
+                    row,
+                    judge_model=judge_model,
+                    batch_custom_id=custom_id,
+                    batch_state_path=state_path,
+                    batch_result_entry=entry,
+                    raw_content=content,
+                )
             )
-        )
     append_open_adjudications(output_path, adjudication_rows)
     return {
         "path": str(output_path),
@@ -551,7 +586,25 @@ def adjudicate_open_responses_batch(
         "n_requested": len(batch_requests),
         "n_written": len(adjudication_rows),
         "n_existing": len(existing),
+        "n_deduplicated_rows": n_deduplicated_rows,
     }
+
+
+def open_correctness_claimability_blocker(
+    effective_source_counts: Counter[str],
+    *,
+    has_judge: bool,
+) -> str:
+    if (
+        effective_source_counts.get("adjudication", 0) > 0
+        and effective_source_counts.get("deterministic_alias", 0) > 0
+    ):
+        return OPEN_CORRECTNESS_MIXED_SOURCE_BLOCKER
+    if effective_source_counts.get("adjudication_unknown", 0) > 0:
+        return OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER
+    if has_judge:
+        return OPEN_CORRECTNESS_JUDGE_BLOCKER
+    return OPEN_CORRECTNESS_NO_JUDGE_BLOCKER
 
 
 def summarize_open_grading(
@@ -580,6 +633,10 @@ def summarize_open_grading(
             invalid_adjudications += 1
 
     has_judge = has_open_adjudication(rows)
+    claimability_blocker = open_correctness_claimability_blocker(
+        effective_source_counts,
+        has_judge=has_judge,
+    )
     summary: dict[str, Any] = {
         "deterministic_alias_grader": OPEN_GRADING_METHOD,
         "metric_correct": correct_metric,
@@ -599,11 +656,7 @@ def summarize_open_grading(
         "open_correctness_claim_contract": OPEN_CORRECTNESS_CLAIM_CONTRACT,
         "open_metrics_scope": "diagnostic_only",
         "claimable_open_correctness": False,
-        "claimability_blocker": (
-            OPEN_CORRECTNESS_JUDGE_BLOCKER
-            if has_judge
-            else OPEN_CORRECTNESS_NO_JUDGE_BLOCKER
-        ),
+        "claimability_blocker": claimability_blocker,
     }
     if adjudication_run is not None:
         summary["adjudication"]["last_run"] = adjudication_run
