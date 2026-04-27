@@ -9,7 +9,10 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from run_intervention import _faitheval_prompt  # noqa: E402
-from run_negative_control import parse_args  # noqa: E402
+from run_negative_control import (  # noqa: E402
+    _jailbreak_csv2_eval_dir,
+    parse_args,
+)
 
 
 _FAKE_SAMPLE = {
@@ -93,3 +96,49 @@ def test_parse_args_sample_manifest_accepts_path(
     _set_argv(monkeypatch, "--sample_manifest", str(manifest))
     args = parse_args()
     assert args.sample_manifest == str(manifest)
+
+
+def test_jailbreak_csv2_eval_dir_uses_baseline_override() -> None:
+    result = _jailbreak_csv2_eval_dir(
+        user_baseline="data/custom/intervention/jailbreak/experiment",
+        model_key="mistral24b",
+        model_path=None,
+    )
+    assert result == "data/custom/intervention/jailbreak/csv2_evaluation"
+
+
+def test_jailbreak_csv2_eval_dir_strips_trailing_slash() -> None:
+    result = _jailbreak_csv2_eval_dir(
+        user_baseline="data/custom/intervention/jailbreak/experiment/",
+        model_key=None,
+        model_path=None,
+    )
+    assert result == "data/custom/intervention/jailbreak/csv2_evaluation"
+
+
+def test_jailbreak_csv2_eval_dir_handles_results_json_file() -> None:
+    result = _jailbreak_csv2_eval_dir(
+        user_baseline="data/custom/intervention/jailbreak/experiment/results.json",
+        model_key=None,
+        model_path=None,
+    )
+    assert result == "data/custom/intervention/jailbreak/csv2_evaluation"
+
+
+def test_jailbreak_csv2_eval_dir_falls_back_to_registry() -> None:
+    result = _jailbreak_csv2_eval_dir(
+        user_baseline=None,
+        model_key="mistral24b",
+        model_path=None,
+    )
+    assert result == "data/mistral24b/intervention/jailbreak/csv2_evaluation"
+
+
+def test_jailbreak_csv2_eval_dir_unregistered_returns_placeholder() -> None:
+    result = _jailbreak_csv2_eval_dir(
+        user_baseline=None,
+        model_key=None,
+        model_path="/workspace/models/some-unregistered-model",
+    )
+    assert result.startswith("<")
+    assert "h_neuron_baseline" in result

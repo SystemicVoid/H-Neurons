@@ -100,6 +100,35 @@ def default_h_neuron_baseline_dir(
     )
 
 
+def _jailbreak_csv2_eval_dir(
+    *,
+    user_baseline: str | None,
+    model_key: str | None,
+    model_path: str | None,
+) -> str:
+    """Suggest the H-neuron csv2_evaluation directory for the analyzer hint.
+
+    Prefer a path derived from the user's --h_neuron_baseline (so custom output
+    layouts and unregistered models work). Fall back to the registry default
+    only when the user did not override; if even that fails (unregistered model
+    without a baseline override), return a human-readable placeholder so the
+    informational print never crashes a successful generation run.
+    """
+    if user_baseline:
+        baseline_root = os.path.expanduser(user_baseline).rstrip("/")
+        if baseline_root.endswith(".json"):
+            baseline_root = os.path.dirname(baseline_root)
+        parent = os.path.dirname(baseline_root) or "."
+        return os.path.join(parent, "csv2_evaluation")
+    try:
+        return (
+            f"{model_output_root(model_key, model_path)}"
+            "/intervention/jailbreak/csv2_evaluation"
+        )
+    except ValueError:
+        return "<experiment_dir — pass --h_neuron_baseline>"
+
+
 def resolve_results_json(path: str) -> str:
     candidate = os.path.expanduser(path)
     if os.path.isfile(candidate):
@@ -1299,6 +1328,11 @@ def main():
 
         # Jailbreak analysis requires CSV-v2 scoring (separate pipeline)
         if benchmark == "jailbreak":
+            csv2_eval_dir = _jailbreak_csv2_eval_dir(
+                user_baseline=args.h_neuron_baseline,
+                model_key=args.model_key,
+                model_path=args.model_path,
+            )
             print("\n" + "=" * 60)
             print("Generation complete. Next steps:")
             print("  1. Run CSV-v2 scoring on each seed directory:")
@@ -1314,8 +1348,7 @@ def main():
             print(
                 f"     uv run python scripts/analyze_csv2_control.py "
                 f"--control_base {output_base} "
-                f"--experiment_dir "
-                f"{model_output_root(args.model_key, args.model_path)}/intervention/jailbreak/csv2_evaluation "
+                f"--experiment_dir {csv2_eval_dir} "
                 f"--alphas {' '.join(f'{a:.1f}' for a in alphas)}"
             )
             provenance_extra["output_targets"] = [
