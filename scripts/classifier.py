@@ -15,6 +15,7 @@ from transformers import AutoConfig
 
 from model_registry import (
     assert_causal_lm_supported,
+    default_classifier_path_for,
     dimensions_from_config,
     model_metadata,
     model_path_for,
@@ -69,7 +70,16 @@ def parse_args():
         help="Directory of held-out activations (usually answer tokens)",
     )
 
-    parser.add_argument("--save_model", type=str, default="models/detector.pkl")
+    parser.add_argument(
+        "--save_model",
+        type=str,
+        default=None,
+        help=(
+            "Path to write the trained checkpoint. Defaults to the registered "
+            "model's classifier path (model_registry) when --model_key is set, "
+            "else 'models/detector.pkl' for backward compatibility."
+        ),
+    )
     parser.add_argument(
         "--load_model",
         type=str,
@@ -109,6 +119,11 @@ def parse_args():
     args = parser.parse_args()
     args.model_path = model_path_for(args.model_key, args.model_path)
     assert_causal_lm_supported(args.model_key, args.model_path)
+    if args.save_model is None and args.load_model is None:
+        args.save_model = (
+            default_classifier_path_for(args.model_key, args.model_path)
+            or "models/detector.pkl"
+        )
     return args
 
 
