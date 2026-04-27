@@ -16,6 +16,7 @@ from analyze_simid import (
     build_simid_open_adjudication_request,
     build_simid_open_adjudication_requests,
     effective_open_grade,
+    fanout_existing_open_adjudications,
     index_rows,
     load_open_adjudications,
     load_run_rows,
@@ -1317,6 +1318,104 @@ def test_simid_open_batch_retries_non_final_existing_adjudication_rows() -> None
     assert len(requests) == 1
     assert set(request_map) == {requests[0]["custom_id"]}
     assert request_map[requests[0]["custom_id"]] == [row]
+
+
+def test_simid_open_batch_reuses_final_existing_dedup_adjudications() -> None:
+    adjudicated = _analysis_row(
+        sample_id="s1_order0",
+        base_sample_id="base1",
+        condition="selected",
+        option_order_replicate=0,
+        dataset="truthfulqa",
+        mc_endpoint="truthfulqa_mc1",
+        open_correct=False,
+    )
+    missing_sibling = _analysis_row(
+        sample_id="s1_order1",
+        base_sample_id="base1",
+        condition="unhooked",
+        option_order_replicate=1,
+        dataset="truthfulqa",
+        mc_endpoint="truthfulqa_mc1",
+        open_correct=False,
+    )
+
+    requests, request_map = build_simid_open_adjudication_requests(
+        [adjudicated, missing_sibling],
+        existing_adjudications={
+            ("s1_order0", "selected", 0.0): {
+                "sample_id": "s1_order0",
+                "condition": "selected",
+                "alpha": 0.0,
+                "judge_grade": "CORRECT",
+                "parse_result": {"verdict": "CORRECT", "valid": True},
+            }
+        },
+        judge_model="gpt-test",
+    )
+
+    assert requests == []
+    assert request_map == {}
+
+
+def test_simid_open_existing_dedup_adjudication_fans_out_to_missing_sibling() -> None:
+    adjudicated = _analysis_row(
+        sample_id="s1_order0",
+        base_sample_id="base1",
+        condition="selected",
+        option_order_replicate=0,
+        dataset="truthfulqa",
+        mc_endpoint="truthfulqa_mc1",
+        open_correct=False,
+    )
+    missing_sibling = _analysis_row(
+        sample_id="s1_order1",
+        base_sample_id="base1",
+        condition="unhooked",
+        option_order_replicate=1,
+        dataset="truthfulqa",
+        mc_endpoint="truthfulqa_mc1",
+        open_correct=False,
+    )
+    existing = {
+        ("s1_order0", "selected", 0.0): {
+            "schema_version": "simid_open_adjudication/v1",
+            "sample_id": "s1_order0",
+            "condition": "selected",
+            "alpha": 0.0,
+            "base_sample_id": "base1",
+            "dataset": "truthfulqa",
+            "mc_endpoint": "truthfulqa_mc1",
+            "question": "Question?",
+            "gold_aliases": ["Gold"],
+            "response": "Wrong",
+            "deterministic_open_grade": adjudicated["open_grade"],
+            "judge_grade": "CORRECT",
+            "parse_result": {"verdict": "CORRECT", "valid": True},
+            "batch_custom_id": "simid_open_existing",
+            "adjudicated_correct": True,
+            "adjudicated_attempted": True,
+            "judge_disagrees_with_deterministic": True,
+        }
+    }
+
+    fanout_rows = fanout_existing_open_adjudications(
+        [missing_sibling],
+        existing,
+    )
+
+    assert len(fanout_rows) == 1
+    fanout = fanout_rows[0]
+    assert fanout["sample_id"] == "s1_order1"
+    assert fanout["condition"] == "unhooked"
+    assert fanout["judge_grade"] == "CORRECT"
+    assert fanout["adjudicated_correct"] is True
+    assert fanout["dedup_fanout_source"] == {
+        "sample_id": "s1_order0",
+        "condition": "selected",
+        "alpha": 0.0,
+    }
+    assert existing[("s1_order1", "unhooked", 0.0)] == fanout
 
 
 def test_simpleqa_parser_handles_word_and_letter_outputs() -> None:

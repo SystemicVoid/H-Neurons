@@ -1578,7 +1578,7 @@
       }
     },
     "claimable_open_correctness": false,
-    "claimability_blocker": "calibration_evidence_not_recorded"
+    "claimability_blocker": "mixed_adjudication_and_deterministic_sources"
   },
   "alias_audit_queue": {
     "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/phase0_20260426_113707_gates/alias_audit_queue_adjudicated_canary.jsonl",

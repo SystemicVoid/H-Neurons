@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
+from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -246,6 +247,16 @@ def open_adjudication_key_payload(row: dict[str, Any]) -> dict[str, Any]:
     return {"sample_id": sample_id, "condition": condition, "alpha": alpha}
 
 
+def open_adjudication_response_payload(row: dict[str, Any]) -> Any:
+    open_generation = row.get("open_generation")
+    if (
+        isinstance(open_generation, dict)
+        and open_generation.get("response") is not None
+    ):
+        return open_generation.get("response")
+    return row.get("response")
+
+
 def open_adjudication_dedup_key(row: dict[str, Any]) -> OpenAdjudicationDedupKey:
     """Return the conservative judge-prompt identity for open adjudication.
 
@@ -255,7 +266,7 @@ def open_adjudication_dedup_key(row: dict[str, Any]) -> OpenAdjudicationDedupKey
     treatment strengths.
     """
     aliases = tuple(str(alias) for alias in row.get("gold_aliases", []))
-    response = row.get("open_generation", {}).get("response")
+    response = open_adjudication_response_payload(row)
     return (
         str(row.get("base_sample_id") or row["sample_id"]),
         format_alpha_label(float(row["alpha"])),
@@ -300,6 +311,120 @@ def open_adjudication_has_final_grade(adjudication: dict[str, Any] | None) -> bo
     return True
 
 
+def final_open_adjudications_by_dedup_key(
+    rows: list[dict[str, Any]],
+    existing_adjudications: dict[OpenAdjudicationKey, dict[str, Any]],
+) -> dict[OpenAdjudicationDedupKey, dict[str, Any]]:
+    final_by_dedup_key: dict[OpenAdjudicationDedupKey, dict[str, Any]] = {}
+    for adjudication in existing_adjudications.values():
+        if not open_adjudication_has_final_grade(adjudication):
+            continue
+        try:
+            dedup_key = open_adjudication_dedup_key(adjudication)
+        except (KeyError, TypeError, ValueError):
+            continue
+        add_final_open_adjudication_by_dedup_key(
+            final_by_dedup_key,
+            dedup_key=dedup_key,
+            adjudication=adjudication,
+        )
+    for row in rows:
+        if not eligible_for_open_adjudication(row):
+            continue
+        adjudication = existing_adjudications.get(open_adjudication_key(row))
+        if not isinstance(adjudication, dict) or not open_adjudication_has_final_grade(
+            adjudication
+        ):
+            continue
+        dedup_key = open_adjudication_dedup_key(row)
+        add_final_open_adjudication_by_dedup_key(
+            final_by_dedup_key,
+            dedup_key=dedup_key,
+            adjudication=adjudication,
+        )
+    return final_by_dedup_key
+
+
+def add_final_open_adjudication_by_dedup_key(
+    final_by_dedup_key: dict[OpenAdjudicationDedupKey, dict[str, Any]],
+    *,
+    dedup_key: OpenAdjudicationDedupKey,
+    adjudication: dict[str, Any],
+) -> None:
+    previous = final_by_dedup_key.get(dedup_key)
+    if previous is None:
+        final_by_dedup_key[dedup_key] = adjudication
+        return
+    previous_verdict = adjudication_verdict(previous)
+    verdict = adjudication_verdict(adjudication)
+    if verdict != previous_verdict:
+        raise ValueError(
+            "Conflicting final SIMID open adjudications for deduplicated "
+            f"judge prompt {dedup_key!r}: {previous_verdict!r} vs {verdict!r}"
+        )
+
+
+def make_open_adjudication_fanout_row(
+    row: dict[str, Any],
+    *,
+    source_adjudication: dict[str, Any],
+) -> dict[str, Any]:
+    verdict = adjudication_verdict(source_adjudication)
+    valid = verdict in SIMID_OPEN_FINAL_GRADES
+    adjudicated_correct = verdict == "CORRECT" if valid else None
+    deterministic_correct = deterministic_open_correct(row)
+    fanout = deepcopy(source_adjudication)
+    fanout.update(
+        {
+            **open_adjudication_key_payload(row),
+            "base_sample_id": row.get("base_sample_id"),
+            "dataset": row.get("dataset"),
+            "mc_endpoint": row.get("mc_endpoint"),
+            "question": row.get("question"),
+            "gold_aliases": row.get("gold_aliases"),
+            "response": row.get("open_generation", {}).get("response"),
+            "deterministic_open_grade": row.get("open_grade"),
+            "judge_grade": verdict,
+            "adjudicated_correct": adjudicated_correct,
+            "adjudicated_attempted": (
+                verdict in {"CORRECT", "INCORRECT"} if valid else None
+            ),
+            "judge_disagrees_with_deterministic": (
+                adjudicated_correct != deterministic_correct if valid else None
+            ),
+            "dedup_fanout_source": open_adjudication_key_payload(source_adjudication),
+        }
+    )
+    return fanout
+
+
+def fanout_existing_open_adjudications(
+    rows: list[dict[str, Any]],
+    existing_adjudications: dict[OpenAdjudicationKey, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    final_by_dedup_key = final_open_adjudications_by_dedup_key(
+        rows,
+        existing_adjudications,
+    )
+    fanout_rows: list[dict[str, Any]] = []
+    for row in rows:
+        if not eligible_for_open_adjudication(row):
+            continue
+        exact_key = open_adjudication_key(row)
+        if open_adjudication_has_final_grade(existing_adjudications.get(exact_key)):
+            continue
+        source_adjudication = final_by_dedup_key.get(open_adjudication_dedup_key(row))
+        if source_adjudication is None:
+            continue
+        fanout_row = make_open_adjudication_fanout_row(
+            row,
+            source_adjudication=source_adjudication,
+        )
+        existing_adjudications[exact_key] = fanout_row
+        fanout_rows.append(fanout_row)
+    return fanout_rows
+
+
 def attach_open_adjudications(
     rows: list[dict[str, Any]],
     adjudications: dict[OpenAdjudicationKey, dict[str, Any]],
@@ -336,7 +461,7 @@ def eligible_for_open_adjudication(row: dict[str, Any]) -> bool:
     if str(row.get("dataset")) not in SIMID_OPEN_ADJUDICATION_ELIGIBLE_DATASETS:
         return False
     aliases = row.get("gold_aliases")
-    response = row.get("open_generation", {}).get("response")
+    response = open_adjudication_response_payload(row)
     return isinstance(aliases, list) and bool(aliases) and response is not None
 
 
@@ -380,6 +505,10 @@ def build_simid_open_adjudication_requests(
     prompt_cache_retention: str | None = None,
     limit: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+    final_by_dedup_key = final_open_adjudications_by_dedup_key(
+        rows,
+        existing_adjudications,
+    )
     request_groups: dict[OpenAdjudicationDedupKey, list[dict[str, Any]]] = {}
     request_group_order: list[OpenAdjudicationDedupKey] = []
     for row in rows:
@@ -390,6 +519,8 @@ def build_simid_open_adjudication_requests(
         ):
             continue
         dedup_key = open_adjudication_dedup_key(row)
+        if dedup_key in final_by_dedup_key:
+            continue
         if dedup_key not in request_groups:
             if limit is not None and len(request_group_order) >= limit:
                 continue
@@ -520,15 +651,13 @@ def adjudicate_open_responses_batch(
     limit: int | None,
 ) -> dict[str, Any]:
     from dotenv import load_dotenv
-    from openai import OpenAI
     from openai_batch import parse_chat_content, resume_or_submit
 
     load_dotenv()
-    resolved_api_key = api_key or os.environ.get("OPENAI_API_KEY")
-    if not resolved_api_key:
-        raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or --api-key")
 
     existing = load_open_adjudications(output_path)
+    n_existing = len(existing)
+    reused_adjudication_rows = fanout_existing_open_adjudications(rows, existing)
     batch_requests, request_map = build_simid_open_adjudication_requests(
         rows,
         existing_adjudications=existing,
@@ -538,15 +667,23 @@ def adjudicate_open_responses_batch(
     )
     state_path = output_path.with_suffix(".batch_state.json")
     if not batch_requests:
+        append_open_adjudications(output_path, reused_adjudication_rows)
         return {
             "path": str(output_path),
             "state_path": str(state_path),
             "judge_model": judge_model,
             "n_requested": 0,
-            "n_written": 0,
-            "n_existing": len(existing),
+            "n_written": len(reused_adjudication_rows),
+            "n_existing": n_existing,
+            "n_reused_existing_dedup_rows": len(reused_adjudication_rows),
             "n_deduplicated_rows": 0,
         }
+
+    resolved_api_key = api_key or os.environ.get("OPENAI_API_KEY")
+    if not resolved_api_key:
+        raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or --api-key")
+
+    from openai import OpenAI
 
     client = OpenAI(api_key=resolved_api_key)
     results = resume_or_submit(
@@ -578,14 +715,15 @@ def adjudicate_open_responses_batch(
                     raw_content=content,
                 )
             )
-    append_open_adjudications(output_path, adjudication_rows)
+    append_open_adjudications(output_path, reused_adjudication_rows + adjudication_rows)
     return {
         "path": str(output_path),
         "state_path": str(state_path),
         "judge_model": judge_model,
         "n_requested": len(batch_requests),
-        "n_written": len(adjudication_rows),
-        "n_existing": len(existing),
+        "n_written": len(reused_adjudication_rows) + len(adjudication_rows),
+        "n_existing": n_existing,
+        "n_reused_existing_dedup_rows": len(reused_adjudication_rows),
         "n_deduplicated_rows": n_deduplicated_rows,
     }
 
