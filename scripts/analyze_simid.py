@@ -651,9 +651,23 @@ def eligible_for_open_adjudication(row: dict[str, Any]) -> bool:
     return isinstance(aliases, list) and bool(aliases) and response is not None
 
 
-def simid_open_adjudication_custom_id(row: dict[str, Any]) -> str:
-    key = open_adjudication_dedup_key(row)
-    payload = json.dumps(key, ensure_ascii=True, sort_keys=True)
+def simid_open_adjudication_custom_id(
+    row: dict[str, Any],
+    *,
+    judge_model: str,
+) -> str:
+    payload = json.dumps(
+        {
+            "dedup_key": open_adjudication_dedup_key(row),
+            "judge_model": judge_model,
+            "prompt_version": SIMID_OPEN_JUDGE_PROMPT_VERSION,
+            "prompt_builder": SIMID_OPEN_ADJUDICATION_PROMPT_BUILDER,
+            "parser": SIMID_OPEN_ADJUDICATION_PARSER,
+            "kwargs": dict(SIMPLEQA_JUDGE_KWARGS),
+        },
+        ensure_ascii=True,
+        sort_keys=True,
+    )
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
     return f"simid_open_{digest}"
 
@@ -676,7 +690,7 @@ def build_simid_open_adjudication_request(
     if prompt_cache_retention:
         kwargs["prompt_cache_retention"] = prompt_cache_retention
     return build_chat_request(
-        custom_id=simid_open_adjudication_custom_id(row),
+        custom_id=simid_open_adjudication_custom_id(row, judge_model=judge_model),
         model=judge_model,
         messages=messages,
         **kwargs,
@@ -2873,17 +2887,6 @@ def main(argv: list[str] | None = None) -> None:
                 output_json,
                 report_md,
                 alias_queue_path,
-                adjudication_output if args.adjudicate_open else None,
-                (
-                    adjudication_output.with_suffix(".batch_state.json")
-                    if args.adjudicate_open
-                    else None
-                ),
-                (
-                    adjudication_output.with_suffix(".batch_state.results.jsonl")
-                    if args.adjudicate_open
-                    else None
-                ),
                 open_calibration_queue_path,
             ]
             if path is not None

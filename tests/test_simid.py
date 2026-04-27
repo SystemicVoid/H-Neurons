@@ -29,6 +29,7 @@ from analyze_simid import (
     parse_simpleqa_verdict,
     require_paired_panel,
     selected_minus_control_slope_summaries,
+    simid_open_adjudication_custom_id,
     summarize_open_grading,
     summarize_condition,
     validate_complete_run_outputs,
@@ -1864,6 +1865,20 @@ def test_simid_open_batch_request_contains_question_aliases_and_response() -> No
     assert "Who wrote Hamlet?" in prompt
     assert "William Shakespeare; Shakespeare" in prompt
     assert "The answer is Shakespeare." in prompt
+
+
+def test_simid_open_primary_custom_id_depends_on_judge_model() -> None:
+    row = _analysis_row(
+        sample_id="s1",
+        dataset="truthfulqa",
+        mc_endpoint="truthfulqa_mc1",
+        open_correct=False,
+    )
+
+    first = simid_open_adjudication_custom_id(row, judge_model="gpt-4o")
+    second = simid_open_adjudication_custom_id(row, judge_model="gpt-test")
+
+    assert first != second
 
 
 def test_simid_open_batch_deduplicates_identical_base_alpha_responses() -> None:
