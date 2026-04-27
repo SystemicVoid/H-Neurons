@@ -85,6 +85,8 @@ OPEN_CORRECTNESS_CALIBRATION_TARGET = "simid_open_correctness"
 OPEN_CORRECTNESS_CALIBRATION_INVALID_BLOCKER = "calibration_evidence_invalid"
 OPEN_CORRECTNESS_CALIBRATION_FAILED_BLOCKER = "calibration_evidence_failed_thresholds"
 OPEN_CORRECTNESS_CALIBRATION_RULE_GAP_BLOCKER = "calibration_rule_gap_recorded"
+OPEN_CORRECTNESS_CALIBRATION_N_CASES_BLOCKER = "n_cases_below_minimum"
+OPEN_CORRECTNESS_CALIBRATION_MIN_CASES = 100
 OPEN_CORRECTNESS_CALIBRATION_MIN_KAPPA = 0.80
 OPEN_CORRECTNESS_CALIBRATION_MIN_AC1 = 0.80
 
@@ -819,6 +821,7 @@ def open_calibration_policy() -> dict[str, Any]:
         "requires_pre_frozen_rule": True,
         "requires_audit_queue_disagreement_sample": True,
         "requires_stratified_panel": True,
+        "min_cases": OPEN_CORRECTNESS_CALIBRATION_MIN_CASES,
         "min_cohen_kappa": OPEN_CORRECTNESS_CALIBRATION_MIN_KAPPA,
         "min_gwet_ac1": OPEN_CORRECTNESS_CALIBRATION_MIN_AC1,
         "max_rule_gap_cases": 0,
@@ -883,6 +886,8 @@ def normalize_open_calibration_summary(
         blockers.append("pre_frozen_rule_not_recorded")
     if n_cases is None or n_cases <= 0:
         blockers.append("n_cases_not_recorded")
+    elif n_cases < OPEN_CORRECTNESS_CALIBRATION_MIN_CASES:
+        blockers.append(OPEN_CORRECTNESS_CALIBRATION_N_CASES_BLOCKER)
     if audit_n is None or audit_n <= 0:
         blockers.append("audit_queue_disagreement_sample_not_recorded")
     if stratified_n is None or stratified_n <= 0:
@@ -910,7 +915,11 @@ def normalize_open_calibration_summary(
         failure_blocker = None
     elif OPEN_CORRECTNESS_CALIBRATION_RULE_GAP_BLOCKER in blockers:
         failure_blocker = OPEN_CORRECTNESS_CALIBRATION_RULE_GAP_BLOCKER
-    elif any(blocker.endswith("_below_threshold") for blocker in blockers):
+    elif any(
+        blocker == OPEN_CORRECTNESS_CALIBRATION_N_CASES_BLOCKER
+        or blocker.endswith("_below_threshold")
+        for blocker in blockers
+    ):
         failure_blocker = OPEN_CORRECTNESS_CALIBRATION_FAILED_BLOCKER
     else:
         failure_blocker = OPEN_CORRECTNESS_CALIBRATION_INVALID_BLOCKER

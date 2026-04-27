@@ -1180,10 +1180,10 @@ def _valid_open_calibration_summary() -> dict:
         "schema_version": "simid_open_calibration/v1",
         "status": "adjudicated",
         "target": "simid_open_correctness",
-        "n_cases": 24,
+        "n_cases": 100,
         "sampling": {
-            "audit_queue_disagreement_n": 8,
-            "stratified_panel_n": 16,
+            "audit_queue_disagreement_n": 40,
+            "stratified_panel_n": 60,
         },
         "rule": {
             "path": "data/judge_validation/simid_open/adjudication_rule.md",
@@ -1191,8 +1191,8 @@ def _valid_open_calibration_summary() -> dict:
             "content_sha256": "deadbeef",
         },
         "irr": {
-            "n_cases": 24,
-            "raw_agreement": {"count": 23, "n": 24},
+            "n_cases": 100,
+            "raw_agreement": {"count": 99, "n": 100},
             "cohen_kappa": 0.91,
             "gwet_ac1": 0.94,
         },
@@ -1227,6 +1227,24 @@ def test_open_grading_becomes_claimable_with_valid_calibration(
         "claimable_with_recorded_judge_calibration_evidence"
     )
     assert summary["calibration"]["claimability"]["passed"] is True
+
+
+def test_open_calibration_blocks_below_minimum_case_count() -> None:
+    calibration_payload = _valid_open_calibration_summary()
+    calibration_payload["n_cases"] = 99
+    calibration_payload["sampling"]["audit_queue_disagreement_n"] = 39
+    calibration_payload["sampling"]["stratified_panel_n"] = 60
+    calibration_payload["irr"]["n_cases"] = 99
+    calibration_payload["irr"]["raw_agreement"] = {"count": 98, "n": 99}
+
+    calibration = normalize_open_calibration_summary(calibration_payload)
+
+    assert calibration["claimability"]["passed"] is False
+    assert calibration["claimability"]["blocker"] == (
+        "calibration_evidence_failed_thresholds"
+    )
+    assert "n_cases_below_minimum" in calibration["claimability"]["blockers"]
+    assert calibration["claimability"]["policy"]["min_cases"] == 100
 
 
 def test_malformed_open_adjudication_blocks_claimability_with_valid_calibration(
@@ -1347,40 +1365,34 @@ def test_open_calibration_queue_deduplicates_disagreements_and_stratifies() -> N
     } == {"CORRECT", "INCORRECT"}
 
 
+def _open_calibration_queue_rows(grades: list[str]) -> list[dict]:
+    return [
+        {
+            "calibration_case_id": f"case_{idx:03d}",
+            "sample_source": (
+                "audit_queue_disagreement"
+                if idx == 0
+                else f"stratified_panel::grade={grade}"
+            ),
+            "sample_id": f"s{idx}",
+            "condition": "selected",
+            "alpha": 0.0,
+            "dataset": "truthfulqa" if idx % 2 == 0 else "triviaqa_bridge",
+            "primary_judge_grade": grade,
+        }
+        for idx, grade in enumerate(grades)
+    ]
+
+
 def test_finalize_open_calibration_records_metrics_and_claimability(
     tmp_path: Path,
 ) -> None:
     rule_path = tmp_path / "simid_open_rule.md"
     rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
-    queue_rows = [
-        {
-            "calibration_case_id": "case_audit",
-            "sample_source": "audit_queue_disagreement",
-            "sample_id": "s1",
-            "condition": "selected",
-            "alpha": 0.0,
-            "dataset": "truthfulqa",
-            "primary_judge_grade": "CORRECT",
-        },
-        {
-            "calibration_case_id": "case_stratified_correct",
-            "sample_source": "stratified_panel::dataset=triviaqa_bridge",
-            "sample_id": "s2",
-            "condition": "selected",
-            "alpha": 0.0,
-            "dataset": "triviaqa_bridge",
-            "primary_judge_grade": "INCORRECT",
-        },
-        {
-            "calibration_case_id": "case_stratified_not_attempted",
-            "sample_source": "stratified_panel::dataset=truthfulqa",
-            "sample_id": "s3",
-            "condition": "selected",
-            "alpha": 0.0,
-            "dataset": "truthfulqa",
-            "primary_judge_grade": "NOT_ATTEMPTED",
-        },
-    ]
+    grades = ["CORRECT", "INCORRECT", "NOT_ATTEMPTED"]
+    queue_rows = _open_calibration_queue_rows(
+        [grades[idx % len(grades)] for idx in range(100)]
+    )
     secondary_rows = [
         {
             "calibration_case_id": row["calibration_case_id"],
@@ -1400,11 +1412,43 @@ def test_finalize_open_calibration_records_metrics_and_claimability(
 
     assert summary["schema_version"] == "simid_open_calibration/v1"
     assert summary["sampling"]["audit_queue_disagreement_n"] == 1
-    assert summary["sampling"]["stratified_panel_n"] == 2
+    assert summary["sampling"]["stratified_panel_n"] == 99
     assert summary["irr"]["cohen_kappa"] == pytest.approx(1.0)
     assert summary["irr"]["gwet_ac1"] == pytest.approx(1.0)
     assert summary["adjudication"]["rule_gap_cases"]["count"] == 0
     assert summary["claimability"]["passed"] is True
+
+
+def test_finalize_open_calibration_keeps_small_diagnostic_summary(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT", "NOT_ATTEMPTED"])
+    secondary_rows = [
+        {
+            "calibration_case_id": row["calibration_case_id"],
+            "judge_grade": row["primary_judge_grade"],
+        }
+        for row in queue_rows
+    ]
+
+    summary = finalize_open_calibration(
+        queue_rows=queue_rows,
+        secondary_rows=secondary_rows,
+        adjudication_rows=[],
+        rule_path=rule_path,
+        primary_rater_name="gpt-4o",
+        secondary_rater_name="human_subset",
+    )
+
+    assert summary["n_cases"] == 3
+    assert summary["irr"]["cohen_kappa"] == pytest.approx(1.0)
+    assert summary["claimability"]["passed"] is False
+    assert summary["claimability"]["blocker"] == (
+        "calibration_evidence_failed_thresholds"
+    )
+    assert summary["claimability"]["blockers"] == ["n_cases_below_minimum"]
 
 
 def test_finalize_open_calibration_leaves_single_grade_kappa_unrecorded(
@@ -1412,35 +1456,7 @@ def test_finalize_open_calibration_leaves_single_grade_kappa_unrecorded(
 ) -> None:
     rule_path = tmp_path / "simid_open_rule.md"
     rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
-    queue_rows = [
-        {
-            "calibration_case_id": "case_audit",
-            "sample_source": "audit_queue_disagreement",
-            "sample_id": "s1",
-            "condition": "selected",
-            "alpha": 0.0,
-            "dataset": "truthfulqa",
-            "primary_judge_grade": "CORRECT",
-        },
-        {
-            "calibration_case_id": "case_stratified_a",
-            "sample_source": "stratified_panel::dataset=triviaqa_bridge",
-            "sample_id": "s2",
-            "condition": "selected",
-            "alpha": 0.0,
-            "dataset": "triviaqa_bridge",
-            "primary_judge_grade": "CORRECT",
-        },
-        {
-            "calibration_case_id": "case_stratified_b",
-            "sample_source": "stratified_panel::dataset=truthfulqa",
-            "sample_id": "s3",
-            "condition": "selected",
-            "alpha": 0.0,
-            "dataset": "truthfulqa",
-            "primary_judge_grade": "CORRECT",
-        },
-    ]
+    queue_rows = _open_calibration_queue_rows(["CORRECT"] * 100)
     secondary_rows = [
         {
             "calibration_case_id": row["calibration_case_id"],
@@ -1462,6 +1478,7 @@ def test_finalize_open_calibration_leaves_single_grade_kappa_unrecorded(
     assert summary["irr"]["gwet_ac1"] == pytest.approx(1.0)
     assert summary["claimability"]["passed"] is False
     assert "cohen_kappa_not_recorded" in summary["claimability"]["blockers"]
+    assert "n_cases_below_minimum" not in summary["claimability"]["blockers"]
 
 
 def test_report_labels_adjudicated_open_metrics(tmp_path: Path) -> None:
@@ -1974,10 +1991,16 @@ def test_mvp_default_requires_truthfulqa_rows() -> None:
     ) in text
     assert "SIMID_TRUTHFULQA_LEAKAGE_POLICY:-heldout_only" in text
     assert "SIMID_OPTION_ORDER_REPLICATES:-2" in text
-    assert "SIMID_MIN_TRUTHFULQA_ROWS:-1" in text
+    assert "SIMID_TRUTHFULQA_N:-100" in text
+    assert "SIMID_BRIDGE_N:-100" in text
+    assert "DEFAULT_MIN_TRUTHFULQA_ROWS" in text
+    assert "DEFAULT_MIN_BRIDGE_ROWS" in text
     assert "analyze-adjudicated" in text
     assert "--adjudicate-open" in text
     assert "--phase0-gates" in text
+    assert "--open-calibration-queue-output" in text
+    assert "open_calibration_queue.jsonl" in text
+    assert "SIMID_OPEN_CALIBRATION_STRATIFIED_PER_CELL:-20" in text
 
 
 def test_noop_equivalence_check_fails_on_hooked_alpha0_divergence() -> None:

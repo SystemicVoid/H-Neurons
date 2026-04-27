@@ -21,12 +21,16 @@ Usage:
 Environment overrides:
   SIMID_RUN_NAME, SIMID_RUN_DIR, SIMID_MANIFEST, SIMID_MODEL_PATH,
   SIMID_ITI_ARTIFACT, SIMID_DEVICE_MAP, SIMID_TRUTHFULQA_LEAKAGE_POLICY,
+  SIMID_TRUTHFULQA_N, SIMID_BRIDGE_N,
   SIMID_MIN_TRUTHFULQA_ROWS, SIMID_MIN_BRIDGE_ROWS,
   SIMID_OPTION_ORDER_REPLICATES, SIMID_JUDGE_MODEL, SIMID_ADJUDICATION_LIMIT,
-  SIMID_BATCH_MAX_ENQUEUED_TOKENS, SIMID_PROMPT_CACHE_RETENTION
+  SIMID_BATCH_MAX_ENQUEUED_TOKENS, SIMID_PROMPT_CACHE_RETENTION,
+  SIMID_OPEN_CALIBRATION_STRATIFIED_PER_CELL
 
 Notes:
   mvp is claim-oriented and requires both TruthfulQA and Bridge rows by default.
+  SIMID_TRUTHFULQA_N and SIMID_BRIDGE_N default to 100 base items; set either
+  to all to omit that dataset cap for a full-scale run.
   The default paper-faithful fold artifact exposes held-out TruthfulQA IDs.
   Override SIMID_ITI_ARTIFACT only with another artifact that has held-out
   question_ids_test, or lower the row minimum only for an explicitly
@@ -63,6 +67,45 @@ ensure_not_analyzed() {
   fi
 }
 
+is_nonnegative_integer() {
+  local value="$1"
+  [[ "$value" =~ ^[0-9]+$ ]]
+}
+
+is_positive_integer() {
+  local value="$1"
+  [[ "$value" =~ ^[1-9][0-9]*$ ]]
+}
+
+validate_dataset_cap() {
+  local name="$1"
+  local value="$2"
+  if [[ "$value" == "all" ]]; then
+    return
+  fi
+  if ! is_nonnegative_integer "$value"; then
+    die "${name} must be a non-negative integer cap or all; got ${value}"
+  fi
+}
+
+validate_positive_integer() {
+  local name="$1"
+  local value="$2"
+  if ! is_positive_integer "$value"; then
+    die "${name} must be a positive integer; got ${value}"
+  fi
+}
+
+default_min_rows() {
+  local cap="$1"
+  local replicates="$2"
+  if [[ "$cap" == "all" ]]; then
+    echo 1
+  else
+    echo $((cap * replicates))
+  fi
+}
+
 build_manifest() {
   local output="$1"
   local truthfulqa_n="$2"
@@ -93,8 +136,40 @@ append_run_note() {
 ## ${iso_ts} | ${run_dir}
 What: SIMID same-item held-out TruthfulQA MC1 + TriviaQA Bridge, ITI paper-faithful k=12 first-3-token scope, alpha grid -8/0/4/8, selected + random-head + random-direction controls
 Key files: selected/alpha_0.0.jsonl, selected/alpha_8.0.jsonl, random_head_seed1/alpha_8.0.jsonl, random_direction_seed1/alpha_8.0.jsonl, run_config.json, manifest.locked.json
-Status: awaiting analysis
+Analysis files: open_adjudication.jsonl, results_adjudicated.json, report_adjudicated.md, alias_audit_queue_adjudicated.jsonl, open_calibration_queue.jsonl
+Status: adjudicated analysis complete; awaiting open calibration labeling/finalization
 EOF
+}
+
+run_adjudicated_analysis() {
+  local run_dir="$1"
+  run_dir="$(realpath "$run_dir")"
+  local adjudication_args=()
+  if [[ -n "${SIMID_ADJUDICATION_LIMIT:-}" ]]; then
+    adjudication_args+=(--adjudication-limit "$SIMID_ADJUDICATION_LIMIT")
+  fi
+  if [[ -n "${SIMID_BATCH_MAX_ENQUEUED_TOKENS:-}" ]]; then
+    adjudication_args+=(--batch-max-enqueued-tokens "$SIMID_BATCH_MAX_ENQUEUED_TOKENS")
+  fi
+  if [[ -n "${SIMID_PROMPT_CACHE_RETENTION:-}" ]]; then
+    adjudication_args+=(--prompt-cache-retention "$SIMID_PROMPT_CACHE_RETENTION")
+  fi
+  if [[ -n "${SIMID_API_KEY:-}" ]]; then
+    adjudication_args+=(--api-key "$SIMID_API_KEY")
+  fi
+  uv run python scripts/analyze_simid.py \
+    --run-dir "$run_dir" \
+    --adjudicate-open \
+    --adjudication-mode batch \
+    --phase0-gates \
+    --judge-model "${SIMID_JUDGE_MODEL:-gpt-4o}" \
+    --adjudication-output "${SIMID_ADJUDICATION_OUTPUT:-${run_dir}/open_adjudication.jsonl}" \
+    --output-json "${SIMID_ADJUDICATED_RESULTS:-${run_dir}/results_adjudicated.json}" \
+    --report-md "${SIMID_ADJUDICATED_REPORT:-${run_dir}/report_adjudicated.md}" \
+    --alias-audit-output "${SIMID_ADJUDICATED_ALIAS_AUDIT:-${run_dir}/alias_audit_queue_adjudicated.jsonl}" \
+    --open-calibration-queue-output "${run_dir}/open_calibration_queue.jsonl" \
+    --open-calibration-stratified-per-cell "${SIMID_OPEN_CALIBRATION_STRATIFIED_PER_CELL:-20}" \
+    "${adjudication_args[@]}"
 }
 
 cd "$PROJECT_ROOT"
@@ -156,16 +231,33 @@ case "$MODE" in
     RUN_NAME="${SIMID_RUN_NAME:-mvp_${TIMESTAMP}}"
     RUN_DIR="${SIMID_RUN_DIR:-${BASE_RUN_ROOT}/${RUN_NAME}}"
     MANIFEST="${SIMID_MANIFEST:-data/manifests/simid_truthfulqa_bridge_seed42.json}"
+    TRUTHFULQA_N="${SIMID_TRUTHFULQA_N:-100}"
+    BRIDGE_N="${SIMID_BRIDGE_N:-100}"
+    OPTION_ORDER_REPLICATES="${SIMID_OPTION_ORDER_REPLICATES:-2}"
+    validate_dataset_cap SIMID_TRUTHFULQA_N "$TRUTHFULQA_N"
+    validate_dataset_cap SIMID_BRIDGE_N "$BRIDGE_N"
+    validate_positive_integer SIMID_OPTION_ORDER_REPLICATES "$OPTION_ORDER_REPLICATES"
+    DEFAULT_MIN_TRUTHFULQA_ROWS="$(default_min_rows "$TRUTHFULQA_N" "$OPTION_ORDER_REPLICATES")"
+    DEFAULT_MIN_BRIDGE_ROWS="$(default_min_rows "$BRIDGE_N" "$OPTION_ORDER_REPLICATES")"
     ensure_not_analyzed "$RUN_DIR"
-    uv run python scripts/build_simid_manifest.py \
-      --seed 42 \
-      --truthfulqa-leakage-policy "${SIMID_TRUTHFULQA_LEAKAGE_POLICY:-heldout_only}" \
-      --option-order-replicates "${SIMID_OPTION_ORDER_REPLICATES:-2}" \
-      --min-truthfulqa-rows "${SIMID_MIN_TRUTHFULQA_ROWS:-1}" \
-      --min-bridge-rows "${SIMID_MIN_BRIDGE_ROWS:-1}" \
-      --model-path "$MODEL_PATH" \
-      --iti-artifact-path "$ITI_ARTIFACT" \
+    MANIFEST_ARGS=(
+      uv run python scripts/build_simid_manifest.py
+      --seed 42
+      --truthfulqa-leakage-policy "${SIMID_TRUTHFULQA_LEAKAGE_POLICY:-heldout_only}"
+      --option-order-replicates "$OPTION_ORDER_REPLICATES"
+      --min-truthfulqa-rows "${SIMID_MIN_TRUTHFULQA_ROWS:-$DEFAULT_MIN_TRUTHFULQA_ROWS}"
+      --min-bridge-rows "${SIMID_MIN_BRIDGE_ROWS:-$DEFAULT_MIN_BRIDGE_ROWS}"
+      --model-path "$MODEL_PATH"
+      --iti-artifact-path "$ITI_ARTIFACT"
       --output "$MANIFEST"
+    )
+    if [[ "$TRUTHFULQA_N" != "all" ]]; then
+      MANIFEST_ARGS+=(--truthfulqa-n "$TRUTHFULQA_N")
+    fi
+    if [[ "$BRIDGE_N" != "all" ]]; then
+      MANIFEST_ARGS+=(--bridge-n "$BRIDGE_N")
+    fi
+    "${MANIFEST_ARGS[@]}"
     gpu_preflight
     uv run python scripts/run_simid.py \
       --manifest "$MANIFEST" \
@@ -178,8 +270,9 @@ case "$MODE" in
       --top-k-first-token 10 \
       --mc-max-new-tokens 4 \
       --open-max-new-tokens 64
+    run_adjudicated_analysis "$RUN_DIR"
     append_run_note "$RUN_DIR"
-    echo "MVP run complete: ${RUN_DIR}"
+    echo "MVP run and adjudicated analysis complete: ${RUN_DIR}"
     ;;
   analyze)
     RUN_DIR="${2:-${SIMID_RUN_DIR:-}}"
@@ -189,31 +282,7 @@ case "$MODE" in
   analyze-adjudicated)
     RUN_DIR="${2:-${SIMID_RUN_DIR:-}}"
     [[ -n "$RUN_DIR" ]] || die "analyze-adjudicated mode requires <run_dir> or SIMID_RUN_DIR"
-    RUN_DIR="$(realpath "$RUN_DIR")"
-    ADJUDICATION_ARGS=()
-    if [[ -n "${SIMID_ADJUDICATION_LIMIT:-}" ]]; then
-      ADJUDICATION_ARGS+=(--adjudication-limit "$SIMID_ADJUDICATION_LIMIT")
-    fi
-    if [[ -n "${SIMID_BATCH_MAX_ENQUEUED_TOKENS:-}" ]]; then
-      ADJUDICATION_ARGS+=(--batch-max-enqueued-tokens "$SIMID_BATCH_MAX_ENQUEUED_TOKENS")
-    fi
-    if [[ -n "${SIMID_PROMPT_CACHE_RETENTION:-}" ]]; then
-      ADJUDICATION_ARGS+=(--prompt-cache-retention "$SIMID_PROMPT_CACHE_RETENTION")
-    fi
-    if [[ -n "${SIMID_API_KEY:-}" ]]; then
-      ADJUDICATION_ARGS+=(--api-key "$SIMID_API_KEY")
-    fi
-    uv run python scripts/analyze_simid.py \
-      --run-dir "$RUN_DIR" \
-      --adjudicate-open \
-      --adjudication-mode batch \
-      --phase0-gates \
-      --judge-model "${SIMID_JUDGE_MODEL:-gpt-4o}" \
-      --adjudication-output "${SIMID_ADJUDICATION_OUTPUT:-${RUN_DIR}/open_adjudication.jsonl}" \
-      --output-json "${SIMID_ADJUDICATED_RESULTS:-${RUN_DIR}/results_adjudicated.json}" \
-      --report-md "${SIMID_ADJUDICATED_REPORT:-${RUN_DIR}/report_adjudicated.md}" \
-      --alias-audit-output "${SIMID_ADJUDICATED_ALIAS_AUDIT:-${RUN_DIR}/alias_audit_queue_adjudicated.jsonl}" \
-      "${ADJUDICATION_ARGS[@]}"
+    run_adjudicated_analysis "$RUN_DIR"
     ;;
   -h|--help|help|"")
     usage
