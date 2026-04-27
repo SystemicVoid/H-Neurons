@@ -13,7 +13,10 @@ from pathlib import Path
 import re
 from typing import Any
 
-from analyze_simid import SIMID_OPEN_FINAL_GRADES
+from analyze_simid import (
+    OPEN_CORRECTNESS_CALIBRATION_MIN_CASES,
+    SIMID_OPEN_FINAL_GRADES,
+)
 from bridge_irr import build_adjudication_rule_metadata
 from evaluate_intervention import parse_simpleqa_verdict
 from finalize_simid_open_calibration import grade_from_row, index_by_case, load_jsonl
@@ -47,6 +50,26 @@ def append_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
 def write_empty_jsonl(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("", encoding="utf-8")
+
+
+def queue_row_sha256(row: dict[str, Any]) -> str:
+    payload = json.dumps(
+        row,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def queue_rows_sha256(rows: list[dict[str, Any]]) -> str:
+    payload = json.dumps(
+        rows,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def bounded_excerpt(text: str | None) -> str | None:
@@ -309,6 +332,31 @@ def validate_existing_adjudication_context(
             )
 
 
+def validate_secondary_queue_context(
+    secondary_by_case: dict[str, dict[str, Any]],
+    *,
+    queue_by_case: dict[str, dict[str, Any]],
+) -> None:
+    for case_id, row in secondary_by_case.items():
+        if case_id not in queue_by_case:
+            raise ValueError(
+                f"Existing secondary-rater row for {case_id} is not present in "
+                "the current calibration queue"
+            )
+        expected_hash = row.get("queue_row_sha256")
+        if not isinstance(expected_hash, str) or not expected_hash:
+            raise ValueError(
+                f"Existing secondary-rater row for {case_id} is missing "
+                "queue_row_sha256; cannot verify the current calibration queue row"
+            )
+        observed_hash = queue_row_sha256(queue_by_case[case_id])
+        if expected_hash != observed_hash:
+            raise ValueError(
+                f"Existing secondary-rater row for {case_id} was produced for a "
+                "different calibration queue row"
+            )
+
+
 def build_secondary_requests(
     queue_rows: list[dict[str, Any]],
     *,
@@ -360,6 +408,7 @@ def make_secondary_row(
     return {
         "schema_version": SECONDARY_SCHEMA_VERSION,
         "calibration_case_id": row["calibration_case_id"],
+        "queue_row_sha256": queue_row_sha256(row),
         "label": label,
         "judge_grade": label,
         "rater": {
@@ -530,19 +579,136 @@ def raise_after_partial_write(errors: list[str], *, output_path: Path) -> None:
     )
 
 
+class CalibrationQueueLaunchError(ValueError):
+    """Raised when the calibration queue fails pre-launch sanity checks."""
+
+
+def validate_calibration_queue_for_launch(
+    queue_rows: list[dict[str, Any]],
+    *,
+    min_cases: int = OPEN_CORRECTNESS_CALIBRATION_MIN_CASES,
+    allow_undersized: bool = False,
+) -> None:
+    """Refuse to launch secondary labeling on a non-claimable calibration queue.
+
+    Mirrors `analyze_simid.open_calibration_policy()`: a queue that cannot meet
+    the policy preconditions (size, both sample sources present, ≥2 distinct
+    primary grades, no duplicate case ids) cannot yield a valid kappa/AC1 and
+    must not consume secondary/adjudication budget. All failures are reported
+    in a single error message rather than short-circuiting on the first.
+    """
+    failures: list[str] = []
+
+    # 1. n_cases (the only check that may be bypassed for canary smoke runs).
+    if not allow_undersized and len(queue_rows) < min_cases:
+        failures.append(
+            f"n_cases below policy threshold: {len(queue_rows)} < {min_cases}"
+        )
+
+    # 2. Missing/duplicate calibration_case_id values.
+    missing_case_rows = [
+        idx
+        for idx, row in enumerate(queue_rows, start=1)
+        if not isinstance(row.get("calibration_case_id"), str)
+        or not row.get("calibration_case_id", "").strip()
+    ]
+    if missing_case_rows:
+        failures.append(
+            "missing calibration_case_id values at queue rows "
+            + ", ".join(map(str, missing_case_rows[:5]))
+            + (" ..." if len(missing_case_rows) > 5 else "")
+        )
+    case_ids = [
+        str(row.get("calibration_case_id", ""))
+        for row in queue_rows
+        if isinstance(row.get("calibration_case_id"), str)
+        and row.get("calibration_case_id", "").strip()
+    ]
+    duplicates = sorted(
+        {case_id for case_id in case_ids if case_ids.count(case_id) > 1 and case_id}
+    )
+    if duplicates:
+        failures.append(
+            "duplicate calibration_case_id values: "
+            + ", ".join(duplicates[:5])
+            + (" ..." if len(duplicates) > 5 else "")
+        )
+
+    # 3 & 4. Both sample sources must be represented.
+    audit_n = sum(
+        1
+        for row in queue_rows
+        if row.get("sample_source") == "audit_queue_disagreement"
+    )
+    stratified_n = sum(
+        1
+        for row in queue_rows
+        if str(row.get("sample_source", "")).startswith("stratified_panel")
+    )
+    if audit_n == 0:
+        failures.append(
+            "audit_queue_disagreement_n == 0 (no rows with "
+            "sample_source == 'audit_queue_disagreement')"
+        )
+    if stratified_n == 0:
+        failures.append(
+            "stratified_panel_n == 0 (no rows with sample_source starting "
+            "with 'stratified_panel')"
+        )
+
+    # 5. Primary grades must parse, and ≥2 distinct classes are required;
+    # otherwise kappa is undefined.
+    grades: set[str] = set()
+    invalid_grades: list[str] = []
+    for idx, row in enumerate(queue_rows, start=1):
+        try:
+            grades.add(grade_from_row(row, row_kind="primary queue"))
+        except ValueError as exc:
+            case_id = row.get("calibration_case_id") or f"row {idx}"
+            invalid_grades.append(f"{case_id}: {exc}")
+    if invalid_grades:
+        failures.append(
+            "invalid primary grade row(s): "
+            + "; ".join(invalid_grades[:5])
+            + (" ..." if len(invalid_grades) > 5 else "")
+        )
+    if len(grades) < 2:
+        failures.append(
+            "fewer than 2 distinct primary grades in queue "
+            f"(found {sorted(grades) or 'none'}); kappa would be undefined"
+        )
+
+    if failures:
+        raise CalibrationQueueLaunchError(
+            "Calibration queue is not claimable; refusing to launch secondary "
+            "labeling. Failures:\n  - " + "\n  - ".join(failures)
+        )
+
+
 def run_secondary(
     args: argparse.Namespace,
     queue_rows: list[dict[str, Any]],
     *,
     rule_metadata: dict[str, str],
 ) -> dict[str, Any]:
+    # Sanity-check the queue BEFORE building any batch requests so we never
+    # spend secondary budget on a queue that cannot satisfy the calibration
+    # policy. Adjudication is intentionally NOT gated by this check: by then
+    # the secondary cost is already sunk, and refusing to adjudicate would
+    # waste rather than save budget.
+    validate_calibration_queue_for_launch(
+        queue_rows,
+        allow_undersized=getattr(args, "allow_undersized_queue", False),
+    )
     rule_text = load_rule(args.rule_path)
     existing = load_existing_rows(args.output)
+    queue_by_case = {str(row["calibration_case_id"]): row for row in queue_rows}
     validate_existing_cases(
         existing,
-        allowed_case_ids={str(row["calibration_case_id"]) for row in queue_rows},
+        allowed_case_ids=set(queue_by_case),
         output_kind="secondary",
     )
+    validate_secondary_queue_context(existing, queue_by_case=queue_by_case)
     validate_existing_output_rows(
         existing,
         output_kind="secondary",
@@ -633,6 +799,11 @@ def run_adjudicate(
             f"extra {len(extra_secondary)}"
         )
     secondary_by_case = index_by_case(secondary_rows, row_kind="secondary-rater")
+    queue_by_case = {str(row["calibration_case_id"]): row for row in queue_rows}
+    validate_secondary_queue_context(
+        secondary_by_case,
+        queue_by_case=queue_by_case,
+    )
     validate_existing_output_rows(
         secondary_by_case,
         output_kind="secondary-rater",
@@ -655,7 +826,6 @@ def run_adjudicate(
         model=args.model,
         rule_metadata=rule_metadata,
     )
-    queue_by_case = {str(row["calibration_case_id"]): row for row in queue_rows}
     validate_existing_adjudication_context(
         existing,
         queue_by_case=queue_by_case,
@@ -754,6 +924,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--batch-max-enqueued-tokens", type=int)
     parser.add_argument("--reasoning-effort", default="auto")
     parser.add_argument("--max-output-tokens", type=int)
+    parser.add_argument(
+        "--allow-undersized-queue",
+        action="store_true",
+        default=False,
+        help=(
+            "Bypass ONLY the n_cases >= policy-min check (for canary smoke "
+            "runs). The other queue sanity checks (duplicates, both sample "
+            "sources, distinct grades) are never bypassable."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -774,6 +954,7 @@ def provenance_extra_for_args(
         "secondary_model": args.secondary_model,
         "prompt_version": PROMPT_VERSION,
         "n_queue_rows": len(queue_rows),
+        "queue_rows_sha256": queue_rows_sha256(queue_rows),
     }
 
 

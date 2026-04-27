@@ -49,13 +49,18 @@ from build_simid_manifest import (
 from build_truthfulqa_splits import stable_question_id
 from finalize_simid_open_calibration import finalize_open_calibration
 from label_simid_open_calibration import (
+    CalibrationQueueLaunchError,
     case_custom_id,
     chat_completion_kwargs_for_model,
     disagreement_rows,
     make_secondary_row,
     parse_adjudication_payload,
+    parse_args as label_parse_args,
+    queue_row_sha256,
     raise_after_partial_write,
+    validate_calibration_queue_for_launch,
     validate_existing_output_rows,
+    validate_secondary_queue_context,
 )
 from run_simid import (
     assert_noop_equivalence,
@@ -1322,6 +1327,79 @@ def test_open_calibration_blocks_below_minimum_case_count() -> None:
     assert calibration["claimability"]["policy"]["min_cases"] == 100
 
 
+@pytest.mark.parametrize(
+    "n_cases,kappa,ac1,expect_blockers,forbid_blockers,expect_passed",
+    [
+        # Right at the boundary on every threshold simultaneously: claimable.
+        (
+            100,
+            0.80,
+            0.80,
+            set(),
+            {
+                "n_cases_below_minimum",
+                "cohen_kappa_below_threshold",
+                "gwet_ac1_below_threshold",
+            },
+            True,
+        ),
+        # n one below the boundary, IRR at threshold: only n blocks.
+        (
+            99,
+            0.80,
+            0.80,
+            {"n_cases_below_minimum"},
+            {"cohen_kappa_below_threshold", "gwet_ac1_below_threshold"},
+            False,
+        ),
+        # n at boundary, kappa just below threshold: kappa blocks, n does not.
+        (
+            100,
+            0.7999,
+            0.80,
+            {"cohen_kappa_below_threshold"},
+            {"n_cases_below_minimum", "gwet_ac1_below_threshold"},
+            False,
+        ),
+        # n at boundary, AC1 just below threshold: AC1 blocks, n does not.
+        (
+            100,
+            0.80,
+            0.7999,
+            {"gwet_ac1_below_threshold"},
+            {"n_cases_below_minimum", "cohen_kappa_below_threshold"},
+            False,
+        ),
+    ],
+)
+def test_open_calibration_threshold_boundaries_pin_specific_blockers(
+    n_cases: int,
+    kappa: float,
+    ac1: float,
+    expect_blockers: set[str],
+    forbid_blockers: set[str],
+    expect_passed: bool,
+) -> None:
+    """Each threshold must surface its own blocker identity at the boundary."""
+    payload = _valid_open_calibration_summary()
+    payload["n_cases"] = n_cases
+    payload["irr"]["n_cases"] = n_cases
+    payload["irr"]["raw_agreement"] = {"count": n_cases, "n": n_cases}
+    payload["irr"]["cohen_kappa"] = kappa
+    payload["irr"]["gwet_ac1"] = ac1
+
+    calibration = normalize_open_calibration_summary(payload)
+    blockers = set(calibration["claimability"]["blockers"])
+
+    assert expect_blockers <= blockers, (
+        f"missing required blockers {expect_blockers - blockers} in {blockers}"
+    )
+    assert blockers.isdisjoint(forbid_blockers), (
+        f"unexpected blockers {blockers & forbid_blockers} present"
+    )
+    assert calibration["claimability"]["passed"] is expect_passed
+
+
 def test_open_calibration_summary_must_match_run_queue_case_ids(
     tmp_path: Path,
 ) -> None:
@@ -1708,6 +1786,73 @@ def test_open_calibration_existing_rows_validate_rule_hash() -> None:
             actor_key="rater",
             model="gpt-5.5",
             rule_metadata=stale_rule,
+        )
+
+
+def test_open_calibration_secondary_rows_record_queue_row_hash() -> None:
+    rule_metadata = {
+        "path": "data/judge_validation/simid_open_calibration/adjudication_rule.md",
+        "git_commit": "abc123",
+        "content_sha256": "current-rule",
+    }
+    queue_row = {
+        "calibration_case_id": "case_000",
+        "question": "What is the capital of France?",
+        "gold_aliases": ["Paris"],
+        "response": "Paris",
+        "judge_grade": "CORRECT",
+    }
+
+    row = make_secondary_row(
+        queue_row,
+        model="gpt-5.5",
+        rule_metadata=rule_metadata,
+        raw_content="CORRECT",
+    )
+
+    assert row["queue_row_sha256"] == queue_row_sha256(queue_row)
+
+
+def test_open_calibration_secondary_queue_context_detects_drift() -> None:
+    rule_metadata = {
+        "path": "data/judge_validation/simid_open_calibration/adjudication_rule.md",
+        "git_commit": "abc123",
+        "content_sha256": "current-rule",
+    }
+    queue_row = {
+        "calibration_case_id": "case_000",
+        "question": "What is the capital of France?",
+        "gold_aliases": ["Paris"],
+        "response": "Paris",
+        "judge_grade": "CORRECT",
+    }
+    secondary = make_secondary_row(
+        queue_row,
+        model="gpt-5.5",
+        rule_metadata=rule_metadata,
+        raw_content="CORRECT",
+    )
+
+    validate_secondary_queue_context(
+        {"case_000": secondary},
+        queue_by_case={"case_000": queue_row},
+    )
+    with pytest.raises(ValueError, match="different calibration queue row"):
+        validate_secondary_queue_context(
+            {"case_000": secondary},
+            queue_by_case={"case_000": {**queue_row, "response": "Lyon"}},
+        )
+
+
+def test_open_calibration_secondary_queue_context_rejects_missing_hash() -> None:
+    unfingerprinted_secondary = {
+        "calibration_case_id": "case_000",
+        "judge_grade": "CORRECT",
+    }
+    with pytest.raises(ValueError, match="missing queue_row_sha256"):
+        validate_secondary_queue_context(
+            {"case_000": unfingerprinted_secondary},
+            queue_by_case={"case_000": {"calibration_case_id": "case_000"}},
         )
 
 
@@ -2271,6 +2416,28 @@ def test_mvp_default_requires_truthfulqa_rows() -> None:
     assert "SIMID_OPEN_CALIBRATION_STRATIFIED_PER_CELL:-20" in text
 
 
+def test_simid_canary_synthetic_queue_satisfies_launch_validator() -> None:
+    script = (
+        Path(__file__).resolve().parent.parent
+        / "scripts/infra/simid_canary_calibration.sh"
+    )
+    text = script.read_text(encoding="utf-8")
+    _, after_marker = text.split("cat > \"$QUEUE_PATH\" <<'JSONL'\n", maxsplit=1)
+    queue_text, _ = after_marker.split("\nJSONL\n", maxsplit=1)
+    rows = [json.loads(line) for line in queue_text.splitlines() if line.strip()]
+
+    assert len(rows) == 2
+    validate_calibration_queue_for_launch(rows, allow_undersized=True)
+    assert {row["sample_source"] for row in rows} == {
+        "audit_queue_disagreement",
+        "stratified_panel::canary",
+    }
+    assert {row["judge_grade"] for row in rows} == {"CORRECT", "INCORRECT"}
+    assert "--allow-undersized-queue" in text
+    assert "preserving temp dir for resume/inspection" in text
+    assert "active-run-status" in text
+
+
 def test_noop_equivalence_check_fails_on_hooked_alpha0_divergence() -> None:
     unhooked = [{"sample_id": "s1", "mc_likelihood": {"full": {"margin": 0.0}}}]
     hooked = [{"sample_id": "s1", "mc_likelihood": {"full": {"margin": 0.01}}}]
@@ -2282,3 +2449,215 @@ def test_noop_equivalence_check_fails_on_hooked_alpha0_divergence() -> None:
             tolerance=1e-5,
             compare_paths=(("mc_likelihood", "full", "margin"),),
         )
+
+
+# ---------------------------------------------------------------------------
+# validate_calibration_queue_for_launch — pre-launch queue sanity checks.
+# These tests live at the bottom of the file by convention; do not fold them
+# into the boundary-test cluster above.
+# ---------------------------------------------------------------------------
+
+
+def _make_queue_row(
+    case_id: str,
+    *,
+    sample_source: str,
+    judge_grade: str = "CORRECT",
+) -> dict:
+    return {
+        "calibration_case_id": case_id,
+        "sample_source": sample_source,
+        "sample_id": f"sample-{case_id}",
+        "condition": "selected",
+        "alpha": 1.0,
+        "dataset": "simpleqa",
+        "judge_grade": judge_grade,
+    }
+
+
+def _balanced_full_queue(n: int = 100) -> list[dict]:
+    rows: list[dict] = []
+    # Half from audit_queue_disagreement, half from stratified_panel::*.
+    for i in range(n // 2):
+        grade = "CORRECT" if i % 2 == 0 else "INCORRECT"
+        rows.append(
+            _make_queue_row(
+                f"audit-{i:03d}",
+                sample_source="audit_queue_disagreement",
+                judge_grade=grade,
+            )
+        )
+    for i in range(n - n // 2):
+        grade = "CORRECT" if i % 2 == 0 else "NOT_ATTEMPTED"
+        rows.append(
+            _make_queue_row(
+                f"strat-{i:03d}",
+                sample_source="stratified_panel::cell_a",
+                judge_grade=grade,
+            )
+        )
+    return rows
+
+
+def test_queue_validator_accepts_valid_full_queue() -> None:
+    rows = _balanced_full_queue(100)
+    # Must not raise.
+    validate_calibration_queue_for_launch(rows)
+
+
+def test_queue_validator_rejects_undersized_queue_and_honors_min_cases() -> None:
+    rows = _balanced_full_queue(99)
+    with pytest.raises(CalibrationQueueLaunchError) as exc_info:
+        validate_calibration_queue_for_launch(rows)
+    assert "n_cases" in str(exc_info.value)
+    # Same queue passes when min_cases is lowered.
+    validate_calibration_queue_for_launch(rows, min_cases=50)
+
+
+def test_queue_validator_allow_undersized_bypasses_size_check_only() -> None:
+    rows = _balanced_full_queue(20)
+    # 20 rows: undersized but otherwise valid → bypass succeeds.
+    validate_calibration_queue_for_launch(rows, allow_undersized=True)
+    # But the bypass does not override duplicate / source / grade checks.
+    rows_dup = list(rows)
+    rows_dup.append(rows_dup[0])  # duplicate calibration_case_id
+    with pytest.raises(CalibrationQueueLaunchError, match="duplicate"):
+        validate_calibration_queue_for_launch(rows_dup, allow_undersized=True)
+
+
+def test_queue_validator_rejects_duplicate_calibration_case_ids() -> None:
+    rows = _balanced_full_queue(100)
+    rows[5] = dict(rows[5], calibration_case_id=rows[0]["calibration_case_id"])
+    with pytest.raises(CalibrationQueueLaunchError) as exc_info:
+        validate_calibration_queue_for_launch(rows)
+    assert "duplicate" in str(exc_info.value).lower()
+    assert rows[0]["calibration_case_id"] in str(exc_info.value)
+
+
+def test_queue_validator_rejects_queue_missing_audit_queue_source() -> None:
+    rows = [
+        _make_queue_row(
+            f"strat-{i:03d}",
+            sample_source="stratified_panel::cell_a",
+            judge_grade="CORRECT" if i % 2 == 0 else "INCORRECT",
+        )
+        for i in range(100)
+    ]
+    with pytest.raises(CalibrationQueueLaunchError) as exc_info:
+        validate_calibration_queue_for_launch(rows)
+    assert "audit_queue" in str(exc_info.value)
+
+
+def test_queue_validator_rejects_queue_missing_stratified_panel_source() -> None:
+    rows = [
+        _make_queue_row(
+            f"audit-{i:03d}",
+            sample_source="audit_queue_disagreement",
+            judge_grade="CORRECT" if i % 2 == 0 else "INCORRECT",
+        )
+        for i in range(100)
+    ]
+    with pytest.raises(CalibrationQueueLaunchError) as exc_info:
+        validate_calibration_queue_for_launch(rows)
+    assert "stratified_panel" in str(exc_info.value)
+
+
+def test_queue_validator_rejects_collapsed_class_queue() -> None:
+    # All 100 rows have judge_grade=CORRECT → only 1 distinct primary grade.
+    rows = _balanced_full_queue(100)
+    rows = [dict(row, judge_grade="CORRECT") for row in rows]
+    with pytest.raises(CalibrationQueueLaunchError) as exc_info:
+        validate_calibration_queue_for_launch(rows)
+    msg = str(exc_info.value).lower()
+    assert "distinct" in msg and "grade" in msg
+
+
+def test_queue_validator_reports_all_failures_in_one_message() -> None:
+    # Multi-failure: undersized AND missing audit_queue AND duplicates AND
+    # collapsed grades.
+    rows = [
+        _make_queue_row(
+            "dup-id",
+            sample_source="stratified_panel::cell_a",
+            judge_grade="CORRECT",
+        ),
+        _make_queue_row(
+            "dup-id",
+            sample_source="stratified_panel::cell_a",
+            judge_grade="CORRECT",
+        ),
+        _make_queue_row(
+            "another",
+            sample_source="stratified_panel::cell_b",
+            judge_grade="CORRECT",
+        ),
+    ]
+    with pytest.raises(CalibrationQueueLaunchError) as exc_info:
+        validate_calibration_queue_for_launch(rows)
+    msg = str(exc_info.value)
+    assert "n_cases" in msg
+    assert "duplicate" in msg.lower()
+    assert "audit_queue" in msg
+    assert "distinct" in msg.lower()
+
+
+def test_queue_validator_rejects_invalid_primary_grade_before_downstream_use(
+    tmp_path: Path,
+) -> None:
+    rows = _balanced_full_queue(100)
+    rows[3] = dict(rows[3], judge_grade="MAYBE")
+    with pytest.raises(CalibrationQueueLaunchError) as exc_info:
+        validate_calibration_queue_for_launch(rows)
+    msg = str(exc_info.value)
+    assert "invalid primary grade" in msg
+    assert "audit-003" in msg
+
+    secondary_labels = {str(row["calibration_case_id"]): "CORRECT" for row in rows}
+    with pytest.raises(ValueError, match="Invalid primary queue SIMID open grade"):
+        disagreement_rows(rows, secondary_labels=secondary_labels)
+
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    secondary_rows = [
+        {"calibration_case_id": row["calibration_case_id"], "judge_grade": "CORRECT"}
+        for row in rows
+    ]
+    with pytest.raises(ValueError, match="Invalid primary queue SIMID open grade"):
+        finalize_open_calibration(
+            queue_rows=rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_label_parse_args_exposes_allow_undersized_queue_flag() -> None:
+    args = label_parse_args(
+        [
+            "--mode",
+            "secondary",
+            "--queue-path",
+            "/tmp/q.jsonl",
+            "--rule-path",
+            "/tmp/rule.md",
+            "--output",
+            "/tmp/out.jsonl",
+        ]
+    )
+    assert args.allow_undersized_queue is False
+    args2 = label_parse_args(
+        [
+            "--mode",
+            "secondary",
+            "--queue-path",
+            "/tmp/q.jsonl",
+            "--rule-path",
+            "/tmp/rule.md",
+            "--output",
+            "/tmp/out.jsonl",
+            "--allow-undersized-queue",
+        ]
+    )
+    assert args2.allow_undersized_queue is True
