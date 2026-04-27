@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import random
 from typing import Any, Callable
 
 import numpy as np
@@ -24,6 +25,7 @@ from run_simid import OPEN_GRADING_METHOD, assert_noop_equivalence, load_jsonl
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
+    build_rate_summary,
     paired_bootstrap_continuous_mean_difference_raw,
     percentile_interval,
 )
@@ -63,15 +65,27 @@ SIMID_OPEN_ADJUDICATION_PROMPT_BUILDER = (
 )
 SIMID_OPEN_ADJUDICATION_PARSER = "evaluate_intervention.parse_simpleqa_verdict"
 SIMID_OPEN_ADJUDICATION_ELIGIBLE_DATASETS = frozenset({"triviaqa_bridge", "truthfulqa"})
-SIMID_OPEN_FINAL_GRADES = frozenset({"CORRECT", "INCORRECT", "NOT_ATTEMPTED"})
+SIMID_OPEN_FINAL_GRADE_LABELS = ("CORRECT", "INCORRECT", "NOT_ATTEMPTED")
+SIMID_OPEN_FINAL_GRADES = frozenset(SIMID_OPEN_FINAL_GRADE_LABELS)
+SIMID_OPEN_CALIBRATION_QUEUE_SCHEMA_VERSION = "simid_open_calibration_queue/v1"
 RAW_JUDGE_RESPONSE_EXCERPT_CHARS = 500
 OPEN_CORRECTNESS_CLAIM_CONTRACT = (
     "diagnostic_only_until_judge_calibration_evidence_recorded"
+)
+OPEN_CORRECTNESS_CALIBRATED_CLAIM_CONTRACT = (
+    "claimable_with_recorded_judge_calibration_evidence"
 )
 OPEN_CORRECTNESS_JUDGE_BLOCKER = "calibration_evidence_not_recorded"
 OPEN_CORRECTNESS_NO_JUDGE_BLOCKER = "judge_adjudication_not_loaded"
 OPEN_CORRECTNESS_MIXED_SOURCE_BLOCKER = "mixed_adjudication_and_deterministic_sources"
 OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER = "judge_verdict_unknown_or_error"
+OPEN_CORRECTNESS_CALIBRATION_SCHEMA_VERSION = "simid_open_calibration/v1"
+OPEN_CORRECTNESS_CALIBRATION_TARGET = "simid_open_correctness"
+OPEN_CORRECTNESS_CALIBRATION_INVALID_BLOCKER = "calibration_evidence_invalid"
+OPEN_CORRECTNESS_CALIBRATION_FAILED_BLOCKER = "calibration_evidence_failed_thresholds"
+OPEN_CORRECTNESS_CALIBRATION_RULE_GAP_BLOCKER = "calibration_rule_gap_recorded"
+OPEN_CORRECTNESS_CALIBRATION_MIN_KAPPA = 0.80
+OPEN_CORRECTNESS_CALIBRATION_MIN_AC1 = 0.80
 
 
 def deterministic_open_correct(row: dict[str, Any]) -> bool:
@@ -728,11 +742,227 @@ def adjudicate_open_responses_batch(
     }
 
 
+def gwet_ac1_for_labels(
+    labels_a: list[str],
+    labels_b: list[str],
+    *,
+    labels: tuple[str, ...],
+) -> float:
+    if len(labels_a) != len(labels_b):
+        raise ValueError("AC1 requires equal-length label sequences")
+    n_items = len(labels_a)
+    if n_items == 0:
+        return 0.0
+
+    if set(labels_a) == set(labels_b) and len(set(labels_a)) == 1:
+        return 1.0
+
+    observed = sum(a == b for a, b in zip(labels_a, labels_b)) / n_items
+    counts = Counter(labels_a)
+    counts.update(labels_b)
+    expected = 0.0
+    category_count = len(labels)
+    for label in labels:
+        p_label = counts.get(label, 0) / (2.0 * n_items)
+        expected += p_label * (1.0 - p_label) / (category_count - 1.0)
+
+    if abs(1.0 - expected) < 1e-12:
+        return 1.0
+    return float((observed - expected) / (1.0 - expected))
+
+
+def _nested_value(payload: dict[str, Any], *path: str) -> Any:
+    current: Any = payload
+    for key in path:
+        if not isinstance(current, dict) or key not in current:
+            return None
+        current = current[key]
+    return current
+
+
+def _maybe_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _maybe_float(value: Any) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def open_calibration_policy() -> dict[str, Any]:
+    return {
+        "schema_version": OPEN_CORRECTNESS_CALIBRATION_SCHEMA_VERSION,
+        "target": OPEN_CORRECTNESS_CALIBRATION_TARGET,
+        "requires_pre_frozen_rule": True,
+        "requires_audit_queue_disagreement_sample": True,
+        "requires_stratified_panel": True,
+        "min_cohen_kappa": OPEN_CORRECTNESS_CALIBRATION_MIN_KAPPA,
+        "min_gwet_ac1": OPEN_CORRECTNESS_CALIBRATION_MIN_AC1,
+        "max_rule_gap_cases": 0,
+    }
+
+
+def _calibration_rule_is_pre_frozen(rule: Any) -> bool:
+    if not isinstance(rule, dict):
+        return False
+    if rule.get("pre_frozen") is True:
+        return True
+    return all(
+        isinstance(rule.get(field), str) and bool(str(rule.get(field)).strip())
+        for field in ("path", "content_sha256", "git_commit")
+    )
+
+
+def normalize_open_calibration_summary(
+    payload: dict[str, Any],
+    *,
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Validate and normalize L4-style calibration evidence for open grades."""
+    schema_version = str(payload.get("schema_version", "")).strip()
+    status = str(payload.get("status", "")).strip()
+    target = str(payload.get("target", "")).strip()
+    sampling_raw = payload.get("sampling")
+    sampling: dict[str, Any] = sampling_raw if isinstance(sampling_raw, dict) else {}
+    rule = payload.get("rule")
+    if not isinstance(rule, dict):
+        rule = _nested_value(payload, "provenance", "adjudication_rule")
+
+    n_cases = _maybe_int(
+        payload.get("n_cases") or _nested_value(payload, "irr", "n_cases")
+    )
+    audit_n = _maybe_int(
+        _nested_value(sampling, "audit_queue_disagreement_n")
+        or _nested_value(sampling, "audit_queue_disagreements_n")
+    )
+    stratified_n = _maybe_int(_nested_value(sampling, "stratified_panel_n"))
+    cohen_kappa = _maybe_float(_nested_value(payload, "irr", "cohen_kappa"))
+    gwet_ac1 = _maybe_float(_nested_value(payload, "irr", "gwet_ac1"))
+    raw_agreement_count = _maybe_int(
+        _nested_value(payload, "irr", "raw_agreement", "count")
+    )
+    raw_agreement_n = _maybe_int(_nested_value(payload, "irr", "raw_agreement", "n"))
+    rule_gap_count = _maybe_int(
+        _nested_value(payload, "adjudication", "rule_gap_cases", "count")
+    )
+    rule_gap_n = _maybe_int(
+        _nested_value(payload, "adjudication", "rule_gap_cases", "n")
+    )
+
+    blockers: list[str] = []
+    if schema_version != OPEN_CORRECTNESS_CALIBRATION_SCHEMA_VERSION:
+        blockers.append("schema_version_mismatch")
+    if status != "adjudicated":
+        blockers.append("status_not_adjudicated")
+    if target != OPEN_CORRECTNESS_CALIBRATION_TARGET:
+        blockers.append("target_mismatch")
+    if not _calibration_rule_is_pre_frozen(rule):
+        blockers.append("pre_frozen_rule_not_recorded")
+    if n_cases is None or n_cases <= 0:
+        blockers.append("n_cases_not_recorded")
+    if audit_n is None or audit_n <= 0:
+        blockers.append("audit_queue_disagreement_sample_not_recorded")
+    if stratified_n is None or stratified_n <= 0:
+        blockers.append("stratified_panel_not_recorded")
+    if cohen_kappa is None:
+        blockers.append("cohen_kappa_not_recorded")
+    elif cohen_kappa < OPEN_CORRECTNESS_CALIBRATION_MIN_KAPPA:
+        blockers.append("cohen_kappa_below_threshold")
+    if gwet_ac1 is None:
+        blockers.append("gwet_ac1_not_recorded")
+    elif gwet_ac1 < OPEN_CORRECTNESS_CALIBRATION_MIN_AC1:
+        blockers.append("gwet_ac1_below_threshold")
+    if rule_gap_count is None or rule_gap_n is None:
+        blockers.append("rule_gap_not_recorded")
+    elif rule_gap_count > 0:
+        blockers.append(OPEN_CORRECTNESS_CALIBRATION_RULE_GAP_BLOCKER)
+
+    if raw_agreement_count is None or raw_agreement_n is None:
+        raw_agreement = _nested_value(payload, "irr", "raw_agreement")
+    else:
+        raw_agreement = build_rate_summary(raw_agreement_count, raw_agreement_n)
+
+    failure_blocker: str | None
+    if not blockers:
+        failure_blocker = None
+    elif OPEN_CORRECTNESS_CALIBRATION_RULE_GAP_BLOCKER in blockers:
+        failure_blocker = OPEN_CORRECTNESS_CALIBRATION_RULE_GAP_BLOCKER
+    elif any(blocker.endswith("_below_threshold") for blocker in blockers):
+        failure_blocker = OPEN_CORRECTNESS_CALIBRATION_FAILED_BLOCKER
+    else:
+        failure_blocker = OPEN_CORRECTNESS_CALIBRATION_INVALID_BLOCKER
+
+    normalized: dict[str, Any] = {
+        "schema_version": schema_version,
+        "status": status,
+        "target": target,
+        "path": str(path) if path is not None else None,
+        "sampling": {
+            "n_cases": n_cases,
+            "audit_queue_disagreement_n": audit_n,
+            "stratified_panel_n": stratified_n,
+        },
+        "rule": rule if isinstance(rule, dict) else None,
+        "irr": {
+            "n_cases": n_cases,
+            "raw_agreement": raw_agreement,
+            "cohen_kappa": cohen_kappa,
+            "gwet_ac1": gwet_ac1,
+        },
+        "adjudication": {
+            "rule_gap_cases": {
+                "count": rule_gap_count,
+                "n": rule_gap_n,
+            },
+        },
+        "claimability": {
+            "passed": not blockers,
+            "blockers": blockers,
+            "blocker": failure_blocker,
+            "policy": open_calibration_policy(),
+        },
+    }
+    return normalized
+
+
+def load_open_calibration_summary(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected SIMID open calibration JSON object in {path}")
+    return normalize_open_calibration_summary(payload, path=path)
+
+
+def open_calibration_claimability_blocker(
+    calibration_summary: dict[str, Any] | None,
+) -> str | None:
+    if calibration_summary is None:
+        return OPEN_CORRECTNESS_JUDGE_BLOCKER
+    claimability = calibration_summary.get("claimability")
+    if not isinstance(claimability, dict) or not bool(claimability.get("passed")):
+        blocker = (
+            claimability.get("blocker") if isinstance(claimability, dict) else None
+        )
+        return str(blocker or OPEN_CORRECTNESS_CALIBRATION_INVALID_BLOCKER)
+    return None
+
+
 def open_correctness_claimability_blocker(
     effective_source_counts: Counter[str],
     *,
     has_judge: bool,
-) -> str:
+    calibration_summary: dict[str, Any] | None = None,
+) -> str | None:
     if (
         effective_source_counts.get("adjudication", 0) > 0
         and effective_source_counts.get("deterministic_alias", 0) > 0
@@ -741,7 +971,8 @@ def open_correctness_claimability_blocker(
     if effective_source_counts.get("adjudication_unknown", 0) > 0:
         return OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER
     if has_judge:
-        return OPEN_CORRECTNESS_JUDGE_BLOCKER
+        blocker = open_calibration_claimability_blocker(calibration_summary)
+        return blocker
     return OPEN_CORRECTNESS_NO_JUDGE_BLOCKER
 
 
@@ -750,6 +981,7 @@ def summarize_open_grading(
     *,
     adjudication_path: Path,
     adjudication_run: dict[str, Any] | None,
+    calibration_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     correct_metric, attempted_metric = open_metric_names_for_rows(rows)
     effective_source_counts: Counter[str] = Counter()
@@ -774,7 +1006,9 @@ def summarize_open_grading(
     claimability_blocker = open_correctness_claimability_blocker(
         effective_source_counts,
         has_judge=has_judge,
+        calibration_summary=calibration_summary,
     )
+    claimable_open_correctness = claimability_blocker is None
     summary: dict[str, Any] = {
         "deterministic_alias_grader": OPEN_GRADING_METHOD,
         "metric_correct": correct_metric,
@@ -791,13 +1025,21 @@ def summarize_open_grading(
             "n_unknown_or_error": invalid_adjudications,
             "deterministic_vs_judge_disagreements": disagreements,
         },
-        "open_correctness_claim_contract": OPEN_CORRECTNESS_CLAIM_CONTRACT,
-        "open_metrics_scope": "diagnostic_only",
-        "claimable_open_correctness": False,
+        "open_correctness_claim_contract": (
+            OPEN_CORRECTNESS_CALIBRATED_CLAIM_CONTRACT
+            if claimable_open_correctness
+            else OPEN_CORRECTNESS_CLAIM_CONTRACT
+        ),
+        "open_metrics_scope": (
+            "claimable" if claimable_open_correctness else "diagnostic_only"
+        ),
+        "claimable_open_correctness": claimable_open_correctness,
         "claimability_blocker": claimability_blocker,
     }
     if adjudication_run is not None:
         summary["adjudication"]["last_run"] = adjudication_run
+    if calibration_summary is not None:
+        summary["calibration"] = calibration_summary
     return summary
 
 
@@ -1608,6 +1850,128 @@ def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return queue
 
 
+def open_calibration_case_id(row: dict[str, Any]) -> str:
+    payload = json.dumps(
+        open_adjudication_dedup_key(row),
+        ensure_ascii=True,
+        sort_keys=True,
+    )
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    return f"simid_open_cal_{digest}"
+
+
+def open_calibration_stratum(row: dict[str, Any]) -> str:
+    grade = effective_open_grade(row)
+    return (
+        f"dataset={row.get('dataset', 'unknown')}::"
+        f"judge_grade={grade.get('judge_grade')}::"
+        f"deterministic_correct={deterministic_open_correct(row)}"
+    )
+
+
+def make_open_calibration_queue_row(
+    row: dict[str, Any],
+    *,
+    sample_source: str,
+) -> dict[str, Any]:
+    grade = effective_open_grade(row)
+    return {
+        "schema_version": SIMID_OPEN_CALIBRATION_QUEUE_SCHEMA_VERSION,
+        "calibration_case_id": open_calibration_case_id(row),
+        "sample_source": sample_source,
+        "sampling_stratum": open_calibration_stratum(row),
+        **open_adjudication_key_payload(row),
+        "base_sample_id": row.get("base_sample_id"),
+        "dataset": row.get("dataset"),
+        "mc_endpoint": row.get("mc_endpoint"),
+        "question": row.get("question"),
+        "gold_aliases": row.get("gold_aliases"),
+        "response": open_adjudication_response_payload(row),
+        "deterministic_open_grade": row.get("open_grade"),
+        "primary_judge_grade": grade.get("judge_grade"),
+        "primary_effective_open_grade": grade,
+        "primary_open_adjudication": row.get("open_adjudication"),
+        "judge_disagrees_with_deterministic": (
+            bool(grade["correct"]) != deterministic_open_correct(row)
+            if grade["source"] == "adjudication"
+            else None
+        ),
+    }
+
+
+def _dedup_calibration_candidates(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    by_case_id: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not eligible_for_open_adjudication(row):
+            continue
+        grade = effective_open_grade(row)
+        if grade["source"] != "adjudication":
+            continue
+        case_id = open_calibration_case_id(row)
+        by_case_id.setdefault(case_id, row)
+    return [by_case_id[case_id] for case_id in sorted(by_case_id)]
+
+
+def build_open_calibration_queue(
+    rows: list[dict[str, Any]],
+    *,
+    stratified_per_cell: int,
+    seed: int,
+) -> list[dict[str, Any]]:
+    """Build a second-rater queue with disagreement rows plus a stratified panel."""
+    if stratified_per_cell < 0:
+        raise ValueError("stratified_per_cell must be non-negative")
+
+    candidates = _dedup_calibration_candidates(rows)
+    audit_rows = [
+        row
+        for row in candidates
+        if bool(effective_open_grade(row)["correct"]) != deterministic_open_correct(row)
+    ]
+    selected_by_case_id: dict[str, dict[str, Any]] = {}
+    selected_sources: dict[str, str] = {}
+    for row in audit_rows:
+        case_id = open_calibration_case_id(row)
+        selected_by_case_id[case_id] = row
+        selected_sources[case_id] = "audit_queue_disagreement"
+
+    if stratified_per_cell:
+        rng = random.Random(seed)
+        by_stratum: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in candidates:
+            case_id = open_calibration_case_id(row)
+            if case_id in selected_by_case_id:
+                continue
+            by_stratum[open_calibration_stratum(row)].append(row)
+        for stratum, stratum_rows in sorted(by_stratum.items()):
+            ordered = sorted(stratum_rows, key=open_calibration_case_id)
+            n_take = min(stratified_per_cell, len(ordered))
+            for row in sorted(
+                rng.sample(ordered, n_take),
+                key=open_calibration_case_id,
+            ):
+                case_id = open_calibration_case_id(row)
+                selected_by_case_id[case_id] = row
+                selected_sources[case_id] = f"stratified_panel::{stratum}"
+
+    return [
+        make_open_calibration_queue_row(
+            selected_by_case_id[case_id],
+            sample_source=selected_sources[case_id],
+        )
+        for case_id in sorted(selected_by_case_id)
+    ]
+
+
+def write_jsonl_rows(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
 def chosen_letter_distribution(groups: dict[str, RowGroup]) -> dict[str, Any]:
     counts: Counter[str] = Counter()
     n_rows = 0
@@ -1988,7 +2352,15 @@ def write_report(results: dict[str, Any], path: Path) -> None:
     open_correct_metric = str(open_grading.get("metric_correct", "open_correct"))
     open_attempted_metric = str(open_grading.get("metric_attempted", "open_attempted"))
     judge_backed = open_correct_metric == "adjudicated_open_correct"
-    if judge_backed:
+    claimable_open = open_grading.get("claimable_open_correctness") is True
+    if judge_backed and claimable_open:
+        open_grading_note = (
+            "Open correctness is reported as adjudicated_open_correct. Judge "
+            "adjudication is fully loaded for the analyzed rows, and the "
+            "open-correctness calibration evidence passed the recorded "
+            "claimability policy."
+        )
+    elif judge_backed:
         open_grading_note = (
             "Open correctness is reported as adjudicated_open_correct for "
             "diagnostics: judge "
@@ -2023,6 +2395,22 @@ def write_report(results: dict[str, Any], path: Path) -> None:
         if open_grading.get("claimable_open_correctness") is False:
             blocker = open_grading.get("claimability_blocker", "unspecified")
             lines.append(f"Open correctness claimability: blocked ({blocker}).")
+        elif open_grading.get("claimable_open_correctness") is True:
+            lines.append("Open correctness claimability: passed.")
+            calibration = open_grading.get("calibration")
+            if isinstance(calibration, dict):
+                calibration_path = calibration.get("path")
+                kappa = calibration.get("irr", {}).get("cohen_kappa")
+                ac1 = calibration.get("irr", {}).get("gwet_ac1")
+                if calibration_path or kappa is not None or ac1 is not None:
+                    rendered = []
+                    if calibration_path:
+                        rendered.append(f"calibration={calibration_path}")
+                    if kappa is not None:
+                        rendered.append(f"kappa={float(kappa):.4f}")
+                    if ac1 is not None:
+                        rendered.append(f"AC1={float(ac1):.4f}")
+                    lines.append("Open calibration evidence: " + ", ".join(rendered))
         claim_contract = open_grading.get("open_correctness_claim_contract")
         if claim_contract:
             lines.append(f"Open correctness claim contract: {claim_contract}.")
@@ -2116,6 +2504,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-json", default=None)
     parser.add_argument("--report-md", default=None)
     parser.add_argument("--alias-audit-output", default=None)
+    parser.add_argument(
+        "--open-calibration-queue-output",
+        default=None,
+        help=(
+            "Optional JSONL queue for a second-rater open-correctness calibration "
+            "pass. Relative paths are resolved under --run-dir."
+        ),
+    )
+    parser.add_argument(
+        "--open-calibration-stratified-per-cell",
+        type=int,
+        default=3,
+        help=(
+            "Number of non-disagreement rows to sample per "
+            "dataset/judge-grade/deterministic-correctness stratum when writing "
+            "--open-calibration-queue-output."
+        ),
+    )
     parser.add_argument("--adjudicate-open", action="store_true")
     parser.add_argument("--judge-model", default=DEFAULT_SIMID_OPEN_JUDGE_MODEL)
     parser.add_argument(
@@ -2128,6 +2534,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--adjudication-output",
         default="open_adjudication.jsonl",
         help="Path for separate SIMID open adjudication JSONL output.",
+    )
+    parser.add_argument(
+        "--open-calibration-summary",
+        default=None,
+        help=(
+            "Optional L4-style SIMID open-correctness calibration summary JSON. "
+            "Relative paths are resolved under --run-dir."
+        ),
     )
     parser.add_argument("--api-key", default=None)
     parser.add_argument(
@@ -2172,11 +2586,38 @@ def main(argv: list[str] | None = None) -> None:
         if args.alias_audit_output
         else run_dir / "alias_audit_queue.jsonl"
     )
+    open_calibration_queue_path = (
+        Path(args.open_calibration_queue_output)
+        if args.open_calibration_queue_output
+        else None
+    )
+    if (
+        open_calibration_queue_path is not None
+        and not open_calibration_queue_path.is_absolute()
+    ):
+        open_calibration_queue_path = run_dir / open_calibration_queue_path
     adjudication_output = Path(args.adjudication_output)
     if not adjudication_output.is_absolute():
         adjudication_output = run_dir / adjudication_output
+    open_calibration_summary_path = (
+        Path(args.open_calibration_summary) if args.open_calibration_summary else None
+    )
+    if (
+        open_calibration_summary_path is not None
+        and not open_calibration_summary_path.is_absolute()
+    ):
+        open_calibration_summary_path = run_dir / open_calibration_summary_path
     refuse_analysis_output_overwrite(
-        [output_json, report_md, alias_queue_path],
+        [
+            path
+            for path in [
+                output_json,
+                report_md,
+                alias_queue_path,
+                open_calibration_queue_path,
+            ]
+            if path is not None
+        ],
         allow_overwrite=args.allow_overwrite,
     )
     output_targets: list[str | os.PathLike[str]] = [
@@ -2186,6 +2627,8 @@ def main(argv: list[str] | None = None) -> None:
     ]
     if args.adjudicate_open:
         output_targets.append(adjudication_output)
+    if open_calibration_queue_path is not None:
+        output_targets.append(open_calibration_queue_path)
     provenance = start_run_provenance(
         args,
         primary_target=output_json,
@@ -2210,6 +2653,9 @@ def main(argv: list[str] | None = None) -> None:
                 max_enqueued_tokens=args.batch_max_enqueued_tokens,
                 limit=args.adjudication_limit,
             )
+        calibration_summary = load_open_calibration_summary(
+            open_calibration_summary_path
+        )
         adjudications = load_open_adjudications(adjudication_output)
         n_attached_adjudications = attach_open_adjudications(rows, adjudications)
         bool_metrics = bool_metrics_for_rows(rows)
@@ -2217,6 +2663,7 @@ def main(argv: list[str] | None = None) -> None:
             rows,
             adjudication_path=adjudication_output,
             adjudication_run=adjudication_run,
+            calibration_summary=calibration_summary,
         )
         indexed = index_rows(rows)
         conditions = args.conditions or sorted(indexed)
@@ -2256,9 +2703,15 @@ def main(argv: list[str] | None = None) -> None:
                 seed=args.seed,
             )
         alias_queue = build_alias_audit_queue(rows)
-        with alias_queue_path.open("w", encoding="utf-8") as handle:
-            for row in alias_queue:
-                handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+        write_jsonl_rows(alias_queue_path, alias_queue)
+        open_calibration_queue = None
+        if open_calibration_queue_path is not None:
+            open_calibration_queue = build_open_calibration_queue(
+                rows,
+                stratified_per_cell=args.open_calibration_stratified_per_cell,
+                seed=args.seed,
+            )
+            write_jsonl_rows(open_calibration_queue_path, open_calibration_queue)
 
         results = {
             "schema_version": "simid_analysis/v1",
@@ -2279,6 +2732,16 @@ def main(argv: list[str] | None = None) -> None:
                 "confidence": 0.95,
             },
         }
+        if (
+            open_calibration_queue is not None
+            and open_calibration_queue_path is not None
+        ):
+            results["open_calibration_queue"] = {
+                "path": str(open_calibration_queue_path),
+                "n": len(open_calibration_queue),
+                "schema_version": SIMID_OPEN_CALIBRATION_QUEUE_SCHEMA_VERSION,
+                "stratified_per_cell": args.open_calibration_stratified_per_cell,
+            }
         if args.phase0_gates:
             results["phase0_gates"] = run_phase0_gates(
                 indexed,

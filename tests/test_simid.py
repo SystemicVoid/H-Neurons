@@ -13,6 +13,7 @@ import run_simid as simid_runner
 from analyze_simid import (
     attach_open_adjudications,
     build_alias_audit_queue,
+    build_open_calibration_queue,
     build_simid_open_adjudication_request,
     build_simid_open_adjudication_requests,
     effective_open_grade,
@@ -22,6 +23,7 @@ from analyze_simid import (
     load_run_rows,
     make_open_adjudication_row,
     main as analyze_main,
+    normalize_open_calibration_summary,
     option_order_stability_gate,
     parse_simpleqa_verdict,
     require_paired_panel,
@@ -40,6 +42,7 @@ from build_simid_manifest import (
     validate_manifest,
 )
 from build_truthfulqa_splits import stable_question_id
+from finalize_simid_open_calibration import finalize_open_calibration
 from run_simid import (
     assert_noop_equivalence,
     build_iti_config,
@@ -1160,6 +1163,197 @@ def test_mixed_open_grade_sources_block_claimability(tmp_path: Path) -> None:
     )
 
 
+def _valid_open_calibration_summary() -> dict:
+    return {
+        "schema_version": "simid_open_calibration/v1",
+        "status": "adjudicated",
+        "target": "simid_open_correctness",
+        "n_cases": 24,
+        "sampling": {
+            "audit_queue_disagreement_n": 8,
+            "stratified_panel_n": 16,
+        },
+        "rule": {
+            "path": "data/judge_validation/simid_open/adjudication_rule.md",
+            "git_commit": "abc123",
+            "content_sha256": "deadbeef",
+        },
+        "irr": {
+            "n_cases": 24,
+            "raw_agreement": {"count": 23, "n": 24},
+            "cohen_kappa": 0.91,
+            "gwet_ac1": 0.94,
+        },
+        "adjudication": {
+            "rule_gap_cases": {"count": 0, "n": 1},
+        },
+    }
+
+
+def test_open_grading_becomes_claimable_with_valid_calibration(
+    tmp_path: Path,
+) -> None:
+    rows = [
+        _analysis_row(sample_id="s1", open_correct=False),
+        _analysis_row(sample_id="s2", open_correct=True),
+    ]
+    rows[0]["open_adjudication"] = {"judge_grade": "CORRECT"}
+    rows[1]["open_adjudication"] = {"judge_grade": "INCORRECT"}
+    calibration = normalize_open_calibration_summary(_valid_open_calibration_summary())
+
+    summary = summarize_open_grading(
+        rows,
+        adjudication_path=tmp_path / "open_adjudication.jsonl",
+        adjudication_run=None,
+        calibration_summary=calibration,
+    )
+
+    assert summary["claimable_open_correctness"] is True
+    assert summary["claimability_blocker"] is None
+    assert summary["open_metrics_scope"] == "claimable"
+    assert summary["open_correctness_claim_contract"] == (
+        "claimable_with_recorded_judge_calibration_evidence"
+    )
+    assert summary["calibration"]["claimability"]["passed"] is True
+
+
+def test_open_grading_blocks_when_calibration_records_rule_gap(
+    tmp_path: Path,
+) -> None:
+    row = _analysis_row(sample_id="s1", open_correct=False)
+    row["open_adjudication"] = {"judge_grade": "CORRECT"}
+    calibration_payload = _valid_open_calibration_summary()
+    calibration_payload["adjudication"]["rule_gap_cases"] = {"count": 1, "n": 1}
+    calibration = normalize_open_calibration_summary(calibration_payload)
+
+    summary = summarize_open_grading(
+        [row],
+        adjudication_path=tmp_path / "open_adjudication.jsonl",
+        adjudication_run=None,
+        calibration_summary=calibration,
+    )
+
+    assert summary["claimable_open_correctness"] is False
+    assert summary["claimability_blocker"] == "calibration_rule_gap_recorded"
+    assert summary["calibration"]["claimability"]["blockers"] == [
+        "calibration_rule_gap_recorded"
+    ]
+
+
+def test_open_calibration_queue_deduplicates_disagreements_and_stratifies() -> None:
+    disagreement_a = _analysis_row(
+        sample_id="truthful_ord0",
+        base_sample_id="truthful_base",
+        condition="selected",
+        option_order_replicate=0,
+        dataset="truthfulqa",
+        open_correct=False,
+    )
+    disagreement_b = _analysis_row(
+        sample_id="truthful_ord1",
+        base_sample_id="truthful_base",
+        condition="unhooked",
+        option_order_replicate=1,
+        dataset="truthfulqa",
+        open_correct=False,
+    )
+    for row in [disagreement_a, disagreement_b]:
+        row["open_generation"]["response"] = "A correct paraphrase."
+        row["open_adjudication"] = {"judge_grade": "CORRECT"}
+
+    bridge_correct = _analysis_row(
+        sample_id="bridge_correct",
+        base_sample_id="bridge_correct",
+        dataset="triviaqa_bridge",
+        open_correct=True,
+    )
+    bridge_correct["open_adjudication"] = {"judge_grade": "CORRECT"}
+    bridge_incorrect = _analysis_row(
+        sample_id="bridge_incorrect",
+        base_sample_id="bridge_incorrect",
+        dataset="triviaqa_bridge",
+        open_correct=False,
+    )
+    bridge_incorrect["open_adjudication"] = {"judge_grade": "INCORRECT"}
+
+    queue = build_open_calibration_queue(
+        [disagreement_a, disagreement_b, bridge_correct, bridge_incorrect],
+        stratified_per_cell=1,
+        seed=1,
+    )
+
+    assert [row["sample_source"] for row in queue].count(
+        "audit_queue_disagreement"
+    ) == 1
+    assert len(queue) == 3
+    assert len({row["calibration_case_id"] for row in queue}) == 3
+    assert {
+        row["primary_judge_grade"]
+        for row in queue
+        if row["sample_source"].startswith("stratified_panel::")
+    } == {"CORRECT", "INCORRECT"}
+
+
+def test_finalize_open_calibration_records_metrics_and_claimability(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = [
+        {
+            "calibration_case_id": "case_audit",
+            "sample_source": "audit_queue_disagreement",
+            "sample_id": "s1",
+            "condition": "selected",
+            "alpha": 0.0,
+            "dataset": "truthfulqa",
+            "primary_judge_grade": "CORRECT",
+        },
+        {
+            "calibration_case_id": "case_stratified_correct",
+            "sample_source": "stratified_panel::dataset=triviaqa_bridge",
+            "sample_id": "s2",
+            "condition": "selected",
+            "alpha": 0.0,
+            "dataset": "triviaqa_bridge",
+            "primary_judge_grade": "INCORRECT",
+        },
+        {
+            "calibration_case_id": "case_stratified_not_attempted",
+            "sample_source": "stratified_panel::dataset=truthfulqa",
+            "sample_id": "s3",
+            "condition": "selected",
+            "alpha": 0.0,
+            "dataset": "truthfulqa",
+            "primary_judge_grade": "NOT_ATTEMPTED",
+        },
+    ]
+    secondary_rows = [
+        {
+            "calibration_case_id": row["calibration_case_id"],
+            "judge_grade": row["primary_judge_grade"],
+        }
+        for row in queue_rows
+    ]
+
+    summary = finalize_open_calibration(
+        queue_rows=queue_rows,
+        secondary_rows=secondary_rows,
+        adjudication_rows=[],
+        rule_path=rule_path,
+        primary_rater_name="gpt-4o",
+        secondary_rater_name="human_subset",
+    )
+
+    assert summary["schema_version"] == "simid_open_calibration/v1"
+    assert summary["sampling"]["audit_queue_disagreement_n"] == 1
+    assert summary["sampling"]["stratified_panel_n"] == 2
+    assert summary["irr"]["cohen_kappa"] == pytest.approx(1.0)
+    assert summary["irr"]["gwet_ac1"] == pytest.approx(1.0)
+    assert summary["adjudication"]["rule_gap_cases"]["count"] == 0
+    assert summary["claimability"]["passed"] is True
+
+
 def test_report_labels_adjudicated_open_metrics(tmp_path: Path) -> None:
     path = tmp_path / "report.md"
     write_report(
@@ -1199,6 +1393,52 @@ def test_report_labels_adjudicated_open_metrics(tmp_path: Path) -> None:
     assert "diagnostic-only" in text
     assert "adjudicated_open_correct=0.5000 [0.2500, 0.7500]" in text
     assert "calibration_evidence_not_recorded" in text
+
+
+def test_report_labels_claimable_open_metrics_after_calibration(tmp_path: Path) -> None:
+    path = tmp_path / "report.md"
+    calibration = normalize_open_calibration_summary(
+        _valid_open_calibration_summary(),
+        path=tmp_path / "open_calibration_summary.json",
+    )
+    write_report(
+        {
+            "open_grading": {
+                "metric_correct": "adjudicated_open_correct",
+                "metric_attempted": "adjudicated_open_attempted",
+                "effective_grade_source_counts": {"adjudication": 2},
+                "claimable_open_correctness": True,
+                "claimability_blocker": None,
+                "calibration": calibration,
+            },
+            "conditions": {
+                "selected": {
+                    "n_paired_items": 2,
+                    "baseline_alpha": 0.0,
+                    "rates": {
+                        "0.0": {
+                            "mc_letter_likelihood_correct": {
+                                "estimate": 0.75,
+                                "ci": {"lower": 0.5, "upper": 1.0},
+                            },
+                            "adjudicated_open_correct": {
+                                "estimate": 0.5,
+                                "ci": {"lower": 0.25, "upper": 0.75},
+                            },
+                        }
+                    },
+                    "paired_deltas_vs_baseline": {},
+                }
+            },
+        },
+        path,
+    )
+
+    text = path.read_text(encoding="utf-8")
+    assert "Open correctness claimability: passed." in text
+    assert "kappa=0.9100" in text
+    assert "AC1=0.9400" in text
+    assert "diagnostic-only" not in text
 
 
 def test_unknown_judge_verdict_does_not_become_claimable_correctness() -> None:
