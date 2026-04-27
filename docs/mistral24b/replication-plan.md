@@ -61,11 +61,37 @@ Safety guardrails added during migration review:
 - Quick negative-control runs include a layer-matched seed in addition to
   unconstrained random seeds.
 
+Post-review hardening (2026-04-27, commits `f395b1b`, `759dbe8`, `98f1a9c`,
+`f6a8ae1`):
+
+- FaithEval negative control accepts `--prompt_style` and the wrapper threads
+  `--prompt_style standard` to both the H-neuron baseline and its controls, so
+  the comparison summary measures H-neuron specificity rather than prompt-style
+  divergence.
+- Negative control accepts `--max_samples` and `--sample_manifest`, mirroring
+  `run_intervention.py` semantics; the wrapper passes
+  `--max_samples "${INTERVENTION_MAX_SAMPLES}"` to FaithEval and FalseQA
+  controls so baseline and controls share a sample population.
+- `scripts/classifier.py`'s `--save_model` default now resolves from the
+  registry when `--model_key` is set (`models/mistral24b_classifier.pkl` for
+  the canonical 2501 entry), so standalone training composes with
+  `run_intervention.py` without a manual path override. Legacy unkeyed runs
+  still default to `models/detector.pkl`.
+- Jailbreak negative control's analyzer-hint printout derives the
+  `--experiment_dir` from `--h_neuron_baseline` when set and falls back to
+  the registry, with a placeholder for unregistered models — so a successful
+  generation run no longer crashes on an informational print when an
+  unregistered model is paired with `--output_base`.
+
 ## Progress Status
 
-The codebase is ready for a canonical 2501 RunPod execution path, but no new
-24B GPU artifacts have been generated locally. Treat these as the next required
-claim-bearing outputs:
+The codebase is ready for a canonical 2501 RunPod execution path. Wrapper and
+negative-control plumbing have been hardened post-review (see post-review
+hardening above): FaithEval prompt style, sample-set selection, classifier
+save-path defaults, and the jailbreak analyzer-path printout are now consistent
+between the H-neuron baseline and its controls. No new 24B GPU artifacts have
+been generated locally yet. Treat these as the next required claim-bearing
+outputs:
 
 - `data/mistral24b/pipeline/train_qids_llm.json`,
   `dev_qids_llm.json`, and `test_qids_llm.json`.

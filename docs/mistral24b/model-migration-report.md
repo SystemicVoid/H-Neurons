@@ -22,6 +22,11 @@ Status as of 2026-04-27:
 - **Code migration:** complete for the canonical 2501 text-only causal-LM path.
 - **Review hardening:** complete for model-root inference, classifier-path
   defaults, classifier/activation width checks, and quick layer-matched controls.
+- **Post-review hardening:** complete for negative-control comparability —
+  matching FaithEval prompt style, matching sample selection (`--max_samples` /
+  `--sample_manifest`), registry-aware classifier `--save_model` default, and
+  the jailbreak analyzer-hint printout (commits `f395b1b`, `759dbe8`,
+  `98f1a9c`, `f6a8ae1`).
 - **Run orchestration:** ready to dry-run or resume by stage through
   `scripts/infra/mistral24b_replication.sh`.
 - **GPU artifacts:** not yet produced in this workspace. The canonical held-out
@@ -208,6 +213,14 @@ correctly.
   tokenizer kwargs, output-root resolution, unsupported 2503 gating,
   classifier/model geometry mismatches, quick layer-matched controls, and
   negative-control geometry.
+- Post-review hardening (2026-04-27): added 17 focused tests across new files
+  `tests/test_run_negative_control.py` (12 tests covering `--prompt_style`
+  argparse, `--max_samples` / `--sample_manifest` plumbing, `_faitheval_prompt`
+  style divergence, and `_jailbreak_csv2_eval_dir` path derivation) and
+  `tests/test_classifier.py` (5 tests covering the registry-aware
+  `--save_model` default and explicit-override precedence). Full
+  `uv run pytest` then reports 745 passed; pre-existing SIMID failures are
+  unchanged.
 
 ## Source Of Truth
 
