@@ -1434,6 +1434,10 @@ def test_simpleqa_parser_does_not_match_correct_inside_incorrect() -> None:
     )
 
 
+def test_simpleqa_parser_free_text_incorrect_without_letter_token() -> None:
+    assert parse_simpleqa_verdict("Final verdict: INCORRECT") == "INCORRECT"
+
+
 def test_open_grading_is_labeled_and_audited_for_non_bridge_rows() -> None:
     grade = simid_runner.grade_open_response(
         {
