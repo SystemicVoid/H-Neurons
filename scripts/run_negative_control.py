@@ -252,6 +252,7 @@ def run_single_config(
     config_name: str,
     benchmark: str = "faitheval",
     jailbreak_batch_size: int = 1,
+    prompt_style: str = "anti_compliance",
 ):
     """Run a benchmark for one neuron set across all alphas."""
     os.makedirs(output_dir, exist_ok=True)
@@ -268,7 +269,14 @@ def run_single_config(
 
     if benchmark == "faitheval":
         results = _run_faitheval_alphas(
-            model, tokenizer, samples, scaler, alphas, output_dir, config_name
+            model,
+            tokenizer,
+            samples,
+            scaler,
+            alphas,
+            output_dir,
+            config_name,
+            prompt_style=prompt_style,
         )
     elif benchmark == "falseqa":
         results = _run_falseqa_alphas(
@@ -306,9 +314,17 @@ def run_single_config(
 
 
 def _run_faitheval_alphas(
-    model, tokenizer, samples, scaler, alphas, output_dir, config_name
+    model,
+    tokenizer,
+    samples,
+    scaler,
+    alphas,
+    output_dir,
+    config_name,
+    *,
+    prompt_style: str = "anti_compliance",
 ):
-    """FaithEval anti-compliance: inline MC evaluation."""
+    """FaithEval inline MC evaluation under the chosen prompt style."""
     from tqdm import tqdm
 
     results = {}
@@ -323,7 +339,7 @@ def _run_faitheval_alphas(
                 total += 1
                 continue
 
-            prompt = _faitheval_prompt(sample, "anti_compliance")
+            prompt = _faitheval_prompt(sample, prompt_style)
             messages = [{"role": "user", "content": prompt}]
             response, _ = generate_response(
                 model,
@@ -991,6 +1007,17 @@ def parse_args():
     p.add_argument("--classifier_path", type=str, default=CLASSIFIER_PATH)
     p.add_argument("--device_map", type=str, default="cuda:0")
     p.add_argument(
+        "--prompt_style",
+        type=str,
+        default="anti_compliance",
+        choices=["standard", "anti_compliance"],
+        help=(
+            "FaithEval prompt style: 'standard' (pro-context retrieval QA) "
+            "or 'anti_compliance' (resist misleading context). Must match the "
+            "H-neuron baseline's --prompt_style for the comparison to be valid."
+        ),
+    )
+    p.add_argument(
         "--output_base",
         type=str,
         default=None,
@@ -1218,6 +1245,7 @@ def main():
                     name,
                     benchmark=benchmark,
                     jailbreak_batch_size=args.jailbreak_batch_size,
+                    prompt_style=args.prompt_style,
                 )
                 all_results[name] = results
 

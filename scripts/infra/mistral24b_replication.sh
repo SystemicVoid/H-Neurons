@@ -192,6 +192,7 @@ run_stage faitheval_controls uv run python scripts/run_negative_control.py \
     --device_map "${DEVICE_MAP}" \
     --classifier_path "${CLASSIFIER_PATH}" \
     --benchmark faitheval \
+    --prompt_style standard \
     --output_base "${OUTPUT_ROOT}/intervention/faitheval/control" \
     --h_neuron_baseline "${OUTPUT_ROOT}/intervention/faitheval/experiment"
 
