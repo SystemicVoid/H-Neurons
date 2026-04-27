@@ -266,6 +266,18 @@ def load_open_adjudications(path: Path) -> dict[OpenAdjudicationKey, dict[str, A
     return adjudications
 
 
+def open_adjudication_has_final_grade(adjudication: dict[str, Any] | None) -> bool:
+    if not isinstance(adjudication, dict):
+        return False
+    verdict = adjudication_verdict(adjudication)
+    if verdict not in SIMID_OPEN_FINAL_GRADES:
+        return False
+    parse_result = adjudication.get("parse_result")
+    if isinstance(parse_result, dict) and parse_result.get("valid") is False:
+        return False
+    return True
+
+
 def attach_open_adjudications(
     rows: list[dict[str, Any]],
     adjudications: dict[OpenAdjudicationKey, dict[str, Any]],
@@ -354,7 +366,9 @@ def build_simid_open_adjudication_requests(
             break
         if not eligible_for_open_adjudication(row):
             continue
-        if open_adjudication_key(row) in existing_adjudications:
+        if open_adjudication_has_final_grade(
+            existing_adjudications.get(open_adjudication_key(row))
+        ):
             continue
         request = build_simid_open_adjudication_request(
             row,

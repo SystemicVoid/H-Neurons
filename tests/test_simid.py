@@ -14,6 +14,7 @@ from analyze_simid import (
     attach_open_adjudications,
     build_alias_audit_queue,
     build_simid_open_adjudication_request,
+    build_simid_open_adjudication_requests,
     effective_open_grade,
     index_rows,
     load_open_adjudications,
@@ -1199,6 +1200,38 @@ def test_simid_open_batch_request_contains_question_aliases_and_response() -> No
     assert "Who wrote Hamlet?" in prompt
     assert "William Shakespeare; Shakespeare" in prompt
     assert "The answer is Shakespeare." in prompt
+
+
+def test_simid_open_batch_retries_non_final_existing_adjudication_rows() -> None:
+    row = _analysis_row(
+        sample_id="s1",
+        dataset="truthfulqa",
+        mc_endpoint="truthfulqa_mc1",
+        open_correct=False,
+    )
+    key = ("s1", "selected", 0.0)
+
+    requests, request_map = build_simid_open_adjudication_requests(
+        [row],
+        existing_adjudications={key: {"judge_grade": "CORRECT"}},
+        judge_model="gpt-test",
+    )
+    assert requests == []
+    assert request_map == {}
+
+    requests, request_map = build_simid_open_adjudication_requests(
+        [row],
+        existing_adjudications={
+            key: {
+                "judge_grade": "ERROR",
+                "parse_result": {"verdict": "ERROR", "valid": False},
+            }
+        },
+        judge_model="gpt-test",
+    )
+
+    assert len(requests) == 1
+    assert set(request_map) == {requests[0]["custom_id"]}
 
 
 def test_simpleqa_parser_handles_word_and_letter_outputs() -> None:

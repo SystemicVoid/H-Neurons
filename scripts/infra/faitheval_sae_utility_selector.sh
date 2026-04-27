@@ -244,12 +244,20 @@ heldout_stage_complete() {
     local alpha
     alpha="$(expected_alpha_for_family "${family}")"
     local alpha_path="${dir}/alpha_${alpha}.jsonl"
+    local manifest_path
+    manifest_path="$(manifest_for_family "${family}")"
+    local deps=(
+        "scripts/run_intervention.py"
+        "${manifest_path}"
+        "${SELECTOR_DIR}/test_manifest.json"
+    )
     [[ -f "${alpha_path}" ]] || return 1
+    artifact_is_fresh "${alpha_path}" "${deps[@]}" || return 1
     env PYTHONUNBUFFERED=1 uv run python -m scripts.lib.pipeline check-stage \
         --output-dir "${dir}" \
         --manifest "${SELECTOR_DIR}/test_manifest.json" \
         --alphas "${alpha}" >/dev/null || return 1
-    results_summary_exists "${dir}"
+    fresh_results_summary_exists "${dir}" "${alpha_path}" "${deps[@]}"
 }
 
 report_stage_complete() {

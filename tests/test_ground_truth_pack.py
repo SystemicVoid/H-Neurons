@@ -302,6 +302,9 @@ def test_surface_crosswalk_covers_declared_scalars_and_structured_claims() -> No
             assert row["coverage_status"] == "historical_only"
             assert not row["ledger_metric_ids"]
             seen_historical.add(slug)
+        elif row["coverage_status"] == "markdown_fallback_only":
+            assert row["provenance_refs"]
+            assert not row["ledger_metric_ids"]
         else:
             assert row["coverage_status"] == "exact_metric"
             assert row["ledger_metric_ids"]

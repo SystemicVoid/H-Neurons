@@ -8,7 +8,7 @@ This pack keeps the JSONL ledgers exact and turns the Markdown into deterministi
 
 - Start with `metric_ledger.jsonl`, `example_ledger.jsonl`, and `surface_crosswalk.jsonl` if you need machine-stable evidence.
 - `exact_metric` means the claim lands on a ledger metric; `exact_example` means example-only coverage; `structured_surface_only` means a structured scalar exists but is not promoted; `markdown_fallback_only` means only prose/audit context exists; `historical_only` means provenance is preserved but intentionally not promoted as live evidence.
-- This build contains 201 `exact_metric` crosswalk rows and 15 ledger metrics sourced directly from markdown audits.
+- This build contains 203 `exact_metric` crosswalk rows and 15 ledger metrics sourced directly from markdown audits.
 
 ## Family Map
 
@@ -20,11 +20,11 @@ This pack keeps the JSONL ledgers exact and turns the Markdown into deterministi
 
 ## Coverage Summary
 
-- Crosswalk rows: 4049 total.
-- `exact_metric`: 201.
+- Crosswalk rows: 4836 total.
+- `exact_metric`: 203.
 - `exact_example`: 27.
-- `structured_surface_only`: 3817.
-- `markdown_fallback_only`: 3.
+- `structured_surface_only`: 4593.
+- `markdown_fallback_only`: 12.
 - `historical_only`: 1.
 - `unresolved`: 0.
 - Fallback-only sources:
