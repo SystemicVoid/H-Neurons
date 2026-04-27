@@ -9,6 +9,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import random
@@ -121,6 +122,16 @@ def effective_open_grade(row: dict[str, Any]) -> dict[str, Any]:
         adjudication if isinstance(adjudication, dict) else None
     )
     if verdict is None:
+        if isinstance(adjudication, dict):
+            return {
+                "correct": False,
+                "attempted": False,
+                "source": "adjudication_unknown",
+                "judge_grade": None,
+                "parse_valid": False,
+                "claimable": False,
+                "claimability_blocker": OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER,
+            }
         return {
             "correct": deterministic_open_correct(row),
             "attempted": deterministic_open_attempted(row),
@@ -793,9 +804,12 @@ def _maybe_float(value: Any) -> float | None:
     if value is None or isinstance(value, bool):
         return None
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError):
         return None
+    if not math.isfinite(parsed):
+        return None
+    return parsed
 
 
 def open_calibration_policy() -> dict[str, Any]:

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -80,14 +81,21 @@ def grade_from_row(row: dict[str, Any], *, row_kind: str) -> str:
     return grade
 
 
-def agreement_kappa(labels_a: list[str], labels_b: list[str]) -> float:
-    if set(labels_a) == set(labels_b) and len(set(labels_a)) == 1:
-        return 1.0
-    return float(
+def agreement_kappa(labels_a: list[str], labels_b: list[str]) -> float | None:
+    if not labels_a or not labels_b or len(set(labels_a) | set(labels_b)) == 1:
+        return None
+    score = float(
         cohen_kappa_score(
             labels_a, labels_b, labels=list(SIMID_OPEN_FINAL_GRADE_LABELS)
         )
     )
+    if not math.isfinite(score):
+        return None
+    return score
+
+
+def format_optional_metric(value: Any) -> str:
+    return "not_recorded" if value is None else f"{float(value):.4f}"
 
 
 def sample_source_counts(queue_rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -193,6 +201,7 @@ def finalize_open_calibration(
         )
 
     source_counts = sample_source_counts(queue_rows)
+    kappa = agreement_kappa(primary_labels, secondary_labels)
     summary: dict[str, Any] = {
         "schema_version": OPEN_CORRECTNESS_CALIBRATION_SCHEMA_VERSION,
         "status": "adjudicated",
@@ -208,7 +217,7 @@ def finalize_open_calibration(
         "irr": {
             "n_cases": len(sorted_case_ids),
             "raw_agreement": raw_agreement,
-            "cohen_kappa": round(agreement_kappa(primary_labels, secondary_labels), 4),
+            "cohen_kappa": round(kappa, 4) if kappa is not None else None,
             "gwet_ac1": round(
                 gwet_ac1_for_labels(
                     primary_labels,
@@ -258,8 +267,8 @@ def main(argv: list[str] | None = None) -> None:
     print(
         "Finalized SIMID open calibration: "
         f"agreement={summary['irr']['raw_agreement']['estimate']:.1%} "
-        f"kappa={summary['irr']['cohen_kappa']:.4f} "
-        f"AC1={summary['irr']['gwet_ac1']:.4f}"
+        f"kappa={format_optional_metric(summary['irr']['cohen_kappa'])} "
+        f"AC1={format_optional_metric(summary['irr']['gwet_ac1'])}"
     )
 
 

@@ -1140,6 +1140,18 @@ def test_effective_open_grade_falls_back_to_deterministic_without_adjudication()
     assert grade["claimable"] is False
 
 
+def test_effective_open_grade_marks_malformed_adjudication_unknown() -> None:
+    row = _analysis_row(sample_id="s1", open_correct=True)
+    row["open_adjudication"] = {"parse_result": {"valid": False}}
+
+    grade = effective_open_grade(row)
+
+    assert grade["source"] == "adjudication_unknown"
+    assert grade["correct"] is False
+    assert grade["claimable"] is False
+    assert grade["claimability_blocker"] == "judge_verdict_unknown_or_error"
+
+
 def test_mixed_open_grade_sources_block_claimability(tmp_path: Path) -> None:
     adjudicated = _analysis_row(sample_id="s1", open_correct=False)
     adjudicated["open_adjudication"] = {"judge_grade": "CORRECT"}
@@ -1217,6 +1229,25 @@ def test_open_grading_becomes_claimable_with_valid_calibration(
     assert summary["calibration"]["claimability"]["passed"] is True
 
 
+def test_malformed_open_adjudication_blocks_claimability_with_valid_calibration(
+    tmp_path: Path,
+) -> None:
+    row = _analysis_row(sample_id="s1", open_correct=True)
+    row["open_adjudication"] = {"parse_result": {"valid": False}}
+    calibration = normalize_open_calibration_summary(_valid_open_calibration_summary())
+
+    summary = summarize_open_grading(
+        [row],
+        adjudication_path=tmp_path / "open_adjudication.jsonl",
+        adjudication_run=None,
+        calibration_summary=calibration,
+    )
+
+    assert summary["effective_grade_source_counts"] == {"adjudication_unknown": 1}
+    assert summary["claimable_open_correctness"] is False
+    assert summary["claimability_blocker"] == "judge_verdict_unknown_or_error"
+
+
 def test_open_grading_blocks_when_calibration_records_rule_gap(
     tmp_path: Path,
 ) -> None:
@@ -1238,6 +1269,28 @@ def test_open_grading_blocks_when_calibration_records_rule_gap(
     assert summary["calibration"]["claimability"]["blockers"] == [
         "calibration_rule_gap_recorded"
     ]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "blocker"),
+    [
+        ("cohen_kappa", float("nan"), "cohen_kappa_not_recorded"),
+        ("gwet_ac1", float("inf"), "gwet_ac1_not_recorded"),
+    ],
+)
+def test_open_calibration_rejects_non_finite_irr_statistics(
+    field: str,
+    value: float,
+    blocker: str,
+) -> None:
+    calibration_payload = _valid_open_calibration_summary()
+    calibration_payload["irr"][field] = value
+
+    calibration = normalize_open_calibration_summary(calibration_payload)
+
+    assert calibration["irr"][field] is None
+    assert calibration["claimability"]["passed"] is False
+    assert blocker in calibration["claimability"]["blockers"]
 
 
 def test_open_calibration_queue_deduplicates_disagreements_and_stratifies() -> None:
@@ -1352,6 +1405,63 @@ def test_finalize_open_calibration_records_metrics_and_claimability(
     assert summary["irr"]["gwet_ac1"] == pytest.approx(1.0)
     assert summary["adjudication"]["rule_gap_cases"]["count"] == 0
     assert summary["claimability"]["passed"] is True
+
+
+def test_finalize_open_calibration_leaves_single_grade_kappa_unrecorded(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = [
+        {
+            "calibration_case_id": "case_audit",
+            "sample_source": "audit_queue_disagreement",
+            "sample_id": "s1",
+            "condition": "selected",
+            "alpha": 0.0,
+            "dataset": "truthfulqa",
+            "primary_judge_grade": "CORRECT",
+        },
+        {
+            "calibration_case_id": "case_stratified_a",
+            "sample_source": "stratified_panel::dataset=triviaqa_bridge",
+            "sample_id": "s2",
+            "condition": "selected",
+            "alpha": 0.0,
+            "dataset": "triviaqa_bridge",
+            "primary_judge_grade": "CORRECT",
+        },
+        {
+            "calibration_case_id": "case_stratified_b",
+            "sample_source": "stratified_panel::dataset=truthfulqa",
+            "sample_id": "s3",
+            "condition": "selected",
+            "alpha": 0.0,
+            "dataset": "truthfulqa",
+            "primary_judge_grade": "CORRECT",
+        },
+    ]
+    secondary_rows = [
+        {
+            "calibration_case_id": row["calibration_case_id"],
+            "judge_grade": row["primary_judge_grade"],
+        }
+        for row in queue_rows
+    ]
+
+    summary = finalize_open_calibration(
+        queue_rows=queue_rows,
+        secondary_rows=secondary_rows,
+        adjudication_rows=[],
+        rule_path=rule_path,
+        primary_rater_name="gpt-4o",
+        secondary_rater_name="human_subset",
+    )
+
+    assert summary["irr"]["cohen_kappa"] is None
+    assert summary["irr"]["gwet_ac1"] == pytest.approx(1.0)
+    assert summary["claimability"]["passed"] is False
+    assert "cohen_kappa_not_recorded" in summary["claimability"]["blockers"]
 
 
 def test_report_labels_adjudicated_open_metrics(tmp_path: Path) -> None:
