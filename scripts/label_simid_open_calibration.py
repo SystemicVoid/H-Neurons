@@ -112,6 +112,7 @@ def case_custom_id(
     mode: str,
     model: str,
     rule_metadata: dict[str, str],
+    prompt_inputs: dict[str, Any] | None = None,
 ) -> str:
     payload = json.dumps(
         {
@@ -120,6 +121,7 @@ def case_custom_id(
             "model": model,
             "prompt_version": PROMPT_VERSION,
             "rule_content_sha256": rule_metadata["content_sha256"],
+            "prompt_inputs": prompt_inputs or {},
         },
         ensure_ascii=True,
         sort_keys=True,
@@ -285,6 +287,28 @@ def validate_existing_output_rows(
             )
 
 
+def validate_existing_adjudication_context(
+    existing: dict[str, dict[str, Any]],
+    *,
+    queue_by_case: dict[str, dict[str, Any]],
+    secondary_labels: dict[str, str],
+) -> None:
+    for case_id, row in existing.items():
+        queue_row = queue_by_case[case_id]
+        expected_primary = grade_from_row(queue_row, row_kind="primary queue")
+        expected_secondary = secondary_labels[case_id]
+        if row.get("primary_grade") != expected_primary:
+            raise ValueError(
+                f"Existing adjudication row for {case_id} has primary_grade "
+                f"{row.get('primary_grade')!r}, expected {expected_primary!r}"
+            )
+        if row.get("secondary_grade") != expected_secondary:
+            raise ValueError(
+                f"Existing adjudication row for {case_id} has secondary_grade "
+                f"{row.get('secondary_grade')!r}, expected {expected_secondary!r}"
+            )
+
+
 def build_secondary_requests(
     queue_rows: list[dict[str, Any]],
     *,
@@ -404,6 +428,10 @@ def build_adjudication_requests(
             mode="adjudicate",
             model=model,
             rule_metadata=rule_metadata,
+            prompt_inputs={
+                "primary_label": grade_from_row(row, row_kind="primary queue"),
+                "secondary_label": secondary_labels[case_id],
+            },
         )
         request = build_chat_request(
             custom_id=custom_id,
@@ -626,6 +654,12 @@ def run_adjudicate(
         actor_key="adjudicator",
         model=args.model,
         rule_metadata=rule_metadata,
+    )
+    queue_by_case = {str(row["calibration_case_id"]): row for row in queue_rows}
+    validate_existing_adjudication_context(
+        existing,
+        queue_by_case=queue_by_case,
+        secondary_labels=secondary_labels,
     )
     if not disagreements:
         write_empty_jsonl(args.output)

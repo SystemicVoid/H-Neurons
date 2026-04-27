@@ -240,6 +240,98 @@ def load_locked_manifest_metadata(run_dir: Path) -> dict[str, dict[str, Any]]:
     return metadata
 
 
+def load_locked_manifest_rows(run_dir: Path) -> list[dict[str, Any]]:
+    path = run_dir / "manifest.locked.json"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing SIMID locked manifest: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    rows = payload.get("rows") if isinstance(payload, dict) else None
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"Missing non-empty rows in SIMID locked manifest: {path}")
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def load_run_config(run_dir: Path) -> dict[str, Any]:
+    path = run_dir / "run_config.json"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing SIMID run_config.json: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected SIMID run_config.json object in {path}")
+    return payload
+
+
+def run_config_condition_names(run_config: dict[str, Any]) -> list[str]:
+    conditions = run_config.get("conditions")
+    if not isinstance(conditions, list) or not conditions:
+        raise ValueError("SIMID run_config.json has no conditions")
+    names: list[str] = []
+    for condition in conditions:
+        if isinstance(condition, dict):
+            name = condition.get("name")
+        else:
+            name = condition
+        if not isinstance(name, str) or not name:
+            raise ValueError(f"Invalid SIMID run_config condition: {condition!r}")
+        names.append(name)
+    return names
+
+
+def run_config_alphas(run_config: dict[str, Any]) -> list[float]:
+    alphas = run_config.get("alphas")
+    if not isinstance(alphas, list) or not alphas:
+        raise ValueError("SIMID run_config.json has no alphas")
+    return [float(alpha) for alpha in alphas]
+
+
+def validate_complete_run_outputs(run_dir: Path) -> None:
+    """Refuse to analyze partial SIMID runs by default."""
+    run_config = load_run_config(run_dir)
+    manifest_rows = load_locked_manifest_rows(run_dir)
+    expected_ids: set[str] = set()
+    for row in manifest_rows:
+        sample_id = row.get("sample_id")
+        if not isinstance(sample_id, str) or not sample_id:
+            raise ValueError("SIMID locked manifest contains a row without sample_id")
+        expected_ids.add(sample_id)
+    expected_n = int(run_config.get("n_rows") or len(expected_ids))
+    if len(expected_ids) != expected_n:
+        raise ValueError(
+            "SIMID locked manifest sample_id count does not match run_config "
+            f"n_rows: {len(expected_ids)} vs {expected_n}"
+        )
+
+    problems: list[str] = []
+    for condition in run_config_condition_names(run_config):
+        for alpha in run_config_alphas(run_config):
+            path = run_dir / condition / f"alpha_{format_alpha_label(alpha)}.jsonl"
+            if not path.exists():
+                problems.append(f"missing {path}")
+                continue
+            rows = load_jsonl(path)
+            ids = [str(row.get("sample_id")) for row in rows]
+            id_set = set(ids)
+            if len(rows) != expected_n:
+                problems.append(f"{path} has {len(rows)} rows, expected {expected_n}")
+            if len(ids) != len(id_set):
+                problems.append(f"{path} contains duplicate sample_id values")
+            if id_set != expected_ids:
+                missing = sorted(expected_ids - id_set)[:5]
+                extra = sorted(id_set - expected_ids)[:5]
+                problems.append(
+                    f"{path} sample_id set does not match locked manifest "
+                    f"(missing={missing}, extra={extra})"
+                )
+    if problems:
+        preview = "; ".join(problems[:8])
+        extra = "" if len(problems) <= 8 else f"; ... {len(problems) - 8} more"
+        raise ValueError(
+            "SIMID run outputs are incomplete or inconsistent; refusing analysis. "
+            f"{preview}{extra}. Pass --allow-incomplete-run only for a clearly "
+            "diagnostic partial analysis."
+        )
+
+
 def load_run_rows(run_dir: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     manifest_metadata = load_locked_manifest_metadata(run_dir)
@@ -303,6 +395,67 @@ def open_adjudication_dedup_key(row: dict[str, Any]) -> OpenAdjudicationDedupKey
     )
 
 
+def _adjudication_aliases(row: dict[str, Any]) -> tuple[str, ...]:
+    aliases = row.get("gold_aliases")
+    if not isinstance(aliases, list):
+        return ()
+    return tuple(str(alias) for alias in aliases)
+
+
+def validate_open_adjudication_matches_row(
+    row: dict[str, Any],
+    adjudication: dict[str, Any],
+) -> None:
+    mismatches: list[str] = []
+    if str(adjudication.get("question")) != str(row.get("question")):
+        mismatches.append("question")
+    if _adjudication_aliases(adjudication) != _adjudication_aliases(row):
+        mismatches.append("gold_aliases")
+    expected_response = open_adjudication_response_payload(row)
+    observed_response = open_adjudication_response_payload(adjudication)
+    if str(observed_response) != str(expected_response):
+        mismatches.append("response")
+    if mismatches:
+        raise ValueError(
+            "Existing SIMID open adjudication row does not match the current "
+            f"run row for {open_adjudication_key(row)!r}: {', '.join(mismatches)}"
+        )
+
+
+def validate_open_adjudication_metadata(
+    adjudications: dict[OpenAdjudicationKey, dict[str, Any]],
+    *,
+    judge_model: str,
+) -> None:
+    for key, row in adjudications.items():
+        if row.get("schema_version") != SIMID_OPEN_ADJUDICATION_SCHEMA_VERSION:
+            raise ValueError(
+                f"Existing SIMID open adjudication {key!r} has schema "
+                f"{row.get('schema_version')!r}, expected "
+                f"{SIMID_OPEN_ADJUDICATION_SCHEMA_VERSION!r}"
+            )
+        judge = row.get("judge")
+        if not isinstance(judge, dict):
+            raise ValueError(f"Existing SIMID open adjudication {key!r} lacks judge")
+        checks = {
+            "model": judge_model,
+            "prompt_version": SIMID_OPEN_JUDGE_PROMPT_VERSION,
+            "prompt_builder": SIMID_OPEN_ADJUDICATION_PROMPT_BUILDER,
+            "parser": SIMID_OPEN_ADJUDICATION_PARSER,
+        }
+        for field, expected in checks.items():
+            if judge.get(field) != expected:
+                raise ValueError(
+                    f"Existing SIMID open adjudication {key!r} judge.{field} "
+                    f"is {judge.get(field)!r}, expected {expected!r}"
+                )
+        if judge.get("kwargs") != dict(SIMPLEQA_JUDGE_KWARGS):
+            raise ValueError(
+                f"Existing SIMID open adjudication {key!r} judge kwargs do not "
+                "match the current primary judge configuration"
+            )
+
+
 def load_open_adjudications(path: Path) -> dict[OpenAdjudicationKey, dict[str, Any]]:
     if not path.exists():
         return {}
@@ -359,6 +512,8 @@ def final_open_adjudications_by_dedup_key(
         if not eligible_for_open_adjudication(row):
             continue
         adjudication = existing_adjudications.get(open_adjudication_key(row))
+        if isinstance(adjudication, dict):
+            validate_open_adjudication_matches_row(row, adjudication)
         if not isinstance(adjudication, dict) or not open_adjudication_has_final_grade(
             adjudication
         ):
@@ -438,7 +593,10 @@ def fanout_existing_open_adjudications(
         if not eligible_for_open_adjudication(row):
             continue
         exact_key = open_adjudication_key(row)
-        if open_adjudication_has_final_grade(existing_adjudications.get(exact_key)):
+        existing_adjudication = existing_adjudications.get(exact_key)
+        if isinstance(existing_adjudication, dict):
+            validate_open_adjudication_matches_row(row, existing_adjudication)
+        if open_adjudication_has_final_grade(existing_adjudication):
             continue
         source_adjudication = final_by_dedup_key.get(open_adjudication_dedup_key(row))
         if source_adjudication is None:
@@ -462,6 +620,7 @@ def attach_open_adjudications(
         if adjudication is None:
             row.pop("open_adjudication", None)
         else:
+            validate_open_adjudication_matches_row(row, adjudication)
             row["open_adjudication"] = adjudication
             attached += 1
         row["effective_open_grade"] = effective_open_grade(row)
@@ -524,6 +683,17 @@ def build_simid_open_adjudication_request(
     )
 
 
+def validate_primary_open_judge_model(judge_model: str) -> None:
+    normalized = judge_model.strip().lower()
+    if normalized.startswith("gpt-5") or normalized.startswith("o"):
+        raise ValueError(
+            "SIMID primary open adjudication currently uses legacy SimpleQA "
+            "Chat Completions kwargs and is only validated for gpt-4o-class "
+            "models. Keep --judge-model gpt-4o for primary adjudication, or "
+            "patch analyze_simid.py with model-aware GPT-5/o-series kwargs."
+        )
+
+
 def build_simid_open_adjudication_requests(
     rows: list[dict[str, Any]],
     *,
@@ -541,9 +711,10 @@ def build_simid_open_adjudication_requests(
     for row in rows:
         if not eligible_for_open_adjudication(row):
             continue
-        if open_adjudication_has_final_grade(
-            existing_adjudications.get(open_adjudication_key(row))
-        ):
+        existing_adjudication = existing_adjudications.get(open_adjudication_key(row))
+        if isinstance(existing_adjudication, dict):
+            validate_open_adjudication_matches_row(row, existing_adjudication)
+        if open_adjudication_has_final_grade(existing_adjudication):
             continue
         dedup_key = open_adjudication_dedup_key(row)
         if dedup_key in final_by_dedup_key:
@@ -683,6 +854,7 @@ def adjudicate_open_responses_batch(
     load_dotenv()
 
     existing = load_open_adjudications(output_path)
+    validate_open_adjudication_metadata(existing, judge_model=judge_model)
     n_existing = len(existing)
     reused_adjudication_rows = fanout_existing_open_adjudications(rows, existing)
     batch_requests, request_map = build_simid_open_adjudication_requests(
@@ -957,12 +1129,67 @@ def normalize_open_calibration_summary(
     return normalized
 
 
-def load_open_calibration_summary(path: Path | None) -> dict[str, Any] | None:
+def calibration_case_ids_sha256(case_ids: list[str]) -> str:
+    payload = json.dumps(sorted(case_ids), ensure_ascii=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def validate_open_calibration_summary_binding(
+    payload: dict[str, Any],
+    *,
+    run_dir: Path,
+    path: Path,
+) -> None:
+    queue_path = run_dir / "open_calibration_queue.jsonl"
+    if not queue_path.exists():
+        return
+    queue_ids = [str(row["calibration_case_id"]) for row in load_jsonl(queue_path)]
+    adjudicated_rows = payload.get("adjudicated_rows")
+    if not isinstance(adjudicated_rows, list):
+        raise ValueError(
+            f"Calibration summary {path} cannot be bound to {queue_path}: "
+            "adjudicated_rows is not recorded"
+        )
+    summary_ids = [
+        str(row.get("calibration_case_id"))
+        for row in adjudicated_rows
+        if isinstance(row, dict)
+    ]
+    if sorted(summary_ids) != sorted(queue_ids):
+        raise ValueError(
+            f"Calibration summary {path} case IDs do not exactly match {queue_path}"
+        )
+    n_cases = _maybe_int(payload.get("n_cases"))
+    if n_cases != len(queue_ids):
+        raise ValueError(
+            f"Calibration summary {path} n_cases={n_cases!r} does not match "
+            f"{len(queue_ids)} queue rows in {queue_path}"
+        )
+    expected_digest = calibration_case_ids_sha256(queue_ids)
+    observed_digest = payload.get("queue_case_ids_sha256")
+    if observed_digest is not None and observed_digest != expected_digest:
+        raise ValueError(
+            f"Calibration summary {path} queue_case_ids_sha256 does not match "
+            f"{queue_path}"
+        )
+
+
+def load_open_calibration_summary(
+    path: Path | None,
+    *,
+    run_dir: Path | None = None,
+) -> dict[str, Any] | None:
     if path is None:
         return None
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"Expected SIMID open calibration JSON object in {path}")
+    if run_dir is not None:
+        validate_open_calibration_summary_binding(
+            payload,
+            run_dir=run_dir,
+            path=path,
+        )
     return normalize_open_calibration_summary(payload, path=path)
 
 
@@ -2580,6 +2807,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Limit new adjudication requests for canary runs.",
     )
     parser.add_argument("--allow-overwrite", action="store_true")
+    parser.add_argument(
+        "--allow-incomplete-run",
+        action="store_true",
+        help=(
+            "Allow analysis of a partial/incomplete SIMID run. This is only "
+            "for diagnostic partial analyses and must not be used for "
+            "claim-bearing reports."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -2637,6 +2873,17 @@ def main(argv: list[str] | None = None) -> None:
                 output_json,
                 report_md,
                 alias_queue_path,
+                adjudication_output if args.adjudicate_open else None,
+                (
+                    adjudication_output.with_suffix(".batch_state.json")
+                    if args.adjudicate_open
+                    else None
+                ),
+                (
+                    adjudication_output.with_suffix(".batch_state.results.jsonl")
+                    if args.adjudicate_open
+                    else None
+                ),
                 open_calibration_queue_path,
             ]
             if path is not None
@@ -2660,9 +2907,12 @@ def main(argv: list[str] | None = None) -> None:
     status = "completed"
     extra: dict[str, Any] = {}
     try:
+        if not args.allow_incomplete_run:
+            validate_complete_run_outputs(run_dir)
         rows = load_run_rows(run_dir)
         adjudication_run = None
         if args.adjudicate_open:
+            validate_primary_open_judge_model(args.judge_model)
             if args.adjudication_mode != "batch":
                 raise ValueError(
                     "SIMID open adjudication currently supports batch only"
@@ -2677,9 +2927,11 @@ def main(argv: list[str] | None = None) -> None:
                 limit=args.adjudication_limit,
             )
         calibration_summary = load_open_calibration_summary(
-            open_calibration_summary_path
+            open_calibration_summary_path,
+            run_dir=run_dir,
         )
         adjudications = load_open_adjudications(adjudication_output)
+        validate_open_adjudication_metadata(adjudications, judge_model=args.judge_model)
         n_attached_adjudications = attach_open_adjudications(rows, adjudications)
         bool_metrics = bool_metrics_for_rows(rows)
         open_grading_summary = summarize_open_grading(

@@ -20,6 +20,7 @@ from analyze_simid import (
     fanout_existing_open_adjudications,
     index_rows,
     load_open_adjudications,
+    load_open_calibration_summary,
     load_run_rows,
     make_open_adjudication_row,
     main as analyze_main,
@@ -30,6 +31,9 @@ from analyze_simid import (
     selected_minus_control_slope_summaries,
     summarize_open_grading,
     summarize_condition,
+    validate_complete_run_outputs,
+    validate_open_adjudication_matches_row,
+    validate_primary_open_judge_model,
     write_report,
 )
 from build_simid_manifest import (
@@ -134,6 +138,29 @@ def _analysis_row(
             "avg": {"margin": 0.5},
         },
         "gold_aliases": ["Gold"],
+    }
+
+
+def _open_adjudication_row_for(
+    row: dict,
+    *,
+    judge_grade: str = "CORRECT",
+    valid: bool = True,
+) -> dict:
+    return {
+        "schema_version": "simid_open_adjudication/v1",
+        "sample_id": row["sample_id"],
+        "condition": row["condition"],
+        "alpha": row["alpha"],
+        "base_sample_id": row["base_sample_id"],
+        "dataset": row["dataset"],
+        "mc_endpoint": row["mc_endpoint"],
+        "question": row["question"],
+        "gold_aliases": row["gold_aliases"],
+        "response": row["open_generation"]["response"],
+        "deterministic_open_grade": row["open_grade"],
+        "judge_grade": judge_grade,
+        "parse_result": {"verdict": judge_grade, "valid": valid},
     }
 
 
@@ -955,6 +982,40 @@ def test_load_run_rows_recovers_mc_endpoint_from_locked_manifest(
     assert rows[0]["truthfulqa_leakage_policy"] == "heldout_only"
 
 
+def test_validate_complete_run_outputs_rejects_partial_alpha_file(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    (run_dir / "selected").mkdir(parents=True)
+    manifest_rows = [_manifest_row("simid_a", "Question A?")]
+    (run_dir / "manifest.locked.json").write_text(
+        json.dumps(
+            {"schema_version": "simid_locked_manifest/v1", "rows": manifest_rows}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "run_config.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "simid_run_config/v1",
+                "n_rows": 1,
+                "conditions": [{"name": "selected"}],
+                "alphas": [0.0, 8.0],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "selected" / "alpha_0.0.jsonl").write_text(
+        json.dumps({"sample_id": "simid_a"}) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="incomplete or inconsistent"):
+        validate_complete_run_outputs(run_dir)
+
+
 def test_control_slope_requires_matching_replicates_across_controls() -> None:
     rows = [
         _analysis_row(
@@ -1093,28 +1154,18 @@ def test_analysis_refuses_existing_outputs_by_default(tmp_path: Path) -> None:
 
 def test_open_adjudication_rows_are_keyed_and_loaded(tmp_path: Path) -> None:
     path = tmp_path / "open_adjudication.jsonl"
+    analysis_rows = [
+        _analysis_row(sample_id="s1", condition="selected", alpha=0.0),
+        _analysis_row(sample_id="s2", condition="unhooked", alpha=0.0),
+    ]
     rows = [
-        {
-            "sample_id": "s1",
-            "condition": "selected",
-            "alpha": 0.0,
-            "judge_grade": "CORRECT",
-        },
-        {
-            "sample_id": "s2",
-            "condition": "unhooked",
-            "alpha": 0.0,
-            "judge_grade": "INCORRECT",
-        },
+        _open_adjudication_row_for(analysis_rows[0], judge_grade="CORRECT"),
+        _open_adjudication_row_for(analysis_rows[1], judge_grade="INCORRECT"),
     ]
     path.write_text(
         "\n".join(json.dumps(row) for row in rows) + "\n",
         encoding="utf-8",
     )
-    analysis_rows = [
-        _analysis_row(sample_id="s1", condition="selected", alpha=0.0),
-        _analysis_row(sample_id="s2", condition="unhooked", alpha=0.0),
-    ]
 
     adjudications = load_open_adjudications(path)
     attached = attach_open_adjudications(analysis_rows, adjudications)
@@ -1122,6 +1173,20 @@ def test_open_adjudication_rows_are_keyed_and_loaded(tmp_path: Path) -> None:
     assert attached == 2
     assert adjudications[("s1", "selected", 0.0)]["judge_grade"] == "CORRECT"
     assert analysis_rows[1]["open_adjudication"]["judge_grade"] == "INCORRECT"
+
+
+def test_open_adjudication_content_mismatch_is_rejected() -> None:
+    row = _analysis_row(sample_id="s1", condition="selected", alpha=0.0)
+    stale_adjudication = _open_adjudication_row_for(row)
+    stale_adjudication["response"] = "Different answer"
+
+    with pytest.raises(ValueError, match="does not match the current run row"):
+        validate_open_adjudication_matches_row(row, stale_adjudication)
+
+
+def test_primary_open_judge_rejects_gpt5_until_kwargs_are_model_aware() -> None:
+    with pytest.raises(ValueError, match="legacy SimpleQA"):
+        validate_primary_open_judge_model("gpt-5.5")
 
 
 def test_effective_open_grade_prefers_adjudication() -> None:
@@ -1254,6 +1319,30 @@ def test_open_calibration_blocks_below_minimum_case_count() -> None:
     )
     assert "n_cases_below_minimum" in calibration["claimability"]["blockers"]
     assert calibration["claimability"]["policy"]["min_cases"] == 100
+
+
+def test_open_calibration_summary_must_match_run_queue_case_ids(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "open_calibration_queue.jsonl").write_text(
+        "\n".join(
+            json.dumps({"calibration_case_id": case_id})
+            for case_id in ["case_a", "case_b"]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    summary_path = run_dir / "open_calibration_summary.json"
+    payload = _valid_open_calibration_summary()
+    payload["n_cases"] = 2
+    payload["irr"]["n_cases"] = 2
+    payload["adjudicated_rows"] = [{"calibration_case_id": "case_a"}]
+    summary_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="case IDs do not exactly match"):
+        load_open_calibration_summary(summary_path, run_dir=run_dir)
 
 
 def test_malformed_open_adjudication_blocks_claimability_with_valid_calibration(
@@ -1569,6 +1658,26 @@ def test_open_calibration_custom_id_depends_on_rule_hash() -> None:
     assert first != second
 
 
+def test_open_calibration_adjudication_custom_id_depends_on_labels() -> None:
+    rule_metadata = {"content_sha256": "rule-a"}
+    first = case_custom_id(
+        "case_000",
+        mode="adjudicate",
+        model="gpt-5.5",
+        rule_metadata=rule_metadata,
+        prompt_inputs={"primary_label": "CORRECT", "secondary_label": "INCORRECT"},
+    )
+    second = case_custom_id(
+        "case_000",
+        mode="adjudicate",
+        model="gpt-5.5",
+        rule_metadata=rule_metadata,
+        prompt_inputs={"primary_label": "CORRECT", "secondary_label": "CORRECT"},
+    )
+
+    assert first != second
+
+
 def test_open_calibration_existing_rows_validate_rule_hash() -> None:
     rule_metadata = {
         "path": "data/judge_validation/simid_open_calibration/adjudication_rule.md",
@@ -1809,7 +1918,9 @@ def test_simid_open_batch_retries_non_final_existing_adjudication_rows() -> None
 
     requests, request_map = build_simid_open_adjudication_requests(
         [row],
-        existing_adjudications={key: {"judge_grade": "CORRECT"}},
+        existing_adjudications={
+            key: _open_adjudication_row_for(row, judge_grade="CORRECT")
+        },
         judge_model="gpt-test",
     )
     assert requests == []
@@ -1818,10 +1929,11 @@ def test_simid_open_batch_retries_non_final_existing_adjudication_rows() -> None
     requests, request_map = build_simid_open_adjudication_requests(
         [row],
         existing_adjudications={
-            key: {
-                "judge_grade": "ERROR",
-                "parse_result": {"verdict": "ERROR", "valid": False},
-            }
+            key: _open_adjudication_row_for(
+                row,
+                judge_grade="ERROR",
+                valid=False,
+            )
         },
         judge_model="gpt-test",
     )
@@ -1854,13 +1966,10 @@ def test_simid_open_batch_reuses_final_existing_dedup_adjudications() -> None:
     requests, request_map = build_simid_open_adjudication_requests(
         [adjudicated, missing_sibling],
         existing_adjudications={
-            ("s1_order0", "selected", 0.0): {
-                "sample_id": "s1_order0",
-                "condition": "selected",
-                "alpha": 0.0,
-                "judge_grade": "CORRECT",
-                "parse_result": {"verdict": "CORRECT", "valid": True},
-            }
+            ("s1_order0", "selected", 0.0): _open_adjudication_row_for(
+                adjudicated,
+                judge_grade="CORRECT",
+            )
         },
         judge_model="gpt-test",
     )
