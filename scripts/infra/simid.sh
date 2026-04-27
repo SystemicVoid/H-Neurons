@@ -6,7 +6,8 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BASE_RUN_ROOT="data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens"
 TIMESTAMP="$(date -u +%Y%m%d_%H%M%S)"
 MODEL_PATH="${SIMID_MODEL_PATH:-google/gemma-3-4b-it}"
-ITI_ARTIFACT="${SIMID_ITI_ARTIFACT:-data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/iti_heads.pt}"
+DEFAULT_ITI_ARTIFACT="data/contrastive/truthfulness/iti_truthfulqa_paperfaithful/final_fold0/iti_heads.pt"
+ITI_ARTIFACT="${SIMID_ITI_ARTIFACT:-$DEFAULT_ITI_ARTIFACT}"
 
 usage() {
   cat <<'USAGE'
@@ -15,17 +16,21 @@ Usage:
   scripts/infra/simid.sh phase0
   scripts/infra/simid.sh mvp
   scripts/infra/simid.sh analyze <run_dir>
+  scripts/infra/simid.sh analyze-adjudicated <run_dir>
 
 Environment overrides:
   SIMID_RUN_NAME, SIMID_RUN_DIR, SIMID_MANIFEST, SIMID_MODEL_PATH,
   SIMID_ITI_ARTIFACT, SIMID_DEVICE_MAP, SIMID_TRUTHFULQA_LEAKAGE_POLICY,
-  SIMID_MIN_TRUTHFULQA_ROWS, SIMID_MIN_BRIDGE_ROWS
+  SIMID_MIN_TRUTHFULQA_ROWS, SIMID_MIN_BRIDGE_ROWS,
+  SIMID_OPTION_ORDER_REPLICATES, SIMID_JUDGE_MODEL, SIMID_ADJUDICATION_LIMIT,
+  SIMID_BATCH_MAX_ENQUEUED_TOKENS, SIMID_PROMPT_CACHE_RETENTION
 
 Notes:
   mvp is claim-oriented and requires both TruthfulQA and Bridge rows by default.
-  The production paper-faithful artifact has no held-out TruthfulQA IDs, so use
-  a fold artifact for claimable TruthfulQA or override the row minimum only for
-  an explicitly nonclaimable/debug run.
+  The default paper-faithful fold artifact exposes held-out TruthfulQA IDs.
+  Override SIMID_ITI_ARTIFACT only with another artifact that has held-out
+  question_ids_test, or lower the row minimum only for an explicitly
+  nonclaimable/debug run.
 USAGE
 }
 
@@ -155,6 +160,7 @@ case "$MODE" in
     uv run python scripts/build_simid_manifest.py \
       --seed 42 \
       --truthfulqa-leakage-policy "${SIMID_TRUTHFULQA_LEAKAGE_POLICY:-heldout_only}" \
+      --option-order-replicates "${SIMID_OPTION_ORDER_REPLICATES:-2}" \
       --min-truthfulqa-rows "${SIMID_MIN_TRUTHFULQA_ROWS:-1}" \
       --min-bridge-rows "${SIMID_MIN_BRIDGE_ROWS:-1}" \
       --model-path "$MODEL_PATH" \
@@ -179,6 +185,35 @@ case "$MODE" in
     RUN_DIR="${2:-${SIMID_RUN_DIR:-}}"
     [[ -n "$RUN_DIR" ]] || die "analyze mode requires <run_dir> or SIMID_RUN_DIR"
     uv run python scripts/analyze_simid.py --run-dir "$RUN_DIR"
+    ;;
+  analyze-adjudicated)
+    RUN_DIR="${2:-${SIMID_RUN_DIR:-}}"
+    [[ -n "$RUN_DIR" ]] || die "analyze-adjudicated mode requires <run_dir> or SIMID_RUN_DIR"
+    RUN_DIR="$(realpath "$RUN_DIR")"
+    ADJUDICATION_ARGS=()
+    if [[ -n "${SIMID_ADJUDICATION_LIMIT:-}" ]]; then
+      ADJUDICATION_ARGS+=(--adjudication-limit "$SIMID_ADJUDICATION_LIMIT")
+    fi
+    if [[ -n "${SIMID_BATCH_MAX_ENQUEUED_TOKENS:-}" ]]; then
+      ADJUDICATION_ARGS+=(--batch-max-enqueued-tokens "$SIMID_BATCH_MAX_ENQUEUED_TOKENS")
+    fi
+    if [[ -n "${SIMID_PROMPT_CACHE_RETENTION:-}" ]]; then
+      ADJUDICATION_ARGS+=(--prompt-cache-retention "$SIMID_PROMPT_CACHE_RETENTION")
+    fi
+    if [[ -n "${SIMID_API_KEY:-}" ]]; then
+      ADJUDICATION_ARGS+=(--api-key "$SIMID_API_KEY")
+    fi
+    uv run python scripts/analyze_simid.py \
+      --run-dir "$RUN_DIR" \
+      --adjudicate-open \
+      --adjudication-mode batch \
+      --phase0-gates \
+      --judge-model "${SIMID_JUDGE_MODEL:-gpt-4o}" \
+      --adjudication-output "${SIMID_ADJUDICATION_OUTPUT:-${RUN_DIR}/open_adjudication.jsonl}" \
+      --output-json "${SIMID_ADJUDICATED_RESULTS:-${RUN_DIR}/results_adjudicated.json}" \
+      --report-md "${SIMID_ADJUDICATED_REPORT:-${RUN_DIR}/report_adjudicated.md}" \
+      --alias-audit-output "${SIMID_ADJUDICATED_ALIAS_AUDIT:-${RUN_DIR}/alias_audit_queue_adjudicated.jsonl}" \
+      "${ADJUDICATION_ARGS[@]}"
     ;;
   -h|--help|help|"")
     usage

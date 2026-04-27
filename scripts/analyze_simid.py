@@ -6,12 +6,19 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
 
+from evaluate_intervention import (
+    SIMPLEQA_JUDGE_KWARGS,
+    build_triviaqa_bridge_judge_messages,
+    parse_simpleqa_verdict,
+)
 from run_simid import OPEN_GRADING_METHOD, assert_noop_equivalence, load_jsonl
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
@@ -21,6 +28,7 @@ from uncertainty import (
 )
 from utils import (
     finish_run_provenance,
+    format_alpha_label,
     provenance_error_message,
     provenance_status_for_exception,
     start_run_provenance,
@@ -46,9 +54,95 @@ LOCKED_MANIFEST_METADATA_FIELDS = (
     *TRUTHFULQA_LEAKAGE_METADATA_FIELDS,
 )
 OPTION_ORDER_STABILITY_THRESHOLD = 0.25
+DEFAULT_SIMID_OPEN_JUDGE_MODEL = "gpt-4o"
+SIMID_OPEN_ADJUDICATION_SCHEMA_VERSION = "simid_open_adjudication/v1"
+SIMID_OPEN_JUDGE_PROMPT_VERSION = "simpleqa_verified_aliases/v1"
+SIMID_OPEN_ADJUDICATION_PROMPT_BUILDER = (
+    "evaluate_intervention.build_triviaqa_bridge_judge_messages"
+)
+SIMID_OPEN_ADJUDICATION_PARSER = "evaluate_intervention.parse_simpleqa_verdict"
+SIMID_OPEN_ADJUDICATION_ELIGIBLE_DATASETS = frozenset({"triviaqa_bridge", "truthfulqa"})
+SIMID_OPEN_FINAL_GRADES = frozenset({"CORRECT", "INCORRECT", "NOT_ATTEMPTED"})
+RAW_JUDGE_RESPONSE_EXCERPT_CHARS = 500
+OPEN_CORRECTNESS_CLAIM_CONTRACT = (
+    "diagnostic_only_until_judge_calibration_evidence_recorded"
+)
+OPEN_CORRECTNESS_JUDGE_BLOCKER = "calibration_evidence_not_recorded"
+OPEN_CORRECTNESS_NO_JUDGE_BLOCKER = "judge_adjudication_not_loaded"
 
 
-BOOL_METRICS: dict[str, MetricFn] = {
+def deterministic_open_correct(row: dict[str, Any]) -> bool:
+    return bool(row["open_grade"]["correct"])
+
+
+def deterministic_open_attempted(row: dict[str, Any]) -> bool:
+    return bool(row["open_grade"]["attempted"])
+
+
+def adjudication_verdict(adjudication: dict[str, Any] | None) -> str | None:
+    if not adjudication:
+        return None
+    raw = adjudication.get("judge_grade")
+    if raw is None:
+        parse_result = adjudication.get("parse_result")
+        if isinstance(parse_result, dict):
+            raw = parse_result.get("verdict")
+    if raw is None:
+        return None
+    return str(raw).strip().upper()
+
+
+def effective_open_grade(row: dict[str, Any]) -> dict[str, Any]:
+    """Return the analysis-grade view of SIMID open correctness.
+
+    Deterministic aliases are only a fallback when no adjudication exists. If
+    an adjudication exists but is malformed or unparseable, it is intentionally
+    not replaced by the deterministic grade.
+    """
+    adjudication = row.get("open_adjudication")
+    verdict = adjudication_verdict(
+        adjudication if isinstance(adjudication, dict) else None
+    )
+    if verdict is None:
+        return {
+            "correct": deterministic_open_correct(row),
+            "attempted": deterministic_open_attempted(row),
+            "source": "deterministic_alias",
+            "judge_grade": None,
+            "parse_valid": False,
+            "claimable": False,
+            "claimability_blocker": OPEN_CORRECTNESS_NO_JUDGE_BLOCKER,
+        }
+    if verdict in SIMID_OPEN_FINAL_GRADES:
+        return {
+            "correct": verdict == "CORRECT",
+            "attempted": verdict in {"CORRECT", "INCORRECT"},
+            "source": "adjudication",
+            "judge_grade": verdict,
+            "parse_valid": True,
+            "claimable": False,
+            "claimability_blocker": OPEN_CORRECTNESS_JUDGE_BLOCKER,
+        }
+    return {
+        "correct": False,
+        "attempted": False,
+        "source": "adjudication_unknown",
+        "judge_grade": verdict,
+        "parse_valid": False,
+        "claimable": False,
+        "claimability_blocker": "judge_verdict_unknown_or_error",
+    }
+
+
+def effective_open_correct(row: dict[str, Any]) -> bool:
+    return bool(effective_open_grade(row)["correct"])
+
+
+def effective_open_attempted(row: dict[str, Any]) -> bool:
+    return bool(effective_open_grade(row)["attempted"])
+
+
+BASE_BOOL_METRICS: dict[str, MetricFn] = {
     "mc_letter_likelihood_correct": lambda row: bool(
         row["mc_letter_likelihood"]["chosen_is_gold"]
     ),
@@ -61,9 +155,20 @@ BOOL_METRICS: dict[str, MetricFn] = {
     "mc_likelihood_avg_correct": lambda row: bool(
         row["mc_likelihood"]["avg"]["chosen_is_gold"]
     ),
-    "open_correct": lambda row: bool(row["open_grade"]["correct"]),
-    "open_attempted": lambda row: bool(row["open_grade"]["attempted"]),
 }
+DETERMINISTIC_BOOL_METRICS: dict[str, MetricFn] = {
+    **BASE_BOOL_METRICS,
+    "open_correct": deterministic_open_correct,
+    "open_attempted": deterministic_open_attempted,
+}
+ADJUDICATED_BOOL_METRICS: dict[str, MetricFn] = {
+    **BASE_BOOL_METRICS,
+    "deterministic_open_correct": deterministic_open_correct,
+    "deterministic_open_attempted": deterministic_open_attempted,
+    "adjudicated_open_correct": effective_open_correct,
+    "adjudicated_open_attempted": effective_open_attempted,
+}
+BOOL_METRICS: dict[str, MetricFn] = DETERMINISTIC_BOOL_METRICS
 CONTINUOUS_METRICS: dict[str, MetricFn] = {
     "mc_full_margin": lambda row: float(row["mc_letter_likelihood"]["full"]["margin"]),
     "mc_avg_margin": lambda row: float(row["mc_letter_likelihood"]["avg"]["margin"]),
@@ -124,6 +229,371 @@ def load_run_rows(run_dir: Path) -> list[dict[str, Any]]:
     if not rows:
         raise ValueError(f"No SIMID alpha JSONL files found under {run_dir}")
     return rows
+
+
+OpenAdjudicationKey = tuple[str, str, float]
+
+
+def open_adjudication_key(row: dict[str, Any]) -> OpenAdjudicationKey:
+    return (str(row["sample_id"]), str(row["condition"]), float(row["alpha"]))
+
+
+def open_adjudication_key_payload(row: dict[str, Any]) -> dict[str, Any]:
+    sample_id, condition, alpha = open_adjudication_key(row)
+    return {"sample_id": sample_id, "condition": condition, "alpha": alpha}
+
+
+def load_open_adjudications(path: Path) -> dict[OpenAdjudicationKey, dict[str, Any]]:
+    if not path.exists():
+        return {}
+    adjudications: dict[OpenAdjudicationKey, dict[str, Any]] = {}
+    with path.open(encoding="utf-8") as handle:
+        for line_no, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+                key = (
+                    str(row["sample_id"]),
+                    str(row["condition"]),
+                    float(row["alpha"]),
+                )
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ValueError(
+                    f"Malformed SIMID open adjudication row in {path}:{line_no}"
+                ) from exc
+            adjudications[key] = row
+    return adjudications
+
+
+def attach_open_adjudications(
+    rows: list[dict[str, Any]],
+    adjudications: dict[OpenAdjudicationKey, dict[str, Any]],
+) -> int:
+    attached = 0
+    for row in rows:
+        adjudication = adjudications.get(open_adjudication_key(row))
+        if adjudication is None:
+            row.pop("open_adjudication", None)
+        else:
+            row["open_adjudication"] = adjudication
+            attached += 1
+        row["effective_open_grade"] = effective_open_grade(row)
+    return attached
+
+
+def has_open_adjudication(rows: list[dict[str, Any]]) -> bool:
+    return any(isinstance(row.get("open_adjudication"), dict) for row in rows)
+
+
+def bool_metrics_for_rows(rows: list[dict[str, Any]]) -> dict[str, MetricFn]:
+    if has_open_adjudication(rows):
+        return ADJUDICATED_BOOL_METRICS
+    return DETERMINISTIC_BOOL_METRICS
+
+
+def open_metric_names_for_rows(rows: list[dict[str, Any]]) -> tuple[str, str]:
+    if has_open_adjudication(rows):
+        return "adjudicated_open_correct", "adjudicated_open_attempted"
+    return "open_correct", "open_attempted"
+
+
+def eligible_for_open_adjudication(row: dict[str, Any]) -> bool:
+    if str(row.get("dataset")) not in SIMID_OPEN_ADJUDICATION_ELIGIBLE_DATASETS:
+        return False
+    aliases = row.get("gold_aliases")
+    response = row.get("open_generation", {}).get("response")
+    return isinstance(aliases, list) and bool(aliases) and response is not None
+
+
+def simid_open_adjudication_custom_id(row: dict[str, Any]) -> str:
+    key = open_adjudication_key(row)
+    digest = hashlib.sha256(
+        f"{key[0]}|{key[1]}|{format_alpha_label(key[2])}".encode("utf-8")
+    ).hexdigest()[:16]
+    return f"simid_open_{digest}"
+
+
+def build_simid_open_adjudication_request(
+    row: dict[str, Any],
+    *,
+    judge_model: str,
+    prompt_cache_retention: str | None = None,
+) -> dict[str, Any]:
+    from openai_batch import build_chat_request
+
+    aliases = [str(alias) for alias in row.get("gold_aliases", [])]
+    messages = build_triviaqa_bridge_judge_messages(
+        str(row["question"]),
+        aliases,
+        str(row["open_generation"]["response"]),
+    )
+    kwargs: dict[str, Any] = dict(SIMPLEQA_JUDGE_KWARGS)
+    if prompt_cache_retention:
+        kwargs["prompt_cache_retention"] = prompt_cache_retention
+    return build_chat_request(
+        custom_id=simid_open_adjudication_custom_id(row),
+        model=judge_model,
+        messages=messages,
+        **kwargs,
+    )
+
+
+def build_simid_open_adjudication_requests(
+    rows: list[dict[str, Any]],
+    *,
+    existing_adjudications: dict[OpenAdjudicationKey, dict[str, Any]],
+    judge_model: str,
+    prompt_cache_retention: str | None = None,
+    limit: int | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    requests: list[dict[str, Any]] = []
+    request_map: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if limit is not None and len(requests) >= limit:
+            break
+        if not eligible_for_open_adjudication(row):
+            continue
+        if open_adjudication_key(row) in existing_adjudications:
+            continue
+        request = build_simid_open_adjudication_request(
+            row,
+            judge_model=judge_model,
+            prompt_cache_retention=prompt_cache_retention,
+        )
+        custom_id = str(request["custom_id"])
+        requests.append(request)
+        request_map[custom_id] = row
+    return requests, request_map
+
+
+def bounded_excerpt(text: str | None, *, max_chars: int) -> str | None:
+    if text is None:
+        return None
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "...[truncated]"
+
+
+def batch_response_request_id(entry: dict[str, Any] | None) -> str | None:
+    response = entry.get("response") if isinstance(entry, dict) else None
+    if not isinstance(response, dict):
+        return None
+    request_id = response.get("request_id")
+    return str(request_id) if request_id is not None else None
+
+
+def batch_response_status_code(entry: dict[str, Any] | None) -> int | None:
+    response = entry.get("response") if isinstance(entry, dict) else None
+    if not isinstance(response, dict):
+        return None
+    status_code = response.get("status_code")
+    return int(status_code) if isinstance(status_code, int) else None
+
+
+def make_open_adjudication_row(
+    row: dict[str, Any],
+    *,
+    judge_model: str,
+    batch_custom_id: str,
+    batch_state_path: Path,
+    batch_result_entry: dict[str, Any] | None,
+    raw_content: str | None,
+) -> dict[str, Any]:
+    verdict = (
+        parse_simpleqa_verdict(raw_content) if raw_content is not None else "ERROR"
+    )
+    valid = verdict in SIMID_OPEN_FINAL_GRADES
+    deterministic_correct = deterministic_open_correct(row)
+    adjudicated_correct = verdict == "CORRECT" if valid else None
+    return {
+        "schema_version": SIMID_OPEN_ADJUDICATION_SCHEMA_VERSION,
+        **open_adjudication_key_payload(row),
+        "base_sample_id": row.get("base_sample_id"),
+        "dataset": row.get("dataset"),
+        "mc_endpoint": row.get("mc_endpoint"),
+        "question": row.get("question"),
+        "gold_aliases": row.get("gold_aliases"),
+        "response": row.get("open_generation", {}).get("response"),
+        "deterministic_open_grade": row.get("open_grade"),
+        "judge": {
+            "model": judge_model,
+            "prompt_version": SIMID_OPEN_JUDGE_PROMPT_VERSION,
+            "prompt_builder": SIMID_OPEN_ADJUDICATION_PROMPT_BUILDER,
+            "parser": SIMID_OPEN_ADJUDICATION_PARSER,
+            "kwargs": dict(SIMPLEQA_JUDGE_KWARGS),
+        },
+        "judge_model": judge_model,
+        "judge_prompt_version": SIMID_OPEN_JUDGE_PROMPT_VERSION,
+        "parse_result": {
+            "parser": SIMID_OPEN_ADJUDICATION_PARSER,
+            "verdict": verdict,
+            "valid": valid,
+        },
+        "judge_grade": verdict,
+        "adjudicated_correct": adjudicated_correct,
+        "adjudicated_attempted": (
+            verdict in {"CORRECT", "INCORRECT"} if valid else None
+        ),
+        "raw_judge_response_excerpt": bounded_excerpt(
+            raw_content,
+            max_chars=RAW_JUDGE_RESPONSE_EXCERPT_CHARS,
+        ),
+        "adjudicated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "batch_state_path": str(batch_state_path),
+        "batch_custom_id": batch_custom_id,
+        "openai_request_id": batch_response_request_id(batch_result_entry),
+        "batch_result_status_code": batch_response_status_code(batch_result_entry),
+        "batch_error": (
+            batch_result_entry.get("error")
+            if isinstance(batch_result_entry, dict)
+            else None
+        ),
+        "judge_disagrees_with_deterministic": (
+            adjudicated_correct != deterministic_correct if valid else None
+        ),
+    }
+
+
+def append_open_adjudications(path: Path, rows: list[dict[str, Any]]) -> None:
+    if not rows:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def adjudicate_open_responses_batch(
+    rows: list[dict[str, Any]],
+    *,
+    output_path: Path,
+    judge_model: str,
+    api_key: str | None,
+    prompt_cache_retention: str | None,
+    max_enqueued_tokens: int | None,
+    limit: int | None,
+) -> dict[str, Any]:
+    from dotenv import load_dotenv
+    from openai import OpenAI
+    from openai_batch import parse_chat_content, resume_or_submit
+
+    load_dotenv()
+    resolved_api_key = api_key or os.environ.get("OPENAI_API_KEY")
+    if not resolved_api_key:
+        raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or --api-key")
+
+    existing = load_open_adjudications(output_path)
+    batch_requests, request_map = build_simid_open_adjudication_requests(
+        rows,
+        existing_adjudications=existing,
+        judge_model=judge_model,
+        prompt_cache_retention=prompt_cache_retention,
+        limit=limit,
+    )
+    state_path = output_path.with_suffix(".batch_state.json")
+    if not batch_requests:
+        return {
+            "path": str(output_path),
+            "state_path": str(state_path),
+            "judge_model": judge_model,
+            "n_requested": 0,
+            "n_written": 0,
+            "n_existing": len(existing),
+        }
+
+    client = OpenAI(api_key=resolved_api_key)
+    results = resume_or_submit(
+        client,
+        batch_requests,
+        state_path,
+        metadata={
+            "script": "analyze_simid",
+            "task": "simid_open_adjudication",
+            "prompt_version": SIMID_OPEN_JUDGE_PROMPT_VERSION,
+            "judge_model": judge_model,
+        },
+        max_enqueued_tokens=max_enqueued_tokens,
+    )
+    adjudication_rows: list[dict[str, Any]] = []
+    for custom_id, row in request_map.items():
+        entry = results.get(custom_id)
+        content = parse_chat_content(entry) if entry is not None else None
+        adjudication_rows.append(
+            make_open_adjudication_row(
+                row,
+                judge_model=judge_model,
+                batch_custom_id=custom_id,
+                batch_state_path=state_path,
+                batch_result_entry=entry,
+                raw_content=content,
+            )
+        )
+    append_open_adjudications(output_path, adjudication_rows)
+    return {
+        "path": str(output_path),
+        "state_path": str(state_path),
+        "judge_model": judge_model,
+        "n_requested": len(batch_requests),
+        "n_written": len(adjudication_rows),
+        "n_existing": len(existing),
+    }
+
+
+def summarize_open_grading(
+    rows: list[dict[str, Any]],
+    *,
+    adjudication_path: Path,
+    adjudication_run: dict[str, Any] | None,
+) -> dict[str, Any]:
+    correct_metric, attempted_metric = open_metric_names_for_rows(rows)
+    effective_source_counts: Counter[str] = Counter()
+    judge_grade_counts: Counter[str] = Counter()
+    valid_adjudications = 0
+    invalid_adjudications = 0
+    disagreements = 0
+    for row in rows:
+        grade = effective_open_grade(row)
+        effective_source_counts[str(grade["source"])] += 1
+        verdict = grade.get("judge_grade")
+        if verdict is not None:
+            judge_grade_counts[str(verdict)] += 1
+        if grade["source"] == "adjudication":
+            valid_adjudications += 1
+            if bool(grade["correct"]) != deterministic_open_correct(row):
+                disagreements += 1
+        elif grade["source"] == "adjudication_unknown":
+            invalid_adjudications += 1
+
+    has_judge = has_open_adjudication(rows)
+    summary: dict[str, Any] = {
+        "deterministic_alias_grader": OPEN_GRADING_METHOD,
+        "metric_correct": correct_metric,
+        "metric_attempted": attempted_metric,
+        "effective_grade_source_counts": dict(sorted(effective_source_counts.items())),
+        "adjudication": {
+            "path": str(adjudication_path),
+            "schema_version": SIMID_OPEN_ADJUDICATION_SCHEMA_VERSION,
+            "judge_prompt_version": SIMID_OPEN_JUDGE_PROMPT_VERSION,
+            "prompt_builder": SIMID_OPEN_ADJUDICATION_PROMPT_BUILDER,
+            "parser": SIMID_OPEN_ADJUDICATION_PARSER,
+            "judge_grade_counts": dict(sorted(judge_grade_counts.items())),
+            "n_valid": valid_adjudications,
+            "n_unknown_or_error": invalid_adjudications,
+            "deterministic_vs_judge_disagreements": disagreements,
+        },
+        "open_correctness_claim_contract": OPEN_CORRECTNESS_CLAIM_CONTRACT,
+        "open_metrics_scope": "diagnostic_only",
+        "claimable_open_correctness": False,
+        "claimability_blocker": (
+            OPEN_CORRECTNESS_JUDGE_BLOCKER
+            if has_judge
+            else OPEN_CORRECTNESS_NO_JUDGE_BLOCKER
+        ),
+    }
+    if adjudication_run is not None:
+        summary["adjudication"]["last_run"] = adjudication_run
+    return summary
 
 
 def index_rows(rows: list[dict[str, Any]]) -> dict[str, Panel]:
@@ -455,7 +925,10 @@ def summarize_sample_ids(
     baseline_alpha: float,
     n_resamples: int,
     seed: int,
+    bool_metrics: dict[str, MetricFn] | None = None,
 ) -> dict[str, Any]:
+    if bool_metrics is None:
+        bool_metrics = BOOL_METRICS
     baseline_rows = panel[baseline_alpha]
     rates: dict[str, Any] = {}
     deltas: dict[str, Any] = {}
@@ -473,7 +946,7 @@ def summarize_sample_ids(
                 n_resamples=n_resamples,
                 seed=seed,
             )
-            for name, metric in BOOL_METRICS.items()
+            for name, metric in bool_metrics.items()
         }
         interactions[str(alpha)] = interaction_counts(
             sample_ids,
@@ -493,7 +966,7 @@ def summarize_sample_ids(
                 n_resamples=n_resamples,
                 seed=seed,
             )
-            for name, metric in BOOL_METRICS.items()
+            for name, metric in bool_metrics.items()
         }
         continuous_deltas[str(alpha)] = {
             name: paired_continuous_delta(
@@ -554,7 +1027,10 @@ def summarize_condition(
     baseline_alpha: float,
     n_resamples: int,
     seed: int,
+    bool_metrics: dict[str, MetricFn] | None = None,
 ) -> dict[str, Any]:
+    if bool_metrics is None:
+        bool_metrics = BOOL_METRICS
     sample_ids, panel = require_paired_panel(
         indexed, condition=condition, alphas=alphas
     )
@@ -565,6 +1041,7 @@ def summarize_condition(
         baseline_alpha=baseline_alpha,
         n_resamples=n_resamples,
         seed=seed,
+        bool_metrics=bool_metrics,
     )
     strata: dict[str, Any] = {}
     for (
@@ -584,6 +1061,7 @@ def summarize_condition(
             baseline_alpha=baseline_alpha,
             n_resamples=n_resamples,
             seed=seed,
+            bool_metrics=bool_metrics,
         )
         stratum_summary["dataset"] = dataset
         stratum_summary["mc_endpoint"] = mc_endpoint
@@ -615,7 +1093,7 @@ def interaction_counts(
         per_group: Counter[str] = Counter()
         for row in rows:
             mc = bool(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](row))
-            open_correct = bool(row["open_grade"]["correct"])
+            open_correct = effective_open_correct(row)
             key = f"mc_{'R' if mc else 'W'}__open_{'R' if open_correct else 'W'}"
             per_group[key] += 1
         for key, count in per_group.items():
@@ -650,11 +1128,12 @@ def flip_table(
         for replicate, base, comp in paired_rows:
             base_mc = bool(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](base))
             comp_mc = bool(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](comp))
-            base_open = bool(base["open_grade"]["correct"])
-            comp_open = bool(comp["open_grade"]["correct"])
+            base_open = effective_open_correct(base)
+            comp_open = effective_open_correct(comp)
             if not base_mc and comp_mc and base_open and not comp_open:
+                effective_grade = effective_open_grade(comp)
                 failure_type = str(comp["open_grade"].get("failure_type"))
-                if not bool(comp["open_grade"].get("attempted")):
+                if not bool(effective_grade["attempted"]):
                     bucket = "mc_W_to_R__open_R_to_not_attempted"
                 elif failure_type == "wrong_entity":
                     bucket = "mc_W_to_R__open_R_to_wrong_entity"
@@ -672,6 +1151,7 @@ def flip_table(
                         "baseline_open_response": base["open_generation"]["response"],
                         "comparison_open_response": comp["open_generation"]["response"],
                         "comparison_open_grade": comp["open_grade"],
+                        "comparison_effective_open_grade": effective_grade,
                     }
                 )
         for bucket, count in per_group.items():
@@ -822,6 +1302,8 @@ def _audit_queue_append(
         "response": row["open_generation"]["response"],
         "gold_aliases": row.get("gold_aliases"),
         "open_grade": row.get("open_grade"),
+        "effective_open_grade": effective_open_grade(row),
+        "open_adjudication": row.get("open_adjudication"),
         "mc_letter_likelihood": {
             "chosen_letter": row.get("mc_letter_likelihood", {}).get("chosen_letter"),
             "chosen_index": row.get("mc_letter_likelihood", {}).get("chosen_index"),
@@ -839,40 +1321,61 @@ def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[tuple[str, str, float, str]] = set()
     for row in rows:
         grade = row["open_grade"]
+        adjudication = row.get("open_adjudication")
+        effective_grade = effective_open_grade(row)
         mc_correct = bool(BOOL_METRICS[PRIMARY_MC_RATE_METRIC](row))
         open_correct = bool(grade["correct"])
         attempted = bool(grade["attempted"])
+
+        if isinstance(adjudication, dict):
+            if effective_grade["source"] == "adjudication_unknown":
+                _audit_queue_append(
+                    queue,
+                    seen,
+                    row,
+                    reason="open_adjudication_unknown_or_error",
+                )
+            elif (
+                effective_grade["source"] == "adjudication"
+                and bool(effective_grade["correct"]) != open_correct
+            ):
+                _audit_queue_append(
+                    queue,
+                    seen,
+                    row,
+                    reason="judge_disagreed_with_deterministic_alias_grade",
+                    extra={
+                        "deterministic_open_correct": open_correct,
+                        "adjudicated_open_correct": bool(effective_grade["correct"]),
+                    },
+                )
+            continue
 
         if mc_correct != open_correct:
             _audit_queue_append(
                 queue,
                 seen,
                 row,
-                reason="mc_open_disagreement_requires_adjudication",
+                reason="unadjudicated_mc_open_disagreement_requires_adjudication",
             )
 
         audit_reason: str | None = None
         if bool(grade["correct"]):
             if row.get("dataset") != "triviaqa_bridge":
                 audit_reason = (
-                    "non_bridge_deterministic_alias_correct_requires_adjudication"
+                    "unadjudicated_non_bridge_deterministic_alias_correct_"
+                    "requires_adjudication"
                 )
             elif grade.get("match_tier") != "exact":
-                audit_reason = "non_exact_deterministic_alias_correct_requires_audit"
+                audit_reason = (
+                    "unadjudicated_non_exact_deterministic_alias_correct_requires_audit"
+                )
             if audit_reason is not None:
-                queue.append(
-                    {
-                        "sample_id": row["sample_id"],
-                        "condition": row["condition"],
-                        "alpha": row["alpha"],
-                        "dataset": row.get("dataset"),
-                        "mc_endpoint": row.get("mc_endpoint"),
-                        "question": row.get("question"),
-                        "response": row["open_generation"]["response"],
-                        "gold_aliases": row.get("gold_aliases"),
-                        "open_grade": row.get("open_grade"),
-                        "reason": audit_reason,
-                    }
+                _audit_queue_append(
+                    queue,
+                    seen,
+                    row,
+                    reason=audit_reason,
                 )
             continue
         if row.get("dataset") != "triviaqa_bridge":
@@ -881,9 +1384,10 @@ def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 seen,
                 row,
                 reason=(
-                    "non_bridge_not_attempted_requires_adjudication"
+                    "unadjudicated_non_bridge_not_attempted_requires_adjudication"
                     if not attempted
-                    else "non_bridge_deterministic_alias_incorrect_requires_adjudication"
+                    else "unadjudicated_non_bridge_deterministic_alias_incorrect_"
+                    "requires_adjudication"
                 ),
             )
         margin = float(row["open_margins"]["full"]["margin"])
@@ -893,7 +1397,7 @@ def build_alias_audit_queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             queue,
             seen,
             row,
-            reason="open_incorrect_but_gold_margin_positive",
+            reason="unadjudicated_open_incorrect_but_gold_margin_positive",
             extra={"open_full_margin": margin},
         )
     return queue
@@ -1111,7 +1615,7 @@ def open_margin_alignment_gate(groups: dict[str, RowGroup]) -> dict[str, Any]:
     for rows in groups.values():
         for row in rows:
             margin = float(row["open_margins"]["full"]["margin"])
-            if bool(row["open_grade"]["correct"]):
+            if effective_open_correct(row):
                 correct_margins.append(margin)
             else:
                 incorrect_margins.append(margin)
@@ -1275,6 +1779,25 @@ def append_option_order_gate_details(
 
 
 def write_report(results: dict[str, Any], path: Path) -> None:
+    open_grading = results.get("open_grading", {})
+    open_correct_metric = str(open_grading.get("metric_correct", "open_correct"))
+    open_attempted_metric = str(open_grading.get("metric_attempted", "open_attempted"))
+    judge_backed = open_correct_metric == "adjudicated_open_correct"
+    if judge_backed:
+        open_grading_note = (
+            "Open correctness is reported as adjudicated_open_correct for "
+            "diagnostics: judge "
+            "adjudication is used when present, deterministic alias grading is only "
+            "a fallback for unadjudicated rows, and deterministic alias diagnostics "
+            "are kept separate. These open metrics remain diagnostic-only until "
+            "judge calibration evidence is recorded."
+        )
+    else:
+        open_grading_note = (
+            "Open correctness is deterministic alias-grader correctness "
+            "(not adjudicated human/judge correctness). Claimable open-ended results "
+            "require adjudication or an explicit audit."
+        )
     lines = [
         "# SIMID Report",
         "",
@@ -1282,11 +1805,23 @@ def write_report(results: dict[str, Any], path: Path) -> None:
         "",
         "All primary estimates use base-item pairing and bootstrap 95% CIs. "
         "The primary MC endpoint is the lettered forced-choice likelihood prompt.",
-        "Open correctness is deterministic alias-grader correctness "
-        "(not adjudicated human/judge correctness). Claimable open-ended results "
-        "require adjudication or an explicit audit.",
+        open_grading_note,
         "",
     ]
+    if open_grading:
+        source_counts = open_grading.get("effective_grade_source_counts", {})
+        if source_counts:
+            rendered_counts = ", ".join(
+                f"{key}={value}" for key, value in sorted(source_counts.items())
+            )
+            lines.append(f"Open grade sources: {rendered_counts}")
+        if open_grading.get("claimable_open_correctness") is False:
+            blocker = open_grading.get("claimability_blocker", "unspecified")
+            lines.append(f"Open correctness claimability: blocked ({blocker}).")
+        claim_contract = open_grading.get("open_correctness_claim_contract")
+        if claim_contract:
+            lines.append(f"Open correctness claim contract: {claim_contract}.")
+        lines.append("")
     for condition, summary in results["conditions"].items():
         lines.append(f"## {condition}")
         lines.append(
@@ -1295,20 +1830,20 @@ def write_report(results: dict[str, Any], path: Path) -> None:
         )
         lines.append(f"Paired items: {summary['n_paired_items']}")
         baseline = str(summary["baseline_alpha"])
-        baseline_open = summary["rates"][baseline]["open_correct"]
+        baseline_open = summary["rates"][baseline][open_correct_metric]
         baseline_mc = summary["rates"][baseline][PRIMARY_MC_RATE_METRIC]
         lines.append(
             "Baseline rates: "
             f"lettered MC={format_ci(baseline_mc)}, "
-            f"open={format_ci(baseline_open)}"
+            f"{open_correct_metric}={format_ci(baseline_open)}"
         )
         for alpha, deltas in summary["paired_deltas_vs_baseline"].items():
             mc = deltas[PRIMARY_MC_RATE_METRIC]
-            open_delta = deltas["open_correct"]
-            attempted = deltas["open_attempted"]
+            open_delta = deltas[open_correct_metric]
+            attempted = deltas[open_attempted_metric]
             lines.append(
                 f"- alpha {alpha}: MC delta {format_ci(mc, unit=' pp')}; "
-                f"open delta {format_ci(open_delta, unit=' pp')}; "
+                f"{open_correct_metric} delta {format_ci(open_delta, unit=' pp')}; "
                 f"attempt delta {format_ci(attempted, unit=' pp')}"
             )
         strata = summary.get("dataset_endpoint_summaries", {})
@@ -1320,7 +1855,7 @@ def write_report(results: dict[str, Any], path: Path) -> None:
             for key in sorted(strata):
                 stratum = strata[key]
                 stratum_baseline = str(stratum["baseline_alpha"])
-                stratum_open = stratum["rates"][stratum_baseline]["open_correct"]
+                stratum_open = stratum["rates"][stratum_baseline][open_correct_metric]
                 stratum_mc = stratum["rates"][stratum_baseline][PRIMARY_MC_RATE_METRIC]
                 leakage_metadata = stratum.get("truthfulqa_leakage_metadata", {})
                 leakage_label = ""
@@ -1335,14 +1870,15 @@ def write_report(results: dict[str, Any], path: Path) -> None:
                     f"{leakage_label}: "
                     f"n={stratum['n_paired_items']}; "
                     f"lettered MC={format_ci(stratum_mc)}; "
-                    f"open={format_ci(stratum_open)}"
+                    f"{open_correct_metric}={format_ci(stratum_open)}"
                 )
                 for alpha, deltas in stratum["paired_deltas_vs_baseline"].items():
                     mc = deltas[PRIMARY_MC_RATE_METRIC]
-                    open_delta = deltas["open_correct"]
+                    open_delta = deltas[open_correct_metric]
                     lines.append(
                         f"  - alpha {alpha}: MC delta {format_ci(mc, unit=' pp')}; "
-                        f"open delta {format_ci(open_delta, unit=' pp')}"
+                        f"{open_correct_metric} delta "
+                        f"{format_ci(open_delta, unit=' pp')}"
                     )
         lines.append("")
     if results.get("selected_minus_control_slopes"):
@@ -1374,6 +1910,33 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--noop-tolerance", type=float, default=1e-5)
     parser.add_argument("--output-json", default=None)
     parser.add_argument("--report-md", default=None)
+    parser.add_argument("--alias-audit-output", default=None)
+    parser.add_argument("--adjudicate-open", action="store_true")
+    parser.add_argument("--judge-model", default=DEFAULT_SIMID_OPEN_JUDGE_MODEL)
+    parser.add_argument(
+        "--adjudication-mode",
+        choices=["batch"],
+        default="batch",
+        help="SIMID open adjudication mode. Batch is the only supported mode.",
+    )
+    parser.add_argument(
+        "--adjudication-output",
+        default="open_adjudication.jsonl",
+        help="Path for separate SIMID open adjudication JSONL output.",
+    )
+    parser.add_argument("--api-key", default=None)
+    parser.add_argument(
+        "--prompt-cache-retention",
+        choices=["in-memory", "24h"],
+        default=None,
+    )
+    parser.add_argument("--batch-max-enqueued-tokens", type=int, default=None)
+    parser.add_argument(
+        "--adjudication-limit",
+        type=int,
+        default=None,
+        help="Limit new adjudication requests for canary runs.",
+    )
     parser.add_argument("--allow-overwrite", action="store_true")
     return parser.parse_args(argv)
 
@@ -1399,20 +1962,57 @@ def main(argv: list[str] | None = None) -> None:
         Path(args.output_json) if args.output_json else run_dir / "results.json"
     )
     report_md = Path(args.report_md) if args.report_md else run_dir / "report.md"
-    alias_queue_path = run_dir / "alias_audit_queue.jsonl"
+    alias_queue_path = (
+        Path(args.alias_audit_output)
+        if args.alias_audit_output
+        else run_dir / "alias_audit_queue.jsonl"
+    )
+    adjudication_output = Path(args.adjudication_output)
+    if not adjudication_output.is_absolute():
+        adjudication_output = run_dir / adjudication_output
     refuse_analysis_output_overwrite(
         [output_json, report_md, alias_queue_path],
         allow_overwrite=args.allow_overwrite,
     )
+    output_targets: list[str | os.PathLike[str]] = [
+        output_json,
+        report_md,
+        alias_queue_path,
+    ]
+    if args.adjudicate_open:
+        output_targets.append(adjudication_output)
     provenance = start_run_provenance(
         args,
         primary_target=output_json,
-        output_targets=[output_json, report_md, alias_queue_path],
+        output_targets=output_targets,
     )
     status = "completed"
     extra: dict[str, Any] = {}
     try:
         rows = load_run_rows(run_dir)
+        adjudication_run = None
+        if args.adjudicate_open:
+            if args.adjudication_mode != "batch":
+                raise ValueError(
+                    "SIMID open adjudication currently supports batch only"
+                )
+            adjudication_run = adjudicate_open_responses_batch(
+                rows,
+                output_path=adjudication_output,
+                judge_model=args.judge_model,
+                api_key=args.api_key,
+                prompt_cache_retention=args.prompt_cache_retention,
+                max_enqueued_tokens=args.batch_max_enqueued_tokens,
+                limit=args.adjudication_limit,
+            )
+        adjudications = load_open_adjudications(adjudication_output)
+        n_attached_adjudications = attach_open_adjudications(rows, adjudications)
+        bool_metrics = bool_metrics_for_rows(rows)
+        open_grading_summary = summarize_open_grading(
+            rows,
+            adjudication_path=adjudication_output,
+            adjudication_run=adjudication_run,
+        )
         indexed = index_rows(rows)
         conditions = args.conditions or sorted(indexed)
         alphas = args.alphas or sorted(
@@ -1431,6 +2031,7 @@ def main(argv: list[str] | None = None) -> None:
                 baseline_alpha=args.baseline_alpha,
                 n_resamples=args.n_resamples,
                 seed=args.seed,
+                bool_metrics=bool_metrics,
             )
             for condition in conditions
         }
@@ -1462,7 +2063,7 @@ def main(argv: list[str] | None = None) -> None:
             "alphas": alphas,
             "conditions": condition_summaries,
             "selected_minus_control_slopes": slope_summaries,
-            "open_grading": OPEN_GRADING_METHOD,
+            "open_grading": open_grading_summary,
             "alias_audit_queue": {
                 "path": str(alias_queue_path),
                 "n": len(alias_queue),
@@ -1484,6 +2085,7 @@ def main(argv: list[str] | None = None) -> None:
         )
         write_report(results, report_md)
         extra["n_rows"] = len(rows)
+        extra["n_open_adjudications_loaded"] = n_attached_adjudications
         extra["n_alias_audit_rows"] = len(alias_queue)
         print(f"Wrote SIMID analysis to {output_json} and {report_md}")
     except BaseException as exc:

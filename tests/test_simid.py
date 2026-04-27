@@ -11,11 +11,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import run_simid as simid_runner
 from analyze_simid import (
+    attach_open_adjudications,
     build_alias_audit_queue,
+    build_simid_open_adjudication_request,
+    effective_open_grade,
     index_rows,
+    load_open_adjudications,
     load_run_rows,
     main as analyze_main,
     option_order_stability_gate,
+    parse_simpleqa_verdict,
     require_paired_panel,
     selected_minus_control_slope_summaries,
     summarize_condition,
@@ -1018,7 +1023,7 @@ def test_report_baseline_rates_include_ci(tmp_path: Path) -> None:
     assert "deterministic alias-grader correctness" in text
     assert "Pooled aggregate scope" in text
     assert "lettered MC=0.7500 [0.5000, 1.0000]" in text
-    assert "open=0.5000 [0.2500, 0.7500]" in text
+    assert "open_correct=0.5000 [0.2500, 0.7500]" in text
 
 
 def test_report_phase0_option_order_details_are_human_readable(tmp_path: Path) -> None:
@@ -1070,6 +1075,141 @@ def test_analysis_refuses_existing_outputs_by_default(tmp_path: Path) -> None:
         analyze_main(["--run-dir", str(run_dir)])
 
 
+def test_open_adjudication_rows_are_keyed_and_loaded(tmp_path: Path) -> None:
+    path = tmp_path / "open_adjudication.jsonl"
+    rows = [
+        {
+            "sample_id": "s1",
+            "condition": "selected",
+            "alpha": 0.0,
+            "judge_grade": "CORRECT",
+        },
+        {
+            "sample_id": "s2",
+            "condition": "unhooked",
+            "alpha": 0.0,
+            "judge_grade": "INCORRECT",
+        },
+    ]
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+    analysis_rows = [
+        _analysis_row(sample_id="s1", condition="selected", alpha=0.0),
+        _analysis_row(sample_id="s2", condition="unhooked", alpha=0.0),
+    ]
+
+    adjudications = load_open_adjudications(path)
+    attached = attach_open_adjudications(analysis_rows, adjudications)
+
+    assert attached == 2
+    assert adjudications[("s1", "selected", 0.0)]["judge_grade"] == "CORRECT"
+    assert analysis_rows[1]["open_adjudication"]["judge_grade"] == "INCORRECT"
+
+
+def test_effective_open_grade_prefers_adjudication() -> None:
+    row = _analysis_row(sample_id="s1", open_correct=False)
+    row["open_adjudication"] = {"judge_grade": "CORRECT"}
+
+    grade = effective_open_grade(row)
+
+    assert grade["source"] == "adjudication"
+    assert grade["correct"] is True
+    assert grade["attempted"] is True
+    assert grade["claimable"] is False
+    assert grade["claimability_blocker"] == "calibration_evidence_not_recorded"
+
+
+def test_effective_open_grade_falls_back_to_deterministic_without_adjudication() -> (
+    None
+):
+    row = _analysis_row(sample_id="s1", open_correct=True)
+
+    grade = effective_open_grade(row)
+
+    assert grade["source"] == "deterministic_alias"
+    assert grade["correct"] is True
+    assert grade["claimable"] is False
+
+
+def test_report_labels_adjudicated_open_metrics(tmp_path: Path) -> None:
+    path = tmp_path / "report.md"
+    write_report(
+        {
+            "open_grading": {
+                "metric_correct": "adjudicated_open_correct",
+                "metric_attempted": "adjudicated_open_attempted",
+                "effective_grade_source_counts": {"adjudication": 2},
+                "claimable_open_correctness": False,
+                "claimability_blocker": "calibration_evidence_not_recorded",
+            },
+            "conditions": {
+                "selected": {
+                    "n_paired_items": 2,
+                    "baseline_alpha": 0.0,
+                    "rates": {
+                        "0.0": {
+                            "mc_letter_likelihood_correct": {
+                                "estimate": 0.75,
+                                "ci": {"lower": 0.5, "upper": 1.0},
+                            },
+                            "adjudicated_open_correct": {
+                                "estimate": 0.5,
+                                "ci": {"lower": 0.25, "upper": 0.75},
+                            },
+                        }
+                    },
+                    "paired_deltas_vs_baseline": {},
+                }
+            },
+        },
+        path,
+    )
+
+    text = path.read_text(encoding="utf-8")
+    assert "reported as adjudicated_open_correct" in text
+    assert "diagnostic-only" in text
+    assert "adjudicated_open_correct=0.5000 [0.2500, 0.7500]" in text
+    assert "calibration_evidence_not_recorded" in text
+
+
+def test_unknown_judge_verdict_does_not_become_claimable_correctness() -> None:
+    row = _analysis_row(sample_id="s1", open_correct=True)
+    row["open_adjudication"] = {"judge_grade": "MAYBE"}
+
+    grade = effective_open_grade(row)
+
+    assert grade["source"] == "adjudication_unknown"
+    assert grade["correct"] is False
+    assert grade["claimable"] is False
+
+
+def test_simid_open_batch_request_contains_question_aliases_and_response() -> None:
+    row = _analysis_row(sample_id="s1", open_correct=False)
+    row["question"] = "Who wrote Hamlet?"
+    row["gold_aliases"] = ["William Shakespeare", "Shakespeare"]
+    row["open_generation"]["response"] = "The answer is Shakespeare."
+
+    request = build_simid_open_adjudication_request(row, judge_model="gpt-test")
+    body = request["body"]
+    prompt = body["messages"][0]["content"]
+
+    assert body["model"] == "gpt-test"
+    assert "Who wrote Hamlet?" in prompt
+    assert "William Shakespeare; Shakespeare" in prompt
+    assert "The answer is Shakespeare." in prompt
+
+
+def test_simpleqa_parser_handles_word_and_letter_outputs() -> None:
+    assert parse_simpleqa_verdict("CORRECT") == "CORRECT"
+    assert parse_simpleqa_verdict("INCORRECT") == "INCORRECT"
+    assert parse_simpleqa_verdict("NOT_ATTEMPTED") == "NOT_ATTEMPTED"
+    assert parse_simpleqa_verdict("A") == "CORRECT"
+    assert parse_simpleqa_verdict("B") == "INCORRECT"
+    assert parse_simpleqa_verdict("C") == "NOT_ATTEMPTED"
+
+
 def test_open_grading_is_labeled_and_audited_for_non_bridge_rows() -> None:
     grade = simid_runner.grade_open_response(
         {
@@ -1092,7 +1232,7 @@ def test_open_grading_is_labeled_and_audited_for_non_bridge_rows() -> None:
 
     assert grade["grader"]["name"] == "deterministic_alias_grader"
     assert queue[0]["reason"] == (
-        "non_bridge_deterministic_alias_correct_requires_adjudication"
+        "unadjudicated_non_bridge_deterministic_alias_correct_requires_adjudication"
     )
 
 
@@ -1130,6 +1270,50 @@ def test_truthfulqa_heldout_policy_excludes_fitted_items(tmp_path: Path) -> None
         stable_question_id("Held out?")
     ]
     assert rows[0]["truthfulqa_seen_in_iti_fit"] is False
+
+
+def test_truthfulqa_builder_skips_rows_without_unique_distractors(
+    tmp_path: Path,
+) -> None:
+    csv_path = tmp_path / "truthfulqa.csv"
+    csv_path.write_text(
+        "Question,Best Answer,Correct Answers,Incorrect Answers,Category,Type,Source\n"
+        "Duplicate distractor?,The Gold,The Gold,Gold,cat,type,src\n"
+        "Usable?,Gold,Gold,Wrong,cat,type,src\n",
+        encoding="utf-8",
+    )
+    metadata_path = tmp_path / "extraction_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "question_ids_train": [],
+                "question_ids_val": [],
+                "question_ids_dev": [],
+                "question_ids_test": [
+                    stable_question_id("Duplicate distractor?"),
+                    stable_question_id("Usable?"),
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rows = build_truthfulqa_rows(
+        csv_path=csv_path,
+        seed=42,
+        n_rows=1,
+        option_order_replicates=1,
+        model_path="model",
+        tokenizer_path="model",
+        iti_artifact_path=str(tmp_path / "iti_heads.pt"),
+        iti_artifact_sha256="abc",
+        leakage_policy="heldout_only",
+        split_metadata_path=metadata_path,
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["question"] == "Usable?"
+    assert rows[0]["truthfulqa_stable_id"] == stable_question_id("Usable?")
 
 
 def test_truthfulqa_heldout_policy_refuses_artifact_without_test_ids(
@@ -1206,8 +1390,16 @@ def test_mvp_default_requires_truthfulqa_rows() -> None:
     script = Path(__file__).resolve().parent.parent / "scripts/infra/simid.sh"
     text = script.read_text(encoding="utf-8")
 
+    assert (
+        "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful/"
+        "final_fold0/iti_heads.pt"
+    ) in text
     assert "SIMID_TRUTHFULQA_LEAKAGE_POLICY:-heldout_only" in text
+    assert "SIMID_OPTION_ORDER_REPLICATES:-2" in text
     assert "SIMID_MIN_TRUTHFULQA_ROWS:-1" in text
+    assert "analyze-adjudicated" in text
+    assert "--adjudicate-open" in text
+    assert "--phase0-gates" in text
 
 
 def test_noop_equivalence_check_fails_on_hooked_alpha0_divergence() -> None:

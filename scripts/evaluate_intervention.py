@@ -253,8 +253,9 @@ def parse_simpleqa_verdict(raw: str) -> str:
         pass
     # Fallback: keyword search
     upper = text.upper()
-    for label in ("NOT_ATTEMPTED", "CORRECT", "INCORRECT"):
-        if label in upper:
+    normalized = upper.replace(" ", "_")
+    for label in ("NOT_ATTEMPTED", "INCORRECT", "CORRECT"):
+        if label in normalized:
             return label
     return "UNKNOWN"
 

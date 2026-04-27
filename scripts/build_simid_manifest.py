@@ -347,14 +347,17 @@ def build_truthfulqa_rows(
         iti_artifact_path=iti_artifact_path,
         metadata_path=split_metadata_path,
     )
+    if n_rows == 0:
+        return []
     filtered_rows = filter_truthfulqa_dataframe(
         df,
         split_metadata=split_metadata,
         leakage_policy=leakage_policy,
-        n_rows=n_rows,
+        n_rows=None,
     )
 
     rows: list[dict[str, Any]] = []
+    base_rows_built = 0
     for csv_idx, raw, stable_id, split in filtered_rows:
         question = str(raw["Question"]).strip()
         best = str(raw["Best Answer"]).strip()
@@ -364,12 +367,17 @@ def build_truthfulqa_rows(
         )
         if best not in correct:
             correct = dedupe_preserve_order([best, *correct])
-        incorrect = [
-            answer
-            for answer in incorrect
-            if normalize_answer(answer)
-            not in {normalize_answer(alias) for alias in correct}
-        ]
+        seen_option_norms = {normalize_answer(alias) for alias in correct}
+        normalized_unique_incorrect = []
+        for answer in incorrect:
+            normalized = normalize_answer(answer)
+            if not normalized or normalized in seen_option_norms:
+                continue
+            seen_option_norms.add(normalized)
+            normalized_unique_incorrect.append(answer)
+        incorrect = normalized_unique_incorrect
+        if not incorrect:
+            continue
         options = [
             OptionRecord(
                 text=best,
@@ -429,6 +437,9 @@ def build_truthfulqa_rows(
                     },
                 )
             )
+        base_rows_built += 1
+        if n_rows is not None and base_rows_built >= n_rows:
+            break
     return rows
 
 
