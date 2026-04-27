@@ -26,18 +26,24 @@ The Mistral 24B anchor work is *replication*, not novel research:
 ### Model facts
 
 `mistralai/Mistral-Small-24B-Base-2501` and `-Instruct-2501`:
-24B params, 56 layers, hidden 5120, 32 attn heads / 8 KV heads, 32k context,
-BF16 native ([HF model card](https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501)).
+24B params, 40 layers, hidden 5120, FFN intermediate 32768,
+32 attention heads / 8 KV heads, 32k context, BF16 native
+([HF config](https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501/blob/main/config.json)).
+
+`mistralai/Mistral-Small-3.1-24B-Instruct-2503` keeps the same text stack shape
+but is `model_type=mistral3` with `Mistral3ForConditionalGeneration` and a
+128k context. It is a deferred third-checkpoint extension, not the canonical
+text-only 2501 run.
 
 ### Memory budget (BF16, no quant)
 
 | Component | Size |
 |---|---|
 | Weights | 48.0 GB |
-| KV cache, B=8, S=2048 | ~12 GB |
-| Residual cache, all 56 layers, B=8, S=2048 | ~9.4 GB |
-| Attn / working buffers | ~8 GB |
-| **Peak** | **~78 GB** |
+| KV cache, B=8, S=2048 | ~2.7 GB |
+| Residual cache, all 40 layers, B=8, S=2048 | ~6.7 GB |
+| CETT hook tensors / attn / working buffers | ~8-20 GB |
+| **Peak** | **~65-78 GB** |
 
 → 80 GB is feasible with disciplined batching, 96 GB is comfortable, **48 GB is non-viable for replication** (quantization perturbs the very activations being studied).
 
@@ -93,7 +99,7 @@ Two non-obvious observations:
 
 - **Serverless** (vLLM/SGLang workers, [docs](https://docs.runpod.io/serverless/overview)):
   built for OpenAI-shaped inference. Cold starts, ephemeral storage, fixed handler contract.
-  You cannot register `transformer_lens` hooks across 56 layers, dump residuals to disk,
+  You cannot register hooks across 40 layers, dump residuals to disk,
   or do activation patching without fighting the platform. Skip.
 - **Public Endpoints** ([Hub](https://console.runpod.io/hub)): no Mistral 24B endpoint, and no hookability anyway.
 - **Instant Clusters** (multi-GPU TP): 24B fits on one 80 GB GPU. Tensor parallelism adds NCCL/PCIe nondeterminism, which is hostile to a *replication* effort.
@@ -115,17 +121,18 @@ Two non-obvious observations:
 ### Python deps (one-shot, installed onto Network Volume)
 
 ```bash
-pip install -U \
-  transformers==4.* accelerate \
-  nnsight transformer_lens \
-  flash-attn --no-build-isolation \
-  vllm
+uv sync --frozen
+uv run python -c "import torch, transformers; print(torch.__version__, transformers.__version__)"
 ```
 
+Use `uv add <package>` plus a same-change `uv export --no-hashes --frozen
+--no-emit-project > requirements.txt` only if a dependency is genuinely missing.
+Do not use `pip install` instructions in repo docs.
+
 - [transformer_lens](https://github.com/TransformerLensOrg/TransformerLens) supports the Mistral arch.
-- [nnsight](https://nnsight.net/) for declarative tracing if `transformer_lens` is too rigid for the intervention pattern.
+- [nnsight](https://nnsight.net/) for declarative tracing if direct PyTorch hooks are too rigid for the intervention pattern.
 - [FlashAttention](https://github.com/Dao-AILab/flash-attention): FA2 is fine on Hopper; FA3 wheels exist for H100 SXM.
-- [vLLM](https://github.com/vllm-project/vllm): only for the canary judge pass, not the hook pipeline.
+- [vLLM](https://github.com/vllm-project/vllm): only for canary judge/inference checks, not the hook pipeline.
 
 ### Storage plan
 
@@ -135,6 +142,7 @@ pip install -U \
   Persists across pod stop/start, no idle premium (unlike Volume Disk at $0.20/GB-mo idle).
   Region-locked — pin a region with H100 SXM availability *and* A100 SXM fallback.
 - Layout: `models/mistral-24b/` (~48 GB) + `runs/` (~30 GB captures) + headroom.
+  Use 150-200 GB if adding base-model origin analysis or 2503 downloads.
 
 ### Region
 
@@ -188,20 +196,141 @@ Optional: email BlueDot ahead of time to confirm RunPod is acceptable, or whethe
 
 ---
 
-## 8. Launch checklist
+## 8. Setup status (2026-04-27)
+
+Browser-only console work performed via Claude in Chrome
+([console settings](https://console.runpod.io/user/settings)); everything below this
+section can now be driven from the CLI on this machine.
+
+### Done — credentials and tooling
+
+- **API key** `cli-mech-interp-lab-2026-04-27`, scope **Read & Write** (full
+  `api.runpod.io/graphql` access). Stored host-local at:
+  - `~/.config/runpod/credentials` — `RUNPOD_API_KEY=…`, `chmod 600`. Source via
+    `set -a; source ~/.config/runpod/credentials; set +a` or systemd `EnvironmentFile=`.
+  - `~/.runpod/config.toml` — `apikey`/`apiurl` for `runpodctl` (already populated, no
+    `runpodctl config --apiKey` step needed).
+  - Project `.env` — `RUNPOD_API_KEY` appended for parity with other provider keys.
+- **`runpodctl` v2.1.9** installed to `~/.local/bin/runpodctl` (binary verified via
+  upstream SHA256). Smoke-tested: `runpodctl me`, `runpodctl pod list`,
+  `runpodctl datacenter list` all return live data.
+- **Account SSH key** registered: `~/.ssh/id_ed25519.pub`. RunPod injects it into
+  every new pod's `authorized_keys` automatically — no per-pod copy needed.
+- **Local SSH config** has a `Host ssh.runpod.io` block (User `root`, IdentityFile
+  `~/.ssh/id_ed25519`, `IdentitiesOnly yes`, `StrictHostKeyChecking accept-new`,
+  keepalives 30 s × 5) so `ssh <pod-id>@ssh.runpod.io` Just Works.
+- **Hugging Face token** `1-gen-vid` (fine-grained, `canReadGatedRepos: true`,
+  identity `SystemicVoid`) added to project `.env` as `HF_TOKEN`. Bonus discovery:
+  **`mistralai/Mistral-Small-24B-Base-2501` is no longer gated** as of this date
+  (HF API `gated: False`, anonymous `config.json` returns HTTP 200) — the token is
+  belt-and-suspenders, not strictly required for the canonical Mistral-24B run.
+- **Account verified** via `myself` — `clientBalance: $200.00`,
+  `currentSpendPerHr: $0`, GitHub linked as `SystemicVoid`, no pre-existing pods or
+  network volumes. Account email is `hugo@hugonguyen.com` (separate from the local
+  git identity `nguyenhugo8@gmail.com`). Account-level `spendLimit: $80/hr`
+  (RunPod default) — well above the $2.99/hr H100 SXM target, no action needed.
+
+### Done — runtime parameters resolved (no commitments made)
+
+- **Template ID locked.** `runpod-torch-v240` →
+  `runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04` (official, public).
+  Default container disk is only 20 GB, so override to ≥100 GB at launch.
+- **Pricing snapshot** (GraphQL `gpuTypes`, $/hr 1 × GPU on-demand):
+
+  | GPU (80 GB) | Secure | Community | Spot floor |
+  |---|---|---|---|
+  | **H100 SXM** (HBM3) | $2.99 | $2.69 | $1.50 |
+  | H100 PCIe | $2.39 | $1.99 | — |
+  | **A100 SXM** (HBM2e) | $1.49 | $1.39 | $0.79 |
+  | A100 PCIe | $1.39 | $1.19 | — |
+
+- **Datacenter availability snapshot** for the two SXM 80 GB targets
+  (`runpodctl datacenter list`, 2026-04-27, "—" = no current stock):
+
+  | DC | Location | H100 SXM | A100 SXM |
+  |---|---|---|---|
+  | AP-IN-1 | India | Medium | — |
+  | EU-FR-1 | France | Low | — |
+  | EU-NL-1 | Netherlands | Low | — |
+  | EUR-IS-1 | Iceland | — | Low |
+  | EUR-IS-3 | Iceland | Low | — |
+  | EUR-NO-2 | Norway | Low | — |
+  | US-CA-2 | California | Low | Low |
+  | US-KS-2 | Kansas | — | Low |
+  | US-MD-1 | Maryland | — | Low |
+  | US-MO-1 | Missouri | Low | Low |
+  | US-NE-1 | Nebraska | Low | — |
+  | US-TX-3 | Texas | Low | — |
+  | US-WA-1 | Washington | — | Low |
+
+  US-CA-2 and US-MO-1 are the only datacenters with **both** H100 SXM and A100 SXM
+  in stock today — preferred picks if region matters less than fallback safety.
+  Re-run `runpodctl datacenter list` at launch time; this snapshot decays fast.
+
+### Out of scope — defer to launch time
+
+- **Network Volume.** $0.07/GB-mo standing charge ($7/mo for 100 GB) and
+  **region-locked at create**. Skip until the launching agent picks the DC and is
+  ready to start the first pod the same day. `runpodctl network-volume create` (or
+  GraphQL `saveNetworkVolume`) once region is fixed.
+- **Pod launch.** Owned by the agent driving the workload. Reference invocation:
+
+  ```bash
+  runpodctl pod create \
+    --name mistral24b-anchor \
+    --template-id runpod-torch-v240 \
+    --gpu-id "NVIDIA H100 80GB HBM3" \
+    --gpu-count 1 \
+    --cloud-type SECURE \
+    --container-disk-in-gb 120 \
+    --data-center-ids US-CA-2 \
+    --ports "22/tcp,8888/http"
+    # add: --network-volume-id <id from `runpodctl network-volume create`>
+    #      --volume-mount-path /workspace
+    # if reusing weights across pods (else accept ~6 min re-download per cold start)
+  ```
+  Fallback: swap `--gpu-id "NVIDIA A100-SXM4-80GB"` and re-pick `--data-center-ids`.
+- **BlueDot pre-confirmation email** — user decision per §7.
+
+### Health checks (re-runnable)
+
+```bash
+# Account + key + balance, single round-trip
+runpodctl me                                         # via runpodctl
+curl -sS -X POST -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $RUNPOD_API_KEY" \
+  -d '{"query":"query { myself { id email clientBalance currentSpendPerHr pubKey } }"}' \
+  https://api.runpod.io/graphql                      # or via GraphQL
+
+# Live availability for the picked GPU
+runpodctl datacenter list | jq '[.[] | {id, location, h100: ([.gpuAvailability[] | select(.gpuId=="NVIDIA H100 80GB HBM3").stockStatus] | first), a100: ([.gpuAvailability[] | select(.gpuId=="NVIDIA A100-SXM4-80GB").stockStatus] | first)}]'
+
+# Mistral weight access (will 401 if HF re-gates the model)
+curl -sS -L -H "Authorization: Bearer $HF_TOKEN" -o /dev/null -w "%{http_code}\n" \
+  https://huggingface.co/mistralai/Mistral-Small-24B-Base-2501/resolve/main/config.json
+```
+
+---
+
+## 9. Launch checklist
 
 1. Verify H100 SXM availability in target region at [console.runpod.io/deploy](https://console.runpod.io/deploy).
 2. Create **100 GB Network Volume — Standard** in that region (`/workspace`, $7/mo).
 3. Launch **H100 SXM** Pod, attach volume, template = **Pytorch 2.4.0**, SSH on.
-4. Install deps once into the volume; `huggingface-cli download mistralai/Mistral-Small-24B-Base-2501 --local-dir /workspace/models/mistral-24b`.
-5. Run replication with deterministic seeds; dump to `/workspace/runs/<ISO-date>/`.
+4. Install deps once into the volume with `uv sync --frozen`; download the model with
+   `uv run huggingface-cli download mistralai/Mistral-Small-24B-Instruct-2501 --local-dir /workspace/models/Mistral-Small-24B-Instruct-2501`.
+5. Run `DRY_RUN=1 bash scripts/infra/mistral24b_replication.sh` to inspect the
+   guarded command sequence, then run `bash scripts/infra/mistral24b_replication.sh`
+   in tmux or let the wrapper create its own tmux session; dump outputs under
+   `data/mistral24b/`. Use `STAGES=<comma-separated stages>` to resume a
+   verified subset.
 6. Run `scripts/lib/pipeline active-run-status` before staging outputs (project guard, [AGENTS.md](../../AGENTS.md)).
 7. **Stop the pod** when done — only $7/mo storage carries.
 8. If H100 SXM disappears at launch time → fallback A100 SXM, same volume, same template.
 
 ---
 
-## 9. Sources
+## 10. Sources
 
 ### Live data
 - [RunPod console — Deploy a Pod](https://console.runpod.io/deploy) (pricing + availability, snapshot 2026-04-27)
@@ -222,7 +351,9 @@ Optional: email BlueDot ahead of time to confirm RunPod is acceptable, or whethe
 
 ### Model + stack
 - [Mistral-Small-24B-Instruct-2501 on Hugging Face](https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501)
+- [Mistral-Small-24B-Instruct-2501 config](https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501/blob/main/config.json)
 - [Mistral-Small-24B-Base-2501 on Hugging Face](https://huggingface.co/mistralai/Mistral-Small-24B-Base-2501)
+- [Mistral-Small-3.1-24B-Instruct-2503 config](https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/blob/main/config.json)
 - [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens)
 - [nnsight](https://nnsight.net/) · [repo](https://github.com/ndif-team/nnsight)
 - [FlashAttention](https://github.com/Dao-AILab/flash-attention)

@@ -9,6 +9,11 @@ from tqdm import tqdm
 from openai import OpenAI
 from transformers import AutoTokenizer
 
+from model_registry import (
+    assert_causal_lm_supported,
+    model_path_for,
+    tokenizer_kwargs_for,
+)
 from utils import (
     finish_run_provenance,
     provenance_error_message,
@@ -22,6 +27,12 @@ def parse_args():
         description="Extract answer tokens from consistent responses."
     )
     parser.add_argument(
+        "--model_key",
+        type=str,
+        default=os.environ.get("HNEURONS_MODEL_KEY"),
+        help="Registered model key. Used for tokenizer defaults and quirks.",
+    )
+    parser.add_argument(
         "--input_path", type=str, required=True, help="Path to samples files"
     )
     parser.add_argument(
@@ -33,7 +44,7 @@ def parse_args():
     parser.add_argument(
         "--tokenizer_path",
         type=str,
-        default="data/activations",
+        default=os.environ.get("HNEURONS_TOKENIZER_PATH"),
         help="Path to the target model tokenizer",
     )
     parser.add_argument(
@@ -58,7 +69,10 @@ def parse_args():
         "--llm_model", type=str, default="gpt-4o", help="LLM for extraction"
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.tokenizer_path = model_path_for(args.model_key, args.tokenizer_path)
+    assert_causal_lm_supported(args.model_key, args.tokenizer_path)
+    return args
 
 
 # ==========================================
@@ -92,8 +106,10 @@ class AnswerTokenExtractor:
         if args.strategy == "llm":
             if not args.api_key:
                 raise ValueError("--api_key is required when --strategy llm.")
+            tokenizer_kwargs = tokenizer_kwargs_for(args.model_key, args.tokenizer_path)
+            tokenizer_kwargs.setdefault("trust_remote_code", True)
             self.tokenizer = AutoTokenizer.from_pretrained(
-                args.tokenizer_path, trust_remote_code=True
+                args.tokenizer_path, **tokenizer_kwargs
             )
             self.client = OpenAI(api_key=args.api_key, base_url=args.base_url)
 

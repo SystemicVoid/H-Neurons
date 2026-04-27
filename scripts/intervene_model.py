@@ -2,14 +2,32 @@ import torch
 import numpy as np
 
 
+def _text_config(config):
+    return getattr(config, "text_config", config)
+
+
+def _config_int(config, name: str) -> int:
+    text_config = _text_config(config)
+    value = getattr(text_config, name, None)
+    if value is None:
+        raise ValueError(f"Model config is missing required field {name!r}.")
+    return int(value)
+
+
 def get_h_neuron_indices(classifier, config):
     """Identify all H-Neurons (neurons with positive weights in the classifier)."""
-    weights = classifier.coef_[0]
-    inter_size = (
-        config.intermediate_size
-        if hasattr(config, "intermediate_size")
-        else config.text_config.intermediate_size
-    )
+    weights = np.asarray(classifier.coef_[0])
+    inter_size = _config_int(config, "intermediate_size")
+    n_layers = _config_int(config, "num_hidden_layers")
+    expected_features = n_layers * inter_size
+    if int(weights.shape[0]) != expected_features:
+        raise ValueError(
+            "Classifier coefficient width does not match model FFN geometry: "
+            f"coef_width={int(weights.shape[0])}, "
+            f"num_hidden_layers={n_layers}, intermediate_size={inter_size}, "
+            f"expected={expected_features}. Check --model_key/--model_path and "
+            "--classifier_path."
+        )
 
     # In L1-regularized models, neurons with weights > 0 are associated with hallucinations
     selected_flat_indices = np.where(weights > 0)[0]

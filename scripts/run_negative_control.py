@@ -1,10 +1,10 @@
 """
 Negative control experiment for H-Neuron specificity.
 
-Tests whether scaling arbitrary sets of 38 neurons produces comparable
-compliance effects to scaling the identified H-neurons. Supports FaithEval
-(anti-compliance prompt, inline MC evaluation) and FalseQA (bare-question
-prompt, deferred GPT-4o judging via evaluate_intervention.py).
+Tests whether scaling arbitrary neuron sets of the same size as the current
+classifier's positive-weight H-neurons produces comparable compliance effects.
+Supports FaithEval (anti-compliance prompt, inline MC evaluation) and FalseQA
+(bare-question prompt, deferred GPT-4o judging via evaluate_intervention.py).
 
 Usage:
     # FaithEval (default)
@@ -17,6 +17,8 @@ Usage:
 """
 
 import argparse
+from collections import Counter
+from dataclasses import dataclass
 import json
 import os
 import sys
@@ -30,6 +32,7 @@ from scipy import stats
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from transformers import AutoConfig
 
 sys.path.insert(0, os.path.dirname(__file__))
 from run_intervention import (
@@ -49,6 +52,14 @@ from run_intervention import (
     run_jailbreak,
     tokenize_chat,
 )
+from model_registry import (
+    assert_causal_lm_supported,
+    default_classifier_path_for,
+    dimensions_from_config,
+    model_output_root,
+    model_path_for,
+    registered_model_dimensions,
+)
 from utils import (
     define_wandb_metrics,
     finish_run_provenance,
@@ -60,99 +71,167 @@ from utils import (
 )
 from uncertainty import build_rate_summary, percentile_interval
 
-# H-neuron layer distribution: {layer: count}
-H_NEURON_LAYER_DIST = {
-    0: 2,
-    2: 1,
-    4: 3,
-    5: 4,
-    6: 2,
-    7: 3,
-    9: 1,
-    10: 2,
-    12: 1,
-    13: 2,
-    14: 2,
-    15: 2,
-    16: 2,
-    20: 1,
-    23: 1,
-    24: 1,
-    25: 1,
-    26: 1,
-    27: 1,
-    28: 1,
-    30: 1,
-    31: 2,
-    33: 1,
-}
-
-INTER_SIZE = 10240
-N_LAYERS = 34
 ALL_ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 QUICK_ALPHAS = [0.0, 1.0, 3.0]
 JAILBREAK_ALPHAS = [0.0, 1.0, 1.5, 3.0]
+ControlConfig = tuple[str, str, int]
 
-MODEL_PATH = "google/gemma-3-4b-it"
-CLASSIFIER_PATH = "models/gemma3_4b_classifier.pkl"
-OUTPUT_BASES = {
-    "faitheval": "data/gemma3_4b/intervention/faitheval/control",
-    "falseqa": "data/gemma3_4b/intervention/falseqa/control",
-    "bioasq": "data/gemma3_4b/intervention/bioasq/control",
-    "jailbreak": "data/gemma3_4b/intervention/jailbreak/control",
-}
-H_NEURON_BASELINES = {
-    "faitheval": "data/gemma3_4b/intervention/faitheval/experiment/results.json",
-    "falseqa": "data/gemma3_4b/intervention/falseqa/experiment/results.json",
-    "bioasq": "data/gemma3_4b/intervention/bioasq/experiment/results.json",
-}
+MODEL_PATH = None
+CLASSIFIER_PATH = os.environ.get("HNEURONS_CLASSIFIER_PATH")
 FALSEQA_DATA_PATH = "data/benchmarks/falseqa_test.csv"
 BIOASQ_DATA_PATH = "data/benchmarks/bioasq13b_factoid.parquet"
+
+
+def default_output_base(
+    benchmark: str, model_key: str | None, model_path: str | None
+) -> str:
+    return (
+        f"{model_output_root(model_key, model_path)}/intervention/{benchmark}/control"
+    )
+
+
+def default_h_neuron_baseline_dir(
+    benchmark: str, model_key: str | None, model_path: str | None
+) -> str:
+    return (
+        f"{model_output_root(model_key, model_path)}/intervention/"
+        f"{benchmark}/experiment"
+    )
+
+
+def resolve_results_json(path: str) -> str:
+    candidate = os.path.expanduser(path)
+    if os.path.isfile(candidate):
+        return candidate
+    if not os.path.isdir(candidate):
+        return candidate
+
+    stable_path = os.path.join(candidate, "results.json")
+    if os.path.isfile(stable_path):
+        return stable_path
+
+    timestamped = [
+        os.path.join(candidate, name)
+        for name in os.listdir(candidate)
+        if name.startswith("results.") and name.endswith(".json")
+    ]
+    if not timestamped:
+        return stable_path
+    return str(max(timestamped, key=lambda item: os.path.getmtime(item)))
+
+
+@dataclass(frozen=True)
+class ClassifierGeometry:
+    num_hidden_layers: int
+    intermediate_size: int
+    total_ffn_neurons: int
+    source: str
+
+
+def _classifier_weights(classifier) -> np.ndarray:
+    return np.asarray(classifier.coef_[0])
+
+
+def _model_dimensions(model_path: str, model_key: str | None = None):
+    dimensions = registered_model_dimensions(model_key, model_path)
+    if dimensions is not None:
+        return dimensions
+    return dimensions_from_config(AutoConfig.from_pretrained(model_path))
+
+
+def derive_classifier_geometry(
+    classifier,
+    *,
+    model_path: str | None = None,
+    model_key: str | None = None,
+    dimensions=None,
+) -> ClassifierGeometry:
+    weights = _classifier_weights(classifier)
+    n_features = int(weights.shape[0])
+    dims = dimensions
+    if dims is None:
+        if model_path is None:
+            raise ValueError("model_path is required when dimensions are not provided")
+        dims = _model_dimensions(model_path, model_key)
+
+    if n_features == dims.total_ffn_neurons:
+        return ClassifierGeometry(
+            num_hidden_layers=int(dims.num_hidden_layers),
+            intermediate_size=int(dims.intermediate_size),
+            total_ffn_neurons=n_features,
+            source="registered_or_hf_config",
+        )
+
+    raise ValueError(
+        "Classifier coefficient length does not match registered/HF model "
+        f"dimensions: n_features={n_features}, config_layers={dims.num_hidden_layers}, "
+        f"config_intermediate_size={dims.intermediate_size}, "
+        f"expected={dims.total_ffn_neurons}. Check --model_key/--model_path "
+        "and --classifier_path."
+    )
+
+
+def derive_h_neuron_layer_distribution(
+    classifier, intermediate_size: int
+) -> dict[int, int]:
+    selected_flat_indices = np.where(_classifier_weights(classifier) > 0)[0]
+    layers = (selected_flat_indices // intermediate_size).astype(int)
+    return dict(Counter(layers.tolist()))
+
+
+def zero_weight_indices_from_classifier(classifier) -> np.ndarray:
+    return np.where(_classifier_weights(classifier) == 0)[0]
 
 
 def get_zero_weight_indices(classifier_path: str) -> np.ndarray:
     """Get flat indices of all neurons with zero classifier weight."""
     clf = joblib.load(classifier_path)
-    w = clf.coef_[0]
-    return np.where(w == 0)[0]
+    return zero_weight_indices_from_classifier(clf)
 
 
 def get_nonzero_flat_indices(classifier_path: str) -> set:
     """Get flat indices of all neurons with non-zero classifier weight."""
     clf = joblib.load(classifier_path)
-    w = clf.coef_[0]
-    return set(np.where(w != 0)[0].tolist())
+    return set(np.where(_classifier_weights(clf) != 0)[0].tolist())
 
 
-def flat_to_neuron_map(flat_indices: np.ndarray) -> dict:
+def flat_to_neuron_map(flat_indices: np.ndarray, intermediate_size: int) -> dict:
     """Convert flat classifier indices to {layer_idx: [neuron_indices]}."""
     neuron_map = {}
     for idx in flat_indices:
-        layer = int(idx // INTER_SIZE)
-        neuron = int(idx % INTER_SIZE)
+        layer = int(idx // intermediate_size)
+        neuron = int(idx % intermediate_size)
         neuron_map.setdefault(layer, []).append(neuron)
     return neuron_map
 
 
-def sample_unconstrained(
-    zero_indices: np.ndarray, seed: int, n: int = 38
-) -> np.ndarray:
+def sample_unconstrained(zero_indices: np.ndarray, seed: int, n: int) -> np.ndarray:
     """Sample n neurons uniformly at random from zero-weight positions."""
+    if len(zero_indices) < n:
+        raise ValueError(
+            f"Need {n} zero-weight neurons but only {len(zero_indices)} are available."
+        )
     rng = np.random.RandomState(seed)
     chosen = rng.choice(zero_indices, size=n, replace=False)
     return np.sort(chosen)
 
 
-def sample_layer_matched(zero_indices: np.ndarray, seed: int) -> np.ndarray:
+def sample_layer_matched(
+    zero_indices: np.ndarray,
+    seed: int,
+    *,
+    layer_distribution: dict[int, int],
+    intermediate_size: int,
+) -> np.ndarray:
     """Sample random neurons matching the H-neuron layer distribution."""
     rng = np.random.RandomState(seed)
     zero_set = set(zero_indices.tolist())
 
     chosen = []
-    for layer, count in sorted(H_NEURON_LAYER_DIST.items()):
+    for layer, count in sorted(layer_distribution.items()):
         # All neuron indices in this layer (flat)
-        layer_start = layer * INTER_SIZE
-        layer_end = layer_start + INTER_SIZE
+        layer_start = layer * intermediate_size
+        layer_end = layer_start + intermediate_size
         eligible = [i for i in range(layer_start, layer_end) if i in zero_set]
         if len(eligible) < count:
             raise ValueError(
@@ -487,12 +566,20 @@ def _count_compliance_and_pf(path: str):
 
 
 def build_comparison_summary(
-    all_results: dict, alphas: list, benchmark: str = "faitheval"
+    all_results: dict,
+    alphas: list,
+    benchmark: str = "faitheval",
+    baseline_path: str | None = None,
 ) -> dict:
     """Build the comparison summary JSON."""
-    baseline_path = H_NEURON_BASELINES[benchmark]
-    with open(baseline_path) as f:
+    if baseline_path is None:
+        raise ValueError("baseline_path is required for comparison summaries")
+    resolved_baseline_path = resolve_results_json(baseline_path)
+    with open(resolved_baseline_path) as f:
         h_baseline_raw = json.load(f)
+    h_neuron_count = h_baseline_raw.get("n_h_neurons") or h_baseline_raw.get(
+        "n_neurons"
+    )
 
     h_rates = []
     for a in alphas:
@@ -506,6 +593,8 @@ def build_comparison_summary(
 
     summary = {
         "h_neuron_baseline": {
+            "path": resolved_baseline_path,
+            "n_h_neurons": h_neuron_count,
             "compliance_rates": h_rates,
             "slope_per_alpha": round(h_slope, 2),
             "spearman_rho": round(h_rho, 4),
@@ -641,6 +730,10 @@ def plot_comparison(
 
     # H-neuron baseline
     h_rates = np.array(summary["h_neuron_baseline"]["compliance_rates"]) * 100
+    h_neuron_count = summary["h_neuron_baseline"].get("n_h_neurons")
+    h_label = (
+        f"H-neurons ({h_neuron_count})" if h_neuron_count is not None else "H-neurons"
+    )
     ax.plot(
         alpha_arr,
         h_rates,
@@ -648,7 +741,7 @@ def plot_comparison(
         color="tab:blue",
         linewidth=2.5,
         markersize=8,
-        label="H-neurons (38)",
+        label=h_label,
         zorder=10,
     )
 
@@ -888,9 +981,30 @@ def parse_args():
         action="store_true",
         help="Quick falsification: 3 unconstrained seeds, α ∈ {0.0, 1.0, 3.0}",
     )
+    p.add_argument(
+        "--model_key",
+        type=str,
+        default=os.environ.get("HNEURONS_MODEL_KEY"),
+        help="Registered model key. Used for dimensions, defaults, and output roots.",
+    )
     p.add_argument("--model_path", type=str, default=MODEL_PATH)
     p.add_argument("--classifier_path", type=str, default=CLASSIFIER_PATH)
     p.add_argument("--device_map", type=str, default="cuda:0")
+    p.add_argument(
+        "--output_base",
+        type=str,
+        default=None,
+        help="Override benchmark control output directory.",
+    )
+    p.add_argument(
+        "--h_neuron_baseline",
+        type=str,
+        default=None,
+        help=(
+            "Path to H-neuron baseline results JSON or experiment directory. "
+            "Defaults to the registered model output root."
+        ),
+    )
     p.add_argument("--falseqa_path", type=str, default=FALSEQA_DATA_PATH)
     p.add_argument("--bioasq_path", type=str, default=BIOASQ_DATA_PATH)
     p.add_argument(
@@ -912,40 +1026,60 @@ def parse_args():
             "change sampling semantics)"
         ),
     )
-    return p.parse_args()
+    args = p.parse_args()
+    args.model_path = model_path_for(args.model_key, args.model_path)
+    assert_causal_lm_supported(args.model_key, args.model_path)
+    if args.classifier_path is None:
+        args.classifier_path = default_classifier_path_for(
+            args.model_key, args.model_path
+        )
+        if args.classifier_path is None:
+            raise ValueError(
+                "--classifier_path is required for negative controls with an "
+                "unregistered model."
+            )
+    return args
+
+
+def negative_control_schedule(
+    benchmark: str, quick: bool
+) -> tuple[list[float], list[ControlConfig]]:
+    if benchmark == "jailbreak":
+        return JAILBREAK_ALPHAS, [
+            ("seed_0_unconstrained", "unconstrained", 0),
+            ("seed_1_unconstrained", "unconstrained", 1),
+            ("seed_2_unconstrained", "unconstrained", 2),
+        ]
+    if quick:
+        return QUICK_ALPHAS, [
+            ("seed_0_unconstrained", "unconstrained", 0),
+            ("seed_1_unconstrained", "unconstrained", 1),
+            ("seed_2_unconstrained", "unconstrained", 2),
+            ("seed_0_layer_matched", "layer_matched", 0),
+        ]
+    return ALL_ALPHAS, [
+        ("seed_0_unconstrained", "unconstrained", 0),
+        ("seed_1_unconstrained", "unconstrained", 1),
+        ("seed_2_unconstrained", "unconstrained", 2),
+        ("seed_3_unconstrained", "unconstrained", 3),
+        ("seed_4_unconstrained", "unconstrained", 4),
+        ("seed_0_layer_matched", "layer_matched", 0),
+        ("seed_1_layer_matched", "layer_matched", 1),
+        ("seed_2_layer_matched", "layer_matched", 2),
+    ]
 
 
 def main():
     args = parse_args()
     benchmark = args.benchmark
-    output_base = OUTPUT_BASES[benchmark]
+    output_base = args.output_base or default_output_base(
+        benchmark, args.model_key, args.model_path
+    )
+    baseline_path = args.h_neuron_baseline or default_h_neuron_baseline_dir(
+        benchmark, args.model_key, args.model_path
+    )
 
-    if benchmark == "jailbreak":
-        alphas = JAILBREAK_ALPHAS
-        configs = [
-            ("seed_0_unconstrained", "unconstrained", 0),
-            ("seed_1_unconstrained", "unconstrained", 1),
-            ("seed_2_unconstrained", "unconstrained", 2),
-        ]
-    elif args.quick:
-        alphas = QUICK_ALPHAS
-        configs = [
-            ("seed_0_unconstrained", "unconstrained", 0),
-            ("seed_1_unconstrained", "unconstrained", 1),
-            ("seed_2_unconstrained", "unconstrained", 2),
-        ]
-    else:
-        alphas = ALL_ALPHAS
-        configs = [
-            ("seed_0_unconstrained", "unconstrained", 0),
-            ("seed_1_unconstrained", "unconstrained", 1),
-            ("seed_2_unconstrained", "unconstrained", 2),
-            ("seed_3_unconstrained", "unconstrained", 3),
-            ("seed_4_unconstrained", "unconstrained", 4),
-            ("seed_0_layer_matched", "layer_matched", 0),
-            ("seed_1_layer_matched", "layer_matched", 1),
-            ("seed_2_layer_matched", "layer_matched", 2),
-        ]
+    alphas, configs = negative_control_schedule(benchmark, args.quick)
 
     os.makedirs(output_base, exist_ok=True)
     resumed_from_existing = any(
@@ -1010,17 +1144,43 @@ def main():
 
         # Load classifier zero-weight indices
         print("Loading classifier for neuron sampling...")
-        zero_indices = get_zero_weight_indices(args.classifier_path)
+        classifier = joblib.load(args.classifier_path)
+        geometry = derive_classifier_geometry(
+            classifier,
+            model_path=args.model_path,
+            model_key=args.model_key,
+        )
+        layer_distribution = derive_h_neuron_layer_distribution(
+            classifier,
+            intermediate_size=geometry.intermediate_size,
+        )
+        target_neuron_count = sum(layer_distribution.values())
+        if target_neuron_count == 0:
+            raise ValueError(
+                "Classifier has no positive-weight H-neurons; cannot build controls."
+            )
+        zero_indices = zero_weight_indices_from_classifier(classifier)
         print(f"  {len(zero_indices)} zero-weight neurons available for sampling")
+        print(
+            "  classifier geometry: "
+            f"{geometry.num_hidden_layers} layers x "
+            f"{geometry.intermediate_size} FFN neurons "
+            f"({geometry.source}); H-neurons={target_neuron_count}"
+        )
 
         # Pre-compute all neuron selections
         neuron_configs = {}
         for name, strategy, seed in configs:
             if strategy == "unconstrained":
-                flat = sample_unconstrained(zero_indices, seed)
+                flat = sample_unconstrained(zero_indices, seed, n=target_neuron_count)
             else:
-                flat = sample_layer_matched(zero_indices, seed)
-            nmap = flat_to_neuron_map(flat)
+                flat = sample_layer_matched(
+                    zero_indices,
+                    seed,
+                    layer_distribution=layer_distribution,
+                    intermediate_size=geometry.intermediate_size,
+                )
+            nmap = flat_to_neuron_map(flat, geometry.intermediate_size)
             neuron_configs[name] = nmap
             n_layers = len(nmap)
             print(
@@ -1030,7 +1190,7 @@ def main():
         if not args.analysis_only:
             print(f"\nLoading model: {args.model_path}")
             model, tokenizer = load_model_and_tokenizer(
-                args.model_path, args.device_map
+                args.model_path, args.device_map, model_key=args.model_key
             )
 
             print(f"Loading benchmark: {benchmark}")
@@ -1096,7 +1256,7 @@ def main():
                 f"     uv run python scripts/analyze_csv2_control.py "
                 f"--control_base {output_base} "
                 f"--experiment_dir "
-                f"data/gemma3_4b/intervention/jailbreak/csv2_evaluation "
+                f"{model_output_root(args.model_key, args.model_path)}/intervention/jailbreak/csv2_evaluation "
                 f"--alphas {' '.join(f'{a:.1f}' for a in alphas)}"
             )
             provenance_extra["output_targets"] = [
@@ -1132,9 +1292,9 @@ def main():
                 )
                 return
 
-        baseline_path = H_NEURON_BASELINES[benchmark]
-        if not os.path.exists(baseline_path):
-            print(f"\nH-neuron baseline not found at {baseline_path}")
+        resolved_baseline_path = resolve_results_json(baseline_path)
+        if not os.path.exists(resolved_baseline_path):
+            print(f"\nH-neuron baseline not found at {resolved_baseline_path}")
             print(
                 "Run the H-neuron intervention first, then re-run with --analysis_only"
             )
@@ -1143,7 +1303,12 @@ def main():
         print("\n" + "=" * 60)
         print("Building comparison summary...")
         print("=" * 60)
-        summary = build_comparison_summary(all_results, alphas, benchmark=benchmark)
+        summary = build_comparison_summary(
+            all_results,
+            alphas,
+            benchmark=benchmark,
+            baseline_path=resolved_baseline_path,
+        )
         triage_status, triage_note, recommended_next_action = negative_control_triage(
             summary
         )

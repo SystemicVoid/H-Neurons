@@ -9,6 +9,12 @@ import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from model_registry import (
+    assert_causal_lm_supported,
+    model_metadata,
+    model_path_for,
+    tokenizer_kwargs_for,
+)
 from utils import (
     define_wandb_metrics,
     finish_run_provenance,
@@ -36,7 +42,18 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Extract CETT activations for multiple token positions."
     )
-    parser.add_argument("--model_path", type=str, required=True)
+    parser.add_argument(
+        "--model_key",
+        type=str,
+        default=os.environ.get("HNEURONS_MODEL_KEY"),
+        help="Registered model key. Used for defaults and tokenizer quirks.",
+    )
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=os.environ.get("HNEURONS_MODEL_PATH"),
+        help="Path or HF id for the model.",
+    )
     parser.add_argument(
         "--input_path", type=str, required=True, help="Path to answer_tokens.jsonl"
     )
@@ -72,7 +89,10 @@ def parse_args():
         action="store_true",
         help="Enable Weights & Biases run tracking",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.model_path = model_path_for(args.model_key, args.model_path)
+    assert_causal_lm_supported(args.model_key, args.model_path)
+    return args
 
 
 class CETTManager:
@@ -249,7 +269,7 @@ def summary_path(output_root: str) -> Path:
 
 
 def build_metadata(args, n_target_ids: int) -> dict:
-    return {
+    payload = {
         "model_path": args.model_path,
         "input_path": args.input_path,
         "train_ids_path": args.train_ids_path,
@@ -259,6 +279,11 @@ def build_metadata(args, n_target_ids: int) -> dict:
         "use_mag": args.use_mag,
         "n_target_ids": n_target_ids,
     }
+    if hasattr(args, "model_key"):
+        model_key = getattr(args, "model_key", None)
+        payload["model_key"] = model_key
+        payload["registered_model"] = model_metadata(model_key, args.model_path)
+    return payload
 
 
 def ensure_metadata(output_root: str, metadata: dict) -> None:
@@ -515,7 +540,10 @@ def main():
                 metrics=metrics,
             )
 
-        tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.model_path,
+            **tokenizer_kwargs_for(args.model_key, args.model_path),
+        )
         model = AutoModelForCausalLM.from_pretrained(
             args.model_path,
             torch_dtype=torch.bfloat16,

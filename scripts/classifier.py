@@ -13,6 +13,13 @@ from sklearn.metrics import (
 from tqdm import tqdm
 from transformers import AutoConfig
 
+from model_registry import (
+    assert_causal_lm_supported,
+    dimensions_from_config,
+    model_metadata,
+    model_path_for,
+    registered_model_dimensions,
+)
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
@@ -31,9 +38,15 @@ def parse_args():
         description="Train or evaluate an H-Neuron detector with optional C sweeps."
     )
     parser.add_argument(
+        "--model_key",
+        type=str,
+        default=os.environ.get("HNEURONS_MODEL_KEY"),
+        help="Registered model key. Used for model dimensions and defaults.",
+    )
+    parser.add_argument(
         "--model_path",
         type=str,
-        required=True,
+        default=os.environ.get("HNEURONS_MODEL_PATH"),
         help="Path or HF id used to load the model config for neuron counts.",
     )
 
@@ -93,7 +106,10 @@ def parse_args():
     )
     parser.add_argument("--solver", type=str, default="liblinear")
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.model_path = model_path_for(args.model_key, args.model_path)
+    assert_causal_lm_supported(args.model_key, args.model_path)
+    return args
 
 
 def load_data(
@@ -214,19 +230,41 @@ def print_metrics(metrics, dataset_name="Test"):
     print(f"AUROC:     {metrics['auroc']:.4f}")
 
 
-def get_total_neurons(model_path):
+def get_model_dimensions(model_path, model_key=None):
+    dimensions = registered_model_dimensions(model_key, model_path)
+    if dimensions is not None:
+        return dimensions
     config = AutoConfig.from_pretrained(model_path)
-    if hasattr(config, "intermediate_size"):
-        intermediate_size = config.intermediate_size
-    else:
-        intermediate_size = config.text_config.intermediate_size
+    return dimensions_from_config(config)
 
-    if hasattr(config, "num_hidden_layers"):
-        num_hidden_layers = config.num_hidden_layers
-    else:
-        num_hidden_layers = config.text_config.num_hidden_layers
 
-    return int(intermediate_size * num_hidden_layers)
+def get_total_neurons(model_path, model_key=None):
+    return int(get_model_dimensions(model_path, model_key).total_ffn_neurons)
+
+
+def validate_activation_width(X, expected_width: int, *, context: str) -> None:
+    if X.ndim != 2:
+        raise ValueError(
+            f"{context} activations must be a 2-D matrix after flattening; "
+            f"got shape {X.shape}."
+        )
+    actual_width = int(X.shape[1])
+    if actual_width != expected_width:
+        raise ValueError(
+            f"{context} activation width ({actual_width}) does not match the "
+            f"registered/HF model FFN neuron count ({expected_width}). Check "
+            "--model_key/--model_path and activation directories."
+        )
+
+
+def validate_classifier_width(model, expected_width: int, *, context: str) -> None:
+    actual_width = int(np.asarray(model.coef_[0]).shape[0])
+    if actual_width != expected_width:
+        raise ValueError(
+            f"{context} classifier coefficient width ({actual_width}) does not "
+            f"match the registered/HF model FFN neuron count ({expected_width}). "
+            "Check --model_key/--model_path and --classifier_path."
+        )
 
 
 def fit_model(args, X_train, y_train, c_value, verbose):
@@ -287,7 +325,8 @@ def main():
     provenance_status = "completed"
     provenance_extra = {}
     try:
-        total_neurons = get_total_neurons(args.model_path)
+        model_dimensions = get_model_dimensions(args.model_path, args.model_key)
+        total_neurons = int(model_dimensions.total_ffn_neurons)
         prefer_test = bool(args.test_ids and args.test_acts)
 
         if args.load_model and args.c_values:
@@ -302,10 +341,12 @@ def main():
                 mode="1-vs-1",
                 return_qids=True,
             )
+            validate_activation_width(X_test, total_neurons, context="held-out")
 
         if args.load_model:
             print(f"Loading pre-trained model: {args.load_model}")
             model = joblib.load(args.load_model)
+            validate_classifier_width(model, total_neurons, context="loaded")
             selected = int(np.sum(model.coef_[0] > 0))
             ratio_per_mille = selected / total_neurons * 1000 if total_neurons else 0.0
             print(
@@ -324,6 +365,9 @@ def main():
                 ensure_parent_dir(args.metrics_out)
                 payload = {
                     "model_path": args.model_path,
+                    "model_key": args.model_key,
+                    "registered_model": model_metadata(args.model_key, args.model_path),
+                    "model_dimensions": model_dimensions.to_dict(),
                     "loaded_model_path": args.load_model,
                     "selection_split": "pretrained_load",
                     "total_ffn_neurons": total_neurons,
@@ -347,6 +391,7 @@ def main():
             other_acts_dir=args.train_other_acts,
             mode=args.train_mode,
         )
+        validate_activation_width(X_train, total_neurons, context="training")
 
         c_values = args.c_values or [args.C]
         verbose = 1 if len(c_values) == 1 else 0
@@ -405,6 +450,9 @@ def main():
             ensure_parent_dir(args.metrics_out)
             payload = {
                 "model_path": args.model_path,
+                "model_key": args.model_key,
+                "registered_model": model_metadata(args.model_key, args.model_path),
+                "model_dimensions": model_dimensions.to_dict(),
                 "train_mode": args.train_mode,
                 "penalty": args.penalty,
                 "solver": args.solver,

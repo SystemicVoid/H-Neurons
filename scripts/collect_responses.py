@@ -11,13 +11,28 @@ from datasets import load_dataset
 from openai import OpenAI
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from model_registry import (
+    assert_causal_lm_supported,
+    model_path_for,
+    tokenizer_kwargs_for,
+)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Consistency Filtering with Rule or LLM Judge."
     )
     parser.add_argument(
-        "--model_path", type=str, required=True, help="Path to the model for sampling"
+        "--model_key",
+        type=str,
+        default=os.environ.get("HNEURONS_MODEL_KEY"),
+        help="Registered model key. Used for defaults and tokenizer quirks.",
+    )
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=os.environ.get("HNEURONS_MODEL_PATH"),
+        help="Path or HF id for the model used for sampling.",
     )
     parser.add_argument(
         "--data_path", type=str, required=True, help="Path to the TriviaQA parquet file"
@@ -86,7 +101,10 @@ def parse_args():
         help="Enable Weights & Biases run tracking",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.model_path = model_path_for(args.model_key, args.model_path)
+    assert_causal_lm_supported(args.model_key, args.model_path)
+    return args
 
 
 # ==========================================
@@ -455,7 +473,10 @@ class ConsistencySampler:
 
         # 1. Init Sampling LLM
         if self.backend == "transformers":
-            self.tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                args.model_path,
+                **tokenizer_kwargs_for(args.model_key, args.model_path),
+            )
             self.model = AutoModelForCausalLM.from_pretrained(
                 args.model_path,
                 torch_dtype=torch.bfloat16,

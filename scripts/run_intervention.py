@@ -54,16 +54,19 @@ from uncertainty import (
     paired_bootstrap_curve_effects,
     percentile_interval,
 )
+from model_registry import (
+    DEFAULT_MODEL_KEY as REGISTRY_DEFAULT_MODEL_KEY,
+    assert_causal_lm_supported,
+    default_classifier_path_for,
+    model_output_root,
+    model_path_for,
+    tokenizer_kwargs_for,
+)
 
 
-DEFAULT_MODEL_PATH = os.environ.get(
-    "HNEURONS_MODEL_PATH",
-    "google/gemma-3-4b-it",
-)
-DEFAULT_CLASSIFIER_PATH = os.environ.get(
-    "HNEURONS_CLASSIFIER_PATH",
-    "models/gemma3_4b_classifier.pkl",
-)
+DEFAULT_MODEL_KEY = os.environ.get("HNEURONS_MODEL_KEY", REGISTRY_DEFAULT_MODEL_KEY)
+DEFAULT_MODEL_PATH = os.environ.get("HNEURONS_MODEL_PATH")
+DEFAULT_CLASSIFIER_PATH = os.environ.get("HNEURONS_CLASSIFIER_PATH")
 DEFAULT_DEVICE_MAP = os.environ.get("HNEURONS_DEVICE_MAP", "cuda:0")
 DEFAULT_SYCOPHANCY_DATA = os.environ.get(
     "HNEURONS_SYCOPHANCY_DATA",
@@ -270,6 +273,10 @@ def build_generation_fingerprint(
 def resolve_output_dir(args: argparse.Namespace) -> str:
     if args.output_dir:
         return args.output_dir
+    output_root = model_output_root(
+        getattr(args, "model_key", None),
+        getattr(args, "model_path", DEFAULT_MODEL_PATH),
+    )
     benchmark_name = resolve_benchmark_name(args)
     if (
         benchmark_name in {"jailbreak", "jailbreak_benign"}
@@ -277,7 +284,7 @@ def resolve_output_dir(args: argparse.Namespace) -> str:
     ):
         benchmark_name = f"{benchmark_name}_fast"
     if args.intervention_mode == "sae":
-        return f"data/gemma3_4b/intervention/{benchmark_name}_sae/experiment"
+        return f"{output_root}/intervention/{benchmark_name}_sae/experiment"
     if args.intervention_mode == "iti_head":
         if not args.iti_head_path:
             raise ValueError(
@@ -294,7 +301,7 @@ def resolve_output_dir(args: argparse.Namespace) -> str:
             args.iti_direction_random_seed,
             args.iti_decode_scope,
         )
-        return f"data/gemma3_4b/intervention/{benchmark_name}_{iti_suffix}/experiment"
+        return f"{output_root}/intervention/{benchmark_name}_{iti_suffix}/experiment"
     if args.intervention_mode == "direction":
         if not args.direction_path:
             raise ValueError(
@@ -307,10 +314,9 @@ def resolve_output_dir(args: argparse.Namespace) -> str:
             args.direction_layers,
         )
         return (
-            "data/gemma3_4b/intervention/"
-            f"{benchmark_name}_{direction_suffix}/experiment"
+            f"{output_root}/intervention/{benchmark_name}_{direction_suffix}/experiment"
         )
-    return f"data/gemma3_4b/intervention/{benchmark_name}/experiment"
+    return f"{output_root}/intervention/{benchmark_name}/experiment"
 
 
 def load_sample_manifest_ids(path: str) -> set[str]:
@@ -463,8 +469,12 @@ class HNeuronScaler:
 # ---------------------------------------------------------------------------
 
 
-def load_model_and_tokenizer(model_path, device_map="auto"):
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+def load_model_and_tokenizer(model_path, device_map="auto", model_key=None):
+    assert_causal_lm_supported(model_key, model_path)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        **tokenizer_kwargs_for(model_key, model_path),
+    )
     model = AutoModelForCausalLM.from_pretrained(
         model_path, dtype=torch.bfloat16, device_map=device_map
     )
@@ -4011,6 +4021,12 @@ def aggregate_results(
 
 def parse_args(argv: list[str] | None = None):
     p = argparse.ArgumentParser(description="H-Neuron intervention experiments")
+    p.add_argument(
+        "--model_key",
+        type=str,
+        default=os.environ.get("HNEURONS_MODEL_KEY"),
+        help="Registered model key. Used for defaults, output roots, and tokenizer quirks.",
+    )
     p.add_argument("--model_path", type=str, default=DEFAULT_MODEL_PATH)
     p.add_argument("--classifier_path", type=str, default=DEFAULT_CLASSIFIER_PATH)
     p.add_argument("--device_map", type=str, default=DEFAULT_DEVICE_MAP)
@@ -4352,7 +4368,19 @@ def parse_args(argv: list[str] | None = None):
         default=None,
         help="Random seed for reproducibility (sets torch, cuda, and python random)",
     )
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    args.model_path = model_path_for(args.model_key, args.model_path)
+    assert_causal_lm_supported(args.model_key, args.model_path)
+    if args.classifier_path is None and args.intervention_mode == "neuron":
+        args.classifier_path = default_classifier_path_for(
+            args.model_key, args.model_path
+        )
+        if args.classifier_path is None:
+            raise ValueError(
+                "--classifier_path is required for neuron interventions with an "
+                "unregistered model."
+            )
+    return args
 
 
 def main():
@@ -4418,7 +4446,9 @@ def main():
     try:
         # Load model
         print(f"Loading model: {args.model_path}")
-        model, tokenizer = load_model_and_tokenizer(args.model_path, args.device_map)
+        model, tokenizer = load_model_and_tokenizer(
+            args.model_path, args.device_map, model_key=args.model_key
+        )
 
         # Build scaler based on intervention mode
         device = next(model.parameters()).device

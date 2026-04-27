@@ -39,7 +39,8 @@ def parse_args():
     parser.add_argument(
         "--exclude_path",
         type=str,
-        default=None,
+        nargs="*",
+        default=[],
         help="Path to a previously-sampled qids.json whose IDs should be excluded (for disjoint splits)",
     )
     return parser.parse_args()
@@ -62,11 +63,11 @@ def main():
 
         # Load exclusion set if provided (for disjoint train/test splits)
         exclude_ids = set()
-        if args.exclude_path:
-            with open(args.exclude_path, "r") as f:
+        for exclude_path in args.exclude_path:
+            with open(exclude_path, "r") as f:
                 excl = json.load(f)
-                exclude_ids = set(excl["t"] + excl["f"])
-            print(f"Excluding {len(exclude_ids)} IDs from {args.exclude_path}")
+                exclude_ids.update(excl["t"] + excl["f"])
+            print(f"Excluding {len(exclude_ids)} IDs from {exclude_path}")
 
         # Categorize IDs based on labels
         with open(args.input_path, "r", encoding="utf-8") as f:
