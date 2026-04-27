@@ -192,8 +192,6 @@ RunPod card-pay → itemized PDF invoice per pod → reimbursable.
 
 → **Run the BlueDot-funded Mistral anchor on RunPod. Reserve Lambda credits for unfunded follow-ups.**
 
-Optional: email BlueDot ahead of time to confirm RunPod is acceptable, or whether they have direct provider credits (some AI-safety programs do).
-
 ---
 
 ## 8. Setup status (2026-04-27)
@@ -290,7 +288,6 @@ section can now be driven from the CLI on this machine.
     # if reusing weights across pods (else accept ~6 min re-download per cold start)
   ```
   Fallback: swap `--gpu-id "NVIDIA A100-SXM4-80GB"` and re-pick `--data-center-ids`.
-- **BlueDot pre-confirmation email** — user decision per §7.
 
 ### Health checks (re-runnable)
 
