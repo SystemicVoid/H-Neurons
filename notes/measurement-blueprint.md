@@ -68,6 +68,18 @@ Every steering method must report:
 - Run a cheap negative control whenever a new headline steering claim would otherwise lack specificity support.
 - Retain per-example outputs for every headline metric.
 
+## Open-Grade Instrument Validity
+
+Open-text correctness grading by deterministic alias / substring matching is **not** a uniformly usable instrument across benchmarks. Validity is dataset-dependent and is gated by the structure of the gold-target set.
+
+- **Named-entity gold targets (TriviaQA bridge)**: deterministic alias matching is sufficient. SIMID phase-0 sample: 0/8 disagreements vs `gpt-4o` judge; consistent with the [L4 bridge IRR closure](../paper/icml/reports/2026-04-21-bridge-irr-review.md) (κ=0.90 / AC1=0.96 against `gpt-4o-2024-11-20` Rater B on the discordant subset).
+- **Paraphrase-rich gold targets (TruthfulQA)**: deterministic alias matching has a **one-directional miss rate of ~50%** on the SIMID phase-0 sample (4/8 unique items, 16/32 paired rows; all disagreements are judge-CORRECT / alias-False, none reverse). Judge adjudication moved per-stratum open accuracy from `0.000` to `0.500` in both the test and train splits — a +50 pp shift driven entirely by paraphrase. n is small; the qualitative mechanism (alias literals vs paraphrase-rich gold) is structural, the specific lift number is small-n.
+- **Reporting rule**: any open-correctness number on a paraphrase-rich benchmark must use judge adjudication. A deterministic-alias estimate may be reported only as a diagnostic floor, with the gap to the adjudicated estimate stated explicitly.
+- **Calibration rule**: an open-correctness number is not claim-bearing until a judge-calibration pass is recorded — pre-frozen rule, second rater (different LLM, human subset, or both), reported κ / AC1 / rule_gap. Mirror the [L4 bridge IRR template](../paper/icml/reports/2026-04-21-bridge-irr-review.md). Until then, the analysis pipeline must keep `claimable_open_correctness = false` with blocker `calibration_evidence_not_recorded`.
+- **Mixed-source rule**: a results JSON with both `adjudication > 0` and `deterministic_alias > 0` rows in `effective_grade_source_counts` is not claim-bearing. Partial adjudication can produce apparent treatment effects that are coverage artefacts; the SIMID pipeline raises a distinct claimability blocker for this case.
+
+Source: [SIMID open-adjudication pipeline review (2026-04-27)](./act3-reports/2026-04-27-simid-open-adjudication-pipeline-review.md).
+
 ## Run Manifest Requirements
 
 Each claim-relevant artifact must record:
