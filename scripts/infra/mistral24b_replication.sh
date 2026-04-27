@@ -193,6 +193,7 @@ run_stage faitheval_controls uv run python scripts/run_negative_control.py \
     --classifier_path "${CLASSIFIER_PATH}" \
     --benchmark faitheval \
     --prompt_style standard \
+    --max_samples "${INTERVENTION_MAX_SAMPLES}" \
     --output_base "${OUTPUT_ROOT}/intervention/faitheval/control" \
     --h_neuron_baseline "${OUTPUT_ROOT}/intervention/faitheval/experiment"
 
@@ -213,6 +214,7 @@ run_stage falseqa_controls uv run python scripts/run_negative_control.py \
     --classifier_path "${CLASSIFIER_PATH}" \
     --benchmark falseqa \
     --quick \
+    --max_samples "${INTERVENTION_MAX_SAMPLES}" \
     --output_base "${OUTPUT_ROOT}/intervention/falseqa/control" \
     --h_neuron_baseline "${OUTPUT_ROOT}/intervention/falseqa/experiment"
 

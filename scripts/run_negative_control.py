@@ -48,6 +48,7 @@ from run_intervention import (
     load_falseqa,
     load_jailbreak,
     load_model_and_tokenizer,
+    load_sample_manifest_ids,
     normalize_answer,
     run_jailbreak,
     tokenize_chat,
@@ -1018,6 +1019,25 @@ def parse_args():
         ),
     )
     p.add_argument(
+        "--max_samples",
+        type=int,
+        default=None,
+        help=(
+            "Truncate the benchmark to the first N samples after manifest "
+            "filtering. Must match the H-neuron baseline's --max_samples for "
+            "the comparison to share a sample population."
+        ),
+    )
+    p.add_argument(
+        "--sample_manifest",
+        type=str,
+        default=None,
+        help=(
+            "Path to JSON file with list of sample IDs to include. Filters "
+            "loaded samples to this subset before any --max_samples truncation."
+        ),
+    )
+    p.add_argument(
         "--output_base",
         type=str,
         default=None,
@@ -1229,6 +1249,17 @@ def main():
                 samples = load_bioasq(args.bioasq_path)
             elif benchmark == "jailbreak":
                 samples = load_jailbreak()
+
+            if args.sample_manifest:
+                manifest_ids = load_sample_manifest_ids(args.sample_manifest)
+                samples = [s for s in samples if s["id"] in manifest_ids]
+                print(
+                    f"  Filtered to {len(samples)} samples via manifest "
+                    f"{args.sample_manifest}"
+                )
+            if args.max_samples:
+                samples = samples[: args.max_samples]
+                print(f"  Truncated to {len(samples)} samples (--max_samples)")
             print(f"  {len(samples)} samples")
 
             all_results = {}

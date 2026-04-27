@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
 
@@ -66,3 +67,29 @@ def test_faitheval_prompt_standard_differs_from_anti_compliance() -> None:
     assert standard != anti
     assert "expert in retrieval question answering" in standard
     assert "answer based on your own knowledge" in anti
+
+
+def test_parse_args_max_samples_accepts_int(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_argv(monkeypatch, "--max_samples", "100")
+    args = parse_args()
+    assert args.max_samples == 100
+
+
+def test_parse_args_max_samples_default_is_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_argv(monkeypatch)
+    args = parse_args()
+    assert args.max_samples is None
+
+
+def test_parse_args_sample_manifest_accepts_path(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(["a", "b", "c"]))
+    _set_argv(monkeypatch, "--sample_manifest", str(manifest))
+    args = parse_args()
+    assert args.sample_manifest == str(manifest)
