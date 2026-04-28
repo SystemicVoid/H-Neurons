@@ -2649,6 +2649,15 @@ def write_report(results: dict[str, Any], path: Path) -> None:
             "open-correctness calibration evidence passed the recorded "
             "claimability policy."
         )
+    elif judge_backed and isinstance(open_grading.get("calibration"), dict):
+        open_grading_note = (
+            "Open correctness is reported as adjudicated_open_correct for "
+            "diagnostics: judge adjudication is used when present, deterministic "
+            "alias grading is only a fallback for unadjudicated rows, and "
+            "deterministic alias diagnostics are kept separate. These open "
+            "metrics remain diagnostic-only because the recorded calibration "
+            "evidence did not pass the claimability policy."
+        )
     elif judge_backed:
         open_grading_note = (
             "Open correctness is reported as adjudicated_open_correct for "
@@ -2684,6 +2693,20 @@ def write_report(results: dict[str, Any], path: Path) -> None:
         if open_grading.get("claimable_open_correctness") is False:
             blocker = open_grading.get("claimability_blocker", "unspecified")
             lines.append(f"Open correctness claimability: blocked ({blocker}).")
+            calibration = open_grading.get("calibration")
+            if isinstance(calibration, dict):
+                calibration_path = calibration.get("path")
+                kappa = calibration.get("irr", {}).get("cohen_kappa")
+                ac1 = calibration.get("irr", {}).get("gwet_ac1")
+                rendered = []
+                if calibration_path:
+                    rendered.append(f"calibration={calibration_path}")
+                if kappa is not None:
+                    rendered.append(f"kappa={float(kappa):.4f}")
+                if ac1 is not None:
+                    rendered.append(f"AC1={float(ac1):.4f}")
+                if rendered:
+                    lines.append("Open calibration evidence: " + ", ".join(rendered))
         elif open_grading.get("claimable_open_correctness") is True:
             lines.append("Open correctness claimability: passed.")
             calibration = open_grading.get("calibration")

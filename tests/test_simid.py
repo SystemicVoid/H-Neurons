@@ -2503,6 +2503,56 @@ def test_report_labels_claimable_open_metrics_after_calibration(tmp_path: Path) 
     assert "diagnostic-only" not in text
 
 
+def test_report_distinguishes_failed_from_missing_open_calibration(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "report.md"
+    calibration_payload = _valid_open_calibration_summary()
+    calibration_payload["irr"]["cohen_kappa"] = 0.79
+    calibration = normalize_open_calibration_summary(
+        calibration_payload,
+        path=tmp_path / "open_calibration_summary.json",
+    )
+    write_report(
+        {
+            "open_grading": {
+                "metric_correct": "adjudicated_open_correct",
+                "metric_attempted": "adjudicated_open_attempted",
+                "effective_grade_source_counts": {"adjudication": 2},
+                "claimable_open_correctness": False,
+                "claimability_blocker": "calibration_evidence_failed_thresholds",
+                "calibration": calibration,
+            },
+            "conditions": {
+                "selected": {
+                    "n_paired_items": 2,
+                    "baseline_alpha": 0.0,
+                    "rates": {
+                        "0.0": {
+                            "mc_letter_likelihood_correct": {
+                                "estimate": 0.75,
+                                "ci": {"lower": 0.5, "upper": 1.0},
+                            },
+                            "adjudicated_open_correct": {
+                                "estimate": 0.5,
+                                "ci": {"lower": 0.25, "upper": 0.75},
+                            },
+                        }
+                    },
+                    "paired_deltas_vs_baseline": {},
+                }
+            },
+        },
+        path,
+    )
+
+    text = path.read_text(encoding="utf-8")
+    assert "calibration_evidence_failed_thresholds" in text
+    assert "recorded calibration evidence did not pass" in text
+    assert "kappa=0.7900" in text
+    assert "calibration_evidence_not_recorded" not in text
+
+
 def test_unknown_judge_verdict_does_not_become_claimable_correctness() -> None:
     row = _analysis_row(sample_id="s1", open_correct=True)
     row["open_adjudication"] = {"judge_grade": "MAYBE"}
