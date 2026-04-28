@@ -5,6 +5,14 @@
 > the `phase0_20260426_113707_gates` run. Sprint-internal audit; not tied to
 > an L1..L5 limitation closure.
 
+> **Supersession note (2026-04-27):** this file remains the methodology
+> authority for the phase-0 open-adjudication path. For the larger same-item
+> SIMID MVP run and current measurement interpretation, use
+> [2026-04-27-simid-mvp-calibration-audit.md](./2026-04-27-simid-mvp-calibration-audit.md).
+> The MVP panel supersedes the tiny phase-0 sample for deterministic-alias
+> disagreement rates: Bridge alias matching is better than TruthfulQA but not
+> universally sufficient.
+
 ## TL;DR
 
 - The adjudication pipeline ran correctly end-to-end. All 64 eligible rows

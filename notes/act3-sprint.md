@@ -25,6 +25,7 @@
 - D7 full-500 two-seed current-state audit (canonical): [2026-04-16-d7-full500-two-seed-current-state-audit.md](./act3-reports/2026-04-16-d7-full500-two-seed-current-state-audit.md)
 - D7 causal pilot audit: [2026-04-07-d7-causal-pilot-audit.md](./act3-reports/2026-04-07-d7-causal-pilot-audit.md)
 - E2 TriviaQA transfer closure: [2026-04-04-e2-triviaqa-transfer-synthesis.md](./act3-reports/2026-04-04-e2-triviaqa-transfer-synthesis.md)
+- SIMID MVP calibration audit: [2026-04-27-simid-mvp-calibration-audit.md](./act3-reports/2026-04-27-simid-mvp-calibration-audit.md) (diagnostic; open calibration pending)
 - Current E1 audit (canonical): [2026-04-02-e1-truthfulqa-modernized-audit.md](./act3-reports/2026-04-02-e1-truthfulqa-modernized-audit.md)
 - D4 rerun audit: [2026-04-01-priority-reruns-audit.md](./act3-reports/2026-04-01-priority-reruns-audit.md)
 - D4 specificity audit: [2026-04-01-random-head-specificity-audit.md](./act3-reports/2026-04-01-random-head-specificity-audit.md)
@@ -89,6 +90,7 @@ Completed milestones (1-8) are listed for audit trail; active priorities start a
 5. Keep D7 scoped correctly in synthesis: benchmark-local, mixed-ruler, and not mechanism-clean unless new control/capability evidence is added.
 6. Optional: minimal capability/over-refusal battery.
 7. Optional: tiny field-level audit of C/S/V/T (~20-30 rows) to determine if graded axes can headline.
+8. SIMID MVP follow-up: run the patched calibration canary, then secondary/adjudication/finalization on `mvp_20260427_calibration/open_calibration_queue.jsonl` before citing any open-correctness effect.
 
 ## Dataset Status And Caveats
 

@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-04-27 (SIMID MVP calibration run audit)
+
+### What I did
+
+Audited the full SIMID MVP run at `mvp_20260427_calibration`: 400 manifest rows, 3 conditions, 4 alphas, 4,800 primary `gpt-4o` open adjudications, and a 402-row open-calibration queue awaiting secondary labeling/finalization. Wrote the canonical report at [2026-04-27-simid-mvp-calibration-audit.md](./act3-reports/2026-04-27-simid-mvp-calibration-audit.md). Also verified the parallel no-go review of the calibration-labeling bundle: the canary really was blocked by the new queue validator, and malformed primary grades could pass the pre-spend check before failing later. Patched both paths, added queue-row hashes for newly produced secondary labels, and verified with the SIMID test module plus shellcheck.
+
+### What this changes about my thinking
+
+The MVP is a measurement/pipeline result, not a claimable intervention result. Selected ITI has an interesting TruthfulQA alpha=8 open-correctness cell (+12 pp [4, 20]), but it comes with TruthfulQA MC degradation, Bridge open degradation, incomplete specificity against controls, and no finalized judge calibration. The larger panel also corrects the phase-0 measurement story: deterministic alias grading is worst on TruthfulQA, but Bridge alias matching is not universally sufficient either (11/100 baseline unique Bridge responses disagree with `gpt-4o`). The right default is now "deterministic alias is a diagnostic floor; judge adjudication needs calibration; cite open-correctness effects only after the secondary-rater pass."
+
+### What I will do next
+
+Run the patched SIMID canary before any further Batch spend, then label/finalize `open_calibration_queue.jsonl` with a second rater or human subset. Only after kappa/AC1/rule-gap evidence passes should the MVP open metrics be reconsidered as claim-bearing. Any next effect run should pre-register the curve summary and add more random-head/random-direction seeds before claiming specificity.
+
 ## 2026-04-27 (SIMID open-adjudication pipeline review)
 
 ### What I did

@@ -88,6 +88,8 @@ PDF: [./Inference-Time Intervention:Eliciting Truthful Answers from a Language M
 
 Abstract: We introduce Inference-Time Intervention (ITI), a technique designed to enhance the truthfulness of large language models (LLMs). ITI operates by shifting model activations during inference, following a set of directions across a limited number of attention heads. This intervention significantly improves the performance of LLaMA models on the TruthfulQA benchmark. On an instruction-finetuned LLaMA called Alpaca, ITI improves its truthfulness from 32.5% to 65.1%. We identify a trade-off between truthfulness and helpfulness and demonstrate how to balance it by tuning the intervention strength. ITI is minimally invasive and computationally inexpensive. Moreover, the technique is data efficient: while approaches like RLHF require extensive annotations, ITI locates truthful directions using only a few hundred examples. Our findings suggest that LLMs may have an internal representation of the likelihood of something being true, even as they produce falsehoods on the surface.
 
+Useful refs for SIMID/ITI audits: L141-L147 define the head-level intervention and alpha/K controls; L163-L181 describe TruthfulQA generation/MC evaluation, GPT-judge calibration, and the true*informative target; L185-L205 discuss alpha/K sweep selection and held-out 2-fold evaluation.
+
 </details>
 
 <details>
@@ -320,6 +322,8 @@ PDF: [./know-thy-judge-2503.04474.pdf](./know-thy-judge-2503.04474.pdf)
 
 Abstract: Studies robustness of safety LLM judges (HarmBench, WildGuard, ShieldGemma, LLaMA Guard 3). Shows stylistic output changes can increase false negative rate by up to 0.24 on the same dataset, and adversarial attacks can fool some judges into misclassifying 100% of harmful generations as safe. Venue: ICLR 2025 Workshop ICBINB.
 
+Useful refs for judge-calibration caveats: L17-L19 motivate evaluator meta-evaluation; L97-L103 summarize robustness failures; L111-L153 show style and output-modification sensitivity that can change false negative rates.
+
 </details>
 
 <details>
@@ -379,6 +383,8 @@ Markdown: [./reliable-steering-eval-2410.17245.md](./reliable-steering-eval-2410
 PDF: [./reliable-steering-eval-2410.17245.pdf](./reliable-steering-eval-2410.17245.pdf)
 
 Abstract: Advocates four missing properties in steering evaluation: realistic contexts, model likelihoods, cross-behavior comparison, and baselines. Introduces an evaluation pipeline for CAA and ITI, finding some interventions are less effective than previously reported. Distinguishes promotion vs. suppression effects. Venue: MINT @ NeurIPS 2024 Workshop.
+
+Useful refs for SIMID framing: L39-L58 argue MC-style steering evaluations may fail to generalize to open-ended generation and that likelihood/confidence evidence should accompany text outputs; L83-L91 define the baseline-comparison likelihood protocol; L191-L199 give the open-ended prompt-format failure example.
 
 </details>
 
