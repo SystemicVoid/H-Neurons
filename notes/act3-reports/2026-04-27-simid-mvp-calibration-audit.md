@@ -126,18 +126,25 @@ All Bridge phase-0 gates pass:
 
 ### Deterministic Alias vs `gpt-4o`
 
-The earlier 16-item phase-0 run understated Bridge alias risk. On this MVP:
+The earlier 16-item phase-0 run understated Bridge alias risk. On this MVP,
+keep two disagreement metrics separate: open-correctness disagreement collapses
+`INCORRECT` and `NOT_ATTEMPTED` to open-incorrect, while grade/attempt mismatch
+uses the full three-way label. Unique-pair counts below use the conservative
+all-replicates-mismatch convention from the original audit.
 
-| Scope | Unit | TruthfulQA disagreement | Bridge disagreement |
-|---|---:|---:|---:|
-| Baseline alpha=0 unique `(base_sample_id,response)` | 100 per dataset | 43/100 | 11/100 |
-| All unique `(base_sample_id,response)` pairs | 468 TQA, 367 Bridge | 205/468 (43.8%) | 45/367 (12.3%) |
-| All adjudicated rows | 2,400 per dataset | 1,052/2,400 (43.8%) | 262/2,400 (10.9%) |
+| Scope | Unit | TruthfulQA open-correctness disagreement | TruthfulQA grade/attempt mismatch | Bridge open-correctness disagreement | Bridge grade/attempt mismatch |
+|---|---:|---:|---:|---:|---:|
+| Baseline alpha=0 unique `(base_sample_id,response)` | 100 per dataset | 28/100 | 43/100 | 10/100 | 11/100 |
+| All unique `(base_sample_id,response)` pairs | 468 TQA, 367 Bridge | 136/468 (29.1%) | 205/468 (43.8%) | 37/367 (10.1%) | 45/367 (12.3%) |
+| All adjudicated rows | 2,400 per dataset | 722/2,400 (30.1%) | 1,052/2,400 (43.8%) | 240/2,400 (10.0%) | 262/2,400 (10.9%) |
 
-The direction is not purely one-sided. TruthfulQA mostly has alias false
-negatives (`judge=CORRECT`, deterministic=INCORRECT: 708 rows), but also
-alias false positives (`judge=INCORRECT`, deterministic=CORRECT: 12 rows).
-Bridge has both false negatives (158 rows) and false positives (56 rows).
+The open-correctness direction is not purely one-sided. TruthfulQA mostly has
+alias false negatives (`judge=CORRECT`, deterministic open-incorrect: 710
+rows), but also alias false positives (`judge=INCORRECT` or `NOT_ATTEMPTED`,
+deterministic=CORRECT: 12 rows). Bridge has both false negatives (184 rows)
+and false positives (56 rows). The extra grade/attempt mismatches are
+`INCORRECT`/`NOT_ATTEMPTED` disagreements where both graders still mark the
+answer open-incorrect.
 
 Examples make the mechanism concrete:
 
@@ -228,8 +235,8 @@ This section is interpretation, not raw data.
   Pooled alpha=8 open improvement equals the random-direction control, and the
   selected-vs-random-head margin comparison is not decisive.
 - "Bridge alias grading is sufficient" is no longer supported. It is better
-  than TruthfulQA, but the MVP still has 11/100 baseline unique-response
-  disagreements and visible false positives/false negatives.
+  than TruthfulQA, but the MVP still has 10/100 baseline unique-response
+  open-correctness disagreements and visible false positives/false negatives.
 - "The judge is ground truth" is not supported. Some Bridge disagreement
   examples are plausibly judge errors or rubric/alias ambiguity. The correct
   standard is a second rater or human subset with adjudicated rule gaps.

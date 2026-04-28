@@ -12,7 +12,7 @@ Audited the full SIMID MVP run at `mvp_20260427_calibration`: 400 manifest rows,
 
 ### What this changes about my thinking
 
-The MVP is a measurement/pipeline result, not a claimable intervention result. Selected ITI has an interesting TruthfulQA alpha=8 open-correctness cell (+12 pp [4, 20]), but it comes with TruthfulQA MC degradation, Bridge open degradation, incomplete specificity against controls, and no finalized judge calibration. The larger panel also corrects the phase-0 measurement story: deterministic alias grading is worst on TruthfulQA, but Bridge alias matching is not universally sufficient either (11/100 baseline unique Bridge responses disagree with `gpt-4o`). The right default is now "deterministic alias is a diagnostic floor; judge adjudication needs calibration; cite open-correctness effects only after the secondary-rater pass."
+The MVP is a measurement/pipeline result, not a claimable intervention result. Selected ITI has an interesting TruthfulQA alpha=8 open-correctness cell (+12 pp [4, 20]), but it comes with TruthfulQA MC degradation, Bridge open degradation, incomplete specificity against controls, and no finalized judge calibration. The larger panel also corrects the phase-0 measurement story: deterministic alias grading is worst on TruthfulQA, but Bridge alias matching is not universally sufficient either (10/100 baseline unique Bridge responses disagree with `gpt-4o` on open correctness; 11/100 differ on the full grade/attempt label). The right default is now "deterministic alias is a diagnostic floor; judge adjudication needs calibration; cite open-correctness effects only after the secondary-rater pass."
 
 ### What I will do next
 
