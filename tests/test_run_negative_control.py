@@ -25,6 +25,12 @@ _FAKE_SAMPLE = {
 }
 
 
+def _stage_block(script: str, stage_name: str) -> str:
+    start = script.index(f"run_stage {stage_name} ")
+    end = script.find("\nrun_stage ", start + 1)
+    return script[start:] if end == -1 else script[start:end]
+
+
 def _set_argv(monkeypatch: pytest.MonkeyPatch, *extra: str) -> None:
     monkeypatch.setattr(
         sys,
@@ -70,6 +76,24 @@ def test_faitheval_prompt_standard_differs_from_anti_compliance() -> None:
     assert standard != anti
     assert "expert in retrieval question answering" in standard
     assert "answer based on your own knowledge" in anti
+
+
+def test_mistral_wrapper_controls_reuse_baseline_prompt_and_sample_selection() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    script = (repo_root / "scripts/infra/mistral24b_replication.sh").read_text()
+
+    faitheval_baseline = _stage_block(script, "faitheval")
+    faitheval_control = _stage_block(script, "faitheval_controls")
+    falseqa_baseline = _stage_block(script, "falseqa")
+    falseqa_control = _stage_block(script, "falseqa_controls")
+
+    shared_sample_cap = '--max_samples "${INTERVENTION_MAX_SAMPLES}"'
+    assert "--prompt_style standard" in faitheval_baseline
+    assert "--prompt_style standard" in faitheval_control
+    assert shared_sample_cap in faitheval_baseline
+    assert shared_sample_cap in faitheval_control
+    assert shared_sample_cap in falseqa_baseline
+    assert shared_sample_cap in falseqa_control
 
 
 def test_parse_args_max_samples_accepts_int(
