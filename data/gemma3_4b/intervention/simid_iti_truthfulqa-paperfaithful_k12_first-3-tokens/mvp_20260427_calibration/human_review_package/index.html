@@ -287,6 +287,40 @@
       height: 16px;
       margin: 0;
     }
+    .kbd-hint {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--muted);
+      margin-left: 6px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 6px;
+      background: var(--soft);
+      text-transform: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .shortcut-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 8px 10px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .shortcut-bar code {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: var(--ink);
+    }
     .perspectives {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -424,8 +458,16 @@
             </div>
           </div>
           <div class="panel decision-grid">
+            <div class="shortcut-bar" aria-label="Keyboard shortcuts">
+              <span><code>c</code> correct</span>
+              <span><code>i</code> incorrect</span>
+              <span><code>n</code> not attempted</span>
+              <span><code>1</code>–<code>5</code> confidence</span>
+              <span><code>g</code> rule gap</span>
+              <span><code>↵</code> save &amp; next</span>
+            </div>
             <div>
-              <h3>Your label</h3>
+              <h3>Your label <span class="kbd-hint">c · i · n</span></h3>
               <div class="label-buttons">
                 <button class="label-choice" data-label="CORRECT" type="button">CORRECT</button>
                 <button class="label-choice" data-label="INCORRECT" type="button">INCORRECT</button>
@@ -433,15 +475,15 @@
               </div>
             </div>
             <div>
-              <h3>Confidence</h3>
+              <h3>Confidence <span class="kbd-hint">1–5</span></h3>
               <div class="confidence-grid" id="confidence-grid"></div>
             </div>
             <label class="check">
               <input type="checkbox" id="rule-gap">
-              <span>Rule gap</span>
+              <span>Rule gap <span class="kbd-hint">g</span></span>
             </label>
             <div>
-              <h3>Boundary flags</h3>
+              <h3>Boundary flags <span class="kbd-hint">optional</span></h3>
               <div class="flag-grid" id="flag-grid"></div>
             </div>
             <div>
@@ -450,7 +492,7 @@
             </div>
             <div class="actions">
               <button id="clear-label" type="button">Clear</button>
-              <button id="save-label" class="primary" type="button">Save</button>
+              <button id="save-label" class="primary" type="button">Save &amp; Next ↵</button>
             </div>
           </div>
         </section>
@@ -474,6 +516,16 @@
     const manifest = JSON.parse(document.getElementById("manifest-data").textContent);
     const ruleText = JSON.parse(document.getElementById("rule-data").textContent);
     const validFlags = ["bridge_partial_entity_or_modifier", "truthfulqa_non_answer_boundary", "truthfulqa_qualified_answer_boundary", "wrong_extra_answer", "multiple_candidates_no_commitment", "alias_too_broad_or_too_narrow", "malformed_case", "other_boundary"];
+    const flagDisplay = {
+      bridge_partial_entity_or_modifier: "partial entity or modifier",
+      truthfulqa_non_answer_boundary: "borderline non-answer",
+      truthfulqa_qualified_answer_boundary: "heavily qualified answer",
+      wrong_extra_answer: "correct + wrong extra",
+      multiple_candidates_no_commitment: "lists candidates, no commitment",
+      alias_too_broad_or_too_narrow: "alias too broad or narrow",
+      malformed_case: "malformed case",
+      other_boundary: "other boundary"
+    };
     const storageKey = `simid-open-review:${manifest.blind_cases_file_sha256}`;
     const draftKey = `simid-open-review-draft:${manifest.blind_cases_file_sha256}`;
     const raterIdKey = `simid-open-review-rater:${manifest.blind_cases_file_sha256}`;
@@ -672,6 +724,32 @@
       render();
     }
 
+    function persistDraftField(field, value) {
+      const item = currentCase();
+      const existing = drafts[item.calibration_case_id] || labelFor(item.calibration_case_id) || {
+        schema_version: "simid_open_independent_rater_label/v1",
+        calibration_case_id: item.calibration_case_id,
+        review_order: item.review_order,
+        label: null,
+        confidence: null,
+        rule_gap: false,
+        flags: [],
+        notes: "",
+        rater: currentRater()
+      };
+      drafts[item.calibration_case_id] = { ...existing, [field]: value };
+      saveDrafts();
+    }
+
+    function nextUngradedIndex(fromIndex) {
+      const total = cases.length;
+      for (let i = 1; i <= total; i++) {
+        const idx = (fromIndex + i) % total;
+        if (!labelFor(cases[idx].calibration_case_id)) return idx;
+      }
+      return -1;
+    }
+
     function saveCurrent() {
       const item = currentCase();
       const existing = draftFor(item.calibration_case_id);
@@ -699,6 +777,10 @@
       delete drafts[item.calibration_case_id];
       saveLabels();
       saveDrafts();
+      const next = nextUngradedIndex(currentIndex);
+      if (next >= 0) {
+        currentIndex = next;
+      }
       render();
     }
 
@@ -790,11 +872,22 @@
         input.type = "checkbox";
         input.className = "flag-box";
         input.value = flag;
+        input.addEventListener("change", () => {
+          const flags = [...document.querySelectorAll(".flag-box:checked")].map(el => el.value);
+          persistDraftField("flags", flags);
+        });
         const span = document.createElement("span");
-        span.textContent = flag.replaceAll("_", " ");
+        span.textContent = flagDisplay[flag] || flag.replaceAll("_", " ");
         label.appendChild(input);
         label.appendChild(span);
         flagGrid.appendChild(label);
+      });
+      document.getElementById("rule-gap").addEventListener("change", event => {
+        persistDraftField("rule_gap", event.target.checked);
+      });
+      const notesEl = document.getElementById("notes");
+      notesEl.addEventListener("input", () => {
+        persistDraftField("notes", notesEl.value);
       });
       document.getElementById("save-label").addEventListener("click", saveCurrent);
       document.getElementById("clear-label").addEventListener("click", clearCurrent);
@@ -818,9 +911,66 @@
           render();
         });
       });
+      installKeyboardShortcuts();
+    }
+
+    function isTextEditing() {
+      const el = document.activeElement;
+      if (!el) return false;
+      if (el.tagName === "TEXTAREA") return true;
+      if (el.tagName === "SELECT") return true;
+      if (el.tagName === "INPUT") {
+        const type = (el.type || "text").toLowerCase();
+        return ["text", "search", "email", "url", "password", "number"].includes(type);
+      }
+      if (el.isContentEditable) return true;
+      return false;
+    }
+
+    function installKeyboardShortcuts() {
+      document.addEventListener("keydown", event => {
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+        const modal = document.getElementById("modal");
+        if (modal.classList.contains("open")) {
+          if (event.key === "Escape") {
+            modal.classList.remove("open");
+            event.preventDefault();
+          }
+          return;
+        }
+        if (event.key === "Escape" && document.activeElement && document.activeElement.blur) {
+          document.activeElement.blur();
+          event.preventDefault();
+          return;
+        }
+        if (isTextEditing()) return;
+        const key = event.key;
+        if (key === "Enter") {
+          event.preventDefault();
+          saveCurrent();
+          return;
+        }
+        if (key === "c" || key === "C") { event.preventDefault(); setLabel("CORRECT"); return; }
+        if (key === "i" || key === "I") { event.preventDefault(); setLabel("INCORRECT"); return; }
+        if (key === "n" || key === "N") { event.preventDefault(); setLabel("NOT_ATTEMPTED"); return; }
+        if (["1","2","3","4","5"].includes(key)) {
+          event.preventDefault();
+          setConfidence(Number(key));
+          return;
+        }
+        if (key === "g" || key === "G") {
+          event.preventDefault();
+          const cb = document.getElementById("rule-gap");
+          cb.checked = !cb.checked;
+          persistDraftField("rule_gap", cb.checked);
+          return;
+        }
+      });
     }
 
     initControls();
+    const firstUngraded = cases.findIndex(item => !labelFor(item.calibration_case_id));
+    if (firstUngraded >= 0) currentIndex = firstUngraded;
     render();
   </script>
 </body>
