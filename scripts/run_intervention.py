@@ -336,6 +336,67 @@ def load_sample_manifest_ids(path: str) -> set[str]:
     )
 
 
+def file_sha256(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def describe_sample_manifest(path: str) -> dict[str, Any]:
+    """Return content identity for a sample manifest, validating declared fields."""
+    with open(path, encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    if isinstance(payload, list):
+        ids = [str(item) for item in payload]
+        metadata: dict[str, Any] = {}
+    elif isinstance(payload, dict):
+        metadata = {}
+        for key in ("ids", "sample_ids"):
+            manifest_ids = payload.get(key)
+            if isinstance(manifest_ids, list):
+                ids = [str(item) for item in manifest_ids]
+                break
+        else:
+            raise ValueError(
+                "sample manifest must be a JSON list or an object with an 'ids' list"
+            )
+        if "schema_version" in payload:
+            metadata["schema_version"] = payload["schema_version"]
+        if "source_path" in payload:
+            metadata["source_path"] = payload["source_path"]
+        if "source_sha256" in payload:
+            metadata["source_sha256"] = payload["source_sha256"]
+        if "lock_context" in payload:
+            metadata["lock_context"] = payload["lock_context"]
+    else:
+        raise ValueError(
+            "sample manifest must be a JSON list or an object with an 'ids' list"
+        )
+
+    computed_fingerprint = fingerprint_ids(ids)
+    if isinstance(payload, dict):
+        declared_n_ids = payload.get("n_ids")
+        if declared_n_ids is not None and declared_n_ids != len(ids):
+            raise ValueError("sample manifest n_ids does not match the number of ids")
+        declared_fingerprint = payload.get("fingerprint")
+        if (
+            declared_fingerprint is not None
+            and str(declared_fingerprint) != computed_fingerprint
+        ):
+            raise ValueError("sample manifest fingerprint does not match ids")
+
+    return {
+        "path": path,
+        "content_sha256": file_sha256(path),
+        "n_ids": len(ids),
+        "fingerprint": computed_fingerprint,
+        **metadata,
+    }
+
+
 def resolve_sae_target_features(
     args: argparse.Namespace,
 ) -> tuple[dict[int, list[int]], dict[str, Any]]:
@@ -1404,6 +1465,7 @@ from utils import (  # noqa: E402
     define_wandb_metrics,
     extract_mc_answer,
     finish_run_provenance,
+    fingerprint_ids,
     format_alpha_label,
     get_git_sha,
     normalize_answer,
@@ -2957,13 +3019,29 @@ def load_triviaqa_bridge(
 ) -> list[dict]:
     """Load TriviaQA bridge benchmark from manifest + parquet.
 
-    The manifest is a JSON list of question_id strings.  The parquet is
-    joined to retrieve questions and answer aliases.
+    The manifest is a JSON list of question_id strings or a
+    ``sample_manifest/v2`` object with an ``ids`` list.  The parquet is joined
+    to retrieve questions and answer aliases.
     """
     import pandas as pd
 
-    with open(manifest_path) as f:
-        qids = json.load(f)
+    with open(manifest_path, encoding="utf-8") as f:
+        manifest_payload = json.load(f)
+
+    if isinstance(manifest_payload, list):
+        qids = [str(qid) for qid in manifest_payload]
+    elif isinstance(manifest_payload, dict):
+        ids = manifest_payload.get("ids")
+        if not isinstance(ids, list):
+            raise ValueError(
+                "TriviaQA bridge manifest object must contain an 'ids' list"
+            )
+        qids = [str(qid) for qid in ids]
+    else:
+        raise ValueError(
+            "TriviaQA bridge manifest must be a JSON list or an object with an "
+            "'ids' list"
+        )
 
     seen_qids = set()
     duplicate_qids = set()
@@ -4404,6 +4482,11 @@ def main():
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed_all(args.seed)
         print(f"Random seed: {args.seed}")
+    sample_manifest_ids = None
+    sample_manifest_metadata = None
+    if args.sample_manifest:
+        sample_manifest_ids = load_sample_manifest_ids(args.sample_manifest)
+        sample_manifest_metadata = describe_sample_manifest(args.sample_manifest)
     output_dir = resolve_output_dir(args)
     os.makedirs(output_dir, exist_ok=True)
     summary = {
@@ -4414,27 +4497,28 @@ def main():
         "comparability_class": comparability_class,
         "generation_fingerprint": generation_fingerprint,
     }
+    if sample_manifest_metadata is not None:
+        summary["sample_manifest"] = sample_manifest_metadata
     run_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     throughput_session_id = f"run_intervention:{run_ts}"
     summary_path = os.path.join(output_dir, f"results.{run_ts}.json")
-    provenance_handle = start_run_provenance(
-        args,
-        primary_target=output_dir,
-        output_targets=[output_dir, summary_path],
-        extra={
-            "run_profile": run_profile,
-            "comparability_class": comparability_class,
-            "generation_fingerprint": generation_fingerprint,
-        },
-        primary_target_is_dir=True,
-        run_ts=run_ts,
-    )
-    provenance_status = "completed"
-    provenance_extra: dict[str, Any] = {
+    initial_provenance_extra = {
         "run_profile": run_profile,
         "comparability_class": comparability_class,
         "generation_fingerprint": generation_fingerprint,
     }
+    if sample_manifest_metadata is not None:
+        initial_provenance_extra["sample_manifest"] = sample_manifest_metadata
+    provenance_handle = start_run_provenance(
+        args,
+        primary_target=output_dir,
+        output_targets=[output_dir, summary_path],
+        extra=initial_provenance_extra,
+        primary_target_is_dir=True,
+        run_ts=run_ts,
+    )
+    provenance_status = "completed"
+    provenance_extra: dict[str, Any] = dict(initial_provenance_extra)
     if jailbreak_generation is not None:
         provenance_extra["jailbreak_generation"] = jailbreak_generation
     scaler = None
@@ -4610,9 +4694,8 @@ def main():
         else:
             raise ValueError(f"Unknown benchmark: {args.benchmark}")
 
-        if args.sample_manifest:
-            manifest_ids = load_sample_manifest_ids(args.sample_manifest)
-            samples = [s for s in samples if s["id"] in manifest_ids]
+        if sample_manifest_ids is not None:
+            samples = [s for s in samples if s["id"] in sample_manifest_ids]
             print(
                 f"Filtered to {len(samples)} samples via manifest {args.sample_manifest}"
             )
@@ -4829,6 +4912,8 @@ def main():
                 "by_alpha": alpha_throughput or aggregation["throughput"]["by_alpha"]
             },
         }
+        if sample_manifest_metadata is not None:
+            summary["sample_manifest"] = sample_manifest_metadata
         if args.intervention_mode == "sae":
             if args.sae_classifier_path:
                 summary["sae_classifier"] = args.sae_classifier_path

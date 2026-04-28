@@ -27,13 +27,21 @@ cd "${PROJECT_DIR}"
 PIPELINE=(uv run python -m scripts.lib.pipeline)
 RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG_DIR="${LOG_DIR:-logs}"
-LOG="${LOG_DIR}/mistral24b_replication_${RUN_TS}.log"
 
 MODEL_KEY="${MODEL_KEY:-mistral_small_24b_instruct_2501}"
 MODEL_PATH="${MODEL_PATH:-mistralai/Mistral-Small-24B-Instruct-2501}"
 DEVICE_MAP="${DEVICE_MAP:-cuda:0}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-data/mistral24b}"
 PREFLIGHT_DIR="${PREFLIGHT_DIR:-${OUTPUT_ROOT}/preflight}"
+MANIFEST_DIR="${MANIFEST_DIR:-data/manifests}"
+FAITHEVAL_SAMPLE_MANIFEST="${FAITHEVAL_SAMPLE_MANIFEST:-${MANIFEST_DIR}/faitheval_seed42_n200_mistral24b.lock.json}"
+FAITHEVAL_PILOT_MANIFEST="${FAITHEVAL_PILOT_MANIFEST:-${MANIFEST_DIR}/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json}"
+TRUTHFULQA_MC1_MANIFEST="${TRUTHFULQA_MC1_MANIFEST:-${MANIFEST_DIR}/truthfulqa_paper_heldout_mc1_ids_seed42_mistral24b.lock.json}"
+TRUTHFULQA_MC2_MANIFEST="${TRUTHFULQA_MC2_MANIFEST:-${MANIFEST_DIR}/truthfulqa_paper_heldout_mc2_ids_seed42_mistral24b.lock.json}"
+TRIVIAQA_BRIDGE_MANIFEST="${TRIVIAQA_BRIDGE_MANIFEST:-${MANIFEST_DIR}/triviaqa_bridge_test500_seed42_mistral24b.lock.json}"
+SIMPLEQA_PILOT_MANIFEST="${SIMPLEQA_PILOT_MANIFEST:-${MANIFEST_DIR}/simpleqa_verified_pilot100_disjoint_seed42_mistral24b.lock.json}"
+SIMPLEQA_CONTROL_MANIFEST="${SIMPLEQA_CONTROL_MANIFEST:-${MANIFEST_DIR}/simpleqa_verified_control200_seed42_mistral24b.lock.json}"
+JBB_FULL_HARMFUL_MANIFEST="${JBB_FULL_HARMFUL_MANIFEST:-${MANIFEST_DIR}/jbb_d7_full_harmful500_seed42_mistral24b.lock.json}"
 ANSWER_TOKENS="${ANSWER_TOKENS:-${OUTPUT_ROOT}/answer_tokens_llm.jsonl}"
 TRAIN_IDS="${TRAIN_IDS:-${OUTPUT_ROOT}/pipeline/train_qids_llm.json}"
 DEV_IDS="${DEV_IDS:-${OUTPUT_ROOT}/pipeline/dev_qids_llm.json}"
@@ -52,10 +60,45 @@ TOKEN_SPAN_AUDIT_MAX_SAMPLES="${TOKEN_SPAN_AUDIT_MAX_SAMPLES:-50}"
 INTERVENTION_MAX_SAMPLES="${INTERVENTION_MAX_SAMPLES:-100}"
 STAGES="${STAGES:-all}"
 DRY_RUN="${DRY_RUN:-0}"
+DRY_RUN_TRANSCRIPT="${DRY_RUN_TRANSCRIPT:-${PREFLIGHT_DIR}/runpod_dry_run_transcript.txt}"
 read -r -a ALPHAS <<<"${ALPHAS:-0.0 0.5 1.0 1.5 2.0 2.5 3.0}"
 read -r -a C_VALUES <<<"${C_VALUES:-0.001 0.005 0.01 0.05 0.1 0.5 1.0}"
 
 mkdir -p "${LOG_DIR}" "${PREFLIGHT_DIR}" "${OUTPUT_ROOT}/pipeline" "${OUTPUT_ROOT}/intervention"
+
+if [[ "${DRY_RUN}" == "1" ]]; then
+    LOG="${DRY_RUN_TRANSCRIPT}"
+    : >"${LOG}"
+else
+    LOG="${LOG_DIR}/mistral24b_replication_${RUN_TS}.log"
+fi
+
+REQUIRED_LOCK_MANIFESTS=(
+    "${FAITHEVAL_SAMPLE_MANIFEST}"
+    "${FAITHEVAL_PILOT_MANIFEST}"
+    "${TRUTHFULQA_MC1_MANIFEST}"
+    "${TRUTHFULQA_MC2_MANIFEST}"
+    "${TRIVIAQA_BRIDGE_MANIFEST}"
+    "${SIMPLEQA_PILOT_MANIFEST}"
+    "${SIMPLEQA_CONTROL_MANIFEST}"
+    "${JBB_FULL_HARMFUL_MANIFEST}"
+)
+
+require_lock_manifests() {
+    if ! "${PIPELINE[@]}" validate-sample-locks "$@" 2>&1 | tee -a "${LOG}"; then
+        exit 2
+    fi
+}
+
+format_command() {
+    local formatted=""
+    local arg
+
+    for arg in "$@"; do
+        printf -v formatted '%s %q' "${formatted}" "${arg}"
+    done
+    printf '%s' "${formatted# }"
+}
 
 should_run_stage() {
     local stage="$1"
@@ -63,7 +106,9 @@ should_run_stage() {
 }
 
 run_logged() {
-    printf '\n[%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" | tee -a "${LOG}"
+    local command_text
+    command_text="$(format_command "$@")"
+    printf '\n[%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${command_text}" | tee -a "${LOG}"
     if [[ "${DRY_RUN}" == "1" ]]; then
         printf '[dry-run] skipped execution\n' | tee -a "${LOG}"
         return 0
@@ -77,8 +122,10 @@ run_stage() {
     if should_run_stage "${stage}"; then
         run_logged "$@"
     else
+        local command_text
+        command_text="$(format_command "$@")"
         printf '\n[%s] [skip:%s] %s\n' \
-            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${stage}" "$*" | tee -a "${LOG}"
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${stage}" "${command_text}" | tee -a "${LOG}"
     fi
 }
 
@@ -101,13 +148,20 @@ PY
     } >"${OUTPUT_ROOT}/pipeline/environment_${RUN_TS}.txt" 2>&1
 }
 
+require_lock_manifests "${REQUIRED_LOCK_MANIFESTS[@]}"
+
 run_logged "${PIPELINE[@]}" active-run-status
 run_logged "${PIPELINE[@]}" check-active-run-git-guard
 run_logged "${PIPELINE[@]}" gpu-preflight || true
 if command -v nvitop &>/dev/null; then
     run_logged nvitop -1 || true
 fi
-capture_versions
+if [[ "${DRY_RUN}" == "1" ]]; then
+    printf '\n[%s] [dry-run] skipped environment capture\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "${LOG}"
+else
+    capture_versions
+fi
 
 run_stage preflight uv run python scripts/audit_token_spans.py \
     --model_key "${MODEL_KEY}" \
@@ -196,8 +250,8 @@ run_stage faitheval uv run python scripts/run_intervention.py \
     --classifier_path "${CLASSIFIER_PATH}" \
     --benchmark faitheval \
     --prompt_style standard \
+    --sample_manifest "${FAITHEVAL_SAMPLE_MANIFEST}" \
     --alphas "${ALPHAS[@]}" \
-    --max_samples "${INTERVENTION_MAX_SAMPLES}" \
     --output_dir "${OUTPUT_ROOT}/intervention/faitheval/experiment"
 
 run_stage faitheval_controls uv run python scripts/run_negative_control.py \
@@ -207,7 +261,7 @@ run_stage faitheval_controls uv run python scripts/run_negative_control.py \
     --classifier_path "${CLASSIFIER_PATH}" \
     --benchmark faitheval \
     --prompt_style standard \
-    --max_samples "${INTERVENTION_MAX_SAMPLES}" \
+    --sample_manifest "${FAITHEVAL_SAMPLE_MANIFEST}" \
     --output_base "${OUTPUT_ROOT}/intervention/faitheval/control" \
     --h_neuron_baseline "${OUTPUT_ROOT}/intervention/faitheval/experiment"
 

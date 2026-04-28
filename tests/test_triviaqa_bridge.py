@@ -12,7 +12,11 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import build_triviaqa_bridge_manifest as manifest_builder
-from run_intervention import _triviaqa_bridge_prompt, grade_triviaqa_bridge
+from run_intervention import (
+    _triviaqa_bridge_prompt,
+    grade_triviaqa_bridge,
+    load_triviaqa_bridge,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -216,6 +220,74 @@ class TestTriviaQaBridgePrompt:
 
 
 class TestTriviaQaBridgeManifest:
+    def test_loader_preserves_legacy_list_manifest_order(self, tmp_path, monkeypatch):
+        pandas = pytest.importorskip("pandas")
+
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text(json.dumps(["q2", "q1"]), encoding="utf-8")
+        dataframe = pandas.DataFrame(
+            [
+                {
+                    "question_id": "q1",
+                    "question": "Question 1?",
+                    "answer": {"aliases": ["Answer 1"]},
+                },
+                {
+                    "question_id": "q2",
+                    "question": "Question 2?",
+                    "answer": {"aliases": ["Answer 2"]},
+                },
+            ]
+        )
+
+        monkeypatch.setattr(pandas, "read_parquet", lambda _path: dataframe)
+
+        samples = load_triviaqa_bridge(str(manifest_path), parquet_path="dummy.parquet")
+
+        assert [sample["id"] for sample in samples] == [
+            "tqa_bridge_q2",
+            "tqa_bridge_q1",
+        ]
+
+    def test_loader_accepts_sample_manifest_v2_object(self, tmp_path, monkeypatch):
+        pandas = pytest.importorskip("pandas")
+
+        manifest_path = tmp_path / "manifest.lock.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "sample_manifest/v2",
+                    "ids": ["q2", "q1"],
+                    "n_ids": 2,
+                    "fingerprint": "example",
+                }
+            ),
+            encoding="utf-8",
+        )
+        dataframe = pandas.DataFrame(
+            [
+                {
+                    "question_id": "q1",
+                    "question": "Question 1?",
+                    "answer": {"aliases": ["Answer 1"]},
+                },
+                {
+                    "question_id": "q2",
+                    "question": "Question 2?",
+                    "answer": {"aliases": ["Answer 2"]},
+                },
+            ]
+        )
+
+        monkeypatch.setattr(pandas, "read_parquet", lambda _path: dataframe)
+
+        samples = load_triviaqa_bridge(str(manifest_path), parquet_path="dummy.parquet")
+
+        assert [sample["id"] for sample in samples] == [
+            "tqa_bridge_q2",
+            "tqa_bridge_q1",
+        ]
+
     def test_main_applies_exclusions_and_records_metadata(self, tmp_path, monkeypatch):
         pandas = pytest.importorskip("pandas")
 

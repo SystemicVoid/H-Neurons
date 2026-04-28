@@ -90,13 +90,14 @@ def test_mistral_wrapper_controls_reuse_baseline_prompt_and_sample_selection() -
     falseqa_baseline = _stage_block(script, "falseqa")
     falseqa_control = _stage_block(script, "falseqa_controls")
 
-    shared_sample_cap = '--max_samples "${INTERVENTION_MAX_SAMPLES}"'
+    shared_faitheval_manifest = '--sample_manifest "${FAITHEVAL_SAMPLE_MANIFEST}"'
+    falseqa_sample_cap = '--max_samples "${INTERVENTION_MAX_SAMPLES}"'
     assert "--prompt_style standard" in faitheval_baseline
     assert "--prompt_style standard" in faitheval_control
-    assert shared_sample_cap in faitheval_baseline
-    assert shared_sample_cap in faitheval_control
-    assert shared_sample_cap in falseqa_baseline
-    assert shared_sample_cap in falseqa_control
+    assert shared_faitheval_manifest in faitheval_baseline
+    assert shared_faitheval_manifest in faitheval_control
+    assert falseqa_sample_cap in falseqa_baseline
+    assert falseqa_sample_cap in falseqa_control
 
 
 def test_mistral_wrapper_has_token_span_preflight_before_claim_stages() -> None:

@@ -41,6 +41,7 @@ from run_intervention import (
     HNeuronScaler,
     _bioasq_prompt,
     _faitheval_prompt,
+    describe_sample_manifest,
     extract_mc_answer,
     generate_response,
     load_bioasq,
@@ -172,10 +173,7 @@ def build_negative_control_run_contract(
 ) -> dict[str, Any]:
     sample_manifest = None
     if args.sample_manifest:
-        sample_manifest = {
-            "path": args.sample_manifest,
-            "content_sha256": _file_sha256(args.sample_manifest),
-        }
+        sample_manifest = describe_sample_manifest(args.sample_manifest)
 
     benchmark_config: dict[str, Any] = {}
     if args.benchmark == "faitheval":
@@ -1316,6 +1314,9 @@ def main():
     )
 
     alphas, configs = negative_control_schedule(benchmark, args.quick)
+    sample_manifest_ids = (
+        load_sample_manifest_ids(args.sample_manifest) if args.sample_manifest else None
+    )
 
     os.makedirs(output_base, exist_ok=True)
     resumed_from_existing = any(
@@ -1450,9 +1451,8 @@ def main():
             elif benchmark == "jailbreak":
                 samples = load_jailbreak()
 
-            if args.sample_manifest:
-                manifest_ids = load_sample_manifest_ids(args.sample_manifest)
-                samples = [s for s in samples if s["id"] in manifest_ids]
+            if sample_manifest_ids is not None:
+                samples = [s for s in samples if s["id"] in sample_manifest_ids]
                 print(
                     f"  Filtered to {len(samples)} samples via manifest "
                     f"{args.sample_manifest}"

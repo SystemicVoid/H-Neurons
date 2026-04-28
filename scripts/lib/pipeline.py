@@ -16,8 +16,10 @@ See scripts/AGENTS.md for integration guidance.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+import hashlib
 import json
 import os
 import shutil
@@ -26,9 +28,9 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-from scripts.utils import format_alpha_label
+from scripts.utils import fingerprint_ids, format_alpha_label
 
 ProtectedPathKind = Literal["file", "directory"]
 
@@ -102,6 +104,94 @@ def manifest_count(manifest: Path) -> int:
         f"Manifest {manifest} is neither a JSON list nor an object with an ids list "
         f"(got {type(data).__name__})"
     )
+
+
+# Incident: 2026-04-28 — malformed claim-stage sample locks could otherwise
+# survive wrapper startup and fail only after model load had begun.
+def validate_sample_manifest_locks(lock_paths: Sequence[Path]) -> list[str]:
+    """Return validation errors for claim-stage ``sample_manifest/v2`` locks."""
+    errors: list[str] = []
+    for path in lock_paths:
+        if not path.is_file():
+            errors.append(f"{path}: missing required manifest lock")
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{path}: could not parse JSON: {exc}")
+            continue
+        if not isinstance(payload, dict):
+            errors.append(f"{path}: lock must be a sample_manifest/v2 object")
+            continue
+
+        ids_payload = payload.get("ids")
+        if not isinstance(ids_payload, list):
+            errors.append(f"{path}: lock must contain an ids list")
+            continue
+        ids = [str(item) for item in ids_payload]
+        duplicate_ids = sorted(
+            {item for item, count in Counter(ids).items() if count > 1}
+        )
+        computed_fingerprint = fingerprint_ids(ids)
+
+        if payload.get("schema_version") != "sample_manifest/v2":
+            errors.append(f"{path}: schema_version must be sample_manifest/v2")
+        if payload.get("lock_context") != "mistral24b_claim_stage":
+            errors.append(f"{path}: lock_context must be mistral24b_claim_stage")
+        if not isinstance(payload.get("benchmark"), str) or not payload.get(
+            "benchmark"
+        ):
+            errors.append(f"{path}: benchmark must be a non-empty string")
+        if not isinstance(payload.get("split_name"), str) or not payload.get(
+            "split_name"
+        ):
+            errors.append(f"{path}: split_name must be a non-empty string")
+        if payload.get("n_ids") != len(ids):
+            errors.append(f"{path}: n_ids does not match ids length")
+        if duplicate_ids:
+            errors.append(f"{path}: duplicate ids: {duplicate_ids[:5]}")
+        if payload.get("fingerprint") != computed_fingerprint:
+            errors.append(f"{path}: fingerprint does not match ids")
+
+        source_path = payload.get("source_path")
+        source_sha256 = payload.get("source_sha256")
+        if not isinstance(source_path, str) or not source_path:
+            errors.append(f"{path}: source_path must be a non-empty string")
+            continue
+        if not isinstance(source_sha256, str) or len(source_sha256) != 64:
+            errors.append(f"{path}: source_sha256 must be a 64-character hex string")
+            continue
+
+        source = Path(source_path)
+        if not source.is_file():
+            errors.append(f"{path}: source_path does not exist: {source_path}")
+            continue
+        source_bytes = source.read_bytes()
+        if hashlib.sha256(source_bytes).hexdigest() != source_sha256:
+            errors.append(f"{path}: source_sha256 does not match source_path bytes")
+            continue
+        try:
+            source_ids = _sample_manifest_ids(
+                json.loads(source_bytes.decode("utf-8")),
+                source,
+            )
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{path}: could not read source manifest ids: {exc}")
+            continue
+        if source_ids != ids:
+            errors.append(f"{path}: ids do not match source manifest order/content")
+    return errors
+
+
+def _sample_manifest_ids(payload: object, path: Path) -> list[str]:
+    if isinstance(payload, list):
+        return [str(item) for item in payload]
+    if isinstance(payload, dict):
+        payload_dict = cast(dict[str, Any], payload)
+        ids = payload_dict.get("ids")
+        if isinstance(ids, list):
+            return [str(item) for item in ids]
+    raise ValueError(f"{path}: expected a JSON list or object with an ids list")
 
 
 def gpu_preflight() -> None:
@@ -799,6 +889,17 @@ def _cli_manifest_count(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cli_validate_sample_locks(args: argparse.Namespace) -> int:
+    lock_paths = [Path(path) for path in args.manifests]
+    errors = validate_sample_manifest_locks(lock_paths)
+    if errors:
+        for error in errors:
+            print(f"Manifest lock validation failed: {error}", file=sys.stderr)
+        return 2
+    print(f"Validated {len(lock_paths)} sample manifest locks.")
+    return 0
+
+
 def _cli_log_run(args: argparse.Namespace) -> int:
     log_run(
         run_dir=args.run_dir,
@@ -895,6 +996,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     mc.add_argument("manifests", nargs="+", help="Paths to JSON manifest files")
     mc.set_defaults(func=_cli_manifest_count)
+
+    vsl = sub.add_parser(
+        "validate-sample-locks",
+        help="Validate sample_manifest/v2 lock files before claim-stage runs",
+    )
+    vsl.add_argument("manifests", nargs="+", help="Paths to lock manifest files")
+    vsl.set_defaults(func=_cli_validate_sample_locks)
 
     lr = sub.add_parser(
         "log-run", help="Append a run entry to notes/runs_to_analyse.md"

@@ -6,6 +6,7 @@ a GPU pipeline would silently skip incomplete data or lose work.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -27,8 +28,9 @@ from scripts.lib.pipeline import (
     main,
     manifest_count,
     path_intersects_live_run,
+    validate_sample_manifest_locks,
 )
-from scripts.utils import format_alpha_label
+from scripts.utils import fingerprint_ids, format_alpha_label
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +159,71 @@ class TestManifestCount:
         p.write_text('{"not": "a list"}')
         with pytest.raises(ValueError, match="neither a JSON list nor an object"):
             manifest_count(p)
+
+
+class TestMistralManifestLocks:
+    def test_lock_schema_and_source_hashes(self) -> None:
+        expected_names = [
+            "faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json",
+            "faitheval_seed42_n200_mistral24b.lock.json",
+            "jbb_d7_full_harmful500_seed42_mistral24b.lock.json",
+            "simpleqa_verified_control200_seed42_mistral24b.lock.json",
+            "simpleqa_verified_pilot100_disjoint_seed42_mistral24b.lock.json",
+            "triviaqa_bridge_test500_seed42_mistral24b.lock.json",
+            "truthfulqa_paper_heldout_mc1_ids_seed42_mistral24b.lock.json",
+            "truthfulqa_paper_heldout_mc2_ids_seed42_mistral24b.lock.json",
+        ]
+        lock_paths = sorted(Path("data/manifests").glob("*_mistral24b.lock.json"))
+
+        assert [path.name for path in lock_paths] == expected_names
+        assert validate_sample_manifest_locks(lock_paths) == []
+        for path in lock_paths:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            ids = payload["ids"]
+            source_path = Path(payload["source_path"])
+
+            assert payload["schema_version"] == "sample_manifest/v2"
+            assert payload["n_ids"] == len(ids)
+            assert len(ids) == len(set(ids))
+            assert payload["fingerprint"] == fingerprint_ids(ids)
+            assert source_path.exists()
+            assert (
+                payload["source_sha256"]
+                == hashlib.sha256(source_path.read_bytes()).hexdigest()
+            )
+            source_payload = json.loads(source_path.read_text(encoding="utf-8"))
+            if isinstance(source_payload, list):
+                source_ids = [str(item) for item in source_payload]
+            elif isinstance(source_payload, dict):
+                source_ids = [str(item) for item in source_payload["ids"]]
+            else:
+                raise AssertionError(f"Unsupported source payload in {source_path}")
+            assert ids == source_ids
+
+    def test_lock_validation_rejects_source_mismatch(self, tmp_path: Path) -> None:
+        source = tmp_path / "source.json"
+        source.write_text(json.dumps(["a", "b"]), encoding="utf-8")
+        lock = tmp_path / "bad.lock.json"
+        lock.write_text(
+            json.dumps(
+                {
+                    "schema_version": "sample_manifest/v2",
+                    "benchmark": "unit",
+                    "split_name": "bad",
+                    "ids": ["a"],
+                    "n_ids": 1,
+                    "fingerprint": fingerprint_ids(["a"]),
+                    "source_path": str(source),
+                    "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                    "lock_context": "mistral24b_claim_stage",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        errors = validate_sample_manifest_locks([lock])
+
+        assert any("ids do not match source manifest" in error for error in errors)
 
 
 # ---------------------------------------------------------------------------
