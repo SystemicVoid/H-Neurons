@@ -1,0 +1,17 @@
+Tue Apr 28 17:13:49 UTC 2026
+8744ae33d79476ab2b0a1bf34a468b25ac0cde32
+ M scripts/infra/mistral24b_replication.sh
+ M tests/test_run_negative_control.py
+?? data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/
+?? data/mistral24b/pipeline/
+?? scripts/audit_token_spans.py
+?? scripts/export_simid_open_review_package.py
+?? tests/test_simid_open_review_package.py
+?? tests/test_token_span_audit.py
+uv 0.11.8 (x86_64-unknown-linux-gnu)
+Python 3.13.5
+torch==2.9.1+cu130
+transformers==4.57.6
+accelerate==1.12.0
+datasets==4.5.0
+scikit-learn==1.8.0

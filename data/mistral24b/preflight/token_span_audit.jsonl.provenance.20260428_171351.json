@@ -1,0 +1,59 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/audit_token_spans-20260428_171351-326971.json",
+  "args": {
+    "input_path": "data/mistral24b/answer_tokens_llm.jsonl",
+    "max_samples": 50,
+    "model_key": "mistral_small_24b_instruct_2501",
+    "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "output_path": "data/mistral24b/preflight/token_span_audit.jsonl",
+    "rendered_chat_path": "data/mistral24b/preflight/rendered_chat_examples.json",
+    "rendered_examples": 5,
+    "sample_ids_path": null,
+    "summary_path": "data/mistral24b/preflight/token_span_audit_summary.json",
+    "window_tokens": 6
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/audit_token_spans.py",
+    "--model_key",
+    "mistral_small_24b_instruct_2501",
+    "--model_path",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "--input_path",
+    "data/mistral24b/answer_tokens_llm.jsonl",
+    "--output_path",
+    "data/mistral24b/preflight/token_span_audit.jsonl",
+    "--summary_path",
+    "data/mistral24b/preflight/token_span_audit_summary.json",
+    "--rendered_chat_path",
+    "data/mistral24b/preflight/rendered_chat_examples.json",
+    "--max_samples",
+    "50"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/audit_token_spans.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/preflight/token_span_audit.jsonl --summary_path data/mistral24b/preflight/token_span_audit_summary.json --rendered_chat_path data/mistral24b/preflight/rendered_chat_examples.json --max_samples 50",
+  "completed_at_utc": "2026-04-28T17:13:52.508856+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "8744ae33d79476ab2b0a1bf34a468b25ac0cde32",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/preflight/token_span_audit.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/preflight/token_span_audit_summary.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/preflight/rendered_chat_examples.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "audit_token_spans-20260428_171351-326971",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "audit_token_spans.py",
+  "started_at_utc": "2026-04-28T17:13:51.336327+00:00",
+  "status": "completed",
+  "summary": {
+    "api_required": false,
+    "audited_rows": 50,
+    "gpu_required": false,
+    "status_counts": {
+      "ok": 50
+    }
+  }
+}

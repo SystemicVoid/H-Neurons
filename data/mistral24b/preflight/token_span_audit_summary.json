@@ -1,0 +1,47 @@
+{
+  "api_required": false,
+  "audited_id_fingerprint": "a402050a29a27eeb",
+  "audited_rows": 50,
+  "gpu_required": false,
+  "input_path": "data/mistral24b/answer_tokens_llm.jsonl",
+  "missing_answer_region_qids": [],
+  "model_key": "mistral_small_24b_instruct_2501",
+  "model_loaded": false,
+  "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "output_path": "data/mistral24b/preflight/token_span_audit.jsonl",
+  "registered_model": {
+    "default_classifier_path": "models/mistral24b_classifier.pkl",
+    "dimensions": {
+      "hidden_size": 5120,
+      "intermediate_size": 32768,
+      "max_position_embeddings": 32768,
+      "num_attention_heads": 32,
+      "num_hidden_layers": 40,
+      "num_key_value_heads": 8,
+      "torch_dtype": "bfloat16",
+      "total_ffn_neurons": 1310720
+    },
+    "hf_id": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "key": "mistral_small_24b_instruct_2501",
+    "loader_family": "causal_lm",
+    "notes": "Canonical Mistral 24B second-model extension. Same-family 2501 checkpoint, not exact Mistral Small 3.1/2503 replication.",
+    "output_root": "data/mistral24b",
+    "slug": "mistral24b",
+    "supported": true,
+    "tokenizer_kwargs": {
+      "fix_mistral_regex": true
+    }
+  },
+  "rendered_chat_path": "data/mistral24b/preflight/rendered_chat_examples.json",
+  "sample_id_filter_count": null,
+  "sample_ids_path": null,
+  "schema_version": "token_span_audit_summary/v1",
+  "status": "ok",
+  "status_counts": {
+    "ok": 50
+  },
+  "tokenizer_kwargs": {
+    "fix_mistral_regex": true
+  },
+  "total_rows_scanned": 50
+}

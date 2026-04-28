@@ -1,0 +1,127 @@
+{
+  "examples": [
+    {
+      "full_user_assistant_chat": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Where in England was Dame Judi Dench born? Respond with the answer only, without any explanation.[/INST]York</s>",
+      "qid": "tc_3",
+      "regions": {
+        "answer_tokens": {
+          "end": 199,
+          "length": 1,
+          "start": 198
+        },
+        "input": {
+          "end": 197,
+          "length": 197,
+          "start": 0
+        },
+        "output": {
+          "end": 199,
+          "length": 1,
+          "start": 198
+        }
+      },
+      "status": "ok",
+      "user_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Where in England was Dame Judi Dench born? Respond with the answer only, without any explanation.[/INST]",
+      "user_no_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Where in England was Dame Judi Dench born? Respond with the answer only, without any explanation.[/INST]"
+    },
+    {
+      "full_user_assistant_chat": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]From which country did Angola achieve independence in 1975? Respond with the answer only, without any explanation.[/INST]Portugal</s>",
+      "qid": "tc_8",
+      "regions": {
+        "answer_tokens": {
+          "end": 202,
+          "length": 1,
+          "start": 201
+        },
+        "input": {
+          "end": 200,
+          "length": 200,
+          "start": 0
+        },
+        "output": {
+          "end": 202,
+          "length": 1,
+          "start": 201
+        }
+      },
+      "status": "ok",
+      "user_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]From which country did Angola achieve independence in 1975? Respond with the answer only, without any explanation.[/INST]",
+      "user_no_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]From which country did Angola achieve independence in 1975? Respond with the answer only, without any explanation.[/INST]"
+    },
+    {
+      "full_user_assistant_chat": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Which city does David Soul come from? Respond with the answer only, without any explanation.[/INST]Chicago</s>",
+      "qid": "tc_9",
+      "regions": {
+        "answer_tokens": {
+          "end": 196,
+          "length": 1,
+          "start": 195
+        },
+        "input": {
+          "end": 194,
+          "length": 194,
+          "start": 0
+        },
+        "output": {
+          "end": 196,
+          "length": 1,
+          "start": 195
+        }
+      },
+      "status": "ok",
+      "user_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Which city does David Soul come from? Respond with the answer only, without any explanation.[/INST]",
+      "user_no_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Which city does David Soul come from? Respond with the answer only, without any explanation.[/INST]"
+    },
+    {
+      "full_user_assistant_chat": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Who won Super Bowl XX? Respond with the answer only, without any explanation.[/INST]Chicago Bears</s>",
+      "qid": "tc_10",
+      "regions": {
+        "answer_tokens": {
+          "end": 195,
+          "length": 2,
+          "start": 193
+        },
+        "input": {
+          "end": 192,
+          "length": 192,
+          "start": 0
+        },
+        "output": {
+          "end": 195,
+          "length": 2,
+          "start": 193
+        }
+      },
+      "status": "ok",
+      "user_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Who won Super Bowl XX? Respond with the answer only, without any explanation.[/INST]",
+      "user_no_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Who won Super Bowl XX? Respond with the answer only, without any explanation.[/INST]"
+    },
+    {
+      "full_user_assistant_chat": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Which was the first European country to abolish capital punishment? Respond with the answer only, without any explanation.[/INST]Venezuela</s>",
+      "qid": "tc_11",
+      "regions": {
+        "answer_tokens": {
+          "end": 201,
+          "length": 2,
+          "start": 199
+        },
+        "input": {
+          "end": 198,
+          "length": 198,
+          "start": 0
+        },
+        "output": {
+          "end": 201,
+          "length": 2,
+          "start": 199
+        }
+      },
+      "status": "ok",
+      "user_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Which was the first European country to abolish capital punishment? Respond with the answer only, without any explanation.[/INST]",
+      "user_no_generation_prompt": "<s>[SYSTEM_PROMPT]You are Mistral Small 3, a Large Language Model (LLM) created by Mistral AI, a French startup headquartered in Paris.\nYour knowledge base was last updated on 2023-10-01. The current date is 2026-04-28.\n\nWhen you're not sure about some information, you say that you don't have the information and don't make up anything.\nIf the user's question is not clear, ambiguous, or does not provide enough context for you to accurately answer the question, you do not try to answer it right away and you rather ask the user to clarify their request (e.g. \"What are some good restaurants around me?\" => \"Where are you?\" or \"When is the next flight to Tokyo\" => \"Where do you travel from?\")[/SYSTEM_PROMPT][INST]Which was the first European country to abolish capital punishment? Respond with the answer only, without any explanation.[/INST]"
+    }
+  ],
+  "model_key": "mistral_small_24b_instruct_2501",
+  "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "schema_version": "rendered_chat_examples/v1"
+}
