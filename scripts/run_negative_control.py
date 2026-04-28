@@ -19,6 +19,7 @@ Usage:
 import argparse
 from collections import Counter
 from dataclasses import dataclass
+import hashlib
 import json
 import os
 import sys
@@ -76,6 +77,7 @@ ALL_ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 QUICK_ALPHAS = [0.0, 1.0, 3.0]
 JAILBREAK_ALPHAS = [0.0, 1.0, 1.5, 3.0]
 ControlConfig = tuple[str, str, int]
+CONTROL_RUN_CONFIG_FILENAME = "control_run_config.json"
 
 MODEL_PATH = None
 CLASSIFIER_PATH = os.environ.get("HNEURONS_CLASSIFIER_PATH")
@@ -148,6 +150,164 @@ def resolve_results_json(path: str) -> str:
     if not timestamped:
         return stable_path
     return str(max(timestamped, key=lambda item: os.path.getmtime(item)))
+
+
+def _file_sha256(path: str | None) -> str | None:
+    if not path:
+        return None
+    expanded = os.path.expanduser(path)
+    if not os.path.isfile(expanded):
+        return None
+    digest = hashlib.sha256()
+    with open(expanded, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def build_negative_control_run_contract(
+    args: argparse.Namespace,
+    alphas: list[float],
+    configs: list[ControlConfig],
+) -> dict[str, Any]:
+    sample_manifest = None
+    if args.sample_manifest:
+        sample_manifest = {
+            "path": args.sample_manifest,
+            "content_sha256": _file_sha256(args.sample_manifest),
+        }
+
+    benchmark_config: dict[str, Any] = {}
+    if args.benchmark == "faitheval":
+        benchmark_config["prompt_style"] = args.prompt_style
+    elif args.benchmark == "falseqa":
+        benchmark_config["falseqa_path"] = args.falseqa_path
+    elif args.benchmark == "bioasq":
+        benchmark_config["bioasq_path"] = args.bioasq_path
+    elif args.benchmark == "jailbreak":
+        benchmark_config["jailbreak_batch_size"] = args.jailbreak_batch_size
+
+    return {
+        "schema_version": "negative_control_run_config/v1",
+        "benchmark": args.benchmark,
+        "quick": bool(args.quick),
+        "model": {
+            "key": args.model_key,
+            "path": args.model_path,
+        },
+        "classifier": {
+            "path": args.classifier_path,
+            "content_sha256": _file_sha256(args.classifier_path),
+        },
+        "sample_selection": {
+            "max_samples": args.max_samples,
+            "sample_manifest": sample_manifest,
+        },
+        "schedule": {
+            "alphas": [float(alpha) for alpha in alphas],
+            "configs": [
+                {"name": name, "strategy": strategy, "seed": int(seed)}
+                for name, strategy, seed in configs
+            ],
+        },
+        "benchmark_config": benchmark_config,
+    }
+
+
+def _existing_control_output_paths(
+    output_base: str,
+    alphas: list[float],
+    configs: list[ControlConfig],
+) -> list[str]:
+    paths: list[str] = []
+    for name, _, _ in configs:
+        seed_dir = os.path.join(output_base, name)
+        results_path = os.path.join(seed_dir, "results.json")
+        if os.path.exists(results_path):
+            paths.append(results_path)
+        for alpha in alphas:
+            alpha_path = os.path.join(seed_dir, f"alpha_{alpha:.1f}.jsonl")
+            if os.path.exists(alpha_path):
+                paths.append(alpha_path)
+    return sorted(paths)
+
+
+def _contract_mismatch_paths(
+    expected: Any,
+    observed: Any,
+    *,
+    prefix: str = "",
+) -> list[str]:
+    if isinstance(expected, dict) and isinstance(observed, dict):
+        mismatches: list[str] = []
+        for key in sorted(set(expected) | set(observed)):
+            key_path = f"{prefix}.{key}" if prefix else str(key)
+            if key not in expected:
+                mismatches.append(f"{key_path} (unexpected stored value)")
+            elif key not in observed:
+                mismatches.append(f"{key_path} (missing stored value)")
+            else:
+                mismatches.extend(
+                    _contract_mismatch_paths(
+                        expected[key],
+                        observed[key],
+                        prefix=key_path,
+                    )
+                )
+        return mismatches
+    if expected != observed:
+        return [prefix or "<root>"]
+    return []
+
+
+def assert_or_write_negative_control_run_contract(
+    output_base: str,
+    contract: dict[str, Any],
+    alphas: list[float],
+    configs: list[ControlConfig],
+    *,
+    write_if_missing: bool,
+) -> str:
+    contract_path = os.path.join(output_base, CONTROL_RUN_CONFIG_FILENAME)
+    if os.path.exists(contract_path):
+        with open(contract_path, encoding="utf-8") as f:
+            try:
+                stored_contract = json.load(f)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(
+                    f"Invalid negative-control run contract at {contract_path}: {exc}"
+                ) from exc
+        mismatches = _contract_mismatch_paths(contract, stored_contract)
+        if mismatches:
+            mismatch_preview = ", ".join(mismatches[:8])
+            if len(mismatches) > 8:
+                mismatch_preview += f", ... ({len(mismatches)} total)"
+            raise RuntimeError(
+                "Refusing to reuse negative-control outputs with an incompatible "
+                f"run contract at {contract_path}. Mismatched fields: "
+                f"{mismatch_preview}. Use a fresh --output_base or archive the "
+                "existing directory."
+            )
+        return contract_path
+
+    existing_paths = _existing_control_output_paths(output_base, alphas, configs)
+    if existing_paths:
+        examples = [os.path.relpath(path, output_base) for path in existing_paths[:5]]
+        example_text = ", ".join(examples)
+        if len(existing_paths) > len(examples):
+            example_text += f", ... ({len(existing_paths)} total)"
+        raise RuntimeError(
+            "Refusing to reuse negative-control outputs without "
+            f"{CONTROL_RUN_CONFIG_FILENAME}. Existing files may come from an "
+            f"incompatible pre-guard run: {example_text}. Use a fresh "
+            "--output_base or archive the existing directory."
+        )
+
+    if write_if_missing:
+        with open(contract_path, "w", encoding="utf-8") as f:
+            json.dump(contract, f, indent=2, sort_keys=True)
+            f.write("\n")
+    return contract_path
 
 
 @dataclass(frozen=True)
@@ -1165,12 +1325,13 @@ def main():
         )
         for name, _, _ in configs
     )
+    contract_path = os.path.join(output_base, CONTROL_RUN_CONFIG_FILENAME)
     summary_path = os.path.join(output_base, "comparison_summary.json")
     plot_path = os.path.join(output_base, "negative_control_comparison.png")
     provenance_handle = start_run_provenance(
         args,
         primary_target=output_base,
-        output_targets=[output_base, summary_path, plot_path],
+        output_targets=[output_base, summary_path, plot_path, contract_path],
         primary_target_is_dir=True,
     )
     provenance_status = "completed"
@@ -1178,6 +1339,16 @@ def main():
     wb_run = None
     wandb_module = None
     try:
+        run_contract = build_negative_control_run_contract(args, alphas, configs)
+        assert_or_write_negative_control_run_contract(
+            output_base,
+            run_contract,
+            alphas,
+            configs,
+            write_if_missing=not args.analysis_only,
+        )
+        provenance_extra["negative_control_run_contract"] = contract_path
+
         # W&B tracking (opt-in)
         if args.wandb:
             try:

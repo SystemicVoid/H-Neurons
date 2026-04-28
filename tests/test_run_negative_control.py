@@ -11,6 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from run_intervention import _faitheval_prompt  # noqa: E402
 from run_negative_control import (  # noqa: E402
     _jailbreak_csv2_eval_dir,
+    assert_or_write_negative_control_run_contract,
+    build_negative_control_run_contract,
+    negative_control_schedule,
     parse_args,
 )
 
@@ -94,6 +97,98 @@ def test_mistral_wrapper_controls_reuse_baseline_prompt_and_sample_selection() -
     assert shared_sample_cap in faitheval_control
     assert shared_sample_cap in falseqa_baseline
     assert shared_sample_cap in falseqa_control
+
+
+def test_negative_control_contract_rejects_legacy_outputs_without_guard(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    output_base = tmp_path / "control"
+    seed_dir = output_base / "seed_0_unconstrained"
+    seed_dir.mkdir(parents=True)
+    (seed_dir / "alpha_0.0.jsonl").write_text('{"id": "old"}\n')
+    _set_argv(
+        monkeypatch,
+        "--classifier_path",
+        str(classifier_path),
+        "--output_base",
+        str(output_base),
+        "--prompt_style",
+        "standard",
+        "--max_samples",
+        "100",
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    contract = build_negative_control_run_contract(args, alphas, configs)
+
+    with pytest.raises(RuntimeError, match="without control_run_config.json"):
+        assert_or_write_negative_control_run_contract(
+            str(output_base),
+            contract,
+            alphas,
+            configs,
+            write_if_missing=True,
+        )
+
+
+def test_negative_control_contract_rejects_prompt_style_drift(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    output_base = tmp_path / "control"
+
+    _set_argv(
+        monkeypatch,
+        "--classifier_path",
+        str(classifier_path),
+        "--output_base",
+        str(output_base),
+        "--prompt_style",
+        "standard",
+        "--max_samples",
+        "100",
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    contract = build_negative_control_run_contract(args, alphas, configs)
+    output_base.mkdir(parents=True)
+    assert_or_write_negative_control_run_contract(
+        str(output_base),
+        contract,
+        alphas,
+        configs,
+        write_if_missing=True,
+    )
+
+    _set_argv(
+        monkeypatch,
+        "--classifier_path",
+        str(classifier_path),
+        "--output_base",
+        str(output_base),
+        "--prompt_style",
+        "anti_compliance",
+        "--max_samples",
+        "100",
+    )
+    drifted_args = parse_args()
+    drifted_contract = build_negative_control_run_contract(
+        drifted_args, alphas, configs
+    )
+
+    with pytest.raises(RuntimeError, match="benchmark_config.prompt_style"):
+        assert_or_write_negative_control_run_contract(
+            str(output_base),
+            drifted_contract,
+            alphas,
+            configs,
+            write_if_missing=True,
+        )
 
 
 def test_parse_args_max_samples_accepts_int(
