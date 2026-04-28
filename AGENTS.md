@@ -16,7 +16,7 @@ Read the narrower instruction file before working in these areas:
 - `scripts/lib/AGENTS.md` for pipeline guard-library changes.
 - `data/AGENTS.md` for committed run outputs, provenance sidecars, and run-directory layout.
 - `site/AGENTS.md` for the static site, site data exports, and deployment.
-- `notes/AGENTS.md` for notes, claim routing, and research-log hygiene.
+- `notes/AGENTS.md` for notes and research-log hygiene. 
 
 ## Build, Test, and Development Commands
 
