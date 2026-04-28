@@ -33,24 +33,29 @@ MODEL_KEY="${MODEL_KEY:-mistral_small_24b_instruct_2501}"
 MODEL_PATH="${MODEL_PATH:-mistralai/Mistral-Small-24B-Instruct-2501}"
 DEVICE_MAP="${DEVICE_MAP:-cuda:0}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-data/mistral24b}"
+PREFLIGHT_DIR="${PREFLIGHT_DIR:-${OUTPUT_ROOT}/preflight}"
 ANSWER_TOKENS="${ANSWER_TOKENS:-${OUTPUT_ROOT}/answer_tokens_llm.jsonl}"
 TRAIN_IDS="${TRAIN_IDS:-${OUTPUT_ROOT}/pipeline/train_qids_llm.json}"
 DEV_IDS="${DEV_IDS:-${OUTPUT_ROOT}/pipeline/dev_qids_llm.json}"
 TEST_IDS="${TEST_IDS:-${OUTPUT_ROOT}/pipeline/test_qids_llm.json}"
 ACT_ROOT="${ACT_ROOT:-${OUTPUT_ROOT}/pipeline/activations_llm_canonical}"
+TOKEN_SPAN_AUDIT="${TOKEN_SPAN_AUDIT:-${PREFLIGHT_DIR}/token_span_audit.jsonl}"
+TOKEN_SPAN_AUDIT_SUMMARY="${TOKEN_SPAN_AUDIT_SUMMARY:-${PREFLIGHT_DIR}/token_span_audit_summary.json}"
+RENDERED_CHAT_EXAMPLES="${RENDERED_CHAT_EXAMPLES:-${PREFLIGHT_DIR}/rendered_chat_examples.json}"
 CLASSIFIER_PATH="${CLASSIFIER_PATH:-models/mistral24b_classifier_canonical.pkl}"
 CLASSIFIER_DEV_METRICS="${CLASSIFIER_DEV_METRICS:-${OUTPUT_ROOT}/pipeline/classifier_canonical_dev_metrics.json}"
 CLASSIFIER_TEST_METRICS="${CLASSIFIER_TEST_METRICS:-${OUTPUT_ROOT}/pipeline/classifier_canonical_test_metrics.json}"
 SPLIT_SAMPLES="${SPLIT_SAMPLES:-560}"
 DEV_SAMPLES="${DEV_SAMPLES:-160}"
 TEST_SAMPLES="${TEST_SAMPLES:-160}"
+TOKEN_SPAN_AUDIT_MAX_SAMPLES="${TOKEN_SPAN_AUDIT_MAX_SAMPLES:-50}"
 INTERVENTION_MAX_SAMPLES="${INTERVENTION_MAX_SAMPLES:-100}"
 STAGES="${STAGES:-all}"
 DRY_RUN="${DRY_RUN:-0}"
 read -r -a ALPHAS <<<"${ALPHAS:-0.0 0.5 1.0 1.5 2.0 2.5 3.0}"
 read -r -a C_VALUES <<<"${C_VALUES:-0.001 0.005 0.01 0.05 0.1 0.5 1.0}"
 
-mkdir -p "${LOG_DIR}" "${OUTPUT_ROOT}/pipeline" "${OUTPUT_ROOT}/intervention"
+mkdir -p "${LOG_DIR}" "${PREFLIGHT_DIR}" "${OUTPUT_ROOT}/pipeline" "${OUTPUT_ROOT}/intervention"
 
 should_run_stage() {
     local stage="$1"
@@ -103,6 +108,15 @@ if command -v nvitop &>/dev/null; then
     run_logged nvitop -1 || true
 fi
 capture_versions
+
+run_stage preflight uv run python scripts/audit_token_spans.py \
+    --model_key "${MODEL_KEY}" \
+    --model_path "${MODEL_PATH}" \
+    --input_path "${ANSWER_TOKENS}" \
+    --output_path "${TOKEN_SPAN_AUDIT}" \
+    --summary_path "${TOKEN_SPAN_AUDIT_SUMMARY}" \
+    --rendered_chat_path "${RENDERED_CHAT_EXAMPLES}" \
+    --max_samples "${TOKEN_SPAN_AUDIT_MAX_SAMPLES}"
 
 run_stage splits uv run python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \

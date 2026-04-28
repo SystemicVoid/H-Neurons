@@ -99,6 +99,21 @@ def test_mistral_wrapper_controls_reuse_baseline_prompt_and_sample_selection() -
     assert shared_sample_cap in falseqa_control
 
 
+def test_mistral_wrapper_has_token_span_preflight_before_claim_stages() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    script = (repo_root / "scripts/infra/mistral24b_replication.sh").read_text()
+
+    preflight = _stage_block(script, "preflight")
+    splits = _stage_block(script, "splits")
+
+    assert "scripts/audit_token_spans.py" in preflight
+    assert '--input_path "${ANSWER_TOKENS}"' in preflight
+    assert '--output_path "${TOKEN_SPAN_AUDIT}"' in preflight
+    assert '--rendered_chat_path "${RENDERED_CHAT_EXAMPLES}"' in preflight
+    assert script.index("run_stage preflight ") < script.index("run_stage splits ")
+    assert "scripts/audit_token_spans.py" not in splits
+
+
 def test_negative_control_contract_rejects_legacy_outputs_without_guard(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
