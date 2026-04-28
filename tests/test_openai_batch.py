@@ -16,6 +16,7 @@ from openai_batch import (
     MAX_ENQUEUED_TOKENS_FALLBACK,
     _chunk_requests,
     _estimate_request_tokens,
+    _normalize_model_limit_key,
     _resolve_max_enqueued_tokens,
     build_chat_request,
     extract_batch_cache_stats,
@@ -358,3 +359,70 @@ class TestMaxEnqueuedTokenResolution:
         assert resolution.value == int(50_000_000 * DEFAULT_BATCH_QUEUE_SAFETY_MARGIN)
         assert sum(fake_estimate(r) for r in reqs) == 1_284_222
         assert len(chunks) == 1
+
+
+class TestNormalizeModelLimitKey:
+    """Coverage for `_normalize_model_limit_key`, including dotted gpt-5 aliases."""
+
+    def test_plain_gpt5_resolves_to_gpt5(self):
+        assert _normalize_model_limit_key("gpt-5") == "gpt-5"
+
+    def test_dotted_gpt5_minor_resolves_like_gpt5(self):
+        assert _normalize_model_limit_key("gpt-5.5") == "gpt-5"
+        assert _normalize_model_limit_key("gpt-5.1") == "gpt-5"
+        assert _normalize_model_limit_key("gpt-5.4") == "gpt-5"
+
+    def test_dotted_gpt5_pro_resolves_to_gpt5_family(self):
+        # No distinct "pro" key in the local table, so pro variants should
+        # land on the gpt-5 base family — same as ``gpt-5-pro`` does today.
+        assert _normalize_model_limit_key("gpt-5.5-pro") == _normalize_model_limit_key(
+            "gpt-5-pro"
+        )
+        assert _normalize_model_limit_key("gpt-5.5-pro") == "gpt-5"
+
+    def test_dotted_gpt5_mini_resolves_to_gpt5_mini(self):
+        assert _normalize_model_limit_key("gpt-5.5-mini") == "gpt-5-mini"
+        assert _normalize_model_limit_key("gpt-5.1-mini") == "gpt-5-mini"
+        assert _normalize_model_limit_key("gpt-5.4-mini") == "gpt-5-mini"
+
+    def test_dotted_gpt5_with_snapshot_suffix(self):
+        assert _normalize_model_limit_key("gpt-5.5-2026-04-01") == "gpt-5"
+        assert _normalize_model_limit_key("gpt-5.5-mini-2026-04-01") == "gpt-5-mini"
+
+    def test_case_insensitive(self):
+        assert _normalize_model_limit_key("GPT-5.5") == "gpt-5"
+        assert _normalize_model_limit_key("Gpt-5.5-Mini") == "gpt-5-mini"
+
+    def test_gpt4o_unchanged(self):
+        assert _normalize_model_limit_key("gpt-4o") == "gpt-4o"
+        assert _normalize_model_limit_key("gpt-4o-mini") == "gpt-4o-mini"
+        assert _normalize_model_limit_key("gpt-4o-2024-08-06") == "gpt-4o"
+
+    def test_gpt41_unchanged(self):
+        # gpt-4.1 is an explicit prefix — must still resolve and must not be
+        # affected by the dotted-gpt5 collapse.
+        assert _normalize_model_limit_key("gpt-4.1") == "gpt-4.1"
+        assert _normalize_model_limit_key("gpt-4.1-2025-01-01") == "gpt-4.1"
+
+    def test_o_series_unchanged(self):
+        assert _normalize_model_limit_key("o3") == "o3"
+        assert _normalize_model_limit_key("o4-mini") == "o4-mini"
+
+    def test_unknown_model_returns_none(self):
+        assert _normalize_model_limit_key("claude-3-opus") is None
+        assert _normalize_model_limit_key("gemini-1.5-pro") is None
+
+    def test_dotted_gpt5_bogus_suffix_consistent_with_undotted(self):
+        # ``gpt-5.5-bogus`` should resolve identically to ``gpt-5-bogus`` —
+        # we are not broadening recognition beyond what the existing prefix
+        # match already accepts for the base family.
+        assert _normalize_model_limit_key(
+            "gpt-5.5-bogus"
+        ) == _normalize_model_limit_key("gpt-5-bogus")
+
+    def test_garbage_with_gpt5_substring_returns_none(self):
+        # Tokens like ``gpt-5x`` or ``gpt-5.5x`` (no proper separator after
+        # the version) must not slip through.
+        assert _normalize_model_limit_key("gpt-5x") is None
+        assert _normalize_model_limit_key("gpt-5.5x") is None
+        assert _normalize_model_limit_key("gpt-55") is None

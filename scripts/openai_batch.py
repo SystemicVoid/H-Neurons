@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -67,6 +68,14 @@ MODEL_LIMIT_PREFIXES = (
     "o4-mini",
     "o3",
 )
+
+# Dotted gpt-5 minor-version aliases (gpt-5.1, gpt-5.4, gpt-5.5, ...) share
+# the same Tier-keyed batch queue limits as the base gpt-5 family per
+# OpenAI's published model pages. Collapse the ``.<digits>`` segment so they
+# match the existing prefix table. Restricted to ``gpt-5`` to avoid
+# widening recognition for other families (gpt-4.x is intentionally
+# excluded; ``gpt-4.1`` is already an explicit prefix).
+_GPT5_DOTTED_MINOR_RE = re.compile(r"^gpt-5\.\d+(?=$|-)")
 
 
 # ---------------------------------------------------------------------------
@@ -191,8 +200,17 @@ class MaxEnqueuedTokensResolution:
 
 
 def _normalize_model_limit_key(model: str) -> str | None:
-    """Map model aliases and snapshots onto the local queue-limit table."""
+    """Map model aliases and snapshots onto the local queue-limit table.
+
+    Dotted gpt-5 minor-version aliases (``gpt-5.1``, ``gpt-5.5-pro``,
+    ``gpt-5.4-mini``, ...) are collapsed onto the base gpt-5 prefixes
+    before lookup so they pick up the correct family limits instead of
+    falling back to the conservative default. The transformation is
+    scoped to ``gpt-5\\.<digits>`` to avoid changing behavior for any
+    other family.
+    """
     normalized = model.strip().lower()
+    normalized = _GPT5_DOTTED_MINOR_RE.sub("gpt-5", normalized)
     for prefix in MODEL_LIMIT_PREFIXES:
         if normalized == prefix or normalized.startswith(f"{prefix}-"):
             return prefix
