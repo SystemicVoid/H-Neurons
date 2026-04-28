@@ -135,8 +135,11 @@ def case_custom_id(
     mode: str,
     model: str,
     rule_metadata: dict[str, str],
+    queue_row_fingerprint: str,
     prompt_inputs: dict[str, Any] | None = None,
 ) -> str:
+    if not queue_row_fingerprint:
+        raise ValueError("queue_row_fingerprint is required for calibration batches")
     payload = json.dumps(
         {
             "case_id": case_id,
@@ -144,6 +147,7 @@ def case_custom_id(
             "model": model,
             "prompt_version": PROMPT_VERSION,
             "rule_content_sha256": rule_metadata["content_sha256"],
+            "queue_row_sha256": queue_row_fingerprint,
             "prompt_inputs": prompt_inputs or {},
         },
         ensure_ascii=True,
@@ -385,6 +389,7 @@ def build_secondary_requests(
             mode="secondary",
             model=model,
             rule_metadata=rule_metadata,
+            queue_row_fingerprint=queue_row_sha256(row),
         )
         request = build_chat_request(
             custom_id=custom_id,
@@ -477,6 +482,7 @@ def build_adjudication_requests(
             mode="adjudicate",
             model=model,
             rule_metadata=rule_metadata,
+            queue_row_fingerprint=queue_row_sha256(row),
             prompt_inputs={
                 "primary_label": grade_from_row(row, row_kind="primary queue"),
                 "secondary_label": secondary_labels[case_id],

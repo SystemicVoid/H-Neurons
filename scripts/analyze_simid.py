@@ -1148,6 +1148,14 @@ def calibration_case_ids_sha256(case_ids: list[str]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def validate_open_calibration_summary_binding(
     payload: dict[str, Any],
     *,
@@ -1185,6 +1193,23 @@ def validate_open_calibration_summary_binding(
         raise ValueError(
             f"Calibration summary {path} queue_case_ids_sha256 does not match "
             f"{queue_path}"
+        )
+    expected_content_digest = file_sha256(queue_path)
+    observed_content_digest = _nested_value(
+        payload,
+        "inputs",
+        "queue",
+        "content_sha256",
+    )
+    if not isinstance(observed_content_digest, str) or not observed_content_digest:
+        raise ValueError(
+            f"Calibration summary {path} cannot be bound to {queue_path}: "
+            "inputs.queue.content_sha256 is not recorded"
+        )
+    if observed_content_digest != expected_content_digest:
+        raise ValueError(
+            f"Calibration summary {path} inputs.queue.content_sha256 does not "
+            f"match {queue_path}"
         )
 
 

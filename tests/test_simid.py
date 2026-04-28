@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -50,6 +51,8 @@ from build_truthfulqa_splits import stable_question_id
 from finalize_simid_open_calibration import finalize_open_calibration
 from label_simid_open_calibration import (
     CalibrationQueueLaunchError,
+    build_adjudication_requests,
+    build_secondary_requests,
     case_custom_id,
     chat_completion_kwargs_for_model,
     disagreement_rows,
@@ -1424,6 +1427,80 @@ def test_open_calibration_summary_must_match_run_queue_case_ids(
         load_open_calibration_summary(summary_path, run_dir=run_dir)
 
 
+def test_open_calibration_summary_must_record_run_queue_content_hash(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "open_calibration_queue.jsonl").write_text(
+        "\n".join(
+            json.dumps({"calibration_case_id": case_id})
+            for case_id in ["case_a", "case_b"]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    summary_path = run_dir / "open_calibration_summary.json"
+    payload = _valid_open_calibration_summary()
+    payload["n_cases"] = 2
+    payload["irr"]["n_cases"] = 2
+    payload["adjudicated_rows"] = [
+        {"calibration_case_id": "case_a"},
+        {"calibration_case_id": "case_b"},
+    ]
+    summary_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="inputs.queue.content_sha256 is not recorded"):
+        load_open_calibration_summary(summary_path, run_dir=run_dir)
+
+
+def test_open_calibration_summary_must_match_run_queue_content_hash(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    queue_path = run_dir / "open_calibration_queue.jsonl"
+    queue_path.write_text(
+        "\n".join(
+            json.dumps(row)
+            for row in [
+                {"calibration_case_id": "case_a", "primary_judge_grade": "CORRECT"},
+                {"calibration_case_id": "case_b", "primary_judge_grade": "INCORRECT"},
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    summary_path = run_dir / "open_calibration_summary.json"
+    payload = _valid_open_calibration_summary()
+    payload["n_cases"] = 2
+    payload["irr"]["n_cases"] = 2
+    payload["adjudicated_rows"] = [
+        {"calibration_case_id": "case_a"},
+        {"calibration_case_id": "case_b"},
+    ]
+    payload["inputs"] = {
+        "queue": {
+            "path": str(queue_path),
+            "content_sha256": "0" * 64,
+        },
+    }
+    summary_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="content_sha256 does not match"):
+        load_open_calibration_summary(summary_path, run_dir=run_dir)
+
+    payload["inputs"]["queue"]["content_sha256"] = hashlib.sha256(
+        queue_path.read_bytes()
+    ).hexdigest()
+    summary_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    summary = load_open_calibration_summary(summary_path, run_dir=run_dir)
+
+    assert summary is not None
+    assert summary["sampling"]["n_cases"] == 2
+
+
 def test_malformed_open_adjudication_blocks_claimability_with_valid_calibration(
     tmp_path: Path,
 ) -> None:
@@ -1726,15 +1803,69 @@ def test_open_calibration_custom_id_depends_on_rule_hash() -> None:
         mode="secondary",
         model="gpt-5.5",
         rule_metadata={"content_sha256": "rule-a"},
+        queue_row_fingerprint="row-a",
     )
     second = case_custom_id(
         "case_000",
         mode="secondary",
         model="gpt-5.5",
         rule_metadata={"content_sha256": "rule-b"},
+        queue_row_fingerprint="row-a",
     )
 
     assert first != second
+
+
+def test_open_calibration_custom_id_depends_on_queue_row_hash() -> None:
+    first = case_custom_id(
+        "case_000",
+        mode="secondary",
+        model="gpt-5.5",
+        rule_metadata={"content_sha256": "rule-a"},
+        queue_row_fingerprint="row-a",
+    )
+    second = case_custom_id(
+        "case_000",
+        mode="secondary",
+        model="gpt-5.5",
+        rule_metadata={"content_sha256": "rule-a"},
+        queue_row_fingerprint="row-b",
+    )
+
+    assert first != second
+
+
+def test_open_calibration_secondary_request_id_depends_on_queue_row_hash() -> None:
+    queue_row = {
+        "calibration_case_id": "case_000",
+        "question": "What is the capital of France?",
+        "gold_aliases": ["Paris"],
+        "response": "Paris",
+        "sample_source": "audit_queue_disagreement",
+    }
+    changed_row = {**queue_row, "sample_source": "stratified_panel::grade=CORRECT"}
+    rule_metadata = {"content_sha256": "rule-a"}
+
+    first_requests, _ = build_secondary_requests(
+        [queue_row],
+        existing_rows={},
+        rule_text="rule",
+        rule_metadata=rule_metadata,
+        model="gpt-5.5",
+        max_output_tokens=32,
+        reasoning_effort="auto",
+    )
+    second_requests, _ = build_secondary_requests(
+        [changed_row],
+        existing_rows={},
+        rule_text="rule",
+        rule_metadata=rule_metadata,
+        model="gpt-5.5",
+        max_output_tokens=32,
+        reasoning_effort="auto",
+    )
+
+    assert first_requests[0]["custom_id"] != second_requests[0]["custom_id"]
 
 
 def test_open_calibration_adjudication_custom_id_depends_on_labels() -> None:
@@ -1744,6 +1875,7 @@ def test_open_calibration_adjudication_custom_id_depends_on_labels() -> None:
         mode="adjudicate",
         model="gpt-5.5",
         rule_metadata=rule_metadata,
+        queue_row_fingerprint="row-a",
         prompt_inputs={"primary_label": "CORRECT", "secondary_label": "INCORRECT"},
     )
     second = case_custom_id(
@@ -1751,10 +1883,40 @@ def test_open_calibration_adjudication_custom_id_depends_on_labels() -> None:
         mode="adjudicate",
         model="gpt-5.5",
         rule_metadata=rule_metadata,
+        queue_row_fingerprint="row-a",
         prompt_inputs={"primary_label": "CORRECT", "secondary_label": "CORRECT"},
     )
 
     assert first != second
+
+
+def test_open_calibration_adjudication_request_id_depends_on_queue_row_hash() -> None:
+    queue_row = _open_calibration_queue_rows(["CORRECT"])[0]
+    changed_row = {**queue_row, "sample_source": "stratified_panel::grade=CORRECT"}
+    rule_metadata = {"content_sha256": "rule-a"}
+
+    first_requests, _ = build_adjudication_requests(
+        [queue_row],
+        secondary_labels={"case_000": "INCORRECT"},
+        existing_rows={},
+        rule_text="rule",
+        rule_metadata=rule_metadata,
+        model="gpt-5.5",
+        max_output_tokens=32,
+        reasoning_effort="auto",
+    )
+    second_requests, _ = build_adjudication_requests(
+        [changed_row],
+        secondary_labels={"case_000": "INCORRECT"},
+        existing_rows={},
+        rule_text="rule",
+        rule_metadata=rule_metadata,
+        model="gpt-5.5",
+        max_output_tokens=32,
+        reasoning_effort="auto",
+    )
+
+    assert first_requests[0]["custom_id"] != second_requests[0]["custom_id"]
 
 
 def test_open_calibration_existing_rows_validate_rule_hash() -> None:
