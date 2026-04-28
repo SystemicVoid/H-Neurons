@@ -13,6 +13,8 @@ calibration gate passes.
 - `label_schema.json` - machine-readable schema for exported labels.
 - `opus_4_7_independent_rater_prompt.md` - batch controller prompt for a
   separate Opus rater.
+- `opus_4_7_labels.jsonl` - validated merged Opus 4.7 labels, reconciled from
+  the batch folders.
 - `llm_blind_batches/batch_*/` - rater-safe independent-AI batch folders.
 - `llm_blind_case_map.jsonl` - private reconciliation map from synthetic blind
   IDs to calibration IDs. Do not provide this to an independent rater.
@@ -52,9 +54,15 @@ The UI can be opened directly from:
    `prompt.md` files under `llm_blind_batches/batch_*/`, write
    `opus_4_7_labels.jsonl` inside each batch directory, and never paste label
    JSONL into the chat.
-8. After all Opus batch files are written, merge and validate them with:
+8. The current Opus batch files have been merged and validated into
+   `opus_4_7_labels.jsonl`. To revalidate the batch files without rewriting the
+   merged output, run:
 
-   `uv run python scripts/validate_simid_open_review_labels.py --package-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package --output data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/opus_4_7_labels.jsonl`
+   `uv run python scripts/validate_simid_open_review_labels.py --package-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package`
+
+   To regenerate the merged file after changing batch labels, use:
+
+   `uv run python scripts/validate_simid_open_review_labels.py --package-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package --output data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/opus_4_7_labels.jsonl --overwrite`
 
 9. Compare human and Opus labels against primary/secondary/adjudication labels
    only after both independent label files are finalized.
@@ -72,3 +80,6 @@ independent labels are finalized.
 
 Current export provenance sidecar:
 `data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/export_simid_open_review_package.provenance.20260428_182723.json`.
+
+Current interpretation and Opus summary:
+`paper/icml/reports/2026-04-28-simid-open-calibration-review.md`.
