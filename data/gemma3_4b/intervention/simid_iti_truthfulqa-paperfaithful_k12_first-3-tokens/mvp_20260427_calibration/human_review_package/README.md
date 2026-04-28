@@ -7,10 +7,15 @@ calibration gate passes.
 ## Files
 
 - `index.html` - static local grading UI.
-- `review_cases_blind.jsonl` - blinded cases for human or AI rater input.
+- `review_cases_blind.jsonl` - blinded cases for the human/static UI path.
+  Independent AI raters should use `llm_blind_batches/batch_*/` instead.
 - `adjudication_rule.md` - frozen grading rule copied into the package.
 - `label_schema.json` - machine-readable schema for exported labels.
-- `opus_4_7_independent_rater_prompt.md` - prompt for a separate Opus rater.
+- `opus_4_7_independent_rater_prompt.md` - batch controller prompt for a
+  separate Opus rater.
+- `llm_blind_batches/batch_*/` - rater-safe independent-AI batch folders.
+- `llm_blind_case_map.jsonl` - private reconciliation map from synthetic blind
+  IDs to calibration IDs. Do not provide this to an independent rater.
 - `review_manifest.json` - selection policy, hashes, and schema.
 - `export_simid_open_review_package.provenance.*.json` - append-only export
   sidecars. The manifest's `generator.provenance_sidecar` names the sidecar for
@@ -43,19 +48,27 @@ The UI can be opened directly from:
 6. Press Export JSONL and keep the exported file as the human independent
    labels.
 7. In a separate clean agent session, give Opus
-   `opus_4_7_independent_rater_prompt.md`; it should write
-   `opus_4_7_labels.jsonl`.
-8. Compare human and Opus labels against primary/secondary/adjudication labels
+   `opus_4_7_independent_rater_prompt.md`. It should process only the
+   `prompt.md` files under `llm_blind_batches/batch_*/`, write
+   `opus_4_7_labels.jsonl` inside each batch directory, and never paste label
+   JSONL into the chat.
+8. After all Opus batch files are written, merge and validate them with:
+
+   `uv run python scripts/validate_simid_open_review_labels.py --package-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package --output data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/opus_4_7_labels.jsonl`
+
+9. Compare human and Opus labels against primary/secondary/adjudication labels
    only after both independent label files are finalized.
 
 Exported labels use schema `simid_open_independent_rater_label/v1` and should be kept as
 new evidence. Do not edit the production queue, secondary labels, adjudications,
 or summary in place.
 
-This rater package intentionally does not include prior machine labels,
-adjudication notes, datasets, conditions, or sample-source metadata. Use the
-source run outputs for post-label comparison only after independent labels are
-finalized.
+The LLM-facing batch directories intentionally omit prior machine labels,
+adjudication notes, datasets, conditions, sample-source metadata, and original
+calibration IDs. The package root retains manifest/provenance files needed for
+orchestration and reconciliation; do not provide the package root as rater
+context. Use the source run outputs for post-label comparison only after
+independent labels are finalized.
 
 Current export provenance sidecar:
-`data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/export_simid_open_review_package.provenance.20260428_173302.json`.
+`data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/export_simid_open_review_package.provenance.20260428_182723.json`.

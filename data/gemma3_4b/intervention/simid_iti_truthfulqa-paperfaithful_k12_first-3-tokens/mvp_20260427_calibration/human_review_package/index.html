@@ -462,12 +462,12 @@
               <span><code>c</code> correct</span>
               <span><code>i</code> incorrect</span>
               <span><code>n</code> not attempted</span>
-              <span><code>1</code>–<code>5</code> confidence</span>
+              <span><code>1</code>-<code>5</code> confidence</span>
               <span><code>g</code> rule gap</span>
-              <span><code>↵</code> save &amp; next</span>
+              <span><code>Enter</code> save and next</span>
             </div>
             <div>
-              <h3>Your label <span class="kbd-hint">c · i · n</span></h3>
+              <h3>Your label <span class="kbd-hint">c / i / n</span></h3>
               <div class="label-buttons">
                 <button class="label-choice" data-label="CORRECT" type="button">CORRECT</button>
                 <button class="label-choice" data-label="INCORRECT" type="button">INCORRECT</button>
@@ -475,7 +475,7 @@
               </div>
             </div>
             <div>
-              <h3>Confidence <span class="kbd-hint">1–5</span></h3>
+              <h3>Confidence <span class="kbd-hint">1-5</span></h3>
               <div class="confidence-grid" id="confidence-grid"></div>
             </div>
             <label class="check">
@@ -492,7 +492,7 @@
             </div>
             <div class="actions">
               <button id="clear-label" type="button">Clear</button>
-              <button id="save-label" class="primary" type="button">Save &amp; Next ↵</button>
+              <button id="save-label" class="primary" type="button">Save &amp; Next</button>
             </div>
           </div>
         </section>
@@ -950,10 +950,22 @@
           saveCurrent();
           return;
         }
-        if (key === "c" || key === "C") { event.preventDefault(); setLabel("CORRECT"); return; }
-        if (key === "i" || key === "I") { event.preventDefault(); setLabel("INCORRECT"); return; }
-        if (key === "n" || key === "N") { event.preventDefault(); setLabel("NOT_ATTEMPTED"); return; }
-        if (["1","2","3","4","5"].includes(key)) {
+        if (key === "c" || key === "C") {
+          event.preventDefault();
+          setLabel("CORRECT");
+          return;
+        }
+        if (key === "i" || key === "I") {
+          event.preventDefault();
+          setLabel("INCORRECT");
+          return;
+        }
+        if (key === "n" || key === "N") {
+          event.preventDefault();
+          setLabel("NOT_ATTEMPTED");
+          return;
+        }
+        if (["1", "2", "3", "4", "5"].includes(key)) {
           event.preventDefault();
           setConfidence(Number(key));
           return;
@@ -963,7 +975,6 @@
           const cb = document.getElementById("rule-gap");
           cb.checked = !cb.checked;
           persistDraftField("rule_gap", cb.checked);
-          return;
         }
       });
     }

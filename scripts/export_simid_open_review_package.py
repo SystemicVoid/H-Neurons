@@ -39,9 +39,13 @@ BLIND_CASE_SCHEMA_VERSION = "simid_open_blind_review_case/v1"
 HUMAN_LABEL_SCHEMA_VERSION = "simid_open_independent_rater_label/v1"
 DEFAULT_AGREEMENT_SAMPLE_SIZE = 66
 DEFAULT_REVIEW_SEED = "simid_open_review_package_20260428_v1"
+DEFAULT_LLM_BATCH_SIZE = 10
 PRIMARY_SECONDARY_DISAGREEMENT = "primary_secondary_disagreement"
 STRATIFIED_AGREEMENT_SAMPLE = "stratified_agreement_sample"
 LEGACY_LEAKING_OUTPUTS = ("review_audit_context.jsonl",)
+LLM_BATCH_ROOT_DIR = "llm_blind_batches"
+LLM_BATCH_CASE_SCHEMA_VERSION = "simid_open_llm_blind_review_case/v1"
+LLM_BATCH_LABEL_SCHEMA_VERSION = "simid_open_llm_blind_rater_label/v1"
 VALID_LABELS = ("CORRECT", "INCORRECT", "NOT_ATTEMPTED")
 VALID_FLAGS = (
     "bridge_partial_entity_or_modifier",
@@ -140,6 +144,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Deterministic sampling seed recorded in the package manifest.",
     )
     parser.add_argument(
+        "--llm-batch-size",
+        type=int,
+        default=DEFAULT_LLM_BATCH_SIZE,
+        help=(
+            "Number of cases per independent-AI prompt batch. Smaller batches "
+            "avoid chat output limits and make partial validation possible."
+        ),
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Allow replacing files in an existing review package directory.",
@@ -189,6 +202,102 @@ def write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as handle:
         for row in rows:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def blind_case_id_for(calibration_case_id: str, *, seed: str) -> str:
+    return f"simid_open_blind_{stable_hash(f'{seed}:llm_blind:{calibration_case_id}')[:16]}"
+
+
+def llm_blind_case_row(
+    blind_row: dict[str, Any],
+    *,
+    seed: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": LLM_BATCH_CASE_SCHEMA_VERSION,
+        "review_order": blind_row["review_order"],
+        "blind_case_id": blind_case_id_for(
+            str(blind_row["calibration_case_id"]),
+            seed=seed,
+        ),
+        "question": blind_row["question"],
+        "gold_aliases": blind_row["gold_aliases"],
+        "predicted_answer": blind_row["predicted_answer"],
+    }
+
+
+def llm_blind_case_map_row(
+    blind_row: dict[str, Any],
+    *,
+    seed: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": "simid_open_llm_blind_case_map/v1",
+        "review_order": blind_row["review_order"],
+        "blind_case_id": blind_case_id_for(
+            str(blind_row["calibration_case_id"]),
+            seed=seed,
+        ),
+        "calibration_case_id": blind_row["calibration_case_id"],
+    }
+
+
+def batch_dir_name(batch_index: int) -> str:
+    return f"batch_{batch_index:03d}"
+
+
+def batched_review_rows(
+    rows: list[dict[str, Any]], *, batch_size: int
+) -> list[list[dict[str, Any]]]:
+    if batch_size <= 0:
+        raise ValueError("--llm-batch-size must be positive")
+    return [
+        rows[index : index + batch_size] for index in range(0, len(rows), batch_size)
+    ]
+
+
+def llm_batch_records(
+    *,
+    output_dir: Path,
+    llm_blind_rows: list[dict[str, Any]],
+    batch_size: int,
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for batch_index, rows in enumerate(
+        batched_review_rows(llm_blind_rows, batch_size=batch_size),
+        start=1,
+    ):
+        if not rows:
+            continue
+        start = int(rows[0]["review_order"])
+        end = int(rows[-1]["review_order"])
+        batch_id = batch_dir_name(batch_index)
+        batch_dir = f"{LLM_BATCH_ROOT_DIR}/{batch_id}"
+        case_file = f"{batch_dir}/review_cases_blind.jsonl"
+        prompt_file = f"{batch_dir}/prompt.md"
+        label_part_file = f"{batch_dir}/opus_4_7_labels.jsonl"
+        records.append(
+            {
+                "batch_id": batch_id,
+                "review_order_start": start,
+                "review_order_end": end,
+                "n_cases": len(rows),
+                "case_file": format_path_for_metadata(
+                    output_dir / case_file,
+                    root=ROOT,
+                ),
+                "case_file_sha256": byte_sha256_for_rows(rows),
+                "prompt_file": format_path_for_metadata(
+                    output_dir / prompt_file,
+                    root=ROOT,
+                ),
+                "label_part_file": format_path_for_metadata(
+                    output_dir / label_part_file,
+                    root=ROOT,
+                ),
+            }
+        )
+    return records
 
 
 def load_required_json(path: Path) -> dict[str, Any]:
@@ -554,10 +663,17 @@ def build_manifest(
     audit_rows: list[dict[str, Any]],
     agreement_sample_size: int,
     seed: str,
+    llm_batch_size: int,
 ) -> dict[str, Any]:
     by_set = count_by(audit_rows, "review_set")
     by_dataset = count_by(audit_rows, "dataset")
     by_dataset_and_set = nested_count_by(audit_rows, ("review_set", "dataset"))
+    llm_blind_rows = [llm_blind_case_row(row, seed=seed) for row in selected_rows]
+    llm_batches = llm_batch_records(
+        output_dir=output_dir,
+        llm_blind_rows=llm_blind_rows,
+        batch_size=llm_batch_size,
+    )
     return {
         "schema_version": REVIEW_PACKAGE_SCHEMA_VERSION,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -629,6 +745,17 @@ def build_manifest(
         },
         "blind_cases_file_sha256": byte_sha256_for_rows(selected_rows),
         "blind_cases_canonical_sha256": jsonl_sha256(selected_rows),
+        "llm_batching": {
+            "rationale": (
+                "Avoid independent-rater chat output limits by grading small "
+                "blind batches and writing JSONL parts to disk before merging."
+            ),
+            "batch_size": llm_batch_size,
+            "batch_root_directory": LLM_BATCH_ROOT_DIR,
+            "case_schema_version": LLM_BATCH_CASE_SCHEMA_VERSION,
+            "label_schema_version": LLM_BATCH_LABEL_SCHEMA_VERSION,
+            "batches": llm_batches,
+        },
         "label_schema": {
             "schema_version": HUMAN_LABEL_SCHEMA_VERSION,
             "required_fields": [
@@ -699,6 +826,73 @@ def build_label_schema(manifest: dict[str, Any]) -> dict[str, Any]:
             "label_schema_version": {"const": HUMAN_LABEL_SCHEMA_VERSION},
         },
     }
+
+
+def build_llm_batch_label_schema(
+    *,
+    batch_cases_file_sha256: str,
+) -> dict[str, Any]:
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "simid_open_llm_blind_rater_label.schema.json",
+        "title": "SIMID Open LLM Blind Batch Rater Label",
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "schema_version",
+            "blind_case_id",
+            "review_order",
+            "label",
+            "confidence",
+            "rule_gap",
+            "flags",
+            "notes",
+            "rater",
+            "blind_cases_file_sha256",
+        ],
+        "properties": {
+            "schema_version": {"const": LLM_BATCH_LABEL_SCHEMA_VERSION},
+            "blind_case_id": {
+                "type": "string",
+                "pattern": "^simid_open_blind_[0-9a-f]+$",
+            },
+            "review_order": {"type": "integer", "minimum": 1},
+            "label": {
+                "type": "string",
+                "enum": list(VALID_LABELS),
+            },
+            "confidence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+            },
+            "rule_gap": {"type": "boolean"},
+            "flags": {
+                "type": "array",
+                "items": {"type": "string", "enum": list(VALID_FLAGS)},
+                "uniqueItems": True,
+            },
+            "notes": {"type": "string"},
+            "rater": {
+                "type": "object",
+                "additionalProperties": True,
+                "required": ["type", "model", "prompt_version"],
+                "properties": {
+                    "type": {"type": "string"},
+                    "model": {"type": "string"},
+                    "prompt_version": {"type": "string"},
+                },
+            },
+            "blind_cases_file_sha256": {"const": batch_cases_file_sha256},
+        },
+    }
+
+
+def llm_rater_rule_text(rule_text: str) -> str:
+    return rule_text.replace(
+        "`open_calibration_queue.jsonl`",
+        "`review_cases_blind.jsonl`",
+    )
 
 
 def html_json(payload: Any) -> str:
@@ -1008,6 +1202,40 @@ def build_index_html(
       height: 16px;
       margin: 0;
     }}
+    .kbd-hint {{
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--muted);
+      margin-left: 6px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 6px;
+      background: var(--soft);
+      text-transform: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }}
+    .shortcut-bar {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 8px 10px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }}
+    .shortcut-bar code {{
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: var(--ink);
+    }}
     .perspectives {{
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1145,8 +1373,16 @@ def build_index_html(
             </div>
           </div>
           <div class="panel decision-grid">
+            <div class="shortcut-bar" aria-label="Keyboard shortcuts">
+              <span><code>c</code> correct</span>
+              <span><code>i</code> incorrect</span>
+              <span><code>n</code> not attempted</span>
+              <span><code>1</code>-<code>5</code> confidence</span>
+              <span><code>g</code> rule gap</span>
+              <span><code>Enter</code> save and next</span>
+            </div>
             <div>
-              <h3>Your label</h3>
+              <h3>Your label <span class="kbd-hint">c / i / n</span></h3>
               <div class="label-buttons">
                 <button class="label-choice" data-label="CORRECT" type="button">CORRECT</button>
                 <button class="label-choice" data-label="INCORRECT" type="button">INCORRECT</button>
@@ -1154,15 +1390,15 @@ def build_index_html(
               </div>
             </div>
             <div>
-              <h3>Confidence</h3>
+              <h3>Confidence <span class="kbd-hint">1-5</span></h3>
               <div class="confidence-grid" id="confidence-grid"></div>
             </div>
             <label class="check">
               <input type="checkbox" id="rule-gap">
-              <span>Rule gap</span>
+              <span>Rule gap <span class="kbd-hint">g</span></span>
             </label>
             <div>
-              <h3>Boundary flags</h3>
+              <h3>Boundary flags <span class="kbd-hint">optional</span></h3>
               <div class="flag-grid" id="flag-grid"></div>
             </div>
             <div>
@@ -1171,7 +1407,7 @@ def build_index_html(
             </div>
             <div class="actions">
               <button id="clear-label" type="button">Clear</button>
-              <button id="save-label" class="primary" type="button">Save</button>
+              <button id="save-label" class="primary" type="button">Save &amp; Next</button>
             </div>
           </div>
         </section>
@@ -1195,6 +1431,16 @@ def build_index_html(
     const manifest = JSON.parse(document.getElementById("manifest-data").textContent);
     const ruleText = JSON.parse(document.getElementById("rule-data").textContent);
     const validFlags = {json.dumps(list(VALID_FLAGS))};
+    const flagDisplay = {{
+      bridge_partial_entity_or_modifier: "partial entity or modifier",
+      truthfulqa_non_answer_boundary: "borderline non-answer",
+      truthfulqa_qualified_answer_boundary: "heavily qualified answer",
+      wrong_extra_answer: "correct + wrong extra",
+      multiple_candidates_no_commitment: "lists candidates, no commitment",
+      alias_too_broad_or_too_narrow: "alias too broad or narrow",
+      malformed_case: "malformed case",
+      other_boundary: "other boundary"
+    }};
     const storageKey = `simid-open-review:${{manifest.blind_cases_file_sha256}}`;
     const draftKey = `simid-open-review-draft:${{manifest.blind_cases_file_sha256}}`;
     const raterIdKey = `simid-open-review-rater:${{manifest.blind_cases_file_sha256}}`;
@@ -1393,6 +1639,32 @@ def build_index_html(
       render();
     }}
 
+    function persistDraftField(field, value) {{
+      const item = currentCase();
+      const existing = drafts[item.calibration_case_id] || labelFor(item.calibration_case_id) || {{
+        schema_version: "{HUMAN_LABEL_SCHEMA_VERSION}",
+        calibration_case_id: item.calibration_case_id,
+        review_order: item.review_order,
+        label: null,
+        confidence: null,
+        rule_gap: false,
+        flags: [],
+        notes: "",
+        rater: currentRater()
+      }};
+      drafts[item.calibration_case_id] = {{ ...existing, [field]: value }};
+      saveDrafts();
+    }}
+
+    function nextUngradedIndex(fromIndex) {{
+      const total = cases.length;
+      for (let i = 1; i <= total; i++) {{
+        const idx = (fromIndex + i) % total;
+        if (!labelFor(cases[idx].calibration_case_id)) return idx;
+      }}
+      return -1;
+    }}
+
     function saveCurrent() {{
       const item = currentCase();
       const existing = draftFor(item.calibration_case_id);
@@ -1420,6 +1692,10 @@ def build_index_html(
       delete drafts[item.calibration_case_id];
       saveLabels();
       saveDrafts();
+      const next = nextUngradedIndex(currentIndex);
+      if (next >= 0) {{
+        currentIndex = next;
+      }}
       render();
     }}
 
@@ -1511,11 +1787,22 @@ def build_index_html(
         input.type = "checkbox";
         input.className = "flag-box";
         input.value = flag;
+        input.addEventListener("change", () => {{
+          const flags = [...document.querySelectorAll(".flag-box:checked")].map(el => el.value);
+          persistDraftField("flags", flags);
+        }});
         const span = document.createElement("span");
-        span.textContent = flag.replaceAll("_", " ");
+        span.textContent = flagDisplay[flag] || flag.replaceAll("_", " ");
         label.appendChild(input);
         label.appendChild(span);
         flagGrid.appendChild(label);
+      }});
+      document.getElementById("rule-gap").addEventListener("change", event => {{
+        persistDraftField("rule_gap", event.target.checked);
+      }});
+      const notesEl = document.getElementById("notes");
+      notesEl.addEventListener("input", () => {{
+        persistDraftField("notes", notesEl.value);
       }});
       document.getElementById("save-label").addEventListener("click", saveCurrent);
       document.getElementById("clear-label").addEventListener("click", clearCurrent);
@@ -1539,9 +1826,77 @@ def build_index_html(
           render();
         }});
       }});
+      installKeyboardShortcuts();
+    }}
+
+    function isTextEditing() {{
+      const el = document.activeElement;
+      if (!el) return false;
+      if (el.tagName === "TEXTAREA") return true;
+      if (el.tagName === "SELECT") return true;
+      if (el.tagName === "INPUT") {{
+        const type = (el.type || "text").toLowerCase();
+        return ["text", "search", "email", "url", "password", "number"].includes(type);
+      }}
+      if (el.isContentEditable) return true;
+      return false;
+    }}
+
+    function installKeyboardShortcuts() {{
+      document.addEventListener("keydown", event => {{
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+        const modal = document.getElementById("modal");
+        if (modal.classList.contains("open")) {{
+          if (event.key === "Escape") {{
+            modal.classList.remove("open");
+            event.preventDefault();
+          }}
+          return;
+        }}
+        if (event.key === "Escape" && document.activeElement && document.activeElement.blur) {{
+          document.activeElement.blur();
+          event.preventDefault();
+          return;
+        }}
+        if (isTextEditing()) return;
+        const key = event.key;
+        if (key === "Enter") {{
+          event.preventDefault();
+          saveCurrent();
+          return;
+        }}
+        if (key === "c" || key === "C") {{
+          event.preventDefault();
+          setLabel("CORRECT");
+          return;
+        }}
+        if (key === "i" || key === "I") {{
+          event.preventDefault();
+          setLabel("INCORRECT");
+          return;
+        }}
+        if (key === "n" || key === "N") {{
+          event.preventDefault();
+          setLabel("NOT_ATTEMPTED");
+          return;
+        }}
+        if (["1", "2", "3", "4", "5"].includes(key)) {{
+          event.preventDefault();
+          setConfidence(Number(key));
+          return;
+        }}
+        if (key === "g" || key === "G") {{
+          event.preventDefault();
+          const cb = document.getElementById("rule-gap");
+          cb.checked = !cb.checked;
+          persistDraftField("rule_gap", cb.checked);
+        }}
+      }});
     }}
 
     initControls();
+    const firstUngraded = cases.findIndex(item => !labelFor(item.calibration_case_id));
+    if (firstUngraded >= 0) currentIndex = firstUngraded;
     render();
   </script>
 </body>
@@ -1554,73 +1909,108 @@ def build_opus_prompt(
     output_dir: Path,
     manifest: dict[str, Any],
 ) -> str:
-    blind_cases_path = output_dir / "review_cases_blind.jsonl"
-    rule_path = output_dir / "adjudication_rule.md"
-    label_schema_path = output_dir / "label_schema.json"
+    batch_root = output_dir / LLM_BATCH_ROOT_DIR
     suggested_output = output_dir / "opus_4_7_labels.jsonl"
+    validator_path = ROOT / "scripts/validate_simid_open_review_labels.py"
     return f"""# SIMID Open Correctness Independent Rater Prompt
 
 You are an independent blinded rater for SIMID open-correctness calibration.
-Apply the frozen SIMID open-correctness rule exactly. Do not use any previous
-SIMID reports, effect estimates, primary judge labels, secondary judge labels,
-deterministic alias labels, sample-source metadata, or adjudication notes.
+Apply the frozen SIMID open-correctness rule exactly.
 
-Inputs:
+This package is intentionally batched. Do not print generated JSONL rows in the
+chat transcript. Write each batch output to disk and keep chat responses to
+short status messages only.
 
-- Frozen rule: `{format_path_for_metadata(rule_path, root=ROOT)}`
-- Blind cases: `{format_path_for_metadata(blind_cases_path, root=ROOT)}`
-- Label schema: `{format_path_for_metadata(label_schema_path, root=ROOT)}`
-- Blind cases file SHA-256: `{manifest["blind_cases_file_sha256"]}`
+Do not read package-root files such as `review_manifest.json`, README files,
+provenance sidecars, source run outputs, prior reports, primary/secondary judge
+labels, deterministic alias labels, sample-source metadata, or adjudication
+notes. Use only the files inside each individual batch directory.
 
 Task:
 
-Grade every case in `review_cases_blind.jsonl`. Use only `question`,
-`gold_aliases`, and `predicted_answer` plus the frozen rule. The gold aliases
-are authoritative for this task; do not browse the web or add outside factual
-criteria. If a case is genuinely hard, still choose the best label and lower
-confidence. Set `rule_gap: true` only for malformed cases or a real unresolved
-rubric conflict; ordinary borderline judgments are not rule gaps.
+1. Process each `prompt.md` under
+   `{format_path_for_metadata(batch_root, root=ROOT)}/batch_*` in filename
+   order.
+2. For each batch, read only the files named by that `prompt.md` in the same
+   batch directory.
+3. Write that batch's labels to `opus_4_7_labels.jsonl` in the same batch
+   directory. Do not paste label rows in chat.
+4. After all batch files are written, ask the orchestrator to merge and
+   validate with:
 
-Return newline-delimited JSON only, one object per input case, with this schema:
-
-```json
-{{
-  "schema_version": "{HUMAN_LABEL_SCHEMA_VERSION}",
-  "calibration_case_id": "simid_open_cal_...",
-  "review_order": 1,
-  "label": "CORRECT",
-  "confidence": 4,
-  "rule_gap": false,
-  "flags": ["truthfulqa_qualified_answer_boundary"],
-  "notes": "Short explanation citing the decisive rule.",
-  "rater": {{
-    "type": "llm",
-    "model": "claude-opus-4.7",
-    "prompt_version": "{PROMPT_VERSION}"
-  }},
-  "blind_cases_file_sha256": "{manifest["blind_cases_file_sha256"]}"
-}}
-```
+   `uv run python {format_path_for_metadata(validator_path, root=ROOT)} --package-dir {format_path_for_metadata(output_dir, root=ROOT)} --output {format_path_for_metadata(suggested_output, root=ROOT)}`
 
 Valid labels: `CORRECT`, `INCORRECT`, `NOT_ATTEMPTED`.
 
 Valid flags: `{", ".join(VALID_FLAGS)}`. Use an empty list when no flag is
 needed.
 
-Quality checks before final output:
+Quality checks before considering the rater pass complete:
 
-- Exactly {manifest["selection"]["n_review_cases"]} JSONL rows.
-- No duplicate `calibration_case_id`.
-- Every `calibration_case_id` appears in the blind cases input.
-- Every label is one of the three valid labels.
+- Exactly {len(manifest["llm_batching"]["batches"])} batch files are written.
+- Each batch file has the row count stated in that batch's `prompt.md`.
+- No batch output includes original calibration identifiers.
+- The final chat response is only a short status and the files written.
+"""
+
+
+def build_opus_batch_prompt(
+    *,
+    batch: dict[str, Any],
+) -> str:
+    return f"""# SIMID Open Correctness Opus Batch {batch["batch_id"]}
+
+You are one independent blinded rater for this batch. Apply the frozen SIMID
+open-correctness rule exactly. Do not use SIMID reports, effect estimates,
+primary/secondary labels, deterministic alias labels, sample-source metadata,
+adjudication notes, web browsing, package-root files, or any outside factual
+criteria.
+
+Use only these files in this directory:
+
+- Frozen rule: `adjudication_rule.md`
+- Batch blind cases: `review_cases_blind.jsonl`
+- Label schema: `label_schema.json`
+- Batch case file SHA-256: `{batch["case_file_sha256"]}`
+
+Task:
+
+Grade only review orders {batch["review_order_start"]}-{batch["review_order_end"]}
+from `review_cases_blind.jsonl`. Use only `question`, `gold_aliases`, and
+`predicted_answer` plus the frozen rule. The gold aliases are authoritative.
+If a case is genuinely hard, still choose the best label and lower confidence.
+Set `rule_gap: true` only for malformed cases or a real unresolved rubric
+conflict; ordinary borderline judgments are not rule gaps.
+
+Write newline-delimited JSON to `opus_4_7_labels.jsonl` in this directory.
+
+Do not print generated JSONL rows in chat. A valid row has:
+
+- `schema_version`: `{LLM_BATCH_LABEL_SCHEMA_VERSION}`
+- `blind_case_id`: copied from the input case
+- `review_order`: copied from the input case
+- `label`: one of `CORRECT`, `INCORRECT`, `NOT_ATTEMPTED`
+- `confidence`: integer 1-5
+- `rule_gap`: boolean
+- `flags`: zero or more of `{", ".join(VALID_FLAGS)}`
+- `notes`: short explanation citing the decisive rule
+- `rater.type`: `llm`
+- `rater.model`: `claude-opus-4.7`
+- `rater.prompt_version`: `{PROMPT_VERSION}`
+- `blind_cases_file_sha256`: `{batch["case_file_sha256"]}`
+
+Quality checks before reporting done:
+
+- Exactly {batch["n_cases"]} JSONL rows.
+- No duplicate `blind_case_id`.
+- Every `blind_case_id` appears in `review_cases_blind.jsonl`.
+- No row contains original calibration identifiers.
 - Every confidence is an integer from 1 to 5.
 - Every row has `blind_cases_file_sha256` equal to
-  `{manifest["blind_cases_file_sha256"]}`.
-- No markdown, prose framing, tables, or code fences in the final output.
+  `{batch["case_file_sha256"]}`.
 
-If you have repo write access, write the JSONL to
-`{format_path_for_metadata(suggested_output, root=ROOT)}` without modifying any
-existing calibration artifacts.
+Final chat response: one short sentence saying whether these checks passed and
+which file was written. Do not include label JSONL in the chat response.
 """
 
 
@@ -1635,10 +2025,15 @@ calibration gate passes.
 ## Files
 
 - `index.html` - static local grading UI.
-- `review_cases_blind.jsonl` - blinded cases for human or AI rater input.
+- `review_cases_blind.jsonl` - blinded cases for the human/static UI path.
+  Independent AI raters should use `{LLM_BATCH_ROOT_DIR}/batch_*/` instead.
 - `adjudication_rule.md` - frozen grading rule copied into the package.
 - `label_schema.json` - machine-readable schema for exported labels.
-- `opus_4_7_independent_rater_prompt.md` - prompt for a separate Opus rater.
+- `opus_4_7_independent_rater_prompt.md` - batch controller prompt for a
+  separate Opus rater.
+- `{LLM_BATCH_ROOT_DIR}/batch_*/` - rater-safe independent-AI batch folders.
+- `llm_blind_case_map.jsonl` - private reconciliation map from synthetic blind
+  IDs to calibration IDs. Do not provide this to an independent rater.
 - `review_manifest.json` - selection policy, hashes, and schema.
 - `export_simid_open_review_package.provenance.*.json` - append-only export
   sidecars. The manifest's `generator.provenance_sidecar` names the sidecar for
@@ -1671,19 +2066,27 @@ The UI can be opened directly from:
 6. Press Export JSONL and keep the exported file as the human independent
    labels.
 7. In a separate clean agent session, give Opus
-   `opus_4_7_independent_rater_prompt.md`; it should write
-   `opus_4_7_labels.jsonl`.
-8. Compare human and Opus labels against primary/secondary/adjudication labels
+   `opus_4_7_independent_rater_prompt.md`. It should process only the
+   `prompt.md` files under `{LLM_BATCH_ROOT_DIR}/batch_*/`, write
+   `opus_4_7_labels.jsonl` inside each batch directory, and never paste label
+   JSONL into the chat.
+8. After all Opus batch files are written, merge and validate them with:
+
+   `uv run python scripts/validate_simid_open_review_labels.py --package-dir {format_path_for_metadata(output_dir, root=ROOT)} --output {format_path_for_metadata(output_dir / "opus_4_7_labels.jsonl", root=ROOT)}`
+
+9. Compare human and Opus labels against primary/secondary/adjudication labels
    only after both independent label files are finalized.
 
 Exported labels use schema `{HUMAN_LABEL_SCHEMA_VERSION}` and should be kept as
 new evidence. Do not edit the production queue, secondary labels, adjudications,
 or summary in place.
 
-This rater package intentionally does not include prior machine labels,
-adjudication notes, datasets, conditions, or sample-source metadata. Use the
-source run outputs for post-label comparison only after independent labels are
-finalized.
+The LLM-facing batch directories intentionally omit prior machine labels,
+adjudication notes, datasets, conditions, sample-source metadata, and original
+calibration IDs. The package root retains manifest/provenance files needed for
+orchestration and reconciliation; do not provide the package root as rater
+context. Use the source run outputs for post-label comparison only after
+independent labels are finalized.
 
 Current export provenance sidecar:
 `{manifest["generator"]["provenance_sidecar"]}`.
@@ -1719,6 +2122,8 @@ def export_package(args: argparse.Namespace) -> dict[str, Any]:
             output_dir / "label_schema.json",
             output_dir / "review_manifest.json",
             output_dir / "opus_4_7_independent_rater_prompt.md",
+            output_dir / "llm_blind_case_map.jsonl",
+            output_dir / LLM_BATCH_ROOT_DIR,
             output_dir / "README.md",
         ],
         extra={
@@ -1726,6 +2131,7 @@ def export_package(args: argparse.Namespace) -> dict[str, Any]:
             "source_run_dir": format_path_for_metadata(run_dir, root=ROOT),
         },
         primary_target_is_dir=True,
+        allow_tracked_live_outputs=bool(args.overwrite),
     )
     try:
         cases = load_calibration_cases(run_dir)
@@ -1737,6 +2143,12 @@ def export_package(args: argparse.Namespace) -> dict[str, Any]:
         blind_rows = [
             blind_review_row(case, review_order=index)
             for index, (_, case) in enumerate(selected, start=1)
+        ]
+        llm_blind_rows = [
+            llm_blind_case_row(row, seed=str(args.seed)) for row in blind_rows
+        ]
+        llm_blind_map_rows = [
+            llm_blind_case_map_row(row, seed=str(args.seed)) for row in blind_rows
         ]
         audit_rows = [
             audit_context_row(
@@ -1754,6 +2166,7 @@ def export_package(args: argparse.Namespace) -> dict[str, Any]:
             audit_rows=audit_rows,
             agreement_sample_size=int(args.agreement_sample_size),
             seed=str(args.seed),
+            llm_batch_size=int(args.llm_batch_size),
         )
         manifest["source_calibration_claimability"] = summary.get("claimability")
         manifest["generator"] = {
@@ -1768,6 +2181,8 @@ def export_package(args: argparse.Namespace) -> dict[str, Any]:
         rule_text = (
             ROOT / "data/judge_validation/simid_open_calibration/adjudication_rule.md"
         ).read_text(encoding="utf-8")
+        llm_rule_text = llm_rater_rule_text(rule_text)
+        (output_dir / LLM_BATCH_ROOT_DIR).mkdir(parents=True, exist_ok=True)
 
         write_jsonl(output_dir / "review_cases_blind.jsonl", blind_rows)
         if (
@@ -1779,6 +2194,7 @@ def export_package(args: argparse.Namespace) -> dict[str, Any]:
             rule_text,
             encoding="utf-8",
         )
+        write_jsonl(output_dir / "llm_blind_case_map.jsonl", llm_blind_map_rows)
         write_json(output_dir / "label_schema.json", build_label_schema(manifest))
         write_json(output_dir / "review_manifest.json", manifest)
         (output_dir / "index.html").write_text(
@@ -1793,6 +2209,31 @@ def export_package(args: argparse.Namespace) -> dict[str, Any]:
             build_opus_prompt(output_dir=output_dir, manifest=manifest),
             encoding="utf-8",
         )
+        for batch in manifest["llm_batching"]["batches"]:
+            start = int(batch["review_order_start"])
+            end = int(batch["review_order_end"])
+            batch_rows = llm_blind_rows[start - 1 : end]
+            case_file = ROOT / str(batch["case_file"])
+            prompt_file = ROOT / str(batch["prompt_file"])
+            batch_dir = case_file.parent
+            batch_dir.mkdir(parents=True, exist_ok=True)
+            write_jsonl(case_file, batch_rows)
+            if file_sha256(case_file) != batch["case_file_sha256"]:
+                raise RuntimeError(f"Batch case file hash mismatch for {case_file}")
+            (batch_dir / "adjudication_rule.md").write_text(
+                llm_rule_text,
+                encoding="utf-8",
+            )
+            write_json(
+                batch_dir / "label_schema.json",
+                build_llm_batch_label_schema(
+                    batch_cases_file_sha256=str(batch["case_file_sha256"]),
+                ),
+            )
+            prompt_file.write_text(
+                build_opus_batch_prompt(batch=batch),
+                encoding="utf-8",
+            )
         (output_dir / "README.md").write_text(
             build_readme(output_dir=output_dir, manifest=manifest),
             encoding="utf-8",

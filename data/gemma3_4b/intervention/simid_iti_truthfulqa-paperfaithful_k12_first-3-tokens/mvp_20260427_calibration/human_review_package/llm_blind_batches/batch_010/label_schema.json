@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "simid_open_llm_blind_rater_label.schema.json",
+  "title": "SIMID Open LLM Blind Batch Rater Label",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "blind_case_id",
+    "review_order",
+    "label",
+    "confidence",
+    "rule_gap",
+    "flags",
+    "notes",
+    "rater",
+    "blind_cases_file_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "simid_open_llm_blind_rater_label/v1"
+    },
+    "blind_case_id": {
+      "type": "string",
+      "pattern": "^simid_open_blind_[0-9a-f]+$"
+    },
+    "review_order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "label": {
+      "type": "string",
+      "enum": [
+        "CORRECT",
+        "INCORRECT",
+        "NOT_ATTEMPTED"
+      ]
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "rule_gap": {
+      "type": "boolean"
+    },
+    "flags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "bridge_partial_entity_or_modifier",
+          "truthfulqa_non_answer_boundary",
+          "truthfulqa_qualified_answer_boundary",
+          "wrong_extra_answer",
+          "multiple_candidates_no_commitment",
+          "alias_too_broad_or_too_narrow",
+          "malformed_case",
+          "other_boundary"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "notes": {
+      "type": "string"
+    },
+    "rater": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "type",
+        "model",
+        "prompt_version"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "prompt_version": {
+          "type": "string"
+        }
+      }
+    },
+    "blind_cases_file_sha256": {
+      "const": "8328c0b1d0c09376c34e31944e3fcfad69cbc484aee1797338792234ab52e473"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "schema_version": "simid_open_independent_review_package/v1",
-  "created_at_utc": "2026-04-28T17:33:02.098505+00:00",
-  "git_sha": "8744ae33d79476ab2b0a1bf34a468b25ac0cde32",
+  "created_at_utc": "2026-04-28T18:27:23.233968+00:00",
+  "git_sha": "682bb7286e222918b53e28a175a523a379c538f3",
   "run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration",
   "output_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package",
   "input_files": {
@@ -64,6 +64,115 @@
   },
   "blind_cases_file_sha256": "d3832171541f5a50dbde6da53419065d0f56413fbe95a7409bd4ae03a5f3dd67",
   "blind_cases_canonical_sha256": "c9c773d3fcbc163b14d67b9e126badec0494809ff3a8579f2d9a816852e67008",
+  "llm_batching": {
+    "rationale": "Avoid independent-rater chat output limits by grading small blind batches and writing JSONL parts to disk before merging.",
+    "batch_size": 10,
+    "batch_root_directory": "llm_blind_batches",
+    "case_schema_version": "simid_open_llm_blind_review_case/v1",
+    "label_schema_version": "simid_open_llm_blind_rater_label/v1",
+    "batches": [
+      {
+        "batch_id": "batch_001",
+        "review_order_start": 1,
+        "review_order_end": 10,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_001/review_cases_blind.jsonl",
+        "case_file_sha256": "6cd728d21e86e116478c8e7051f9d1dea7999a3790ea20cda940b12df4ae55cb",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_001/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_001/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_002",
+        "review_order_start": 11,
+        "review_order_end": 20,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_002/review_cases_blind.jsonl",
+        "case_file_sha256": "52ed06111d80f99fdb9fb560536f492052bec44204b1696c95e69bcaeff9f254",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_002/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_002/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_003",
+        "review_order_start": 21,
+        "review_order_end": 30,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_003/review_cases_blind.jsonl",
+        "case_file_sha256": "652ded7d144d1e32706b597b0ad7b6273443685ba2e6c29ad63a5e2bf1fdc514",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_003/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_003/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_004",
+        "review_order_start": 31,
+        "review_order_end": 40,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_004/review_cases_blind.jsonl",
+        "case_file_sha256": "04bc08c51f297f5fc4bc95b7c869c35997c4556af8cf2e3a8d6b9d179c8fb772",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_004/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_004/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_005",
+        "review_order_start": 41,
+        "review_order_end": 50,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_005/review_cases_blind.jsonl",
+        "case_file_sha256": "a4ebee50febaba6cf6fdc7e7ef8d019de47945698decd2353f0735456e0d1078",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_005/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_005/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_006",
+        "review_order_start": 51,
+        "review_order_end": 60,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_006/review_cases_blind.jsonl",
+        "case_file_sha256": "25236f505505c3cf1b32d8ae8107dfe0fa89ab548ed6f0aa796ed7d5c4a44634",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_006/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_006/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_007",
+        "review_order_start": 61,
+        "review_order_end": 70,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_007/review_cases_blind.jsonl",
+        "case_file_sha256": "36e8cbc57d02b821c222b7e0338a1c21f3aebe2ec06267ea7ff0659ec98e448d",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_007/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_007/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_008",
+        "review_order_start": 71,
+        "review_order_end": 80,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_008/review_cases_blind.jsonl",
+        "case_file_sha256": "13d3cfe83d4022c574353f7528ef10fc1ef400f47b74d41e8da9756040e14a78",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_008/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_008/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_009",
+        "review_order_start": 81,
+        "review_order_end": 90,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_009/review_cases_blind.jsonl",
+        "case_file_sha256": "47480cc71d8cd40319afc9f573fbd0411c3073aa456b47ac61b7922513b09696",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_009/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_009/opus_4_7_labels.jsonl"
+      },
+      {
+        "batch_id": "batch_010",
+        "review_order_start": 91,
+        "review_order_end": 100,
+        "n_cases": 10,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_010/review_cases_blind.jsonl",
+        "case_file_sha256": "8328c0b1d0c09376c34e31944e3fcfad69cbc484aee1797338792234ab52e473",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_010/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/llm_blind_batches/batch_010/opus_4_7_labels.jsonl"
+      }
+    ]
+  },
   "label_schema": {
     "schema_version": "simid_open_independent_rater_label/v1",
     "required_fields": [
@@ -115,6 +224,6 @@
   "generator": {
     "script": "scripts/export_simid_open_review_package.py",
     "git_dirty": true,
-    "provenance_sidecar": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/export_simid_open_review_package.provenance.20260428_173302.json"
+    "provenance_sidecar": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/export_simid_open_review_package.provenance.20260428_182723.json"
   }
 }

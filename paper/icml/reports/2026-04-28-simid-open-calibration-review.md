@@ -284,7 +284,9 @@ than assumed authority.
    a stratified agreement sample. Prioritize Bridge partial-entity cases and
    TruthfulQA non-answer/qualified-answer boundaries. The current blinded
    review package for this step is
-   [`human_review_package`](../../../data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/README.md).
+   [`human_review_package`](../../../data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/README.md);
+   LLM raters should use the batched synthetic-ID folders there rather than
+   returning all labels through chat.
 3. Run a sensitivity analysis that applies the final calibration adjudications
    as correction evidence to the MVP effect estimates. Treat it as diagnostic
    unless the calibration gate passes.
