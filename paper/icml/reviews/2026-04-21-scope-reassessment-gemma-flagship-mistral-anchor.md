@@ -29,7 +29,7 @@ Claims are ranked using this source hierarchy:
 1. Machine-readable artifacts, raw JSON/JSONL, metrics summaries
 2. Row-level or adversarial audits tied to on-disk data
 3. Pipeline reports that separate what is proved from what is not
-4. [paper/icml/main.tex](../../paper/icml/main.tex) only as evidence of current framing
+4. [paper/icml/main.tex](../main.tex) only as evidence of current framing
 5. Older strategic memos only as claim history, never as support
 
 Working rule:
@@ -40,7 +40,7 @@ Working rule:
 
 The draft currently frames FaithEval as the anchor result and uses bridge and jailbreak as the other two gate failures:
 
-- [paper/icml/main.tex](../../paper/icml/main.tex) lines around the localization section call the FaithEval comparable-readout result “the anchor result.”
+- [paper/icml/main.tex](../main.tex) lines around the localization section call the FaithEval comparable-readout result “the anchor result.”
 - The same draft already gives the bridge result strong paper space and treats jailbreak as a measurement-discipline case study.
 
 That framing is not indefensible, but the repo evidence now supports a more careful internal ranking:
@@ -157,7 +157,7 @@ That framing is not indefensible, but the repo evidence now supports a more care
 - The detector story is partly weakened by the response-length / response-form confound audit.  
   Source: [verbosity_confound_audit.md](../../../data/gemma3_4b/intervention/verbosity_confound/verbosity_confound_audit.md)
 - The comparison is cross-representational and not operator-matched: neurons and SAE features differ in layer coverage, operator form, and feature granularity.  
-  Source: [sae_pipeline_audit.md](../../../data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md), [paper/icml/main.tex](../../paper/icml/main.tex)
+  Source: [sae_pipeline_audit.md](../../../data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md), [paper/icml/main.tex](../main.tex)
 - The SAE coverage gap is real: only **10 of 34 layers** are covered, and **47.4%** of the 38 CETT H-neurons are in uncovered layers.  
   Source: [sae_pipeline_audit.md](../../../data/gemma3_4b/intervention/faitheval_sae/sae_pipeline_audit.md)
 
@@ -307,6 +307,8 @@ That framing is not indefensible, but the repo evidence now supports a more care
 
 - [data/mistral24b/pipeline_report.md](../../../data/mistral24b/pipeline_report.md)
 - [docs/archive/gh200-research-log-2026-03-15.md](../../../docs/archive/gh200-research-log-2026-03-15.md)
+- Later follow-up workspace: [notes/icml/mistral24b/](../../../notes/icml/mistral24b/)
+- Later strategy memo: [2026-04-28 5.5 Pro L1 mitigation strategy](../../../notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md)
 
 **Established**
 

@@ -10,6 +10,7 @@ Primary current narratives:
 - Current manuscript: [`paper/icml/main.tex`](paper/icml/main.tex)
 - Current manuscript provenance: [`paper/icml/number_provenance.md`](paper/icml/number_provenance.md)
 - Measurement contract: [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
+- Mistral 24B ICML limitation-response workspace: [`notes/icml/mistral24b/`](notes/icml/mistral24b/)
 
 Historical long-draft materials were archived out of repo to `/home/hugo/Documents/Engineering/02-h-neurons-paper-draft-archive/`.
 
@@ -67,7 +68,7 @@ Paper and site outputs:
 - `uv run python scripts/export_site_data.py` exports site-facing JSON summaries from committed outputs.
 - `scripts/infra/publish.sh site --slug aware-fresco-4a2q --client amp` publishes the site to its canonical URL.
 
-If you need the original forked-paper examples, start with [`data/original_paper_examples/`](data/original_paper_examples/). If you need the current internal framing and evidence routing, start with [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md), then [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md), then the canonical reports under [`notes/act3-reports/`](notes/act3-reports/).
+If you need the original forked-paper examples, start with [`data/original_paper_examples/`](data/original_paper_examples/). If you need the current internal framing and evidence routing, start with [`notes/AGENTS.md`](notes/AGENTS.md), then [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md), then the canonical reports under [`notes/icml/reports/`](notes/icml/reports/). For the Mistral limitation-response path, use [`notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`](notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md).
 
 ## Repository Map
 
@@ -107,6 +108,8 @@ Current project-facing reading order:
 - [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md)
 - [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
 - [`notes/research-log.md`](notes/research-log.md)
+- [`notes/icml/reports/`](notes/icml/reports/)
+- [`notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`](notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md)
 - [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md)
 - [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md)
-- [`notes/act3-reports/`](notes/act3-reports/)
+- [`notes/act3-reports/`](notes/act3-reports/) for historical Act 3 report provenance

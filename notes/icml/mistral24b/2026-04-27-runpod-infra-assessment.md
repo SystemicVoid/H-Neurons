@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-27
 **Scope:** RunPod compute selection for the Mistral-Small-24B narrow-extension anchor
-([scope memo](../../paper/icml/reviews/2026-04-21-scope-reassessment-gemma-flagship-mistral-anchor.md)).
+([scope memo](../../../paper/icml/reviews/2026-04-21-scope-reassessment-gemma-flagship-mistral-anchor.md)).
 Separate from the main Gemma flagship infra; do not generalize the choices here to Gemma runs.
 
 **Decision in one line:**
@@ -19,7 +19,7 @@ The Mistral 24B anchor work is *replication*, not novel research:
 - Per-layer activation capture for h-neuron probe rebuilding
   (`models/mistral24b_classifier_rebuilt.pkl` indicates this is already a partial pipeline).
 - Possible causal interventions (patching/ablation) at single layers — not multi-GPU TP.
-- Evaluator pass via external LLM judge ([`logs/mistral24b_step2_llm.log`](../../logs/mistral24b_step2_llm.log)).
+- Evaluator pass via external LLM judge ([`logs/mistral24b_step2_llm.log`](../../../logs/mistral24b_step2_llm.log)).
 
 → Stateful, custom hook code, deterministic seeds. **Pods, not Serverless.**
 
@@ -321,7 +321,7 @@ curl -sS -L -H "Authorization: Bearer $HF_TOKEN" -o /dev/null -w "%{http_code}\n
    in tmux or let the wrapper create its own tmux session; dump outputs under
    `data/mistral24b/`. Use `STAGES=<comma-separated stages>` to resume a
    verified subset.
-6. Run `scripts/lib/pipeline active-run-status` before staging outputs (project guard, [AGENTS.md](../../AGENTS.md)).
+6. Run `scripts/lib/pipeline active-run-status` before staging outputs (project guard, [root AGENTS.md](../../../AGENTS.md)).
 7. **Stop the pod** when done — only $7/mo storage carries.
 8. If H100 SXM disappears at launch time → fallback A100 SXM, same volume, same template.
 
@@ -357,6 +357,6 @@ curl -sS -L -H "Authorization: Bearer $HF_TOKEN" -o /dev/null -w "%{http_code}\n
 - [vLLM](https://github.com/vllm-project/vllm)
 
 ### Project context
-- [Anchor scope memo (2026-04-21)](../../paper/icml/reviews/2026-04-21-scope-reassessment-gemma-flagship-mistral-anchor.md)
-- [`data/mistral24b/`](../../data/mistral24b/) — existing pipeline artifacts
-- [`docs/throughput-assessment.md`](../throughput-assessment.md) — Gemma-side throughput baseline (do not transplant numbers)
+- [Anchor scope memo (2026-04-21)](../../../paper/icml/reviews/2026-04-21-scope-reassessment-gemma-flagship-mistral-anchor.md)
+- [`data/mistral24b/`](../../../data/mistral24b/) — existing pipeline artifacts
+- [`docs/throughput-assessment.md`](../../../docs/throughput-assessment.md) — Gemma-side throughput baseline (do not transplant numbers)

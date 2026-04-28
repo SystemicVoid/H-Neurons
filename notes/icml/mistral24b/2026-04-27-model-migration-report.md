@@ -68,8 +68,10 @@ Status as of 2026-04-27:
   using tmux, `systemd-inhibit`, active-run guards, `nvitop -1`, explicit
   `device_map=cuda:0`, uv commands, environment capture, stage selection, and
   dry-run support.
-- Added `docs/mistral24b/replication-plan.md`.
-- Corrected `docs/mistral24b/infra-assessment.md` with the 2501 model facts:
+- Added the Mistral replication plan, now at
+  `notes/icml/mistral24b/2026-04-28-replication-plan.md`.
+- Corrected the Mistral infra assessment, now at
+  `notes/icml/mistral24b/2026-04-27-runpod-infra-assessment.md`, with the 2501 model facts:
   40 layers, hidden size 5120, intermediate size 32768, 32 attention heads,
   8 KV heads, 32k context, BF16.
 
