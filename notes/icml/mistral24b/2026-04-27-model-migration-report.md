@@ -1,5 +1,9 @@
 # New Model Migration Report
 
+> Superseded for Mistral execution planning and progress tracking by
+> `notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`.
+> Retained for historical code-migration context only.
+
 **Date:** 2026-04-27
 **Scope:** Codebase changes that make the H-neuron pipeline model-aware for the
 Mistral 24B second-model replication path.

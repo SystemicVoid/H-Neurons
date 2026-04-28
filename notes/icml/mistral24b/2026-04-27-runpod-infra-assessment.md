@@ -1,5 +1,9 @@
 # Mistral-24B Anchor-Replication Infra Assessment
 
+> Superseded for Mistral execution planning and progress tracking by
+> `notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`.
+> Retained for historical infra context only.
+
 **Date:** 2026-04-27
 **Scope:** RunPod compute selection for the Mistral-Small-24B narrow-extension anchor
 ([scope memo](../../../paper/icml/reviews/2026-04-21-scope-reassessment-gemma-flagship-mistral-anchor.md)).

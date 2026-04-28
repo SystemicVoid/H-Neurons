@@ -1,5 +1,9 @@
 # Mistral 24B Replication Plan
 
+> Superseded for Mistral execution planning and progress tracking by
+> `notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`.
+> Retained for historical replication-plan context only.
+
 **Date:** 2026-04-27
 
 ## Decision
