@@ -3827,7 +3827,7 @@ def aggregate_results(
         compliant = sum(1 for rec in records if rec.get("compliance"))
         total = len(records)
         rate = compliant / total if total > 0 else 0
-        result = {
+        result: dict[str, Any] = {
             "compliance_rate": round(rate, 4),
             "n_compliant": compliant,
             "n_judged": judged,
