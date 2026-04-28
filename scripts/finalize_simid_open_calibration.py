@@ -31,6 +31,10 @@ from utils import (
     start_run_provenance,
 )
 
+SECONDARY_SCHEMA_VERSION = "simid_open_calibration_secondary_label/v1"
+ADJUDICATION_SCHEMA_VERSION = "simid_open_calibration_adjudication/v1"
+PROMPT_VERSION = "simid_open_calibration_rule/v1"
+
 
 def load_jsonl(path: Path, *, required: bool = True) -> list[dict[str, Any]]:
     if not path.exists():
@@ -64,6 +68,16 @@ def file_sha256(path: Path) -> str:
 
 def case_ids_sha256(case_ids: list[str]) -> str:
     payload = json.dumps(sorted(case_ids), ensure_ascii=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def queue_row_sha256(row: dict[str, Any]) -> str:
+    payload = json.dumps(
+        row,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -103,6 +117,160 @@ def grade_from_row(row: dict[str, Any], *, row_kind: str) -> str:
     if grade not in SIMID_OPEN_FINAL_GRADES:
         raise ValueError(f"Invalid {row_kind} SIMID open grade: {raw!r}")
     return grade
+
+
+def nested_str(row: dict[str, Any], *path: str) -> str | None:
+    current: Any = row
+    for key in path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    if current is None:
+        return None
+    return str(current)
+
+
+def validate_row_queue_hash(
+    row: dict[str, Any],
+    *,
+    row_kind: str,
+    case_id: str,
+    queue_row: dict[str, Any],
+) -> None:
+    expected_hash = row.get("queue_row_sha256")
+    if not isinstance(expected_hash, str) or not expected_hash:
+        raise ValueError(
+            f"{row_kind} row for {case_id} is missing queue_row_sha256; cannot "
+            "verify the current calibration queue row"
+        )
+    observed_hash = queue_row_sha256(queue_row)
+    if expected_hash != observed_hash:
+        raise ValueError(
+            f"{row_kind} row for {case_id} was produced for a different "
+            "calibration queue row"
+        )
+
+
+def validate_row_rule_hash(
+    row: dict[str, Any],
+    *,
+    row_kind: str,
+    case_id: str,
+    expected_rule_hash: str,
+) -> None:
+    if nested_str(row, "rule", "content_sha256") != expected_rule_hash:
+        raise ValueError(
+            f"{row_kind} row for {case_id} does not match the current frozen rule hash"
+        )
+
+
+def validate_row_output_metadata(
+    row: dict[str, Any],
+    *,
+    row_kind: str,
+    case_id: str,
+    expected_schema_version: str,
+    actor_key: str,
+    expected_model: str,
+) -> None:
+    observed_schema_version = row.get("schema_version")
+    if observed_schema_version != expected_schema_version:
+        raise ValueError(
+            f"{row_kind} row for {case_id} has schema_version "
+            f"{observed_schema_version!r}, expected {expected_schema_version!r}"
+        )
+    actor_type = nested_str(row, actor_key, "type")
+    if actor_type != "llm":
+        raise ValueError(
+            f"{row_kind} row for {case_id} has {actor_key}.type "
+            f"{actor_type!r}, expected 'llm'"
+        )
+    observed_model = nested_str(row, actor_key, "model")
+    if observed_model != expected_model:
+        raise ValueError(
+            f"{row_kind} row for {case_id} was produced by {observed_model!r}, "
+            f"expected {expected_model!r}"
+        )
+    observed_prompt_version = nested_str(row, actor_key, "prompt_version")
+    if observed_prompt_version != PROMPT_VERSION:
+        raise ValueError(
+            f"{row_kind} row for {case_id} has prompt_version "
+            f"{observed_prompt_version!r}, expected {PROMPT_VERSION!r}"
+        )
+
+
+def validate_secondary_evidence_context(
+    secondary_by_case: dict[str, dict[str, Any]],
+    *,
+    queue_by_case: dict[str, dict[str, Any]],
+    expected_rule_hash: str,
+    expected_model: str,
+) -> None:
+    for case_id, row in secondary_by_case.items():
+        validate_row_output_metadata(
+            row,
+            row_kind="Secondary-rater",
+            case_id=case_id,
+            expected_schema_version=SECONDARY_SCHEMA_VERSION,
+            actor_key="rater",
+            expected_model=expected_model,
+        )
+        validate_row_queue_hash(
+            row,
+            row_kind="Secondary-rater",
+            case_id=case_id,
+            queue_row=queue_by_case[case_id],
+        )
+        validate_row_rule_hash(
+            row,
+            row_kind="Secondary-rater",
+            case_id=case_id,
+            expected_rule_hash=expected_rule_hash,
+        )
+
+
+def validate_adjudication_evidence_context(
+    adjudication_by_case: dict[str, dict[str, Any]],
+    *,
+    queue_by_case: dict[str, dict[str, Any]],
+    primary_labels_by_case: dict[str, str],
+    secondary_labels_by_case: dict[str, str],
+    expected_rule_hash: str,
+    expected_model: str,
+) -> None:
+    for case_id, row in adjudication_by_case.items():
+        validate_row_output_metadata(
+            row,
+            row_kind="Adjudication",
+            case_id=case_id,
+            expected_schema_version=ADJUDICATION_SCHEMA_VERSION,
+            actor_key="adjudicator",
+            expected_model=expected_model,
+        )
+        validate_row_queue_hash(
+            row,
+            row_kind="Adjudication",
+            case_id=case_id,
+            queue_row=queue_by_case[case_id],
+        )
+        validate_row_rule_hash(
+            row,
+            row_kind="Adjudication",
+            case_id=case_id,
+            expected_rule_hash=expected_rule_hash,
+        )
+        expected_primary = primary_labels_by_case[case_id]
+        if row.get("primary_grade") != expected_primary:
+            raise ValueError(
+                f"Adjudication row for {case_id} has primary_grade "
+                f"{row.get('primary_grade')!r}, expected {expected_primary!r}"
+            )
+        expected_secondary = secondary_labels_by_case[case_id]
+        if row.get("secondary_grade") != expected_secondary:
+            raise ValueError(
+                f"Adjudication row for {case_id} has secondary_grade "
+                f"{row.get('secondary_grade')!r}, expected {expected_secondary!r}"
+            )
 
 
 def agreement_kappa(labels_a: list[str], labels_b: list[str]) -> float | None:
@@ -145,23 +313,36 @@ def finalize_open_calibration(
     rule_path: Path,
     primary_rater_name: str,
     secondary_rater_name: str,
+    secondary_model: str = "gpt-5.5",
+    adjudicator_model: str = "gpt-5.5",
 ) -> dict[str, Any]:
     queue_by_case = index_by_case(queue_rows, row_kind="queue")
     secondary_by_case = index_by_case(secondary_rows, row_kind="secondary-rater")
     adjudication_by_case = index_by_case(adjudication_rows, row_kind="adjudication")
+    expected_rule_hash = file_sha256(rule_path)
 
     expected_cases = set(queue_by_case)
     if set(secondary_by_case) != expected_cases:
         raise ValueError("Secondary rater labels must cover every calibration case")
+    validate_secondary_evidence_context(
+        secondary_by_case,
+        queue_by_case=queue_by_case,
+        expected_rule_hash=expected_rule_hash,
+        expected_model=secondary_model,
+    )
 
     sorted_case_ids = sorted(expected_cases)
-    primary_labels = [
-        grade_from_row(queue_by_case[case_id], row_kind="primary queue")
+    primary_labels_by_case = {
+        case_id: grade_from_row(queue_by_case[case_id], row_kind="primary queue")
         for case_id in sorted_case_ids
-    ]
+    }
+    secondary_labels_by_case = {
+        case_id: grade_from_row(secondary_by_case[case_id], row_kind="secondary-rater")
+        for case_id in sorted_case_ids
+    }
+    primary_labels = [primary_labels_by_case[case_id] for case_id in sorted_case_ids]
     secondary_labels = [
-        grade_from_row(secondary_by_case[case_id], row_kind="secondary-rater")
-        for case_id in sorted_case_ids
+        secondary_labels_by_case[case_id] for case_id in sorted_case_ids
     ]
     disagreement_ids = {
         case_id
@@ -174,6 +355,14 @@ def finalize_open_calibration(
         raise ValueError(
             "Adjudication labels must cover exactly the primary/secondary disagreements"
         )
+    validate_adjudication_evidence_context(
+        adjudication_by_case,
+        queue_by_case=queue_by_case,
+        primary_labels_by_case=primary_labels_by_case,
+        secondary_labels_by_case=secondary_labels_by_case,
+        expected_rule_hash=expected_rule_hash,
+        expected_model=adjudicator_model,
+    )
 
     agreement_count = len(sorted_case_ids) - len(disagreement_ids)
     raw_agreement = build_rate_summary(agreement_count, len(sorted_case_ids))
@@ -238,6 +427,11 @@ def finalize_open_calibration(
         "raters": {
             "primary": primary_rater_name,
             "secondary": secondary_rater_name,
+            "secondary_model": secondary_model,
+            "adjudicator_model": (
+                adjudicator_model if len(disagreement_ids) > 0 else None
+            ),
+            "prompt_version": PROMPT_VERSION,
         },
         "irr": {
             "n_cases": len(sorted_case_ids),
@@ -275,6 +469,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--primary-rater-name", default="simid_open_primary_judge")
     parser.add_argument("--secondary-rater-name", default="simid_open_secondary_rater")
+    parser.add_argument("--secondary-model", default="gpt-5.5")
+    parser.add_argument("--adjudicator-model", default="gpt-5.5")
     parser.add_argument("--allow-overwrite", action="store_true")
     return parser.parse_args(argv)
 
@@ -315,6 +511,8 @@ def main(argv: list[str] | None = None) -> None:
             rule_path=args.rule_path,
             primary_rater_name=args.primary_rater_name,
             secondary_rater_name=args.secondary_rater_name,
+            secondary_model=args.secondary_model,
+            adjudicator_model=args.adjudicator_model,
         )
         summary["inputs"] = input_metadata
         write_json(args.output, summary)

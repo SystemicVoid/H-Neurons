@@ -56,12 +56,14 @@ from label_simid_open_calibration import (
     case_custom_id,
     chat_completion_kwargs_for_model,
     disagreement_rows,
+    make_adjudication_row,
     make_secondary_row,
     parse_adjudication_payload,
     parse_args as label_parse_args,
     queue_row_sha256,
     raise_after_partial_write,
     validate_calibration_queue_for_launch,
+    validate_existing_adjudication_context,
     validate_existing_output_rows,
     validate_secondary_queue_context,
 )
@@ -1638,6 +1640,63 @@ def _open_calibration_queue_rows(grades: list[str]) -> list[dict]:
     ]
 
 
+def _open_calibration_rule_metadata(rule_path: Path) -> dict[str, str]:
+    return {
+        "path": str(rule_path),
+        "git_commit": "test",
+        "content_sha256": hashlib.sha256(rule_path.read_bytes()).hexdigest(),
+    }
+
+
+def _open_calibration_secondary_rows(
+    queue_rows: list[dict], rule_metadata: dict[str, str], *, grade: str | None = None
+) -> list[dict]:
+    return [
+        {
+            "schema_version": "simid_open_calibration_secondary_label/v1",
+            "calibration_case_id": row["calibration_case_id"],
+            "queue_row_sha256": queue_row_sha256(row),
+            "judge_grade": row["primary_judge_grade"] if grade is None else grade,
+            "rater": {
+                "type": "llm",
+                "model": "gpt-5.5",
+                "prompt_version": "simid_open_calibration_rule/v1",
+            },
+            "rule": rule_metadata,
+        }
+        for row in queue_rows
+    ]
+
+
+def _open_calibration_adjudication_row(
+    queue_row: dict,
+    rule_metadata: dict[str, str],
+    *,
+    judge_grade: str = "INCORRECT",
+    secondary_grade: str = "CORRECT",
+    queue_hash: str | None = None,
+    model: str = "gpt-5.5",
+    prompt_version: str = "simid_open_calibration_rule/v1",
+    schema_version: str = "simid_open_calibration_adjudication/v1",
+) -> dict:
+    return {
+        "schema_version": schema_version,
+        "calibration_case_id": queue_row["calibration_case_id"],
+        "queue_row_sha256": (
+            queue_row_sha256(queue_row) if queue_hash is None else queue_hash
+        ),
+        "judge_grade": judge_grade,
+        "primary_grade": queue_row["primary_judge_grade"],
+        "secondary_grade": secondary_grade,
+        "adjudicator": {
+            "type": "llm",
+            "model": model,
+            "prompt_version": prompt_version,
+        },
+        "rule": rule_metadata,
+    }
+
+
 def test_finalize_open_calibration_records_metrics_and_claimability(
     tmp_path: Path,
 ) -> None:
@@ -1647,13 +1706,8 @@ def test_finalize_open_calibration_records_metrics_and_claimability(
     queue_rows = _open_calibration_queue_rows(
         [grades[idx % len(grades)] for idx in range(100)]
     )
-    secondary_rows = [
-        {
-            "calibration_case_id": row["calibration_case_id"],
-            "judge_grade": row["primary_judge_grade"],
-        }
-        for row in queue_rows
-    ]
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(queue_rows, rule_metadata)
 
     summary = finalize_open_calibration(
         queue_rows=queue_rows,
@@ -1670,6 +1724,9 @@ def test_finalize_open_calibration_records_metrics_and_claimability(
     assert summary["irr"]["cohen_kappa"] == pytest.approx(1.0)
     assert summary["irr"]["gwet_ac1"] == pytest.approx(1.0)
     assert summary["adjudication"]["rule_gap_cases"]["count"] == 0
+    assert summary["raters"]["secondary_model"] == "gpt-5.5"
+    assert summary["raters"]["adjudicator_model"] is None
+    assert summary["raters"]["prompt_version"] == "simid_open_calibration_rule/v1"
     assert summary["claimability"]["passed"] is True
 
 
@@ -1679,13 +1736,8 @@ def test_finalize_open_calibration_keeps_small_diagnostic_summary(
     rule_path = tmp_path / "simid_open_rule.md"
     rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
     queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT", "NOT_ATTEMPTED"])
-    secondary_rows = [
-        {
-            "calibration_case_id": row["calibration_case_id"],
-            "judge_grade": row["primary_judge_grade"],
-        }
-        for row in queue_rows
-    ]
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(queue_rows, rule_metadata)
 
     summary = finalize_open_calibration(
         queue_rows=queue_rows,
@@ -1711,13 +1763,8 @@ def test_finalize_open_calibration_leaves_single_grade_kappa_unrecorded(
     rule_path = tmp_path / "simid_open_rule.md"
     rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
     queue_rows = _open_calibration_queue_rows(["CORRECT"] * 100)
-    secondary_rows = [
-        {
-            "calibration_case_id": row["calibration_case_id"],
-            "judge_grade": row["primary_judge_grade"],
-        }
-        for row in queue_rows
-    ]
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(queue_rows, rule_metadata)
 
     summary = finalize_open_calibration(
         queue_rows=queue_rows,
@@ -2015,6 +2062,333 @@ def test_open_calibration_secondary_queue_context_rejects_missing_hash() -> None
         validate_secondary_queue_context(
             {"case_000": unfingerprinted_secondary},
             queue_by_case={"case_000": {"calibration_case_id": "case_000"}},
+        )
+
+
+def test_open_calibration_adjudication_rows_record_queue_row_hash() -> None:
+    rule_metadata = {
+        "path": "data/judge_validation/simid_open_calibration/adjudication_rule.md",
+        "git_commit": "abc123",
+        "content_sha256": "current-rule",
+    }
+    queue_row = {
+        "calibration_case_id": "case_000",
+        "question": "What is the capital of France?",
+        "gold_aliases": ["Paris"],
+        "response": "Paris",
+        "primary_judge_grade": "CORRECT",
+    }
+
+    row = make_adjudication_row(
+        queue_row,
+        secondary_label="INCORRECT",
+        model="gpt-5.5",
+        rule_metadata=rule_metadata,
+        raw_content=json.dumps(
+            {"label": "CORRECT", "rule_gap": False, "notes": "primary was right"}
+        ),
+    )
+
+    assert row["queue_row_sha256"] == queue_row_sha256(queue_row)
+
+
+def test_open_calibration_adjudication_queue_context_detects_drift() -> None:
+    queue_row = {
+        "calibration_case_id": "case_000",
+        "question": "What is the capital of France?",
+        "response": "Paris",
+        "primary_judge_grade": "CORRECT",
+    }
+    adjudication = {
+        "calibration_case_id": "case_000",
+        "queue_row_sha256": queue_row_sha256(queue_row),
+        "judge_grade": "CORRECT",
+        "primary_grade": "CORRECT",
+        "secondary_grade": "INCORRECT",
+    }
+
+    validate_existing_adjudication_context(
+        {"case_000": adjudication},
+        queue_by_case={"case_000": queue_row},
+        secondary_labels={"case_000": "INCORRECT"},
+    )
+    with pytest.raises(ValueError, match="different calibration queue row"):
+        validate_existing_adjudication_context(
+            {"case_000": adjudication},
+            queue_by_case={"case_000": {**queue_row, "response": "Lyon"}},
+            secondary_labels={"case_000": "INCORRECT"},
+        )
+
+
+def test_open_calibration_adjudication_queue_context_rejects_missing_hash() -> None:
+    with pytest.raises(ValueError, match="missing queue_row_sha256"):
+        validate_existing_adjudication_context(
+            {
+                "case_000": {
+                    "calibration_case_id": "case_000",
+                    "judge_grade": "CORRECT",
+                    "primary_grade": "CORRECT",
+                    "secondary_grade": "INCORRECT",
+                }
+            },
+            queue_by_case={
+                "case_000": {
+                    "calibration_case_id": "case_000",
+                    "primary_judge_grade": "CORRECT",
+                }
+            },
+            secondary_labels={"case_000": "INCORRECT"},
+        )
+
+
+def test_finalize_open_calibration_rejects_stale_secondary_queue_hash(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(queue_rows, rule_metadata)
+
+    with pytest.raises(ValueError, match="different calibration queue row"):
+        finalize_open_calibration(
+            queue_rows=[queue_rows[0], {**queue_rows[1], "sample_id": "changed"}],
+            secondary_rows=secondary_rows,
+            adjudication_rows=[],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_finalize_open_calibration_rejects_missing_secondary_queue_hash(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(queue_rows, rule_metadata)
+    del secondary_rows[0]["queue_row_sha256"]
+
+    with pytest.raises(ValueError, match="missing queue_row_sha256"):
+        finalize_open_calibration(
+            queue_rows=queue_rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_finalize_open_calibration_rejects_stale_rule_hash(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    stale_rule_metadata = {
+        "path": str(rule_path),
+        "git_commit": "test",
+        "content_sha256": "stale-rule",
+    }
+    secondary_rows = _open_calibration_secondary_rows(
+        queue_rows,
+        stale_rule_metadata,
+    )
+
+    with pytest.raises(ValueError, match="current frozen rule hash"):
+        finalize_open_calibration(
+            queue_rows=queue_rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_finalize_open_calibration_rejects_stale_secondary_metadata(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(queue_rows, rule_metadata)
+    secondary_rows[0]["rater"] = {
+        "type": "llm",
+        "model": "wrong-model",
+        "prompt_version": "simid_open_calibration_rule/v1",
+    }
+
+    with pytest.raises(ValueError, match="expected 'gpt-5.5'"):
+        finalize_open_calibration(
+            queue_rows=queue_rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_finalize_open_calibration_rejects_stale_adjudication_queue_hash(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(
+        queue_rows,
+        rule_metadata,
+        grade="CORRECT",
+    )
+
+    with pytest.raises(ValueError, match="different calibration queue row"):
+        finalize_open_calibration(
+            queue_rows=queue_rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[
+                _open_calibration_adjudication_row(
+                    queue_rows[1],
+                    rule_metadata,
+                    queue_hash=queue_row_sha256(queue_rows[0]),
+                )
+            ],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_finalize_open_calibration_rejects_missing_adjudication_queue_hash(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(
+        queue_rows,
+        rule_metadata,
+        grade="CORRECT",
+    )
+
+    with pytest.raises(ValueError, match="missing queue_row_sha256"):
+        finalize_open_calibration(
+            queue_rows=queue_rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[
+                {
+                    "schema_version": "simid_open_calibration_adjudication/v1",
+                    "calibration_case_id": "case_001",
+                    "judge_grade": "INCORRECT",
+                    "primary_grade": "INCORRECT",
+                    "secondary_grade": "CORRECT",
+                    "adjudicator": {
+                        "type": "llm",
+                        "model": "gpt-5.5",
+                        "prompt_version": "simid_open_calibration_rule/v1",
+                    },
+                    "rule": rule_metadata,
+                }
+            ],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_finalize_open_calibration_rejects_stale_adjudication_rule_hash(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(
+        queue_rows,
+        rule_metadata,
+        grade="CORRECT",
+    )
+    stale_rule_metadata = {**rule_metadata, "content_sha256": "stale-rule"}
+
+    with pytest.raises(ValueError, match="current frozen rule hash"):
+        finalize_open_calibration(
+            queue_rows=queue_rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[
+                _open_calibration_adjudication_row(
+                    queue_rows[1],
+                    stale_rule_metadata,
+                )
+            ],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_finalize_open_calibration_rejects_stale_adjudication_metadata(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(
+        queue_rows,
+        rule_metadata,
+        grade="CORRECT",
+    )
+
+    with pytest.raises(ValueError, match="prompt_version"):
+        finalize_open_calibration(
+            queue_rows=queue_rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[
+                _open_calibration_adjudication_row(
+                    queue_rows[1],
+                    rule_metadata,
+                    prompt_version="stale-prompt/v0",
+                )
+            ],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
+        )
+
+
+def test_finalize_open_calibration_rejects_adjudication_context_drift(
+    tmp_path: Path,
+) -> None:
+    rule_path = tmp_path / "simid_open_rule.md"
+    rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
+    queue_rows = _open_calibration_queue_rows(["CORRECT", "INCORRECT"])
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(
+        queue_rows,
+        rule_metadata,
+        grade="CORRECT",
+    )
+
+    with pytest.raises(ValueError, match="secondary_grade"):
+        finalize_open_calibration(
+            queue_rows=queue_rows,
+            secondary_rows=secondary_rows,
+            adjudication_rows=[
+                _open_calibration_adjudication_row(
+                    queue_rows[1],
+                    rule_metadata,
+                    secondary_grade="NOT_ATTEMPTED",
+                )
+            ],
+            rule_path=rule_path,
+            primary_rater_name="gpt-5.5",
+            secondary_rater_name="gpt-5.5",
         )
 
 
@@ -2780,10 +3154,12 @@ def test_queue_validator_rejects_invalid_primary_grade_before_downstream_use(
 
     rule_path = tmp_path / "simid_open_rule.md"
     rule_path.write_text("# Frozen SIMID open calibration rule\n", encoding="utf-8")
-    secondary_rows = [
-        {"calibration_case_id": row["calibration_case_id"], "judge_grade": "CORRECT"}
-        for row in rows
-    ]
+    rule_metadata = _open_calibration_rule_metadata(rule_path)
+    secondary_rows = _open_calibration_secondary_rows(
+        rows,
+        rule_metadata,
+        grade="CORRECT",
+    )
     with pytest.raises(ValueError, match="Invalid primary queue SIMID open grade"):
         finalize_open_calibration(
             queue_rows=rows,

@@ -322,6 +322,18 @@ def validate_existing_adjudication_context(
 ) -> None:
     for case_id, row in existing.items():
         queue_row = queue_by_case[case_id]
+        expected_hash = row.get("queue_row_sha256")
+        if not isinstance(expected_hash, str) or not expected_hash:
+            raise ValueError(
+                f"Existing adjudication row for {case_id} is missing "
+                "queue_row_sha256; cannot verify the current calibration queue row"
+            )
+        observed_hash = queue_row_sha256(queue_row)
+        if expected_hash != observed_hash:
+            raise ValueError(
+                f"Existing adjudication row for {case_id} was produced for a "
+                "different calibration queue row"
+            )
         expected_primary = grade_from_row(queue_row, row_kind="primary queue")
         expected_secondary = secondary_labels[case_id]
         if row.get("primary_grade") != expected_primary:
@@ -516,6 +528,7 @@ def make_adjudication_row(
     return {
         "schema_version": ADJUDICATION_SCHEMA_VERSION,
         "calibration_case_id": row["calibration_case_id"],
+        "queue_row_sha256": queue_row_sha256(row),
         "label": label,
         "judge_grade": label,
         "rule_gap": payload["rule_gap"],
