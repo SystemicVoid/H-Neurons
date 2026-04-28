@@ -34,6 +34,18 @@ def test_save_model_legacy_default_when_no_registry_match(
     assert args.save_model == "models/detector.pkl"
 
 
+def test_save_model_legacy_default_when_no_model_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("HNEURONS_MODEL_KEY", raising=False)
+    monkeypatch.delenv("HNEURONS_MODEL_PATH", raising=False)
+    _set_argv(monkeypatch)
+
+    args = parse_args()
+
+    assert args.save_model == "models/detector.pkl"
+
+
 def test_save_model_explicit_override_wins(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

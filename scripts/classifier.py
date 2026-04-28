@@ -117,13 +117,17 @@ def parse_args():
     parser.add_argument("--solver", type=str, default="liblinear")
 
     args = parser.parse_args()
+    requested_model_key = args.model_key
     args.model_path = model_path_for(args.model_key, args.model_path)
     assert_causal_lm_supported(args.model_key, args.model_path)
     if args.save_model is None and args.load_model is None:
-        args.save_model = (
-            default_classifier_path_for(args.model_key, args.model_path)
-            or "models/detector.pkl"
-        )
+        if requested_model_key:
+            args.save_model = (
+                default_classifier_path_for(requested_model_key, args.model_path)
+                or "models/detector.pkl"
+            )
+        else:
+            args.save_model = "models/detector.pkl"
     return args
 
 
