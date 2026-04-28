@@ -4,11 +4,47 @@
 
 ---
 
+## 2026-04-28 (SIMID open calibration finalized)
+
+### What I did
+
+Reviewed the completed production SIMID open-calibration pass for
+`mvp_20260427_calibration`: 402 secondary `gpt-5.5` labels, 34
+disagreement adjudications, and the finalized
+`open_calibration_summary.json`. Wrote the current calibration authority at
+[2026-04-28-simid-open-calibration-review.md](./icml/reports/2026-04-28-simid-open-calibration-review.md)
+and updated the SIMID measurement contract to distinguish missing calibration
+from recorded-but-failed calibration. Also patched the SIMID report renderer so
+future reports do not describe failed calibration as merely "not recorded."
+
+### What this changes about my thinking
+
+The calibration result is reassuring but not claim-clearing: raw agreement is
+91.5% [88.4, 93.9] and AC1 is 0.8974, but Cohen's kappa is 0.7594, below the
+pre-recorded 0.8 threshold. The open-correctness blocker is now
+`calibration_evidence_failed_thresholds`, not
+`calibration_evidence_not_recorded`. The MVP open effects remain diagnostic
+only. The most interesting calibration detail is that Bridge is the weaker
+dataset under second-rater agreement (kappa 0.6756) while TruthfulQA passes the
+dataset-level kappa slice (0.8063), despite TruthfulQA being the more obvious
+deterministic-alias failure mode. That shifts the next audit target toward
+Bridge partial-entity and modifier strictness cases, not just TruthfulQA
+paraphrase.
+
+### What I will do next
+
+Do not relax the kappa gate post-hoc. If open correctness needs to become
+claim-bearing, run a human or rater-diverse calibration pass on all 34
+disagreements plus a stratified agreement sample, then rerun effect reporting
+only after the calibration policy clears. In parallel, keep the selected
+alpha=8 TruthfulQA open gain framed as an exploratory diagnostic until
+multi-seed controls and a pre-specified curve summary land.
+
 ## 2026-04-27 (SIMID MVP calibration run audit)
 
 ### What I did
 
-Audited the full SIMID MVP run at `mvp_20260427_calibration`: 400 manifest rows, 3 conditions, 4 alphas, 4,800 primary `gpt-4o` open adjudications, and a 402-row open-calibration queue awaiting secondary labeling/finalization. Wrote the canonical report at [2026-04-27-simid-mvp-calibration-audit.md](./act3-reports/2026-04-27-simid-mvp-calibration-audit.md). Also verified the parallel no-go review of the calibration-labeling bundle: the canary really was blocked by the new queue validator, and malformed primary grades could pass the pre-spend check before failing later. Patched both paths, added queue-row hashes for newly produced secondary labels, and verified with the SIMID test module plus shellcheck.
+Audited the full SIMID MVP run at `mvp_20260427_calibration`: 400 manifest rows, 3 conditions, 4 alphas, 4,800 primary `gpt-4o` open adjudications, and a 402-row open-calibration queue awaiting secondary labeling/finalization. Wrote the canonical report at [2026-04-27-simid-mvp-calibration-audit.md](./icml/reports/2026-04-27-simid-mvp-calibration-audit.md). Also verified the parallel no-go review of the calibration-labeling bundle: the canary really was blocked by the new queue validator, and malformed primary grades could pass the pre-spend check before failing later. Patched both paths, added queue-row hashes for newly produced secondary labels, and verified with the SIMID test module plus shellcheck.
 
 ### What this changes about my thinking
 
@@ -16,13 +52,13 @@ The MVP is a measurement/pipeline result, not a claimable intervention result. S
 
 ### What I will do next
 
-Run the patched SIMID canary before any further Batch spend, then label/finalize `open_calibration_queue.jsonl` with a second rater or human subset. Only after kappa/AC1/rule-gap evidence passes should the MVP open metrics be reconsidered as claim-bearing. Any next effect run should pre-register the curve summary and add more random-head/random-direction seeds before claiming specificity.
+Superseded by the 2026-04-28 entry above: the calibration pass has now run and failed the kappa threshold. Only after a human or rater-diverse calibration pass clears the policy should the MVP open metrics be reconsidered as claim-bearing. Any next effect run should pre-register the curve summary and add more random-head/random-direction seeds before claiming specificity.
 
 ## 2026-04-27 (SIMID open-adjudication pipeline review)
 
 ### What I did
 
-End-to-end scientific-rigor audit of the new SIMID open-grading judge-adjudication pipeline introduced by the working-tree changes to `scripts/analyze_simid.py` (+675 lines), `scripts/evaluate_intervention.py` (parser fix), and `tests/test_simid.py` (+137 lines / 7 new tests), exercised on the `phase0_20260426_113707_gates` run (16 paired base items, `alphas=[0.0]`, conditions `{selected, unhooked}`, 2 option-order replicates → 64 adjudication rows; judge `gpt-4o`, prompt `simpleqa_verified_aliases/v1`, batch mode, `temperature=0`, `max_tokens=10`). Independently re-derived every reported aggregate from `open_adjudication.jsonl` and `results_adjudicated.json`: 40 CORRECT / 24 INCORRECT raw counts, 16 deterministic-vs-judge disagreements (all one-direction, all in TruthfulQA, on 4 unique base items × 4 replicates), pooled adjudicated open accuracy 0.6250 [0.3750, 0.8750], stratum rates 0.7500 (bridge) / 0.5000 (truthfulqa-test) / 0.5000 (truthfulqa-train) — every figure matches to floating-point precision. Verified provenance sidecars and `openai_request_id` per row, batch-state cleanup behaviour (`_clear_state` in `scripts/openai_batch.py:617` — the missing `*.batch_state.json` is correct), audit-queue compression (68 reasons → 16 disagreement entries), source-of-grade tracking (`effective_grade_source_counts: {adjudication: 64}` in full run, `{adjudication: 3, deterministic_alias: 61}` in canary), and end-to-end noop equivalence (selected ≡ unhooked at α=0 byte-identically through the judge). Wrote canonical pipeline review at [`act3-reports/2026-04-27-simid-open-adjudication-pipeline-review.md`](./act3-reports/2026-04-27-simid-open-adjudication-pipeline-review.md).
+End-to-end scientific-rigor audit of the new SIMID open-grading judge-adjudication pipeline introduced by the working-tree changes to `scripts/analyze_simid.py` (+675 lines), `scripts/evaluate_intervention.py` (parser fix), and `tests/test_simid.py` (+137 lines / 7 new tests), exercised on the `phase0_20260426_113707_gates` run (16 paired base items, `alphas=[0.0]`, conditions `{selected, unhooked}`, 2 option-order replicates → 64 adjudication rows; judge `gpt-4o`, prompt `simpleqa_verified_aliases/v1`, batch mode, `temperature=0`, `max_tokens=10`). Independently re-derived every reported aggregate from `open_adjudication.jsonl` and `results_adjudicated.json`: 40 CORRECT / 24 INCORRECT raw counts, 16 deterministic-vs-judge disagreements (all one-direction, all in TruthfulQA, on 4 unique base items × 4 replicates), pooled adjudicated open accuracy 0.6250 [0.3750, 0.8750], stratum rates 0.7500 (bridge) / 0.5000 (truthfulqa-test) / 0.5000 (truthfulqa-train) — every figure matches to floating-point precision. Verified provenance sidecars and `openai_request_id` per row, batch-state cleanup behaviour (`_clear_state` in `scripts/openai_batch.py:617` — the missing `*.batch_state.json` is correct), audit-queue compression (68 reasons → 16 disagreement entries), source-of-grade tracking (`effective_grade_source_counts: {adjudication: 64}` in full run, `{adjudication: 3, deterministic_alias: 61}` in canary), and end-to-end noop equivalence (selected ≡ unhooked at α=0 byte-identically through the judge). Wrote canonical pipeline review at [2026-04-27-simid-open-adjudication-pipeline-review.md](./icml/reports/2026-04-27-simid-open-adjudication-pipeline-review.md).
 
 ### What this changes about my thinking
 
