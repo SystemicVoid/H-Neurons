@@ -12,6 +12,11 @@
 > The MVP panel supersedes the tiny phase-0 sample for deterministic-alias
 > disagreement rates: Bridge alias matching is better than TruthfulQA but not
 > universally sufficient.
+> **Calibration update (2026-04-28):** the MVP open-calibration pass has now
+> completed and failed the pre-recorded claimability threshold
+> (`kappa=0.7594 < 0.8`; `AC1=0.8974`). Use
+> [2026-04-28-simid-open-calibration-review.md](./2026-04-28-simid-open-calibration-review.md)
+> for current calibration status.
 
 ## TL;DR
 
@@ -47,9 +52,9 @@
   share an identical open response, and even at α≠0 the open response
   does not depend on MC option-order. Concrete dedup opportunity.
 - Claimability is correctly gated. `claimable_open_correctness = false`
-  with `claimability_blocker = calibration_evidence_not_recorded`. The
-  run cannot back a paper claim until judge calibration (analogous to the
-  L4 bridge IRR closure) is executed.
+  with `claimability_blocker = calibration_evidence_not_recorded` in this
+  phase-0 artifact. The later MVP calibration was executed on 2026-04-28 and
+  failed threshold, so the live claimability conclusion is still blocked.
 
 ## 1. Audit scope
 
@@ -364,16 +369,13 @@ mistaken for fully-adjudicated ones.
 
 ### 6.1 Lock in the parser fix with a regression test
 
-Add to `tests/test_simid.py` (or wherever `parse_simpleqa_verdict` is
-unit-tested) a test that asserts free-text "INCORRECT" containing no
-isolated `[ABC]` token returns `INCORRECT`, not `CORRECT`. Cheap
-(~10 lines), prevents the substring bug from regressing under a future
-refactor.
+Done in `tests/test_simid.py`: free-text "INCORRECT" without an isolated
+`[ABC]` token is covered and must return `INCORRECT`, not `CORRECT`.
 
 ### 6.2 Run a judge-calibration pass before claiming any open accuracy
 
 Mirror the L4 bridge IRR closure pattern
-([2026-04-21-bridge-irr-review.md](../../paper/icml/reports/2026-04-21-bridge-irr-review.md)):
+([2026-04-21-bridge-irr-review.md](./2026-04-21-bridge-irr-review.md)):
 pre-freeze a rule, run a second rater (a different LLM, or a small
 human-labelled subset, or both), record κ / AC1 / rule_gap, then upgrade
 `claimable_open_correctness` to `true`. The natural sample is the
@@ -381,6 +383,10 @@ disagreement set surfaced by the audit queue; a stratified 50–100 row
 panel split across bridge and TruthfulQA is enough to drive an interval
 on the judge's deterministic-vs-judge agreement on the items the
 deterministic grader is actually wrong about.
+
+Update: the 2026-04-28 production calibration followed this structure but
+failed the pre-recorded kappa threshold. See
+[2026-04-28-simid-open-calibration-review.md](./2026-04-28-simid-open-calibration-review.md).
 
 ### 6.3 Deduplicate before judging
 

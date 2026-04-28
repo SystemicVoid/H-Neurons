@@ -1,5 +1,10 @@
 # SIMID Calibration Preflight Handoff
 
+> Status update (2026-04-28): this handoff is historical. The production SIMID
+> open-calibration pass has since run to completion. Current calibration status
+> is recorded in
+> [paper/icml/reports/2026-04-28-simid-open-calibration-review.md](paper/icml/reports/2026-04-28-simid-open-calibration-review.md).
+
 Commit: `b03e309 fix(simid): harden calibration launch preflight`
 
 What changed:

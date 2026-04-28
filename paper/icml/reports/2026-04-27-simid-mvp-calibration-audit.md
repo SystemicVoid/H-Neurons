@@ -5,16 +5,22 @@
 > This supersedes the phase-0 sample for SIMID same-item effect interpretation and
 > extends, but does not replace, the earlier
 > [open-adjudication pipeline review](./2026-04-27-simid-open-adjudication-pipeline-review.md).
+> Calibration-status update: the independent open-calibration pass completed on
+> 2026-04-28 and failed the pre-recorded claimability threshold because
+> Cohen's kappa was 0.7594 < 0.8. Use
+> [2026-04-28-simid-open-calibration-review.md](./2026-04-28-simid-open-calibration-review.md)
+> as the current authority for calibration and claimability.
 
 ## Bottom Line
 
 The run is useful as an MVP stress test of SIMID measurement, not as a
 claimable intervention result. The generation/adjudication path completed:
 400 manifest rows x 3 conditions x 4 alphas = 4,800 open adjudications, with
-all phase-0 Bridge gates passing. The open-correctness contract is still
-blocked (`claimable_open_correctness=false`,
-`claimability_blocker=calibration_evidence_not_recorded`) because the
-independent calibration queue was built but not yet labeled/finalized.
+all phase-0 Bridge gates passing. As of 2026-04-28, the open-correctness
+contract remains blocked, but the reason has changed: calibration evidence is
+recorded and failed threshold (`calibration_evidence_failed_thresholds`;
+agreement 91.5%, kappa 0.7594, AC1 0.8974). See the 2026-04-28 calibration
+review for the current claimability status.
 
 The most defensible scientific update is negative/diagnostic: paper-faithful
 K=12 ITI does not show a clean, specific same-item improvement. In the selected
@@ -23,8 +29,8 @@ descriptively (+12 pp [4, 20]) while hurting TruthfulQA MC (-3.5 pp
 [-7.0, -0.5]) and Bridge open correctness (-6 pp [-12, 0]). Pooled selected
 open correctness at alpha=8 is only +3 pp [-2, 8.5], while the
 random-direction control is also +3 pp [-1, 7]. Treat the apparent TruthfulQA
-open gain as exploratory until judge calibration, multi-seed controls, and a
-pre-specified curve summary land.
+open gain as exploratory until judge calibration passes, multi-seed controls,
+and a pre-specified curve summary land.
 
 ## Data Authority
 
@@ -255,37 +261,36 @@ evidence objects, and baseline/control comparisons must be explicit.
 
 | Uncertainty | Severity | Current judgment | Resolution |
 |---|---|---|---|
-| Primary `gpt-4o` judge calibration | High | Blocks all open-correctness claims | Run secondary/human calibration, report kappa, AC1, rule_gap |
+| Primary `gpt-4o` judge calibration | High | Blocks all open-correctness claims; 2026-04-28 calibration recorded but failed kappa threshold | Add human or rater-diverse calibration before claim-bearing use |
 | Selected alpha=8 TruthfulQA open gain | Medium | Interesting but exploratory | Replicate after calibration on fresh seed/control family |
 | Bridge open degradation under selected ITI | Medium | Plausible and consistent with earlier Bridge externality work, but this sample is smaller | Reuse calibrated judge or link to Phase 3 Bridge as primary authority |
 | Specificity vs random controls | High | Not established | Add more random-head and random-direction seeds; predefine curve-level test |
 | Deterministic-vs-judge disagreement mechanisms | Medium | Alias false negatives and false positives both present | Blind audit sampled disagreements and judge/agreement cases |
-| Pipeline canary real Batch path | Low-medium | Shell and tests pass; live Batch canary not run in this audit | Run patched canary before secondary calibration spend |
+| Pipeline canary real Batch path | Low | 2026-04-28 production calibration completed without Batch failures | Keep canary for future calibration launches |
 
 ## Next Steps
 
-1. Run `scripts/infra/check_judge_models.sh`, then the patched
-   `scripts/infra/simid_canary_calibration.sh`, before spending on the MVP
-   calibration queue.
-2. Label `open_calibration_queue.jsonl` with an independent secondary rater,
-   adjudicate disagreements, finalize the calibration summary, and rerun
-   `analyze_simid.py` with the finalized calibration evidence.
-3. Include a human or blind expert subset, especially for Bridge cases where
+1. Treat the 2026-04-28 calibration as the current authority: evidence is
+   recorded, but open correctness remains non-claimable because kappa fell
+   below the threshold.
+2. Include a human or blind expert subset, especially for Bridge cases where
    `gpt-4o` and deterministic alias disagree in both directions.
-4. Pre-register the next SIMID curve summary before inspecting results:
+3. Pre-register the next SIMID curve summary before inspecting results:
    e.g. selected-vs-control slope over alphas, not "best alpha after looking."
-5. Add at least two more random-direction and random-head seeds before any
+4. Add at least two more random-direction and random-head seeds before any
    specificity claim.
-6. Keep this MVP out of paper-facing claims except as a measurement/pipeline
-   diagnostic until the calibration evidence passes the threshold in
+5. Keep this MVP out of paper-facing claims except as a measurement/pipeline
+   diagnostic until calibration passes the threshold in
    `measurement-blueprint.md`.
 
 ## Cross-Links
 
 - Prior pipeline audit:
   [2026-04-27-simid-open-adjudication-pipeline-review.md](./2026-04-27-simid-open-adjudication-pipeline-review.md)
+- Completed calibration review:
+  [2026-04-28-simid-open-calibration-review.md](./2026-04-28-simid-open-calibration-review.md)
 - Measurement contract:
-  [../measurement-blueprint.md](../measurement-blueprint.md)
+  [../../../notes/measurement-blueprint.md](../../../notes/measurement-blueprint.md)
 - Existing Bridge claim authority:
   [2026-04-13-bridge-phase3-test-results.md](./2026-04-13-bridge-phase3-test-results.md)
 - ITI transfer synthesis:
