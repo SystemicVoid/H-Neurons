@@ -282,7 +282,9 @@ than assumed authority.
    pre-registered and validated on fresh evidence.
 2. Add a human or genuinely independent rater pass on all 34 disagreements plus
    a stratified agreement sample. Prioritize Bridge partial-entity cases and
-   TruthfulQA non-answer/qualified-answer boundaries.
+   TruthfulQA non-answer/qualified-answer boundaries. The current blinded
+   review package for this step is
+   [`human_review_package`](../../../data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/README.md).
 3. Run a sensitivity analysis that applies the final calibration adjudications
    as correction evidence to the MVP effect estimates. Treat it as diagnostic
    unless the calibration gate passes.

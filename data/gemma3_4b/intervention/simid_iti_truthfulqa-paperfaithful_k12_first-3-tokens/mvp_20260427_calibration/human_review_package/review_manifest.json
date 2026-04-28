@@ -1,0 +1,120 @@
+{
+  "schema_version": "simid_open_independent_review_package/v1",
+  "created_at_utc": "2026-04-28T17:33:02.098505+00:00",
+  "git_sha": "8744ae33d79476ab2b0a1bf34a468b25ac0cde32",
+  "run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration",
+  "output_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package",
+  "input_files": {
+    "queue": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_queue.jsonl",
+      "content_sha256": "255684d274645d16f43bc24d399cf079293b4c16f3ece47724a4c4c3fe337de4"
+    },
+    "secondary_labels": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_secondary_labels.jsonl",
+      "content_sha256": "b1ede18077d61d2ad242ff19918a9b7e7da3555799564cfa97bc3613c250e228"
+    },
+    "adjudications": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_adjudications.jsonl",
+      "content_sha256": "4747a617f1d2cf10127c8c450486962351a3658e3df8382388da85b49d981603"
+    },
+    "summary": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_summary.json",
+      "content_sha256": "440114aa9fc3a03f6b5cbdca6807902524579d90ebe2098b1dd65eab3f7df3b3"
+    },
+    "rule": {
+      "path": "data/judge_validation/simid_open_calibration/adjudication_rule.md",
+      "content_sha256": "476f44ebc20b518843e9d0236a62ec26d09d6c46fa1ea9ff010bf2aa4e08a904"
+    }
+  },
+  "selection": {
+    "policy": "all primary/secondary disagreements plus a deterministic priority-weighted stratified sample of primary/secondary agreement cases",
+    "seed": "simid_open_review_package_20260428_v1",
+    "requested_agreement_sample_size": 66,
+    "n_review_cases": 100,
+    "counts_by_review_set": {
+      "stratified_agreement_sample": 66,
+      "primary_secondary_disagreement": 34
+    },
+    "counts_by_dataset": {
+      "truthfulqa": 54,
+      "triviaqa_bridge": 46
+    },
+    "counts_by_review_set_and_dataset": {
+      "review_set=stratified_agreement_sample::dataset=truthfulqa": 40,
+      "review_set=primary_secondary_disagreement::dataset=triviaqa_bridge": 20,
+      "review_set=primary_secondary_disagreement::dataset=truthfulqa": 14,
+      "review_set=stratified_agreement_sample::dataset=triviaqa_bridge": 26
+    },
+    "priority_weights": {
+      "bridge_partial_entity_or_modifier": 2.0,
+      "truthfulqa_non_answer_boundary": 1.5,
+      "truthfulqa_qualified_answer_boundary": 1.5,
+      "standard": 1.0
+    },
+    "priority_tags": [
+      "bridge_partial_entity_or_modifier",
+      "truthfulqa_non_answer_boundary",
+      "truthfulqa_qualified_answer_boundary",
+      "wrong_extra_answer",
+      "multiple_candidates_no_commitment",
+      "alias_too_broad_or_too_narrow",
+      "malformed_case",
+      "other_boundary"
+    ]
+  },
+  "blind_cases_file_sha256": "d3832171541f5a50dbde6da53419065d0f56413fbe95a7409bd4ae03a5f3dd67",
+  "blind_cases_canonical_sha256": "c9c773d3fcbc163b14d67b9e126badec0494809ff3a8579f2d9a816852e67008",
+  "label_schema": {
+    "schema_version": "simid_open_independent_rater_label/v1",
+    "required_fields": [
+      "schema_version",
+      "calibration_case_id",
+      "review_order",
+      "label",
+      "confidence",
+      "rule_gap",
+      "flags",
+      "notes",
+      "rater",
+      "blind_cases_file_sha256"
+    ],
+    "valid_labels": [
+      "CORRECT",
+      "INCORRECT",
+      "NOT_ATTEMPTED"
+    ],
+    "valid_flags": [
+      "bridge_partial_entity_or_modifier",
+      "truthfulqa_non_answer_boundary",
+      "truthfulqa_qualified_answer_boundary",
+      "wrong_extra_answer",
+      "multiple_candidates_no_commitment",
+      "alias_too_broad_or_too_narrow",
+      "malformed_case",
+      "other_boundary"
+    ]
+  },
+  "source_calibration_claimability": {
+    "passed": false,
+    "blockers": [
+      "cohen_kappa_below_threshold"
+    ],
+    "blocker": "calibration_evidence_failed_thresholds",
+    "policy": {
+      "schema_version": "simid_open_calibration/v1",
+      "target": "simid_open_correctness",
+      "requires_pre_frozen_rule": true,
+      "requires_audit_queue_disagreement_sample": true,
+      "requires_stratified_panel": true,
+      "min_cases": 100,
+      "min_cohen_kappa": 0.8,
+      "min_gwet_ac1": 0.8,
+      "max_rule_gap_cases": 0
+    }
+  },
+  "generator": {
+    "script": "scripts/export_simid_open_review_package.py",
+    "git_dirty": true,
+    "provenance_sidecar": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/export_simid_open_review_package.provenance.20260428_173302.json"
+  }
+}

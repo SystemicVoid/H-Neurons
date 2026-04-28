@@ -1,0 +1,39 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/export_simid_open_review_package-20260428_171426-327565.json",
+  "args": {
+    "agreement_sample_size": 66,
+    "output_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package",
+    "overwrite": true,
+    "run_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration",
+    "seed": "simid_open_review_package_20260428_v1"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/export_simid_open_review_package.py",
+    "--overwrite"
+  ],
+  "blind_cases_sha256": "46ab52b0785df72d88dcf371967094c851254edd2b3e17c952a9a7e890c00930",
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/export_simid_open_review_package.py --overwrite",
+  "completed_at_utc": "2026-04-28T17:14:26.238378+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "8744ae33d79476ab2b0a1bf34a468b25ac0cde32",
+  "hostname": "excurio",
+  "n_review_cases": 100,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/index.html",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/review_cases_blind.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/review_audit_context.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/review_manifest.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/opus_4_7_independent_rater_prompt.md",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/README.md"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "export_simid_open_review_package-20260428_171426-327565",
+  "safe_env": {},
+  "schema_version": "simid_open_review_package_export/v1",
+  "script": "export_simid_open_review_package.py",
+  "source_run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration",
+  "started_at_utc": "2026-04-28T17:14:26.206232+00:00",
+  "status": "completed"
+}
