@@ -43,6 +43,11 @@ def parse_args():
         default=[],
         help="Path to a previously-sampled qids.json whose IDs should be excluded (for disjoint splits)",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Fail if fewer than --num_samples examples per class are available.",
+    )
     return parser.parse_args()
 
 
@@ -91,9 +96,13 @@ def main():
         # Determine final sample count based on availability
         actual_samples = min(args.num_samples, len(true_ids), len(false_ids))
         if actual_samples < args.num_samples:
-            print(
-                f"Warning: Only {actual_samples} samples per class available. Sampling maximum possible."
+            message = (
+                f"Only {actual_samples} samples per class available after exclusions; "
+                f"requested {args.num_samples}."
             )
+            if args.strict:
+                raise ValueError(message)
+            print(f"Warning: {message} Sampling maximum possible.")
 
         # Randomly sample equal amounts
         sampled_t = random.sample(true_ids, actual_samples)

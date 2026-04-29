@@ -54,9 +54,9 @@ MODEL_LOAD_SMOKE="${MODEL_LOAD_SMOKE:-${PREFLIGHT_DIR}/model_load_smoke.json}"
 CLASSIFIER_PATH="${CLASSIFIER_PATH:-models/mistral24b_classifier_canonical.pkl}"
 CLASSIFIER_DEV_METRICS="${CLASSIFIER_DEV_METRICS:-${OUTPUT_ROOT}/pipeline/classifier_canonical_dev_metrics.json}"
 CLASSIFIER_TEST_METRICS="${CLASSIFIER_TEST_METRICS:-${OUTPUT_ROOT}/pipeline/classifier_canonical_test_metrics.json}"
-SPLIT_SAMPLES="${SPLIT_SAMPLES:-560}"
-DEV_SAMPLES="${DEV_SAMPLES:-160}"
-TEST_SAMPLES="${TEST_SAMPLES:-160}"
+SPLIT_SAMPLES="${SPLIT_SAMPLES:-360}"
+DEV_SAMPLES="${DEV_SAMPLES:-100}"
+TEST_SAMPLES="${TEST_SAMPLES:-100}"
 TOKEN_SPAN_AUDIT_MAX_SAMPLES="${TOKEN_SPAN_AUDIT_MAX_SAMPLES:-50}"
 INTERVENTION_MAX_SAMPLES="${INTERVENTION_MAX_SAMPLES:-100}"
 STAGES="${STAGES:-all}"
@@ -256,21 +256,24 @@ run_stage splits uv run python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \
     --output_path "${TRAIN_IDS}" \
     --num_samples "${SPLIT_SAMPLES}" \
-    --seed 42
+    --seed 42 \
+    --strict
 
 run_stage splits uv run python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \
     --output_path "${DEV_IDS}" \
     --num_samples "${DEV_SAMPLES}" \
     --seed 43 \
-    --exclude_path "${TRAIN_IDS}"
+    --exclude_path "${TRAIN_IDS}" \
+    --strict
 
 run_stage splits uv run python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \
     --output_path "${TEST_IDS}" \
     --num_samples "${TEST_SAMPLES}" \
     --seed 44 \
-    --exclude_path "${TRAIN_IDS}" "${DEV_IDS}"
+    --exclude_path "${TRAIN_IDS}" "${DEV_IDS}" \
+    --strict
 
 run_stage activations uv run python scripts/extract_activations.py \
     --model_key "${MODEL_KEY}" \

@@ -63,7 +63,10 @@ git clone -b main /workspace/h-neurons-cp2.bundle /workspace/02-h-neurons
 cd /workspace/02-h-neurons
 export HF_HOME=/workspace/hf
 export UV_CACHE_DIR=/workspace/uv-cache
+command -v uv || python3 -m pip install uv
+command -v tmux || (apt-get update && apt-get install -y tmux)
 uv sync --no-dev
+git ls-files --error-unmatch uv.lock >/dev/null 2>&1 || rm -f uv.lock
 STAGES=splits,activations,classifier \
   TMUX_WRAPPED=1 \
   INHIBIT_WRAPPED=1 \
@@ -72,6 +75,10 @@ STAGES=splits,activations,classifier \
 ```
 
 The wrapper asserts H100/A100-class CUDA, BF16 support, and at least 75 GiB before GPU stages. It also validates the token-span summary and CP1 model-load smoke before activation/classifier work.
+The official RunPod PyTorch template may not include `uv` or `tmux`; install only
+those small tools if absent. If `uv sync --no-dev` creates an untracked `uv.lock`
+from this repo's unlocked project metadata, remove that generated file before the
+wrapper so provenance does not record a dirty checkout.
 
 ## Sync Back and Cleanup
 
