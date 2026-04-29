@@ -47,12 +47,22 @@ def test_render_launch_requires_volume_for_cp2() -> None:
     with pytest.raises(cloudctl.CloudctlError, match="network volume"):
         cloudctl.render_launch_command(profile, stage="cp2", attempt=1)
 
+    with pytest.raises(cloudctl.CloudctlError, match="confirmed-gpu-stock"):
+        cloudctl.render_launch_command(
+            profile,
+            stage="cp2",
+            attempt=1,
+            network_volume_id="nv-test",
+            data_center_id="US-CA-2",
+        )
+
     command = cloudctl.render_launch_command(
         profile,
         stage="cp2",
         attempt=1,
         network_volume_id="nv-test",
         data_center_id="US-CA-2",
+        confirmed_gpu_stock=True,
     )
     rendered = cloudctl.shell_join(command)
     assert "--network-volume-id" in command
@@ -83,7 +93,38 @@ def test_render_launch_rejects_multi_datacenter_override_for_network_volume() ->
             attempt=1,
             network_volume_id="nv-test",
             data_center_id="US-CA-2,US-OR-1",
+            confirmed_gpu_stock=True,
         )
+
+
+def test_render_launch_requires_explicit_gpu_fallback_acknowledgement() -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+
+    with pytest.raises(cloudctl.CloudctlError, match="allow-gpu-fallback"):
+        cloudctl.render_launch_command(
+            profile,
+            stage="cp2",
+            attempt=1,
+            network_volume_id="nv-test",
+            data_center_id="US-CA-2",
+            gpu_id=cloudctl.DEFAULT_RUNPOD_H100_GPU_ID,
+            confirmed_gpu_stock=True,
+        )
+
+    command = cloudctl.render_launch_command(
+        profile,
+        stage="cp2",
+        attempt=1,
+        network_volume_id="nv-test",
+        data_center_id="US-CA-2",
+        gpu_id=cloudctl.DEFAULT_RUNPOD_H100_GPU_ID,
+        allow_gpu_fallback=True,
+        confirmed_gpu_stock=True,
+    )
+    rendered = cloudctl.shell_join(command)
+
+    assert "--gpu-id 'NVIDIA H100 80GB HBM3'" in rendered
+    assert "--data-center-ids US-CA-2" in rendered
 
 
 def test_render_network_volume_create_uses_profile_size_and_datacenter() -> None:
@@ -282,3 +323,58 @@ def test_cleanup_check_passes_for_zero_snapshot(
 
     assert code == 0
     assert "[ok] cleanup check passed" in capsys.readouterr().out
+
+
+def test_cleanup_check_allows_storage_only_spend_when_volumes_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    snapshot = cloudctl.RunPodSnapshot(
+        pods=[],
+        network_volumes=[{"id": "nv-1", "name": "cache"}],
+        user={"currentSpendPerHr": 0.019},
+    )
+    monkeypatch.setattr(cloudctl, "runpod_snapshot", lambda: snapshot)
+
+    code = cloudctl.main(["cleanup-check", "--allow-network-volumes"])
+
+    output = capsys.readouterr().out
+    assert code == 0
+    assert "[ok] currentSpendPerHr treated as retained network-volume storage" in output
+    assert "[ok] cleanup check passed" in output
+
+
+def test_cleanup_check_still_fails_on_spend_without_allowed_volume(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    snapshot = cloudctl.RunPodSnapshot(
+        pods=[],
+        network_volumes=[],
+        user={"currentSpendPerHr": 0.019},
+    )
+    monkeypatch.setattr(cloudctl, "runpod_snapshot", lambda: snapshot)
+
+    code = cloudctl.main(["cleanup-check", "--allow-network-volumes"])
+
+    assert code == 1
+    assert "[fail] currentSpendPerHr is nonzero" in capsys.readouterr().out
+
+
+def test_cleanup_check_still_fails_when_pods_exist_even_if_volumes_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    snapshot = cloudctl.RunPodSnapshot(
+        pods=[{"id": "pod-1", "desiredStatus": "RUNNING"}],
+        network_volumes=[{"id": "nv-1", "name": "cache"}],
+        user={"currentSpendPerHr": 0.019},
+    )
+    monkeypatch.setattr(cloudctl, "runpod_snapshot", lambda: snapshot)
+
+    code = cloudctl.main(["cleanup-check", "--allow-network-volumes"])
+
+    output = capsys.readouterr().out
+    assert code == 1
+    assert "[fail] pods still exist" in output
+    assert "[fail] currentSpendPerHr is nonzero" in output

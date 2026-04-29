@@ -20,6 +20,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = Path(__file__).resolve().parent / "cloud" / "profiles"
 SPEND_EPSILON = 1e-9
+DEFAULT_RUNPOD_H100_GPU_ID = "NVIDIA H100 80GB HBM3"
 
 
 class CloudctlError(RuntimeError):
@@ -208,24 +209,41 @@ def render_launch_command(
     pod_name: str | None = None,
     network_volume_id: str | None = None,
     data_center_id: str | None = None,
+    gpu_id: str | None = None,
+    allow_gpu_fallback: bool = False,
+    confirmed_gpu_stock: bool = False,
 ) -> list[str]:
     if profile["provider"] != "runpod":
         raise CloudctlError("render-launch currently supports RunPod profiles only")
 
     runpod = _table(profile, "runpod")
     storage = decide_storage(profile, stage=stage, attempt=attempt)
+    default_gpu_id = _string(runpod, "gpu_id")
+    resolved_gpu_id = gpu_id or default_gpu_id
+    if gpu_id is not None and gpu_id != default_gpu_id and not allow_gpu_fallback:
+        raise CloudctlError(
+            "non-default GPU requested; pass --allow-gpu-fallback after deciding "
+            "not to use the profile default"
+        )
     resolved_volume_id = network_volume_id or runpod.get("network_volume_id")
     if storage.mode == "network_volume" and not isinstance(resolved_volume_id, str):
         raise CloudctlError(
             "storage decision requires a network volume; pass --network-volume-id"
         )
-    if (
-        storage.mode == "network_volume"
-        and data_center_id is None
-        and len(_strings(runpod, "data_center_ids")) != 1
-    ):
+    if storage.mode == "network_volume" and data_center_id is None:
         raise CloudctlError(
             "network-volume launches must pass --data-center-id for the volume's datacenter"
+        )
+    if storage.mode == "network_volume" and not confirmed_gpu_stock:
+        raise CloudctlError(
+            "network-volume launches must confirm live GPU stock in the exact "
+            "network-volume datacenter. Run `runpodctl network-volume list -o json` "
+            "to verify the volume datacenter, run `runpodctl datacenter list -o json` "
+            f"to confirm {resolved_gpu_id!r} stock there, then rerun render-launch "
+            "with --confirmed-gpu-stock. If the A100 default is unavailable, make "
+            "an explicit operator decision: pass --gpu-id for an H100 fallback in "
+            "that datacenter with --allow-gpu-fallback, or transfer/sync artifacts "
+            "to a new volume in a datacenter with live A100 stock."
         )
 
     command = [
@@ -237,7 +255,7 @@ def render_launch_command(
         "--cloud-type",
         _string(runpod, "cloud_type", "SECURE"),
         "--gpu-id",
-        _string(runpod, "gpu_id"),
+        resolved_gpu_id,
         "--gpu-count",
         str(_int(runpod, "gpu_count", 1)),
         "--container-disk-in-gb",
@@ -481,6 +499,23 @@ def run_preflight(args: argparse.Namespace) -> int:
     print(f"storage: {storage.mode} - {storage.reason}")
     if storage.network_volume_size_gb is not None:
         print(f"network_volume_size_gb: {storage.network_volume_size_gb}")
+    if profile["provider"] == "runpod" and storage.mode == "network_volume":
+        runpod = _table(profile, "runpod")
+        print("network_volume_launch_guard:")
+        print(
+            "  1. run `runpodctl network-volume list -o json` and copy the volume dataCenterId"
+        )
+        print(
+            "  2. run `runpodctl datacenter list -o json` and confirm live stock for:"
+        )
+        print(f"     gpu_id={_string(runpod, 'gpu_id')}")
+        print(
+            "  3. render launch with that exact --data-center-id and --confirmed-gpu-stock"
+        )
+        print(
+            "  4. if A100 is unavailable there, explicitly choose H100 in that "
+            "datacenter or transfer artifacts to a new A100-live volume"
+        )
 
     failed = False
 
@@ -538,9 +573,17 @@ def run_cleanup_check(args: argparse.Namespace) -> int:
         print("[fail] network volumes still exist")
         failed = True
     spend = current_spend_per_hour(snapshot.user)
+    storage_only_spend_allowed = (
+        args.allow_network_volumes
+        and not snapshot.pods
+        and bool(snapshot.network_volumes)
+    )
     if spend > SPEND_EPSILON:
-        print("[fail] currentSpendPerHr is nonzero")
-        failed = True
+        if storage_only_spend_allowed and not failed:
+            print("[ok] currentSpendPerHr treated as retained network-volume storage")
+        else:
+            print("[fail] currentSpendPerHr is nonzero")
+            failed = True
     if not failed:
         print("[ok] cleanup check passed")
     return 1 if failed else 0
@@ -587,6 +630,9 @@ def run_render_launch(args: argparse.Namespace) -> int:
         pod_name=args.name,
         network_volume_id=args.network_volume_id,
         data_center_id=args.data_center_id,
+        gpu_id=args.gpu_id,
+        allow_gpu_fallback=args.allow_gpu_fallback,
+        confirmed_gpu_stock=args.confirmed_gpu_stock,
     )
     print(shell_join(command))
     return 0
@@ -659,6 +705,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--data-center-id",
         help="Datacenter id for exact network-volume placement.",
     )
+    render.add_argument(
+        "--gpu-id",
+        help=(
+            "Override the profile GPU id. Requires --allow-gpu-fallback when it "
+            "differs from the A100 default."
+        ),
+    )
+    render.add_argument(
+        "--allow-gpu-fallback",
+        action="store_true",
+        help="Acknowledge an explicit non-default GPU fallback decision.",
+    )
+    render.add_argument(
+        "--confirmed-gpu-stock",
+        action="store_true",
+        help=(
+            "Acknowledge that runpodctl datacenter output shows live stock for "
+            "the chosen GPU in the exact network-volume datacenter."
+        ),
+    )
     render.set_defaults(func=run_render_launch)
 
     render_volume = sub.add_parser(
@@ -679,7 +745,7 @@ def build_parser() -> argparse.ArgumentParser:
     render_volume.add_argument(
         "--data-center-id",
         required=True,
-        help="Datacenter id selected after live H100 stock check.",
+        help="Datacenter id selected after live A100 stock check.",
     )
     render_volume.set_defaults(func=run_render_volume_create)
 
