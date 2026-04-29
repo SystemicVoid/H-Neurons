@@ -1,0 +1,190 @@
+{
+  "analysis_policy": {
+    "max_rule_gap_cases": 0,
+    "min_cases": 150,
+    "min_cohen_kappa": 0.8,
+    "min_gwet_ac1": 0.8,
+    "min_raw_agreement": 0.9,
+    "reference_label_source": "private held-out MVP primary open-judge labels; diagnostic only until this prospective gate is returned and passes",
+    "requires_blind_label_ids": true,
+    "requires_complete_label_coverage": true,
+    "schema_version": "simid_prospective_open_calibration_policy/v1",
+    "target": "simid_open_correctness_future_grading"
+  },
+  "blinding": {
+    "private_files": [
+      "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/private_case_map.jsonl",
+      "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/review_manifest.json"
+    ],
+    "reviewer_facing_files": [
+      "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/rubric.md",
+      "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/review_cases_blind.jsonl",
+      "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/label_schema.json",
+      "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prompt.md"
+    ],
+    "statement": "review_cases_blind.jsonl contains only blind_case_id, review_order, question, gold_aliases, and predicted_answer. It omits source IDs, sample metadata, prior labels, and private reference labels."
+  },
+  "claimability_guardrail": "Package creation is not intervention evidence. SIMID open correctness remains diagnostic-only unless returned blind labels pass this pre-specified prospective calibration policy.",
+  "created_at_utc": "2026-04-29T15:16:07.690938+00:00",
+  "files": {
+    "label_schema": {
+      "content_sha256": "77b3cbc0c4568cfcf37409ac069bad2a705dcc31dacc0a9e23e9fbefbbd9f5d6",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/label_schema.json",
+      "schema_version": "simid_prospective_open_calibration_label/v1"
+    },
+    "private_case_map": {
+      "content_sha256": "8233297e4d50cc0b0f2308cd5057ab77624f7d9b8a8088f343432ce6b1f95b0c",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/private_case_map.jsonl",
+      "schema_version": "simid_prospective_open_calibration_private_case/v1"
+    },
+    "prompt": {
+      "content_sha256": "0e604264d326769697462182e66244188c3717cace0286ccf9c36784a52ffba7",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prompt.md"
+    },
+    "readme": {
+      "content_sha256": "1096cad2c10e6609ec17a2be59ec740d8d1f222523565b09da63fbc4cea39411",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/README.md"
+    },
+    "review_cases_blind": {
+      "content_sha256": "2dd01daf1f3c07cf58d5e2b4ec8bd4481864b8c3056e9119033258994c8ba990",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/review_cases_blind.jsonl",
+      "schema_version": "simid_prospective_open_calibration_case/v1"
+    }
+  },
+  "git_dirty": true,
+  "git_sha": "8cc8fe63798d8177e26ba720b4b9714c6d1386d0",
+  "output_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429",
+  "rubric": {
+    "content_sha256": "80f9baf09d757a9296c931b6973e633571974411e3ec421e6b512dba53df6f6f",
+    "hard_case_groups": [
+      "Core i9 vs Core i9 Apple Silicon",
+      "pithivier custard/fruit filling boundary",
+      "viscous fluid modifier",
+      "Peter Piper plain peppers",
+      "Amal Clooney lawyer vs human-rights advocate",
+      "cranberry modifier exact repeat",
+      "Adam first man boundary"
+    ],
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/rubric.md",
+    "source": "Boundary-family examples are copied from the exact-propagation diagnostic cleanup and frozen as rubric examples only.",
+    "version": "simid_open_grading_rubric_prospective_20260429/v1"
+  },
+  "run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration",
+  "schema_version": "simid_prospective_open_calibration_gate/v1",
+  "selection": {
+    "candidate_counts_by_stratum": {
+      "dataset=triviaqa_bridge::reference_label=CORRECT": 217,
+      "dataset=triviaqa_bridge::reference_label=INCORRECT": 351,
+      "dataset=truthfulqa::reference_label=INCORRECT": 409,
+      "dataset=truthfulqa::reference_label=NOT_ATTEMPTED": 81
+    },
+    "n_candidate_rows_after_exclusions": 1058,
+    "n_review_cases": 150,
+    "policy": "Fresh held-out MVP open-adjudication rows, excluding prior calibration-queue rows and exact normalized question-answer pairs used as hard-case rubric examples; equal quotas across available dataset x private-reference-label strata.",
+    "requested_sample_size": 150,
+    "sample_counts_by_condition": {
+      "random_direction_seed1": 81,
+      "random_head_seed1": 29,
+      "selected": 40
+    },
+    "sample_counts_by_dataset": {
+      "triviaqa_bridge": 75,
+      "truthfulqa": 75
+    },
+    "sample_counts_by_dataset_and_reference_label": {
+      "dataset=triviaqa_bridge::reference_label=CORRECT": 37,
+      "dataset=triviaqa_bridge::reference_label=INCORRECT": 38,
+      "dataset=truthfulqa::reference_label=INCORRECT": 38,
+      "dataset=truthfulqa::reference_label=NOT_ATTEMPTED": 37
+    },
+    "sample_counts_by_reference_label": {
+      "CORRECT": 37,
+      "INCORRECT": 76,
+      "NOT_ATTEMPTED": 37
+    },
+    "sample_counts_by_stratum": {
+      "dataset=triviaqa_bridge::reference_label=CORRECT": 37,
+      "dataset=triviaqa_bridge::reference_label=INCORRECT": 38,
+      "dataset=truthfulqa::reference_label=INCORRECT": 38,
+      "dataset=truthfulqa::reference_label=NOT_ATTEMPTED": 37
+    },
+    "seed": "simid_prospective_open_calibration_gate_20260429_v1",
+    "selected_source_case_ids_sha256": "4a8c0fa242106ff33841c1eff6879ab86d1c9e3149d7b853461b00bcafc71d18"
+  },
+  "source_files": {
+    "alpha_outputs": [
+      {
+        "content_sha256": "f7f5d6df9ce171462711154b4641075c10760174c21d7c2523733406cbc1a6ff",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/random_direction_seed1/alpha_-8.0.jsonl"
+      },
+      {
+        "content_sha256": "fe9251e15e8a077d9b040870cb045c51ccb71659f2acb71a5a53e3ef4252b6da",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/random_direction_seed1/alpha_0.0.jsonl"
+      },
+      {
+        "content_sha256": "2cf7462f195ba2e5a7fae572ac1f147eb07c3ac06c132c28797db22cc72674d8",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/random_direction_seed1/alpha_4.0.jsonl"
+      },
+      {
+        "content_sha256": "a9460fd3cc8d3e7e19e7d1da875c0c3432362b27ae7ce65f8a34e88355156add",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/random_direction_seed1/alpha_8.0.jsonl"
+      },
+      {
+        "content_sha256": "171bb8ca865ec40b8525b54f1800852eb138e3117324249aecd6e6b56d537597",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/random_head_seed1/alpha_-8.0.jsonl"
+      },
+      {
+        "content_sha256": "82d883d5e1d49b571cfa95464ac214d4ae1d4ba14c301a2e59f0a1b6e33f13f9",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/random_head_seed1/alpha_0.0.jsonl"
+      },
+      {
+        "content_sha256": "d0ae13ecc22c481af271820530f92bfe2f8c962b87aacc1cf447c17682cdf90f",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/random_head_seed1/alpha_4.0.jsonl"
+      },
+      {
+        "content_sha256": "e8dddb1ec03d4fc421f883fab8698fcd08d1947e45bf811cb584d456d686c5a2",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/random_head_seed1/alpha_8.0.jsonl"
+      },
+      {
+        "content_sha256": "d5245b6565daaef566815e9a8407daeea402f6d31d33de2ee22b058df476d745",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/selected/alpha_-8.0.jsonl"
+      },
+      {
+        "content_sha256": "08b830b1b482f3a812df2e898e3d0469ac34b7994bc6fbec1fd9a8038e2006b9",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/selected/alpha_0.0.jsonl"
+      },
+      {
+        "content_sha256": "2b93d7e4d4c2709bc2c462cf8642be0922703c3bc0192e1013ccf6e8e5e86440",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/selected/alpha_4.0.jsonl"
+      },
+      {
+        "content_sha256": "5d7e869295b6d67333b17448224974665e0b55d13b5eba4ff626b42b93faba52",
+        "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/selected/alpha_8.0.jsonl"
+      }
+    ],
+    "boundary_correction_evidence": {
+      "content_sha256": "abd4a44e1e49756b44de3f463af2ab6aa82dfb055aa09c45b03e729ffaf0427d",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/duplicate_collapsed_correction_evidence.jsonl"
+    },
+    "manifest": {
+      "content_sha256": "fd6efd153891bfb8f961509e2bb2b272d992c0cd9f633b9c2ae9dd85b2f64e2a",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/manifest.locked.json"
+    },
+    "open_adjudication": {
+      "content_sha256": "44aad0a6e43087c18648e471a868afe675228837187cba9a81108157c7bfd42c",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_adjudication.jsonl"
+    },
+    "prior_calibration_queue": {
+      "content_sha256": "255684d274645d16f43bc24d399cf079293b4c16f3ece47724a4c4c3fe337de4",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_queue.jsonl"
+    },
+    "prior_calibration_summary": {
+      "content_sha256": "440114aa9fc3a03f6b5cbdca6807902524579d90ebe2098b1dd65eab3f7df3b3",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_summary.json"
+    },
+    "run_config": {
+      "content_sha256": "d5749da15a5dd249898e9002e238957e01c6bd3b111a3a70bf4a393f10d2909f",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/run_config.json"
+    }
+  }
+}

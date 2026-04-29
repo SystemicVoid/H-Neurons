@@ -56,6 +56,12 @@ TruthfulQA alpha=8 at +12.0 pp, and moves Bridge alpha=8 from -6.0 pp to
 -8.0 pp. This remains a measurement-sensitivity result, not a claim-bearing
 intervention result.
 
+Update after prospective-gate packaging: the append-only package in
+`human_review_package/prospective_open_calibration_gate_20260429/` freezes the
+revised hard-case rubric and exports a held-out blinded calibration sample for
+future returned labels. This is a prospective measurement gate only; it adds no
+new evidence that historical SIMID open-correctness metrics are claim-bearing.
+
 ## Data Authority
 
 | Artifact | Path |
@@ -74,6 +80,7 @@ intervention result.
 | Fresh targeted blind adjudication | `human_review_package/fresh_blind_adjudication_20260429/` |
 | Duplicate-collapsed correction evidence | `human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/` |
 | Diagnostic exact-propagation sensitivity | `human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/` |
+| Prospective open-calibration gate package | `human_review_package/prospective_open_calibration_gate_20260429/` |
 
 Important artifact-status note: `results_adjudicated.json` and
 `report_adjudicated.md` were generated before the calibration pass and still
