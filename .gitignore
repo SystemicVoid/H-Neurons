@@ -34,6 +34,8 @@ scripts/infra/watch_gh200_pipeline_and_sync.sh
 data/**/activations/
 data/**/activations_sae/
 data/**/activations_sae*/
+data/mistral24b/pipeline/activations_llm_canonical/*/answer_tokens/
+data/mistral24b/pipeline/activations_llm_canonical/*/all_except_answer_tokens/
 data/**/investigation_*/
 models/
 data/benchmarks/facts_grounding_examples.csv
