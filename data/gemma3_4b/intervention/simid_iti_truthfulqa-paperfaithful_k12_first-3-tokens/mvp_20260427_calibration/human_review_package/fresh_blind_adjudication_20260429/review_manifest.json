@@ -1,0 +1,80 @@
+{
+  "schema_version": "simid_fresh_blind_adjudication_package/v1",
+  "created_at_utc": "2026-04-29T11:48:04.904777+00:00",
+  "run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration",
+  "source_review_package": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package",
+  "output_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429",
+  "source_files": {
+    "blind_review_cases": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/review_cases_blind.jsonl",
+      "content_sha256": "d3832171541f5a50dbde6da53419065d0f56413fbe95a7409bd4ae03a5f3dd67"
+    },
+    "adjudication_rule": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/adjudication_rule.md",
+      "content_sha256": "476f44ebc20b518843e9d0236a62ec26d09d6c46fa1ea9ff010bf2aa4e08a904"
+    }
+  },
+  "selection": {
+    "policy": "fresh blinded adjudication subset for exact-repeat conflicts and high-value Bridge modifier/partial-entity boundary cases requested on 2026-04-29",
+    "n_review_cases": 23,
+    "source_review_orders": [
+      4,
+      9,
+      14,
+      16,
+      28,
+      34,
+      36,
+      44,
+      47,
+      48,
+      59,
+      60,
+      63,
+      64,
+      70,
+      74,
+      76,
+      80,
+      82,
+      83,
+      84,
+      85,
+      100
+    ],
+    "families": [
+      "cranberry_modifier_exact_repeats",
+      "adam_first_man_exact_repeats",
+      "pithivier_custard_and_related_modifier_boundary",
+      "viscous_fluid_exact_repeats",
+      "peter_piper_peppers_exact_repeats",
+      "lawyer_vs_human_rights_lawyer_partial_entity_boundary",
+      "core_i9_and_core_i9_apple_silicon_processor_brand_boundary"
+    ]
+  },
+  "blind_cases_file_sha256": "36b47414710562ddaa17002c4f1e204ecd71b1479bf307bc73653582f9df0347",
+  "llm_batching": {
+    "rationale": "Single small blind batch for measurement cleanup; rater-facing file omits calibration IDs and all prior labels.",
+    "batch_size": 23,
+    "batch_root_directory": "llm_blind_batches",
+    "case_schema_version": "simid_open_llm_blind_review_case/v1",
+    "label_schema_version": "simid_open_llm_blind_rater_label/v1",
+    "batches": [
+      {
+        "batch_id": "batch_001",
+        "review_order_start": 4,
+        "review_order_end": 100,
+        "n_cases": 23,
+        "case_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/review_cases_blind.jsonl",
+        "case_file_sha256": "36b47414710562ddaa17002c4f1e204ecd71b1479bf307bc73653582f9df0347",
+        "prompt_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/prompt.md",
+        "label_part_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/fresh_blind_boundary_labels.jsonl"
+      }
+    ]
+  },
+  "post_label_outputs": {
+    "merged_labels": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/fresh_blind_boundary_labels_resolved.jsonl",
+    "validation_summary": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/validation_summary.json"
+  },
+  "blinding_statement": "Rater-facing batch files contain only blind_case_id, review_order, question, gold_aliases, predicted_answer, rule, and schema. Prior primary, secondary, Opus, human, reference, and adjudication labels are not included."
+}

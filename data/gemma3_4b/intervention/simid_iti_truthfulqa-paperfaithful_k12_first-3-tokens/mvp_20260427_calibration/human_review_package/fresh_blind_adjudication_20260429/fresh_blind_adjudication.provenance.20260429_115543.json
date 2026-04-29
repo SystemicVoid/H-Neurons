@@ -1,0 +1,100 @@
+{
+  "schema_version": "simid_fresh_blind_adjudication_provenance/v1",
+  "created_at_utc": "2026-04-29T11:55:43.917873+00:00",
+  "git_sha": "cfd1242fa341df1d0fee533fdaf35061045dd93f",
+  "git_dirty": true,
+  "purpose": "Fresh blinded adjudication pass for exact-repeat conflicts and Bridge modifier/partial-entity boundary cases.",
+  "blinding": {
+    "rater_facing_directory": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001",
+    "rater_facing_case_fields": [
+      "schema_version",
+      "blind_case_id",
+      "review_order",
+      "question",
+      "gold_aliases",
+      "predicted_answer"
+    ],
+    "excluded_from_rater_context": [
+      "primary labels",
+      "secondary labels",
+      "Opus labels",
+      "human labels",
+      "reference labels",
+      "production adjudication labels",
+      "calibration IDs"
+    ],
+    "private_map": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_case_map.jsonl"
+  },
+  "source_files": {
+    "source_blind_review_cases": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/review_cases_blind.jsonl",
+      "sha256": "d3832171541f5a50dbde6da53419065d0f56413fbe95a7409bd4ae03a5f3dd67"
+    },
+    "frozen_rule": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/adjudication_rule.md",
+      "sha256": "476f44ebc20b518843e9d0236a62ec26d09d6c46fa1ea9ff010bf2aa4e08a904"
+    }
+  },
+  "output_files": {
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/README.md": {
+      "sha256": "d3a583cc3abb4418cc4cae9decea44fce21a261958919bc027de4161f09c9409",
+      "bytes": 1924
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/adjudication_rule.md": {
+      "sha256": "476f44ebc20b518843e9d0236a62ec26d09d6c46fa1ea9ff010bf2aa4e08a904",
+      "bytes": 3170
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/duplicate_collapsed_boundary_status.jsonl": {
+      "sha256": "798b4cd75dd5d8731c5742a8c35d14f94f26d3b0fb52c51504c086b8d2fbbc23",
+      "bytes": 10149
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/fresh_blind_boundary_labels_resolved.jsonl": {
+      "sha256": "7bf52db52c8bd858931227866511f8a81bab064e6d6bf2c30db4ddcea495440b",
+      "bytes": 13277
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/label_schema.json": {
+      "sha256": "02b2a9209fd7d8eee8f67d12b461272f6ba4e529e3228bebbac9b21c9feb685c",
+      "bytes": 2188
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/adjudication_rule.md": {
+      "sha256": "476f44ebc20b518843e9d0236a62ec26d09d6c46fa1ea9ff010bf2aa4e08a904",
+      "bytes": 3170
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/fresh_blind_boundary_labels.jsonl": {
+      "sha256": "bfc280b9ccb64d4d8a6f2659576dd2d035425682ac6026da5aab510be291db7b",
+      "bytes": 13139
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/label_schema.json": {
+      "sha256": "884d6b6ab6c135a2cff75ba1ff33be6951fadb82cdcec0489044dae3170a0fcc",
+      "bytes": 2014
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/prompt.md": {
+      "sha256": "d2c1025e73b5aa93193cfcf461dae7e1819363e5b3e632ed082b32ec50ba9561",
+      "bytes": 732
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/review_cases_blind.jsonl": {
+      "sha256": "36b47414710562ddaa17002c4f1e204ecd71b1479bf307bc73653582f9df0347",
+      "bytes": 8460
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_case_map.jsonl": {
+      "sha256": "762d0984e0f5edcc91aac591872eb81974bb1fa3a139c29d6671d9c59c143dbc",
+      "bytes": 13174
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/review_manifest.json": {
+      "sha256": "c6d7f41b15b810a341c36f2093ca1fee9dc1684a467e934ac9cf3a667ccd449e",
+      "bytes": 4197
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/validation_summary.json": {
+      "sha256": "60e3f305ddab1681ebabac43d3937a538bdb6548d3c947fc98d1d0e1087e851e",
+      "bytes": 5354
+    }
+  },
+  "validation": {
+    "validator": "uv run python scripts/validate_simid_open_review_labels.py --package-dir <package> --label-file <labels> --batch-dir <batch>",
+    "result": "Validated 23 rows",
+    "summary_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/validation_summary.json",
+    "rule_gap_count": 0,
+    "unresolved_case_count": 0,
+    "inconsistent_duplicate_group_count": 0
+  }
+}
