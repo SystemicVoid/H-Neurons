@@ -1,0 +1,59 @@
+{
+  "command": "uv run python scripts/build_simid_boundary_correction_evidence.py --overwrite",
+  "generated_at_utc": "2026-04-29T13:22:28.545971+00:00",
+  "git_sha": "191b589d4efaa5271495d574ca29054c9e7e4941",
+  "inputs": {
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/duplicate_collapsed_boundary_status.jsonl": {
+      "sha256": "798b4cd75dd5d8731c5742a8c35d14f94f26d3b0fb52c51504c086b8d2fbbc23"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/fresh_blind_boundary_labels_resolved.jsonl": {
+      "sha256": "7bf52db52c8bd858931227866511f8a81bab064e6d6bf2c30db4ddcea495440b"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/validation_summary.json": {
+      "sha256": "60e3f305ddab1681ebabac43d3937a538bdb6548d3c947fc98d1d0e1087e851e"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/opus_4_7_labels.jsonl": {
+      "sha256": "69271f95231418ee453faa97b558294604aac3e6823a90f92ff925244e37e21d"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/review_cases_blind.jsonl": {
+      "sha256": "d3832171541f5a50dbde6da53419065d0f56413fbe95a7409bd4ae03a5f3dd67"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/simid_open_human_labels.jsonl": {
+      "sha256": "48f06dede2bf64630ecf1f6eab73d67a6f81707a305f5362abcb3475e890eb42"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_adjudication.jsonl": {
+      "sha256": "44aad0a6e43087c18648e471a868afe675228837187cba9a81108157c7bfd42c"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_adjudications.jsonl": {
+      "sha256": "4747a617f1d2cf10127c8c450486962351a3658e3df8382388da85b49d981603"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_queue.jsonl": {
+      "sha256": "255684d274645d16f43bc24d399cf079293b4c16f3ece47724a4c4c3fe337de4"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_secondary_labels.jsonl": {
+      "sha256": "b1ede18077d61d2ad242ff19918a9b7e7da3555799564cfa97bc3613c250e228"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_summary.json": {
+      "sha256": "440114aa9fc3a03f6b5cbdca6807902524579d90ebe2098b1dd65eab3f7df3b3"
+    },
+    "scripts/build_simid_boundary_correction_evidence.py": {
+      "sha256": "55d82c95be9a9158fde902d900f0f12a736630ae3ae9211c128fb349a84a25b7"
+    }
+  },
+  "output_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429",
+  "outputs": {
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/README.md": {
+      "sha256": "681452cd5daf7d4b6c0e04254b1961fa1d92e1a30b8e45e15b1a7f3c31d04af7"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/duplicate_collapsed_correction_evidence.jsonl": {
+      "sha256": "70a4d482607c9604c18ffcf3a7b4fa7f783175d7f5abd77b12655762ce237280"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/duplicate_collapsed_correction_evidence.md": {
+      "sha256": "3dbb4dacf8bd7eae3553a9eeec80283f34d0dcc77a2c2c0a2d4f9030f50bf8d0"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/validation_summary.json": {
+      "sha256": "6ece22a9fe975a99afb9a5f4bfa568d0815ae3502db5ec48807aaa58b1bd732d"
+    }
+  },
+  "schema_version": "simid_boundary_correction_evidence_provenance/v1"
+}

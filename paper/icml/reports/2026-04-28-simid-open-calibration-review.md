@@ -42,6 +42,12 @@ and 0 unresolved cases. The pass resolves the exact-repeat conflicts in the
 targeted subset but does not change the calibration-gate recommendation:
 open-correctness remains diagnostic-only.
 
+Update after duplicate-collapsed correction evidence: the follow-on table has
+10 family rows covering the same 23 reviewed rows, preserves current-reference,
+Opus, and human comparison provenance, marks 0 targeted rows unresolved, and
+blocks broader semantic-family propagation. It supports exact-normalized-answer
+diagnostic cleanup only; it does not change claimability.
+
 ## Data Authority
 
 | Artifact | Path |
@@ -58,6 +64,7 @@ open-correctness remains diagnostic-only.
 | Independent Opus review labels | `human_review_package/opus_4_7_labels.jsonl` |
 | Human review labels | `human_review_package/simid_open_human_labels.jsonl` |
 | Fresh targeted blind adjudication | `human_review_package/fresh_blind_adjudication_20260429/` |
+| Duplicate-collapsed correction evidence | `human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/` |
 
 Important artifact-status note: `results_adjudicated.json` and
 `report_adjudicated.md` were generated before the calibration pass and still
@@ -325,6 +332,17 @@ INCORRECT, pithivier/fruit INCORRECT, and "Lawyer and human rights advocate"
 CORRECT. These fresh labels agree with Opus on 21/23 targeted rows, the current
 reference on 17/23, and the human pass on 6/23.
 
+The duplicate-collapsed correction-evidence table in
+`human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/`
+converts those labels into 10 family rows covering the same 23 review rows. It
+records 0 unresolved local rows and blocks all broader semantic-family
+propagation unless separately reviewed. Current-reference provenance is now
+explicit: 4 duplicate groups agree with the fresh labels, 3 groups have mixed
+prior-reference labels, 2 single-row checks agree, and 1 single-row check
+disagrees. Opus is all-agree on 8 family rows and mixed on 2; the human pass is
+all-agree on 3, mixed on 1, and all-disagree on 6. All 10 rows are eligible for
+diagnostic exact-normalized-answer propagation only.
+
 ### Binding To The SIMID MVP Results
 
 The MVP effect estimates remain those in
@@ -369,20 +387,21 @@ full correction-evidence sensitivity analysis recommended below because
 unreviewed MVP rows may contain similar boundary cases.
 
 A targeted row-pattern stress check on the recurring Bridge boundary families
-supports the same conclusion. The full 4,800-row MVP output contains 14
-pithivier/custard rows, 16 "Viscous fluid." rows, 22 plain "Peppers" rows on
-the Peter Piper item, 22 plain-lawyer rows on the Amal Clooney item, 14 "Mulled
-cranberry sauce" rows, and 24 Core-i* processor-brand rows. Applying a
-deliberately mechanical correction scenario for the non-Core families
-(pithivier/custard INCORRECT, viscous fluid CORRECT, plain Peppers INCORRECT,
-plain lawyer INCORRECT, and mulled cranberry sauce CORRECT) moves the selected
-pooled alpha=8 open delta from +3.0 pp to +2.5 pp and the selected Bridge
-alpha=8 open delta from -6.0 pp to -7.0 pp; TruthfulQA alpha=8 is unchanged.
-This is not a substitute for adjudication, because the correction rules are
-post-hoc and some cases remain genuinely contested. It does show that the
-highest-value immediate adjudication pass is about preventing inconsistent
-rule propagation and preserving auditability, not about rescuing or overturning
-the current headline effect.
+supports the same conclusion. The full 4,800-row MVP output contains 12 exact
+pithivier/custard rows, 2 pithivier/fruit rows with the same filling-only
+problem, 16 "Viscous fluid." rows, 22 plain "Peppers" rows on the Peter Piper
+item, 22 plain-lawyer rows on the Amal Clooney item, 14 "Mulled cranberry
+sauce" rows, and 24 Core-i* processor-brand rows. Applying a deliberately
+mechanical correction scenario for the non-Core exact-answer families
+(pithivier/custard and pithivier/fruit INCORRECT, viscous fluid CORRECT, plain
+Peppers INCORRECT, plain lawyer INCORRECT, and mulled cranberry sauce CORRECT)
+moves the selected pooled alpha=8 open delta from +3.0 pp to +2.5 pp and the
+selected Bridge alpha=8 open delta from -6.0 pp to -7.0 pp; TruthfulQA alpha=8
+is unchanged. This is not a substitute for adjudication, because the correction
+rules are post-hoc and some cases remain genuinely contested. It does show that
+the highest-value cleanup is about preventing inconsistent rule propagation and
+preserving auditability, not about rescuing or overturning the current headline
+effect.
 
 ## Interpretation
 
@@ -407,6 +426,9 @@ This section is interpretation, not raw data.
   that the fresh targeted pass then resolved.
 - The fresh targeted pass resolved the requested exact-repeat conflicts with
   internally consistent labels across all 7 duplicate groups.
+- The duplicate-collapsed correction-evidence table now binds those fresh labels
+  to current-reference, Opus, and human comparison provenance, and it blocks
+  broad semantic-family propagation.
 - The larger SIMID measurement lesson still holds. Deterministic alias matching
   is not adequate as a claim-bearing open-correctness endpoint, especially on
   paraphrase-rich TruthfulQA, and Bridge is better but not clean enough to treat
@@ -429,10 +451,10 @@ This section is interpretation, not raw data.
   repeat level: one exact "Mulled cranberry sauce." repeat has conflicting
   final labels. The fresh pass resolves the diagnostic copy, but it does not
   mutate the historical production reference.
-- The final adjudicated labels have not been propagated into a new claimable
-  effect analysis. Even if they were, the calibration failure would keep open
-  correctness diagnostic-only unless a new pre-registered calibration policy or
-  fresh validation pass passed.
+- The final adjudicated labels and correction-evidence table have not been
+  propagated into a new claimable effect analysis. Even if they were, the
+  calibration failure would keep open correctness diagnostic-only unless a new
+  pre-registered calibration policy or fresh validation pass passed.
 - The selected ITI effect is still not specific. The pooled selected alpha=8
   open delta is the same point estimate as the random-direction control, and
   the selected effect trades off against TruthfulQA MC and Bridge open
@@ -480,24 +502,25 @@ than assumed authority.
 |---|---|---|---|
 | Primary judge validity after failed kappa gate | High | Diagnostic-only; not claim-bearing | Add fresh blinded calibration before citing open metrics as claims |
 | Whether kappa failure reflects real ambiguity or prevalence artifact | Medium-high | Both likely contribute; AC1/raw agreement are reassuring but not decisive | Report prevalence, use fresh evidence for any policy change |
-| Bridge grading strictness | Medium-high | Fresh targeted adjudication resolves the requested boundary examples, but Bridge still needs duplicate-collapsed correction evidence before broader propagation | Build the correction-evidence table from the fresh resolved labels and keep propagation diagnostic |
+| Bridge grading strictness | Medium-high | Fresh targeted adjudication plus the correction-evidence table resolves the requested boundary examples; broader propagation remains exact-normalized-answer-only and diagnostic | Require fresh review before applying broader semantic-family corrections |
 | TruthfulQA alpha=8 open gain | Medium | Interesting diagnostic, not specific and not calibrated enough | Fresh seed/control family with pre-specified curve summary after calibration passes |
-| Final-label sensitivity of MVP effect estimates | Medium | Exact-row replacement on reviewed rows moves main selected alpha=8 cells by <=1.0 pp under human labels and <=0.5 pp under reference/Opus policies, but similar unreviewed rows may matter | Map high-confidence correction patterns onto similar MVP rows as diagnostic sensitivity |
+| Final-label sensitivity of MVP effect estimates | Medium | Exact-row replacement on reviewed rows moves main selected alpha=8 cells by <=1.0 pp under human labels and <=0.5 pp under reference/Opus policies; the correction-evidence table now gives exact-answer MVP row counts for diagnostic sensitivity | Apply only exact-normalized-answer propagation unless broader cases receive fresh review |
 | Human-rater agreement | Medium-high | Measured and weak relative to Opus/current reference; useful for surfacing hard cases, not as adjudicator | Use human notes/confidence as triage features, not gold labels |
-| Duplicate surfaces in the 100-case review package | Medium | Fresh pass adjudicated the targeted exact-repeat groups with 0 inconsistent duplicate groups and 0 unresolved cases; the production-reference conflict remains historical provenance | Use fresh labels in the duplicate-collapsed correction-evidence table |
-| Core-i* processor-brand boundary | Medium | Fresh pass labels Core i9 CORRECT and Core i9 Apple Silicon INCORRECT; this resolves the local boundary but not every processor-brand variant | Carry these as explicit rows in the correction-evidence table |
+| Duplicate surfaces in the 100-case review package | Medium | Fresh pass adjudicated the targeted exact-repeat groups with 0 inconsistent duplicate groups and 0 unresolved cases; the correction-evidence table preserves the historical production-reference conflicts | Use the table as the audit source for local diagnostic cleanup |
+| Core-i* processor-brand boundary | Medium | Fresh pass labels Core i9 CORRECT and Core i9 Apple Silicon INCORRECT; the correction-evidence table keeps these separate and blocks broad Core-i* collapse | Review any additional Core-i* variants before propagation |
 
 ## Recommended Next Steps
 
 1. Do not cite SIMID MVP open-correctness deltas as claim-bearing. Keep them
    diagnostic until a calibration pass clears the policy or a new policy is
    pre-registered and validated on fresh evidence.
-2. Convert the reviewed cases into a duplicate-collapsed correction-evidence
-   table using the fresh targeted pass. Preserve explicit conflict provenance:
+2. Use the duplicate-collapsed correction-evidence table as the audit source for
+   local diagnostic cleanup. Preserve explicit conflict provenance:
    reference+Opus agreement, human disagreement, historical exact-repeat
    conflict, fresh adjudicated status, or unresolved.
-3. Extend the diagnostic sensitivity analysis from exact reviewed rows to
-   similar MVP rows only where the rule implication is clear; keep any such
+3. Extend diagnostic sensitivity beyond exact reviewed rows only through the
+   table's exact-normalized-answer propagation rules. Keep broader semantic
+   families non-propagating unless they receive fresh review, and keep all such
    propagation non-claim-bearing unless a fresh calibration gate passes.
 4. If the kappa threshold is reconsidered because AC1 is judged more appropriate
    under label skew, document that as a prospective policy change and apply it

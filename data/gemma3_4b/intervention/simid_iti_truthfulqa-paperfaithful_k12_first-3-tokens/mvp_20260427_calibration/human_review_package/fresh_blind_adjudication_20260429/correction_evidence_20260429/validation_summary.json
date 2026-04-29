@@ -1,0 +1,98 @@
+{
+  "all_broader_family_propagation_blocked": true,
+  "coverage_checks": {
+    "no_duplicate_review_orders": true,
+    "review_orders_match_fresh_package": true
+  },
+  "expected_review_orders": [
+    4,
+    9,
+    14,
+    16,
+    28,
+    34,
+    36,
+    44,
+    47,
+    48,
+    59,
+    60,
+    63,
+    64,
+    70,
+    74,
+    76,
+    80,
+    82,
+    83,
+    84,
+    85,
+    100
+  ],
+  "fresh_duplicate_group_count": 7,
+  "fresh_inconsistent_duplicate_group_count": 0,
+  "fresh_validation_label_counts": {
+    "CORRECT": 10,
+    "INCORRECT": 13
+  },
+  "fresh_validation_rule_gap_count": 0,
+  "fresh_validation_unresolved_cases": [],
+  "human_relation_counts": {
+    "all_agree": 3,
+    "all_disagree": 6,
+    "mixed": 1
+  },
+  "label_counts": {
+    "CORRECT": 4,
+    "INCORRECT": 6
+  },
+  "local_unresolved_or_nonpropagatable_rows": [],
+  "n_review_orders": 23,
+  "n_rows": 10,
+  "opus_relation_counts": {
+    "all_agree": 8,
+    "mixed": 2
+  },
+  "propagation_eligibility_counts": {
+    "eligible_exact_normalized_answer": 10
+  },
+  "reference_conflict_status_counts": {
+    "duplicate_group_agrees_with_fresh": 4,
+    "mixed_prior_reference_labels": 3,
+    "single_row_agrees_with_fresh": 2,
+    "single_row_disagrees_with_fresh": 1
+  },
+  "review_orders": [
+    4,
+    9,
+    14,
+    16,
+    28,
+    34,
+    36,
+    44,
+    47,
+    48,
+    59,
+    60,
+    63,
+    64,
+    70,
+    74,
+    76,
+    80,
+    82,
+    83,
+    84,
+    85,
+    100
+  ],
+  "schema_checks": {
+    "all_comparisons_cover_review_orders": true,
+    "no_unresolved_silent_propagation": true,
+    "required_fields_present": true,
+    "valid_fresh_labels": true
+  },
+  "schema_version": "simid_boundary_correction_evidence_validation/v1",
+  "validated_at_utc": "2026-04-29T13:22:28.545546+00:00"
+}
