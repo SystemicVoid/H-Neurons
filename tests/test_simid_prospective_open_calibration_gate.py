@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from analyze_simid_prospective_open_calibration_gate import analyze_package
 from export_simid_prospective_open_calibration_gate import (
     DEFAULT_EVIDENCE_JSONL,
+    DEFAULT_OUTPUT_DIR,
     DEFAULT_RUN_DIR,
     LABEL_SCHEMA_VERSION,
     example_exact_keys,
@@ -33,6 +35,16 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
         encoding="utf-8",
     )
+
+
+def embedded_json(index_html: str, script_id: str) -> Any:
+    match = re.search(
+        rf'<script id="{re.escape(script_id)}" type="application/json">(.*?)</script>',
+        index_html,
+        flags=re.DOTALL,
+    )
+    assert match is not None, script_id
+    return json.loads(match.group(1))
 
 
 def export_tmp_package(tmp_path: Path, *, sample_size: int = 24) -> Path:
@@ -216,6 +228,75 @@ def test_reviewer_facing_rows_do_not_leak_private_reference_labels(
     assert label_schema["properties"]["rubric_sha256"]["const"] == file_sha256(
         output_dir / "rubric.md"
     )
+
+
+def test_default_prospective_package_includes_static_ui() -> None:
+    assert (DEFAULT_OUTPUT_DIR / "index.html").exists()
+    manifest = read_json(DEFAULT_OUTPUT_DIR / "review_manifest.json")
+    assert manifest["files"]["index"]["content_sha256"] == file_sha256(
+        DEFAULT_OUTPUT_DIR / "index.html"
+    )
+
+
+def test_prospective_static_ui_is_blind_and_schema_bound(tmp_path: Path) -> None:
+    output_dir = export_tmp_package(tmp_path, sample_size=12)
+    index_path = output_dir / "index.html"
+    assert index_path.exists()
+
+    index_html = index_path.read_text(encoding="utf-8")
+    review_cases = embedded_json(index_html, "review-cases-data")
+    ui_manifest = embedded_json(index_html, "review-manifest-data")
+    embedded_schema = embedded_json(index_html, "label-schema-data")
+    manifest = read_json(output_dir / "review_manifest.json")
+    label_schema = read_json(output_dir / "label_schema.json")
+    assert manifest["files"]["index"]["content_sha256"] == file_sha256(index_path)
+
+    assert review_cases
+    for row in review_cases:
+        assert "blind_case_id" in row
+        assert "calibration_case_id" not in row
+    assert "calibration_case_id" not in index_html
+
+    assert (
+        ui_manifest["files"]["review_cases_blind"]["content_sha256"]
+        == manifest["files"]["review_cases_blind"]["content_sha256"]
+    )
+    assert (
+        ui_manifest["files"]["label_schema"]["content_sha256"]
+        == manifest["files"]["label_schema"]["content_sha256"]
+    )
+    assert (
+        ui_manifest["rubric"]["content_sha256"] == manifest["rubric"]["content_sha256"]
+    )
+    assert embedded_schema == label_schema
+
+    forbidden_fragments = {
+        "private_case_map",
+        "reference_label",
+        "source_case_id",
+        "sample_id",
+        "base_sample_id",
+        "primary_label",
+        "secondary_label",
+        "adjudicated",
+        "deterministic",
+        "sampling_stratum",
+        "sample_strata",
+        "mc_endpoint",
+        "open_adjudication",
+        "open_calibration_queue",
+    }
+    assert not any(fragment in index_html for fragment in forbidden_fragments)
+
+    for required in [
+        LABEL_SCHEMA_VERSION,
+        "blind_case_id",
+        "blind_cases_file_sha256",
+        "rubric_sha256",
+        "labeled_at_utc",
+    ]:
+        assert required in index_html
+    assert 'link.download = "prospective_open_labels.jsonl"' in index_html
 
 
 def test_prospective_analyzer_rejects_private_map_drift(tmp_path: Path) -> None:

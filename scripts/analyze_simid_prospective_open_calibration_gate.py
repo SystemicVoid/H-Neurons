@@ -275,6 +275,7 @@ def validate_package_file_integrity(manifest: dict[str, Any]) -> None:
     if not isinstance(files, dict):
         raise ValueError("review_manifest.json: missing files metadata")
     for key in (
+        "index",
         "review_cases_blind",
         "private_case_map",
         "label_schema",

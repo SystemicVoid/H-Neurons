@@ -17,6 +17,7 @@
       "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/review_manifest.json"
     ],
     "reviewer_facing_files": [
+      "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/index.html",
       "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/rubric.md",
       "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/review_cases_blind.jsonl",
       "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/label_schema.json",
@@ -27,6 +28,11 @@
   "claimability_guardrail": "Package creation is not intervention evidence. SIMID open correctness remains diagnostic-only unless returned blind labels pass this pre-specified prospective calibration policy.",
   "created_at_utc": "2026-04-29T15:16:07.690938+00:00",
   "files": {
+    "index": {
+      "content_sha256": "5d1e9f4f47f57412ebac590c95d6837b551b01fc1cec73d86666261bca7f1bc2",
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/index.html",
+      "schema_version": "simid_prospective_open_calibration_static_ui/v1"
+    },
     "label_schema": {
       "content_sha256": "77b3cbc0c4568cfcf37409ac069bad2a705dcc31dacc0a9e23e9fbefbbd9f5d6",
       "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/label_schema.json",
