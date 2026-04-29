@@ -37,8 +37,8 @@
   },
   "output_files": {
     "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/README.md": {
-      "sha256": "d3a583cc3abb4418cc4cae9decea44fce21a261958919bc027de4161f09c9409",
-      "bytes": 1924
+      "sha256": "0f5db192525c1d97448db7823a50f1fb33047434d837a86ec41d431b984ac447",
+      "bytes": 1922
     },
     "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/adjudication_rule.md": {
       "sha256": "476f44ebc20b518843e9d0236a62ec26d09d6c46fa1ea9ff010bf2aa4e08a904",
@@ -57,8 +57,8 @@
       "bytes": 2188
     },
     "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/adjudication_rule.md": {
-      "sha256": "476f44ebc20b518843e9d0236a62ec26d09d6c46fa1ea9ff010bf2aa4e08a904",
-      "bytes": 3170
+      "sha256": "dd05c92f6ef0fbc1cac086ff47c619b978a62f7cc4258c293b3d783a09926e93",
+      "bytes": 2224
     },
     "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/fresh_blind_boundary_labels.jsonl": {
       "sha256": "bfc280b9ccb64d4d8a6f2659576dd2d035425682ac6026da5aab510be291db7b",
@@ -69,8 +69,8 @@
       "bytes": 2014
     },
     "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/prompt.md": {
-      "sha256": "d2c1025e73b5aa93193cfcf461dae7e1819363e5b3e632ed082b32ec50ba9561",
-      "bytes": 732
+      "sha256": "1101318281a034eebda8ae8606ce9a35bb13cd456f6b751a75a41f7a995ce153",
+      "bytes": 687
     },
     "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/llm_blind_batches/batch_001/review_cases_blind.jsonl": {
       "sha256": "36b47414710562ddaa17002c4f1e204ecd71b1479bf307bc73653582f9df0347",

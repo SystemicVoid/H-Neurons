@@ -20,7 +20,7 @@ Validation result: 23 labels for 23 blind cases, 0 rule gaps, 0 unresolved cases
 Validate labels with:
 
 ```bash
-uv run python scripts/validate_simid_open_review_labels.py --package-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429 --output data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/fresh_blind_boundary_labels_resolved.jsonl
+uv run python scripts/validate_simid_open_review_labels.py --package-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429
 ```
 
-Pass `--overwrite` if intentionally regenerating the resolved-label file.
+To intentionally regenerate the resolved-label file, add `--output data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/fresh_blind_boundary_labels_resolved.jsonl --overwrite`.

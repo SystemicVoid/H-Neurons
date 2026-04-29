@@ -1,9 +1,7 @@
-# SIMID Open Correctness Calibration Rule
+# SIMID Open Correctness Rule
 
-Status: frozen before SIMID open calibration labeling.
-
-Target: grade each SIMID open-response calibration case against the question,
-gold aliases, and predicted answer in `open_calibration_queue.jsonl`.
+Target: grade each blind review case against its question, gold aliases, and
+predicted answer.
 
 Use exactly one label:
 
@@ -39,20 +37,3 @@ Decision rules:
 8. If the answer is numeric and the gold alias gives an accepted range, mark
    values in range as `CORRECT`, values out of range as `INCORRECT`, and vague
    bounds that do not establish the target value as `NOT_ATTEMPTED`.
-
-Secondary-rater labeling:
-
-- Do not use the primary judge label, deterministic alias grade, or sample
-  source when making the secondary label.
-- Use only the question, gold aliases, predicted answer, and this rule.
-- Return only `CORRECT`, `INCORRECT`, or `NOT_ATTEMPTED`.
-
-Disagreement adjudication:
-
-- Adjudicate exactly the cases where the primary and secondary labels disagree.
-- Assign the final label by applying this same rule to the case.
-- Set `rule_gap: true` only when this rule cannot be applied because the case is
-  malformed, missing the question, missing all gold aliases, missing the
-  predicted answer, or exposes a genuine rubric conflict not resolved above.
-- Do not set `rule_gap: true` for ordinary hard factual judgments, borderline
-  paraphrases, or cases where the rule gives an unfavorable label.
