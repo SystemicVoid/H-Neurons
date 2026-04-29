@@ -105,14 +105,21 @@ def test_mistral_wrapper_has_token_span_preflight_before_claim_stages() -> None:
     script = (repo_root / "scripts/infra/mistral24b_replication.sh").read_text()
 
     preflight = _stage_block(script, "preflight")
+    model_smoke = _stage_block(script, "model_smoke")
     splits = _stage_block(script, "splits")
 
     assert "scripts/audit_token_spans.py" in preflight
     assert '--input_path "${ANSWER_TOKENS}"' in preflight
     assert '--output_path "${TOKEN_SPAN_AUDIT}"' in preflight
     assert '--rendered_chat_path "${RENDERED_CHAT_EXAMPLES}"' in preflight
-    assert script.index("run_stage preflight ") < script.index("run_stage splits ")
+    assert "scripts/model_load_smoke.py" in model_smoke
+    assert '--device_map "${DEVICE_MAP}"' in model_smoke
+    assert '--output_path "${MODEL_LOAD_SMOKE}"' in model_smoke
+    assert "--max_new_tokens 1" in model_smoke
+    assert script.index("run_stage preflight ") < script.index("run_stage model_smoke ")
+    assert script.index("run_stage model_smoke ") < script.index("run_stage splits ")
     assert "scripts/audit_token_spans.py" not in splits
+    assert "scripts/model_load_smoke.py" not in preflight
 
 
 def test_negative_control_contract_rejects_legacy_outputs_without_guard(

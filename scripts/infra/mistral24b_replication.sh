@@ -50,6 +50,7 @@ ACT_ROOT="${ACT_ROOT:-${OUTPUT_ROOT}/pipeline/activations_llm_canonical}"
 TOKEN_SPAN_AUDIT="${TOKEN_SPAN_AUDIT:-${PREFLIGHT_DIR}/token_span_audit.jsonl}"
 TOKEN_SPAN_AUDIT_SUMMARY="${TOKEN_SPAN_AUDIT_SUMMARY:-${PREFLIGHT_DIR}/token_span_audit_summary.json}"
 RENDERED_CHAT_EXAMPLES="${RENDERED_CHAT_EXAMPLES:-${PREFLIGHT_DIR}/rendered_chat_examples.json}"
+MODEL_LOAD_SMOKE="${MODEL_LOAD_SMOKE:-${PREFLIGHT_DIR}/model_load_smoke.json}"
 CLASSIFIER_PATH="${CLASSIFIER_PATH:-models/mistral24b_classifier_canonical.pkl}"
 CLASSIFIER_DEV_METRICS="${CLASSIFIER_DEV_METRICS:-${OUTPUT_ROOT}/pipeline/classifier_canonical_dev_metrics.json}"
 CLASSIFIER_TEST_METRICS="${CLASSIFIER_TEST_METRICS:-${OUTPUT_ROOT}/pipeline/classifier_canonical_test_metrics.json}"
@@ -171,6 +172,13 @@ run_stage preflight uv run python scripts/audit_token_spans.py \
     --summary_path "${TOKEN_SPAN_AUDIT_SUMMARY}" \
     --rendered_chat_path "${RENDERED_CHAT_EXAMPLES}" \
     --max_samples "${TOKEN_SPAN_AUDIT_MAX_SAMPLES}"
+
+run_stage model_smoke uv run python scripts/model_load_smoke.py \
+    --model_key "${MODEL_KEY}" \
+    --model_path "${MODEL_PATH}" \
+    --device_map "${DEVICE_MAP}" \
+    --output_path "${MODEL_LOAD_SMOKE}" \
+    --max_new_tokens 1
 
 run_stage splits uv run python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \
