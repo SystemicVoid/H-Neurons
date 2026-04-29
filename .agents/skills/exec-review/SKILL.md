@@ -1,19 +1,17 @@
 ---
 name: exec-review
-description: Use when explicitly invoked as exec-review, /exec-review, or $exec-review to execute one bounded work slice from a filename, path, plan item, or direct task through implementation, verification, independent review/fix, and atomic commit. Do not broaden scope beyond the supplied slice.
+description: Use when explicitly invoked as exec-review, /exec-review, or $exec-review to execute one bounded work slice from a filename, path, plan item, or direct task through implementation, verification, independent review/fix, and atomic commit.
 ---
 
 # Exec Review
 
 Execute exactly one bounded slice of work to reviewed atomic commit. The invocation argument is the scope boundary: a filename, directory, plan item, issue, or direct task. Do not expand beyond that boundary unless required to satisfy the slice safely.
 
-Treat explicit invocation of this skill as a request for a bounded subagent workflow when the current environment supports subagents. If subagents are unavailable or not allowed, run the same gates locally and keep the main thread lean.
-
 ## Intake
 
 1. Treat the user's invocation argument as the slice scope. Resolve paths relative to the current workspace.
 2. If the argument is missing or too broad to act on safely, ask one concise clarification before editing.
-3. Inspect `git status` and relevant local instructions, including scoped `AGENTS.md` files.
+3. Inspect `git status` and relevant local instructions.
 4. Identify unrelated dirty files and leave them unstaged, unmodified, and uncommitted.
 5. Convert the scope into a short checklist: acceptance criteria, likely files, risks, checks, delegation plan, and commit boundary.
 
@@ -32,11 +30,10 @@ The main thread is the orchestrator, not the scratchpad. It owns scope, sequenci
 ## Implementation Loop
 
 1. Re-read implicated files, tests, scripts, docs, and existing patterns.
-2. State the intended edit before modifying files.
-3. Implement locally or assign a worker with a disjoint write scope. Workers must not stage or commit.
-4. Run focused checks early, then broaden checks as risk increases. Fix failures and rerun relevant checks before review.
-5. For data, output, spend-sensitive, GPU/API-capable, irreversible, or claim-bearing work, run the repo's guardrails and dry-runs before risky commands or staging.
-6. Record provenance when relevant: source paths, hashes, IDs/counts/fingerprints, configs, commands, and output paths.
+2. Implement locally when the edit is small, decision-heavy, tightly coupled, or on the critical path. Assign a worker when work is bounded, context-heavy or mechanical, and file ownership is clear. Workers must not stage or commit.
+3. Run focused checks early, then broaden checks as risk increases. Fix failures and rerun relevant checks before review.
+4. For data, output, spend-sensitive, GPU/API-capable, irreversible, or claim-bearing work, run the repo's guardrails and dry-runs before risky commands or staging.
+5. Record provenance when relevant: source paths, hashes, IDs/counts/fingerprints, configs, commands, and output paths.
 
 ## Review+Fix Harness
 
@@ -83,7 +80,3 @@ If files changed, create atomic conventional commits for completed slices unless
 3. Run relevant staged or already-equivalent checks.
 4. Commit with a conventional subject and a WHY-focused body.
 5. Confirm unrelated dirty files remain unstaged and untouched.
-
-## Final Response
-
-Report succinctly: scope completed, checks run, reviewers used, findings fixed, commits created, unrelated dirty files preserved, and any remaining blockers before expensive or claim-bearing execution.
