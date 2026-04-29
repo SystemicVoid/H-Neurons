@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import run_simid as simid_runner
 from analyze_simid import (
     attach_open_adjudications,
+    attach_prospective_open_labels,
     build_alias_audit_queue,
     build_open_calibration_queue,
     build_simid_open_adjudication_request,
@@ -29,6 +30,7 @@ from analyze_simid import (
     normalize_open_calibration_summary,
     option_order_stability_gate,
     parse_simpleqa_verdict,
+    prospective_effect_run_row_sha256,
     require_paired_panel,
     selected_minus_control_slope_summaries,
     simid_open_adjudication_custom_id,
@@ -436,113 +438,410 @@ def test_run_simid_supports_multi_seed_random_controls() -> None:
     assert conditions[3].direction_random_seed == 5
 
 
-def test_prospective_open_authority_binds_run_dir_and_exclusions(
-    tmp_path: Path,
-) -> None:
-    run_dir = tmp_path / "future_run"
-    run_dir.mkdir()
-    manifest_row = _manifest_row("simid_new", "Fresh?")
-    (run_dir / "manifest.locked.json").write_text(
-        json.dumps(
-            {"schema_version": "simid_locked_manifest/v1", "rows": [manifest_row]}
-        )
-        + "\n",
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+
+def _write_jsonl(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
         encoding="utf-8",
     )
 
+
+def _prospective_authority_fixture(
+    tmp_path: Path,
+    *,
+    low_metrics: bool = False,
+    include_source_manifest_sha256: bool = True,
+    include_sample_design: bool = True,
+    include_planned_manifest_sha256: bool = True,
+    include_full_exclusion_provenance: bool = True,
+) -> tuple[Path, Path, dict]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    run_dir = tmp_path / "future_run"
+    run_dir.mkdir()
+    manifest_row = {
+        **_manifest_row("simid_new", "Fresh?"),
+        "dataset": "truthfulqa",
+        "truthfulqa_leakage_policy": "heldout_only",
+        "truthfulqa_seen_in_iti_fit": False,
+    }
+    planned_manifest = tmp_path / "planned_manifest.json"
+    _write_json(
+        planned_manifest,
+        {"schema_version": "simid_manifest/v1", "rows": [manifest_row]},
+    )
+    locked_payload = {
+        "schema_version": "simid_locked_manifest/v1",
+        "source_manifest": str(planned_manifest),
+        "max_items": None,
+        "rows": [manifest_row],
+    }
+    if include_source_manifest_sha256:
+        locked_payload["source_manifest_sha256"] = _sha256(planned_manifest)
+    _write_json(run_dir / "manifest.locked.json", locked_payload)
+
+    open_gate = tmp_path / "open_gate"
+    open_gate.mkdir()
     labels = tmp_path / "labels.jsonl"
-    labels.write_text(json.dumps({"blind_case_id": "b1"}) + "\n", encoding="utf-8")
+    _write_jsonl(labels, [{"blind_case_id": "b1"}])
+    raw_agreement = 0.5 if low_metrics else 0.92
+    kappa = 0.1 if low_metrics else 0.87
+    ac1 = 0.1 if low_metrics else 0.88
+    policy = {
+        "target": "simid_open_correctness_future_grading",
+        "min_cases": 150,
+        "min_raw_agreement": 0.9,
+        "min_cohen_kappa": 0.8,
+        "min_gwet_ac1": 0.8,
+        "max_rule_gap_cases": 0,
+    }
+    metrics = {
+        "raw_agreement": {
+            "estimate": raw_agreement,
+            "count": int(raw_agreement * 150),
+            "n": 150,
+        },
+        "cohen_kappa": kappa,
+        "gwet_ac1": ac1,
+        "rule_gap_count": 0,
+    }
     analysis = tmp_path / "analysis.json"
-    analysis.write_text(
-        json.dumps(
-            {
-                "schema_version": "simid_prospective_open_calibration_analysis/v1",
-                "package_dir": str(tmp_path / "open_gate"),
-                "label_file": str(labels),
-                "label_file_sha256": _sha256(labels),
-                "n_cases": 150,
-                "outcome": {"passed": True, "blockers": []},
-                "policy": {
-                    "target": "simid_open_correctness_future_grading",
-                    "min_cases": 150,
-                    "min_raw_agreement": 0.9,
-                    "min_cohen_kappa": 0.8,
-                    "min_gwet_ac1": 0.8,
-                },
-                "metrics": {
-                    "raw_agreement": {"estimate": 0.92, "count": 138, "n": 150},
-                    "cohen_kappa": 0.87,
-                    "gwet_ac1": 0.88,
-                    "rule_gap_count": 0,
-                },
-            }
-        )
-        + "\n",
-        encoding="utf-8",
+    _write_json(
+        analysis,
+        {
+            "schema_version": "simid_prospective_open_calibration_analysis/v1",
+            "package_dir": str(open_gate),
+            "label_file": str(labels),
+            "label_file_sha256": _sha256(labels),
+            "n_cases": 150,
+            "outcome": {"passed": True, "blockers": []},
+            "policy": policy,
+            "metrics": metrics,
+        },
     )
-    rubric = tmp_path / "rubric.md"
+    rubric = open_gate / "rubric.md"
     rubric.write_text("rubric\n", encoding="utf-8")
-    review_manifest = tmp_path / "review_manifest.json"
-    review_manifest.write_text("{}\n", encoding="utf-8")
+    review_manifest = open_gate / "review_manifest.json"
+    _write_json(review_manifest, {})
     exclusions = tmp_path / "exclusions.jsonl"
-    exclusions.write_text(
-        json.dumps({"sample_id": "simid_old", "base_sample_id": "simid_old"}) + "\n",
-        encoding="utf-8",
-    )
-    authority = tmp_path / "authority.json"
-    authority.write_text(
-        json.dumps(
+    exclusion_rows = [
+        {
+            "source": "historical_mvp_locked_manifest",
+            "sample_id": "simid_old",
+            "base_sample_id": "simid_old",
+        }
+    ]
+    if include_full_exclusion_provenance:
+        exclusion_rows.append(
             {
-                "schema_version": "simid_prospective_effect_run_gate/v1",
-                "protocol_version": "fixture",
-                "output_paths": {"effect_run_dir": str(run_dir)},
-                "exclusions": {
-                    "path": str(exclusions),
-                    "content_sha256": _sha256(exclusions),
-                },
-                "frozen_open_grading_authority": {
-                    "authority_id": "fixture_authority",
-                    "authority_scope": "future_only",
-                    "passing_analysis": {
-                        "path": str(analysis),
-                        "content_sha256": _sha256(analysis),
-                    },
-                    "rubric": {
-                        "path": str(rubric),
-                        "content_sha256": _sha256(rubric),
-                    },
-                    "passing_label_file": {
-                        "path": str(labels),
-                        "content_sha256": _sha256(labels),
-                    },
-                    "review_manifest": {
-                        "path": str(review_manifest),
-                        "content_sha256": _sha256(review_manifest),
-                    },
-                    "metrics": {"cohen_kappa": 0.87, "gwet_ac1": 0.88},
-                    "policy": {"target": "simid_open_correctness_future_grading"},
-                },
+                "source": "prospective_open_calibration_private_case_map",
+                "sample_id": "simid_cal",
+                "base_sample_id": "simid_cal",
             }
         )
-        + "\n",
-        encoding="utf-8",
-    )
+    _write_jsonl(exclusions, exclusion_rows)
+    authority = tmp_path / "authority.json"
+    sample_design = {
+        "manifest_path": str(planned_manifest),
+        "exclusion_file": str(exclusions),
+    }
+    if include_planned_manifest_sha256:
+        sample_design["manifest_sha256"] = _sha256(planned_manifest)
+    authority_payload = {
+        "schema_version": "simid_prospective_effect_run_gate/v2",
+        "protocol_version": "fixture",
+        "output_paths": {
+            "effect_run_dir": str(run_dir),
+            "package_dir": str(authority.parent),
+        },
+        "planned_run": {
+            "sample_design": sample_design if include_sample_design else {}
+        },
+        "exclusions": {
+            "path": str(exclusions),
+            "content_sha256": _sha256(exclusions),
+        },
+        "frozen_open_grading_authority": {
+            "authority_id": "fixture_authority",
+            "authority_scope": "future_only",
+            "requires_external_returned_labels": True,
+            "gate_dir": {"path": str(open_gate)},
+            "passing_analysis": {
+                "path": str(analysis),
+                "content_sha256": _sha256(analysis),
+            },
+            "rubric": {
+                "path": str(rubric),
+                "content_sha256": _sha256(rubric),
+            },
+            "passing_label_file": {
+                "path": str(labels),
+                "content_sha256": _sha256(labels),
+            },
+            "review_manifest": {
+                "path": str(review_manifest),
+                "content_sha256": _sha256(review_manifest),
+            },
+            "metrics": metrics,
+            "policy": policy,
+        },
+    }
+    _write_json(authority, authority_payload)
+    return run_dir, authority, manifest_row
+
+
+def test_prospective_open_authority_binds_run_dir_and_exclusions(
+    tmp_path: Path,
+) -> None:
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(tmp_path)
 
     loaded = load_prospective_open_authority_manifest(authority, run_dir=run_dir)
 
     assert loaded is not None
     assert loaded["authority_id"] == "fixture_authority"
     assert loaded["content_sha256"] == _sha256(authority)
+    assert loaded["requires_external_returned_labels"] is True
 
-    exclusions.write_text(
-        json.dumps({"sample_id": "simid_new", "base_sample_id": "simid_new"}) + "\n",
-        encoding="utf-8",
+    exclusions = tmp_path / "exclusions.jsonl"
+    _write_jsonl(
+        exclusions,
+        [
+            {
+                "source": "historical_mvp_locked_manifest",
+                "sample_id": "simid_new",
+                "base_sample_id": "simid_new",
+            },
+            {
+                "source": "prospective_open_calibration_private_case_map",
+                "sample_id": "simid_cal",
+                "base_sample_id": "simid_cal",
+            },
+        ],
     )
     authority_payload = json.loads(authority.read_text(encoding="utf-8"))
     authority_payload["exclusions"]["content_sha256"] = _sha256(exclusions)
     authority.write_text(json.dumps(authority_payload) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="reuses excluded"):
         load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+
+def test_prospective_open_authority_rejects_low_metrics_even_if_passed(
+    tmp_path: Path,
+) -> None:
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(
+        tmp_path,
+        low_metrics=True,
+    )
+
+    with pytest.raises(ValueError, match="raw_agreement below frozen threshold"):
+        load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+
+def test_prospective_open_authority_requires_manifest_hash_and_exclusions(
+    tmp_path: Path,
+) -> None:
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(
+        tmp_path,
+        include_source_manifest_sha256=False,
+    )
+    with pytest.raises(ValueError, match="source_manifest_sha256"):
+        load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(
+        tmp_path / "missing_planned_hash",
+        include_planned_manifest_sha256=False,
+    )
+    with pytest.raises(ValueError, match="missing planned manifest hash"):
+        load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(
+        tmp_path / "missing_exclusion",
+        include_full_exclusion_provenance=False,
+    )
+    with pytest.raises(ValueError, match="exclusions missing expected provenance"):
+        load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+
+def test_prospective_authority_does_not_make_judge_adjudication_claimable(
+    tmp_path: Path,
+) -> None:
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(tmp_path)
+    loaded = load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+    rows = [
+        _analysis_row(sample_id="simid_new", dataset="truthfulqa", open_correct=True)
+    ]
+
+    summary = summarize_open_grading(
+        rows,
+        adjudication_path=tmp_path / "open_adjudication.jsonl",
+        adjudication_run=None,
+        prospective_open_authority=loaded,
+    )
+
+    assert summary["claimable_open_correctness"] is False
+    assert (
+        summary["claimability_blocker"] == "prospective_open_external_labels_not_loaded"
+    )
+
+
+def test_prospective_external_labels_validate_and_make_claimable(
+    tmp_path: Path,
+) -> None:
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(tmp_path)
+    loaded = load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+    assert loaded is not None
+    rows = [
+        _analysis_row(sample_id="simid_new", dataset="truthfulqa", open_correct=False)
+    ]
+    label_package = tmp_path / "external_label_package"
+    blind_rows = [
+        {
+            "blind_case_id": "blind_001",
+            "review_order": 1,
+            "question": rows[0]["question"],
+            "gold_aliases": rows[0]["gold_aliases"],
+            "predicted_answer": rows[0]["open_generation"]["response"],
+        }
+    ]
+    private_rows = [
+        {
+            "schema_version": "simid_prospective_effect_open_private_case/v1",
+            "blind_case_id": "blind_001",
+            "review_order": 1,
+            "sample_id": rows[0]["sample_id"],
+            "base_sample_id": rows[0]["base_sample_id"],
+            "dataset": rows[0]["dataset"],
+            "condition": rows[0]["condition"],
+            "alpha": rows[0]["alpha"],
+            "run_row_sha256": prospective_effect_run_row_sha256(rows[0]),
+            "authority_manifest_sha256": loaded["content_sha256"],
+        }
+    ]
+    blind_path = label_package / "review_cases_blind.jsonl"
+    private_path = label_package / "private_case_map.jsonl"
+    _write_jsonl(blind_path, blind_rows)
+    _write_jsonl(private_path, private_rows)
+    rubric_hash = loaded["rubric"]["content_sha256"]
+    review_manifest = {
+        "schema_version": "simid_prospective_effect_open_label_package/v1",
+        "prospective_open_authority": {
+            "path": str(authority),
+            "content_sha256": loaded["content_sha256"],
+        },
+        "rubric": {
+            "path": loaded["rubric"]["path"],
+            "content_sha256": rubric_hash,
+        },
+        "files": {
+            "review_cases_blind": {
+                "path": str(blind_path),
+                "content_sha256": _sha256(blind_path),
+            },
+            "private_case_map": {
+                "path": str(private_path),
+                "content_sha256": _sha256(private_path),
+            },
+        },
+    }
+    _write_json(label_package / "review_manifest.json", review_manifest)
+    labels_path = label_package / "prospective_open_labels_external.jsonl"
+    _write_jsonl(
+        labels_path,
+        [
+            {
+                "schema_version": "simid_prospective_effect_open_label/v1",
+                "blind_case_id": "blind_001",
+                "review_order": 1,
+                "label": "CORRECT",
+                "confidence": 5,
+                "rule_gap": False,
+                "flags": [],
+                "notes": "fixture external label",
+                "rater": {"type": "external_human", "id": "fixture_reviewer"},
+                "blind_cases_file_sha256": _sha256(blind_path),
+                "rubric_sha256": rubric_hash,
+            }
+        ],
+    )
+
+    label_summary = attach_prospective_open_labels(
+        rows,
+        package_dir=label_package,
+        label_file=labels_path,
+        prospective_open_authority=loaded,
+    )
+    summary = summarize_open_grading(
+        rows,
+        adjudication_path=tmp_path / "open_adjudication.jsonl",
+        adjudication_run=None,
+        prospective_open_authority=loaded,
+        prospective_open_labels=label_summary,
+    )
+
+    assert label_summary is not None
+    assert summary["claimable_open_correctness"] is True
+    assert summary["effective_grade_source_counts"] == {"external_blind_label": 1}
+    assert summary["claim_bearing_metric_correct"] == "external_blind_open_correct"
+    assert summary["prospective_open_labels"]["n"] == 1
+
+
+def test_prospective_external_labels_reject_private_key_leak(
+    tmp_path: Path,
+) -> None:
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(tmp_path)
+    loaded = load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+    assert loaded is not None
+    rows = [_analysis_row(sample_id="simid_new", dataset="truthfulqa")]
+    label_package = tmp_path / "leaky_label_package"
+    blind_path = label_package / "review_cases_blind.jsonl"
+    private_path = label_package / "private_case_map.jsonl"
+    _write_jsonl(
+        blind_path,
+        [
+            {
+                "blind_case_id": "blind_001",
+                "review_order": 1,
+                "question": rows[0]["question"],
+                "gold_aliases": rows[0]["gold_aliases"],
+                "predicted_answer": rows[0]["open_generation"]["response"],
+                "sample_id": rows[0]["sample_id"],
+            }
+        ],
+    )
+    _write_jsonl(private_path, [])
+    _write_json(
+        label_package / "review_manifest.json",
+        {
+            "schema_version": "simid_prospective_effect_open_label_package/v1",
+            "prospective_open_authority": {
+                "path": str(authority),
+                "content_sha256": loaded["content_sha256"],
+            },
+            "rubric": loaded["rubric"],
+            "files": {
+                "review_cases_blind": {
+                    "path": str(blind_path),
+                    "content_sha256": _sha256(blind_path),
+                },
+                "private_case_map": {
+                    "path": str(private_path),
+                    "content_sha256": _sha256(private_path),
+                },
+            },
+        },
+    )
+
+    with pytest.raises(ValueError, match="blind row exposes unexpected keys"):
+        attach_prospective_open_labels(
+            rows,
+            package_dir=label_package,
+            label_file=label_package / "labels.jsonl",
+            prospective_open_authority=loaded,
+        )
 
 
 def test_resume_uses_existing_locked_manifest_when_source_changes(
@@ -562,6 +861,10 @@ def test_resume_uses_existing_locked_manifest_when_source_changes(
         output_dir=output_dir,
         max_items=None,
     )
+    locked_payload = json.loads(
+        (output_dir / "manifest.locked.json").read_text(encoding="utf-8")
+    )
+    assert locked_payload["source_manifest_sha256"] == _sha256(source)
 
     row_b = _manifest_row("simid_b", "Changed?")
     source.write_text(

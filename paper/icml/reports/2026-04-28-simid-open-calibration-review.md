@@ -77,17 +77,20 @@ open metrics claim-bearing. The Codex and human miss patterns keep
 rater-diversity caution active, especially around TruthfulQA hedged
 non-answer/qualified-answer boundaries.
 
-Update after prospective effect-run planning: the append-only package in
-`human_review_package/prospective_effect_run_gate_20260429/` now freezes the
-next claim-oriented SIMID step as a fresh prospective effect-run protocol. It
-binds future open grading to the passing Opus prospective calibration artifact
-by path and SHA-256, pre-specifies the selected ITI condition, no-op,
-five-seed random-direction, and five-seed random-head controls, freezes the
-alpha grid `[-8, 0, 4, 8]`, excludes historical MVP/prospective-calibration
-sample IDs from the future manifest, and defines the primary estimand as the
-paired TruthfulQA open-correctness delta for selected alpha=8 versus alpha=0
-under the calibrated rubric. This is a planning/claimability gate for a future
-run only; it still does not upgrade historical MVP open-correctness metrics.
+Update after prospective effect-run planning: the r2 append-only package in
+`human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/`
+supersedes `human_review_package/prospective_effect_run_gate_20260429/`, which
+remains append-only and diagnostic. The r2 protocol binds the passing Opus
+prospective calibration artifact by path and SHA-256, but claim-bearing future
+open correctness additionally requires complete external blind labels under the
+frozen rubric; `gpt-4o` adjudication is diagnostic-only. It pre-specifies the
+selected ITI condition, no-op, five-seed random-direction, and five-seed
+random-head controls, freezes the alpha grid `[-8, 0, 4, 8]`, excludes
+historical MVP/prospective-calibration sample IDs from the future manifest, and
+defines the primary estimand as the paired TruthfulQA open-correctness delta
+for selected alpha=8 versus alpha=0 under the calibrated rubric. This is a
+planning/claimability gate for a future run only; it still does not upgrade
+historical MVP open-correctness metrics.
 
 ## Data Authority
 
@@ -114,7 +117,8 @@ run only; it still does not upgrade historical MVP open-correctness metrics.
 | Prospective Opus 4.7 max analysis | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_opus_4_7_max_run_001.json` |
 | Prospective human labels | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_labels.jsonl` |
 | Prospective human analysis | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_20260429.json` |
-| Prospective SIMID effect-run gate package | `human_review_package/prospective_effect_run_gate_20260429/` |
+| Prospective SIMID effect-run gate package (superseded diagnostic) | `human_review_package/prospective_effect_run_gate_20260429/` |
+| Prospective SIMID effect-run gate r2 package | `human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/` |
 
 Important artifact-status note: `results_adjudicated.json` and
 `report_adjudicated.md` were generated before the calibration pass and still

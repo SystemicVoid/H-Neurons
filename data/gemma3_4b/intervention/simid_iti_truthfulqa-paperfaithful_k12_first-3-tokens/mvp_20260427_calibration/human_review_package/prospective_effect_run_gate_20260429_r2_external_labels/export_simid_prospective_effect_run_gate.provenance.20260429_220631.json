@@ -1,0 +1,45 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/export_simid_prospective_effect_run_gate-20260429_220631-676459.json",
+  "args": {
+    "min_bridge_rows": 400,
+    "min_truthfulqa_rows": 450,
+    "open_gate_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429",
+    "option_order_replicates": 2,
+    "output_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429_r2_external_labels",
+    "overwrite": false,
+    "passing_open_analysis": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_opus_4_7_max_run_001.json",
+    "planned_bridge_n": 200,
+    "planned_effect_run_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429",
+    "planned_manifest": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/manifests/simid_truthfulqa_bridge_prospective_effect_20260429.json",
+    "planned_noop_run_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_noop_preflight_20260429",
+    "planned_truthfulqa_n": "all_heldout",
+    "seed": 42,
+    "source_mvp_run_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/export_simid_prospective_effect_run_gate.py"
+  ],
+  "authority_id": "prospective_open_calibration_gate_20260429_opus_4_7_max_run_001",
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/export_simid_prospective_effect_run_gate.py",
+  "completed_at_utc": "2026-04-29T22:06:31.796274+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "933d5856c7bda9cf67e085cb59ce47e7800519ab",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/README.md",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/protocol.md",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/effect_run_manifest.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/excluded_effect_sample_ids.jsonl"
+  ],
+  "planned_effect_run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429",
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "export_simid_prospective_effect_run_gate-20260429_220631-676459",
+  "safe_env": {},
+  "schema_version": "simid_prospective_effect_run_gate/v2",
+  "script": "export_simid_prospective_effect_run_gate.py",
+  "simid_schema": "simid_prospective_effect_run_gate/v2",
+  "started_at_utc": "2026-04-29T22:06:31.755151+00:00",
+  "status": "completed"
+}

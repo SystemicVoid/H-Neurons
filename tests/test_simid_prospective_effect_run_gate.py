@@ -28,13 +28,18 @@ def read_json(path: Path) -> dict[str, Any]:
 
 def export_tmp_gate(tmp_path: Path) -> Path:
     output_dir = tmp_path / "prospective_effect_gate"
+    planned_manifest = tmp_path / "simid_prospective_manifest.json"
+    planned_manifest.write_text(
+        json.dumps({"schema_version": "simid_manifest/v1", "rows": []}) + "\n",
+        encoding="utf-8",
+    )
     export_package(
         parse_args(
             [
                 "--output-dir",
                 str(output_dir),
                 "--planned-manifest",
-                str(tmp_path / "simid_prospective_manifest.json"),
+                str(planned_manifest),
                 "--planned-noop-run-dir",
                 str(tmp_path / "noop_preflight"),
                 "--planned-effect-run-dir",
@@ -54,8 +59,10 @@ def test_effect_run_gate_binds_to_passing_open_calibration_hashes(
 
     assert manifest["schema_version"] == PACKAGE_SCHEMA_VERSION
     assert authority["authority_scope"] == (
-        "future_simid_open_grading_under_frozen_rubric_only"
+        "future_simid_open_grading_under_frozen_rubric_with_external_blind_labels_only"
     )
+    assert authority["requires_external_returned_labels"] is True
+    assert authority["diagnostic_only_judges"][0]["judge_model"] == "gpt-4o"
     assert authority["passing_analysis"]["path"].endswith(
         "prospective_open_calibration_analysis_opus_4_7_max_run_001.json"
     )
@@ -103,7 +110,7 @@ def test_effect_run_gate_prespecifies_controls_alpha_grid_and_outputs(
         "name": "truthfulqa_paired_open_correctness_delta_alpha8_vs_alpha0",
         "dataset": "truthfulqa",
         "condition": "selected",
-        "metric": "adjudicated_open_correct_under_frozen_prospective_rubric",
+        "metric": "external_blind_open_correct_under_frozen_prospective_rubric",
         "comparison": {"treatment_alpha": 8.0, "baseline_alpha": 0.0},
         "unit": "base_sample_id_with_option_order_replicates_averaged",
         "uncertainty": "paired bootstrap 95% CI at base-item level",
@@ -123,8 +130,21 @@ def test_effect_run_gate_prespecifies_controls_alpha_grid_and_outputs(
     assert "--min-truthfulqa-rows 450" in manifest_command
     assert "--min-bridge-rows 400" in manifest_command
     assert "--exclude-sample-ids-jsonl" in manifest_command
-    analysis_command = planned["commands"]["effect_adjudicated_analysis"]["rendered"]
+    assert planned["sample_design"]["manifest_sha256"] == file_sha256(
+        tmp_path / "simid_prospective_manifest.json"
+    )
+    diagnostic_command = planned["commands"]["effect_diagnostic_gpt4o_analysis"]
+    diagnostic_argv = diagnostic_command["argv"]
+    assert (
+        diagnostic_argv[diagnostic_argv.index("--adjudication-output") + 1]
+        == "open_adjudication_diagnostic_gpt4o.jsonl"
+    )
+    assert "--prospective-open-labels" not in diagnostic_command["rendered"]
+    analysis_command = planned["commands"]["effect_external_label_analysis"]["rendered"]
     assert "--prospective-open-authority-manifest" in analysis_command
+    assert "--prospective-open-label-package" in analysis_command
+    assert "--prospective-open-labels" in analysis_command
+    assert "--require-prospective-open-authority" in analysis_command
 
     paths = manifest["output_paths"]
     assert paths["package_dir"].endswith("prospective_effect_gate")
@@ -152,11 +172,21 @@ def test_effect_run_gate_preserves_retrospective_diagnostic_only_framing(
         in manifest["claimability_gates"]["analysis_blockers"]
     )
     assert (
+        "prospective_open_external_labels_not_recorded_in_results"
+        in manifest["claimability_gates"]["analysis_blockers"]
+    )
+    assert (
+        "gpt4o_adjudication_used_as_claim_bearing_open_labels"
+        in manifest["claimability_gates"]["analysis_blockers"]
+    )
+    assert (
         "prospective_effect_manifest_reuses_historical_mvp_or_calibration_rows"
         in manifest["claimability_gates"]["analysis_blockers"]
     )
     assert "Historical MVP open metrics" in protocol
     assert "remain diagnostic-only" in protocol
+    assert "external blind labels" in protocol
+    assert "`gpt-4o`" in protocol
     assert "does not imply historical MVP claimability" in protocol
 
 
@@ -211,3 +241,52 @@ def test_effect_run_gate_rejects_failed_or_drifted_open_authority(
     )
     with pytest.raises(ValueError, match="label_file_sha256 mismatch"):
         build_manifest(args)
+
+
+def test_effect_run_gate_external_label_schema_is_blind_only(
+    tmp_path: Path,
+) -> None:
+    output_dir = export_tmp_gate(tmp_path)
+    manifest = read_json(output_dir / "effect_run_manifest.json")
+    label_package = manifest["planned_run"]["external_open_label_package"]
+
+    assert label_package["blind_review_rows_public_fields"] == [
+        "blind_case_id",
+        "review_order",
+        "question",
+        "gold_aliases",
+        "predicted_answer",
+    ]
+    forbidden = {
+        "sample_id",
+        "base_sample_id",
+        "condition",
+        "alpha",
+        "dataset",
+        "reference_label",
+        "adjudicated_label",
+    }
+    assert forbidden.isdisjoint(label_package["blind_review_rows_public_fields"])
+    assert "run_row_sha256" in label_package["private_map_required_bindings"]
+    assert "authority_manifest_sha256" in label_package["private_map_required_bindings"]
+
+
+def test_effect_run_gate_validation_failure_leaves_no_package_files(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "bad_gate"
+    args = parse_args(
+        [
+            "--output-dir",
+            str(output_dir),
+            "--planned-bridge-n",
+            "0",
+        ]
+    )
+
+    with pytest.raises(ValueError, match="planned-bridge-n"):
+        export_package(args)
+
+    assert not (output_dir / "README.md").exists()
+    assert not (output_dir / "effect_run_manifest.json").exists()
+    assert not (output_dir / "excluded_effect_sample_ids.jsonl").exists()

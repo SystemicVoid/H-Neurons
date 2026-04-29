@@ -53,14 +53,18 @@ kappa=0.7979, AC1=0.8159, and 0 rule gaps, with blockers
 `raw_agreement_below_threshold` and `cohen_kappa_below_threshold`. It agrees
 with Opus on 133/150 cases and with Codex on 132/150 cases.
 
-Then froze the next prospective effect-run gate at
-`data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429/`.
-The package binds future open grading to the passing Opus analysis by path and
-hash, pre-specifies held-out TruthfulQA plus Bridge rows, selected
-paper-faithful ITI k=12 first-3-token steering, an unhooked no-op preflight,
-five random-direction seeds and five random-head seeds, alpha grid [-8, 0, 4,
-8], exclusion of historical MVP/prospective-calibration sample IDs, and the
-primary paired TruthfulQA open-correctness delta at alpha=8 versus alpha=0.
+Then froze the next prospective effect-run gate, now superseded by the r2
+external-label package at
+`data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/`.
+The original `prospective_effect_run_gate_20260429/` remains append-only and
+diagnostic. The r2 package binds the passing Opus analysis by path and hash,
+but requires complete external blind labels for claim-bearing open correctness;
+`gpt-4o` adjudication is diagnostic-only. It pre-specifies held-out TruthfulQA
+plus Bridge rows, selected paper-faithful ITI k=12 first-3-token steering, an
+unhooked no-op preflight, five random-direction seeds and five random-head
+seeds, alpha grid [-8, 0, 4, 8], exclusion of historical MVP/prospective-
+calibration sample IDs, and the primary paired TruthfulQA open-correctness
+delta at alpha=8 versus alpha=0.
 
 ### What this changes about my thinking
 

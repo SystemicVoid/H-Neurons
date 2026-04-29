@@ -78,11 +78,17 @@ OPEN_CORRECTNESS_CALIBRATED_CLAIM_CONTRACT = (
     "claimable_with_recorded_judge_calibration_evidence"
 )
 OPEN_CORRECTNESS_PROSPECTIVE_AUTHORITY_CLAIM_CONTRACT = (
-    "claimable_with_recorded_prospective_open_authority"
+    "claimable_with_recorded_prospective_open_authority_and_external_labels"
 )
 OPEN_CORRECTNESS_JUDGE_BLOCKER = "calibration_evidence_not_recorded"
 OPEN_CORRECTNESS_PROSPECTIVE_AUTHORITY_BLOCKER = (
     "prospective_open_authority_not_recorded"
+)
+OPEN_CORRECTNESS_PROSPECTIVE_LABELS_BLOCKER = (
+    "prospective_open_external_labels_not_loaded"
+)
+OPEN_CORRECTNESS_PROSPECTIVE_LABELS_WITHOUT_AUTHORITY_BLOCKER = (
+    "prospective_open_external_labels_without_authority"
 )
 OPEN_CORRECTNESS_NO_JUDGE_BLOCKER = "judge_adjudication_not_loaded"
 OPEN_CORRECTNESS_MIXED_SOURCE_BLOCKER = "mixed_adjudication_and_deterministic_sources"
@@ -96,11 +102,80 @@ OPEN_CORRECTNESS_CALIBRATION_N_CASES_BLOCKER = "n_cases_below_minimum"
 OPEN_CORRECTNESS_CALIBRATION_MIN_CASES = 100
 OPEN_CORRECTNESS_CALIBRATION_MIN_KAPPA = 0.80
 OPEN_CORRECTNESS_CALIBRATION_MIN_AC1 = 0.80
-PROSPECTIVE_OPEN_EFFECT_GATE_SCHEMA_VERSION = "simid_prospective_effect_run_gate/v1"
+PROSPECTIVE_OPEN_EFFECT_GATE_SCHEMA_VERSION = "simid_prospective_effect_run_gate/v2"
+PROSPECTIVE_OPEN_EFFECT_GATE_LEGACY_SCHEMA_VERSION = (
+    "simid_prospective_effect_run_gate/v1"
+)
 PROSPECTIVE_OPEN_GATE_ANALYSIS_SCHEMA_VERSION = (
     "simid_prospective_open_calibration_analysis/v1"
 )
 PROSPECTIVE_OPEN_GATE_TARGET = "simid_open_correctness_future_grading"
+PROSPECTIVE_EFFECT_LABEL_PACKAGE_SCHEMA_VERSION = (
+    "simid_prospective_effect_open_label_package/v1"
+)
+PROSPECTIVE_EFFECT_LABEL_SCHEMA_VERSION = "simid_prospective_effect_open_label/v1"
+PROSPECTIVE_EFFECT_PRIVATE_CASE_SCHEMA_VERSION = (
+    "simid_prospective_effect_open_private_case/v1"
+)
+PROSPECTIVE_EFFECT_BLIND_ROW_KEYS = {
+    "blind_case_id",
+    "review_order",
+    "question",
+    "gold_aliases",
+    "predicted_answer",
+}
+PROSPECTIVE_EFFECT_PRIVATE_CASE_REQUIRED_KEYS = {
+    "schema_version",
+    "blind_case_id",
+    "review_order",
+    "sample_id",
+    "base_sample_id",
+    "dataset",
+    "condition",
+    "alpha",
+    "run_row_sha256",
+    "authority_manifest_sha256",
+}
+PROSPECTIVE_EFFECT_LABEL_ALLOWED_KEYS = {
+    "schema_version",
+    "blind_case_id",
+    "review_order",
+    "label",
+    "confidence",
+    "rule_gap",
+    "flags",
+    "notes",
+    "rater",
+    "blind_cases_file_sha256",
+    "rubric_sha256",
+    "labeled_at_utc",
+}
+PROSPECTIVE_EFFECT_LABEL_FORBIDDEN_KEYS = {
+    "source_case_id",
+    "calibration_case_id",
+    "sample_id",
+    "base_sample_id",
+    "dataset",
+    "condition",
+    "alpha",
+    "reference_label",
+    "primary_label",
+    "secondary_label",
+    "adjudicated_label",
+    "authority_manifest_sha256",
+    "run_row_sha256",
+}
+PROSPECTIVE_EFFECT_VALID_FLAGS = {
+    "bridge_partial_entity_or_modifier",
+    "truthfulqa_non_answer_boundary",
+    "truthfulqa_qualified_answer_boundary",
+    "wrong_extra_answer",
+    "multiple_candidates_no_commitment",
+    "alias_too_broad_or_too_narrow",
+    "malformed_case",
+    "other_boundary",
+}
+EXTERNAL_RATER_TYPES = {"human", "external_human", "expert", "external_expert"}
 
 
 def deterministic_open_correct(row: dict[str, Any]) -> bool:
@@ -131,6 +206,28 @@ def effective_open_grade(row: dict[str, Any]) -> dict[str, Any]:
     an adjudication exists but is malformed or unparseable, it is intentionally
     not replaced by the deterministic grade.
     """
+    external_label = row.get("prospective_open_label")
+    if isinstance(external_label, dict):
+        verdict = str(external_label.get("label") or "").strip().upper()
+        if verdict in SIMID_OPEN_FINAL_GRADES:
+            return {
+                "correct": verdict == "CORRECT",
+                "attempted": verdict in {"CORRECT", "INCORRECT"},
+                "source": "external_blind_label",
+                "judge_grade": verdict,
+                "parse_valid": True,
+                "claimable": True,
+                "claimability_blocker": None,
+            }
+        return {
+            "correct": False,
+            "attempted": False,
+            "source": "external_blind_label_invalid",
+            "judge_grade": verdict or None,
+            "parse_valid": False,
+            "claimable": False,
+            "claimability_blocker": OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER,
+        }
     adjudication = row.get("open_adjudication")
     verdict = adjudication_verdict(
         adjudication if isinstance(adjudication, dict) else None
@@ -261,6 +358,19 @@ def load_locked_manifest_rows(run_dir: Path) -> list[dict[str, Any]]:
     if not isinstance(rows, list) or not rows:
         raise ValueError(f"Missing non-empty rows in SIMID locked manifest: {path}")
     return [row for row in rows if isinstance(row, dict)]
+
+
+def load_locked_manifest_payload(run_dir: Path) -> dict[str, Any]:
+    path = run_dir / "manifest.locked.json"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing SIMID locked manifest: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected SIMID locked manifest object in {path}")
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"Missing non-empty rows in SIMID locked manifest: {path}")
+    return payload
 
 
 def load_run_config(run_dir: Path) -> dict[str, Any]:
@@ -643,14 +753,18 @@ def has_open_adjudication(rows: list[dict[str, Any]]) -> bool:
     return any(isinstance(row.get("open_adjudication"), dict) for row in rows)
 
 
+def has_prospective_open_labels(rows: list[dict[str, Any]]) -> bool:
+    return any(isinstance(row.get("prospective_open_label"), dict) for row in rows)
+
+
 def bool_metrics_for_rows(rows: list[dict[str, Any]]) -> dict[str, MetricFn]:
-    if has_open_adjudication(rows):
+    if has_open_adjudication(rows) or has_prospective_open_labels(rows):
         return ADJUDICATED_BOOL_METRICS
     return DETERMINISTIC_BOOL_METRICS
 
 
 def open_metric_names_for_rows(rows: list[dict[str, Any]]) -> tuple[str, str]:
-    if has_open_adjudication(rows):
+    if has_open_adjudication(rows) or has_prospective_open_labels(rows):
         return "adjudicated_open_correct", "adjudicated_open_attempted"
     return "open_correct", "open_attempted"
 
@@ -1168,6 +1282,27 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def stable_payload_sha256(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def prospective_effect_run_row_sha256(row: dict[str, Any]) -> str:
+    excluded = {
+        "effective_open_grade",
+        "open_adjudication",
+        "prospective_open_label",
+    }
+    return stable_payload_sha256(
+        {key: value for key, value in row.items() if key not in excluded}
+    )
+
+
 def validate_open_calibration_summary_binding(
     payload: dict[str, Any],
     *,
@@ -1295,7 +1430,34 @@ def validate_run_manifest_excludes_ids(*, run_dir: Path, exclusion_file: Path) -
         )
 
 
-def validate_prospective_open_analysis(path: Path) -> dict[str, Any]:
+def _metric_float(metrics: dict[str, Any], key: str, *, path: Path) -> float:
+    value = metrics.get(key)
+    if not isinstance(value, int | float) or not math.isfinite(float(value)):
+        raise ValueError(f"{path}: prospective open metric {key} is not recorded")
+    return float(value)
+
+
+def _raw_agreement_estimate(
+    metrics: dict[str, Any], *, path: Path
+) -> tuple[float, int]:
+    raw_agreement = metrics.get("raw_agreement")
+    if not isinstance(raw_agreement, dict):
+        raise ValueError(f"{path}: missing prospective open raw agreement")
+    estimate = raw_agreement.get("estimate")
+    count = raw_agreement.get("count")
+    n = raw_agreement.get("n")
+    if not isinstance(estimate, int | float) or not math.isfinite(float(estimate)):
+        raise ValueError(f"{path}: raw_agreement.estimate is not recorded")
+    if type(count) is not int or type(n) is not int or n <= 0 or count < 0:
+        raise ValueError(f"{path}: raw_agreement count/n are not recorded")
+    return float(estimate), n
+
+
+def validate_prospective_open_analysis(
+    path: Path,
+    *,
+    expected_package_dir: Path | None = None,
+) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"Expected prospective open analysis object in {path}")
@@ -1304,6 +1466,9 @@ def validate_prospective_open_analysis(path: Path) -> dict[str, Any]:
     outcome = payload.get("outcome")
     if not isinstance(outcome, dict) or outcome.get("passed") is not True:
         raise ValueError(f"{path}: prospective open analysis did not pass")
+    blockers = outcome.get("blockers")
+    if blockers not in ([], None):
+        raise ValueError(f"{path}: prospective open analysis has blockers")
     policy = payload.get("policy")
     if (
         not isinstance(policy, dict)
@@ -1313,12 +1478,152 @@ def validate_prospective_open_analysis(path: Path) -> dict[str, Any]:
     metrics = payload.get("metrics")
     if not isinstance(metrics, dict):
         raise ValueError(f"{path}: missing prospective open metrics")
-    if int(metrics.get("rule_gap_count", -1)) != 0:
+    n_cases = payload.get("n_cases")
+    if type(n_cases) is not int or n_cases <= 0:
+        raise ValueError(f"{path}: prospective open n_cases is not recorded")
+    min_cases = int(policy.get("min_cases", 0))
+    if n_cases < min_cases:
+        raise ValueError(f"{path}: n_cases below frozen minimum")
+    raw_estimate, raw_n = _raw_agreement_estimate(metrics, path=path)
+    if raw_n != n_cases:
+        raise ValueError(f"{path}: raw_agreement.n does not match n_cases")
+    if raw_estimate < float(policy.get("min_raw_agreement", 1.0)):
+        raise ValueError(f"{path}: raw_agreement below frozen threshold")
+    cohen_kappa = _metric_float(metrics, "cohen_kappa", path=path)
+    if cohen_kappa < float(policy.get("min_cohen_kappa", 1.0)):
+        raise ValueError(f"{path}: cohen_kappa below frozen threshold")
+    gwet_ac1 = _metric_float(metrics, "gwet_ac1", path=path)
+    if gwet_ac1 < float(policy.get("min_gwet_ac1", 1.0)):
+        raise ValueError(f"{path}: gwet_ac1 below frozen threshold")
+    max_rule_gaps = int(policy.get("max_rule_gap_cases", 0))
+    rule_gap_count = metrics.get("rule_gap_count")
+    if type(rule_gap_count) is not int:
+        raise ValueError(f"{path}: prospective open rule_gap_count is not recorded")
+    if rule_gap_count > max_rule_gaps:
         raise ValueError(f"{path}: prospective open analysis has rule gaps")
+    package_dir_value = payload.get("package_dir")
+    if not isinstance(package_dir_value, str) or not package_dir_value:
+        raise ValueError(f"{path}: prospective open analysis missing package_dir")
+    package_dir = _resolve_repo_metadata_path(package_dir_value)
+    if (
+        expected_package_dir is not None
+        and package_dir.resolve() != expected_package_dir.resolve()
+    ):
+        raise ValueError(
+            f"{path}: package_dir {package_dir} does not match {expected_package_dir}"
+        )
     label_path = _resolve_repo_metadata_path(payload.get("label_file"))
     if file_sha256(label_path) != payload.get("label_file_sha256"):
         raise ValueError(f"{path}: label_file_sha256 mismatch")
     return payload
+
+
+def _resolved_paths_match(left: str, right: str) -> bool:
+    return (
+        _resolve_repo_metadata_path(left).resolve()
+        == _resolve_repo_metadata_path(right).resolve()
+    )
+
+
+def validate_locked_manifest_source_binding(
+    *,
+    run_dir: Path,
+    authority_manifest: dict[str, Any],
+    authority_path: Path,
+) -> None:
+    planned = authority_manifest.get("planned_run")
+    if not isinstance(planned, dict):
+        raise ValueError(f"{authority_path}: missing planned_run")
+    sample_design = planned.get("sample_design")
+    if not isinstance(sample_design, dict):
+        raise ValueError(f"{authority_path}: missing planned_run.sample_design")
+    planned_manifest = sample_design.get("manifest_path")
+    if not isinstance(planned_manifest, str) or not planned_manifest:
+        raise ValueError(f"{authority_path}: missing planned manifest path")
+    expected_manifest_hash = sample_design.get("manifest_sha256")
+    if not isinstance(expected_manifest_hash, str) or not expected_manifest_hash:
+        raise ValueError(f"{authority_path}: missing planned manifest hash")
+    locked_payload = load_locked_manifest_payload(run_dir)
+    source_manifest = locked_payload.get("source_manifest")
+    source_manifest_sha256 = locked_payload.get("source_manifest_sha256")
+    if not isinstance(source_manifest, str) or not source_manifest:
+        raise ValueError("locked manifest source_manifest is not recorded")
+    if not isinstance(source_manifest_sha256, str) or not source_manifest_sha256:
+        raise ValueError("locked manifest source_manifest_sha256 is not recorded")
+    if not _resolved_paths_match(source_manifest, planned_manifest):
+        raise ValueError(
+            "locked manifest was not built from the planned manifest path "
+            f"{planned_manifest}"
+        )
+    source_manifest_path = _resolve_repo_metadata_path(source_manifest)
+    observed_hash = file_sha256(source_manifest_path)
+    if observed_hash != source_manifest_sha256:
+        raise ValueError(
+            "locked manifest source_manifest_sha256 does not match the planned "
+            f"manifest file {source_manifest_path}"
+        )
+    if expected_manifest_hash != source_manifest_sha256:
+        raise ValueError(
+            "locked manifest source_manifest_sha256 does not match authority "
+            "planned_run.sample_design.manifest_sha256"
+        )
+
+
+def validate_locked_manifest_heldout_only(*, run_dir: Path) -> None:
+    for row in load_locked_manifest_rows(run_dir):
+        if row.get("dataset") != "truthfulqa":
+            continue
+        if row.get("truthfulqa_leakage_policy") != "heldout_only":
+            raise ValueError("TruthfulQA locked manifest row is not heldout_only")
+        if row.get("truthfulqa_seen_in_iti_fit") is not False:
+            raise ValueError("TruthfulQA locked manifest row was seen in ITI fit")
+
+
+def validate_exclusion_provenance(
+    *,
+    authority_manifest: dict[str, Any],
+    authority_path: Path,
+    exclusion_path: Path,
+) -> None:
+    planned = authority_manifest.get("planned_run")
+    sample_design = planned.get("sample_design") if isinstance(planned, dict) else None
+    if not isinstance(sample_design, dict):
+        raise ValueError(f"{authority_path}: missing planned_run.sample_design")
+    exclusion_file = sample_design.get("exclusion_file")
+    if not isinstance(exclusion_file, str) or not exclusion_file:
+        raise ValueError(f"{authority_path}: missing sample_design.exclusion_file")
+    if not _resolved_paths_match(exclusion_file, str(exclusion_path)):
+        raise ValueError(
+            f"{authority_path}: sample_design.exclusion_file does not match "
+            "exclusions.path"
+        )
+    rows = load_jsonl(exclusion_path)
+    sources = {str(row.get("source")) for row in rows if isinstance(row, dict)}
+    required_sources = {
+        "historical_mvp_locked_manifest",
+        "prospective_open_calibration_private_case_map",
+    }
+    missing = required_sources - sources
+    if missing:
+        raise ValueError(
+            f"{authority_path}: exclusions missing expected provenance sources "
+            f"{sorted(missing)}"
+        )
+
+
+def validate_authority_manifest_path_binding(
+    *,
+    payload: dict[str, Any],
+    path: Path,
+) -> None:
+    output_paths = payload.get("output_paths")
+    if not isinstance(output_paths, dict):
+        raise ValueError(f"{path}: missing output_paths")
+    package_dir = output_paths.get("package_dir")
+    if not isinstance(package_dir, str) or not package_dir:
+        raise ValueError(f"{path}: missing output_paths.package_dir")
+    if _resolve_repo_metadata_path(package_dir).resolve() != path.parent.resolve():
+        raise ValueError(f"{path}: output_paths.package_dir does not bind this file")
 
 
 def load_prospective_open_authority_manifest(
@@ -1332,7 +1637,16 @@ def load_prospective_open_authority_manifest(
     if not isinstance(payload, dict):
         raise ValueError(f"Expected prospective open authority object in {path}")
     if payload.get("schema_version") != PROSPECTIVE_OPEN_EFFECT_GATE_SCHEMA_VERSION:
+        if (
+            payload.get("schema_version")
+            == PROSPECTIVE_OPEN_EFFECT_GATE_LEGACY_SCHEMA_VERSION
+        ):
+            raise ValueError(
+                f"{path}: legacy prospective effect gate schema is diagnostic-only; "
+                "use the r2 external-label authority package"
+            )
         raise ValueError(f"{path}: unexpected prospective effect gate schema")
+    validate_authority_manifest_path_binding(payload=payload, path=path)
     output_paths = payload.get("output_paths")
     if not isinstance(output_paths, dict):
         raise ValueError(f"{path}: missing output_paths")
@@ -1346,6 +1660,12 @@ def load_prospective_open_authority_manifest(
     authority = payload.get("frozen_open_grading_authority")
     if not isinstance(authority, dict):
         raise ValueError(f"{path}: missing frozen_open_grading_authority")
+    if authority.get("requires_external_returned_labels") is not True:
+        raise ValueError(f"{path}: authority does not require external labels")
+    gate_dir_entry = authority.get("gate_dir")
+    if not isinstance(gate_dir_entry, dict):
+        raise ValueError(f"{path}: missing authority.gate_dir")
+    open_gate_dir = _resolve_repo_metadata_path(gate_dir_entry.get("path"))
     passing_analysis_entry = authority.get("passing_analysis")
     if not isinstance(passing_analysis_entry, dict):
         raise ValueError(f"{path}: missing passing analysis metadata")
@@ -1353,12 +1673,19 @@ def load_prospective_open_authority_manifest(
         passing_analysis_entry,
         row_name=f"{path}:frozen_open_grading_authority.passing_analysis",
     )
-    passing_analysis = validate_prospective_open_analysis(passing_analysis_path)
+    passing_analysis = validate_prospective_open_analysis(
+        passing_analysis_path,
+        expected_package_dir=open_gate_dir,
+    )
     for key in ("rubric", "passing_label_file", "review_manifest"):
         entry = authority.get(key)
         if not isinstance(entry, dict):
             raise ValueError(f"{path}: missing authority.{key}")
         validate_content_bound_path(entry, row_name=f"{path}:authority.{key}")
+    if authority.get("metrics") != passing_analysis.get("metrics"):
+        raise ValueError(f"{path}: authority metrics do not match passing analysis")
+    if authority.get("policy") != passing_analysis.get("policy"):
+        raise ValueError(f"{path}: authority policy does not match passing analysis")
 
     exclusions = payload.get("exclusions")
     if not isinstance(exclusions, dict):
@@ -1366,6 +1693,17 @@ def load_prospective_open_authority_manifest(
     exclusion_path = validate_content_bound_path(
         exclusions,
         row_name=f"{path}:exclusions",
+    )
+    validate_locked_manifest_source_binding(
+        run_dir=run_dir,
+        authority_manifest=payload,
+        authority_path=path,
+    )
+    validate_locked_manifest_heldout_only(run_dir=run_dir)
+    validate_exclusion_provenance(
+        authority_manifest=payload,
+        authority_path=path,
+        exclusion_path=exclusion_path,
     )
     validate_run_manifest_excludes_ids(run_dir=run_dir, exclusion_file=exclusion_path)
 
@@ -1376,6 +1714,7 @@ def load_prospective_open_authority_manifest(
         "protocol_version": payload.get("protocol_version"),
         "authority_id": authority.get("authority_id"),
         "authority_scope": authority.get("authority_scope"),
+        "requires_external_returned_labels": True,
         "passing_analysis": {
             "path": str(passing_analysis_path),
             "content_sha256": file_sha256(passing_analysis_path),
@@ -1385,6 +1724,389 @@ def load_prospective_open_authority_manifest(
         "metrics": authority.get("metrics"),
         "policy": authority.get("policy"),
         "claimability_guardrail": authority.get("claimability_guardrail"),
+    }
+
+
+def resolve_package_metadata_path(package_dir: Path, path_value: Any) -> Path:
+    if not isinstance(path_value, str) or not path_value:
+        raise ValueError("metadata path is missing")
+    raw_path = Path(path_value)
+    if raw_path.is_absolute():
+        return raw_path
+    package_relative = package_dir / raw_path
+    if package_relative.exists():
+        return package_relative
+    return ROOT / raw_path
+
+
+def validate_package_bound_path(
+    entry: dict[str, Any],
+    *,
+    package_dir: Path,
+    row_name: str,
+) -> Path:
+    path = resolve_package_metadata_path(package_dir, entry.get("path"))
+    expected_hash = entry.get("content_sha256")
+    if not isinstance(expected_hash, str) or not expected_hash:
+        raise ValueError(f"{row_name}: missing content_sha256")
+    observed_hash = file_sha256(path)
+    if observed_hash != expected_hash:
+        raise ValueError(
+            f"{row_name}: content_sha256 mismatch for {path} "
+            f"(expected {expected_hash}, observed {observed_hash})"
+        )
+    return path
+
+
+def load_prospective_effect_label_package_manifest(
+    *,
+    package_dir: Path,
+    prospective_open_authority: dict[str, Any],
+) -> dict[str, Any]:
+    path = package_dir / "review_manifest.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected prospective effect label package object in {path}")
+    if payload.get("schema_version") != PROSPECTIVE_EFFECT_LABEL_PACKAGE_SCHEMA_VERSION:
+        raise ValueError(f"{path}: unexpected label package schema_version")
+    authority_entry = payload.get("prospective_open_authority")
+    if not isinstance(authority_entry, dict):
+        authority_entry = payload.get("authority_manifest")
+    if not isinstance(authority_entry, dict):
+        raise ValueError(f"{path}: missing prospective authority binding")
+    authority_path = validate_package_bound_path(
+        authority_entry,
+        package_dir=package_dir,
+        row_name=f"{path}:prospective_open_authority",
+    )
+    if (
+        authority_path.resolve()
+        != Path(str(prospective_open_authority["path"])).resolve()
+    ):
+        raise ValueError(f"{path}: prospective authority path mismatch")
+    if authority_entry.get("content_sha256") != prospective_open_authority.get(
+        "content_sha256"
+    ):
+        raise ValueError(f"{path}: prospective authority hash mismatch")
+
+    rubric = payload.get("rubric")
+    if not isinstance(rubric, dict):
+        raise ValueError(f"{path}: missing rubric metadata")
+    validate_package_bound_path(
+        rubric, package_dir=package_dir, row_name=f"{path}:rubric"
+    )
+    authority_rubric = prospective_open_authority.get("rubric")
+    if not isinstance(authority_rubric, dict) or rubric.get(
+        "content_sha256"
+    ) != authority_rubric.get("content_sha256"):
+        raise ValueError(f"{path}: rubric hash is not the authority rubric hash")
+
+    files = payload.get("files")
+    if not isinstance(files, dict):
+        raise ValueError(f"{path}: missing files metadata")
+    for key in ("review_cases_blind", "private_case_map"):
+        entry = files.get(key)
+        if not isinstance(entry, dict):
+            raise ValueError(f"{path}: missing files.{key}")
+        validate_package_bound_path(
+            entry,
+            package_dir=package_dir,
+            row_name=f"{path}:files.{key}",
+        )
+    return payload
+
+
+def validate_prospective_effect_blind_rows(
+    rows: list[dict[str, Any]],
+    *,
+    package_dir: Path,
+) -> dict[str, dict[str, Any]]:
+    by_id: dict[str, dict[str, Any]] = {}
+    for index, row in enumerate(rows, start=1):
+        row_name = f"{package_dir / 'review_cases_blind.jsonl'}:{index}"
+        if set(row) != PROSPECTIVE_EFFECT_BLIND_ROW_KEYS:
+            raise ValueError(f"{row_name}: blind row exposes unexpected keys")
+        blind_case_id = row.get("blind_case_id")
+        if not isinstance(blind_case_id, str) or not blind_case_id:
+            raise ValueError(f"{row_name}: invalid blind_case_id")
+        if blind_case_id in by_id:
+            raise ValueError(f"{row_name}: duplicate blind_case_id")
+        if type(row.get("review_order")) is not int:
+            raise ValueError(f"{row_name}: invalid review_order")
+        if not isinstance(row.get("question"), str):
+            raise ValueError(f"{row_name}: invalid question")
+        if not isinstance(row.get("predicted_answer"), str):
+            raise ValueError(f"{row_name}: invalid predicted_answer")
+        aliases = row.get("gold_aliases")
+        if not isinstance(aliases, list) or not all(
+            isinstance(alias, str) for alias in aliases
+        ):
+            raise ValueError(f"{row_name}: invalid gold_aliases")
+        by_id[blind_case_id] = row
+    return by_id
+
+
+def validate_prospective_effect_private_rows(
+    rows: list[dict[str, Any]],
+    *,
+    authority_hash: str,
+    package_dir: Path,
+) -> dict[str, dict[str, Any]]:
+    by_id: dict[str, dict[str, Any]] = {}
+    forbidden = {
+        "label",
+        "reference_label",
+        "primary_label",
+        "secondary_label",
+        "adjudicated_label",
+        "open_adjudication",
+    }
+    for index, row in enumerate(rows, start=1):
+        row_name = f"{package_dir / 'private_case_map.jsonl'}:{index}"
+        missing = PROSPECTIVE_EFFECT_PRIVATE_CASE_REQUIRED_KEYS - set(row)
+        if missing:
+            raise ValueError(f"{row_name}: missing keys {sorted(missing)}")
+        leaked = forbidden & set(row)
+        if leaked:
+            raise ValueError(f"{row_name}: leaked label keys {sorted(leaked)}")
+        if row.get("schema_version") != PROSPECTIVE_EFFECT_PRIVATE_CASE_SCHEMA_VERSION:
+            raise ValueError(f"{row_name}: invalid schema_version")
+        blind_case_id = row.get("blind_case_id")
+        if not isinstance(blind_case_id, str) or not blind_case_id:
+            raise ValueError(f"{row_name}: invalid blind_case_id")
+        if blind_case_id in by_id:
+            raise ValueError(f"{row_name}: duplicate blind_case_id")
+        if row.get("authority_manifest_sha256") != authority_hash:
+            raise ValueError(f"{row_name}: authority_manifest_sha256 mismatch")
+        if type(row.get("review_order")) is not int:
+            raise ValueError(f"{row_name}: invalid review_order")
+        if not isinstance(row.get("sample_id"), str) or not row.get("sample_id"):
+            raise ValueError(f"{row_name}: invalid sample_id")
+        if not isinstance(row.get("base_sample_id"), str) or not row.get(
+            "base_sample_id"
+        ):
+            raise ValueError(f"{row_name}: invalid base_sample_id")
+        if not isinstance(row.get("condition"), str) or not row.get("condition"):
+            raise ValueError(f"{row_name}: invalid condition")
+        if not isinstance(row.get("dataset"), str) or not row.get("dataset"):
+            raise ValueError(f"{row_name}: invalid dataset")
+        if not isinstance(row.get("alpha"), int | float):
+            raise ValueError(f"{row_name}: invalid alpha")
+        if not isinstance(row.get("run_row_sha256"), str) or not row.get(
+            "run_row_sha256"
+        ):
+            raise ValueError(f"{row_name}: invalid run_row_sha256")
+        by_id[blind_case_id] = row
+    return by_id
+
+
+def validate_external_rater(rater: Any, *, row_name: str) -> dict[str, Any]:
+    if not isinstance(rater, dict):
+        raise ValueError(f"{row_name}: invalid rater")
+    rater_type = rater.get("type")
+    if rater_type not in EXTERNAL_RATER_TYPES:
+        raise ValueError(f"{row_name}: rater is not an external authority")
+    if "model" in rater:
+        raise ValueError(f"{row_name}: external rater must not declare model")
+    return rater
+
+
+def validate_prospective_effect_label_rows(
+    rows: list[dict[str, Any]],
+    *,
+    private_by_id: dict[str, dict[str, Any]],
+    blind_cases_sha256: str,
+    rubric_sha256: str,
+    label_file: Path,
+) -> dict[str, dict[str, Any]]:
+    by_id: dict[str, dict[str, Any]] = {}
+    for index, row in enumerate(rows, start=1):
+        row_name = f"{label_file}:{index}"
+        unexpected = set(row) - PROSPECTIVE_EFFECT_LABEL_ALLOWED_KEYS
+        if unexpected:
+            raise ValueError(f"{row_name}: unexpected keys {sorted(unexpected)}")
+        leaked = PROSPECTIVE_EFFECT_LABEL_FORBIDDEN_KEYS & set(row)
+        if leaked:
+            raise ValueError(f"{row_name}: leaked private keys {sorted(leaked)}")
+        if row.get("schema_version") != PROSPECTIVE_EFFECT_LABEL_SCHEMA_VERSION:
+            raise ValueError(f"{row_name}: invalid schema_version")
+        blind_case_id = row.get("blind_case_id")
+        if not isinstance(blind_case_id, str) or blind_case_id not in private_by_id:
+            raise ValueError(f"{row_name}: blind_case_id not in package")
+        if blind_case_id in by_id:
+            raise ValueError(f"{row_name}: duplicate blind_case_id")
+        private = private_by_id[blind_case_id]
+        if row.get("review_order") != private.get("review_order"):
+            raise ValueError(f"{row_name}: review_order mismatch")
+        if row.get("label") not in SIMID_OPEN_FINAL_GRADES:
+            raise ValueError(f"{row_name}: invalid label")
+        confidence = row.get("confidence")
+        if type(confidence) is not int or not 1 <= confidence <= 5:
+            raise ValueError(f"{row_name}: confidence outside 1-5")
+        if type(row.get("rule_gap")) is not bool:
+            raise ValueError(f"{row_name}: invalid rule_gap")
+        flags = row.get("flags")
+        if not isinstance(flags, list) or len(flags) != len(set(flags)):
+            raise ValueError(f"{row_name}: invalid flags")
+        invalid_flags = [
+            flag for flag in flags if flag not in PROSPECTIVE_EFFECT_VALID_FLAGS
+        ]
+        if invalid_flags:
+            raise ValueError(f"{row_name}: invalid flags {invalid_flags}")
+        if not isinstance(row.get("notes"), str):
+            raise ValueError(f"{row_name}: invalid notes")
+        validate_external_rater(row.get("rater"), row_name=row_name)
+        if row.get("blind_cases_file_sha256") != blind_cases_sha256:
+            raise ValueError(f"{row_name}: blind_cases_file_sha256 mismatch")
+        if row.get("rubric_sha256") != rubric_sha256:
+            raise ValueError(f"{row_name}: rubric_sha256 mismatch")
+        by_id[blind_case_id] = row
+    if set(by_id) != set(private_by_id):
+        missing = sorted(set(private_by_id) - set(by_id))[:5]
+        extra = sorted(set(by_id) - set(private_by_id))[:5]
+        raise ValueError(
+            f"{label_file}: incomplete prospective open label coverage "
+            f"(missing={missing}, extra={extra})"
+        )
+    return by_id
+
+
+def prospective_label_row_key(row: dict[str, Any]) -> OpenAdjudicationKey:
+    return (str(row["sample_id"]), str(row["condition"]), float(row["alpha"]))
+
+
+def validate_private_row_matches_run_row(
+    *,
+    private: dict[str, Any],
+    blind: dict[str, Any],
+    run_row: dict[str, Any],
+    row_name: str,
+) -> None:
+    if str(private.get("base_sample_id")) != str(
+        run_row.get("base_sample_id") or run_row.get("sample_id")
+    ):
+        raise ValueError(f"{row_name}: base_sample_id mismatch")
+    if str(private.get("dataset")) != str(run_row.get("dataset")):
+        raise ValueError(f"{row_name}: dataset mismatch")
+    if prospective_effect_run_row_sha256(run_row) != private.get("run_row_sha256"):
+        raise ValueError(f"{row_name}: run_row_sha256 mismatch")
+    if blind.get("question") != run_row.get("question"):
+        raise ValueError(f"{row_name}: blind question mismatch")
+    if tuple(blind.get("gold_aliases", [])) != tuple(_adjudication_aliases(run_row)):
+        raise ValueError(f"{row_name}: blind gold_aliases mismatch")
+    if str(blind.get("predicted_answer")) != str(
+        open_adjudication_response_payload(run_row)
+    ):
+        raise ValueError(f"{row_name}: blind predicted_answer mismatch")
+
+
+def attach_prospective_open_labels(
+    rows: list[dict[str, Any]],
+    *,
+    package_dir: Path | None,
+    label_file: Path | None,
+    prospective_open_authority: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if package_dir is None and label_file is None:
+        return None
+    if prospective_open_authority is None:
+        raise ValueError(
+            "prospective open labels require --prospective-open-authority-manifest"
+        )
+    if package_dir is None or label_file is None:
+        raise ValueError(
+            "--prospective-open-label-package and --prospective-open-labels must "
+            "be provided together"
+        )
+    package_manifest = load_prospective_effect_label_package_manifest(
+        package_dir=package_dir,
+        prospective_open_authority=prospective_open_authority,
+    )
+    files = package_manifest["files"]
+    blind_entry = files["review_cases_blind"]
+    private_entry = files["private_case_map"]
+    rubric_entry = package_manifest["rubric"]
+    blind_path = validate_package_bound_path(
+        blind_entry,
+        package_dir=package_dir,
+        row_name="review_manifest.json:files.review_cases_blind",
+    )
+    private_path = validate_package_bound_path(
+        private_entry,
+        package_dir=package_dir,
+        row_name="review_manifest.json:files.private_case_map",
+    )
+    blind_by_id = validate_prospective_effect_blind_rows(
+        load_jsonl(blind_path),
+        package_dir=package_dir,
+    )
+    private_by_id = validate_prospective_effect_private_rows(
+        load_jsonl(private_path),
+        authority_hash=str(prospective_open_authority["content_sha256"]),
+        package_dir=package_dir,
+    )
+    if set(blind_by_id) != set(private_by_id):
+        raise ValueError("blind rows and private map do not cover the same IDs")
+    label_by_id = validate_prospective_effect_label_rows(
+        load_jsonl(label_file),
+        private_by_id=private_by_id,
+        blind_cases_sha256=str(blind_entry["content_sha256"]),
+        rubric_sha256=str(rubric_entry["content_sha256"]),
+        label_file=label_file,
+    )
+
+    run_rows_by_key: dict[OpenAdjudicationKey, dict[str, Any]] = {}
+    for row in rows:
+        if eligible_for_open_adjudication(row):
+            run_rows_by_key[open_adjudication_key(row)] = row
+    private_keys = {prospective_label_row_key(row) for row in private_by_id.values()}
+    expected_keys = set(run_rows_by_key)
+    if private_keys != expected_keys:
+        missing = sorted(expected_keys - private_keys)[:5]
+        extra = sorted(private_keys - expected_keys)[:5]
+        raise ValueError(
+            "prospective open label package does not exactly cover open-eligible "
+            f"run rows (missing={missing}, extra={extra})"
+        )
+
+    rater_counts: Counter[str] = Counter()
+    rule_gap_count = 0
+    label_counts: Counter[str] = Counter()
+    for blind_case_id, private in private_by_id.items():
+        key = prospective_label_row_key(private)
+        run_row = run_rows_by_key[key]
+        validate_private_row_matches_run_row(
+            private=private,
+            blind=blind_by_id[blind_case_id],
+            run_row=run_row,
+            row_name=f"private_case_map:{blind_case_id}",
+        )
+        label = label_by_id[blind_case_id]
+        run_row["prospective_open_label"] = label
+        run_row["effective_open_grade"] = effective_open_grade(run_row)
+        rater = label.get("rater")
+        if isinstance(rater, dict):
+            rater_key = str(rater.get("id") or rater.get("type") or "external")
+        else:
+            rater_key = "external"
+        rater_counts[rater_key] += 1
+        label_counts[str(label["label"])] += 1
+        if bool(label["rule_gap"]):
+            rule_gap_count += 1
+
+    return {
+        "package_dir": str(package_dir),
+        "package_manifest": str(package_dir / "review_manifest.json"),
+        "package_manifest_sha256": file_sha256(package_dir / "review_manifest.json"),
+        "labels": str(label_file),
+        "labels_sha256": file_sha256(label_file),
+        "n": len(label_by_id),
+        "authority_manifest_sha256": prospective_open_authority["content_sha256"],
+        "blind_cases_file_sha256": blind_entry["content_sha256"],
+        "rubric_sha256": rubric_entry["content_sha256"],
+        "label_counts": dict(sorted(label_counts.items())),
+        "rule_gap_count": rule_gap_count,
+        "rater_counts": dict(sorted(rater_counts.items())),
     }
 
 
@@ -1406,19 +2128,36 @@ def open_correctness_claimability_blocker(
     effective_source_counts: Counter[str],
     *,
     has_judge: bool,
+    has_external_labels: bool,
     calibration_summary: dict[str, Any] | None = None,
     prospective_open_authority: dict[str, Any] | None = None,
+    prospective_open_labels: dict[str, Any] | None = None,
 ) -> str | None:
     if (
-        effective_source_counts.get("adjudication", 0) > 0
+        sum(
+            effective_source_counts.get(source, 0)
+            for source in ("adjudication", "external_blind_label")
+        )
+        > 0
         and effective_source_counts.get("deterministic_alias", 0) > 0
     ):
         return OPEN_CORRECTNESS_MIXED_SOURCE_BLOCKER
-    if effective_source_counts.get("adjudication_unknown", 0) > 0:
+    if (
+        effective_source_counts.get("adjudication_unknown", 0) > 0
+        or effective_source_counts.get("external_blind_label_invalid", 0) > 0
+    ):
         return OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER
+    if has_external_labels:
+        if prospective_open_authority is None:
+            return OPEN_CORRECTNESS_PROSPECTIVE_LABELS_WITHOUT_AUTHORITY_BLOCKER
+        if prospective_open_labels is None:
+            return OPEN_CORRECTNESS_PROSPECTIVE_LABELS_BLOCKER
+        if int(prospective_open_labels.get("rule_gap_count", 0)) > 0:
+            return OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER
+        return None
+    if prospective_open_authority is not None and prospective_open_labels is None:
+        return OPEN_CORRECTNESS_PROSPECTIVE_LABELS_BLOCKER
     if has_judge:
-        if prospective_open_authority is not None:
-            return None
         blocker = open_calibration_claimability_blocker(calibration_summary)
         return blocker
     return OPEN_CORRECTNESS_NO_JUDGE_BLOCKER
@@ -1431,6 +2170,7 @@ def summarize_open_grading(
     adjudication_run: dict[str, Any] | None,
     calibration_summary: dict[str, Any] | None = None,
     prospective_open_authority: dict[str, Any] | None = None,
+    prospective_open_labels: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     correct_metric, attempted_metric = open_metric_names_for_rows(rows)
     effective_source_counts: Counter[str] = Counter()
@@ -1452,11 +2192,14 @@ def summarize_open_grading(
             invalid_adjudications += 1
 
     has_judge = has_open_adjudication(rows)
+    has_external_labels = has_prospective_open_labels(rows)
     claimability_blocker = open_correctness_claimability_blocker(
         effective_source_counts,
         has_judge=has_judge,
+        has_external_labels=has_external_labels,
         calibration_summary=calibration_summary,
         prospective_open_authority=prospective_open_authority,
+        prospective_open_labels=prospective_open_labels,
     )
     claimable_open_correctness = claimability_blocker is None
     if claimable_open_correctness and prospective_open_authority is not None:
@@ -1494,6 +2237,10 @@ def summarize_open_grading(
         summary["calibration"] = calibration_summary
     if prospective_open_authority is not None:
         summary["prospective_open_authority"] = prospective_open_authority
+    if prospective_open_labels is not None:
+        summary["prospective_open_labels"] = prospective_open_labels
+        summary["claim_bearing_metric_correct"] = "external_blind_open_correct"
+        summary["claim_bearing_metric_attempted"] = "external_blind_open_attempted"
     return summary
 
 
@@ -2808,11 +3555,19 @@ def write_report(results: dict[str, Any], path: Path) -> None:
     judge_backed = open_correct_metric == "adjudicated_open_correct"
     claimable_open = open_grading.get("claimable_open_correctness") is True
     prospective_authority = open_grading.get("prospective_open_authority")
-    if judge_backed and claimable_open and isinstance(prospective_authority, dict):
+    prospective_labels = open_grading.get("prospective_open_labels")
+    if (
+        judge_backed
+        and claimable_open
+        and isinstance(prospective_authority, dict)
+        and isinstance(prospective_labels, dict)
+    ):
         open_grading_note = (
-            "Open correctness is reported as adjudicated_open_correct. Judge "
-            "adjudication is fully loaded for the analyzed rows, and the "
-            "prospective open-grading authority is bound by path and hash."
+            "Open correctness is reported as adjudicated_open_correct from "
+            "external blind labels. The prospective open-grading authority, "
+            "label package, rubric, blind-case file, and returned labels are "
+            "bound by path and hash. Automated judge adjudication remains "
+            "diagnostic-only."
         )
     elif judge_backed and claimable_open:
         open_grading_note = (
@@ -2912,6 +3667,16 @@ def write_report(results: dict[str, Any], path: Path) -> None:
                     rendered.append(f"AC1={float(ac1):.4f}")
                 if rendered:
                     lines.append("Prospective open authority: " + ", ".join(rendered))
+            if isinstance(prospective_labels, dict):
+                labels_path = prospective_labels.get("labels")
+                label_n = prospective_labels.get("n")
+                rendered = []
+                if labels_path:
+                    rendered.append(f"external_labels={labels_path}")
+                if label_n is not None:
+                    rendered.append(f"n={int(label_n)}")
+                if rendered:
+                    lines.append("Prospective open labels: " + ", ".join(rendered))
         claim_contract = open_grading.get("open_correctness_claim_contract")
         if claim_contract:
             lines.append(f"Open correctness claim contract: {claim_contract}.")
@@ -3053,6 +3818,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "authority. Relative paths are resolved under the repository root."
         ),
     )
+    parser.add_argument(
+        "--prospective-open-label-package",
+        default=None,
+        help=(
+            "Prospective effect-run external blind-label package directory. "
+            "Relative paths are resolved under the repository root."
+        ),
+    )
+    parser.add_argument(
+        "--prospective-open-labels",
+        default=None,
+        help=(
+            "Returned external blind labels for the prospective effect run. "
+            "Relative paths are resolved under the label package when possible, "
+            "then under the repository root."
+        ),
+    )
+    parser.add_argument(
+        "--require-prospective-open-authority",
+        action="store_true",
+        help=(
+            "Require the r2 prospective authority and complete external labels "
+            "before writing claim-bearing open-correctness outputs."
+        ),
+    )
     parser.add_argument("--api-key", default=None)
     parser.add_argument(
         "--prompt-cache-retention",
@@ -3136,6 +3926,40 @@ def main(argv: list[str] | None = None) -> None:
         and not prospective_open_authority_path.is_absolute()
     ):
         prospective_open_authority_path = ROOT / prospective_open_authority_path
+    prospective_open_label_package_dir = (
+        Path(args.prospective_open_label_package)
+        if args.prospective_open_label_package
+        else None
+    )
+    if (
+        prospective_open_label_package_dir is not None
+        and not prospective_open_label_package_dir.is_absolute()
+    ):
+        prospective_open_label_package_dir = ROOT / prospective_open_label_package_dir
+    prospective_open_labels_path = (
+        Path(args.prospective_open_labels) if args.prospective_open_labels else None
+    )
+    if (
+        prospective_open_labels_path is not None
+        and not prospective_open_labels_path.is_absolute()
+    ):
+        package_relative = (
+            prospective_open_label_package_dir / prospective_open_labels_path
+            if prospective_open_label_package_dir is not None
+            else None
+        )
+        if package_relative is not None and package_relative.exists():
+            prospective_open_labels_path = package_relative
+        else:
+            prospective_open_labels_path = ROOT / prospective_open_labels_path
+    if (
+        args.require_prospective_open_authority
+        and prospective_open_authority_path is None
+    ):
+        raise ValueError(
+            "--require-prospective-open-authority requires "
+            "--prospective-open-authority-manifest"
+        )
     refuse_analysis_output_overwrite(
         [
             path
@@ -3196,6 +4020,17 @@ def main(argv: list[str] | None = None) -> None:
         adjudications = load_open_adjudications(adjudication_output)
         validate_open_adjudication_metadata(adjudications, judge_model=args.judge_model)
         n_attached_adjudications = attach_open_adjudications(rows, adjudications)
+        prospective_open_labels = attach_prospective_open_labels(
+            rows,
+            package_dir=prospective_open_label_package_dir,
+            label_file=prospective_open_labels_path,
+            prospective_open_authority=prospective_open_authority,
+        )
+        if args.require_prospective_open_authority and prospective_open_labels is None:
+            raise ValueError(
+                "--require-prospective-open-authority requires complete "
+                "external prospective open labels"
+            )
         bool_metrics = bool_metrics_for_rows(rows)
         open_grading_summary = summarize_open_grading(
             rows,
@@ -3203,6 +4038,7 @@ def main(argv: list[str] | None = None) -> None:
             adjudication_run=adjudication_run,
             calibration_summary=calibration_summary,
             prospective_open_authority=prospective_open_authority,
+            prospective_open_labels=prospective_open_labels,
         )
         indexed = index_rows(rows)
         conditions = args.conditions or sorted(indexed)
@@ -3293,6 +4129,8 @@ def main(argv: list[str] | None = None) -> None:
         write_report(results, report_md)
         extra["n_rows"] = len(rows)
         extra["n_open_adjudications_loaded"] = n_attached_adjudications
+        if prospective_open_labels is not None:
+            extra["n_prospective_open_labels_loaded"] = prospective_open_labels["n"]
         extra["n_alias_audit_rows"] = len(alias_queue)
         print(f"Wrote SIMID analysis to {output_json} and {report_md}")
     except BaseException as exc:

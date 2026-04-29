@@ -370,6 +370,7 @@ def load_or_create_locked_manifest(
             {
                 "schema_version": "simid_locked_manifest/v1",
                 "source_manifest": source_manifest,
+                "source_manifest_sha256": file_sha256(Path(source_manifest)),
                 "max_items": max_items,
                 "rows": rows,
             },
