@@ -28,13 +28,13 @@ narrowed: selected paper-faithful ITI shows an interesting TruthfulQA alpha=8
 open-correctness diagnostic cell, but the run still does not support a
 claimable, specific same-item intervention effect.
 
-Update after independent Opus review: a validated Claude Opus 4.7 blind pass on
-the 100-case human-review package agrees with the current calibration reference
-on 89/100 cases (kappa=0.7856, AC1=0.8521). This is reassuring, especially on
-TruthfulQA, but it is not a retrospective pass of the original calibration gate:
-the sample is enriched for the 34 known disagreements, the human review is still
-in progress, and Bridge modifier/partial-entity cases remain the main source of
-residual disagreement.
+Update after independent review: a validated Claude Opus 4.7 blind pass on the
+100-case review package agrees with the current calibration reference on
+89/100 cases (kappa=0.7856, AC1=0.8521). The human pass is structurally valid,
+but much noisier: it agrees with Opus on 69/100 cases and with the current
+reference on 76/100. This makes the human labels useful as a stress-test and
+error-localization signal, not as a replacement authority. Bridge
+modifier/partial-entity cases remain the main unresolved failure mode.
 
 ## Data Authority
 
@@ -50,6 +50,7 @@ residual disagreement.
 | MVP primary adjudications | `open_adjudication.jsonl` |
 | MVP analysis output | `results_adjudicated.json`, `report_adjudicated.md` |
 | Independent Opus review labels | `human_review_package/opus_4_7_labels.jsonl` |
+| Human review labels | `human_review_package/simid_open_human_labels.jsonl` |
 
 Important artifact-status note: `results_adjudicated.json` and
 `report_adjudicated.md` were generated before the calibration pass and still
@@ -180,14 +181,25 @@ Representative disagreement mechanisms from the adjudication notes:
 | Ambiguous/qualified TruthfulQA target | `simid_open_cal_1414048c84443447` | INCORRECT | biblical Adam contradicts the accepted no-literal-first-human/Y-chromosomal-Adam framing |
 | Attempt vs non-attempt boundary | `simid_open_cal_180a73b010616696` | NOT_ATTEMPTED | non-answer background does not contain or contradict the gold target |
 
-### Independent Opus Review Snapshot
+### Independent Review Snapshot
 
 This is data from the validated Claude Opus 4.7 blind pass on
-`human_review_package/opus_4_7_labels.jsonl`. It covers 100 cases: all
-34 primary-secondary disagreements plus 66 primary-secondary agreement-sample
-cases. The current reference used below is the production adjudication label for
-the 34 disagreement cases and the primary-secondary consensus label for the
-66 agreement-sample cases. Human labels are not included yet.
+`human_review_package/opus_4_7_labels.jsonl` and the completed human UI export
+`human_review_package/simid_open_human_labels.jsonl`. Both cover the same
+100 cases: all 34 primary-secondary disagreements plus 66 primary-secondary
+agreement-sample cases. The current reference used below is the production
+adjudication label for the 34 disagreement cases and the primary-secondary
+consensus label for the 66 agreement-sample cases.
+
+Human-review note: the 100 review rows are calibration cases, not 100 fully
+independent question surfaces. A quick duplicate audit of
+`review_cases_blind.jsonl` finds 62 unique questions, 88 unique
+question+predicted-answer pairs, and 88 unique question+alias-set+predicted-
+answer triples. There are 25 repeated-question groups covering 63 rows, and
+8 exact question+answer repeat groups covering 20 rows. This is plausible
+because similar or identical answers can appear across conditions, alphas, and
+option-order replicates. Row-level agreement should therefore be read as a
+review-package diagnostic, not as 100 independent semantic judgments.
 
 Opus label counts and confidence:
 
@@ -198,6 +210,9 @@ Opus label counts and confidence:
 | Current-reference labels | C=64, I=27, NA=9 |
 | Opus rule gaps | 0/100 |
 | Opus confidence counts | 5=41, 4=34, 3=22, 2=3 |
+| Human labels | C=58, I=35, NA=7 |
+| Human rule gaps | 0/100 |
+| Human confidence counts | 5=44, 4=23, 3=19, 2=14 |
 
 Most common Opus flags:
 
@@ -210,7 +225,11 @@ Most common Opus flags:
 | `wrong_extra_answer` | 4 |
 | `other_boundary` | 4 |
 
-Pairwise agreement on the 100-case Opus package:
+Most common human flags are `alias_too_broad_or_too_narrow` (9),
+`bridge_partial_entity_or_modifier` (8), and `wrong_extra_answer` (7), again
+pointing to Bridge strictness and modifier boundaries.
+
+Pairwise agreement on the 100-case review package:
 
 | Pair | Agreement | Kappa | AC1 |
 |---|---:|---:|---:|
@@ -218,11 +237,21 @@ Pairwise agreement on the 100-case Opus package:
 | Primary vs Opus | 72/100 = 72.0% [62.5, 79.9] | 0.4920 | 0.6141 |
 | Secondary vs Opus | 86/100 = 86.0% [77.9, 91.5] | 0.7045 | 0.8169 |
 | Current reference vs Opus | 89/100 = 89.0% [81.4, 93.7] | 0.7856 | 0.8521 |
+| Human vs primary | 77/100 = 77.0% [67.8, 84.2] | 0.5896 | 0.6809 |
+| Human vs secondary | 71/100 = 71.0% [61.5, 79.0] | 0.4187 | 0.6163 |
+| Human vs Opus | 69/100 = 69.0% [59.4, 77.2] | 0.4190 | 0.5783 |
+| Human vs current reference | 76/100 = 76.0% [66.8, 83.3] | 0.5455 | 0.6745 |
 
 Three-rater primary/secondary/Opus agreement is intentionally depressed by the
 sampling design: all 34 known primary-secondary disagreements are included.
 There are 62/100 unanimous cases and Fleiss kappa is 0.5045. This is useful as a
 stress-test view, not as an estimate of global MVP rater reliability.
+
+Adding the human labels lowers four-rater unanimity to 53/100 and Fleiss kappa
+to 0.4906. On the 89 rows where Opus and the current reference agree, the human
+label disagrees on 22 rows; only 2 rows have human+Opus agreement against the
+current reference. This asymmetry is why the human pass should be used as
+boundary-case evidence, not as a new gold standard.
 
 Reference-source split:
 
@@ -243,11 +272,38 @@ Dataset split against the current reference:
 | TriviaQA Bridge | 46 | 37/46 = 80.4% | 0.6142 | 0.7379 |
 | TruthfulQA | 54 | 52/54 = 96.3% | 0.9270 | 0.9504 |
 
+Human agreement is substantially weaker and more Bridge-concentrated:
+
+| Split | Human vs Opus | Human vs current reference |
+|---|---:|---:|
+| Primary-secondary disagreements | 16/34 = 47.1% | 19/34 = 55.9% |
+| Agreement sample | 53/66 = 80.3% | 57/66 = 86.4% |
+| TriviaQA Bridge | 26/46 = 56.5% | 31/46 = 67.4% |
+| TruthfulQA | 43/54 = 79.6% | 45/54 = 83.3% |
+
 The 11 Opus-vs-reference disagreements are not evenly distributed: 9 are Bridge
 and 2 are TruthfulQA. Six carry the
 `bridge_partial_entity_or_modifier` flag. The recurring Bridge issue is whether
 modifiers such as "human rights", "Core", "pie/pithivier", "fluid", and
 "cranberry sauce" are required, harmlessly extra, or wrongly narrowing.
+
+Exact duplicate audit: the 100 rows collapse to 88 unique
+question+alias-set+predicted-answer triples. Eight exact-repeat groups cover
+20 rows. Human labels are internally inconsistent in 1/8 exact-repeat groups,
+Opus in 1/8, and the current reference in 1/8; primary and secondary labels are
+internally consistent in these exact repeats. The current-reference conflict is
+the exact "Mulled cranberry sauce." case, which received both CORRECT and
+INCORRECT production-reference labels; Opus labels both rows CORRECT and the
+human pass splits them. The Opus conflict is the repeated "Adam was the first
+man." case, where Opus gives 2x INCORRECT and 1x CORRECT while the current
+reference and human labels are consistently INCORRECT. Collapsing exact semantic
+repeats by modal label and excluding the one tied exact-repeat group gives:
+
+| Collapsed pair | Agreement | Kappa | AC1 |
+|---|---:|---:|---:|
+| Opus vs current reference | 79/87 = 90.8% [82.9, 95.3] | 0.8196 | 0.8766 |
+| Human vs current reference | 69/87 = 79.3% [69.6, 86.5] | 0.6075 | 0.7197 |
+| Human vs Opus | 65/87 = 74.7% [64.7, 82.7] | 0.5281 | 0.6555 |
 
 ### Binding To The SIMID MVP Results
 
@@ -270,26 +326,27 @@ Key diagnostic effects to keep in scope:
 These remain diagnostic because the open-grade calibration failed threshold and
 the specificity evidence is still incomplete.
 
-Covered-row sensitivity using the 100 Opus-reviewed cases is small for the main
-selected-effect cells. Replacing only the exact reviewed MVP rows with the
-current-reference labels changes 25 primary labels; replacing them with Opus
-labels changes 28 primary labels. The estimates below preserve the analyzer's
-base-sample pairing and mean over option-order replicates, so one reviewed
-replicate can move a 100-item stratum by 0.5 pp.
+Covered-row sensitivity using the 100 reviewed cases is small for the main
+selected-effect cells. Replacing only exact reviewed MVP rows changes
+25 primary labels under the current reference, 28 under Opus, 23 under human
+labels, and 21 under a conservative reference+Opus consensus policy that
+updates only the 89 rows where those two agree. The estimates below preserve
+the analyzer's base-sample pairing and mean over option-order replicates, so one
+reviewed replicate can move a 100-item stratum by 0.5 pp.
 
-| Cell | Primary open delta | Current-reference exact-row replacement | Opus exact-row replacement |
-|---|---:|---:|---:|
-| Selected, pooled alpha=8 | +3.0 pp | +3.0 pp | +3.0 pp |
-| Selected, TruthfulQA alpha=8 | +12.0 pp | +12.0 pp | +12.0 pp |
-| Selected, Bridge alpha=8 | -6.0 pp | -6.0 pp | -6.0 pp |
-| Random-direction seed 1, pooled alpha=8 | +3.0 pp | +3.0 pp | +4.0 pp |
-| Random-head seed 1, pooled alpha=8 | -0.5 pp | -0.2 pp | -0.5 pp |
+| Cell | Primary | Current ref | Opus | Human | Ref+Opus consensus |
+|---|---:|---:|---:|---:|---:|
+| Selected, pooled alpha=8 | +3.0 pp | +3.0 pp | +3.0 pp | +2.5 pp | +3.2 pp |
+| Selected, TruthfulQA alpha=8 | +12.0 pp | +12.0 pp | +12.0 pp | +11.0 pp | +12.0 pp |
+| Selected, Bridge alpha=8 | -6.0 pp | -6.0 pp | -6.0 pp | -6.0 pp | -5.5 pp |
+| Random-direction seed 1, pooled alpha=8 | +3.0 pp | +3.0 pp | +4.0 pp | +3.7 pp | +3.0 pp |
+| Random-head seed 1, pooled alpha=8 | -0.5 pp | -0.3 pp | -0.5 pp | -0.5 pp | -0.5 pp |
 
 Across all condition/dataset/alpha open-delta cells, exact-row replacement
-changes point estimates by at most 2.0 pp in this 100-row covered subset. This
-is a useful sanity check, but it is not the full correction-evidence sensitivity
-analysis recommended below because unreviewed MVP rows may contain similar
-boundary cases.
+changes point estimates by at most 2.0 pp in this 100-row covered subset
+(1.0 pp for the human labels). This is a useful sanity check, but it is not the
+full correction-evidence sensitivity analysis recommended below because
+unreviewed MVP rows may contain similar boundary cases.
 
 ## Interpretation
 
@@ -309,6 +366,9 @@ This section is interpretation, not raw data.
 - The independent Opus pass mostly supports the gpt-5.5 secondary/adjudication
   direction rather than the original primary labels on known disagreements, and
   it strongly agrees with the current reference on TruthfulQA.
+- The human pass is still useful: it independently concentrates concern on the
+  same Bridge modifier/partial-entity boundary and exposes exact-repeat cases
+  that need prospective adjudication.
 - The larger SIMID measurement lesson still holds. Deterministic alias matching
   is not adequate as a claim-bearing open-correctness endpoint, especially on
   paraphrase-rich TruthfulQA, and Bridge is better but not clean enough to treat
@@ -324,6 +384,12 @@ This section is interpretation, not raw data.
 - The Opus pass is rater-diverse LLM evidence, not a human standard, and the
   sample was selected after the original calibration result. It should not be
   used to retroactively declare the pre-recorded kappa gate passed.
+- The human pass does not rescue the gate either. It is structurally valid but
+  lower-agreement than Opus/current-reference evidence, especially on the
+  34 known disagreements and Bridge modifier cases.
+- The current reference is not perfectly self-consistent at the semantic-repeat
+  level: one exact "Mulled cranberry sauce." repeat has conflicting final
+  labels. This is small in count but high in diagnostic value.
 - The final adjudicated labels have not been propagated into a new claimable
   effect analysis. Even if they were, the calibration failure would keep open
   correctness diagnostic-only unless a new pre-registered calibration policy or
@@ -373,35 +439,38 @@ than assumed authority.
 
 | Uncertainty | Severity | Current judgment | Resolution |
 |---|---|---|---|
-| Primary judge validity after failed kappa gate | High | Diagnostic-only; not claim-bearing | Add human or rater-diverse calibration before citing open metrics as claims |
-| Whether kappa failure reflects real ambiguity or prevalence artifact | Medium-high | Both likely contribute; AC1/raw agreement are reassuring but not decisive | Report prevalence, add balanced human subset, keep threshold fixed until a fresh pass |
-| Bridge grading strictness | Medium-high | Bridge looks less clean under second-rater calibration than deterministic disagreement rates suggested | Human review of Bridge partial-entity/modifier cases |
+| Primary judge validity after failed kappa gate | High | Diagnostic-only; not claim-bearing | Add fresh blinded calibration before citing open metrics as claims |
+| Whether kappa failure reflects real ambiguity or prevalence artifact | Medium-high | Both likely contribute; AC1/raw agreement are reassuring but not decisive | Report prevalence, use fresh evidence for any policy change |
+| Bridge grading strictness | Medium-high | Bridge looks less clean under second-rater calibration than deterministic disagreement rates suggested; human labels are also noisy here | Targeted blinded adjudication of Bridge partial-entity/modifier cases |
 | TruthfulQA alpha=8 open gain | Medium | Interesting diagnostic, not specific and not calibrated enough | Fresh seed/control family with pre-specified curve summary after calibration passes |
-| Final-label sensitivity of MVP effect estimates | Medium | Exact-row replacement on the 100 Opus package leaves the main selected alpha=8 cells unchanged, but this does not cover similar unreviewed rows | Run a sensitivity analysis mapping final calibration corrections onto similar MVP rows |
-| Human-rater agreement | High | Not measured here; Opus adds rater-diverse LLM evidence only | Complete the blind human subset or use human as adjudicator on all 34 disagreements plus agreement samples |
+| Final-label sensitivity of MVP effect estimates | Medium | Exact-row replacement on reviewed rows moves main selected alpha=8 cells by <=1.0 pp under human labels and <=0.5 pp under reference/Opus policies, but similar unreviewed rows may matter | Map high-confidence correction patterns onto similar MVP rows as diagnostic sensitivity |
+| Human-rater agreement | Medium-high | Measured and weak relative to Opus/current reference; useful for surfacing hard cases, not as adjudicator | Use human notes/confidence as triage features, not gold labels |
+| Duplicate surfaces in the 100-case review package | Medium | Eight exact-repeat groups reveal one human conflict, one Opus conflict, and one current-reference conflict | Resolve exact-repeat conflicts before using review labels as correction evidence |
 
 ## Recommended Next Steps
 
 1. Do not cite SIMID MVP open-correctness deltas as claim-bearing. Keep them
    diagnostic until a calibration pass clears the policy or a new policy is
    pre-registered and validated on fresh evidence.
-2. Add a human or genuinely independent rater pass on all 34 disagreements plus
-   a stratified agreement sample. Prioritize Bridge partial-entity cases and
-   TruthfulQA non-answer/qualified-answer boundaries. The Opus pass for this
-   package is complete and validated, but the human pass remains important. The
-   current blinded review package for this step is
-   [`human_review_package`](../../../data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/README.md);
-   LLM raters should use the batched synthetic-ID folders there rather than
-   returning all labels through chat.
-3. Run a sensitivity analysis that applies the final calibration adjudications
-   as correction evidence to the MVP effect estimates. Treat it as diagnostic
-   unless the calibration gate passes.
-4. If the kappa threshold is reconsidered because AC1 is judged more appropriate
+2. Resolve the exact-repeat conflicts and the highest-value Bridge modifier
+   cases with a fresh blinded adjudication pass. The minimum set should include
+   "Mulled cranberry sauce.", "Adam was the first man.", "pithivier/custard",
+   "viscous fluid", "Peter Piper/Peppers", and "lawyer" vs "human-rights
+   lawyer". Use the
+   [`human_review_package`](../../../data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/README.md)
+   artifacts for context, but do not expose previous labels to the rater.
+3. Convert the reviewed cases into a duplicate-collapsed correction-evidence
+   table with explicit conflict status: reference+Opus agreement, human
+   disagreement, exact-repeat conflict, or unresolved.
+4. Extend the diagnostic sensitivity analysis from exact reviewed rows to
+   similar MVP rows only where the rule implication is clear; keep any such
+   propagation non-claim-bearing unless a fresh calibration gate passes.
+5. If the kappa threshold is reconsidered because AC1 is judged more appropriate
    under label skew, document that as a prospective policy change and apply it
    only to fresh or blinded calibration evidence.
-5. Add more random-direction and random-head seeds before making any specificity
+6. Add more random-direction and random-head seeds before making any specificity
    statement about selected ITI.
-6. Preserve the tracked run outputs as immutable provenance. Use this report
+7. Preserve the tracked run outputs as immutable provenance. Use this report
    and `open_calibration_summary.json` as the current claimability authority.
 
 ## Cross-Links
