@@ -6,6 +6,7 @@ This table is duplicate-collapsed measurement-cleanup evidence from the fresh 20
 
 - Evidence rows: 10
 - Covered review rows: 23
+- Fresh label counts: CORRECT:10, INCORRECT:13
 - Fresh rule gaps: 0
 - Fresh unresolved cases: 0
 - Broader semantic-family propagation: blocked unless separately reviewed

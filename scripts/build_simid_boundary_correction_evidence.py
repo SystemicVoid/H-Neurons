@@ -132,8 +132,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def relative(path: Path) -> str:
-    return str(path.resolve().relative_to(ROOT))
+def stable_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(ROOT))
+    except ValueError:
+        return str(resolved)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -446,6 +450,13 @@ def build_rows(
             raise ValueError(f"{group_id}: invalid fresh label {fresh_label!r}")
         if set(case_ids) - set(fresh_by_case):
             raise ValueError(f"{group_id}: missing fresh label rows")
+        fresh_labels = [
+            grade_from_row(fresh_by_case[case_id], row_kind="fresh resolved label")
+            for case_id in case_ids
+        ]
+        status_labels = {str(label) for label in row["labels"]}
+        if set(fresh_labels) != status_labels:
+            raise ValueError(f"{group_id}: status labels do not match fresh rows")
         for case_id in case_ids:
             for source_name, source_map in (
                 ("review case", review_by_case),
@@ -508,9 +519,7 @@ def build_rows(
                 "adjudication_status": row["adjudication_status"],
                 "fresh_status": row["status"],
                 "fresh_label": fresh_label,
-                "fresh_label_counts": label_counts(
-                    str(label) for label in row["labels"]
-                ),
+                "fresh_label_counts": label_counts(fresh_labels),
                 "confidence_range": {
                     "min": int(row["confidence_min"]),
                     "max": int(row["confidence_max"]),
@@ -599,6 +608,7 @@ def validate_output_rows(
         raise ValueError("Duplicate review_order in correction-evidence output")
     schema_errors: list[str] = []
     comparison_coverage_ok = True
+    fresh_label_count_totals: Counter[str] = Counter()
     for row in rows:
         missing_keys = REQUIRED_OUTPUT_KEYS - set(row)
         if missing_keys:
@@ -610,6 +620,12 @@ def validate_output_rows(
         if row.get("fresh_label") not in VALID_LABELS:
             schema_errors.append(f"{row.get('group_id')}: bad fresh_label")
         n_review_orders = len(row["review_orders"])
+        row_fresh_label_total = sum(row["fresh_label_counts"].values())
+        if row_fresh_label_total != n_review_orders:
+            schema_errors.append(
+                f"{row.get('group_id')}: fresh_label_counts coverage mismatch"
+            )
+        fresh_label_count_totals.update(row["fresh_label_counts"])
         for comparison_key in (
             "current_reference_comparison",
             "opus_comparison",
@@ -630,6 +646,15 @@ def validate_output_rows(
             != "not_allowed_without_new_review"
         ):
             schema_errors.append(f"{row.get('group_id')}: broad propagation allowed")
+    expected_label_counts = validation.get("label_counts")
+    if isinstance(expected_label_counts, dict):
+        normalized_expected_label_counts = {
+            str(label): int(count) for label, count in expected_label_counts.items()
+        }
+        if dict(sorted(fresh_label_count_totals.items())) != dict(
+            sorted(normalized_expected_label_counts.items())
+        ):
+            schema_errors.append("fresh_label_counts do not match fresh validation")
     if schema_errors:
         raise ValueError("; ".join(schema_errors))
 
@@ -650,6 +675,7 @@ def validate_output_rows(
         "schema_checks": {
             "required_fields_present": True,
             "valid_fresh_labels": True,
+            "fresh_label_counts_match_validation": True,
             "all_comparisons_cover_review_orders": comparison_coverage_ok,
             "no_unresolved_silent_propagation": True,
         },
@@ -664,7 +690,10 @@ def validate_output_rows(
         "fresh_inconsistent_duplicate_group_count": validation.get(
             "inconsistent_duplicate_group_count"
         ),
-        "label_counts": dict(Counter(row["fresh_label"] for row in rows)),
+        "label_counts": dict(sorted(fresh_label_count_totals.items())),
+        "duplicate_collapsed_label_counts": dict(
+            sorted(Counter(row["fresh_label"] for row in rows).items())
+        ),
         "reference_conflict_status_counts": dict(
             sorted(reference_status_counts.items())
         ),
@@ -716,6 +745,7 @@ def build_markdown(rows: list[dict[str, Any]], summary: dict[str, Any]) -> str:
         "",
         f"- Evidence rows: {summary['n_rows']}",
         f"- Covered review rows: {summary['n_review_orders']}",
+        f"- Fresh label counts: {compact_count(summary['label_counts'])}",
         f"- Fresh rule gaps: {summary['fresh_validation_rule_gap_count']}",
         f"- Fresh unresolved cases: {len(summary['fresh_validation_unresolved_cases'])}",
         "- Broader semantic-family propagation: blocked unless separately reviewed",
@@ -851,11 +881,13 @@ def build_provenance(
             "uv run python scripts/build_simid_boundary_correction_evidence.py "
             "--overwrite"
         ),
-        "output_dir": relative(output_dir),
+        "output_dir": stable_path(output_dir),
         "inputs": {
-            relative(path): {"sha256": file_sha256(path)} for path in input_paths
+            stable_path(path): {"sha256": file_sha256(path)} for path in input_paths
         },
-        "outputs": {relative(path): {"sha256": file_sha256(path)} for path in outputs},
+        "outputs": {
+            stable_path(path): {"sha256": file_sha256(path)} for path in outputs
+        },
     }
 
 
@@ -911,8 +943,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     write_json(provenance_path, provenance)
 
-    print(f"Wrote {len(rows)} correction-evidence rows to {relative(evidence_path)}")
-    print(f"Validation summary: {relative(summary_path)}")
+    print(f"Wrote {len(rows)} correction-evidence rows to {stable_path(evidence_path)}")
+    print(f"Validation summary: {stable_path(summary_path)}")
     return 0
 
 

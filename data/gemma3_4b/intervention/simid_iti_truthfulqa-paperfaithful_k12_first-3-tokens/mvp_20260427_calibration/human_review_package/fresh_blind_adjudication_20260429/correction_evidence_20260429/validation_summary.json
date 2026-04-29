@@ -4,6 +4,10 @@
     "no_duplicate_review_orders": true,
     "review_orders_match_fresh_package": true
   },
+  "duplicate_collapsed_label_counts": {
+    "CORRECT": 4,
+    "INCORRECT": 6
+  },
   "expected_review_orders": [
     4,
     9,
@@ -43,8 +47,8 @@
     "mixed": 1
   },
   "label_counts": {
-    "CORRECT": 4,
-    "INCORRECT": 6
+    "CORRECT": 10,
+    "INCORRECT": 13
   },
   "local_unresolved_or_nonpropagatable_rows": [],
   "n_review_orders": 23,
@@ -89,10 +93,11 @@
   ],
   "schema_checks": {
     "all_comparisons_cover_review_orders": true,
+    "fresh_label_counts_match_validation": true,
     "no_unresolved_silent_propagation": true,
     "required_fields_present": true,
     "valid_fresh_labels": true
   },
   "schema_version": "simid_boundary_correction_evidence_validation/v1",
-  "validated_at_utc": "2026-04-29T13:22:28.545546+00:00"
+  "validated_at_utc": "2026-04-29T13:52:44.156582+00:00"
 }
