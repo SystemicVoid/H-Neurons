@@ -24,7 +24,8 @@ fi
 
 cd "${PROJECT_DIR}"
 
-PIPELINE=(uv run python -m scripts.lib.pipeline)
+UV_RUN=(uv run --no-sync)
+PIPELINE=("${UV_RUN[@]}" python -m scripts.lib.pipeline)
 RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG_DIR="${LOG_DIR:-logs}"
 
@@ -66,6 +67,14 @@ GPU_MIN_MEMORY_GIB="${GPU_MIN_MEMORY_GIB:-75}"
 GPU_NAME_PATTERN="${GPU_NAME_PATTERN:-H100|A100}"
 read -r -a ALPHAS <<<"${ALPHAS:-0.0 0.5 1.0 1.5 2.0 2.5 3.0}"
 read -r -a C_VALUES <<<"${C_VALUES:-0.001 0.005 0.01 0.05 0.1 0.5 1.0}"
+
+clean_untracked_uv_lock() {
+    if [[ -f uv.lock ]] && ! git ls-files --error-unmatch uv.lock >/dev/null 2>&1; then
+        rm -f uv.lock
+    fi
+}
+
+clean_untracked_uv_lock
 
 mkdir -p "${LOG_DIR}" "${PREFLIGHT_DIR}" "${OUTPUT_ROOT}/pipeline" "${OUTPUT_ROOT}/intervention"
 
@@ -168,7 +177,7 @@ require_gpu_hardware() {
 }
 
 validate_token_span_summary() {
-    run_logged uv run python scripts/audit_token_spans.py \
+    run_logged "${UV_RUN[@]}" python scripts/audit_token_spans.py \
         --validate_summary "${TOKEN_SPAN_AUDIT_SUMMARY}" \
         --expected_model_key "${MODEL_KEY}" \
         --expected_model_path "${MODEL_PATH}" \
@@ -178,7 +187,7 @@ validate_token_span_summary() {
 }
 
 validate_model_load_smoke() {
-    run_logged uv run python scripts/model_load_smoke.py \
+    run_logged "${UV_RUN[@]}" python scripts/model_load_smoke.py \
         --validate_summary "${MODEL_LOAD_SMOKE}" \
         --expected_model_key "${MODEL_KEY}" \
         --expected_model_path "${MODEL_PATH}" \
@@ -197,8 +206,8 @@ capture_versions() {
         git rev-parse HEAD || true
         git status --short || true
         uv --version
-        uv run python -V
-        uv run python - <<'PY'
+        "${UV_RUN[@]}" python -V
+        "${UV_RUN[@]}" python - <<'PY'
 import importlib.metadata as md
 
 for name in ["torch", "transformers", "accelerate", "datasets", "scikit-learn"]:
@@ -228,7 +237,7 @@ else
     capture_versions
 fi
 
-run_stage preflight uv run python scripts/audit_token_spans.py \
+run_stage preflight "${UV_RUN[@]}" python scripts/audit_token_spans.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --input_path "${ANSWER_TOKENS}" \
@@ -237,7 +246,7 @@ run_stage preflight uv run python scripts/audit_token_spans.py \
     --rendered_chat_path "${RENDERED_CHAT_EXAMPLES}" \
     --max_samples "${TOKEN_SPAN_AUDIT_MAX_SAMPLES}"
 
-run_stage model_smoke uv run python scripts/model_load_smoke.py \
+run_stage model_smoke "${UV_RUN[@]}" python scripts/model_load_smoke.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --device_map "${DEVICE_MAP}" \
@@ -252,14 +261,14 @@ if should_run_any_stage "${PREFLIGHT_VALIDATED_STAGES[@]}"; then
     validate_claim_stage_preflight
 fi
 
-run_stage splits uv run python scripts/sample_balanced_ids.py \
+run_stage splits "${UV_RUN[@]}" python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \
     --output_path "${TRAIN_IDS}" \
     --num_samples "${SPLIT_SAMPLES}" \
     --seed 42 \
     --strict
 
-run_stage splits uv run python scripts/sample_balanced_ids.py \
+run_stage splits "${UV_RUN[@]}" python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \
     --output_path "${DEV_IDS}" \
     --num_samples "${DEV_SAMPLES}" \
@@ -267,7 +276,7 @@ run_stage splits uv run python scripts/sample_balanced_ids.py \
     --exclude_path "${TRAIN_IDS}" \
     --strict
 
-run_stage splits uv run python scripts/sample_balanced_ids.py \
+run_stage splits "${UV_RUN[@]}" python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \
     --output_path "${TEST_IDS}" \
     --num_samples "${TEST_SAMPLES}" \
@@ -275,7 +284,7 @@ run_stage splits uv run python scripts/sample_balanced_ids.py \
     --exclude_path "${TRAIN_IDS}" "${DEV_IDS}" \
     --strict
 
-run_stage activations uv run python scripts/extract_activations.py \
+run_stage activations "${UV_RUN[@]}" python scripts/extract_activations.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --input_path "${ANSWER_TOKENS}" \
@@ -284,7 +293,7 @@ run_stage activations uv run python scripts/extract_activations.py \
     --device_map "${DEVICE_MAP}" \
     --locations answer_tokens all_except_answer_tokens
 
-run_stage activations uv run python scripts/extract_activations.py \
+run_stage activations "${UV_RUN[@]}" python scripts/extract_activations.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --input_path "${ANSWER_TOKENS}" \
@@ -293,7 +302,7 @@ run_stage activations uv run python scripts/extract_activations.py \
     --device_map "${DEVICE_MAP}" \
     --locations answer_tokens
 
-run_stage activations uv run python scripts/extract_activations.py \
+run_stage activations "${UV_RUN[@]}" python scripts/extract_activations.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --input_path "${ANSWER_TOKENS}" \
@@ -302,7 +311,7 @@ run_stage activations uv run python scripts/extract_activations.py \
     --device_map "${DEVICE_MAP}" \
     --locations answer_tokens
 
-run_stage classifier uv run python scripts/classifier.py \
+run_stage classifier "${UV_RUN[@]}" python scripts/classifier.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --train_ids "${TRAIN_IDS}" \
@@ -318,7 +327,7 @@ run_stage classifier uv run python scripts/classifier.py \
     --save_model "${CLASSIFIER_PATH}" \
     --metrics_out "${CLASSIFIER_DEV_METRICS}"
 
-run_stage classifier uv run python scripts/classifier.py \
+run_stage classifier "${UV_RUN[@]}" python scripts/classifier.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --load_model "${CLASSIFIER_PATH}" \
@@ -326,7 +335,14 @@ run_stage classifier uv run python scripts/classifier.py \
     --test_acts "${ACT_ROOT}/test/answer_tokens" \
     --metrics_out "${CLASSIFIER_TEST_METRICS}"
 
-run_stage faitheval uv run python scripts/run_intervention.py \
+run_stage classifier "${UV_RUN[@]}" python scripts/validate_mistral24b_cp23.py \
+    --pipeline-dir "${OUTPUT_ROOT}/pipeline" \
+    --activation-root "${ACT_ROOT}" \
+    --model-path "${MODEL_PATH}" \
+    --model-key "${MODEL_KEY}" \
+    --classifier-path "${CLASSIFIER_PATH}"
+
+run_stage faitheval "${UV_RUN[@]}" python scripts/run_intervention.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --device_map "${DEVICE_MAP}" \
@@ -337,7 +353,7 @@ run_stage faitheval uv run python scripts/run_intervention.py \
     --alphas "${ALPHAS[@]}" \
     --output_dir "${OUTPUT_ROOT}/intervention/faitheval/experiment"
 
-run_stage faitheval_controls uv run python scripts/run_negative_control.py \
+run_stage faitheval_controls "${UV_RUN[@]}" python scripts/run_negative_control.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --device_map "${DEVICE_MAP}" \
@@ -348,7 +364,7 @@ run_stage faitheval_controls uv run python scripts/run_negative_control.py \
     --output_base "${OUTPUT_ROOT}/intervention/faitheval/control" \
     --h_neuron_baseline "${OUTPUT_ROOT}/intervention/faitheval/experiment"
 
-run_stage falseqa uv run python scripts/run_intervention.py \
+run_stage falseqa "${UV_RUN[@]}" python scripts/run_intervention.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --device_map "${DEVICE_MAP}" \
@@ -358,7 +374,7 @@ run_stage falseqa uv run python scripts/run_intervention.py \
     --max_samples "${INTERVENTION_MAX_SAMPLES}" \
     --output_dir "${OUTPUT_ROOT}/intervention/falseqa/experiment"
 
-run_stage falseqa_controls uv run python scripts/run_negative_control.py \
+run_stage falseqa_controls "${UV_RUN[@]}" python scripts/run_negative_control.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \
     --device_map "${DEVICE_MAP}" \

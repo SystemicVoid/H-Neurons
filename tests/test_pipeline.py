@@ -13,6 +13,7 @@ from pathlib import Path
 import socket
 import subprocess
 
+import numpy as np
 import pytest
 
 from scripts.lib.pipeline import (
@@ -31,6 +32,7 @@ from scripts.lib.pipeline import (
     path_intersects_live_run,
     validate_sample_manifest_locks,
 )
+from scripts.validate_mistral24b_cp23 import validate_cp23_artifacts
 from scripts.utils import fingerprint_ids, format_alpha_label
 
 
@@ -225,6 +227,215 @@ class TestMistralManifestLocks:
         errors = validate_sample_manifest_locks([lock])
 
         assert any("ids do not match source manifest" in error for error in errors)
+
+
+def _write_cp23_split(path: Path, false_ids: list[str], true_ids: list[str]) -> None:
+    path.write_text(json.dumps({"f": false_ids, "t": true_ids}), encoding="utf-8")
+
+
+def _write_activation_summary(
+    root: Path,
+    split_name: str,
+    locations: list[str],
+    count: int,
+) -> None:
+    split_root = root / split_name
+    split_root.mkdir(parents=True)
+    per_location = {
+        location: {
+            "final_completed_count": count,
+            "missing_region_count": 0,
+        }
+        for location in locations
+    }
+    (split_root / "summary.json").write_text(
+        json.dumps(
+            {
+                "status": "completed",
+                "triage_status": "ready_for_downstream",
+                "per_location": per_location,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_activation_sample(
+    root: Path,
+    split_name: str,
+    location: str,
+    qid: str,
+    shape: tuple[int, int] = (2, 3),
+) -> None:
+    location_root = root / split_name / location
+    location_root.mkdir(parents=True, exist_ok=True)
+    np.save(location_root / f"act_{qid}.npy", np.ones(shape, dtype=np.float32))
+
+
+def _interval_metric(value: float) -> dict:
+    return {
+        "estimate": value,
+        "ci": {
+            "lower": value,
+            "upper": value,
+            "level": 0.95,
+            "method": "unit",
+        },
+    }
+
+
+def _evaluation_payload() -> dict:
+    point = {
+        "accuracy": 0.75,
+        "f1": 0.76,
+        "auroc": 0.84,
+        "precision": 0.7,
+        "recall": 0.8,
+    }
+    return {
+        "metrics": {
+            name: _interval_metric(point[name]) for name in ("accuracy", "f1", "auroc")
+        },
+        "point_metrics": point,
+        "n_examples": 2,
+        "n_positive": 1,
+        "n_negative": 1,
+        "confusion_matrix": {"tp": 1, "tn": 1, "fp": 0, "fn": 0},
+        "bootstrap": {"n_resamples": 10},
+    }
+
+
+def _write_cp23_metrics(
+    pipeline_dir: Path,
+    *,
+    classifier_path: str = "models/mistral24b_classifier_canonical.pkl",
+) -> None:
+    dev_metrics = {
+        "model_key": "mistral_small_24b_instruct_2501",
+        "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+        "total_ffn_neurons": 6,
+        "selection_split": "test",
+        "best": {
+            "C": 1.0,
+            "selected_h_neurons": 3,
+            "test_metrics": {
+                "accuracy": 0.75,
+                "f1": 0.76,
+                "auroc": 0.84,
+            },
+        },
+        "evaluation": _evaluation_payload(),
+    }
+    test_metrics = {
+        "model_key": "mistral_small_24b_instruct_2501",
+        "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+        "total_ffn_neurons": 6,
+        "loaded_model_path": classifier_path,
+        "selection_split": "pretrained_load",
+        "selected_h_neurons": 3,
+        "evaluation": _evaluation_payload(),
+    }
+    (pipeline_dir / "classifier_canonical_dev_metrics.json").write_text(
+        json.dumps(dev_metrics), encoding="utf-8"
+    )
+    (pipeline_dir / "classifier_canonical_test_metrics.json").write_text(
+        json.dumps(test_metrics), encoding="utf-8"
+    )
+    (
+        pipeline_dir / "classifier_canonical_dev_metrics.json.provenance.1.json"
+    ).write_text(
+        json.dumps({"args": {"save_model": classifier_path}, "status": "completed"}),
+        encoding="utf-8",
+    )
+    (
+        pipeline_dir / "classifier_canonical_test_metrics.json.provenance.1.json"
+    ).write_text(
+        json.dumps({"args": {"load_model": classifier_path}, "status": "completed"}),
+        encoding="utf-8",
+    )
+
+
+class TestMistralCp23Validator:
+    def test_accepts_current_nested_metric_schema_and_count_selected_neurons(
+        self, tmp_path: Path
+    ) -> None:
+        pipeline_dir = tmp_path / "pipeline"
+        activation_root = pipeline_dir / "activations_llm_canonical"
+        pipeline_dir.mkdir()
+        _write_cp23_split(
+            pipeline_dir / "train_qids_llm.json", ["f1", "f2"], ["t1", "t2"]
+        )
+        _write_cp23_split(pipeline_dir / "dev_qids_llm.json", ["f3"], ["t3"])
+        _write_cp23_split(pipeline_dir / "test_qids_llm.json", ["f4"], ["t4"])
+        _write_activation_summary(
+            activation_root,
+            "train",
+            ["answer_tokens", "all_except_answer_tokens"],
+            4,
+        )
+        _write_activation_summary(activation_root, "dev", ["answer_tokens"], 2)
+        _write_activation_summary(activation_root, "test", ["answer_tokens"], 2)
+        _write_activation_sample(activation_root, "train", "answer_tokens", "f1")
+        _write_activation_sample(
+            activation_root, "train", "all_except_answer_tokens", "f1"
+        )
+        _write_activation_sample(activation_root, "dev", "answer_tokens", "f3")
+        _write_activation_sample(activation_root, "test", "answer_tokens", "f4")
+        _write_cp23_metrics(pipeline_dir)
+
+        result = validate_cp23_artifacts(
+            pipeline_dir=pipeline_dir,
+            activation_root=activation_root,
+            train_per_class=2,
+            dev_per_class=1,
+            test_per_class=1,
+            layers=2,
+            ffn_neurons=3,
+            total_ffn_neurons=6,
+        )
+
+        assert result["accepted"] is True
+        assert result["details"]["classifier_metrics"]["dev_selected_h_neurons"] == 3
+        assert result["checks"]["dev_evaluation_metrics_auroc_estimate"] is True
+
+    def test_rejects_mismatched_loaded_classifier_path(self, tmp_path: Path) -> None:
+        pipeline_dir = tmp_path / "pipeline"
+        activation_root = pipeline_dir / "activations_llm_canonical"
+        pipeline_dir.mkdir()
+        _write_cp23_split(
+            pipeline_dir / "train_qids_llm.json", ["f1", "f2"], ["t1", "t2"]
+        )
+        _write_cp23_split(pipeline_dir / "dev_qids_llm.json", ["f3"], ["t3"])
+        _write_cp23_split(pipeline_dir / "test_qids_llm.json", ["f4"], ["t4"])
+        _write_activation_summary(
+            activation_root,
+            "train",
+            ["answer_tokens", "all_except_answer_tokens"],
+            4,
+        )
+        _write_activation_summary(activation_root, "dev", ["answer_tokens"], 2)
+        _write_activation_summary(activation_root, "test", ["answer_tokens"], 2)
+        _write_activation_sample(activation_root, "train", "answer_tokens", "f1")
+        _write_activation_sample(
+            activation_root, "train", "all_except_answer_tokens", "f1"
+        )
+        _write_activation_sample(activation_root, "dev", "answer_tokens", "f3")
+        _write_activation_sample(activation_root, "test", "answer_tokens", "f4")
+        _write_cp23_metrics(pipeline_dir, classifier_path="models/other.pkl")
+
+        result = validate_cp23_artifacts(
+            pipeline_dir=pipeline_dir,
+            activation_root=activation_root,
+            train_per_class=2,
+            dev_per_class=1,
+            test_per_class=1,
+            layers=2,
+            ffn_neurons=3,
+            total_ffn_neurons=6,
+        )
+
+        assert result["accepted"] is False
+        assert result["checks"]["test_loaded_model_path"] is False
 
 
 # ---------------------------------------------------------------------------
