@@ -36,7 +36,7 @@ def test_render_launch_default_is_dry_command_without_network_volume() -> None:
 
     assert command[:3] == ["runpodctl", "pod", "create"]
     assert "--template-id runpod-torch-v240" in rendered
-    assert "--gpu-id 'NVIDIA H100 SXM'" in rendered
+    assert "--gpu-id 'NVIDIA H100 80GB HBM3'" in rendered
     assert "--volume-in-gb 100" in rendered
     assert "--network-volume-id" not in command
 
@@ -82,6 +82,28 @@ def test_derive_direct_ssh_endpoint_from_pod_metadata() -> None:
 
     assert endpoint.host == "1.2.3.4"
     assert endpoint.port == 12222
+
+
+def test_runpod_snapshot_requests_all_pods(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+    stopped_pod = {"id": "pod-stopped", "desiredStatus": "EXITED"}
+
+    def fake_runpodctl_json(args: list[str]) -> object:
+        calls.append(args)
+        if args == ["pod", "list", "--all"]:
+            return [stopped_pod]
+        if args == ["network-volume", "list"]:
+            return []
+        if args == ["user"]:
+            return {"currentSpendPerHr": 0}
+        raise AssertionError(f"unexpected runpodctl args: {args}")
+
+    monkeypatch.setattr(cloudctl, "runpodctl_json", fake_runpodctl_json)
+
+    snapshot = cloudctl.runpod_snapshot()
+
+    assert calls == [["pod", "list", "--all"], ["network-volume", "list"], ["user"]]
+    assert snapshot.pods == [stopped_pod]
 
 
 def test_ssh_info_can_read_metadata_json(

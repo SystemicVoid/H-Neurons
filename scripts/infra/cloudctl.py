@@ -304,7 +304,7 @@ def current_spend_per_hour(user_payload: dict[str, Any]) -> float:
 
 def runpod_snapshot() -> RunPodSnapshot:
     return RunPodSnapshot(
-        pods=_data_list(runpodctl_json(["pod", "list"])),
+        pods=_data_list(runpodctl_json(["pod", "list", "--all"])),
         network_volumes=_data_list(runpodctl_json(["network-volume", "list"])),
         user=runpodctl_json(["user"]),
     )
