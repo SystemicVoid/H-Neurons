@@ -42,6 +42,7 @@ Use `scripts.lib.pipeline` instead of reimplementing guard logic in bash:
 ```bash
 PIPELINE="uv run python -m scripts.lib.pipeline"
 ${PIPELINE} gpu-preflight
+${PIPELINE} gpu-hardware-guard --min-memory-gib 75 --name-pattern 'H100|A100'
 ${PIPELINE} active-run-status
 ${PIPELINE} check-stage --output-dir "${OUTPUT_DIR}" --manifest "${MANIFEST}" --alphas "${ALPHAS[@]}"
 ${PIPELINE} check-live-output-track-state --output-target "${OUTPUT_DIR}"

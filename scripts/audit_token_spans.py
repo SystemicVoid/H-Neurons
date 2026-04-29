@@ -29,8 +29,11 @@ from utils import (
     start_run_provenance,
 )
 
+SUMMARY_SCHEMA_VERSION = "token_span_audit_summary/v1"
+SUMMARY_VALIDATION_SCHEMA_VERSION = "token_span_audit_summary_validation/v1"
 
-def parse_args() -> argparse.Namespace:
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Emit tokenizer/template/span audit rows from answer-token JSONL "
@@ -52,14 +55,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input_path",
         type=Path,
-        required=True,
+        default=None,
         help="Path to answer_tokens JSONL.",
     )
     parser.add_argument(
         "--output_path",
         type=Path,
-        required=True,
+        default=None,
         help="JSONL path for per-sample token span audit rows.",
+    )
+    parser.add_argument(
+        "--validate_summary",
+        type=Path,
+        default=None,
+        help="Validate an existing token_span_audit_summary/v1 summary and exit.",
     )
     parser.add_argument(
         "--summary_path",
@@ -100,10 +109,18 @@ def parse_args() -> argparse.Namespace:
         default=6,
         help="Decoded token window to store around the resolved answer span.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.validate_summary is None and (
+        args.input_path is None or args.output_path is None
+    ):
+        parser.error(
+            "--input_path and --output_path are required unless --validate_summary is used"
+        )
+    if args.validate_summary is not None:
+        return args
     args.model_path = model_path_for(args.model_key, args.model_path)
     assert_causal_lm_supported(args.model_key, args.model_path)
-    if args.summary_path is None:
+    if args.summary_path is None and args.output_path is not None:
         args.summary_path = args.output_path.with_suffix(
             f"{args.output_path.suffix}.summary.json"
         )
@@ -363,7 +380,7 @@ def build_summary(
         else "ok"
     )
     return {
-        "schema_version": "token_span_audit_summary/v1",
+        "schema_version": SUMMARY_SCHEMA_VERSION,
         "status": status,
         "model_key": args.model_key,
         "model_path": args.model_path,
@@ -389,8 +406,71 @@ def build_summary(
     }
 
 
-def main() -> None:
-    args = parse_args()
+def validate_token_span_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    status_counts = summary.get("status_counts")
+    status_counts = status_counts if isinstance(status_counts, dict) else {}
+    audited_rows = summary.get("audited_rows")
+    audited_rows = audited_rows if isinstance(audited_rows, int) else None
+    missing_qids = summary.get("missing_answer_region_qids")
+    missing_qids = missing_qids if isinstance(missing_qids, list) else None
+    checks = {
+        "schema_version": summary.get("schema_version") == SUMMARY_SCHEMA_VERSION,
+        "status_ok": summary.get("status") == "ok",
+        "audited_rows_positive": isinstance(audited_rows, int) and audited_rows > 0,
+        "all_rows_ok": audited_rows is not None
+        and status_counts.get("ok") == audited_rows,
+        "no_missing_answer_regions": missing_qids == [],
+        "model_not_loaded": summary.get("model_loaded") is False,
+        "no_gpu_required": summary.get("gpu_required") is False,
+        "no_api_required": summary.get("api_required") is False,
+    }
+    messages = {
+        "schema_version": f"schema_version must be {SUMMARY_SCHEMA_VERSION}",
+        "status_ok": "summary status must be ok",
+        "audited_rows_positive": "audited_rows must be positive",
+        "all_rows_ok": "all audited rows must have status ok",
+        "no_missing_answer_regions": "missing_answer_region_qids must be empty",
+        "model_not_loaded": "token-span preflight must not load the model",
+        "no_gpu_required": "token-span preflight must not require GPU",
+        "no_api_required": "token-span preflight must not require API access",
+    }
+    reasons = [messages[key] for key, passed in checks.items() if not passed]
+    accepted = not reasons
+    return {
+        "schema_version": SUMMARY_VALIDATION_SCHEMA_VERSION,
+        "status": "ok" if accepted else "needs_review",
+        "accepted": accepted,
+        "checks": checks,
+        "reasons": reasons,
+    }
+
+
+def validate_token_span_summary_file(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        return {
+            "schema_version": SUMMARY_VALIDATION_SCHEMA_VERSION,
+            "status": "needs_review",
+            "accepted": False,
+            "checks": {},
+            "reasons": [f"{path} must contain a JSON object"],
+        }
+    return validate_token_span_summary(payload)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    if args.validate_summary is not None:
+        validation = validate_token_span_summary_file(args.validate_summary)
+        print(json_dumps(validation))
+        return 0 if validation["accepted"] else 1
+
+    if args.output_path is None or args.input_path is None:
+        raise RuntimeError(
+            "--input_path and --output_path are required outside validation mode"
+        )
+    if args.summary_path is None:
+        raise RuntimeError("--summary_path was not resolved")
     output_targets = [args.output_path, args.summary_path]
     if args.rendered_chat_path is not None:
         output_targets.append(args.rendered_chat_path)
@@ -465,7 +545,8 @@ def main() -> None:
         raise
     finally:
         finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

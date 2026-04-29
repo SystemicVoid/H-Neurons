@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+import json
 import os
 from pathlib import Path
+import re
 import sys
 from typing import Any
 
@@ -29,7 +31,10 @@ from utils import (
 
 
 SCHEMA_VERSION = "model_load_smoke/v1"
+VALIDATION_SCHEMA_VERSION = "model_load_smoke_cp1_validation/v1"
 DEFAULT_PROMPT = "Reply with exactly one token: OK"
+TARGET_GPU_NAME_RE = re.compile(r"H100|A100", re.IGNORECASE)
+TARGET_MIN_MEMORY_BYTES = 75 * 1024**3
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -60,8 +65,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--output_path",
         type=Path,
-        required=True,
+        default=None,
         help="Path for the JSON smoke summary.",
+    )
+    parser.add_argument(
+        "--validate_summary",
+        type=Path,
+        default=None,
+        help="Validate an existing model_load_smoke/v1 summary and exit.",
     )
     parser.add_argument(
         "--max_new_tokens",
@@ -70,8 +81,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Tiny deterministic generation length; set 0 to skip generation.",
     )
     args = parser.parse_args(argv)
-    args.model_path = model_path_for(args.model_key, args.model_path)
-    assert_causal_lm_supported(args.model_key, args.model_path)
+    if args.validate_summary is None and args.output_path is None:
+        parser.error("--output_path is required unless --validate_summary is used")
+    if args.validate_summary is None:
+        args.model_path = model_path_for(args.model_key, args.model_path)
+        assert_causal_lm_supported(args.model_key, args.model_path)
     if args.max_new_tokens < 0:
         raise ValueError("--max_new_tokens must be non-negative")
     return args
@@ -105,6 +119,112 @@ def _counter_to_dict(counter: Counter[str]) -> dict[str, int]:
     return {key: int(counter[key]) for key in sorted(counter)}
 
 
+def _as_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def _runtime(summary: dict[str, Any]) -> dict[str, Any]:
+    value = summary.get("runtime")
+    return value if isinstance(value, dict) else {}
+
+
+def _cuda_memory(summary: dict[str, Any]) -> dict[str, Any]:
+    value = summary.get("cuda_memory")
+    return value if isinstance(value, dict) else {}
+
+
+def _generation(summary: dict[str, Any]) -> dict[str, Any]:
+    value = summary.get("generation")
+    return value if isinstance(value, dict) else {}
+
+
+def _quantization(summary: dict[str, Any]) -> dict[str, Any]:
+    value = summary.get("no_quantization")
+    return value if isinstance(value, dict) else {}
+
+
+def _device_counts(runtime: dict[str, Any]) -> dict[str, int]:
+    value = runtime.get("device_counts")
+    if not isinstance(value, dict):
+        return {}
+    counts: dict[str, int] = {}
+    for key, count in value.items():
+        parsed = _as_int(count)
+        if parsed is not None:
+            counts[str(key)] = parsed
+    return counts
+
+
+def _loaded_tensors_on_cuda(runtime: dict[str, Any]) -> bool:
+    counts = {
+        device: count for device, count in _device_counts(runtime).items() if count
+    }
+    return bool(counts) and all(device.startswith("cuda:") for device in counts)
+
+
+def _loaded_tensors_on_cuda0(runtime: dict[str, Any]) -> bool:
+    counts = {
+        device: count for device, count in _device_counts(runtime).items() if count
+    }
+    return (
+        set(counts) == {"cuda:0"}
+        and counts["cuda:0"] > 0
+        and (runtime.get("loaded_primary_device") == "cuda:0")
+    )
+
+
+def _cuda_devices(cuda_memory: dict[str, Any]) -> list[dict[str, Any]]:
+    devices = cuda_memory.get("devices")
+    if not isinstance(devices, list):
+        return []
+    return [device for device in devices if isinstance(device, dict)]
+
+
+def _has_nonzero_cuda_allocation(cuda_memory: dict[str, Any]) -> bool:
+    allocation_keys = (
+        "memory_allocated_bytes",
+        "memory_reserved_bytes",
+        "max_memory_allocated_bytes",
+        "max_memory_reserved_bytes",
+    )
+    for device in _cuda_devices(cuda_memory):
+        for key in allocation_keys:
+            value = _as_int(device.get(key))
+            if value is not None and value > 0:
+                return True
+    return False
+
+
+def _is_target_accelerator(device: dict[str, Any]) -> bool:
+    name = str(device.get("name", ""))
+    name_ok = bool(TARGET_GPU_NAME_RE.search(name))
+    total_memory = _as_int(device.get("total_memory_bytes"))
+    if total_memory is None:
+        return name_ok
+    return name_ok and total_memory >= TARGET_MIN_MEMORY_BYTES
+
+
+def _target_accelerator_present(cuda_memory: dict[str, Any]) -> bool:
+    return any(_is_target_accelerator(device) for device in _cuda_devices(cuda_memory))
+
+
+def derive_effective_device_map(runtime: dict[str, Any]) -> Any:
+    hf_device_map = runtime.get("hf_device_map")
+    if hf_device_map not in (None, {}):
+        return hf_device_map
+    if runtime.get("requested_device_map") == "cuda:0" and _loaded_tensors_on_cuda0(
+        runtime
+    ):
+        return {"": "cuda:0"}
+    return None
+
+
 def _iter_tensors(model: Any, method_name: str) -> list[Any]:
     method = getattr(model, method_name, None)
     if method is None:
@@ -127,7 +247,7 @@ def summarize_model_runtime(model: Any, *, requested_device_map: str) -> dict[st
     config = getattr(model, "config", None)
     config_dtype = getattr(config, "torch_dtype", None)
 
-    return {
+    summary = {
         "requested_dtype": str(torch.bfloat16),
         "requested_device_map": requested_device_map,
         "loaded_primary_dtype": (
@@ -156,6 +276,8 @@ def summarize_model_runtime(model: Any, *, requested_device_map: str) -> dict[st
         else None,
         "hf_device_map": _jsonable(getattr(model, "hf_device_map", None)),
     }
+    summary["effective_device_map"] = derive_effective_device_map(summary)
+    return summary
 
 
 def build_no_quantization_check(model: Any) -> dict[str, Any]:
@@ -205,6 +327,9 @@ def cuda_memory_summary() -> dict[str, Any]:
                 {
                     "index": index,
                     "name": torch.cuda.get_device_name(index),
+                    "total_memory_bytes": int(
+                        torch.cuda.get_device_properties(index).total_memory
+                    ),
                     "memory_allocated_bytes": int(torch.cuda.memory_allocated(index)),
                     "memory_reserved_bytes": int(torch.cuda.memory_reserved(index)),
                     "max_memory_allocated_bytes": int(
@@ -219,6 +344,86 @@ def cuda_memory_summary() -> dict[str, Any]:
     except Exception as exc:  # pragma: no cover - hardware/driver dependent.
         summary["error"] = provenance_error_message(exc)
     return summary
+
+
+def validate_cp1_smoke_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    runtime = _runtime(summary)
+    cuda_memory = _cuda_memory(summary)
+    quantization = _quantization(summary)
+    generation = _generation(summary)
+    requested_device_map = runtime.get("requested_device_map")
+    hf_device_map = runtime.get("hf_device_map")
+    effective_device_map = runtime.get("effective_device_map")
+    if effective_device_map is None:
+        effective_device_map = derive_effective_device_map(runtime)
+
+    checks = {
+        "schema_version": summary.get("schema_version") == SCHEMA_VERSION,
+        "summary_status_ok": summary.get("status") == "ok",
+        "model_loaded": summary.get("model_loaded") is True,
+        "bf16_dtype_loaded": runtime.get("requested_dtype") == str(torch.bfloat16)
+        and runtime.get("loaded_primary_dtype") == str(torch.bfloat16)
+        and runtime.get("config_torch_dtype") in (None, str(torch.bfloat16)),
+        "no_quantization": quantization.get("status") == "ok"
+        and quantization.get("model_is_loaded_in_4bit") is False
+        and quantization.get("model_is_loaded_in_8bit") is False
+        and quantization.get("config_has_quantization_config") is False,
+        "generation_succeeded": generation.get("attempted") is True
+        and generation.get("succeeded") is True
+        and (_as_int(generation.get("generated_new_tokens")) or 0) >= 1,
+        "auto_load_has_hf_device_map": requested_device_map != "auto"
+        or hf_device_map is not None,
+        "device_map_evidence": effective_device_map is not None,
+        "loaded_tensors_on_cuda": _loaded_tensors_on_cuda(runtime),
+        "explicit_null_map_loaded_on_cuda0": hf_device_map is not None
+        or (requested_device_map == "cuda:0" and _loaded_tensors_on_cuda0(runtime)),
+        "cuda_available": cuda_memory.get("available") is True,
+        "cuda_bf16_supported": cuda_memory.get("bf16_supported") is True,
+        "target_cuda_hardware": _target_accelerator_present(cuda_memory),
+        "nonzero_cuda_allocation": _has_nonzero_cuda_allocation(cuda_memory),
+    }
+    messages = {
+        "schema_version": f"schema_version must be {SCHEMA_VERSION}",
+        "summary_status_ok": "summary status must be ok",
+        "model_loaded": "model_loaded must be true",
+        "bf16_dtype_loaded": "requested/config/loaded dtype must be BF16",
+        "no_quantization": "4-bit/8-bit/config quantization must be absent",
+        "generation_succeeded": "one-token generation smoke must succeed",
+        "auto_load_has_hf_device_map": "device_map=auto must report hf_device_map",
+        "device_map_evidence": "missing hf_device_map or explicit cuda:0 evidence",
+        "loaded_tensors_on_cuda": "loaded tensors must be on CUDA devices",
+        "explicit_null_map_loaded_on_cuda0": (
+            "null hf_device_map is accepted only for explicit cuda:0 loads"
+        ),
+        "cuda_available": "CUDA must be available",
+        "cuda_bf16_supported": "CUDA BF16 support must be reported",
+        "target_cuda_hardware": "GPU must be H100/A100-class with >=75 GiB when known",
+        "nonzero_cuda_allocation": "CUDA allocation/reservation must be nonzero",
+    }
+    reasons = [messages[key] for key, passed in checks.items() if not passed]
+    accepted = not reasons
+    return {
+        "schema_version": VALIDATION_SCHEMA_VERSION,
+        "status": "ok" if accepted else "needs_review",
+        "accepted": accepted,
+        "checks": checks,
+        "reasons": reasons,
+        "effective_device_map": effective_device_map,
+    }
+
+
+def validate_cp1_smoke_summary_file(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        return {
+            "schema_version": VALIDATION_SCHEMA_VERSION,
+            "status": "needs_review",
+            "accepted": False,
+            "checks": {},
+            "reasons": [f"{path} must contain a JSON object"],
+            "effective_device_map": None,
+        }
+    return validate_cp1_smoke_summary(payload)
 
 
 def _first_model_device(model: Any) -> torch.device | None:
@@ -355,8 +560,15 @@ def build_smoke_summary(
     }
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    if args.validate_summary is not None:
+        validation = validate_cp1_smoke_summary_file(args.validate_summary)
+        print(json_dumps(validation))
+        return 0 if validation["accepted"] else 1
+
+    if args.output_path is None:
+        raise RuntimeError("--output_path is required outside validation mode")
     provenance_handle = start_run_provenance(
         args,
         primary_target=args.output_path,
@@ -408,7 +620,8 @@ def main() -> None:
         raise
     finally:
         finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

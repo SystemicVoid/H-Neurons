@@ -17,6 +17,7 @@ Common subcommands:
 - `check-stage`
 - `manifest-count`
 - `gpu-preflight`
+- `gpu-hardware-guard`
 - `check-sentinel`
 - `log-run`
 - `active-run-status`

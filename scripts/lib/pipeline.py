@@ -9,6 +9,7 @@ CLI usage (from bash pipeline scripts):
     uv run python -m scripts.lib.pipeline manifest-count ...
     uv run python -m scripts.lib.pipeline log-run ...
     uv run python -m scripts.lib.pipeline gpu-preflight
+    uv run python -m scripts.lib.pipeline gpu-hardware-guard
 
 See scripts/AGENTS.md for integration guidance.
 """
@@ -22,6 +23,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -201,6 +203,95 @@ def gpu_preflight() -> None:
         return
     print("--- GPU preflight ---", file=sys.stderr)
     subprocess.run(["nvitop", "-1"], check=False)
+
+
+# Incident: 2026-04-29 — local CUDA was available on a 16 GiB RTX 5060 Ti,
+# which was enough to pass a naive CUDA check but not enough for Mistral 24B.
+def cuda_hardware_snapshot() -> dict[str, Any]:
+    """Return a JSON-safe CUDA hardware snapshot for paid-run guardrails."""
+    try:
+        import torch
+    except Exception as exc:  # pragma: no cover - import environment dependent.
+        return {"available": False, "error": f"could not import torch: {exc}"}
+
+    snapshot: dict[str, Any] = {"available": bool(torch.cuda.is_available())}
+    if not torch.cuda.is_available():
+        return snapshot
+    try:
+        device_count = int(torch.cuda.device_count())
+        snapshot.update(
+            {
+                "device_count": device_count,
+                "current_device": int(torch.cuda.current_device()),
+                "bf16_supported": bool(torch.cuda.is_bf16_supported()),
+            }
+        )
+        devices: list[dict[str, Any]] = []
+        for index in range(device_count):
+            properties = torch.cuda.get_device_properties(index)
+            devices.append(
+                {
+                    "index": index,
+                    "name": torch.cuda.get_device_name(index),
+                    "total_memory_bytes": int(properties.total_memory),
+                }
+            )
+        snapshot["devices"] = devices
+    except Exception as exc:  # pragma: no cover - hardware/driver dependent.
+        snapshot["error"] = str(exc)
+    return snapshot
+
+
+def _hardware_guard_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def evaluate_gpu_hardware_snapshot(
+    snapshot: dict[str, Any],
+    *,
+    min_memory_gib: int,
+    name_pattern: str,
+) -> list[str]:
+    """Return guard failures for the required Mistral 24B GPU envelope."""
+    errors: list[str] = []
+    if snapshot.get("available") is not True:
+        errors.append("CUDA is not available")
+        return errors
+    if snapshot.get("bf16_supported") is not True:
+        errors.append("CUDA BF16 support is not reported")
+
+    devices_payload = snapshot.get("devices")
+    devices = (
+        [device for device in devices_payload if isinstance(device, dict)]
+        if isinstance(devices_payload, list)
+        else []
+    )
+    if not devices:
+        errors.append("no CUDA devices reported")
+        return errors
+
+    name_re = re.compile(name_pattern, re.IGNORECASE)
+    min_memory_bytes = min_memory_gib * 1024**3
+    matching_devices = []
+    for device in devices:
+        name = str(device.get("name", ""))
+        total_memory = _hardware_guard_int(device.get("total_memory_bytes"))
+        if not name_re.search(name):
+            continue
+        if total_memory is None or total_memory < min_memory_bytes:
+            continue
+        matching_devices.append(device)
+    if not matching_devices:
+        errors.append(
+            f"no CUDA device matches /{name_pattern}/ with >= {min_memory_gib} GiB"
+        )
+    return errors
 
 
 # Incident: 2026-04-13 — measurement-cleanup runs needed a declarative
@@ -914,6 +1005,19 @@ def _cli_gpu_preflight(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _cli_gpu_hardware_guard(args: argparse.Namespace) -> int:
+    snapshot = cuda_hardware_snapshot()
+    print(json.dumps(snapshot, indent=2, sort_keys=True))
+    errors = evaluate_gpu_hardware_snapshot(
+        snapshot,
+        min_memory_gib=args.min_memory_gib,
+        name_pattern=args.name_pattern,
+    )
+    for error in errors:
+        print(f"gpu-hardware-guard: {error}", file=sys.stderr)
+    return 0 if not errors else 2
+
+
 def _cli_check_sentinel(args: argparse.Namespace) -> int:
     reason = check_sentinel(Path(args.dir), args.name)
     if reason is None:
@@ -1022,6 +1126,14 @@ def main(argv: list[str] | None = None) -> int:
 
     gp = sub.add_parser("gpu-preflight", help="Print GPU status via nvitop")
     gp.set_defaults(func=_cli_gpu_preflight)
+
+    ghg = sub.add_parser(
+        "gpu-hardware-guard",
+        help="Fail unless CUDA hardware matches the required GPU envelope",
+    )
+    ghg.add_argument("--min-memory-gib", type=int, default=75)
+    ghg.add_argument("--name-pattern", default="H100|A100")
+    ghg.set_defaults(func=_cli_gpu_hardware_guard)
 
     sentinel = sub.add_parser(
         "check-sentinel",

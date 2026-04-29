@@ -62,6 +62,8 @@ INTERVENTION_MAX_SAMPLES="${INTERVENTION_MAX_SAMPLES:-100}"
 STAGES="${STAGES:-all}"
 DRY_RUN="${DRY_RUN:-0}"
 DRY_RUN_TRANSCRIPT="${DRY_RUN_TRANSCRIPT:-${PREFLIGHT_DIR}/runpod_dry_run_transcript.txt}"
+GPU_MIN_MEMORY_GIB="${GPU_MIN_MEMORY_GIB:-75}"
+GPU_NAME_PATTERN="${GPU_NAME_PATTERN:-H100|A100}"
 read -r -a ALPHAS <<<"${ALPHAS:-0.0 0.5 1.0 1.5 2.0 2.5 3.0}"
 read -r -a C_VALUES <<<"${C_VALUES:-0.001 0.005 0.01 0.05 0.1 0.5 1.0}"
 
@@ -85,6 +87,24 @@ REQUIRED_LOCK_MANIFESTS=(
     "${JBB_FULL_HARMFUL_MANIFEST}"
 )
 
+GPU_REQUIRED_STAGES=(
+    model_smoke
+    activations
+    faitheval
+    faitheval_controls
+    falseqa
+    falseqa_controls
+)
+
+PREFLIGHT_VALIDATED_STAGES=(
+    activations
+    classifier
+    faitheval
+    faitheval_controls
+    falseqa
+    falseqa_controls
+)
+
 require_lock_manifests() {
     if ! "${PIPELINE[@]}" validate-sample-locks "$@" 2>&1 | tee -a "${LOG}"; then
         exit 2
@@ -104,6 +124,17 @@ format_command() {
 should_run_stage() {
     local stage="$1"
     [[ "${STAGES}" == "all" || ",${STAGES}," == *",${stage},"* ]]
+}
+
+should_run_any_stage() {
+    local stage
+
+    for stage in "$@"; do
+        if should_run_stage "${stage}"; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 run_logged() {
@@ -128,6 +159,27 @@ run_stage() {
         printf '\n[%s] [skip:%s] %s\n' \
             "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${stage}" "${command_text}" | tee -a "${LOG}"
     fi
+}
+
+require_gpu_hardware() {
+    run_logged "${PIPELINE[@]}" gpu-hardware-guard \
+        --min-memory-gib "${GPU_MIN_MEMORY_GIB}" \
+        --name-pattern "${GPU_NAME_PATTERN}"
+}
+
+validate_token_span_summary() {
+    run_logged uv run python scripts/audit_token_spans.py \
+        --validate_summary "${TOKEN_SPAN_AUDIT_SUMMARY}"
+}
+
+validate_model_load_smoke() {
+    run_logged uv run python scripts/model_load_smoke.py \
+        --validate_summary "${MODEL_LOAD_SMOKE}"
+}
+
+validate_claim_stage_preflight() {
+    validate_token_span_summary
+    validate_model_load_smoke
 }
 
 capture_versions() {
@@ -157,6 +209,9 @@ run_logged "${PIPELINE[@]}" gpu-preflight || true
 if command -v nvitop &>/dev/null; then
     run_logged nvitop -1 || true
 fi
+if should_run_any_stage "${GPU_REQUIRED_STAGES[@]}"; then
+    require_gpu_hardware
+fi
 if [[ "${DRY_RUN}" == "1" ]]; then
     printf '\n[%s] [dry-run] skipped environment capture\n' \
         "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "${LOG}"
@@ -179,6 +234,14 @@ run_stage model_smoke uv run python scripts/model_load_smoke.py \
     --device_map "${DEVICE_MAP}" \
     --output_path "${MODEL_LOAD_SMOKE}" \
     --max_new_tokens 1
+
+if should_run_stage model_smoke; then
+    validate_model_load_smoke
+fi
+
+if should_run_any_stage "${PREFLIGHT_VALIDATED_STAGES[@]}"; then
+    validate_claim_stage_preflight
+fi
 
 run_stage splits uv run python scripts/sample_balanced_ids.py \
     --input_path "${ANSWER_TOKENS}" \

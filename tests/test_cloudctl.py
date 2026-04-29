@@ -52,9 +52,41 @@ def test_render_launch_requires_volume_for_cp2() -> None:
         stage="cp2",
         attempt=1,
         network_volume_id="nv-test",
+        data_center_id="US-CA-2",
     )
+    rendered = cloudctl.shell_join(command)
     assert "--network-volume-id" in command
     assert "nv-test" in command
+    assert "--data-center-ids US-CA-2" in rendered
+    assert "US-OR-1" not in rendered
+
+
+def test_render_launch_requires_exact_datacenter_for_network_volume() -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+
+    with pytest.raises(cloudctl.CloudctlError, match="data-center-id"):
+        cloudctl.render_launch_command(
+            profile,
+            stage="cp2",
+            attempt=1,
+            network_volume_id="nv-test",
+        )
+
+
+def test_render_network_volume_create_uses_profile_size_and_datacenter() -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+
+    command = cloudctl.render_network_volume_create_command(
+        profile,
+        name="hneurons-mistral24b-cp2",
+        data_center_id="US-CA-2",
+    )
+    rendered = cloudctl.shell_join(command)
+
+    assert command[:3] == ["runpodctl", "network-volume", "create"]
+    assert "--name hneurons-mistral24b-cp2" in rendered
+    assert "--size 200" in rendered
+    assert "--data-center-id US-CA-2" in rendered
 
 
 def test_derive_direct_ssh_endpoint_from_pod_metadata() -> None:

@@ -194,6 +194,7 @@ def render_launch_command(
     attempt: int,
     pod_name: str | None = None,
     network_volume_id: str | None = None,
+    data_center_id: str | None = None,
 ) -> list[str]:
     if profile["provider"] != "runpod":
         raise CloudctlError("render-launch currently supports RunPod profiles only")
@@ -204,6 +205,14 @@ def render_launch_command(
     if storage.mode == "network_volume" and not isinstance(resolved_volume_id, str):
         raise CloudctlError(
             "storage decision requires a network volume; pass --network-volume-id"
+        )
+    if (
+        storage.mode == "network_volume"
+        and data_center_id is None
+        and len(_strings(runpod, "data_center_ids")) != 1
+    ):
+        raise CloudctlError(
+            "network-volume launches must pass --data-center-id for the volume's datacenter"
         )
 
     command = [
@@ -235,7 +244,11 @@ def render_launch_command(
     else:
         raise CloudctlError("RunPod profile must set template_id or image")
 
-    datacenters = _strings(runpod, "data_center_ids")
+    datacenters = (
+        [data_center_id]
+        if data_center_id is not None
+        else _strings(runpod, "data_center_ids")
+    )
     if datacenters:
         command.extend(["--data-center-ids", ",".join(datacenters)])
 
@@ -252,6 +265,38 @@ def render_launch_command(
         command.append("--public-ip")
 
     return command
+
+
+def render_network_volume_create_command(
+    profile: dict[str, Any],
+    *,
+    name: str | None = None,
+    size_gb: int | None = None,
+    data_center_id: str,
+) -> list[str]:
+    if profile["provider"] != "runpod":
+        raise CloudctlError(
+            "render-volume-create currently supports RunPod profiles only"
+        )
+    runpod = _table(profile, "runpod")
+    storage = _optional_table(profile, "storage")
+    resolved_size = size_gb
+    if resolved_size is None:
+        resolved_size = _int(storage, "network_volume_size_gb")
+    if resolved_size <= 0:
+        raise CloudctlError("network volume size must be positive")
+    resolved_name = name or f"{_string(runpod, 'pod_name')}-cp2-cache"
+    return [
+        "runpodctl",
+        "network-volume",
+        "create",
+        "--name",
+        resolved_name,
+        "--size",
+        str(resolved_size),
+        "--data-center-id",
+        data_center_id,
+    ]
 
 
 def shell_join(command: list[str]) -> str:
@@ -510,6 +555,19 @@ def run_render_launch(args: argparse.Namespace) -> int:
         attempt=args.attempt,
         pod_name=args.name,
         network_volume_id=args.network_volume_id,
+        data_center_id=args.data_center_id,
+    )
+    print(shell_join(command))
+    return 0
+
+
+def run_render_volume_create(args: argparse.Namespace) -> int:
+    profile = load_profile(args.profile)
+    command = render_network_volume_create_command(
+        profile,
+        name=args.name,
+        size_gb=args.size_gb,
+        data_center_id=args.data_center_id,
     )
     print(shell_join(command))
     return 0
@@ -566,7 +624,33 @@ def build_parser() -> argparse.ArgumentParser:
         "--network-volume-id",
         help="Network volume id required for retry/CP2+ storage decisions.",
     )
+    render.add_argument(
+        "--data-center-id",
+        help="Datacenter id for exact network-volume placement.",
+    )
     render.set_defaults(func=run_render_launch)
+
+    render_volume = sub.add_parser(
+        "render-volume-create",
+        help="Print the paid RunPod network-volume create command without executing it.",
+    )
+    render_volume.add_argument("--profile", required=True)
+    render_volume.add_argument(
+        "--name",
+        help="Override network volume name; defaults to <pod_name>-cp2-cache.",
+    )
+    render_volume.add_argument(
+        "--size-gb",
+        type=int,
+        default=None,
+        help="Override network volume size in GB; defaults to profile storage.",
+    )
+    render_volume.add_argument(
+        "--data-center-id",
+        required=True,
+        help="Datacenter id selected after live H100 stock check.",
+    )
+    render_volume.set_defaults(func=run_render_volume_create)
 
     cleanup = sub.add_parser(
         "cleanup-check",

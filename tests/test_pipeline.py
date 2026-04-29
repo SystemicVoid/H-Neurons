@@ -23,6 +23,7 @@ from scripts.lib.pipeline import (
     check_live_output_track_state,
     check_sentinel,
     check_staged_paths_against_live_runs,
+    evaluate_gpu_hardware_snapshot,
     current_process_start_identity,
     log_run,
     main,
@@ -330,6 +331,62 @@ class TestCheckSentinel:
         sentinel = tmp_path / "stop_after_pre_canary"
         sentinel.write_text("pause after canary\n")
         assert check_sentinel(tmp_path, "stop_after_pre_canary") == "pause after canary"
+
+
+class TestGpuHardwareGuard:
+    def test_accepts_h100_80gb_with_bf16(self) -> None:
+        errors = evaluate_gpu_hardware_snapshot(
+            {
+                "available": True,
+                "bf16_supported": True,
+                "devices": [
+                    {
+                        "name": "NVIDIA H100 80GB HBM3",
+                        "total_memory_bytes": 80 * 1024**3,
+                    }
+                ],
+            },
+            min_memory_gib=75,
+            name_pattern="H100|A100",
+        )
+
+        assert errors == []
+
+    def test_rejects_local_16gb_cuda_gpu(self) -> None:
+        errors = evaluate_gpu_hardware_snapshot(
+            {
+                "available": True,
+                "bf16_supported": True,
+                "devices": [
+                    {
+                        "name": "NVIDIA GeForce RTX 5060 Ti",
+                        "total_memory_bytes": 16 * 1024**3,
+                    }
+                ],
+            },
+            min_memory_gib=75,
+            name_pattern="H100|A100",
+        )
+
+        assert errors == ["no CUDA device matches /H100|A100/ with >= 75 GiB"]
+
+    def test_rejects_missing_bf16(self) -> None:
+        errors = evaluate_gpu_hardware_snapshot(
+            {
+                "available": True,
+                "bf16_supported": False,
+                "devices": [
+                    {
+                        "name": "NVIDIA H100 80GB HBM3",
+                        "total_memory_bytes": 80 * 1024**3,
+                    }
+                ],
+            },
+            min_memory_gib=75,
+            name_pattern="H100|A100",
+        )
+
+        assert errors == ["CUDA BF16 support is not reported"]
 
 
 # ---------------------------------------------------------------------------

@@ -120,3 +120,46 @@ def test_build_summary_marks_empty_audit_as_needs_review(tmp_path: Path) -> None
     assert summary["audited_rows"] == 0
     assert summary["total_rows_scanned"] == 3
     assert summary["sample_id_filter_count"] == 1
+
+
+def test_validate_token_span_summary_accepts_clean_summary(tmp_path: Path) -> None:
+    summary = audit_token_spans.build_summary(
+        argparse.Namespace(
+            model_key="gemma3_4b_it",
+            model_path="google/gemma-3-4b-it",
+            input_path=tmp_path / "answer_tokens.jsonl",
+            output_path=tmp_path / "token_span_audit.jsonl",
+            rendered_chat_path=None,
+            sample_ids_path=None,
+        ),
+        rows=[{"qid": "tc_1", "status": "ok"}],
+        total_rows_scanned=1,
+        sample_ids=None,
+    )
+
+    result = audit_token_spans.validate_token_span_summary(summary)
+
+    assert result["accepted"] is True
+
+
+def test_validate_token_span_summary_rejects_missing_answer_region(
+    tmp_path: Path,
+) -> None:
+    summary = audit_token_spans.build_summary(
+        argparse.Namespace(
+            model_key="gemma3_4b_it",
+            model_path="google/gemma-3-4b-it",
+            input_path=tmp_path / "answer_tokens.jsonl",
+            output_path=tmp_path / "token_span_audit.jsonl",
+            rendered_chat_path=None,
+            sample_ids_path=None,
+        ),
+        rows=[{"qid": "tc_1", "status": "missing_answer_region"}],
+        total_rows_scanned=1,
+        sample_ids=None,
+    )
+
+    result = audit_token_spans.validate_token_span_summary(summary)
+
+    assert result["accepted"] is False
+    assert result["checks"]["no_missing_answer_regions"] is False
