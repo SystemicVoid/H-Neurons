@@ -62,6 +62,18 @@ revised hard-case rubric and exports a held-out blinded calibration sample for
 future returned labels. This is a prospective measurement gate only; it adds no
 new evidence that historical SIMID open-correctness metrics are claim-bearing.
 
+Update after returned LLM labels: two append-only LLM runs have now been scored
+against the frozen prospective package. Opus 4.7 max passes the pre-specified
+policy with 138/150 raw agreement = 92.0% [86.5, 95.4], kappa=0.8734,
+AC1=0.8831, and 0 rule gaps. Codex 5.5 xhigh does not pass because raw
+agreement is 133/150 = 88.7% [82.6, 92.8], below the 90% threshold, although
+kappa=0.8207, AC1=0.8346, and rule gaps remain 0. This supports the frozen
+rubric as a prospective future-grading gate when the passing Opus run is the
+calibration evidence, but it still does not make historical MVP open metrics
+claim-bearing. The Codex miss pattern and pending human round keep
+rater-diversity caution active, especially around TruthfulQA hedged
+non-answer/qualified-answer boundaries.
+
 ## Data Authority
 
 | Artifact | Path |
@@ -81,6 +93,10 @@ new evidence that historical SIMID open-correctness metrics are claim-bearing.
 | Duplicate-collapsed correction evidence | `human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/` |
 | Diagnostic exact-propagation sensitivity | `human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/` |
 | Prospective open-calibration gate package | `human_review_package/prospective_open_calibration_gate_20260429/` |
+| Prospective Codex 5.5 xhigh labels | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_labels_codex_5_5_xhigh_run_001.jsonl` |
+| Prospective Codex 5.5 xhigh analysis | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_codex_5_5_xhigh_run_001.json` |
+| Prospective Opus 4.7 max labels | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_labels_opus_4_7_max_run_001.jsonl` |
+| Prospective Opus 4.7 max analysis | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_opus_4_7_max_run_001.json` |
 
 Important artifact-status note: `results_adjudicated.json` and
 `report_adjudicated.md` were generated before the calibration pass and still
@@ -90,6 +106,36 @@ claimability status, cite this report and `open_calibration_summary.json`; do
 not cite the older run report line as current.
 
 ## Data
+
+### Prospective Gate Returned LLM Runs
+
+The 2026-04-29 prospective gate has a frozen 150-case blinded sample with
+reference labels held in `private_case_map.jsonl`. The reference labels are the
+held-out MVP primary open-judge labels used for calibration; they are not a new
+human truth set. Both returned LLM files validate against the package hashes,
+blind IDs, review-order coverage, label schema, and no-leakage checks in
+`scripts/analyze_simid_prospective_open_calibration_gate.py`.
+
+| Returned run | Cases | Raw agreement vs reference | Kappa | AC1 | Rule gaps | Policy outcome |
+|---|---:|---:|---:|---:|---:|---|
+| `opus_4_7_max_run_001` | 150 | 138/150 = 92.0% [86.5, 95.4] | 0.8734 | 0.8831 | 0 | Pass |
+| `codex_5_5_xhigh_run_001` | 150 | 133/150 = 88.7% [82.6, 92.8] | 0.8207 | 0.8346 | 0 | Fail: `raw_agreement_below_threshold` |
+
+The two LLM runs agree with each other on 135/150 cases (90.0%),
+kappa=0.8429, AC1=0.8534. Relative to the private reference, 10 cases are
+Codex-only misses, 5 are Opus-only misses, and 7 are same-direction misses by
+both LLMs. Dataset-level agreement is 74/75 Bridge and 59/75 TruthfulQA for
+Codex, versus 72/75 Bridge and 66/75 TruthfulQA for Opus. The main remaining
+sensitivity is therefore not Bridge exact-entity strictness; it is how strongly
+to require commitment on TruthfulQA answers that say "no evidence", "depends",
+or otherwise hedge around an accepted anti-myth answer. Codex returned CORRECT
+for 11 reference NOT_ATTEMPTED TruthfulQA cases, while Opus did so for 5.
+
+Interpretation: the Opus run is a prospective calibration pass for future use
+of the frozen rubric, but the failed Codex run is useful contrary evidence about
+rater sensitivity. Historical SIMID MVP open-correctness deltas remain
+diagnostic-only because the gate was designed prospectively and because those
+effect rows were not re-run under a calibrated, frozen future-grading policy.
 
 ### Pipeline Execution
 
@@ -520,20 +566,21 @@ than assumed authority.
 
 | Uncertainty | Severity | Current judgment | Resolution |
 |---|---|---|---|
-| Primary judge validity after failed kappa gate | High | Diagnostic-only; not claim-bearing | Add fresh blinded calibration before citing open metrics as claims |
+| Primary judge validity after failed kappa gate | High | Historical MVP open metrics remain diagnostic-only. A prospective Opus 4.7 run now passes the frozen future-grading policy, while Codex 5.5 xhigh fails raw agreement. | Use the Opus pass only for future grading under the frozen rubric; do not retrofit historical MVP claimability |
 | Whether kappa failure reflects real ambiguity or prevalence artifact | Medium-high | Both likely contribute; AC1/raw agreement are reassuring but not decisive | Report prevalence, use fresh evidence for any policy change |
 | Bridge grading strictness | Medium-high | Fresh targeted adjudication plus the correction-evidence table resolves the requested boundary examples; broader propagation remains exact-normalized-answer-only and diagnostic | Require fresh review before applying broader semantic-family corrections |
 | TruthfulQA alpha=8 open gain | Medium | Interesting diagnostic, not specific and not calibrated enough | Fresh seed/control family with pre-specified curve summary after calibration passes |
 | Final-label sensitivity of MVP effect estimates | Medium | Exact propagation over 120 eligible MVP rows moves selected pooled alpha=8 by -1.0 pp, Bridge by -2.0 pp, and TruthfulQA by 0.0 pp; blocked/nonexact rows do not change labels | Use the diagnostic exact-propagation artifact for sensitivity only; require fresh review before broader semantic-family propagation |
-| Human-rater agreement | Medium-high | Measured and weak relative to Opus/current reference; useful for surfacing hard cases, not as adjudicator | Use human notes/confidence as triage features, not gold labels |
+| LLM-rater diversity | Medium-high | Opus 4.7 passes the prospective gate; Codex 5.5 xhigh fails raw agreement and is more permissive on TruthfulQA hedged anti-myth answers | Keep the passing Opus run as the current prospective gate evidence, but await the human round before making a stronger rater-diverse reliability statement |
+| Human-rater agreement | Medium-high | The earlier human pass was weak relative to Opus/current reference; the prospective human round is still pending | Use human notes/confidence as triage features unless the new human round clears the frozen policy |
 | Duplicate surfaces in the 100-case review package | Medium | Fresh pass adjudicated the targeted exact-repeat groups with 0 inconsistent duplicate groups and 0 unresolved cases; the correction-evidence table preserves the historical production-reference conflicts | Use the table as the audit source for local diagnostic cleanup |
 | Core-i* processor-brand boundary | Medium | Fresh pass labels Core i9 CORRECT and Core i9 Apple Silicon INCORRECT; the correction-evidence table keeps these separate and blocks broad Core-i* collapse | Review any additional Core-i* variants before propagation |
 
 ## Recommended Next Steps
 
 1. Do not cite SIMID MVP open-correctness deltas as claim-bearing. Keep them
-   diagnostic until a calibration pass clears the policy or a new policy is
-   pre-registered and validated on fresh evidence.
+   diagnostic: the passing Opus prospective gate supports future grading under
+   the frozen rubric, not retrospective claimability for historical MVP rows.
 2. Use the duplicate-collapsed correction-evidence table and diagnostic exact-
    propagation artifact as the audit sources for local diagnostic cleanup.
    Preserve explicit conflict provenance: reference+Opus agreement, human
@@ -543,14 +590,16 @@ than assumed authority.
    Keep broader semantic families non-propagating unless they receive fresh
    review, and keep all such propagation non-claim-bearing unless a fresh
    calibration gate passes.
-4. If the kappa threshold is reconsidered because AC1 is judged more appropriate
-   under label skew, document that as a prospective policy change and apply it
-   only to fresh or blinded calibration evidence.
-5. The next scientific-impact step is prospective measurement and specificity
-   evidence: freeze a tightened rubric with hard-case examples, run a fresh
-   blinded calibration sample, and add more random-direction and random-head
-   seeds before making any selected-ITI statement.
-6. Preserve the tracked run outputs as immutable provenance. Use this report
+4. Treat `opus_4_7_max_run_001` as the current passing prospective LLM gate for
+   future open grading, and treat `codex_5_5_xhigh_run_001` as a sensitivity
+   run that failed raw agreement. Do not tune the rubric on these same rows.
+5. Await the human prospective labels before making a stronger rater-diverse
+   measurement claim. If the human round fails, summarize the boundary cases and
+   export a new blinded sample after any rubric revision.
+6. The next scientific-impact step is a future SIMID effect run under the frozen
+   calibrated grading policy, with random-direction/random-head controls and a
+   pre-specified curve summary before making any selected-ITI statement.
+7. Preserve the tracked run outputs as immutable provenance. Use this report
    and `open_calibration_summary.json` as the current claimability authority.
 
 ## Cross-Links

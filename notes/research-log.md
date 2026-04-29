@@ -4,6 +4,68 @@
 
 ---
 
+## 2026-04-29 (Mistral 24B CP2/CP3 detector gate reviewed)
+
+### What I did
+
+Reviewed the completed Mistral 24B CP2/CP3 run: canonical train/dev/test
+splits, 1,840 activation arrays under
+`data/mistral24b/pipeline/activations_llm_canonical/`, and the saved L1
+classifier `models/mistral24b_classifier_canonical.pkl`. Wrote the canonical
+analysis at
+[2026-04-29-mistral24b-cp23-pipeline-review.md](./icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md),
+updated the Mistral strategy memo and older scope/pipeline context to point at
+it, and removed the run from `notes/runs_to_analyse.md`.
+
+### What this changes about my thinking
+
+Mistral is no longer just infrastructure plus planning: the same-family 2501
+anchor now has a real held-out sparse detector gate. The test result is
+accuracy 0.775 [0.715, 0.830], F1 0.7783 [0.7184, 0.8349], AUROC 0.8711
+[0.8185, 0.9172], with 10 positive selected H-neuron targets out of 1,310,720
+FFN neurons. That supports continuing to CP4, but it still does not support a
+Mistral intervention claim. The important caveats are: the model is 2501, not
+exact 2503/3.1; the false class is nearly exhausted after split construction;
+and the saved logistic model has 10 negative nonzero coefficients in addition
+to the 10 positive intervention targets.
+
+### What I will do next
+
+Use CP4 as a smoke gate, not as a formality. The next paid run should verify
+FaithEval prompt/parser/evaluator parity across H-neuron, unconstrained random,
+and layer-matched random controls before any full CP5 claim-bearing run.
+
+## 2026-04-29 (SIMID prospective open gate returned)
+
+### What I did
+
+Analyzed the returned labels for the frozen
+`prospective_open_calibration_gate_20260429` package and recorded both LLM
+runs. Opus 4.7 max clears the pre-specified prospective policy on the 150-case
+blind sample: 138/150 raw agreement = 92.0%, kappa=0.8734, AC1=0.8831, and
+0 rule gaps. Codex 5.5 xhigh fails the policy only on raw agreement:
+133/150 = 88.7%, kappa=0.8207, AC1=0.8346, and 0 rule gaps. The two LLM runs
+agree with each other on 135/150 cases.
+
+### What this changes about my thinking
+
+The frozen rubric now has a passing prospective LLM calibration path when using
+the Opus evidence, but it still does not rescue historical MVP open-correctness
+deltas. The Codex failure is informative rather than disqualifying: Bridge
+exact-entity strictness is mostly stable in this sample, while TruthfulQA
+hedged anti-myth answers remain the sensitive boundary. The human prospective
+round should be treated as rater-diversity evidence, not as a chance to tune the
+same sample.
+
+### What I will do next
+
+Keep historical SIMID MVP open metrics diagnostic-only. For future SIMID effect
+claims, use the frozen prospective rubric and passing gate evidence, then rerun
+the effect analysis under that calibrated policy with random-direction and
+random-head controls plus a pre-specified curve summary. If the human
+prospective round fails, summarize the disagreement families and export a fresh
+blind sample after any rubric revision.
+
 ## 2026-04-28 (SIMID open calibration finalized)
 
 ### What I did
