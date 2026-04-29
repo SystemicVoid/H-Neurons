@@ -1,6 +1,6 @@
 ---
 name: exec-review
-description: Use when explicitly invoked as exec-review, /exec-review, or $exec-review to execute one bounded work slice from a filename, path, plan item, or direct task through implementation, verification, independent review/fix, and atomic commit.
+description: Use when invoked as exec-review to execute one bounded work slice from a filename, path, plan item, or direct task through implementation, verification, independent review/fix, and atomic commit.
 ---
 
 # Exec Review
