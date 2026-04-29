@@ -1,0 +1,69 @@
+{
+  "error": null,
+  "input_path": "data/mistral24b/answer_tokens_llm.jsonl",
+  "locations": [
+    "answer_tokens"
+  ],
+  "missing_region_examples": [],
+  "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "n_target_ids": 200,
+  "per_location": {
+    "answer_tokens": {
+      "activation_norm_summary": {
+        "count": 200,
+        "max": 5.84375,
+        "mean": 4.86625,
+        "median": 4.78125,
+        "min": 4.09375,
+        "p95": 5.78125
+      },
+      "existing_count": 0,
+      "final_completed_count": 200,
+      "missing_region_count": 0,
+      "newly_extracted_count": 200,
+      "selected_token_count_summary": {
+        "count": 200,
+        "max": 29.0,
+        "mean": 3.42,
+        "median": 3.0,
+        "min": 1.0,
+        "p95": 7.0
+      }
+    }
+  },
+  "recommended_next_action": "Use the completion and norm summaries to choose the next classifier or intervention step.",
+  "schema_version": 1,
+  "skipped_complete_qids": 0,
+  "status": "completed",
+  "target_qids_seen": 200,
+  "token_span_diagnostics": {
+    "answer_token_count_summary": {
+      "count": 200,
+      "max": 29.0,
+      "mean": 3.42,
+      "median": 3.0,
+      "min": 1.0,
+      "p95": 7.0
+    },
+    "prompt_token_count_summary": {
+      "count": 200,
+      "max": 233.0,
+      "mean": 202.48,
+      "median": 201.0,
+      "min": 193.0,
+      "p95": 216.0
+    },
+    "response_token_count_summary": {
+      "count": 200,
+      "max": 30.0,
+      "mean": 3.44,
+      "median": 3.0,
+      "min": 1.0,
+      "p95": 7.0
+    }
+  },
+  "total_input_rows": 2539,
+  "train_ids_path": "data/mistral24b/pipeline/dev_qids_llm.json",
+  "triage_note": "Extraction coverage is stable across requested locations.",
+  "triage_status": "ready_for_downstream"
+}

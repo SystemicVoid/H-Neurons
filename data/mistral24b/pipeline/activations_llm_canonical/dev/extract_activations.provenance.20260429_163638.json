@@ -1,0 +1,54 @@
+{
+  "active_run_lock_path": "/workspace/02-h-neurons/.git/h-neurons-active-runs/extract_activations-20260429_163638-2988.json",
+  "args": {
+    "device_map": "cuda:0",
+    "input_path": "data/mistral24b/answer_tokens_llm.jsonl",
+    "locations": [
+      "answer_tokens"
+    ],
+    "method": "mean",
+    "model_key": "mistral_small_24b_instruct_2501",
+    "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "output_root": "data/mistral24b/pipeline/activations_llm_canonical/dev",
+    "train_ids_path": "data/mistral24b/pipeline/dev_qids_llm.json",
+    "use_abs": true,
+    "use_mag": true
+  },
+  "argv": [
+    "/workspace/02-h-neurons/.venv/bin/python3",
+    "scripts/extract_activations.py",
+    "--model_key",
+    "mistral_small_24b_instruct_2501",
+    "--model_path",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "--input_path",
+    "data/mistral24b/answer_tokens_llm.jsonl",
+    "--train_ids_path",
+    "data/mistral24b/pipeline/dev_qids_llm.json",
+    "--output_root",
+    "data/mistral24b/pipeline/activations_llm_canonical/dev",
+    "--device_map",
+    "cuda:0",
+    "--locations",
+    "answer_tokens"
+  ],
+  "command": "/workspace/02-h-neurons/.venv/bin/python3 scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/dev_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/dev --device_map cuda:0 --locations answer_tokens",
+  "completed_at_utc": "2026-04-29T16:37:09.061860+00:00",
+  "cwd": "/workspace/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "60d4bc322ad59ffd01727e13ca8f41b0f955f0fb",
+  "hostname": "ea89c07d246c",
+  "output_targets": [
+    "/workspace/02-h-neurons/data/mistral24b/pipeline/activations_llm_canonical/dev",
+    "/workspace/02-h-neurons/data/mistral24b/pipeline/activations_llm_canonical/dev/metadata.json",
+    "/workspace/02-h-neurons/data/mistral24b/pipeline/activations_llm_canonical/dev/summary.json",
+    "/workspace/02-h-neurons/data/mistral24b/pipeline/activations_llm_canonical/dev/answer_tokens"
+  ],
+  "python_version": "3.11.10 (main, Sep  7 2024, 18:35:41) [GCC 11.4.0]",
+  "run_id": "extract_activations-20260429_163638-2988",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "extract_activations.py",
+  "started_at_utc": "2026-04-29T16:36:38.530784+00:00",
+  "status": "completed"
+}

@@ -65,6 +65,7 @@ export HF_HOME=/workspace/hf
 export UV_CACHE_DIR=/workspace/uv-cache
 command -v uv || python3 -m pip install uv
 command -v tmux || (apt-get update && apt-get install -y tmux)
+command -v rsync || (apt-get update && apt-get install -y rsync)
 uv sync --no-dev
 git ls-files --error-unmatch uv.lock >/dev/null 2>&1 || rm -f uv.lock
 STAGES=splits,activations,classifier \
@@ -76,9 +77,13 @@ STAGES=splits,activations,classifier \
 
 The wrapper asserts A100/H100-class CUDA, BF16 support, and at least 75 GiB before GPU stages. It also validates the token-span summary and CP1 model-load smoke before activation/classifier work.
 The official RunPod PyTorch template may not include `uv` or `tmux`; install only
-those small tools if absent. If `uv sync --no-dev` creates an untracked `uv.lock`
-from this repo's unlocked project metadata, remove that generated file before the
-wrapper so provenance does not record a dirty checkout.
+those small tools if absent. It may also omit `rsync`; install it before long
+artifact syncs, or use tar-over-SSH from `/workspace/02-h-neurons` as the fallback.
+If `uv sync --no-dev` creates an untracked `uv.lock` from this repo's unlocked
+project metadata, remove that generated file before the wrapper so provenance does
+not record a dirty checkout. `uv run` can recreate an untracked lock before the
+wrapper captures provenance, so future automation should prefer a committed lock or
+an explicit no-lock/frozen policy instead of relying only on a prelaunch `rm -f`.
 
 ## Sync Back and Cleanup
 
@@ -88,12 +93,32 @@ Sync back only canonical CP2/CP3 outputs: split JSONs, `activations_llm_canonica
 uv run python -m scripts.lib.pipeline active-run-status
 ```
 
+If remote `rsync` is unavailable and the pod is still alive, stream only the allowlisted
+paths from the network volume:
+
+```bash
+ssh -p "$SSH_PORT" root@"$SSH_HOST" 'cd /workspace/02-h-neurons && tar -cf - \
+  data/mistral24b/pipeline/activations_llm_canonical \
+  data/mistral24b/pipeline/*_qids_llm.json \
+  data/mistral24b/pipeline/*_qids_llm.json.provenance.*.json \
+  data/mistral24b/pipeline/classifier_canonical_*_metrics.json \
+  data/mistral24b/pipeline/classifier_canonical_*_metrics.json.provenance.*.json \
+  data/mistral24b/pipeline/environment_<RUN_TS>.txt \
+  models/mistral24b_classifier_canonical.pkl \
+  logs/mistral24b_replication_<RUN_TS>.log' | tar -xpf -
+```
+
 Delete the pod, then verify cleanup:
 
 ```bash
 uv run python scripts/infra/cloudctl.py cleanup-check --allow-network-volumes
 ```
 
-Keep the network volume only if CP4/CP5 reuse is immediate. If reuse is not immediate, sync critical artifacts locally and delete the volume too.
+`cleanup-check --allow-network-volumes` may still fail on nonzero spend when the
+only remaining spend is intentional retained network-volume storage; confirm
+`uv run python scripts/infra/cloudctl.py status` shows `pods: 0` before treating
+that as storage-only. Keep the network volume only if CP4/CP5 reuse is immediate.
+If reuse is not immediate, sync critical artifacts locally and delete the volume
+too.
 
 References: [network volumes](https://docs.runpod.io/storage/network-volumes), [Pods pricing](https://docs.runpod.io/pods/pricing), [SSH over exposed TCP](https://docs.runpod.io/pods/configuration/use-ssh), [runpodctl pod](https://docs.runpod.io/runpodctl/reference/runpodctl-pod), and [runpodctl network-volume](https://docs.runpod.io/runpodctl/reference/runpodctl-network-volume).

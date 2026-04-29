@@ -1,0 +1,44 @@
+{
+  "active_run_lock_path": "/workspace/02-h-neurons/.git/h-neurons-active-runs/sample_balanced_ids-20260429_163042-2509.json",
+  "args": {
+    "exclude_path": [],
+    "input_path": "data/mistral24b/answer_tokens_llm.jsonl",
+    "num_samples": 360,
+    "output_path": "data/mistral24b/pipeline/train_qids_llm.json",
+    "seed": 42,
+    "strict": true
+  },
+  "argv": [
+    "/workspace/02-h-neurons/.venv/bin/python3",
+    "scripts/sample_balanced_ids.py",
+    "--input_path",
+    "data/mistral24b/answer_tokens_llm.jsonl",
+    "--output_path",
+    "data/mistral24b/pipeline/train_qids_llm.json",
+    "--num_samples",
+    "360",
+    "--seed",
+    "42",
+    "--strict"
+  ],
+  "command": "/workspace/02-h-neurons/.venv/bin/python3 scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/train_qids_llm.json --num_samples 360 --seed 42 --strict",
+  "completed_at_utc": "2026-04-29T16:30:42.630040+00:00",
+  "cwd": "/workspace/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "60d4bc322ad59ffd01727e13ca8f41b0f955f0fb",
+  "hostname": "ea89c07d246c",
+  "output_targets": [
+    "/workspace/02-h-neurons/data/mistral24b/pipeline/train_qids_llm.json"
+  ],
+  "python_version": "3.11.10 (main, Sep  7 2024, 18:35:41) [GCC 11.4.0]",
+  "run_id": "sample_balanced_ids-20260429_163042-2509",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "sample_balanced_ids.py",
+  "selected_counts": {
+    "false": 360,
+    "true": 360
+  },
+  "started_at_utc": "2026-04-29T16:30:42.541578+00:00",
+  "status": "completed"
+}

@@ -1,0 +1,36 @@
+{
+  "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "input_path": "data/mistral24b/answer_tokens_llm.jsonl",
+  "train_ids_path": "data/mistral24b/pipeline/dev_qids_llm.json",
+  "locations": [
+    "answer_tokens"
+  ],
+  "aggregation_method": "mean",
+  "use_abs": true,
+  "use_mag": true,
+  "n_target_ids": 200,
+  "model_key": "mistral_small_24b_instruct_2501",
+  "registered_model": {
+    "key": "mistral_small_24b_instruct_2501",
+    "slug": "mistral24b",
+    "hf_id": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "output_root": "data/mistral24b",
+    "loader_family": "causal_lm",
+    "supported": true,
+    "tokenizer_kwargs": {
+      "fix_mistral_regex": true
+    },
+    "dimensions": {
+      "num_hidden_layers": 40,
+      "hidden_size": 5120,
+      "intermediate_size": 32768,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 8,
+      "max_position_embeddings": 32768,
+      "torch_dtype": "bfloat16",
+      "total_ffn_neurons": 1310720
+    },
+    "default_classifier_path": "models/mistral24b_classifier.pkl",
+    "notes": "Canonical Mistral 24B second-model extension. Same-family 2501 checkpoint, not exact Mistral Small 3.1/2503 replication."
+  }
+}

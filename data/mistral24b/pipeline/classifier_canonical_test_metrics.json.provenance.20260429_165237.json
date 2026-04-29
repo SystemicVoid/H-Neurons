@@ -1,0 +1,53 @@
+{
+  "active_run_lock_path": "/workspace/02-h-neurons/.git/h-neurons-active-runs/classifier-20260429_165237-4362.json",
+  "args": {
+    "C": 1.0,
+    "c_values": null,
+    "load_model": "models/mistral24b_classifier_canonical.pkl",
+    "metrics_out": "data/mistral24b/pipeline/classifier_canonical_test_metrics.json",
+    "model_key": "mistral_small_24b_instruct_2501",
+    "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "penalty": "l1",
+    "save_model": null,
+    "selection_metric": "auroc",
+    "solver": "liblinear",
+    "test_acts": "data/mistral24b/pipeline/activations_llm_canonical/test/answer_tokens",
+    "test_ids": "data/mistral24b/pipeline/test_qids_llm.json",
+    "train_ans_acts": null,
+    "train_ids": null,
+    "train_mode": "3-vs-1",
+    "train_other_acts": null
+  },
+  "argv": [
+    "/workspace/02-h-neurons/.venv/bin/python3",
+    "scripts/classifier.py",
+    "--model_key",
+    "mistral_small_24b_instruct_2501",
+    "--model_path",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "--load_model",
+    "models/mistral24b_classifier_canonical.pkl",
+    "--test_ids",
+    "data/mistral24b/pipeline/test_qids_llm.json",
+    "--test_acts",
+    "data/mistral24b/pipeline/activations_llm_canonical/test/answer_tokens",
+    "--metrics_out",
+    "data/mistral24b/pipeline/classifier_canonical_test_metrics.json"
+  ],
+  "command": "/workspace/02-h-neurons/.venv/bin/python3 scripts/classifier.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --load_model models/mistral24b_classifier_canonical.pkl --test_ids data/mistral24b/pipeline/test_qids_llm.json --test_acts data/mistral24b/pipeline/activations_llm_canonical/test/answer_tokens --metrics_out data/mistral24b/pipeline/classifier_canonical_test_metrics.json",
+  "completed_at_utc": "2026-04-29T16:53:21.157009+00:00",
+  "cwd": "/workspace/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "60d4bc322ad59ffd01727e13ca8f41b0f955f0fb",
+  "hostname": "ea89c07d246c",
+  "output_targets": [
+    "/workspace/02-h-neurons/data/mistral24b/pipeline/classifier_canonical_test_metrics.json"
+  ],
+  "python_version": "3.11.10 (main, Sep  7 2024, 18:35:41) [GCC 11.4.0]",
+  "run_id": "classifier-20260429_165237-4362",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "classifier.py",
+  "started_at_utc": "2026-04-29T16:52:37.240699+00:00",
+  "status": "completed"
+}
