@@ -2,7 +2,9 @@
 
 > Superseded for Mistral execution planning and progress tracking by
 > `notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`.
-> Retained for historical replication-plan context only.
+> Retained for historical replication-plan context only. The CP2/CP3 held-out
+> detector gate is now analysed at
+> `notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`.
 
 **Date:** 2026-04-27
 

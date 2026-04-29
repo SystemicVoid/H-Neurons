@@ -2,7 +2,9 @@
 
 > Superseded for Mistral execution planning and progress tracking by
 > `notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`.
-> Retained for historical code-migration context only.
+> Retained for historical code-migration context only. CP2/CP3 held-out metrics
+> that were open risks in this report are now analysed at
+> `notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`.
 
 **Date:** 2026-04-27
 **Scope:** Codebase changes that make the H-neuron pipeline model-aware for the
@@ -188,16 +190,18 @@ correctly.
   FalseQA generation is wired, including quick layer-matched controls, but the
   comparison summary still depends on a separate GPT-4o judging pass.
 - **Held-out Mistral classifier metrics.**
-  The code path exists, but canonical train/dev/test metrics still need to be
-  generated on GPU.
+  Superseded: CP2/CP3 generated canonical train/dev/test metrics on 2026-04-29.
+  Use `notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`.
 
 ## Remaining Blockers
 
 - Generate canonical disjoint Mistral train/dev/test splits from
-  `data/mistral24b/answer_tokens_llm.jsonl`.
+  `data/mistral24b/answer_tokens_llm.jsonl`. Superseded by the 2026-04-29
+  CP2/CP3 review.
 - Extract canonical Mistral activations for answer tokens and non-answer tokens.
+  Superseded by the 2026-04-29 CP2/CP3 review.
 - Train the sparse L1 3-vs-1 classifier and write held-out test metrics with
-  provenance.
+  provenance. Superseded by the 2026-04-29 CP2/CP3 review.
 - Run at least one judged Mistral intervention benchmark with H-neuron,
   random, and layer-matched controls.
 - Run the wrapper on the target pod with at least `DRY_RUN=1` first, then resume

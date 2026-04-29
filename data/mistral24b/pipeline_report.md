@@ -1,5 +1,12 @@
 # Mistral 24B — H-Neuron Identification Pipeline Report
 
+> Historical GH200-era pipeline report. For current held-out CP2/CP3 split,
+> activation, and classifier evidence, use
+> [`notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`](../../notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md).
+> Statements below saying there is no held-out Mistral evaluation are superseded
+> by that review; the remaining value of this file is preservation/context for
+> the March operational run and answer-token extraction history.
+
 **Date:** 2026-03-15
 **Model:** `mistralai/Mistral-Small-24B-Instruct-2501` (instruction-tuned)
 **Primary hardware used:** Lambda GH200 96 GB GPU (`ubuntu@192.222.59.253`)

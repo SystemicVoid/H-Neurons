@@ -14,13 +14,14 @@ Current anchor ranking, by paper-facing value today:
 | 2 | FaithEval H-neuron vs SAE | **Strong anchor, but not pristine** | Real localization-to-control dissociation with strong random-control specificity, but still cross-representational and partly detection-confounded. |
 | 3 | Jailbreak measurement-sensitivity | **Good anchor for measurement, not for selector quality** | Strongest evidence that verdicts depend on truncation, ruler structure, and scoring surface. |
 | 4 | D7 same-ruler causal-vs-baseline/random | **Good supporting evidence; not flagship** | Narrow same-ruler effect is real, but selector closure is incomplete and ruler drift remains large. |
-| 5 | Narrow Mistral extension path | **Not a current anchor; best next strengthening path** | Preserved artifacts and clear next step exist, but no held-out Mistral evaluation or intervention evidence yet. |
+| 5 | Narrow Mistral extension path | **Readout gate complete; intervention pending** | CP2/CP3 now provide same-family held-out detector evidence, but no Mistral intervention/control result exists yet. |
 
 Short version:
 
 - **Most promising anchors now:** bridge, FaithEval, jailbreak-measurement.
 - **Most important correction:** stop treating FaithEval as obviously the cleanest anchor just because that phrasing was repeated.
-- **Mistral remains the best next extension path**, but it is still extension planning, not completed evidence.
+- **Mistral remains the best next extension path**, and now has completed
+  held-out detector evidence; it is still not completed intervention evidence.
 
 ## How This Memo Weighs Evidence
 
@@ -301,41 +302,57 @@ That framing is not indefensible, but the repo evidence now supports a more care
 
 ### 5. Narrow Mistral Extension Path
 
-**Current anchor value:** not a current anchor; best next strengthening path
+**Current anchor value:** detector-readout gate complete; intervention evidence
+still pending. Update: the 2026-04-29 CP2/CP3 run supersedes this section's
+original "no held-out Mistral eval" status, but not its caution about Mistral
+interventions and exact-checkpoint scope.
 
 **Primary sources**
 
-- [data/mistral24b/pipeline_report.md](../../../data/mistral24b/pipeline_report.md)
+- [2026-04-29 Mistral CP2/CP3 pipeline review](../reports/2026-04-29-mistral24b-cp23-pipeline-review.md)
+- Historical GH200 pipeline context: [data/mistral24b/pipeline_report.md](../../../data/mistral24b/pipeline_report.md)
 - [docs/archive/gh200-research-log-2026-03-15.md](../../../docs/archive/gh200-research-log-2026-03-15.md)
 - Later follow-up workspace: [notes/icml/mistral24b/](../../../notes/icml/mistral24b/)
 - Later strategy memo: [2026-04-28 5.5 Pro L1 mitigation strategy](../../../notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md)
 
 **Established**
 
-- The expensive Mistral 24B response and activation artifacts are preserved locally.  
+- The expensive Mistral 24B response and activation artifacts are preserved locally.
   Source: [pipeline_report.md](../../../data/mistral24b/pipeline_report.md)
-- The pipeline report is explicit that there is still **no held-out Mistral eval**, **no Mistral intervention result**, and **no exact-checkpoint replication**.  
-  Source: [pipeline_report.md](../../../data/mistral24b/pipeline_report.md)
+- The CP2/CP3 detector-readout gate is now complete on disjoint canonical splits:
+  train/dev/test are 360/100/100 per class, activation extraction is complete,
+  and the saved 10-positive-target classifier reaches held-out test accuracy
+  0.775 [0.715, 0.830] and AUROC 0.871 [0.818, 0.917].
+  Source: [2026-04-29 CP2/CP3 review](../reports/2026-04-29-mistral24b-cp23-pipeline-review.md)
+- There is still **no Mistral intervention result** and **no exact-checkpoint
+  replication**. The model is `mistralai/Mistral-Small-24B-Instruct-2501`, not
+  the paper's Mistral-Small-3.1/2503-style checkpoint.
+  Source: [2026-04-29 CP2/CP3 review](../reports/2026-04-29-mistral24b-cp23-pipeline-review.md)
 - The GH200 log supports a narrow feasibility conclusion: 24B-class work is operationally viable here; 70B is not near-term paper-ready under the repo’s actual workflow constraints.  
   Source: [gh200-research-log-2026-03-15.md](../../../docs/archive/gh200-research-log-2026-03-15.md)
 
 **Interpretive but plausible**
 
-- The highest-ROI extension is not “replicate everything on Mistral,” but “test whether the H-neuron side of the story survives a narrow cross-family check.”
+- The highest-ROI extension is not "replicate everything on Mistral," but
+  "test whether the H-neuron side of the story survives a narrow cross-family
+  control/intervention check after the readout gate has passed."
 
 **Not established**
 
-- No current Mistral result belongs in the evidence stack as a paper anchor.
+- No current Mistral result establishes behavioral intervention replication.
 - No current Mistral artifact proves cross-family FaithEval replication.
 - Nothing current supports Mistral bridge or jailbreak claims.
 
 **Strongest source-grounded claim**
 
-> The repo has enough preserved Mistral infrastructure to make a narrow held-out detector plus FaithEval intervention package the best next strengthening path, but it does not yet have completed Mistral evidence.
+> The repo now has completed same-family Mistral 24B held-out detector evidence;
+> the next strengthening path is a locked FaithEval intervention/control package,
+> not a broader claim that Mistral already replicates the paper.
 
 **Strongest overclaim to avoid**
 
-> Mistral already strengthens the paper.
+> Mistral readout evidence already resolves the cross-model intervention
+> limitation.
 
 **Why this is the best next path**
 
@@ -345,13 +362,16 @@ That framing is not indefensible, but the repo evidence now supports a more care
 
 **Main unresolved confounds**
 
-- No held-out split yet
+- No Mistral intervention/control result yet
 - `2501` is same-family, not exact-checkpoint
-- Answer-token artifact still has cleanup debt
+- Answer-token artifact still has cleanup debt, and the false class is nearly
+  exhausted after train/dev/test construction
 
 **One highest-value upgrade**
 
-- Build a disjoint held-out Mistral detector evaluation, then run FaithEval `standard`-prompt H-neuron intervention with matched random-neuron controls.
+- Run FaithEval `standard`-prompt H-neuron pilot/control smoke with matched
+  random-neuron controls, then only run the full FaithEval package after the
+  prompt/parser/evaluator audit passes.
 
 ## Good Anchors vs. Good Supporting Evidence
 
@@ -394,8 +414,9 @@ These should be treated as blocked from future repetition unless explicitly re-v
 - **“D7 now proves causal selectors beat correlational selectors in general.”**  
   Blocked because probe is not in same-ruler closure and the benchmark remains local.
 
-- **“Mistral already supports the paper.”**  
-  Blocked because the current Mistral evidence is infrastructure plus planning, not completed held-out intervention evidence.
+- **“Mistral readout evidence already resolves the cross-model limitation.”**
+  Blocked because CP2/CP3 now establish a same-family held-out detector gate,
+  but there is still no completed Mistral intervention/control evidence.
 
 ## Claims Safe to Source Later
 
@@ -418,6 +439,11 @@ These are the strongest later-usable claims if the paper or future notes need di
 - On the available same-ruler D7 panel, the causal branch beats baseline and both available random controls.  
   Source: [2026-04-20-d7-quality-debt-adversarial-audit.md](./2026-04-20-d7-quality-debt-adversarial-audit.md)
 
+- On the same-family Mistral 24B 2501 anchor, CP2/CP3 produced disjoint
+  train/dev/test splits and a held-out sparse detector with test AUROC 0.871
+  [0.818, 0.917]. This is readout evidence, not intervention evidence.
+  Source: [2026-04-29-mistral24b-cp23-pipeline-review.md](../reports/2026-04-29-mistral24b-cp23-pipeline-review.md)
+
 ### Interpretive but plausible
 
 - Bridge is currently the cleanest single paper anchor.
@@ -428,8 +454,10 @@ These are the strongest later-usable claims if the paper or future notes need di
 ### Not established
 
 - Any claim that one current result is immaculate
-- Any cross-model generalization beyond Gemma from current completed evidence
-- Any claim that Mistral has already upgraded the paper
+- Any cross-model intervention generalization beyond Gemma from current
+  completed evidence
+- Any claim that Mistral readout evidence alone upgrades the behavioral-control
+  claims
 
 ## Scope Decision After Fresh Re-Ranking
 
@@ -454,7 +482,7 @@ What changes is the internal confidence map:
 | FaithEval H-neuron vs SAE | Strong anchor, but not pristine | Strong matched-readout dissociation plus random-control specificity | Detector-side caveat and cross-representational confounds | Answer-token-domain detector confound audit |
 | Jailbreak measurement-sensitivity | Good anchor for measurement | Clean holdout shows evaluator tie and blocks overclaiming | Selector-specificity story incomplete | Canonical multi-seed jailbreak control closure |
 | D7 same-ruler causal-vs-baseline/random | Good supporting evidence | Narrow same-ruler effect survives token-cap objection | Probe missing from same-ruler closure; large ruler drift | Same-ruler probe closure |
-| Narrow Mistral extension path | Not current evidence | Preserved artifacts and clear next experiment | No held-out eval or intervention result yet | Held-out detector + FaithEval standard-prompt intervention + matched random controls |
+| Narrow Mistral extension path | Readout evidence only | CP2/CP3 held-out detector gate now passes on same-family 2501 | No intervention/control result yet; exact-checkpoint caveat remains | FaithEval standard-prompt pilot/control smoke, then full matched controls |
 
 ## Bottom Line
 
@@ -464,7 +492,8 @@ What changes is the internal confidence map:
 - **FaithEval** is still one of the project’s strongest results, but it should be carried with narrower wording than the repeated internal slogan.
 - **Jailbreak** is strongest as a measurement memo, not an evaluator-ranking memo.
 - **D7** is no longer “too dirty,” but still not a flagship.
-- **Mistral** is still the best next strengthening path, but not current evidence.
+- **Mistral** now has same-family readout evidence; the best next strengthening
+  path is still the intervention/control gate.
 
 ### Most promising anchor candidates
 
@@ -478,7 +507,7 @@ What changes is the internal confidence map:
 1. “FaithEval is obviously the cleanest anchor.”
 2. “D7 is too dirty to use.”
 3. “CSV-v3 is better because holdout proves it.”
-4. “Mistral already strengthens the paper.”
+4. “Mistral readout evidence already resolves the cross-model intervention limitation.”
 
 If condensed to one sentence:
 
