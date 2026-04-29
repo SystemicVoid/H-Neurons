@@ -1,0 +1,11 @@
+Wed Apr 29 13:03:43 UTC 2026
+ec6764630b889cac86ea4f49c0dd521ba676e9ec
+?? data/mistral24b/pipeline/environment_20260429T130339Z.txt
+?? uv.lock
+uv 0.11.8 (x86_64-unknown-linux-gnu)
+Python 3.11.10
+torch==2.11.0
+transformers==5.7.0
+accelerate==1.13.0
+datasets==4.8.5
+scikit-learn==1.8.0

@@ -1,0 +1,113 @@
+{
+  "api_required": false,
+  "checks": {
+    "bf16_dtype_loaded": true,
+    "generation_smoke": true,
+    "no_quantization": true
+  },
+  "cuda_memory": {
+    "available": true,
+    "bf16_supported": true,
+    "current_device": 0,
+    "device_count": 1,
+    "devices": [
+      {
+        "index": 0,
+        "max_memory_allocated_bytes": 47253961728,
+        "max_memory_reserved_bytes": 47276097536,
+        "memory_allocated_bytes": 47178361856,
+        "memory_reserved_bytes": 47276097536,
+        "name": "NVIDIA H100 80GB HBM3"
+      }
+    ]
+  },
+  "generation": {
+    "attempted": true,
+    "decoded_new_text_preview": "OK",
+    "generated_new_tokens": 1,
+    "max_new_tokens": 1,
+    "succeeded": true
+  },
+  "gpu_required": true,
+  "model_key": "mistral_small_24b_instruct_2501",
+  "model_loaded": true,
+  "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "no_quantization": {
+    "config_has_quantization_config": false,
+    "config_quantization_config": null,
+    "load_kwargs": {
+      "load_in_4bit": false,
+      "load_in_8bit": false,
+      "quantization_config": null
+    },
+    "model_is_loaded_in_4bit": false,
+    "model_is_loaded_in_8bit": false,
+    "requested_no_quantization": true,
+    "status": "ok"
+  },
+  "output_path": "data/mistral24b/preflight/model_load_smoke.json",
+  "registered_model": {
+    "default_classifier_path": "models/mistral24b_classifier.pkl",
+    "dimensions": {
+      "hidden_size": 5120,
+      "intermediate_size": 32768,
+      "max_position_embeddings": 32768,
+      "num_attention_heads": 32,
+      "num_hidden_layers": 40,
+      "num_key_value_heads": 8,
+      "torch_dtype": "bfloat16",
+      "total_ffn_neurons": 1310720
+    },
+    "hf_id": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "key": "mistral_small_24b_instruct_2501",
+    "loader_family": "causal_lm",
+    "notes": "Canonical Mistral 24B second-model extension. Same-family 2501 checkpoint, not exact Mistral Small 3.1/2503 replication.",
+    "output_root": "data/mistral24b",
+    "slug": "mistral24b",
+    "supported": true,
+    "tokenizer_kwargs": {
+      "fix_mistral_regex": true
+    }
+  },
+  "runtime": {
+    "buffer_count": 2,
+    "config_torch_dtype": "torch.bfloat16",
+    "device_counts": {
+      "cuda:0": 365
+    },
+    "dtype_counts": {
+      "torch.bfloat16": 363,
+      "torch.float32": 2
+    },
+    "first_parameter": {
+      "device": "cuda:0",
+      "dtype": "torch.bfloat16",
+      "numel": 671088640,
+      "shape": [
+        131072,
+        5120
+      ]
+    },
+    "first_tensor": {
+      "device": "cuda:0",
+      "dtype": "torch.bfloat16",
+      "numel": 671088640,
+      "shape": [
+        131072,
+        5120
+      ]
+    },
+    "hf_device_map": null,
+    "loaded_primary_device": "cuda:0",
+    "loaded_primary_dtype": "torch.bfloat16",
+    "parameter_count": 363,
+    "requested_device_map": "cuda:0",
+    "requested_dtype": "torch.bfloat16",
+    "total_parameter_elements": 23572403200
+  },
+  "schema_version": "model_load_smoke/v1",
+  "status": "ok",
+  "tokenizer_kwargs": {
+    "fix_mistral_regex": true
+  }
+}

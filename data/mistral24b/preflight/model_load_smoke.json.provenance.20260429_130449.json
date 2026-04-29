@@ -1,0 +1,55 @@
+{
+  "active_run_lock_path": "/workspace/02-h-neurons/.git/h-neurons-active-runs/model_load_smoke-20260429_130449-1156.json",
+  "api_required": false,
+  "args": {
+    "device_map": "cuda:0",
+    "max_new_tokens": 1,
+    "model_key": "mistral_small_24b_instruct_2501",
+    "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "output_path": "data/mistral24b/preflight/model_load_smoke.json"
+  },
+  "argv": [
+    "/workspace/02-h-neurons/.venv/bin/python3",
+    "scripts/model_load_smoke.py",
+    "--model_key",
+    "mistral_small_24b_instruct_2501",
+    "--model_path",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "--device_map",
+    "cuda:0",
+    "--output_path",
+    "data/mistral24b/preflight/model_load_smoke.json",
+    "--max_new_tokens",
+    "1"
+  ],
+  "command": "/workspace/02-h-neurons/.venv/bin/python3 scripts/model_load_smoke.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --output_path data/mistral24b/preflight/model_load_smoke.json --max_new_tokens 1",
+  "completed_at_utc": "2026-04-29T13:05:46.521818+00:00",
+  "cwd": "/workspace/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "ec6764630b889cac86ea4f49c0dd521ba676e9ec",
+  "gpu_required": true,
+  "hostname": "0a5a32e9c6cc",
+  "model_key": "mistral_small_24b_instruct_2501",
+  "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "output_targets": [
+    "/workspace/02-h-neurons/data/mistral24b/preflight/model_load_smoke.json"
+  ],
+  "python_version": "3.11.10 (main, Sep  7 2024, 18:35:41) [GCC 11.4.0]",
+  "run_id": "model_load_smoke-20260429_130449-1156",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "model_load_smoke.py",
+  "started_at_utc": "2026-04-29T13:04:49.863396+00:00",
+  "status": "completed",
+  "summary": {
+    "api_required": false,
+    "checks": {
+      "bf16_dtype_loaded": true,
+      "generation_smoke": true,
+      "no_quantization": true
+    },
+    "gpu_required": true,
+    "model_loaded": true,
+    "status": "ok"
+  }
+}
