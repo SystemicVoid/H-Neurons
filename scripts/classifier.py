@@ -287,9 +287,10 @@ def validate_classifier_width(model, expected_width: int, *, context: str) -> No
 
 
 def fit_model(args, X_train, y_train, c_value, verbose):
+    l1_ratio = 1.0 if args.penalty == "l1" else 0.0
     model = LogisticRegression(
-        penalty=args.penalty,
         C=c_value,
+        l1_ratio=l1_ratio,
         solver=args.solver,
         max_iter=1000,
         random_state=42,
@@ -472,8 +473,10 @@ def main():
                 "model_key": args.model_key,
                 "registered_model": model_metadata(args.model_key, args.model_path),
                 "model_dimensions": model_dimensions.to_dict(),
+                "saved_model_path": args.save_model,
                 "train_mode": args.train_mode,
                 "penalty": args.penalty,
+                "l1_ratio": 1.0 if args.penalty == "l1" else 0.0,
                 "solver": args.solver,
                 "selection_metric": args.selection_metric,
                 "selection_split": selection_split,
