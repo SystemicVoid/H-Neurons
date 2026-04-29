@@ -48,6 +48,14 @@ Opus, and human comparison provenance, marks 0 targeted rows unresolved, and
 blocks broader semantic-family propagation. It supports exact-normalized-answer
 diagnostic cleanup only; it does not change claimability.
 
+Update after exact-propagation sensitivity: the diagnostic artifact in
+`human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/`
+applies those rules to 120 exact MVP rows and changes 96 diagnostic labels. It
+moves selected pooled alpha=8 open delta from +3.0 pp to +2.0 pp, leaves
+TruthfulQA alpha=8 at +12.0 pp, and moves Bridge alpha=8 from -6.0 pp to
+-8.0 pp. This remains a measurement-sensitivity result, not a claim-bearing
+intervention result.
+
 ## Data Authority
 
 | Artifact | Path |
@@ -65,6 +73,7 @@ diagnostic cleanup only; it does not change claimability.
 | Human review labels | `human_review_package/simid_open_human_labels.jsonl` |
 | Fresh targeted blind adjudication | `human_review_package/fresh_blind_adjudication_20260429/` |
 | Duplicate-collapsed correction evidence | `human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/` |
+| Diagnostic exact-propagation sensitivity | `human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/` |
 
 Important artifact-status note: `results_adjudicated.json` and
 `report_adjudicated.md` were generated before the calibration pass and still
@@ -386,22 +395,24 @@ changes point estimates by at most 2.0 pp in this 100-row covered subset
 full correction-evidence sensitivity analysis recommended below because
 unreviewed MVP rows may contain similar boundary cases.
 
-A targeted row-pattern stress check on the recurring Bridge boundary families
-supports the same conclusion. The full 4,800-row MVP output contains 12 exact
-pithivier/custard rows, 2 pithivier/fruit rows with the same filling-only
-problem, 16 "Viscous fluid." rows, 22 plain "Peppers" rows on the Peter Piper
-item, 22 plain-lawyer rows on the Amal Clooney item, 14 "Mulled cranberry
-sauce" rows, and 24 Core-i* processor-brand rows. Applying a deliberately
-mechanical correction scenario for the non-Core exact-answer families
-(pithivier/custard and pithivier/fruit INCORRECT, viscous fluid CORRECT, plain
-Peppers INCORRECT, plain lawyer INCORRECT, and mulled cranberry sauce CORRECT)
-moves the selected pooled alpha=8 open delta from +3.0 pp to +2.5 pp and the
-selected Bridge alpha=8 open delta from -6.0 pp to -7.0 pp; TruthfulQA alpha=8
-is unchanged. This is not a substitute for adjudication, because the correction
-rules are post-hoc and some cases remain genuinely contested. It does show that
-the highest-value cleanup is about preventing inconsistent rule propagation and
-preserving auditability, not about rescuing or overturning the current headline
-effect.
+The full exact-propagation diagnostic artifact now replaces the earlier
+manual row-pattern stress check. It applies only the correction-evidence
+table's exact question+normalized-answer rules, keeps Core i9 and Core i9
+Apple Silicon separate, blocks 2 broader Core-i* rows and 46 other
+same-question nonexact rows, and verifies that the uncorrected recomputation
+matches `results_adjudicated.json` for selected pooled, TruthfulQA, and Bridge
+alpha=8 rate/delta cells before reporting corrected values.
+
+| Cell | Primary | Diagnostic exact propagation |
+|---|---:|---:|
+| Selected, pooled alpha=8 | +3.0 pp [-2.0, 8.5] | +2.0 pp [-3.5, 7.5] |
+| Selected, TruthfulQA alpha=8 | +12.0 pp [4.0, 20.0] | +12.0 pp [4.0, 20.0] |
+| Selected, Bridge alpha=8 | -6.0 pp [-12.0, 0.0] | -8.0 pp [-15.0, -2.0] |
+
+This is still not broad semantic-family adjudication. It does show that the
+highest-value cleanup is about preventing inconsistent rule propagation and
+preserving auditability, not about rescuing or overturning the current
+headline effect.
 
 ## Interpretation
 
@@ -427,8 +438,9 @@ This section is interpretation, not raw data.
 - The fresh targeted pass resolved the requested exact-repeat conflicts with
   internally consistent labels across all 7 duplicate groups.
 - The duplicate-collapsed correction-evidence table now binds those fresh labels
-  to current-reference, Opus, and human comparison provenance, and it blocks
-  broad semantic-family propagation.
+  to current-reference, Opus, and human comparison provenance, and the
+  diagnostic exact-propagation artifact applies only those exact rules while
+  blocking broad semantic-family propagation.
 - The larger SIMID measurement lesson still holds. Deterministic alias matching
   is not adequate as a claim-bearing open-correctness endpoint, especially on
   paraphrase-rich TruthfulQA, and Bridge is better but not clean enough to treat
@@ -451,10 +463,11 @@ This section is interpretation, not raw data.
   repeat level: one exact "Mulled cranberry sauce." repeat has conflicting
   final labels. The fresh pass resolves the diagnostic copy, but it does not
   mutate the historical production reference.
-- The final adjudicated labels and correction-evidence table have not been
-  propagated into a new claimable effect analysis. Even if they were, the
-  calibration failure would keep open correctness diagnostic-only unless a new
-  pre-registered calibration policy or fresh validation pass passed.
+- The final adjudicated labels and correction-evidence table have only been
+  propagated into a diagnostic exact-answer sensitivity analysis. Even under
+  that sensitivity, the calibration failure keeps open correctness
+  diagnostic-only unless a new pre-registered calibration policy or fresh
+  validation pass passes.
 - The selected ITI effect is still not specific. The pooled selected alpha=8
   open delta is the same point estimate as the random-direction control, and
   the selected effect trades off against TruthfulQA MC and Bridge open
@@ -504,7 +517,7 @@ than assumed authority.
 | Whether kappa failure reflects real ambiguity or prevalence artifact | Medium-high | Both likely contribute; AC1/raw agreement are reassuring but not decisive | Report prevalence, use fresh evidence for any policy change |
 | Bridge grading strictness | Medium-high | Fresh targeted adjudication plus the correction-evidence table resolves the requested boundary examples; broader propagation remains exact-normalized-answer-only and diagnostic | Require fresh review before applying broader semantic-family corrections |
 | TruthfulQA alpha=8 open gain | Medium | Interesting diagnostic, not specific and not calibrated enough | Fresh seed/control family with pre-specified curve summary after calibration passes |
-| Final-label sensitivity of MVP effect estimates | Medium | Exact-row replacement on reviewed rows moves main selected alpha=8 cells by <=1.0 pp under human labels and <=0.5 pp under reference/Opus policies; the correction-evidence table now gives exact-answer MVP row counts for diagnostic sensitivity | Apply only exact-normalized-answer propagation unless broader cases receive fresh review |
+| Final-label sensitivity of MVP effect estimates | Medium | Exact propagation over 120 eligible MVP rows moves selected pooled alpha=8 by -1.0 pp, Bridge by -2.0 pp, and TruthfulQA by 0.0 pp; blocked/nonexact rows do not change labels | Use the diagnostic exact-propagation artifact for sensitivity only; require fresh review before broader semantic-family propagation |
 | Human-rater agreement | Medium-high | Measured and weak relative to Opus/current reference; useful for surfacing hard cases, not as adjudicator | Use human notes/confidence as triage features, not gold labels |
 | Duplicate surfaces in the 100-case review package | Medium | Fresh pass adjudicated the targeted exact-repeat groups with 0 inconsistent duplicate groups and 0 unresolved cases; the correction-evidence table preserves the historical production-reference conflicts | Use the table as the audit source for local diagnostic cleanup |
 | Core-i* processor-brand boundary | Medium | Fresh pass labels Core i9 CORRECT and Core i9 Apple Silicon INCORRECT; the correction-evidence table keeps these separate and blocks broad Core-i* collapse | Review any additional Core-i* variants before propagation |
@@ -514,19 +527,21 @@ than assumed authority.
 1. Do not cite SIMID MVP open-correctness deltas as claim-bearing. Keep them
    diagnostic until a calibration pass clears the policy or a new policy is
    pre-registered and validated on fresh evidence.
-2. Use the duplicate-collapsed correction-evidence table as the audit source for
-   local diagnostic cleanup. Preserve explicit conflict provenance:
-   reference+Opus agreement, human disagreement, historical exact-repeat
-   conflict, fresh adjudicated status, or unresolved.
-3. Extend diagnostic sensitivity beyond exact reviewed rows only through the
-   table's exact-normalized-answer propagation rules. Keep broader semantic
-   families non-propagating unless they receive fresh review, and keep all such
-   propagation non-claim-bearing unless a fresh calibration gate passes.
+2. Use the duplicate-collapsed correction-evidence table and diagnostic exact-
+   propagation artifact as the audit sources for local diagnostic cleanup.
+   Preserve explicit conflict provenance: reference+Opus agreement, human
+   disagreement, historical exact-repeat conflict, fresh adjudicated status, or
+   unresolved.
+3. Do not extend beyond the table's exact-normalized-answer propagation rules.
+   Keep broader semantic families non-propagating unless they receive fresh
+   review, and keep all such propagation non-claim-bearing unless a fresh
+   calibration gate passes.
 4. If the kappa threshold is reconsidered because AC1 is judged more appropriate
    under label skew, document that as a prospective policy change and apply it
    only to fresh or blinded calibration evidence.
-5. After the correction-evidence table is frozen, the next scientific-impact
-   step is specificity evidence: add more random-direction and random-head
+5. The next scientific-impact step is prospective measurement and specificity
+   evidence: freeze a tightened rubric with hard-case examples, run a fresh
+   blinded calibration sample, and add more random-direction and random-head
    seeds before making any selected-ITI statement.
 6. Preserve the tracked run outputs as immutable provenance. Use this report
    and `open_calibration_summary.json` as the current claimability authority.

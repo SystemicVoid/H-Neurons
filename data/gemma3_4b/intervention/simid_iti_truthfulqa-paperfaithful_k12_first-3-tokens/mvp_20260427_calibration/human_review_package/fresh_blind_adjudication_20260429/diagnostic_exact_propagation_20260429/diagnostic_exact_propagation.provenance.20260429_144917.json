@@ -1,0 +1,78 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/build_simid_boundary_propagation_sensitivity-20260429_144917-218974.json",
+  "args": {
+    "alphas": null,
+    "baseline_alpha": 0.0,
+    "conditions": null,
+    "evidence_jsonl": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/duplicate_collapsed_correction_evidence.jsonl",
+    "n_resamples": 10000,
+    "output_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429",
+    "overwrite": true,
+    "run_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration",
+    "seed": 42,
+    "tolerance": 1e-09
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/build_simid_boundary_propagation_sensitivity.py",
+    "--overwrite"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/build_simid_boundary_propagation_sensitivity.py --overwrite",
+  "completed_at_utc": "2026-04-29T14:49:34.830943+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "76da2da76855897c72ba20f7aa0417c1c8d6ce28",
+  "hostname": "excurio",
+  "inputs": {
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/duplicate_collapsed_correction_evidence.jsonl": {
+      "sha256": "abd4a44e1e49756b44de3f463af2ab6aa82dfb055aa09c45b03e729ffaf0427d"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/manifest.locked.json": {
+      "sha256": "fd6efd153891bfb8f961509e2bb2b272d992c0cd9f633b9c2ae9dd85b2f64e2a"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_adjudication.jsonl": {
+      "sha256": "44aad0a6e43087c18648e471a868afe675228837187cba9a81108157c7bfd42c"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/results_adjudicated.json": {
+      "sha256": "af21d334bd4b3086e3968b6d58e6e618b059302a50a8ae4f14c4e41d50fcf17c"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/run_config.json": {
+      "sha256": "d5749da15a5dd249898e9002e238957e01c6bd3b111a3a70bf4a393f10d2909f"
+    },
+    "scripts/build_simid_boundary_propagation_sensitivity.py": {
+      "sha256": "5debe815aa1962488e32b3eb4d22eb5f38cab042bf75d6909ef5cbd901271089"
+    }
+  },
+  "n_evidence_rows": 10,
+  "n_exact_applied_rows": 120,
+  "n_label_changed_rows": 96,
+  "n_open_adjudications_loaded": 4800,
+  "n_rows": 4800,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/row_corrections.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/diagnostic_sensitivity_summary.json",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/diagnostic_sensitivity.md",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/README.md"
+  ],
+  "outputs": {
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/README.md": {
+      "sha256": "acb948e7a3aea677419e8621929ec506959048b6169290f323d559da11b9bdf7"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/diagnostic_sensitivity.md": {
+      "sha256": "ed159f02ee016b7afb03146a23c624968ca8ba3e974b250156511e1d91995a5f"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/diagnostic_sensitivity_summary.json": {
+      "sha256": "bde867aebbfc128c7e2a1c249d5cbc9af8f23b11c500e9ccb051a56f185cf6e0"
+    },
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/diagnostic_exact_propagation_20260429/row_corrections.jsonl": {
+      "sha256": "1244c766e56c4a2111eeab1b8b36a2b739222a1dfb78cc829462de10ef1a05fe"
+    }
+  },
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "build_simid_boundary_propagation_sensitivity-20260429_144917-218974",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "build_simid_boundary_propagation_sensitivity.py",
+  "started_at_utc": "2026-04-29T14:49:17.166718+00:00",
+  "status": "completed"
+}

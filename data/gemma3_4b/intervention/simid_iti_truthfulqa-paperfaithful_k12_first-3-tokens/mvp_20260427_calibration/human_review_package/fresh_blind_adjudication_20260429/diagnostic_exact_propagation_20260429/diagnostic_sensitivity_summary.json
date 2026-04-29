@@ -1,0 +1,5144 @@
+{
+  "alphas": [
+    -8.0,
+    0.0,
+    4.0,
+    8.0
+  ],
+  "baseline_alpha": 0.0,
+  "bootstrap": {
+    "confidence": 0.95,
+    "n_resamples": 10000,
+    "resampling": "paired_by_base_sample_id",
+    "seed": 42
+  },
+  "claimability_guardrail": "Diagnostic sensitivity only. Historical MVP outputs are preserved, and open correctness remains non-claim-bearing until a separate prospective calibration gate passes.",
+  "conditions": {
+    "random_direction_seed1": {
+      "alphas": [
+        -8.0,
+        0.0,
+        4.0,
+        8.0
+      ],
+      "baseline_alpha": 0.0,
+      "condition": "random_direction_seed1",
+      "dataset_endpoint_summaries": {
+        "triviaqa_bridge::synthetic_mc1": {
+          "alphas": [
+            -8.0,
+            0.0,
+            4.0,
+            8.0
+          ],
+          "baseline_alpha": 0.0,
+          "dataset": "triviaqa_bridge",
+          "mc_endpoint": "synthetic_mc1",
+          "n_paired_items": 100,
+          "n_rows_at_baseline": 200,
+          "paired_deltas_vs_baseline": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": 0.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -8.000000000000002,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 2.0000000000000018
+                },
+                "estimate_pp": -2.9999999999999973
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": 0.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -9.000000000000002,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 2.9999999999999973
+                },
+                "estimate_pp": -2.9999999999999973
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": 0.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 9.000000000000002
+                },
+                "estimate_pp": 4.0000000000000036
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": 0.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 1.0000000000000009,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 9.999999999999998
+                },
+                "estimate_pp": 5.000000000000004
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 3.0000000000000027
+                },
+                "estimate_pp": 1.0000000000000009
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -2.9999999999999973,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 7.000000000000001
+                },
+                "estimate_pp": 2.0000000000000018
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 3.0000000000000027
+                },
+                "estimate_pp": 1.0000000000000009
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -2.9999999999999973,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 7.000000000000001
+                },
+                "estimate_pp": 2.0000000000000018
+              }
+            }
+          },
+          "pairing_unit": "base_sample_id",
+          "rates": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.35,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.55
+                },
+                "estimate": 0.45,
+                "n": 100,
+                "sum": 45.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.34,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.54
+                },
+                "estimate": 0.44,
+                "n": 100,
+                "sum": 44.0
+              }
+            },
+            "0.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.38,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.58
+                },
+                "estimate": 0.48,
+                "n": 100,
+                "sum": 48.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.37,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.57
+                },
+                "estimate": 0.47,
+                "n": 100,
+                "sum": 47.0
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.42,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.62
+                },
+                "estimate": 0.52,
+                "n": 100,
+                "sum": 52.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.42,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.62
+                },
+                "estimate": 0.52,
+                "n": 100,
+                "sum": 52.0
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 1.0,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 1.0,
+                "n": 100,
+                "sum": 100.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.4,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.6
+                },
+                "estimate": 0.5,
+                "n": 100,
+                "sum": 50.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 1.0,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 1.0,
+                "n": 100,
+                "sum": 100.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.39,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.59
+                },
+                "estimate": 0.49,
+                "n": 100,
+                "sum": 49.0
+              }
+            }
+          }
+        },
+        "truthfulqa::truthfulqa_mc1::truthfulqa_artifact_split=test::truthfulqa_seen_in_iti_fit=false::truthfulqa_leakage_policy=heldout_only": {
+          "alphas": [
+            -8.0,
+            0.0,
+            4.0,
+            8.0
+          ],
+          "baseline_alpha": 0.0,
+          "dataset": "truthfulqa",
+          "mc_endpoint": "truthfulqa_mc1",
+          "n_paired_items": 100,
+          "n_rows_at_baseline": 200,
+          "paired_deltas_vs_baseline": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -5.999999999999995,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 5.999999999999995
+                },
+                "estimate_pp": 0.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -4.999999999999999,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 8.999999999999996
+                },
+                "estimate_pp": 2.0000000000000018
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -5.999999999999995,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 5.999999999999995
+                },
+                "estimate_pp": 0.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -4.999999999999999,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 8.999999999999996
+                },
+                "estimate_pp": 2.0000000000000018
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 6.999999999999995
+                },
+                "estimate_pp": 3.0000000000000027
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -3.0000000000000027,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 5.000000000000004
+                },
+                "estimate_pp": 1.0000000000000009
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 6.999999999999995
+                },
+                "estimate_pp": 3.0000000000000027
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -3.0000000000000027,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 5.000000000000004
+                },
+                "estimate_pp": 1.0000000000000009
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 12.0
+                },
+                "estimate_pp": 6.000000000000005
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -2.0000000000000018,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 10.000000000000004
+                },
+                "estimate_pp": 4.0000000000000036
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 12.0
+                },
+                "estimate_pp": 6.000000000000005
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -2.0000000000000018,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 10.000000000000004
+                },
+                "estimate_pp": 4.0000000000000036
+              }
+            }
+          },
+          "pairing_unit": "base_sample_id",
+          "rates": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.78,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.92
+                },
+                "estimate": 0.85,
+                "n": 100,
+                "sum": 85.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.22,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.4
+                },
+                "estimate": 0.31,
+                "n": 100,
+                "sum": 31.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.78,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.92
+                },
+                "estimate": 0.85,
+                "n": 100,
+                "sum": 85.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.22,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.4
+                },
+                "estimate": 0.31,
+                "n": 100,
+                "sum": 31.0
+              }
+            },
+            "0.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.78,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.92
+                },
+                "estimate": 0.85,
+                "n": 100,
+                "sum": 85.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.2,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.38
+                },
+                "estimate": 0.29,
+                "n": 100,
+                "sum": 29.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.78,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.92
+                },
+                "estimate": 0.85,
+                "n": 100,
+                "sum": 85.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.2,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.38
+                },
+                "estimate": 0.29,
+                "n": 100,
+                "sum": 29.0
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.81,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.94
+                },
+                "estimate": 0.88,
+                "n": 100,
+                "sum": 88.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.21,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.39
+                },
+                "estimate": 0.3,
+                "n": 100,
+                "sum": 30.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.81,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.94
+                },
+                "estimate": 0.88,
+                "n": 100,
+                "sum": 88.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.21,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.39
+                },
+                "estimate": 0.3,
+                "n": 100,
+                "sum": 30.0
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.85,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.96
+                },
+                "estimate": 0.91,
+                "n": 100,
+                "sum": 91.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.24,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.42
+                },
+                "estimate": 0.33,
+                "n": 100,
+                "sum": 33.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.85,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.96
+                },
+                "estimate": 0.91,
+                "n": 100,
+                "sum": 91.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.24,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.42
+                },
+                "estimate": 0.33,
+                "n": 100,
+                "sum": 33.0
+              }
+            }
+          },
+          "truthfulqa_leakage_metadata": {
+            "truthfulqa_artifact_split": "test",
+            "truthfulqa_leakage_policy": "heldout_only",
+            "truthfulqa_seen_in_iti_fit": "false"
+          }
+        }
+      },
+      "n_paired_items": 200,
+      "n_rows_at_baseline": 400,
+      "paired_deltas_vs_baseline": {
+        "-8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -2.9999999999999916,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 2.9999999999999916
+            },
+            "estimate_pp": 0.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -4.999999999999999,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 3.9999999999999982
+            },
+            "estimate_pp": -0.5000000000000004
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -2.9999999999999916,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 2.9999999999999916
+            },
+            "estimate_pp": 0.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -4.999999999999999,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 4.0000000000000036
+            },
+            "estimate_pp": -0.5000000000000004
+          }
+        },
+        "4.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": 0.0,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 3.499999999999992
+            },
+            "estimate_pp": 1.5000000000000013
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -0.5000000000000004,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 6.0
+            },
+            "estimate_pp": 2.4999999999999964
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": 0.0,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 3.499999999999992
+            },
+            "estimate_pp": 1.5000000000000013
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": 0.0,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 6.0
+            },
+            "estimate_pp": 2.9999999999999973
+          }
+        },
+        "8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": 0.5000000000000004,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 6.999999999999995
+            },
+            "estimate_pp": 3.499999999999992
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -1.0000000000000009,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 7.000000000000001
+            },
+            "estimate_pp": 2.9999999999999973
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": 0.5000000000000004,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 6.999999999999995
+            },
+            "estimate_pp": 3.499999999999992
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -1.0000000000000009,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 7.000000000000001
+            },
+            "estimate_pp": 2.9999999999999973
+          }
+        }
+      },
+      "pairing_unit": "base_sample_id",
+      "rates": {
+        "-8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.88,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.955
+            },
+            "estimate": 0.92,
+            "n": 200,
+            "sum": 184.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.315,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.445
+            },
+            "estimate": 0.38,
+            "n": 200,
+            "sum": 76.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.88,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.955
+            },
+            "estimate": 0.92,
+            "n": 200,
+            "sum": 184.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.31,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.445
+            },
+            "estimate": 0.375,
+            "n": 200,
+            "sum": 75.0
+          }
+        },
+        "0.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.88,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.955
+            },
+            "estimate": 0.92,
+            "n": 200,
+            "sum": 184.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.32,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.455
+            },
+            "estimate": 0.385,
+            "n": 200,
+            "sum": 77.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.88,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.955
+            },
+            "estimate": 0.92,
+            "n": 200,
+            "sum": 184.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.315,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.45
+            },
+            "estimate": 0.38,
+            "n": 200,
+            "sum": 76.0
+          }
+        },
+        "4.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.9,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.965
+            },
+            "estimate": 0.935,
+            "n": 200,
+            "sum": 187.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.34,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.48
+            },
+            "estimate": 0.41,
+            "n": 200,
+            "sum": 82.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.9,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.965
+            },
+            "estimate": 0.935,
+            "n": 200,
+            "sum": 187.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.34,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.48
+            },
+            "estimate": 0.41,
+            "n": 200,
+            "sum": 82.0
+          }
+        },
+        "8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.925,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.98
+            },
+            "estimate": 0.955,
+            "n": 200,
+            "sum": 191.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.345,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.485
+            },
+            "estimate": 0.415,
+            "n": 200,
+            "sum": 83.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.925,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.98
+            },
+            "estimate": 0.955,
+            "n": 200,
+            "sum": 191.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.34,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.48
+            },
+            "estimate": 0.41,
+            "n": 200,
+            "sum": 82.0
+          }
+        }
+      },
+      "summary_scope": "pooled_across_dataset_and_mc_endpoint"
+    },
+    "random_head_seed1": {
+      "alphas": [
+        -8.0,
+        0.0,
+        4.0,
+        8.0
+      ],
+      "baseline_alpha": 0.0,
+      "condition": "random_head_seed1",
+      "dataset_endpoint_summaries": {
+        "triviaqa_bridge::synthetic_mc1": {
+          "alphas": [
+            -8.0,
+            0.0,
+            4.0,
+            8.0
+          ],
+          "baseline_alpha": 0.0,
+          "dataset": "triviaqa_bridge",
+          "mc_endpoint": "synthetic_mc1",
+          "n_paired_items": 100,
+          "n_rows_at_baseline": 200,
+          "paired_deltas_vs_baseline": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": 0.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -8.000000000000007,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 2.0000000000000018
+                },
+                "estimate_pp": -2.9999999999999973
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": 0.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -7.9999999999999964,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 3.0000000000000027
+                },
+                "estimate_pp": -1.9999999999999962
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -3.0000000000000027,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -1.0000000000000009
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -7.000000000000001,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -2.9999999999999973
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -3.0000000000000027,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -1.0000000000000009
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -6.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 1.9999999999999962
+                },
+                "estimate_pp": -1.9999999999999962
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -5.000000000000004,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -2.0000000000000018
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -9.999999999999998,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": -1.0000000000000009
+                },
+                "estimate_pp": -4.999999999999999
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -5.000000000000004,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -2.0000000000000018
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -9.000000000000002,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -3.9999999999999982
+              }
+            }
+          },
+          "pairing_unit": "base_sample_id",
+          "rates": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.35,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.55
+                },
+                "estimate": 0.45,
+                "n": 100,
+                "sum": 45.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.35,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.55
+                },
+                "estimate": 0.45,
+                "n": 100,
+                "sum": 45.0
+              }
+            },
+            "0.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.38,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.58
+                },
+                "estimate": 0.48,
+                "n": 100,
+                "sum": 48.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.37,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.57
+                },
+                "estimate": 0.47,
+                "n": 100,
+                "sum": 47.0
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.95,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.98,
+                "n": 100,
+                "sum": 98.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.35,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.55
+                },
+                "estimate": 0.45,
+                "n": 100,
+                "sum": 45.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.95,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.98,
+                "n": 100,
+                "sum": 98.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.35,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.55
+                },
+                "estimate": 0.45,
+                "n": 100,
+                "sum": 45.0
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.93,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.97,
+                "n": 100,
+                "sum": 97.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.33,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.53
+                },
+                "estimate": 0.43,
+                "n": 100,
+                "sum": 43.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.93,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.97,
+                "n": 100,
+                "sum": 97.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.33,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.53
+                },
+                "estimate": 0.43,
+                "n": 100,
+                "sum": 43.0
+              }
+            }
+          }
+        },
+        "truthfulqa::truthfulqa_mc1::truthfulqa_artifact_split=test::truthfulqa_seen_in_iti_fit=false::truthfulqa_leakage_policy=heldout_only": {
+          "alphas": [
+            -8.0,
+            0.0,
+            4.0,
+            8.0
+          ],
+          "baseline_alpha": 0.0,
+          "dataset": "truthfulqa",
+          "mc_endpoint": "truthfulqa_mc1",
+          "n_paired_items": 100,
+          "n_rows_at_baseline": 200,
+          "paired_deltas_vs_baseline": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -3.0000000000000027,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 9.000000000000007
+                },
+                "estimate_pp": 3.0000000000000027
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -6.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 4.000000000000001
+                },
+                "estimate_pp": -0.9999999999999953
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -3.0000000000000027,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 9.000000000000007
+                },
+                "estimate_pp": 3.0000000000000027
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -6.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 4.000000000000001
+                },
+                "estimate_pp": -0.9999999999999953
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -2.0000000000000018,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 6.000000000000005
+                },
+                "estimate_pp": 2.0000000000000018
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -3.0000000000000027,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 7.9999999999999964
+                },
+                "estimate_pp": 2.0000000000000018
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -2.0000000000000018,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 6.000000000000005
+                },
+                "estimate_pp": 2.0000000000000018
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -3.0000000000000027,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 7.9999999999999964
+                },
+                "estimate_pp": 2.0000000000000018
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 8.999999999999996
+                },
+                "estimate_pp": 4.0000000000000036
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -2.0000000000000018,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 10.000000000000004
+                },
+                "estimate_pp": 4.0000000000000036
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 8.999999999999996
+                },
+                "estimate_pp": 4.0000000000000036
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -2.0000000000000018,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 10.000000000000004
+                },
+                "estimate_pp": 4.0000000000000036
+              }
+            }
+          },
+          "pairing_unit": "base_sample_id",
+          "rates": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.81,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.94
+                },
+                "estimate": 0.88,
+                "n": 100,
+                "sum": 88.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.19,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.37
+                },
+                "estimate": 0.28,
+                "n": 100,
+                "sum": 28.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.81,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.94
+                },
+                "estimate": 0.88,
+                "n": 100,
+                "sum": 88.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.19,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.37
+                },
+                "estimate": 0.28,
+                "n": 100,
+                "sum": 28.0
+              }
+            },
+            "0.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.78,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.92
+                },
+                "estimate": 0.85,
+                "n": 100,
+                "sum": 85.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.2,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.38
+                },
+                "estimate": 0.29,
+                "n": 100,
+                "sum": 29.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.78,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.92
+                },
+                "estimate": 0.85,
+                "n": 100,
+                "sum": 85.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.2,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.38
+                },
+                "estimate": 0.29,
+                "n": 100,
+                "sum": 29.0
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.8,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.93
+                },
+                "estimate": 0.87,
+                "n": 100,
+                "sum": 87.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.22,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.4
+                },
+                "estimate": 0.31,
+                "n": 100,
+                "sum": 31.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.8,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.93
+                },
+                "estimate": 0.87,
+                "n": 100,
+                "sum": 87.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.22,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.4
+                },
+                "estimate": 0.31,
+                "n": 100,
+                "sum": 31.0
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.83,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.95
+                },
+                "estimate": 0.89,
+                "n": 100,
+                "sum": 89.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.24,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.43
+                },
+                "estimate": 0.33,
+                "n": 100,
+                "sum": 33.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.83,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.95
+                },
+                "estimate": 0.89,
+                "n": 100,
+                "sum": 89.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.24,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.43
+                },
+                "estimate": 0.33,
+                "n": 100,
+                "sum": 33.0
+              }
+            }
+          },
+          "truthfulqa_leakage_metadata": {
+            "truthfulqa_artifact_split": "test",
+            "truthfulqa_leakage_policy": "heldout_only",
+            "truthfulqa_seen_in_iti_fit": "false"
+          }
+        }
+      },
+      "n_paired_items": 200,
+      "n_rows_at_baseline": 400,
+      "paired_deltas_vs_baseline": {
+        "-8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -1.5000000000000013,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 4.999999999999993
+            },
+            "estimate_pp": 1.5000000000000013
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -5.499999999999999,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 1.5000000000000013
+            },
+            "estimate_pp": -2.0000000000000018
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -1.5000000000000013,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 4.999999999999993
+            },
+            "estimate_pp": 1.5000000000000013
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -5.499999999999999,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 2.0000000000000018
+            },
+            "estimate_pp": -1.5000000000000013
+          }
+        },
+        "4.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -1.5000000000000013,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 2.500000000000002
+            },
+            "estimate_pp": 0.5000000000000004
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -3.500000000000003,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 2.9999999999999973
+            },
+            "estimate_pp": -0.5000000000000004
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -1.5000000000000013,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 2.500000000000002
+            },
+            "estimate_pp": 0.5000000000000004
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -3.4999999999999973,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 3.4999999999999973
+            },
+            "estimate_pp": 0.0
+          }
+        },
+        "8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -1.5000000000000013,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 3.9999999999999925
+            },
+            "estimate_pp": 1.0000000000000009
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -4.499999999999998,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 3.0000000000000027
+            },
+            "estimate_pp": -0.5000000000000004
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -1.5000000000000013,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 3.9999999999999925
+            },
+            "estimate_pp": 1.0000000000000009
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -3.9999999999999982,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 3.9999999999999982
+            },
+            "estimate_pp": 0.0
+          }
+        }
+      },
+      "pairing_unit": "base_sample_id",
+      "rates": {
+        "-8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.9,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.965
+            },
+            "estimate": 0.935,
+            "n": 200,
+            "sum": 187.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.3,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.43
+            },
+            "estimate": 0.365,
+            "n": 200,
+            "sum": 73.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.9,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.965
+            },
+            "estimate": 0.935,
+            "n": 200,
+            "sum": 187.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.3,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.43
+            },
+            "estimate": 0.365,
+            "n": 200,
+            "sum": 73.0
+          }
+        },
+        "0.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.88,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.955
+            },
+            "estimate": 0.92,
+            "n": 200,
+            "sum": 184.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.32,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.455
+            },
+            "estimate": 0.385,
+            "n": 200,
+            "sum": 77.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.88,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.955
+            },
+            "estimate": 0.92,
+            "n": 200,
+            "sum": 184.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.315,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.45
+            },
+            "estimate": 0.38,
+            "n": 200,
+            "sum": 76.0
+          }
+        },
+        "4.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.885,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.96
+            },
+            "estimate": 0.925,
+            "n": 200,
+            "sum": 185.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.315,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.445
+            },
+            "estimate": 0.38,
+            "n": 200,
+            "sum": 76.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.885,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.96
+            },
+            "estimate": 0.925,
+            "n": 200,
+            "sum": 185.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.315,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.45
+            },
+            "estimate": 0.38,
+            "n": 200,
+            "sum": 76.0
+          }
+        },
+        "8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.895,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.965
+            },
+            "estimate": 0.93,
+            "n": 200,
+            "sum": 186.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.315,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.445
+            },
+            "estimate": 0.38,
+            "n": 200,
+            "sum": 76.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.895,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.965
+            },
+            "estimate": 0.93,
+            "n": 200,
+            "sum": 186.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.315,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.445
+            },
+            "estimate": 0.38,
+            "n": 200,
+            "sum": 76.0
+          }
+        }
+      },
+      "summary_scope": "pooled_across_dataset_and_mc_endpoint"
+    },
+    "selected": {
+      "alphas": [
+        -8.0,
+        0.0,
+        4.0,
+        8.0
+      ],
+      "baseline_alpha": 0.0,
+      "condition": "selected",
+      "dataset_endpoint_summaries": {
+        "triviaqa_bridge::synthetic_mc1": {
+          "alphas": [
+            -8.0,
+            0.0,
+            4.0,
+            8.0
+          ],
+          "baseline_alpha": 0.0,
+          "dataset": "triviaqa_bridge",
+          "mc_endpoint": "synthetic_mc1",
+          "n_paired_items": 100,
+          "n_rows_at_baseline": 200,
+          "paired_deltas_vs_baseline": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 3.0000000000000027
+                },
+                "estimate_pp": 1.0000000000000009
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -11.000000000000004,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 1.0000000000000009
+                },
+                "estimate_pp": -4.999999999999999
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 3.0000000000000027
+                },
+                "estimate_pp": 1.0000000000000009
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -10.000000000000004,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 2.0000000000000018
+                },
+                "estimate_pp": -3.9999999999999982
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": 0.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -7.9999999999999964,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 1.0000000000000009
+                },
+                "estimate_pp": -2.9999999999999973
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": 0.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -9.000000000000002,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -3.9999999999999982
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 3.0000000000000027
+                },
+                "estimate_pp": 1.0000000000000009
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -12.000000000000005,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -6.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 3.0000000000000027
+                },
+                "estimate_pp": 1.0000000000000009
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -14.999999999999996,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": -1.9999999999999962
+                },
+                "estimate_pp": -7.9999999999999964
+              }
+            }
+          },
+          "pairing_unit": "base_sample_id",
+          "rates": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 1.0,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 1.0,
+                "n": 100,
+                "sum": 100.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.33,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.53
+                },
+                "estimate": 0.43,
+                "n": 100,
+                "sum": 43.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 1.0,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 1.0,
+                "n": 100,
+                "sum": 100.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.33,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.53
+                },
+                "estimate": 0.43,
+                "n": 100,
+                "sum": 43.0
+              }
+            },
+            "0.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.38,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.58
+                },
+                "estimate": 0.48,
+                "n": 100,
+                "sum": 48.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.37,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.57
+                },
+                "estimate": 0.47,
+                "n": 100,
+                "sum": 47.0
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.35,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.55
+                },
+                "estimate": 0.45,
+                "n": 100,
+                "sum": 45.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.97,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 0.99,
+                "n": 100,
+                "sum": 99.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.33,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.53
+                },
+                "estimate": 0.43,
+                "n": 100,
+                "sum": 43.0
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 1.0,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 1.0,
+                "n": 100,
+                "sum": 100.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.32,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.52
+                },
+                "estimate": 0.42,
+                "n": 100,
+                "sum": 42.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 1.0,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 1.0
+                },
+                "estimate": 1.0,
+                "n": 100,
+                "sum": 100.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.29,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.49
+                },
+                "estimate": 0.39,
+                "n": 100,
+                "sum": 39.0
+              }
+            }
+          }
+        },
+        "truthfulqa::truthfulqa_mc1::truthfulqa_artifact_split=test::truthfulqa_seen_in_iti_fit=false::truthfulqa_leakage_policy=heldout_only": {
+          "alphas": [
+            -8.0,
+            0.0,
+            4.0,
+            8.0
+          ],
+          "baseline_alpha": 0.0,
+          "dataset": "truthfulqa",
+          "mc_endpoint": "truthfulqa_mc1",
+          "n_paired_items": 100,
+          "n_rows_at_baseline": 200,
+          "paired_deltas_vs_baseline": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 3.9999999999999925,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 15.000000000000002
+                },
+                "estimate_pp": 8.999999999999996
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -14.000000000000002,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -6.999999999999998
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 3.9999999999999925,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 15.000000000000002
+                },
+                "estimate_pp": 8.999999999999996
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -14.000000000000002,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -6.999999999999998
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -9.999999999999998,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -4.999999999999993
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 14.000000000000002
+                },
+                "estimate_pp": 7.000000000000001
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -9.999999999999998,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 0.0
+                },
+                "estimate_pp": -4.999999999999993
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 0.0,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 14.000000000000002
+                },
+                "estimate_pp": 7.000000000000001
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -9.999999999999998,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 4.0000000000000036
+                },
+                "estimate_pp": -3.0000000000000027
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 4.000000000000001,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 20.0
+                },
+                "estimate_pp": 12.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": -9.999999999999998,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 4.0000000000000036
+                },
+                "estimate_pp": -3.0000000000000027
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "paired_by_base_sample_id",
+                  "seed": 42
+                },
+                "ci_pp": {
+                  "level": 0.95,
+                  "lower": 4.000000000000001,
+                  "method": "bootstrap_percentile_paired_base_sample_id",
+                  "upper": 20.0
+                },
+                "estimate_pp": 12.0
+              }
+            }
+          },
+          "pairing_unit": "base_sample_id",
+          "rates": {
+            "-8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.89,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.98
+                },
+                "estimate": 0.94,
+                "n": 100,
+                "sum": 94.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.14,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.3
+                },
+                "estimate": 0.22,
+                "n": 100,
+                "sum": 22.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.89,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.98
+                },
+                "estimate": 0.94,
+                "n": 100,
+                "sum": 94.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.14,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.3
+                },
+                "estimate": 0.22,
+                "n": 100,
+                "sum": 22.0
+              }
+            },
+            "0.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.78,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.92
+                },
+                "estimate": 0.85,
+                "n": 100,
+                "sum": 85.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.2,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.38
+                },
+                "estimate": 0.29,
+                "n": 100,
+                "sum": 29.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.78,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.92
+                },
+                "estimate": 0.85,
+                "n": 100,
+                "sum": 85.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.2,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.38
+                },
+                "estimate": 0.29,
+                "n": 100,
+                "sum": 29.0
+              }
+            },
+            "4.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.72,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.88
+                },
+                "estimate": 0.8,
+                "n": 100,
+                "sum": 80.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.27,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.45
+                },
+                "estimate": 0.36,
+                "n": 100,
+                "sum": 36.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.72,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.88
+                },
+                "estimate": 0.8,
+                "n": 100,
+                "sum": 80.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.27,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.45
+                },
+                "estimate": 0.36,
+                "n": 100,
+                "sum": 36.0
+              }
+            },
+            "8.0": {
+              "adjudicated_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.74,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.89
+                },
+                "estimate": 0.82,
+                "n": 100,
+                "sum": 82.0
+              },
+              "adjudicated_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.32,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.51
+                },
+                "estimate": 0.41,
+                "n": 100,
+                "sum": 41.0
+              },
+              "diagnostic_exact_open_attempted": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.74,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.89
+                },
+                "estimate": 0.82,
+                "n": 100,
+                "sum": 82.0
+              },
+              "diagnostic_exact_open_correct": {
+                "bootstrap": {
+                  "confidence": 0.95,
+                  "interval": "percentile",
+                  "n_resamples": 10000,
+                  "resampling": "base_sample_id",
+                  "seed": 42
+                },
+                "ci": {
+                  "level": 0.95,
+                  "lower": 0.32,
+                  "method": "bootstrap_percentile_item_grouped",
+                  "upper": 0.51
+                },
+                "estimate": 0.41,
+                "n": 100,
+                "sum": 41.0
+              }
+            }
+          },
+          "truthfulqa_leakage_metadata": {
+            "truthfulqa_artifact_split": "test",
+            "truthfulqa_leakage_policy": "heldout_only",
+            "truthfulqa_seen_in_iti_fit": "false"
+          }
+        }
+      },
+      "n_paired_items": 200,
+      "n_rows_at_baseline": 400,
+      "paired_deltas_vs_baseline": {
+        "-8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": 2.0000000000000018,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 8.499999999999996
+            },
+            "estimate_pp": 4.999999999999993
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -10.500000000000004,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": -1.5000000000000013
+            },
+            "estimate_pp": -6.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": 2.0000000000000018,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 8.499999999999996
+            },
+            "estimate_pp": 4.999999999999993
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -10.000000000000004,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": -1.0000000000000009
+            },
+            "estimate_pp": -5.499999999999999
+          }
+        },
+        "4.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -5.000000000000004,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 0.0
+            },
+            "estimate_pp": -2.500000000000002
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -2.0000000000000018,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 6.000000000000005
+            },
+            "estimate_pp": 2.0000000000000018
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -5.000000000000004,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 0.0
+            },
+            "estimate_pp": -2.500000000000002
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -2.500000000000002,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 6.0
+            },
+            "estimate_pp": 1.5000000000000013
+          }
+        },
+        "8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -4.5000000000000036,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 2.500000000000002
+            },
+            "estimate_pp": -1.0000000000000009
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -2.0000000000000018,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 8.499999999999996
+            },
+            "estimate_pp": 2.9999999999999973
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -4.5000000000000036,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 2.500000000000002
+            },
+            "estimate_pp": -1.0000000000000009
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "paired_by_base_sample_id",
+              "seed": 42
+            },
+            "ci_pp": {
+              "level": 0.95,
+              "lower": -3.4999999999999973,
+              "method": "bootstrap_percentile_paired_base_sample_id",
+              "upper": 7.500000000000001
+            },
+            "estimate_pp": 2.0000000000000018
+          }
+        }
+      },
+      "pairing_unit": "base_sample_id",
+      "rates": {
+        "-8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.945,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.99
+            },
+            "estimate": 0.97,
+            "n": 200,
+            "sum": 194.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.26,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.39
+            },
+            "estimate": 0.325,
+            "n": 200,
+            "sum": 65.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.945,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.99
+            },
+            "estimate": 0.97,
+            "n": 200,
+            "sum": 194.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.26,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.39
+            },
+            "estimate": 0.325,
+            "n": 200,
+            "sum": 65.0
+          }
+        },
+        "0.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.88,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.955
+            },
+            "estimate": 0.92,
+            "n": 200,
+            "sum": 184.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.32,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.455
+            },
+            "estimate": 0.385,
+            "n": 200,
+            "sum": 77.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.88,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.955
+            },
+            "estimate": 0.92,
+            "n": 200,
+            "sum": 184.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.315,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.45
+            },
+            "estimate": 0.38,
+            "n": 200,
+            "sum": 76.0
+          }
+        },
+        "4.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.85,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.935
+            },
+            "estimate": 0.895,
+            "n": 200,
+            "sum": 179.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.34,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.475
+            },
+            "estimate": 0.405,
+            "n": 200,
+            "sum": 81.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.85,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.935
+            },
+            "estimate": 0.895,
+            "n": 200,
+            "sum": 179.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.33,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.465
+            },
+            "estimate": 0.395,
+            "n": 200,
+            "sum": 79.0
+          }
+        },
+        "8.0": {
+          "adjudicated_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.87,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.95
+            },
+            "estimate": 0.91,
+            "n": 200,
+            "sum": 182.0
+          },
+          "adjudicated_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.345,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.485
+            },
+            "estimate": 0.415,
+            "n": 200,
+            "sum": 83.0
+          },
+          "diagnostic_exact_open_attempted": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.87,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.95
+            },
+            "estimate": 0.91,
+            "n": 200,
+            "sum": 182.0
+          },
+          "diagnostic_exact_open_correct": {
+            "bootstrap": {
+              "confidence": 0.95,
+              "interval": "percentile",
+              "n_resamples": 10000,
+              "resampling": "base_sample_id",
+              "seed": 42
+            },
+            "ci": {
+              "level": 0.95,
+              "lower": 0.33,
+              "method": "bootstrap_percentile_item_grouped",
+              "upper": 0.47
+            },
+            "estimate": 0.4,
+            "n": 200,
+            "sum": 80.0
+          }
+        }
+      },
+      "summary_scope": "pooled_across_dataset_and_mc_endpoint"
+    }
+  },
+  "conditions_included": [
+    "random_direction_seed1",
+    "random_head_seed1",
+    "selected"
+  ],
+  "evidence_jsonl": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/fresh_blind_adjudication_20260429/correction_evidence_20260429/duplicate_collapsed_correction_evidence.jsonl",
+  "generated_at_utc": "2026-04-29T14:49:34.783993+00:00",
+  "matching_rule": {
+    "broader_family_propagation": "blocked_without_new_review",
+    "normalization": "casefold, trim whitespace, strip terminal .!?",
+    "scope": "same question plus same normalized model response only"
+  },
+  "open_adjudication_jsonl": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_adjudication.jsonl",
+  "results_adjudicated_json": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/results_adjudicated.json",
+  "run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration",
+  "schema_version": "simid_diagnostic_exact_propagation_summary/v1",
+  "selected_alpha8_cells": {
+    "pooled": {
+      "delta_shift_pp": -0.9999999999999956,
+      "diagnostic_exact_delta": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "paired_by_base_sample_id",
+          "seed": 42
+        },
+        "ci_pp": {
+          "level": 0.95,
+          "lower": -3.4999999999999973,
+          "method": "bootstrap_percentile_paired_base_sample_id",
+          "upper": 7.500000000000001
+        },
+        "estimate_pp": 2.0000000000000018
+      },
+      "diagnostic_exact_rate": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "base_sample_id",
+          "seed": 42
+        },
+        "ci": {
+          "level": 0.95,
+          "lower": 0.33,
+          "method": "bootstrap_percentile_item_grouped",
+          "upper": 0.47
+        },
+        "estimate": 0.4,
+        "n": 200,
+        "sum": 80.0
+      },
+      "primary_delta": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "paired_by_base_sample_id",
+          "seed": 42
+        },
+        "ci_pp": {
+          "level": 0.95,
+          "lower": -2.0000000000000018,
+          "method": "bootstrap_percentile_paired_base_sample_id",
+          "upper": 8.499999999999996
+        },
+        "estimate_pp": 2.9999999999999973
+      },
+      "primary_rate": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "base_sample_id",
+          "seed": 42
+        },
+        "ci": {
+          "level": 0.95,
+          "lower": 0.345,
+          "method": "bootstrap_percentile_item_grouped",
+          "upper": 0.485
+        },
+        "estimate": 0.415,
+        "n": 200,
+        "sum": 83.0
+      },
+      "rate_shift_pp": -1.4999999999999958
+    },
+    "triviaqa_bridge": {
+      "delta_shift_pp": -1.9999999999999964,
+      "diagnostic_exact_delta": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "paired_by_base_sample_id",
+          "seed": 42
+        },
+        "ci_pp": {
+          "level": 0.95,
+          "lower": -14.999999999999996,
+          "method": "bootstrap_percentile_paired_base_sample_id",
+          "upper": -1.9999999999999962
+        },
+        "estimate_pp": -7.9999999999999964
+      },
+      "diagnostic_exact_rate": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "base_sample_id",
+          "seed": 42
+        },
+        "ci": {
+          "level": 0.95,
+          "lower": 0.29,
+          "method": "bootstrap_percentile_item_grouped",
+          "upper": 0.49
+        },
+        "estimate": 0.39,
+        "n": 100,
+        "sum": 39.0
+      },
+      "primary_delta": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "paired_by_base_sample_id",
+          "seed": 42
+        },
+        "ci_pp": {
+          "level": 0.95,
+          "lower": -12.000000000000005,
+          "method": "bootstrap_percentile_paired_base_sample_id",
+          "upper": 0.0
+        },
+        "estimate_pp": -6.0
+      },
+      "primary_rate": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "base_sample_id",
+          "seed": 42
+        },
+        "ci": {
+          "level": 0.95,
+          "lower": 0.32,
+          "method": "bootstrap_percentile_item_grouped",
+          "upper": 0.52
+        },
+        "estimate": 0.42,
+        "n": 100,
+        "sum": 42.0
+      },
+      "rate_shift_pp": -2.9999999999999973
+    },
+    "truthfulqa": {
+      "delta_shift_pp": 0.0,
+      "diagnostic_exact_delta": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "paired_by_base_sample_id",
+          "seed": 42
+        },
+        "ci_pp": {
+          "level": 0.95,
+          "lower": 4.000000000000001,
+          "method": "bootstrap_percentile_paired_base_sample_id",
+          "upper": 20.0
+        },
+        "estimate_pp": 12.0
+      },
+      "diagnostic_exact_rate": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "base_sample_id",
+          "seed": 42
+        },
+        "ci": {
+          "level": 0.95,
+          "lower": 0.32,
+          "method": "bootstrap_percentile_item_grouped",
+          "upper": 0.51
+        },
+        "estimate": 0.41,
+        "n": 100,
+        "sum": 41.0
+      },
+      "primary_delta": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "paired_by_base_sample_id",
+          "seed": 42
+        },
+        "ci_pp": {
+          "level": 0.95,
+          "lower": 4.000000000000001,
+          "method": "bootstrap_percentile_paired_base_sample_id",
+          "upper": 20.0
+        },
+        "estimate_pp": 12.0
+      },
+      "primary_rate": {
+        "bootstrap": {
+          "confidence": 0.95,
+          "interval": "percentile",
+          "n_resamples": 10000,
+          "resampling": "base_sample_id",
+          "seed": 42
+        },
+        "ci": {
+          "level": 0.95,
+          "lower": 0.32,
+          "method": "bootstrap_percentile_item_grouped",
+          "upper": 0.51
+        },
+        "estimate": 0.41,
+        "n": 100,
+        "sum": 41.0
+      },
+      "rate_shift_pp": 0.0
+    }
+  },
+  "uncorrected_reproduction_checks": [
+    {
+      "cell": "selected/pooled/alpha8/rate",
+      "checks": [
+        {
+          "abs_diff": 0.0,
+          "expected": 0.415,
+          "field": "estimate",
+          "observed": 0.415,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 83.0,
+          "field": "sum",
+          "observed": 83.0,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 200.0,
+          "field": "n",
+          "observed": 200.0,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 0.345,
+          "field": "ci.lower",
+          "observed": 0.345,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 0.485,
+          "field": "ci.upper",
+          "observed": 0.485,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "cell": "selected/pooled/alpha8/delta",
+      "checks": [
+        {
+          "abs_diff": 0.0,
+          "expected": 2.9999999999999973,
+          "field": "estimate_pp",
+          "observed": 2.9999999999999973,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": -2.0000000000000018,
+          "field": "ci_pp.lower",
+          "observed": -2.0000000000000018,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 8.499999999999996,
+          "field": "ci_pp.upper",
+          "observed": 8.499999999999996,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "cell": "selected/truthfulqa/alpha8/rate",
+      "checks": [
+        {
+          "abs_diff": 0.0,
+          "expected": 0.41,
+          "field": "estimate",
+          "observed": 0.41,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 41.0,
+          "field": "sum",
+          "observed": 41.0,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 100.0,
+          "field": "n",
+          "observed": 100.0,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 0.32,
+          "field": "ci.lower",
+          "observed": 0.32,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 0.51,
+          "field": "ci.upper",
+          "observed": 0.51,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "cell": "selected/truthfulqa/alpha8/delta",
+      "checks": [
+        {
+          "abs_diff": 0.0,
+          "expected": 12.0,
+          "field": "estimate_pp",
+          "observed": 12.0,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 4.000000000000001,
+          "field": "ci_pp.lower",
+          "observed": 4.000000000000001,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 20.0,
+          "field": "ci_pp.upper",
+          "observed": 20.0,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "cell": "selected/triviaqa_bridge/alpha8/rate",
+      "checks": [
+        {
+          "abs_diff": 0.0,
+          "expected": 0.42,
+          "field": "estimate",
+          "observed": 0.42,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 42.0,
+          "field": "sum",
+          "observed": 42.0,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 100.0,
+          "field": "n",
+          "observed": 100.0,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 0.32,
+          "field": "ci.lower",
+          "observed": 0.32,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 0.52,
+          "field": "ci.upper",
+          "observed": 0.52,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "cell": "selected/triviaqa_bridge/alpha8/delta",
+      "checks": [
+        {
+          "abs_diff": 0.0,
+          "expected": -6.0,
+          "field": "estimate_pp",
+          "observed": -6.0,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": -12.000000000000005,
+          "field": "ci_pp.lower",
+          "observed": -12.000000000000005,
+          "passed": true
+        },
+        {
+          "abs_diff": 0.0,
+          "expected": 0.0,
+          "field": "ci_pp.upper",
+          "observed": 0.0,
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "validation": {
+    "all_evidence_families_represented": true,
+    "blocked_core_i_family_rows": 2,
+    "blocked_same_question_nonexact_rows": 46,
+    "core_i9_and_core_i9_apple_silicon_separated": true,
+    "exact_applied_counts_by_family": {
+      "adam_first_man_truthfulqa_boundary": 8,
+      "amal_clooney_lawyer_human_rights_advocate": 2,
+      "amal_clooney_plain_lawyer": 22,
+      "core_i9_apple_silicon_wrong_extra": 6,
+      "core_i9_processor_brand_boundary": 16,
+      "cranberry_modifier_exact_repeat": 14,
+      "peter_piper_plain_peppers": 22,
+      "pithivier_custard_modifier": 12,
+      "pithivier_fruit_modifier": 2,
+      "viscous_fluid_modifier": 16
+    },
+    "exact_counts_match_evidence_mvp_exact_pattern_count": true,
+    "expected_exact_counts_by_family": {
+      "adam_first_man_truthfulqa_boundary": 8,
+      "amal_clooney_lawyer_human_rights_advocate": 2,
+      "amal_clooney_plain_lawyer": 22,
+      "core_i9_apple_silicon_wrong_extra": 6,
+      "core_i9_processor_brand_boundary": 16,
+      "cranberry_modifier_exact_repeat": 14,
+      "peter_piper_plain_peppers": 22,
+      "pithivier_custard_modifier": 12,
+      "pithivier_fruit_modifier": 2,
+      "viscous_fluid_modifier": 16
+    },
+    "label_changed_counts_by_family": {
+      "amal_clooney_plain_lawyer": 22,
+      "core_i9_processor_brand_boundary": 8,
+      "cranberry_modifier_exact_repeat": 14,
+      "peter_piper_plain_peppers": 22,
+      "pithivier_custard_modifier": 12,
+      "pithivier_fruit_modifier": 2,
+      "viscous_fluid_modifier": 16
+    },
+    "label_transition_counts": {
+      "CORRECT->INCORRECT": 58,
+      "INCORRECT->CORRECT": 38
+    },
+    "n_exact_applied_rows": 120,
+    "n_label_changed_rows": 96,
+    "n_rows": 4800,
+    "no_blocked_or_unresolved_row_changed_label": true,
+    "nonpropagatable_exact_rows": 0,
+    "schema_version": "simid_diagnostic_exact_propagation_validation/v1",
+    "status_counts": {
+      "blocked_core_i_family": 2,
+      "blocked_same_question_nonexact": 46,
+      "exact_label_confirmed": 24,
+      "exact_label_replaced": 96,
+      "no_reviewed_question_evidence": 4632
+    }
+  }
+}
