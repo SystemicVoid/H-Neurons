@@ -1,0 +1,33 @@
+name = "mistral24b-runpod"
+provider = "runpod"
+description = "Mistral-Small-24B CP1/CP2 RunPod Secure Cloud profile."
+
+[git]
+bundle_branch = "main"
+
+[runpod]
+pod_name = "hneurons-mistral24b"
+cloud_type = "SECURE"
+template_id = "runpod-torch-v240"
+gpu_id = "NVIDIA H100 SXM"
+gpu_count = 1
+container_disk_gb = 120
+volume_gb = 100
+volume_mount_path = "/workspace"
+ports = "8888/http,22/tcp"
+data_center_ids = ["US-CA-2", "US-OR-1", "EU-RO-1"]
+ssh = true
+global_networking = false
+public_ip = false
+
+[storage]
+first_cp1_mode = "ephemeral"
+network_volume_size_gb = 200
+
+[mistral]
+model_key = "mistral_small_24b_instruct_2501"
+model_path = "mistralai/Mistral-Small-24B-Instruct-2501"
+device_map = "cuda:0"
+wrapper = "scripts/infra/mistral24b_replication.sh"
+remote_uv_sync = "uv sync --no-dev"
+required_hardware = "H100-class CUDA GPU, BF16 support, >=75 GiB VRAM"

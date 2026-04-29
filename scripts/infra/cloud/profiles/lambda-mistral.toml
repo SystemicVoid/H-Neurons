@@ -1,0 +1,13 @@
+name = "lambda-mistral"
+provider = "lambda"
+description = "Lambda wrapper profile; keep using existing Lambda scripts."
+
+[lambda]
+monitor = "uv run python scripts/infra/monitor_lambda_capacity.py"
+bootstrap = "bash scripts/infra/lambda-bootstrap.sh"
+post_launch = "uv run python scripts/infra/lambda_bootstrap_and_start_step1.py"
+runner = "bash scripts/infra/lambda-run-python.sh"
+
+[policy]
+role = "wrap-existing-scripts"
+notes = "Do not replace Lambda bootstrap or runner scripts from cloudctl."

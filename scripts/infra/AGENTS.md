@@ -97,3 +97,9 @@ ${PIPELINE} gpu-preflight 2>&1 | tee -a "${LOG}" || true
 After successful completion, append claim-relevant runs to `notes/runs_to_analyse.md` using the format in `data/AGENTS.md`.
 
 Remote Lambda/GH200 specifics live in `scripts/infra/lambda-AGENTS.md`.
+
+## Cloud Adapter
+
+For RunPod/Lambda cloud orchestration, use `scripts/infra/cloudctl.py` and the
+runbooks under `scripts/infra/cloud/`. The `vendor/zombuul` submodule is
+reference-only; do not install or auto-load its plugin, skills, or prompts.
