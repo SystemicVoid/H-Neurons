@@ -15,6 +15,9 @@ calibration gate passes.
   separate Opus rater.
 - `opus_4_7_labels.jsonl` - validated merged Opus 4.7 labels, reconciled from
   the batch folders.
+- `simid_open_human_labels.jsonl` - completed human UI export. It is valid
+  diagnostic evidence, but the canonical report treats it as noisy triage
+  signal rather than gold labels.
 - `llm_blind_batches/batch_*/` - rater-safe independent-AI batch folders.
 - `llm_blind_case_map.jsonl` - private reconciliation map from synthetic blind
   IDs to calibration IDs. Do not provide this to an independent rater.
@@ -65,7 +68,9 @@ The UI can be opened directly from:
    `uv run python scripts/validate_simid_open_review_labels.py --package-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package --output data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/opus_4_7_labels.jsonl --overwrite`
 
 9. Compare human and Opus labels against primary/secondary/adjudication labels
-   only after both independent label files are finalized.
+   only after both independent label files are finalized. The current human and
+   Opus files have been compared in the canonical report; do not treat either
+   file as a retrospective calibration-gate pass.
 
 Exported labels use schema `simid_open_independent_rater_label/v1` and should be kept as
 new evidence. Do not edit the production queue, secondary labels, adjudications,
@@ -81,5 +86,5 @@ independent labels are finalized.
 Current export provenance sidecar:
 `data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/export_simid_open_review_package.provenance.20260428_182723.json`.
 
-Current interpretation and Opus summary:
+Current interpretation and independent-review summary:
 `paper/icml/reports/2026-04-28-simid-open-calibration-review.md`.
