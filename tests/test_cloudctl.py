@@ -36,7 +36,7 @@ def test_render_launch_default_is_dry_command_without_network_volume() -> None:
 
     assert command[:3] == ["runpodctl", "pod", "create"]
     assert "--template-id runpod-torch-v240" in rendered
-    assert "--gpu-id 'NVIDIA H100 80GB HBM3'" in rendered
+    assert "--gpu-id 'NVIDIA A100-SXM4-80GB'" in rendered
     assert "--volume-in-gb 100" in rendered
     assert "--network-volume-id" not in command
 

@@ -14,12 +14,12 @@ git bundle create /tmp/h-neurons-cp2.bundle main
 git clone -b main /tmp/h-neurons-cp2.bundle /tmp/h-neurons-bundle-smoke
 ```
 
-Choose one live H100 SXM Secure Cloud datacenter before creating storage. Default to `US-CA-2` only if that datacenter has H100 SXM stock; otherwise choose exactly one live H100 SXM datacenter and reuse it for both commands below.
+Choose one live A100 SXM Secure Cloud datacenter before creating storage. Default to `US-MD-1` only if that datacenter has A100 SXM stock; otherwise choose exactly one live A100 SXM datacenter and reuse it for both commands below. H100 SXM remains an explicit speed/availability fallback, not the default.
 
 Render the 200 GB network volume create command, inspect it, then manually run the exact output:
 
 ```bash
-DATA_CENTER_ID=US-CA-2
+DATA_CENTER_ID=US-MD-1
 uv run python scripts/infra/cloudctl.py render-volume-create \
   --profile mistral24b-runpod \
   --name hneurons-mistral24b-cp2 \
@@ -74,7 +74,7 @@ STAGES=splits,activations,classifier \
   bash scripts/infra/mistral24b_replication.sh
 ```
 
-The wrapper asserts H100/A100-class CUDA, BF16 support, and at least 75 GiB before GPU stages. It also validates the token-span summary and CP1 model-load smoke before activation/classifier work.
+The wrapper asserts A100/H100-class CUDA, BF16 support, and at least 75 GiB before GPU stages. It also validates the token-span summary and CP1 model-load smoke before activation/classifier work.
 The official RunPod PyTorch template may not include `uv` or `tmux`; install only
 those small tools if absent. If `uv sync --no-dev` creates an untracked `uv.lock`
 from this repo's unlocked project metadata, remove that generated file before the

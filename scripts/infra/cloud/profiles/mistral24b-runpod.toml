@@ -1,6 +1,6 @@
 name = "mistral24b-runpod"
 provider = "runpod"
-description = "Mistral-Small-24B CP1/CP2 RunPod Secure Cloud profile."
+description = "Mistral-Small-24B CP1/CP2 RunPod Secure Cloud A100-default profile."
 
 [git]
 bundle_branch = "main"
@@ -10,13 +10,13 @@ pod_name = "hneurons-mistral24b"
 cloud_type = "SECURE"
 template_id = "runpod-torch-v240"
 # Use the runpodctl gpuId value here, not the display name from GPU listings.
-gpu_id = "NVIDIA H100 80GB HBM3"
+gpu_id = "NVIDIA A100-SXM4-80GB"
 gpu_count = 1
 container_disk_gb = 120
 volume_gb = 100
 volume_mount_path = "/workspace"
 ports = "8888/http,22/tcp"
-data_center_ids = ["US-CA-2", "US-OR-1", "EU-RO-1"]
+data_center_ids = ["US-MD-1", "US-MO-1", "US-WA-1", "EUR-IS-1"]
 ssh = true
 global_networking = false
 public_ip = false
@@ -31,4 +31,4 @@ model_path = "mistralai/Mistral-Small-24B-Instruct-2501"
 device_map = "cuda:0"
 wrapper = "scripts/infra/mistral24b_replication.sh"
 remote_uv_sync = "uv sync --no-dev"
-required_hardware = "H100-class CUDA GPU, BF16 support, >=75 GiB VRAM"
+required_hardware = "A100/H100-class CUDA GPU, BF16 support, >=75 GiB VRAM"
