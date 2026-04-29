@@ -85,8 +85,12 @@ docs/ci-rollout-status.local.md
 # Bluedot mentee guidance (symlink to external folder)
 docs/good-practices
 
-# Local agent skills (symlinked from forge store)
-.agents/
+# Local agent skills (mostly symlinked from forge store)
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/exec-review/
+!.agents/skills/exec-review/**
 
 # Claude Code local config
 .claude/

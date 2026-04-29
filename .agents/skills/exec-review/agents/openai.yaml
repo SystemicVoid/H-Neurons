@@ -1,0 +1,4 @@
+interface:
+  display_name: "Exec Review"
+  short_description: "Implement one bounded slice, review/fix it, run checks, and commit atomically."
+  default_prompt: "$exec-review <file, path, plan item, or task>"
