@@ -47,6 +47,12 @@ blind sample: 138/150 raw agreement = 92.0%, kappa=0.8734, AC1=0.8831, and
 133/150 = 88.7%, kappa=0.8207, AC1=0.8346, and 0 rule gaps. The two LLM runs
 agree with each other on 135/150 cases.
 
+After the human prospective labels arrived, analyzed the same frozen package.
+The human return is valid but fails the policy: 131/150 raw agreement = 87.3%,
+kappa=0.7979, AC1=0.8159, and 0 rule gaps, with blockers
+`raw_agreement_below_threshold` and `cohen_kappa_below_threshold`. It agrees
+with Opus on 133/150 cases and with Codex on 132/150 cases.
+
 Then froze the next prospective effect-run gate at
 `data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429/`.
 The package binds future open grading to the passing Opus analysis by path and
@@ -60,21 +66,21 @@ primary paired TruthfulQA open-correctness delta at alpha=8 versus alpha=0.
 
 The frozen rubric now has a passing prospective LLM calibration path when using
 the Opus evidence, but it still does not rescue historical MVP open-correctness
-deltas. The Codex failure is informative rather than disqualifying: Bridge
-exact-entity strictness is mostly stable in this sample, while TruthfulQA
-hedged anti-myth answers remain the sensitive boundary. The human prospective
-round should be treated as rater-diversity evidence, not as a chance to tune the
-same sample.
+deltas. The Codex and human failures are informative rather than
+disqualifying: Bridge exact-entity strictness is mostly stable in this sample,
+while TruthfulQA hedged anti-myth answers remain the sensitive boundary. The
+human prospective return is materially stronger than the earlier 100-case human
+UI pass, but it still does not provide a rater-diverse pass for the frozen
+policy.
 
 ### What I will do next
 
 Keep historical SIMID MVP open metrics diagnostic-only. For future SIMID effect
 claims, use the frozen prospective rubric and passing gate evidence, then rerun
 the effect analysis under that calibrated policy with random-direction and
-random-head controls plus the pre-specified effect-run gate. If the human
-prospective round fails, summarize the disagreement families and export a fresh
-blind sample after any rubric revision; do not tune this effect plan on the
-same returned labels.
+random-head controls plus the pre-specified effect-run gate. Summarize the
+Codex/human disagreement families and export a fresh blind sample after any
+rubric revision; do not tune this effect plan on the same returned labels.
 
 ## 2026-04-28 (SIMID open calibration finalized)
 

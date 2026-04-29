@@ -1,0 +1,44 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/analyze_simid_prospective_open_calibration_gate-20260429_210249-597261.json",
+  "args": {
+    "labels": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_labels.jsonl",
+    "output": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_20260429.json",
+    "overwrite": false,
+    "package_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429"
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/analyze_simid_prospective_open_calibration_gate.py",
+    "--package-dir",
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429",
+    "--labels",
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_labels.jsonl",
+    "--output",
+    "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_20260429.json"
+  ],
+  "blockers": [
+    "raw_agreement_below_threshold",
+    "cohen_kappa_below_threshold"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/analyze_simid_prospective_open_calibration_gate.py --package-dir data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429 --labels data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_labels.jsonl --output data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_20260429.json",
+  "completed_at_utc": "2026-04-29T21:02:49.415797+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "c5d907838c99688f04633fa866a1d11af8468d41",
+  "hostname": "excurio",
+  "label_file": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_labels.jsonl",
+  "n_cases": 150,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_20260429.json"
+  ],
+  "package_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429",
+  "passed": false,
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "analyze_simid_prospective_open_calibration_gate-20260429_210249-597261",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "analyze_simid_prospective_open_calibration_gate.py",
+  "simid_schema": "simid_prospective_open_calibration_analysis/v1",
+  "started_at_utc": "2026-04-29T21:02:49.391273+00:00",
+  "status": "completed"
+}
