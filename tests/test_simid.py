@@ -22,6 +22,7 @@ from analyze_simid import (
     index_rows,
     load_open_adjudications,
     load_open_calibration_summary,
+    load_prospective_open_authority_manifest,
     load_run_rows,
     make_open_adjudication_row,
     main as analyze_main,
@@ -43,6 +44,7 @@ from build_simid_manifest import (
     OptionRecord,
     build_manifest_row,
     build_truthfulqa_rows,
+    load_excluded_sample_ids,
     main as build_manifest_main,
     select_bridge_distractors,
     validate_manifest,
@@ -73,10 +75,15 @@ from run_simid import (
     build_run_config,
     compute_mc_margin,
     load_existing_sample_ids,
+    resolve_conditions,
     load_or_create_locked_manifest,
     simid_output_id,
     write_or_validate_run_config,
 )
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _summary(
@@ -391,6 +398,151 @@ def test_output_ids_are_unique_and_resume_uses_sample_ids(tmp_path: Path) -> Non
     )
 
     assert load_existing_sample_ids(out_path) == {"s1"}
+
+
+def test_manifest_exclusion_loader_collects_sample_and_base_ids(tmp_path: Path) -> None:
+    exclusions = tmp_path / "exclude.jsonl"
+    exclusions.write_text(
+        "\n".join(
+            [
+                json.dumps({"sample_id": "simid_a", "base_sample_id": "base_a"}),
+                json.dumps({"sample_id": "simid_b"}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert load_excluded_sample_ids([exclusions]) == {
+        "simid_a",
+        "base_a",
+        "simid_b",
+    }
+
+
+def test_run_simid_supports_multi_seed_random_controls() -> None:
+    conditions = resolve_conditions(
+        ["selected", "random_head_seed5", "random_direction_seed5"],
+        include_unhooked=True,
+    )
+
+    assert [condition.name for condition in conditions] == [
+        "unhooked",
+        "selected",
+        "random_head_seed5",
+        "random_direction_seed5",
+    ]
+    assert conditions[2].random_seed == 5
+    assert conditions[3].direction_random_seed == 5
+
+
+def test_prospective_open_authority_binds_run_dir_and_exclusions(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "future_run"
+    run_dir.mkdir()
+    manifest_row = _manifest_row("simid_new", "Fresh?")
+    (run_dir / "manifest.locked.json").write_text(
+        json.dumps(
+            {"schema_version": "simid_locked_manifest/v1", "rows": [manifest_row]}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    labels = tmp_path / "labels.jsonl"
+    labels.write_text(json.dumps({"blind_case_id": "b1"}) + "\n", encoding="utf-8")
+    analysis = tmp_path / "analysis.json"
+    analysis.write_text(
+        json.dumps(
+            {
+                "schema_version": "simid_prospective_open_calibration_analysis/v1",
+                "package_dir": str(tmp_path / "open_gate"),
+                "label_file": str(labels),
+                "label_file_sha256": _sha256(labels),
+                "n_cases": 150,
+                "outcome": {"passed": True, "blockers": []},
+                "policy": {
+                    "target": "simid_open_correctness_future_grading",
+                    "min_cases": 150,
+                    "min_raw_agreement": 0.9,
+                    "min_cohen_kappa": 0.8,
+                    "min_gwet_ac1": 0.8,
+                },
+                "metrics": {
+                    "raw_agreement": {"estimate": 0.92, "count": 138, "n": 150},
+                    "cohen_kappa": 0.87,
+                    "gwet_ac1": 0.88,
+                    "rule_gap_count": 0,
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("rubric\n", encoding="utf-8")
+    review_manifest = tmp_path / "review_manifest.json"
+    review_manifest.write_text("{}\n", encoding="utf-8")
+    exclusions = tmp_path / "exclusions.jsonl"
+    exclusions.write_text(
+        json.dumps({"sample_id": "simid_old", "base_sample_id": "simid_old"}) + "\n",
+        encoding="utf-8",
+    )
+    authority = tmp_path / "authority.json"
+    authority.write_text(
+        json.dumps(
+            {
+                "schema_version": "simid_prospective_effect_run_gate/v1",
+                "protocol_version": "fixture",
+                "output_paths": {"effect_run_dir": str(run_dir)},
+                "exclusions": {
+                    "path": str(exclusions),
+                    "content_sha256": _sha256(exclusions),
+                },
+                "frozen_open_grading_authority": {
+                    "authority_id": "fixture_authority",
+                    "authority_scope": "future_only",
+                    "passing_analysis": {
+                        "path": str(analysis),
+                        "content_sha256": _sha256(analysis),
+                    },
+                    "rubric": {
+                        "path": str(rubric),
+                        "content_sha256": _sha256(rubric),
+                    },
+                    "passing_label_file": {
+                        "path": str(labels),
+                        "content_sha256": _sha256(labels),
+                    },
+                    "review_manifest": {
+                        "path": str(review_manifest),
+                        "content_sha256": _sha256(review_manifest),
+                    },
+                    "metrics": {"cohen_kappa": 0.87, "gwet_ac1": 0.88},
+                    "policy": {"target": "simid_open_correctness_future_grading"},
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    loaded = load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+    assert loaded is not None
+    assert loaded["authority_id"] == "fixture_authority"
+    assert loaded["content_sha256"] == _sha256(authority)
+
+    exclusions.write_text(
+        json.dumps({"sample_id": "simid_new", "base_sample_id": "simid_new"}) + "\n",
+        encoding="utf-8",
+    )
+    authority_payload = json.loads(authority.read_text(encoding="utf-8"))
+    authority_payload["exclusions"]["content_sha256"] = _sha256(exclusions)
+    authority.write_text(json.dumps(authority_payload) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="reuses excluded"):
+        load_prospective_open_authority_manifest(authority, run_dir=run_dir)
 
 
 def test_resume_uses_existing_locked_manifest_when_source_changes(

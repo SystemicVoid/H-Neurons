@@ -47,6 +47,15 @@ blind sample: 138/150 raw agreement = 92.0%, kappa=0.8734, AC1=0.8831, and
 133/150 = 88.7%, kappa=0.8207, AC1=0.8346, and 0 rule gaps. The two LLM runs
 agree with each other on 135/150 cases.
 
+Then froze the next prospective effect-run gate at
+`data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429/`.
+The package binds future open grading to the passing Opus analysis by path and
+hash, pre-specifies held-out TruthfulQA plus Bridge rows, selected
+paper-faithful ITI k=12 first-3-token steering, an unhooked no-op preflight,
+five random-direction seeds and five random-head seeds, alpha grid [-8, 0, 4,
+8], exclusion of historical MVP/prospective-calibration sample IDs, and the
+primary paired TruthfulQA open-correctness delta at alpha=8 versus alpha=0.
+
 ### What this changes about my thinking
 
 The frozen rubric now has a passing prospective LLM calibration path when using
@@ -62,9 +71,10 @@ same sample.
 Keep historical SIMID MVP open metrics diagnostic-only. For future SIMID effect
 claims, use the frozen prospective rubric and passing gate evidence, then rerun
 the effect analysis under that calibrated policy with random-direction and
-random-head controls plus a pre-specified curve summary. If the human
+random-head controls plus the pre-specified effect-run gate. If the human
 prospective round fails, summarize the disagreement families and export a fresh
-blind sample after any rubric revision.
+blind sample after any rubric revision; do not tune this effect plan on the
+same returned labels.
 
 ## 2026-04-28 (SIMID open calibration finalized)
 

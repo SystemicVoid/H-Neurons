@@ -74,6 +74,18 @@ claim-bearing. The Codex miss pattern and pending human round keep
 rater-diversity caution active, especially around TruthfulQA hedged
 non-answer/qualified-answer boundaries.
 
+Update after prospective effect-run planning: the append-only package in
+`human_review_package/prospective_effect_run_gate_20260429/` now freezes the
+next claim-oriented SIMID step as a fresh prospective effect-run protocol. It
+binds future open grading to the passing Opus prospective calibration artifact
+by path and SHA-256, pre-specifies the selected ITI condition, no-op,
+five-seed random-direction, and five-seed random-head controls, freezes the
+alpha grid `[-8, 0, 4, 8]`, excludes historical MVP/prospective-calibration
+sample IDs from the future manifest, and defines the primary estimand as the
+paired TruthfulQA open-correctness delta for selected alpha=8 versus alpha=0
+under the calibrated rubric. This is a planning/claimability gate for a future
+run only; it still does not upgrade historical MVP open-correctness metrics.
+
 ## Data Authority
 
 | Artifact | Path |
@@ -97,6 +109,7 @@ non-answer/qualified-answer boundaries.
 | Prospective Codex 5.5 xhigh analysis | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_codex_5_5_xhigh_run_001.json` |
 | Prospective Opus 4.7 max labels | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_labels_opus_4_7_max_run_001.jsonl` |
 | Prospective Opus 4.7 max analysis | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_opus_4_7_max_run_001.json` |
+| Prospective SIMID effect-run gate package | `human_review_package/prospective_effect_run_gate_20260429/` |
 
 Important artifact-status note: `results_adjudicated.json` and
 `report_adjudicated.md` were generated before the calibration pass and still

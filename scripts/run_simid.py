@@ -100,18 +100,24 @@ class ConditionSpec:
 
 CONDITION_SPECS: dict[str, ConditionSpec] = {
     "selected": ConditionSpec(name="selected"),
-    "random_head_seed1": ConditionSpec(
-        name="random_head_seed1",
-        selection_strategy="layer_matched_random",
-        random_seed=1,
-        control_type="layer_matched_random_head",
-    ),
-    "random_direction_seed1": ConditionSpec(
-        name="random_direction_seed1",
-        direction_mode="random",
-        direction_random_seed=1,
-        control_type="selected_heads_random_direction",
-    ),
+    **{
+        f"random_head_seed{seed}": ConditionSpec(
+            name=f"random_head_seed{seed}",
+            selection_strategy="layer_matched_random",
+            random_seed=seed,
+            control_type="layer_matched_random_head",
+        )
+        for seed in range(1, 6)
+    },
+    **{
+        f"random_direction_seed{seed}": ConditionSpec(
+            name=f"random_direction_seed{seed}",
+            direction_mode="random",
+            direction_random_seed=seed,
+            control_type="selected_heads_random_direction",
+        )
+        for seed in range(1, 6)
+    },
 }
 UNHOOKED_SPEC = ConditionSpec(name="unhooked", control_type="unhooked")
 

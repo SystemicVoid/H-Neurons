@@ -16,7 +16,6 @@ import random
 from typing import Any, Callable
 
 import numpy as np
-
 from evaluate_intervention import (
     SIMPLEQA_JUDGE_KWARGS,
     build_triviaqa_bridge_judge_messages,
@@ -38,6 +37,8 @@ from utils import (
     start_run_provenance,
 )
 
+
+ROOT = Path(__file__).resolve().parent.parent
 
 MetricFn = Callable[[dict[str, Any]], float | bool]
 RowGroup = list[dict[str, Any]]
@@ -76,7 +77,13 @@ OPEN_CORRECTNESS_CLAIM_CONTRACT = (
 OPEN_CORRECTNESS_CALIBRATED_CLAIM_CONTRACT = (
     "claimable_with_recorded_judge_calibration_evidence"
 )
+OPEN_CORRECTNESS_PROSPECTIVE_AUTHORITY_CLAIM_CONTRACT = (
+    "claimable_with_recorded_prospective_open_authority"
+)
 OPEN_CORRECTNESS_JUDGE_BLOCKER = "calibration_evidence_not_recorded"
+OPEN_CORRECTNESS_PROSPECTIVE_AUTHORITY_BLOCKER = (
+    "prospective_open_authority_not_recorded"
+)
 OPEN_CORRECTNESS_NO_JUDGE_BLOCKER = "judge_adjudication_not_loaded"
 OPEN_CORRECTNESS_MIXED_SOURCE_BLOCKER = "mixed_adjudication_and_deterministic_sources"
 OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER = "judge_verdict_unknown_or_error"
@@ -89,6 +96,11 @@ OPEN_CORRECTNESS_CALIBRATION_N_CASES_BLOCKER = "n_cases_below_minimum"
 OPEN_CORRECTNESS_CALIBRATION_MIN_CASES = 100
 OPEN_CORRECTNESS_CALIBRATION_MIN_KAPPA = 0.80
 OPEN_CORRECTNESS_CALIBRATION_MIN_AC1 = 0.80
+PROSPECTIVE_OPEN_EFFECT_GATE_SCHEMA_VERSION = "simid_prospective_effect_run_gate/v1"
+PROSPECTIVE_OPEN_GATE_ANALYSIS_SCHEMA_VERSION = (
+    "simid_prospective_open_calibration_analysis/v1"
+)
+PROSPECTIVE_OPEN_GATE_TARGET = "simid_open_correctness_future_grading"
 
 
 def deterministic_open_correct(row: dict[str, Any]) -> bool:
@@ -1232,6 +1244,150 @@ def load_open_calibration_summary(
     return normalize_open_calibration_summary(payload, path=path)
 
 
+def _resolve_repo_metadata_path(path_value: Any) -> Path:
+    if not isinstance(path_value, str) or not path_value:
+        raise ValueError("metadata path is missing")
+    path = Path(path_value)
+    return path if path.is_absolute() else ROOT / path
+
+
+def validate_content_bound_path(entry: dict[str, Any], *, row_name: str) -> Path:
+    path = _resolve_repo_metadata_path(entry.get("path"))
+    expected_hash = entry.get("content_sha256")
+    if not isinstance(expected_hash, str) or not expected_hash:
+        raise ValueError(f"{row_name}: missing content_sha256")
+    observed_hash = file_sha256(path)
+    if observed_hash != expected_hash:
+        raise ValueError(
+            f"{row_name}: content_sha256 mismatch for {path} "
+            f"(expected {expected_hash}, observed {observed_hash})"
+        )
+    return path
+
+
+def load_exclusion_ids(path: Path) -> set[str]:
+    ids: set[str] = set()
+    for row in load_jsonl(path):
+        if not isinstance(row, dict):
+            continue
+        for key in ("sample_id", "base_sample_id"):
+            value = row.get(key)
+            if isinstance(value, str) and value:
+                ids.add(value)
+    return ids
+
+
+def validate_run_manifest_excludes_ids(*, run_dir: Path, exclusion_file: Path) -> None:
+    excluded = load_exclusion_ids(exclusion_file)
+    if not excluded:
+        raise ValueError("prospective open authority exclusion file is empty")
+    overlapping: set[str] = set()
+    for row in load_locked_manifest_rows(run_dir):
+        for key in ("sample_id", "base_sample_id"):
+            value = row.get(key)
+            if isinstance(value, str) and value in excluded:
+                overlapping.add(value)
+    if overlapping:
+        preview = sorted(overlapping)[:10]
+        raise ValueError(
+            "Prospective SIMID effect manifest reuses excluded historical MVP "
+            f"or calibration sample IDs: {preview}"
+        )
+
+
+def validate_prospective_open_analysis(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected prospective open analysis object in {path}")
+    if payload.get("schema_version") != PROSPECTIVE_OPEN_GATE_ANALYSIS_SCHEMA_VERSION:
+        raise ValueError(f"{path}: unexpected prospective open analysis schema")
+    outcome = payload.get("outcome")
+    if not isinstance(outcome, dict) or outcome.get("passed") is not True:
+        raise ValueError(f"{path}: prospective open analysis did not pass")
+    policy = payload.get("policy")
+    if (
+        not isinstance(policy, dict)
+        or policy.get("target") != PROSPECTIVE_OPEN_GATE_TARGET
+    ):
+        raise ValueError(f"{path}: prospective open analysis target mismatch")
+    metrics = payload.get("metrics")
+    if not isinstance(metrics, dict):
+        raise ValueError(f"{path}: missing prospective open metrics")
+    if int(metrics.get("rule_gap_count", -1)) != 0:
+        raise ValueError(f"{path}: prospective open analysis has rule gaps")
+    label_path = _resolve_repo_metadata_path(payload.get("label_file"))
+    if file_sha256(label_path) != payload.get("label_file_sha256"):
+        raise ValueError(f"{path}: label_file_sha256 mismatch")
+    return payload
+
+
+def load_prospective_open_authority_manifest(
+    path: Path | None,
+    *,
+    run_dir: Path,
+) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected prospective open authority object in {path}")
+    if payload.get("schema_version") != PROSPECTIVE_OPEN_EFFECT_GATE_SCHEMA_VERSION:
+        raise ValueError(f"{path}: unexpected prospective effect gate schema")
+    output_paths = payload.get("output_paths")
+    if not isinstance(output_paths, dict):
+        raise ValueError(f"{path}: missing output_paths")
+    planned_run_dir = _resolve_repo_metadata_path(output_paths.get("effect_run_dir"))
+    if planned_run_dir.resolve() != run_dir.resolve():
+        raise ValueError(
+            f"{path}: prospective authority is bound to {planned_run_dir}, "
+            f"not analysis run_dir {run_dir}"
+        )
+
+    authority = payload.get("frozen_open_grading_authority")
+    if not isinstance(authority, dict):
+        raise ValueError(f"{path}: missing frozen_open_grading_authority")
+    passing_analysis_entry = authority.get("passing_analysis")
+    if not isinstance(passing_analysis_entry, dict):
+        raise ValueError(f"{path}: missing passing analysis metadata")
+    passing_analysis_path = validate_content_bound_path(
+        passing_analysis_entry,
+        row_name=f"{path}:frozen_open_grading_authority.passing_analysis",
+    )
+    passing_analysis = validate_prospective_open_analysis(passing_analysis_path)
+    for key in ("rubric", "passing_label_file", "review_manifest"):
+        entry = authority.get(key)
+        if not isinstance(entry, dict):
+            raise ValueError(f"{path}: missing authority.{key}")
+        validate_content_bound_path(entry, row_name=f"{path}:authority.{key}")
+
+    exclusions = payload.get("exclusions")
+    if not isinstance(exclusions, dict):
+        raise ValueError(f"{path}: missing exclusions metadata")
+    exclusion_path = validate_content_bound_path(
+        exclusions,
+        row_name=f"{path}:exclusions",
+    )
+    validate_run_manifest_excludes_ids(run_dir=run_dir, exclusion_file=exclusion_path)
+
+    return {
+        "path": str(path),
+        "content_sha256": file_sha256(path),
+        "schema_version": payload["schema_version"],
+        "protocol_version": payload.get("protocol_version"),
+        "authority_id": authority.get("authority_id"),
+        "authority_scope": authority.get("authority_scope"),
+        "passing_analysis": {
+            "path": str(passing_analysis_path),
+            "content_sha256": file_sha256(passing_analysis_path),
+            "schema_version": passing_analysis.get("schema_version"),
+        },
+        "rubric": authority.get("rubric"),
+        "metrics": authority.get("metrics"),
+        "policy": authority.get("policy"),
+        "claimability_guardrail": authority.get("claimability_guardrail"),
+    }
+
+
 def open_calibration_claimability_blocker(
     calibration_summary: dict[str, Any] | None,
 ) -> str | None:
@@ -1251,6 +1407,7 @@ def open_correctness_claimability_blocker(
     *,
     has_judge: bool,
     calibration_summary: dict[str, Any] | None = None,
+    prospective_open_authority: dict[str, Any] | None = None,
 ) -> str | None:
     if (
         effective_source_counts.get("adjudication", 0) > 0
@@ -1260,6 +1417,8 @@ def open_correctness_claimability_blocker(
     if effective_source_counts.get("adjudication_unknown", 0) > 0:
         return OPEN_CORRECTNESS_INVALID_JUDGE_BLOCKER
     if has_judge:
+        if prospective_open_authority is not None:
+            return None
         blocker = open_calibration_claimability_blocker(calibration_summary)
         return blocker
     return OPEN_CORRECTNESS_NO_JUDGE_BLOCKER
@@ -1271,6 +1430,7 @@ def summarize_open_grading(
     adjudication_path: Path,
     adjudication_run: dict[str, Any] | None,
     calibration_summary: dict[str, Any] | None = None,
+    prospective_open_authority: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     correct_metric, attempted_metric = open_metric_names_for_rows(rows)
     effective_source_counts: Counter[str] = Counter()
@@ -1296,8 +1456,15 @@ def summarize_open_grading(
         effective_source_counts,
         has_judge=has_judge,
         calibration_summary=calibration_summary,
+        prospective_open_authority=prospective_open_authority,
     )
     claimable_open_correctness = claimability_blocker is None
+    if claimable_open_correctness and prospective_open_authority is not None:
+        claim_contract = OPEN_CORRECTNESS_PROSPECTIVE_AUTHORITY_CLAIM_CONTRACT
+    elif claimable_open_correctness:
+        claim_contract = OPEN_CORRECTNESS_CALIBRATED_CLAIM_CONTRACT
+    else:
+        claim_contract = OPEN_CORRECTNESS_CLAIM_CONTRACT
     summary: dict[str, Any] = {
         "deterministic_alias_grader": OPEN_GRADING_METHOD,
         "metric_correct": correct_metric,
@@ -1314,11 +1481,7 @@ def summarize_open_grading(
             "n_unknown_or_error": invalid_adjudications,
             "deterministic_vs_judge_disagreements": disagreements,
         },
-        "open_correctness_claim_contract": (
-            OPEN_CORRECTNESS_CALIBRATED_CLAIM_CONTRACT
-            if claimable_open_correctness
-            else OPEN_CORRECTNESS_CLAIM_CONTRACT
-        ),
+        "open_correctness_claim_contract": claim_contract,
         "open_metrics_scope": (
             "claimable" if claimable_open_correctness else "diagnostic_only"
         ),
@@ -1329,6 +1492,8 @@ def summarize_open_grading(
         summary["adjudication"]["last_run"] = adjudication_run
     if calibration_summary is not None:
         summary["calibration"] = calibration_summary
+    if prospective_open_authority is not None:
+        summary["prospective_open_authority"] = prospective_open_authority
     return summary
 
 
@@ -2642,7 +2807,14 @@ def write_report(results: dict[str, Any], path: Path) -> None:
     open_attempted_metric = str(open_grading.get("metric_attempted", "open_attempted"))
     judge_backed = open_correct_metric == "adjudicated_open_correct"
     claimable_open = open_grading.get("claimable_open_correctness") is True
-    if judge_backed and claimable_open:
+    prospective_authority = open_grading.get("prospective_open_authority")
+    if judge_backed and claimable_open and isinstance(prospective_authority, dict):
+        open_grading_note = (
+            "Open correctness is reported as adjudicated_open_correct. Judge "
+            "adjudication is fully loaded for the analyzed rows, and the "
+            "prospective open-grading authority is bound by path and hash."
+        )
+    elif judge_backed and claimable_open:
         open_grading_note = (
             "Open correctness is reported as adjudicated_open_correct. Judge "
             "adjudication is fully loaded for the analyzed rows, and the "
@@ -2723,6 +2895,23 @@ def write_report(results: dict[str, Any], path: Path) -> None:
                     if ac1 is not None:
                         rendered.append(f"AC1={float(ac1):.4f}")
                     lines.append("Open calibration evidence: " + ", ".join(rendered))
+            prospective_authority = open_grading.get("prospective_open_authority")
+            if isinstance(prospective_authority, dict):
+                authority_path = prospective_authority.get("path")
+                metrics = prospective_authority.get("metrics", {})
+                kappa = (
+                    metrics.get("cohen_kappa") if isinstance(metrics, dict) else None
+                )
+                ac1 = metrics.get("gwet_ac1") if isinstance(metrics, dict) else None
+                rendered = []
+                if authority_path:
+                    rendered.append(f"prospective_authority={authority_path}")
+                if kappa is not None:
+                    rendered.append(f"kappa={float(kappa):.4f}")
+                if ac1 is not None:
+                    rendered.append(f"AC1={float(ac1):.4f}")
+                if rendered:
+                    lines.append("Prospective open authority: " + ", ".join(rendered))
         claim_contract = open_grading.get("open_correctness_claim_contract")
         if claim_contract:
             lines.append(f"Open correctness claim contract: {claim_contract}.")
@@ -2855,6 +3044,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Relative paths are resolved under --run-dir."
         ),
     )
+    parser.add_argument(
+        "--prospective-open-authority-manifest",
+        default=None,
+        help=(
+            "Optional prospective SIMID effect-run gate manifest that binds "
+            "future open correctness to a passing prospective open-calibration "
+            "authority. Relative paths are resolved under the repository root."
+        ),
+    )
     parser.add_argument("--api-key", default=None)
     parser.add_argument(
         "--prompt-cache-retention",
@@ -2928,6 +3126,16 @@ def main(argv: list[str] | None = None) -> None:
         and not open_calibration_summary_path.is_absolute()
     ):
         open_calibration_summary_path = run_dir / open_calibration_summary_path
+    prospective_open_authority_path = (
+        Path(args.prospective_open_authority_manifest)
+        if args.prospective_open_authority_manifest
+        else None
+    )
+    if (
+        prospective_open_authority_path is not None
+        and not prospective_open_authority_path.is_absolute()
+    ):
+        prospective_open_authority_path = ROOT / prospective_open_authority_path
     refuse_analysis_output_overwrite(
         [
             path
@@ -2981,6 +3189,10 @@ def main(argv: list[str] | None = None) -> None:
             open_calibration_summary_path,
             run_dir=run_dir,
         )
+        prospective_open_authority = load_prospective_open_authority_manifest(
+            prospective_open_authority_path,
+            run_dir=run_dir,
+        )
         adjudications = load_open_adjudications(adjudication_output)
         validate_open_adjudication_metadata(adjudications, judge_model=args.judge_model)
         n_attached_adjudications = attach_open_adjudications(rows, adjudications)
@@ -2990,6 +3202,7 @@ def main(argv: list[str] | None = None) -> None:
             adjudication_path=adjudication_output,
             adjudication_run=adjudication_run,
             calibration_summary=calibration_summary,
+            prospective_open_authority=prospective_open_authority,
         )
         indexed = index_rows(rows)
         conditions = args.conditions or sorted(indexed)

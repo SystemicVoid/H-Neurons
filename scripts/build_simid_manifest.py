@@ -327,6 +327,45 @@ def filter_truthfulqa_dataframe(
     return rows
 
 
+def load_excluded_sample_ids(paths: Iterable[str | Path]) -> set[str]:
+    excluded: set[str] = set()
+
+    def add_from_row(row: dict[str, Any]) -> None:
+        for key in ("sample_id", "base_sample_id"):
+            value = row.get(key)
+            if isinstance(value, str) and value:
+                excluded.add(value)
+
+    for path_value in paths:
+        path = Path(path_value)
+        if not path.exists():
+            raise FileNotFoundError(f"Missing SIMID exclusion file: {path}")
+        if path.suffix == ".jsonl":
+            with path.open(encoding="utf-8") as handle:
+                for line_number, line in enumerate(handle, start=1):
+                    if not line.strip():
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict):
+                        raise ValueError(f"{path}:{line_number}: expected object row")
+                    add_from_row(row)
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(payload, dict) and isinstance(payload.get("rows"), list):
+            for row in payload["rows"]:
+                if isinstance(row, dict):
+                    add_from_row(row)
+        elif isinstance(payload, list):
+            for row in payload:
+                if isinstance(row, dict):
+                    add_from_row(row)
+        elif isinstance(payload, dict):
+            add_from_row(payload)
+        else:
+            raise ValueError(f"{path}: expected JSON object, object list, or rows list")
+    return excluded
+
+
 def build_truthfulqa_rows(
     *,
     csv_path: Path,
@@ -339,10 +378,12 @@ def build_truthfulqa_rows(
     iti_artifact_sha256: str | None,
     leakage_policy: str = DEFAULT_TRUTHFULQA_LEAKAGE_POLICY,
     split_metadata_path: str | Path | None = None,
+    excluded_sample_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     import pandas as pd
 
     df = pd.read_csv(csv_path, encoding="utf-8-sig")
+    excluded_sample_ids = excluded_sample_ids or set()
     split_metadata = load_truthfulqa_split_metadata(
         iti_artifact_path=iti_artifact_path,
         metadata_path=split_metadata_path,
@@ -359,6 +400,9 @@ def build_truthfulqa_rows(
     rows: list[dict[str, Any]] = []
     base_rows_built = 0
     for csv_idx, raw, stable_id, split in filtered_rows:
+        sample_id = f"simid_truthfulqa_{csv_idx}"
+        if sample_id in excluded_sample_ids:
+            continue
         question = str(raw["Question"]).strip()
         best = str(raw["Best Answer"]).strip()
         correct = dedupe_preserve_order(parse_semicolon_answers(raw["Correct Answers"]))
@@ -402,7 +446,6 @@ def build_truthfulqa_rows(
             )
             for incorrect_idx, answer in enumerate(incorrect)
         )
-        sample_id = f"simid_truthfulqa_{csv_idx}"
         for replicate_idx in range(option_order_replicates):
             rows.append(
                 build_manifest_row(
@@ -601,18 +644,21 @@ def build_bridge_rows(
     tokenizer_path: str,
     iti_artifact_path: str,
     iti_artifact_sha256: str | None,
+    excluded_sample_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     if n_options < 2:
         raise ValueError("--n-options must be at least 2")
+    excluded_sample_ids = excluded_sample_ids or set()
     all_items = load_bridge_items(manifest_path, parquet_path)
-    items = list(all_items)
-    if n_rows is not None:
-        items = items[:n_rows]
     baseline_wrong_by_qid = load_bridge_baseline_wrong_answers(baseline_path)
     candidates = bridge_alias_candidates(all_items)
 
     rows: list[dict[str, Any]] = []
-    for item in items:
+    base_rows_built = 0
+    for item in all_items:
+        sample_id = f"simid_bridge_{item.question_id}"
+        if sample_id in excluded_sample_ids:
+            continue
         gold = item.aliases[0]
         distractors = select_bridge_distractors(
             item,
@@ -634,7 +680,6 @@ def build_bridge_rows(
             ),
             *distractors,
         ]
-        sample_id = f"simid_bridge_{item.question_id}"
         for replicate_idx in range(option_order_replicates):
             rows.append(
                 build_manifest_row(
@@ -657,6 +702,9 @@ def build_bridge_rows(
                     },
                 )
             )
+        base_rows_built += 1
+        if n_rows is not None and base_rows_built >= n_rows:
+            break
     return rows
 
 
@@ -759,6 +807,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--n-options", type=int, default=4)
     parser.add_argument("--option-order-replicates", type=int, default=1)
     parser.add_argument(
+        "--exclude-sample-ids-jsonl",
+        action="append",
+        default=[],
+        help=(
+            "JSON/JSONL file with sample_id and/or base_sample_id values to exclude "
+            "from the new SIMID manifest. May be passed more than once."
+        ),
+    )
+    parser.add_argument(
         "--min-truthfulqa-rows",
         type=int,
         default=0,
@@ -792,6 +849,7 @@ def main(argv: list[str] | None = None) -> None:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     iti_artifact_sha = file_sha256(args.iti_artifact_path)
+    excluded_sample_ids = load_excluded_sample_ids(args.exclude_sample_ids_jsonl)
     provenance = start_run_provenance(
         args,
         primary_target=output_path,
@@ -817,6 +875,7 @@ def main(argv: list[str] | None = None) -> None:
                 iti_artifact_sha256=iti_artifact_sha,
                 leakage_policy=args.truthfulqa_leakage_policy,
                 split_metadata_path=args.truthfulqa_split_metadata,
+                excluded_sample_ids=excluded_sample_ids,
             ),
             *build_bridge_rows(
                 manifest_path=Path(args.bridge_manifest),
@@ -830,6 +889,7 @@ def main(argv: list[str] | None = None) -> None:
                 tokenizer_path=tokenizer_path,
                 iti_artifact_path=args.iti_artifact_path,
                 iti_artifact_sha256=iti_artifact_sha,
+                excluded_sample_ids=excluded_sample_ids,
             ),
         ]
         n_truthfulqa_rows = sum(row["dataset"] == "truthfulqa" for row in rows)
@@ -887,6 +947,13 @@ def main(argv: list[str] | None = None) -> None:
                 "minimum_rows": {
                     "truthfulqa": args.min_truthfulqa_rows,
                     "triviaqa_bridge": args.min_bridge_rows,
+                },
+                "exclusion": {
+                    "sample_id_files": [
+                        format_path_for_metadata(path, root=ROOT)
+                        for path in args.exclude_sample_ids_jsonl
+                    ],
+                    "n_excluded_sample_or_base_ids": len(excluded_sample_ids),
                 },
             },
             "rows": rows,
