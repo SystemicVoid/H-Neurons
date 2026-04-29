@@ -16,6 +16,16 @@ git clone -b main /tmp/h-neurons-cp2.bundle /tmp/h-neurons-bundle-smoke
 
 Choose one live A100 SXM Secure Cloud datacenter before creating storage. Default to `US-MD-1` only if that datacenter has A100 SXM stock; otherwise choose exactly one live A100 SXM datacenter and reuse it for both commands below. H100 SXM remains an explicit speed/availability fallback, not the default.
 
+For an existing network volume, do not choose from the profile datacenter list. First read the volume's actual datacenter, then use that exact datacenter for the launch and confirm live stock for the selected GPU:
+
+```bash
+NETWORK_VOLUME_ID=<volume-id>
+runpodctl network-volume list -o json
+runpodctl datacenter list -o json
+```
+
+If the retained volume is in a datacenter without live A100 SXM stock, stop and make an explicit operator decision: either use H100 in that same datacenter for this run, or transfer/sync artifacts to a new volume in a datacenter with live A100 stock. Do not launch a pod in one datacenter against a volume in another.
+
 Render the 200 GB network volume create command, inspect it, then manually run the exact output:
 
 ```bash
@@ -35,7 +45,22 @@ uv run python scripts/infra/cloudctl.py render-launch \
   --stage cp2 \
   --attempt 1 \
   --network-volume-id "$NETWORK_VOLUME_ID" \
-  --data-center-id "$DATA_CENTER_ID"
+  --data-center-id "$DATA_CENTER_ID" \
+  --confirmed-gpu-stock
+```
+
+If A100 is unavailable in the volume datacenter and the operator chooses the H100 fallback, render that fallback explicitly:
+
+```bash
+uv run python scripts/infra/cloudctl.py render-launch \
+  --profile mistral24b-runpod \
+  --stage cp4 \
+  --attempt 1 \
+  --network-volume-id "$NETWORK_VOLUME_ID" \
+  --data-center-id "$DATA_CENTER_ID" \
+  --gpu-id "NVIDIA H100 80GB HBM3" \
+  --allow-gpu-fallback \
+  --confirmed-gpu-stock
 ```
 
 RunPod network volumes for Pods are Secure Cloud-only, replace the default `/workspace` volume, and must be attached during deployment. Under 1 TB they are billed as network-volume storage, so keep the volume only for the short CP4/CP5 reuse window.
@@ -81,9 +106,9 @@ those small tools if absent. It may also omit `rsync`; install it before long
 artifact syncs, or use tar-over-SSH from `/workspace/02-h-neurons` as the fallback.
 If `uv sync --no-dev` creates an untracked `uv.lock` from this repo's unlocked
 project metadata, remove that generated file before the wrapper so provenance does
-not record a dirty checkout. `uv run` can recreate an untracked lock before the
-wrapper captures provenance, so future automation should prefer a committed lock or
-an explicit no-lock/frozen policy instead of relying only on a prelaunch `rm -f`.
+not record a dirty checkout. The wrapper itself uses `uv run --no-sync` after the
+provisioning sync and removes only untracked generated `uv.lock` files before
+capturing environment provenance. A committed `uv.lock` must never be deleted.
 
 ## Sync Back and Cleanup
 
@@ -91,6 +116,27 @@ Sync back only canonical CP2/CP3 outputs: split JSONs, `activations_llm_canonica
 
 ```bash
 uv run python -m scripts.lib.pipeline active-run-status
+```
+
+Prefer `rsync` when it is installed on both ends, but keep the allowlist narrow:
+
+```bash
+rsync -av --prune-empty-dirs -e "ssh -p $SSH_PORT" \
+  --include='data/' \
+  --include='data/mistral24b/' \
+  --include='data/mistral24b/pipeline/' \
+  --include='data/mistral24b/pipeline/*_qids_llm.json' \
+  --include='data/mistral24b/pipeline/*_qids_llm.json.provenance.*.json' \
+  --include='data/mistral24b/pipeline/activations_llm_canonical/***' \
+  --include='data/mistral24b/pipeline/classifier_canonical_*_metrics.json' \
+  --include='data/mistral24b/pipeline/classifier_canonical_*_metrics.json.provenance.*.json' \
+  --include='data/mistral24b/pipeline/environment_<RUN_TS>.txt' \
+  --include='models/' \
+  --include='models/mistral24b_classifier_canonical.pkl' \
+  --include='logs/' \
+  --include='logs/mistral24b_replication_<RUN_TS>.log' \
+  --exclude='*' \
+  root@"$SSH_HOST":/workspace/02-h-neurons/ ./
 ```
 
 If remote `rsync` is unavailable and the pod is still alive, stream only the allowlisted
@@ -114,11 +160,9 @@ Delete the pod, then verify cleanup:
 uv run python scripts/infra/cloudctl.py cleanup-check --allow-network-volumes
 ```
 
-`cleanup-check --allow-network-volumes` may still fail on nonzero spend when the
-only remaining spend is intentional retained network-volume storage; confirm
-`uv run python scripts/infra/cloudctl.py status` shows `pods: 0` before treating
-that as storage-only. Keep the network volume only if CP4/CP5 reuse is immediate.
-If reuse is not immediate, sync critical artifacts locally and delete the volume
-too.
+With `--allow-network-volumes`, nonzero storage-only spend is acceptable only when
+there are no live pods and retained network volumes are the only listed resources.
+Keep the network volume only if CP4/CP5 reuse is immediate. If reuse is not
+immediate, sync critical artifacts locally and delete the volume too.
 
 References: [network volumes](https://docs.runpod.io/storage/network-volumes), [Pods pricing](https://docs.runpod.io/pods/pricing), [SSH over exposed TCP](https://docs.runpod.io/pods/configuration/use-ssh), [runpodctl pod](https://docs.runpod.io/runpodctl/reference/runpodctl-pod), and [runpodctl network-volume](https://docs.runpod.io/runpodctl/reference/runpodctl-network-volume).
