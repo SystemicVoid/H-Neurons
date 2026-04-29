@@ -9,6 +9,7 @@ bundle_branch = "main"
 pod_name = "hneurons-mistral24b"
 cloud_type = "SECURE"
 template_id = "runpod-torch-v240"
+# Use the runpodctl gpuId value here, not the display name from GPU listings.
 gpu_id = "NVIDIA H100 80GB HBM3"
 gpu_count = 1
 container_disk_gb = 120
