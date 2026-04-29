@@ -368,6 +368,22 @@ changes point estimates by at most 2.0 pp in this 100-row covered subset
 full correction-evidence sensitivity analysis recommended below because
 unreviewed MVP rows may contain similar boundary cases.
 
+A targeted row-pattern stress check on the recurring Bridge boundary families
+supports the same conclusion. The full 4,800-row MVP output contains 14
+pithivier/custard rows, 16 "Viscous fluid." rows, 22 plain "Peppers" rows on
+the Peter Piper item, 22 plain-lawyer rows on the Amal Clooney item, 14 "Mulled
+cranberry sauce" rows, and 24 Core-i* processor-brand rows. Applying a
+deliberately mechanical correction scenario for the non-Core families
+(pithivier/custard INCORRECT, viscous fluid CORRECT, plain Peppers INCORRECT,
+plain lawyer INCORRECT, and mulled cranberry sauce CORRECT) moves the selected
+pooled alpha=8 open delta from +3.0 pp to +2.5 pp and the selected Bridge
+alpha=8 open delta from -6.0 pp to -7.0 pp; TruthfulQA alpha=8 is unchanged.
+This is not a substitute for adjudication, because the correction rules are
+post-hoc and some cases remain genuinely contested. It does show that the
+highest-value immediate adjudication pass is about preventing inconsistent
+rule propagation and preserving auditability, not about rescuing or overturning
+the current headline effect.
+
 ## Interpretation
 
 This section is interpretation, not raw data.
