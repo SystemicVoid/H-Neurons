@@ -423,6 +423,12 @@ def _as_int(value: Any) -> int | None:
 
 
 def derive_ssh_endpoint(metadata: Any) -> SshEndpoint:
+    if isinstance(metadata, dict):
+        host = metadata.get("ip") or metadata.get("host") or metadata.get("publicIp")
+        public_port = _as_int(metadata.get("port", metadata.get("publicPort")))
+        if isinstance(host, str) and public_port is not None:
+            return SshEndpoint(host=host, port=public_port)
+
     for item in _iter_dicts(metadata):
         private_port = _as_int(
             item.get("privatePort", item.get("private_port", item.get("containerPort")))
@@ -543,6 +549,7 @@ def run_cleanup_check(args: argparse.Namespace) -> int:
 def run_ssh_info(args: argparse.Namespace) -> int:
     if args.metadata_json:
         metadata = json.loads(Path(args.metadata_json).read_text(encoding="utf-8"))
+        endpoint = derive_ssh_endpoint(metadata)
     else:
         metadata = runpodctl_json(
             [
@@ -553,7 +560,17 @@ def run_ssh_info(args: argparse.Namespace) -> int:
                 "--include-network-volume",
             ]
         )
-    endpoint = derive_ssh_endpoint(metadata)
+        try:
+            endpoint = derive_ssh_endpoint(metadata)
+        except CloudctlError as pod_get_exc:
+            ssh_info = runpodctl_json(["ssh", "info", args.pod_id])
+            try:
+                endpoint = derive_ssh_endpoint(ssh_info)
+            except CloudctlError as ssh_info_exc:
+                raise CloudctlError(
+                    "could not derive public SSH host/port from pod metadata "
+                    f"or runpodctl ssh info: {pod_get_exc}; {ssh_info_exc}"
+                ) from ssh_info_exc
     print(
         "ssh -o StrictHostKeyChecking=accept-new "
         f"-p {endpoint.port} root@{endpoint.host}"

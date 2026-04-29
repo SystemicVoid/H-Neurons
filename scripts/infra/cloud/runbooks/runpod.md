@@ -50,6 +50,11 @@ uv run python scripts/infra/cloudctl.py ssh-info --pod-id "$POD_ID"
 ssh -o StrictHostKeyChecking=accept-new -p "$SSH_PORT" root@"$SSH_HOST" true
 ```
 
+Freshly launched pods can briefly return pod metadata with `ssh.error="pod not ready"`
+even when `runpodctl ssh info <pod-id>` already has the exposed TCP endpoint.
+`cloudctl ssh-info` falls back to that command; if both paths fail, wait and retry
+before deleting or recreating the pod.
+
 Sync only the bundle and required environment, then on the pod:
 
 ```bash

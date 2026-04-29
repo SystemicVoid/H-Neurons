@@ -139,6 +139,20 @@ def test_derive_direct_ssh_endpoint_from_pod_metadata() -> None:
     assert endpoint.port == 12222
 
 
+def test_derive_direct_ssh_endpoint_from_runpod_ssh_info() -> None:
+    metadata = {
+        "id": "pod-test",
+        "ip": "1.2.3.4",
+        "port": 12222,
+        "ssh_command": "ssh root@1.2.3.4 -p 12222",
+    }
+
+    endpoint = cloudctl.derive_ssh_endpoint(metadata)
+
+    assert endpoint.host == "1.2.3.4"
+    assert endpoint.port == 12222
+
+
 def test_runpod_snapshot_requests_all_pods(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[list[str]] = []
     stopped_pod = {"id": "pod-stopped", "desiredStatus": "EXITED"}
@@ -188,6 +202,46 @@ def test_ssh_info_can_read_metadata_json(
     )
 
     assert code == 0
+    assert capsys.readouterr().out.strip() == (
+        "ssh -o StrictHostKeyChecking=accept-new -p 43210 root@5.6.7.8"
+    )
+
+
+def test_ssh_info_falls_back_to_runpod_ssh_info(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[list[str]] = []
+
+    def fake_runpodctl_json(args: list[str]) -> object:
+        calls.append(args)
+        if args == [
+            "pod",
+            "get",
+            "pod-test",
+            "--include-machine",
+            "--include-network-volume",
+        ]:
+            return {"ssh": {"error": "pod not ready"}}
+        if args == ["ssh", "info", "pod-test"]:
+            return {"ip": "5.6.7.8", "port": 43210}
+        raise AssertionError(f"unexpected runpodctl args: {args}")
+
+    monkeypatch.setattr(cloudctl, "runpodctl_json", fake_runpodctl_json)
+
+    code = cloudctl.main(["ssh-info", "--pod-id", "pod-test"])
+
+    assert code == 0
+    assert calls == [
+        [
+            "pod",
+            "get",
+            "pod-test",
+            "--include-machine",
+            "--include-network-volume",
+        ],
+        ["ssh", "info", "pod-test"],
+    ]
     assert capsys.readouterr().out.strip() == (
         "ssh -o StrictHostKeyChecking=accept-new -p 43210 root@5.6.7.8"
     )
