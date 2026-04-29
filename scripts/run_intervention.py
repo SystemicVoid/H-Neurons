@@ -86,6 +86,7 @@ NOOP_ALPHA_BY_INTERVENTION_MODE = {
     "direction": 0.0,
     "iti_head": 0.0,
 }
+INTERVENTION_RUN_CONFIG_FILENAME = "intervention_run_config.json"
 RUN_PROFILES = ("canonical", "fast")
 COMPARABILITY_CLASS_BY_PROFILE = {
     "canonical": "claimable",
@@ -344,6 +345,15 @@ def file_sha256(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def optional_file_sha256(path: str | Path | None) -> str | None:
+    if path is None:
+        return None
+    expanded = Path(path).expanduser()
+    if not expanded.is_file():
+        return None
+    return file_sha256(expanded)
+
+
 def describe_sample_manifest(path: str) -> dict[str, Any]:
     """Return content identity for a sample manifest, validating declared fields."""
     with open(path, encoding="utf-8") as handle:
@@ -395,6 +405,198 @@ def describe_sample_manifest(path: str) -> dict[str, Any]:
         "fingerprint": computed_fingerprint,
         **metadata,
     }
+
+
+def build_intervention_run_contract(
+    args: argparse.Namespace,
+    *,
+    sample_manifest: dict[str, Any] | None,
+    run_profile: str,
+    comparability_class: str,
+    generation_fingerprint: dict[str, Any],
+    jailbreak_generation: dict[str, Any] | None,
+) -> dict[str, Any]:
+    benchmark_config: dict[str, Any] = {}
+    if args.benchmark in (
+        "faitheval",
+        "faitheval_anti_compliance_margin",
+        "faitheval_answer_span_margin",
+    ):
+        benchmark_config["prompt_style"] = args.prompt_style
+    elif args.benchmark == "falseqa":
+        benchmark_config["falseqa_path"] = args.falseqa_path
+    elif args.benchmark == "bioasq":
+        benchmark_config["bioasq_path"] = args.bioasq_path
+    elif args.benchmark == "simpleqa":
+        benchmark_config["simpleqa_dataset"] = args.simpleqa_dataset
+        benchmark_config["simpleqa_path"] = args.simpleqa_path
+        benchmark_config["simpleqa_prompt_style"] = args.simpleqa_prompt_style
+    elif args.benchmark == "truthfulqa_mc":
+        benchmark_config["truthfulqa_variant"] = args.truthfulqa_variant
+        benchmark_config["truthfulqa_fold_path"] = args.truthfulqa_fold_path
+    elif args.benchmark == "triviaqa_bridge":
+        benchmark_config["triviaqa_bridge_manifest"] = args.triviaqa_bridge_manifest
+        benchmark_config["triviaqa_bridge_parquet"] = args.triviaqa_bridge_parquet
+    elif args.benchmark in {"jailbreak", "jailbreak_benign"}:
+        benchmark_config["jailbreak_source"] = args.jailbreak_source
+        benchmark_config["jailbreak_path"] = args.jailbreak_path
+        benchmark_config["n_templates"] = args.n_templates
+        benchmark_config["jailbreak_generation"] = jailbreak_generation
+    elif args.benchmark == "sycophancy_triviaqa":
+        benchmark_config["sycophancy_data"] = args.sycophancy_data
+
+    intervention_config: dict[str, Any] = {"mode": args.intervention_mode}
+    if args.intervention_mode == "sae":
+        intervention_config.update(
+            {
+                "sae_classifier_path": args.sae_classifier_path,
+                "sae_classifier_sha256": optional_file_sha256(args.sae_classifier_path),
+                "sae_classifier_summary": args.sae_classifier_summary,
+                "sae_feature_manifest": args.sae_feature_manifest,
+                "extraction_dir": args.extraction_dir,
+                "sae_steering_mode": args.sae_steering_mode,
+            }
+        )
+    elif args.intervention_mode == "direction":
+        intervention_config.update(
+            {
+                "direction_path": args.direction_path,
+                "direction_sha256": optional_file_sha256(args.direction_path),
+                "direction_mode": args.direction_mode,
+                "direction_layers": args.direction_layers,
+            }
+        )
+    elif args.intervention_mode == "iti_head":
+        intervention_config.update(
+            {
+                "iti_head_path": args.iti_head_path,
+                "iti_head_sha256": optional_file_sha256(args.iti_head_path),
+                "iti_k": args.iti_k,
+                "iti_family": args.iti_family,
+                "iti_selection_strategy": args.iti_selection_strategy,
+                "iti_random_seed": args.iti_random_seed,
+                "iti_direction_mode": args.iti_direction_mode,
+                "iti_direction_random_seed": args.iti_direction_random_seed,
+                "iti_decode_scope": args.iti_decode_scope,
+                "iti_collect_debug_stats": bool(args.iti_collect_debug_stats),
+            }
+        )
+
+    return {
+        "schema_version": "intervention_run_config/v1",
+        "benchmark": args.benchmark,
+        "model": {
+            "key": args.model_key,
+            "path": args.model_path,
+        },
+        "classifier": {
+            "path": args.classifier_path,
+            "content_sha256": optional_file_sha256(args.classifier_path),
+        },
+        "sample_selection": {
+            "max_samples": args.max_samples,
+            "sample_manifest": sample_manifest,
+        },
+        "schedule": {
+            "alphas": [float(alpha) for alpha in args.alphas],
+        },
+        "benchmark_config": benchmark_config,
+        "intervention": intervention_config,
+        "run_profile": run_profile,
+        "comparability_class": comparability_class,
+        "generation_fingerprint": generation_fingerprint,
+    }
+
+
+def _contract_mismatch_paths(
+    expected: Any,
+    observed: Any,
+    *,
+    prefix: str = "",
+) -> list[str]:
+    if isinstance(expected, dict) and isinstance(observed, dict):
+        mismatches: list[str] = []
+        for key in sorted(set(expected) | set(observed)):
+            key_path = f"{prefix}.{key}" if prefix else str(key)
+            if key not in expected:
+                mismatches.append(f"{key_path} (unexpected stored value)")
+            elif key not in observed:
+                mismatches.append(f"{key_path} (missing stored value)")
+            else:
+                mismatches.extend(
+                    _contract_mismatch_paths(
+                        expected[key],
+                        observed[key],
+                        prefix=key_path,
+                    )
+                )
+        return mismatches
+    if expected != observed:
+        return [prefix or "<root>"]
+    return []
+
+
+def _existing_intervention_output_paths(
+    output_dir: str,
+    alphas: list[float],
+) -> list[str]:
+    paths: list[str] = []
+    for alpha in alphas:
+        alpha_path = os.path.join(
+            output_dir, f"alpha_{format_alpha_label(alpha)}.jsonl"
+        )
+        if os.path.exists(alpha_path):
+            paths.append(alpha_path)
+    return sorted(paths)
+
+
+def assert_or_write_intervention_run_contract(
+    output_dir: str,
+    contract: dict[str, Any],
+    alphas: list[float],
+    *,
+    write_if_missing: bool,
+) -> str:
+    contract_path = os.path.join(output_dir, INTERVENTION_RUN_CONFIG_FILENAME)
+    if os.path.exists(contract_path):
+        with open(contract_path, encoding="utf-8") as f:
+            try:
+                stored_contract = json.load(f)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(
+                    f"Invalid intervention run contract at {contract_path}: {exc}"
+                ) from exc
+        mismatches = _contract_mismatch_paths(contract, stored_contract)
+        if mismatches:
+            mismatch_preview = ", ".join(mismatches[:8])
+            if len(mismatches) > 8:
+                mismatch_preview += f", ... ({len(mismatches)} total)"
+            raise RuntimeError(
+                "Refusing to reuse intervention outputs with an incompatible "
+                f"run contract at {contract_path}. Mismatched fields: "
+                f"{mismatch_preview}. Use a fresh --output_dir or archive the "
+                "existing directory."
+            )
+        return contract_path
+
+    existing_paths = _existing_intervention_output_paths(output_dir, alphas)
+    if existing_paths:
+        examples = [os.path.relpath(path, output_dir) for path in existing_paths[:5]]
+        example_text = ", ".join(examples)
+        if len(existing_paths) > len(examples):
+            example_text += f", ... ({len(existing_paths)} total)"
+        raise RuntimeError(
+            "Refusing to reuse intervention outputs without "
+            f"{INTERVENTION_RUN_CONFIG_FILENAME}. Existing files may come from an "
+            f"incompatible pre-guard run: {example_text}. Use a fresh --output_dir "
+            "or archive the existing directory."
+        )
+
+    if write_if_missing:
+        with open(contract_path, "w", encoding="utf-8") as f:
+            json.dump(contract, f, indent=2, sort_keys=True)
+            f.write("\n")
+    return contract_path
 
 
 def resolve_sae_target_features(
@@ -4489,13 +4691,27 @@ def main():
         sample_manifest_metadata = describe_sample_manifest(args.sample_manifest)
     output_dir = resolve_output_dir(args)
     os.makedirs(output_dir, exist_ok=True)
+    run_contract = build_intervention_run_contract(
+        args,
+        sample_manifest=sample_manifest_metadata,
+        run_profile=run_profile,
+        comparability_class=comparability_class,
+        generation_fingerprint=generation_fingerprint,
+        jailbreak_generation=jailbreak_generation,
+    )
+    contract_path = os.path.join(
+        output_dir,
+        INTERVENTION_RUN_CONFIG_FILENAME,
+    )
     summary = {
         "benchmark": args.benchmark,
+        "model_key": args.model_key,
         "model": args.model_path,
         "classifier": args.classifier_path,
         "run_profile": run_profile,
         "comparability_class": comparability_class,
         "generation_fingerprint": generation_fingerprint,
+        "intervention_run_config": run_contract,
     }
     if sample_manifest_metadata is not None:
         summary["sample_manifest"] = sample_manifest_metadata
@@ -4506,13 +4722,14 @@ def main():
         "run_profile": run_profile,
         "comparability_class": comparability_class,
         "generation_fingerprint": generation_fingerprint,
+        "intervention_run_contract": contract_path,
     }
     if sample_manifest_metadata is not None:
         initial_provenance_extra["sample_manifest"] = sample_manifest_metadata
     provenance_handle = start_run_provenance(
         args,
         primary_target=output_dir,
-        output_targets=[output_dir, summary_path],
+        output_targets=[output_dir, summary_path, contract_path],
         extra=initial_provenance_extra,
         primary_target_is_dir=True,
         run_ts=run_ts,
@@ -4528,6 +4745,13 @@ def main():
     alpha_throughput = {}
 
     try:
+        assert_or_write_intervention_run_contract(
+            output_dir,
+            run_contract,
+            args.alphas,
+            write_if_missing=True,
+        )
+
         # Load model
         print(f"Loading model: {args.model_path}")
         model, tokenizer = load_model_and_tokenizer(
@@ -4900,11 +5124,13 @@ def main():
         # Save summary
         summary = {
             "benchmark": args.benchmark,
+            "model_key": args.model_key,
             "model": args.model_path,
             "intervention_mode": args.intervention_mode,
             "run_profile": run_profile,
             "comparability_class": comparability_class,
             "generation_fingerprint": generation_fingerprint,
+            "intervention_run_config": run_contract,
             "n_h_neurons": total_neurons,
             "results": aggregation["results"],
             "effects": aggregation["effects"],
@@ -5004,6 +5230,7 @@ def main():
         provenance_extra["output_targets"] = [
             output_dir,
             summary_path,
+            contract_path,
             *[
                 os.path.join(output_dir, f"alpha_{format_alpha_label(alpha)}.jsonl")
                 for alpha in args.alphas

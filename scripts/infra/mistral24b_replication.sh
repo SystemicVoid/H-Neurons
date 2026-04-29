@@ -426,6 +426,13 @@ if should_run_stage faitheval_pilot; then
         "${FAITHEVAL_PILOT_ALPHAS[@]}"
 fi
 
+if should_run_stage faitheval_pilot_controls && ! should_run_stage faitheval_pilot; then
+    require_stage_complete \
+        "${FAITHEVAL_PILOT_OUTPUT_ROOT}/experiment" \
+        "${FAITHEVAL_PILOT_MANIFEST}" \
+        "${FAITHEVAL_PILOT_ALPHAS[@]}"
+fi
+
 run_stage faitheval_pilot_controls "${UV_RUN[@]}" python scripts/run_negative_control.py \
     --model_key "${MODEL_KEY}" \
     --model_path "${MODEL_PATH}" \

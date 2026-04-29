@@ -1,18 +1,28 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
+import re
 import sys
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from run_intervention import _faitheval_prompt  # noqa: E402
+from run_intervention import (  # noqa: E402
+    INTERVENTION_RUN_CONFIG_FILENAME,
+    _faitheval_prompt,
+    assert_or_write_intervention_run_contract,
+    describe_sample_manifest,
+)
 from run_negative_control import (  # noqa: E402
     _jailbreak_csv2_eval_dir,
+    assert_h_neuron_baseline_matches_control_contract,
     assert_or_write_negative_control_run_contract,
+    build_comparison_summary,
     build_negative_control_run_contract,
+    load_h_neuron_baseline_binding,
     negative_control_schedule,
     parse_args,
 )
@@ -29,8 +39,12 @@ _FAKE_SAMPLE = {
 
 
 def _stage_block(script: str, stage_name: str) -> str:
-    start = script.index(f"run_stage {stage_name} ")
-    end = script.find("\nrun_stage ", start + 1)
+    match = re.search(rf"(?m)^run_stage {re.escape(stage_name)}(?:\s|$)", script)
+    if match is None:
+        raise AssertionError(f"stage not found: {stage_name}")
+    start = match.start()
+    next_match = re.search(r"(?m)^run_stage ", script[start + 1 :])
+    end = -1 if next_match is None else start + 1 + next_match.start()
     return script[start:] if end == -1 else script[start:end]
 
 
@@ -47,6 +61,66 @@ def _set_argv(monkeypatch: pytest.MonkeyPatch, *extra: str) -> None:
             *extra,
         ],
     )
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_h_baseline_artifacts(
+    tmp_path: Path,
+    *,
+    classifier_path: Path,
+    manifest_path: Path,
+    prompt_style: str = "standard",
+    alphas: list[float] | None = None,
+) -> Path:
+    alphas = [0.0, 1.0, 3.0] if alphas is None else alphas
+    baseline_dir = tmp_path / "experiment"
+    baseline_dir.mkdir()
+    sample_manifest = describe_sample_manifest(str(manifest_path))
+    run_contract = {
+        "schema_version": "intervention_run_config/v1",
+        "benchmark": "faitheval",
+        "model": {
+            "key": "mistral24b",
+            "path": "mistralai/Mistral-Small-24B-Instruct-2501",
+        },
+        "classifier": {
+            "path": str(classifier_path),
+            "content_sha256": _sha256(classifier_path),
+        },
+        "sample_selection": {
+            "max_samples": None,
+            "sample_manifest": sample_manifest,
+        },
+        "schedule": {"alphas": alphas},
+        "benchmark_config": {"prompt_style": prompt_style},
+    }
+    (baseline_dir / INTERVENTION_RUN_CONFIG_FILENAME).write_text(
+        json.dumps(run_contract, indent=2)
+    )
+    results = {
+        "benchmark": "faitheval",
+        "model_key": "mistral24b",
+        "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+        "classifier": str(classifier_path),
+        "sample_manifest": sample_manifest,
+        "prompt_style": prompt_style,
+        "results": {
+            str(alpha): {
+                "compliance_rate": 0.1,
+                "n_compliant": 2,
+                "n_total": 20,
+                "parse_failures": 0,
+            }
+            for alpha in alphas
+        },
+    }
+    (baseline_dir / "results.20260429_000000.json").write_text(
+        json.dumps(results, indent=2)
+    )
+    return baseline_dir
 
 
 def test_parse_args_prompt_style_default_is_anti_compliance(
@@ -126,6 +200,175 @@ def test_mistral_wrapper_blocks_cp5_until_cp4_review() -> None:
     assert script.index(
         "if should_run_any_stage faitheval faitheval_controls; then"
     ) < script.index("run_stage faitheval ")
+
+
+def test_mistral_wrapper_controls_require_complete_pilot_baseline() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    script = (repo_root / "scripts/infra/mistral24b_replication.sh").read_text()
+
+    control_guard = (
+        "if should_run_stage faitheval_pilot_controls && "
+        "! should_run_stage faitheval_pilot; then\n"
+        "    require_stage_complete \\\n"
+        '        "${FAITHEVAL_PILOT_OUTPUT_ROOT}/experiment"'
+    )
+    assert control_guard in script
+    assert script.index(control_guard) < script.index(
+        "run_stage faitheval_pilot_controls "
+    )
+
+
+def test_intervention_contract_rejects_legacy_outputs_without_guard(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "experiment"
+    output_dir.mkdir()
+    (output_dir / "alpha_0.0.jsonl").write_text('{"id": "old"}\n')
+    contract = {
+        "schema_version": "intervention_run_config/v1",
+        "benchmark": "faitheval",
+        "schedule": {"alphas": [0.0]},
+    }
+
+    with pytest.raises(RuntimeError, match="without intervention_run_config.json"):
+        assert_or_write_intervention_run_contract(
+            str(output_dir),
+            contract,
+            [0.0],
+            write_if_missing=True,
+        )
+
+
+def test_negative_control_contract_binds_h_baseline_identity(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(["fake_0", "fake_1"]))
+    baseline_dir = _write_h_baseline_artifacts(
+        tmp_path,
+        classifier_path=classifier_path,
+        manifest_path=manifest_path,
+        prompt_style="standard",
+    )
+    _set_argv(
+        monkeypatch,
+        "--quick",
+        "--classifier_path",
+        str(classifier_path),
+        "--sample_manifest",
+        str(manifest_path),
+        "--prompt_style",
+        "standard",
+        "--h_neuron_baseline",
+        str(baseline_dir),
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    baseline_binding = load_h_neuron_baseline_binding(str(baseline_dir), alphas)
+    contract = build_negative_control_run_contract(
+        args,
+        alphas,
+        configs,
+        baseline_binding=baseline_binding,
+    )
+
+    assert_h_neuron_baseline_matches_control_contract(contract)
+    assert contract["h_neuron_baseline"]["results_path"].endswith(
+        "results.20260429_000000.json"
+    )
+
+
+def test_negative_control_contract_rejects_baseline_prompt_drift(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(["fake_0", "fake_1"]))
+    baseline_dir = _write_h_baseline_artifacts(
+        tmp_path,
+        classifier_path=classifier_path,
+        manifest_path=manifest_path,
+        prompt_style="anti_compliance",
+    )
+    _set_argv(
+        monkeypatch,
+        "--quick",
+        "--classifier_path",
+        str(classifier_path),
+        "--sample_manifest",
+        str(manifest_path),
+        "--prompt_style",
+        "standard",
+        "--h_neuron_baseline",
+        str(baseline_dir),
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    baseline_binding = load_h_neuron_baseline_binding(str(baseline_dir), alphas)
+    contract = build_negative_control_run_contract(
+        args,
+        alphas,
+        configs,
+        baseline_binding=baseline_binding,
+    )
+
+    with pytest.raises(RuntimeError, match="benchmark_config.prompt_style"):
+        assert_h_neuron_baseline_matches_control_contract(contract)
+
+
+def test_comparison_summary_preserves_h_baseline_parse_failures(
+    tmp_path: Path,
+) -> None:
+    alphas = [0.0, 1.0, 3.0]
+    baseline = {
+        "n_h_neurons": 10,
+        "results": {
+            "0.0": {
+                "compliance_rate": 0.1,
+                "n_compliant": 2,
+                "n_total": 20,
+                "parse_failures": 1,
+            },
+            "1.0": {
+                "compliance_rate": 0.2,
+                "n_compliant": 4,
+                "n_total": 20,
+                "parse_failures": 3,
+            },
+            "3.0": {
+                "compliance_rate": 0.3,
+                "n_compliant": 6,
+                "n_total": 20,
+                "parse_failures": 5,
+            },
+        },
+    }
+    baseline_path = tmp_path / "baseline_results.json"
+    baseline_path.write_text(json.dumps(baseline))
+    control_results = {}
+    for n_compliant, alpha in enumerate(alphas, start=1):
+        control_results[str(alpha)] = {
+            "compliance_rate": n_compliant / 20,
+            "n_compliant": n_compliant,
+            "n_total": 20,
+            "parse_failures": 2,
+        }
+
+    summary = build_comparison_summary(
+        {"seed_0_unconstrained": control_results},
+        alphas,
+        baseline_path=str(baseline_path),
+    )
+
+    assert summary["h_neuron_baseline"]["parse_failures"] == [1, 3, 5]
+    assert summary["unconstrained_random"]["per_seed"]["seed_0_unconstrained"][
+        "parse_failures"
+    ] == [2, 2, 2]
 
 
 def test_mistral_wrapper_has_token_span_preflight_before_claim_stages() -> None:

@@ -463,10 +463,47 @@ class TestCheckStageComplete:
         _write_alpha(stage_dir, 1.0, 3)  # only 3/5
         assert check_stage_complete(stage_dir, manifest_file, [0.0, 1.0]) is False
 
-    def test_over_count_is_ok(self, stage_dir: Path, manifest_file: Path) -> None:
-        """More records than expected (e.g. appended duplicates) is not a failure."""
+    def test_over_count_fails(self, stage_dir: Path, manifest_file: Path) -> None:
+        """More records than expected can hide stale duplicate output rows."""
         _write_alpha(stage_dir, 0.0, 7)
-        assert check_stage_complete(stage_dir, manifest_file, [0.0]) is True
+        assert check_stage_complete(stage_dir, manifest_file, [0.0]) is False
+
+    def test_duplicate_id_fails(self, stage_dir: Path, manifest_file: Path) -> None:
+        f = _write_alpha(stage_dir, 0.0, 5)
+        f.write_text(
+            "".join(
+                [
+                    '{"id": "id_0", "alpha": 0.0}\n',
+                    '{"id": "id_0", "alpha": 0.0}\n',
+                    '{"id": "id_2", "alpha": 0.0}\n',
+                    '{"id": "id_3", "alpha": 0.0}\n',
+                    '{"id": "id_4", "alpha": 0.0}\n',
+                ]
+            )
+        )
+        assert check_stage_complete(stage_dir, manifest_file, [0.0]) is False
+
+    def test_unexpected_id_fails(self, stage_dir: Path, manifest_file: Path) -> None:
+        f = _write_alpha(stage_dir, 0.0, 5)
+        f.write_text(
+            "".join(
+                [
+                    '{"id": "id_0", "alpha": 0.0}\n',
+                    '{"id": "id_1", "alpha": 0.0}\n',
+                    '{"id": "id_2", "alpha": 0.0}\n',
+                    '{"id": "id_3", "alpha": 0.0}\n',
+                    '{"id": "other", "alpha": 0.0}\n',
+                ]
+            )
+        )
+        assert check_stage_complete(stage_dir, manifest_file, [0.0]) is False
+
+    def test_missing_record_id_fails(
+        self, stage_dir: Path, manifest_file: Path
+    ) -> None:
+        f = stage_dir / "alpha_0.0.jsonl"
+        f.write_text('{"alpha": 0.0}\n')
+        assert check_stage_complete(stage_dir, manifest_file, [0.0]) is False
 
     def test_empty_alpha_list(self, stage_dir: Path, manifest_file: Path) -> None:
         """No alphas to check = vacuously complete."""

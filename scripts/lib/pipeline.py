@@ -66,17 +66,24 @@ class TrackedLiveOutputViolation:
 
 # Incident: 2026-04-07 — bash guard only checked file existence, not line count.
 # A power-off left alpha_8.0.jsonl at 68/100 lines; guard skipped re-generation.
+# Incident: 2026-04-29 — CP4 pre-run review found that count-only completion
+# could accept stale alpha files with duplicate or wrong sample IDs.
 def check_stage_complete(
     output_dir: Path,
     manifest: Path,
     alphas: list[float],
 ) -> bool:
-    """Return True only if every alpha file has >= expected records.
+    """Return True only if every alpha file exactly matches manifest IDs.
 
     Expected count is derived from the manifest (a JSON list of sample IDs).
-    Prints diagnostics for incomplete files to stderr.
+    Prints diagnostics for incomplete or mismatched files to stderr.
     """
-    expected = manifest_count(manifest)
+    expected_ids = _sample_manifest_ids(
+        json.loads(manifest.read_text(encoding="utf-8")),
+        manifest,
+    )
+    expected = len(expected_ids)
+    expected_set = set(expected_ids)
     all_complete = True
     for alpha in alphas:
         f = output_dir / f"alpha_{format_alpha_label(alpha)}.jsonl"
@@ -84,11 +91,50 @@ def check_stage_complete(
             print(f"  missing: {f}", file=sys.stderr)
             all_complete = False
             continue
-        n = _count_lines(f)
+        try:
+            record_ids = _stage_record_ids(f)
+        except ValueError as exc:
+            print(f"  invalid: {exc}", file=sys.stderr)
+            all_complete = False
+            continue
+        n = len(record_ids)
         if n < expected:
             print(f"  incomplete: {f} ({n}/{expected} lines)", file=sys.stderr)
             all_complete = False
+        duplicate_ids = sorted(
+            item for item, count in Counter(record_ids).items() if count > 1
+        )
+        missing_ids = sorted(expected_set - set(record_ids))
+        unexpected_ids = sorted(set(record_ids) - expected_set)
+        if duplicate_ids:
+            print(f"  duplicate ids in {f}: {duplicate_ids[:5]}", file=sys.stderr)
+            all_complete = False
+        if missing_ids:
+            print(f"  missing manifest ids in {f}: {missing_ids[:5]}", file=sys.stderr)
+            all_complete = False
+        if unexpected_ids:
+            print(
+                f"  unexpected ids in {f}: {unexpected_ids[:5]}",
+                file=sys.stderr,
+            )
+            all_complete = False
     return all_complete
+
+
+def _stage_record_ids(path: Path) -> list[str]:
+    ids: list[str] = []
+    with path.open(encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"{path}:{line_number}: invalid JSON: {exc}") from exc
+            if not isinstance(payload, dict) or "id" not in payload:
+                raise ValueError(f"{path}:{line_number}: missing record id")
+            ids.append(str(payload["id"]))
+    return ids
 
 
 def manifest_count(manifest: Path) -> int:

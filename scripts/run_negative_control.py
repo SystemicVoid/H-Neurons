@@ -39,6 +39,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from run_intervention import (
     CANONICAL_JAILBREAK_GENERATION,
     HNeuronScaler,
+    INTERVENTION_RUN_CONFIG_FILENAME,
     _bioasq_prompt,
     _faitheval_prompt,
     describe_sample_manifest,
@@ -166,10 +167,142 @@ def _file_sha256(path: str | None) -> str | None:
     return digest.hexdigest()
 
 
+def load_h_neuron_baseline_binding(
+    baseline_path: str,
+    alphas: list[float],
+) -> dict[str, Any]:
+    resolved_results_path = resolve_results_json(baseline_path)
+    if not os.path.isfile(resolved_results_path):
+        raise RuntimeError(
+            f"H-neuron baseline not found at {resolved_results_path}. Run the "
+            "H-neuron intervention first."
+        )
+
+    with open(resolved_results_path, encoding="utf-8") as f:
+        try:
+            baseline_summary = json.load(f)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                f"Invalid H-neuron baseline summary at {resolved_results_path}: {exc}"
+            ) from exc
+
+    results = baseline_summary.get("results")
+    if not isinstance(results, dict):
+        raise RuntimeError(
+            f"H-neuron baseline summary at {resolved_results_path} has no results object"
+        )
+    missing_alphas = [
+        str(float(alpha)) for alpha in alphas if str(float(alpha)) not in results
+    ]
+    if missing_alphas:
+        raise RuntimeError(
+            "H-neuron baseline summary is missing required alpha results: "
+            f"{missing_alphas}"
+        )
+
+    contract_path = os.path.join(
+        os.path.dirname(resolved_results_path),
+        INTERVENTION_RUN_CONFIG_FILENAME,
+    )
+    if not os.path.isfile(contract_path):
+        raise RuntimeError(
+            f"H-neuron baseline is missing {INTERVENTION_RUN_CONFIG_FILENAME} at "
+            f"{contract_path}. Use a fresh baseline produced by the guarded "
+            "run_intervention.py contract path."
+        )
+    with open(contract_path, encoding="utf-8") as f:
+        try:
+            baseline_contract = json.load(f)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                f"Invalid H-neuron baseline contract at {contract_path}: {exc}"
+            ) from exc
+
+    return {
+        "schema_version": "h_neuron_baseline_binding/v1",
+        "results_path": resolved_results_path,
+        "results_content_sha256": _file_sha256(resolved_results_path),
+        "contract_path": contract_path,
+        "contract_content_sha256": _file_sha256(contract_path),
+        "summary_identity": {
+            "benchmark": baseline_summary.get("benchmark"),
+            "model_key": baseline_summary.get("model_key"),
+            "model_path": baseline_summary.get("model"),
+            "classifier_path": baseline_summary.get("classifier"),
+            "sample_manifest": baseline_summary.get("sample_manifest"),
+            "prompt_style": baseline_summary.get("prompt_style"),
+            "alphas": [float(alpha) for alpha in alphas],
+        },
+        "run_contract": baseline_contract,
+    }
+
+
+def _baseline_comparison_subset(contract: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "benchmark": contract.get("benchmark"),
+        "model": contract.get("model"),
+        "classifier": contract.get("classifier"),
+        "sample_selection": contract.get("sample_selection"),
+        "schedule": {
+            "alphas": contract.get("schedule", {}).get("alphas"),
+        },
+        "benchmark_config": contract.get("benchmark_config"),
+    }
+
+
+def assert_h_neuron_baseline_matches_control_contract(
+    contract: dict[str, Any],
+) -> None:
+    baseline_binding = contract.get("h_neuron_baseline")
+    if not isinstance(baseline_binding, dict):
+        raise RuntimeError("Negative-control contract is missing h_neuron_baseline")
+    baseline_contract = baseline_binding.get("run_contract")
+    if not isinstance(baseline_contract, dict):
+        raise RuntimeError("H-neuron baseline binding is missing run_contract")
+
+    expected = _baseline_comparison_subset(contract)
+    observed = _baseline_comparison_subset(baseline_contract)
+    expected_benchmark_config = expected.get("benchmark_config") or {}
+    observed_benchmark_config = observed.get("benchmark_config") or {}
+    observed["benchmark_config"] = {
+        key: observed_benchmark_config.get(key) for key in expected_benchmark_config
+    }
+    mismatches = _contract_mismatch_paths(expected, observed)
+    if mismatches:
+        mismatch_preview = ", ".join(mismatches[:8])
+        if len(mismatches) > 8:
+            mismatch_preview += f", ... ({len(mismatches)} total)"
+        raise RuntimeError(
+            "H-neuron baseline contract does not match negative-control contract. "
+            f"Mismatched fields: {mismatch_preview}."
+        )
+
+    summary_identity = baseline_binding.get("summary_identity", {})
+    expected_summary = {
+        "benchmark": contract.get("benchmark"),
+        "model_key": contract.get("model", {}).get("key"),
+        "model_path": contract.get("model", {}).get("path"),
+        "classifier_path": contract.get("classifier", {}).get("path"),
+        "sample_manifest": contract.get("sample_selection", {}).get("sample_manifest"),
+        "prompt_style": contract.get("benchmark_config", {}).get("prompt_style"),
+        "alphas": contract.get("schedule", {}).get("alphas"),
+    }
+    summary_mismatches = _contract_mismatch_paths(expected_summary, summary_identity)
+    if summary_mismatches:
+        mismatch_preview = ", ".join(summary_mismatches[:8])
+        if len(summary_mismatches) > 8:
+            mismatch_preview += f", ... ({len(summary_mismatches)} total)"
+        raise RuntimeError(
+            "H-neuron baseline summary does not match negative-control contract. "
+            f"Mismatched fields: {mismatch_preview}."
+        )
+
+
 def build_negative_control_run_contract(
     args: argparse.Namespace,
     alphas: list[float],
     configs: list[ControlConfig],
+    baseline_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     sample_manifest = None
     if args.sample_manifest:
@@ -209,6 +342,7 @@ def build_negative_control_run_contract(
             ],
         },
         "benchmark_config": benchmark_config,
+        "h_neuron_baseline": baseline_binding,
     }
 
 
@@ -786,9 +920,12 @@ def build_comparison_summary(
     )
 
     h_rates = []
+    h_parse_failures = []
     for a in alphas:
         key = str(float(a))
-        h_rates.append(h_baseline_raw["results"][key]["compliance_rate"])
+        h_result = h_baseline_raw["results"][key]
+        h_rates.append(h_result["compliance_rate"])
+        h_parse_failures.append(int(h_result.get("parse_failures", 0)))
 
     alpha_arr = np.array(alphas)
     h_arr = np.array(h_rates)
@@ -802,7 +939,7 @@ def build_comparison_summary(
             "compliance_rates": h_rates,
             "slope_per_alpha": round(h_slope, 2),
             "spearman_rho": round(h_rho, 4),
-            "parse_failures": [0] * len(alphas),
+            "parse_failures": h_parse_failures,
             "compliance_ci_by_alpha": [
                 h_baseline_raw["results"][str(float(a))].get("compliance", None)
                 or build_rate_summary(
@@ -1317,6 +1454,7 @@ def main():
     sample_manifest_ids = (
         load_sample_manifest_ids(args.sample_manifest) if args.sample_manifest else None
     )
+    baseline_binding = load_h_neuron_baseline_binding(baseline_path, alphas)
 
     os.makedirs(output_base, exist_ok=True)
     resumed_from_existing = any(
@@ -1340,7 +1478,13 @@ def main():
     wb_run = None
     wandb_module = None
     try:
-        run_contract = build_negative_control_run_contract(args, alphas, configs)
+        run_contract = build_negative_control_run_contract(
+            args,
+            alphas,
+            configs,
+            baseline_binding=baseline_binding,
+        )
+        assert_h_neuron_baseline_matches_control_contract(run_contract)
         assert_or_write_negative_control_run_contract(
             output_base,
             run_contract,
@@ -1555,7 +1699,7 @@ def main():
                 )
                 return
 
-        resolved_baseline_path = resolve_results_json(baseline_path)
+        resolved_baseline_path = baseline_binding["results_path"]
         if not os.path.exists(resolved_baseline_path):
             print(f"\nH-neuron baseline not found at {resolved_baseline_path}")
             print(
