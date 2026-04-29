@@ -85,19 +85,47 @@ def test_mistral_wrapper_controls_reuse_baseline_prompt_and_sample_selection() -
     repo_root = Path(__file__).resolve().parent.parent
     script = (repo_root / "scripts/infra/mistral24b_replication.sh").read_text()
 
+    faitheval_pilot_baseline = _stage_block(script, "faitheval_pilot")
+    faitheval_pilot_control = _stage_block(script, "faitheval_pilot_controls")
     faitheval_baseline = _stage_block(script, "faitheval")
     faitheval_control = _stage_block(script, "faitheval_controls")
     falseqa_baseline = _stage_block(script, "falseqa")
     falseqa_control = _stage_block(script, "falseqa_controls")
 
+    pilot_manifest = '--sample_manifest "${FAITHEVAL_PILOT_MANIFEST}"'
     shared_faitheval_manifest = '--sample_manifest "${FAITHEVAL_SAMPLE_MANIFEST}"'
     falseqa_sample_cap = '--max_samples "${INTERVENTION_MAX_SAMPLES}"'
+    assert "--prompt_style standard" in faitheval_pilot_baseline
+    assert "--prompt_style standard" in faitheval_pilot_control
+    assert pilot_manifest in faitheval_pilot_baseline
+    assert pilot_manifest in faitheval_pilot_control
+    assert '--alphas "${FAITHEVAL_PILOT_ALPHAS[@]}"' in faitheval_pilot_baseline
+    assert "--quick" in faitheval_pilot_control
+    assert (
+        '--output_dir "${FAITHEVAL_PILOT_OUTPUT_ROOT}/experiment"'
+        in faitheval_pilot_baseline
+    )
+    assert (
+        '--h_neuron_baseline "${FAITHEVAL_PILOT_OUTPUT_ROOT}/experiment"'
+        in faitheval_pilot_control
+    )
     assert "--prompt_style standard" in faitheval_baseline
     assert "--prompt_style standard" in faitheval_control
     assert shared_faitheval_manifest in faitheval_baseline
     assert shared_faitheval_manifest in faitheval_control
     assert falseqa_sample_cap in falseqa_baseline
     assert falseqa_sample_cap in falseqa_control
+
+
+def test_mistral_wrapper_blocks_cp5_until_cp4_review() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    script = (repo_root / "scripts/infra/mistral24b_replication.sh").read_text()
+
+    assert 'CP4_REVIEWED="${CP4_REVIEWED:-0}"' in script
+    assert "require_cp4_review_for_cp5" in script
+    assert script.index(
+        "if should_run_any_stage faitheval faitheval_controls; then"
+    ) < script.index("run_stage faitheval ")
 
 
 def test_mistral_wrapper_has_token_span_preflight_before_claim_stages() -> None:

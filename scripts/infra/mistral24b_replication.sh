@@ -37,6 +37,7 @@ PREFLIGHT_DIR="${PREFLIGHT_DIR:-${OUTPUT_ROOT}/preflight}"
 MANIFEST_DIR="${MANIFEST_DIR:-data/manifests}"
 FAITHEVAL_SAMPLE_MANIFEST="${FAITHEVAL_SAMPLE_MANIFEST:-${MANIFEST_DIR}/faitheval_seed42_n200_mistral24b.lock.json}"
 FAITHEVAL_PILOT_MANIFEST="${FAITHEVAL_PILOT_MANIFEST:-${MANIFEST_DIR}/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json}"
+FAITHEVAL_PILOT_OUTPUT_ROOT="${FAITHEVAL_PILOT_OUTPUT_ROOT:-${OUTPUT_ROOT}/intervention/faitheval_pilot_smoke}"
 TRUTHFULQA_MC1_MANIFEST="${TRUTHFULQA_MC1_MANIFEST:-${MANIFEST_DIR}/truthfulqa_paper_heldout_mc1_ids_seed42_mistral24b.lock.json}"
 TRUTHFULQA_MC2_MANIFEST="${TRUTHFULQA_MC2_MANIFEST:-${MANIFEST_DIR}/truthfulqa_paper_heldout_mc2_ids_seed42_mistral24b.lock.json}"
 TRIVIAQA_BRIDGE_MANIFEST="${TRIVIAQA_BRIDGE_MANIFEST:-${MANIFEST_DIR}/triviaqa_bridge_test500_seed42_mistral24b.lock.json}"
@@ -65,8 +66,16 @@ DRY_RUN="${DRY_RUN:-0}"
 DRY_RUN_TRANSCRIPT="${DRY_RUN_TRANSCRIPT:-${PREFLIGHT_DIR}/runpod_dry_run_transcript.txt}"
 GPU_MIN_MEMORY_GIB="${GPU_MIN_MEMORY_GIB:-75}"
 GPU_NAME_PATTERN="${GPU_NAME_PATTERN:-H100|A100}"
+CP4_REVIEWED="${CP4_REVIEWED:-0}"
+FAITHEVAL_PILOT_ALPHAS=(0.0 1.0 3.0)
 read -r -a ALPHAS <<<"${ALPHAS:-0.0 0.5 1.0 1.5 2.0 2.5 3.0}"
 read -r -a C_VALUES <<<"${C_VALUES:-0.001 0.005 0.01 0.05 0.1 0.5 1.0}"
+FAITHEVAL_PILOT_CONTROL_DIRS=(
+    seed_0_unconstrained
+    seed_1_unconstrained
+    seed_2_unconstrained
+    seed_0_layer_matched
+)
 
 clean_untracked_uv_lock() {
     if [[ -f uv.lock ]] && ! git ls-files --error-unmatch uv.lock >/dev/null 2>&1; then
@@ -99,6 +108,8 @@ REQUIRED_LOCK_MANIFESTS=(
 GPU_REQUIRED_STAGES=(
     model_smoke
     activations
+    faitheval_pilot
+    faitheval_pilot_controls
     faitheval
     faitheval_controls
     falseqa
@@ -108,6 +119,8 @@ GPU_REQUIRED_STAGES=(
 PREFLIGHT_VALIDATED_STAGES=(
     activations
     classifier
+    faitheval_pilot
+    faitheval_pilot_controls
     faitheval
     faitheval_controls
     falseqa
@@ -176,6 +189,56 @@ require_gpu_hardware() {
         --name-pattern "${GPU_NAME_PATTERN}"
 }
 
+require_cp4_review_for_cp5() {
+    if [[ "${CP4_REVIEWED}" == "1" ]]; then
+        return 0
+    fi
+    printf '\n[%s] CP5 review gate blocked full FaithEval stage selection. Set CP4_REVIEWED=1 only after CP4 pilot outputs pass review.\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "${LOG}"
+    exit 2
+}
+
+require_stage_complete() {
+    local output_dir="$1"
+    local manifest="$2"
+    shift 2
+
+    run_logged "${PIPELINE[@]}" check-stage \
+        --output-dir "${output_dir}" \
+        --manifest "${manifest}" \
+        --alphas "$@"
+}
+
+require_output_file() {
+    local path="$1"
+
+    if [[ "${DRY_RUN}" == "1" ]]; then
+        run_logged test -f "${path}"
+        return 0
+    fi
+    if [[ ! -f "${path}" ]]; then
+        printf '\n[%s] required output file missing: %s\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${path}" | tee -a "${LOG}"
+        exit 2
+    fi
+    printf '[%s] verified output file: %s\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${path}" | tee -a "${LOG}"
+}
+
+require_faitheval_pilot_control_outputs() {
+    local control_dir="${FAITHEVAL_PILOT_OUTPUT_ROOT}/control"
+    local seed_dir
+
+    require_output_file "${control_dir}/control_run_config.json"
+    require_output_file "${control_dir}/comparison_summary.json"
+    for seed_dir in "${FAITHEVAL_PILOT_CONTROL_DIRS[@]}"; do
+        require_stage_complete \
+            "${control_dir}/${seed_dir}" \
+            "${FAITHEVAL_PILOT_MANIFEST}" \
+            "${FAITHEVAL_PILOT_ALPHAS[@]}"
+    done
+}
+
 validate_token_span_summary() {
     run_logged "${UV_RUN[@]}" python scripts/audit_token_spans.py \
         --validate_summary "${TOKEN_SPAN_AUDIT_SUMMARY}" \
@@ -220,6 +283,9 @@ PY
 }
 
 require_lock_manifests "${REQUIRED_LOCK_MANIFESTS[@]}"
+if should_run_any_stage faitheval faitheval_controls; then
+    require_cp4_review_for_cp5
+fi
 
 run_logged "${PIPELINE[@]}" active-run-status
 run_logged "${PIPELINE[@]}" check-active-run-git-guard
@@ -341,6 +407,40 @@ run_stage classifier "${UV_RUN[@]}" python scripts/validate_mistral24b_cp23.py \
     --model-path "${MODEL_PATH}" \
     --model-key "${MODEL_KEY}" \
     --classifier-path "${CLASSIFIER_PATH}"
+
+run_stage faitheval_pilot "${UV_RUN[@]}" python scripts/run_intervention.py \
+    --model_key "${MODEL_KEY}" \
+    --model_path "${MODEL_PATH}" \
+    --device_map "${DEVICE_MAP}" \
+    --classifier_path "${CLASSIFIER_PATH}" \
+    --benchmark faitheval \
+    --prompt_style standard \
+    --sample_manifest "${FAITHEVAL_PILOT_MANIFEST}" \
+    --alphas "${FAITHEVAL_PILOT_ALPHAS[@]}" \
+    --output_dir "${FAITHEVAL_PILOT_OUTPUT_ROOT}/experiment"
+
+if should_run_stage faitheval_pilot; then
+    require_stage_complete \
+        "${FAITHEVAL_PILOT_OUTPUT_ROOT}/experiment" \
+        "${FAITHEVAL_PILOT_MANIFEST}" \
+        "${FAITHEVAL_PILOT_ALPHAS[@]}"
+fi
+
+run_stage faitheval_pilot_controls "${UV_RUN[@]}" python scripts/run_negative_control.py \
+    --model_key "${MODEL_KEY}" \
+    --model_path "${MODEL_PATH}" \
+    --device_map "${DEVICE_MAP}" \
+    --classifier_path "${CLASSIFIER_PATH}" \
+    --benchmark faitheval \
+    --prompt_style standard \
+    --sample_manifest "${FAITHEVAL_PILOT_MANIFEST}" \
+    --quick \
+    --output_base "${FAITHEVAL_PILOT_OUTPUT_ROOT}/control" \
+    --h_neuron_baseline "${FAITHEVAL_PILOT_OUTPUT_ROOT}/experiment"
+
+if should_run_stage faitheval_pilot_controls; then
+    require_faitheval_pilot_control_outputs
+fi
 
 run_stage faitheval "${UV_RUN[@]}" python scripts/run_intervention.py \
     --model_key "${MODEL_KEY}" \
