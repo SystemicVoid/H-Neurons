@@ -10,7 +10,7 @@
 Separate from the main Gemma flagship infra; do not generalize the choices here to Gemma runs.
 
 **Decision in one line:**
-**H100 SXM 80 GB Pod on RunPod Secure Cloud, Pytorch 2.4 / CUDA 12.4 template, 100 GB Network Volume.**
+**H100 SXM 80 GB Pod on RunPod Secure Cloud, Pytorch 2.4 / CUDA 12.4 template, with storage chosen by run stage.**
 Fall back to A100 SXM 80 GB if availability or budget pinches.
 
 ---
@@ -122,16 +122,17 @@ Two non-obvious observations:
 - **Blackwell (RTX PRO 6000, B200):** `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`
   → Torch 2.8, CUDA 12.8. Required for `sm_120`. Use only if forced onto Blackwell.
 
-### Python deps (one-shot, installed onto Network Volume)
+### Python deps (one-shot, installed onto selected workspace)
 
 ```bash
-uv sync --frozen
+uv sync --no-dev
 uv run python -c "import torch, transformers; print(torch.__version__, transformers.__version__)"
 ```
 
 Use `uv add <package>` plus a same-change `uv export --no-hashes --frozen
 --no-emit-project > requirements.txt` only if a dependency is genuinely missing.
 Do not use `pip install` instructions in repo docs.
+Use `uv sync --frozen` only if a `uv.lock` is intentionally committed.
 
 - [transformer_lens](https://github.com/TransformerLensOrg/TransformerLens) supports the Mistral arch.
 - [nnsight](https://nnsight.net/) for declarative tracing if direct PyTorch hooks are too rigid for the intervention pattern.
@@ -142,11 +143,16 @@ Do not use `pip install` instructions in repo docs.
 
 [Storage docs](https://docs.runpod.io/pods/storage/types):
 
-- **Network Volume Standard, 100 GB, $0.07/GB-mo = $7.00/mo.**
-  Persists across pod stop/start, no idle premium (unlike Volume Disk at $0.20/GB-mo idle).
-  Region-locked — pin a region with H100 SXM availability *and* A100 SXM fallback.
-- Layout: `models/mistral-24b/` (~48 GB) + `runs/` (~30 GB captures) + headroom.
-  Use 150-200 GB if adding base-model origin analysis or 2503 downloads.
+- For a first bounded CP1 smoke, ephemeral `/workspace` is acceptable and avoids an
+  ongoing storage resource.
+- For repeated CP1 attempts or CP2+ work, use a Network Volume in the chosen Secure
+  Cloud region. Current docs price it at `$0.07/GB-month` under 1 TB, so 200 GB is
+  about `$14/month`.
+- Region-lock tradeoff: a single volume preserves caches but constrains pod placement
+  to that datacenter. Create per-region volumes only if fallback reliability justifies
+  manual synchronization.
+- Layout: `hf/` for model cache, `uv-cache/`, `02-h-neurons/`, `.venv` only after
+  local dependency proof, and run artifacts under `data/mistral24b/`.
 
 ### Region
 
@@ -220,7 +226,10 @@ section can now be driven from the CLI on this machine.
   every new pod's `authorized_keys` automatically — no per-pod copy needed.
 - **Local SSH config** has a `Host ssh.runpod.io` block (User `root`, IdentityFile
   `~/.ssh/id_ed25519`, `IdentitiesOnly yes`, `StrictHostKeyChecking accept-new`,
-  keepalives 30 s × 5) so `ssh <pod-id>@ssh.runpod.io` Just Works.
+  keepalives 30 s × 5), but the 2026-04-29 CP1 smoke showed the relay form can
+  fail with `Permission denied (publickey)`. Treat `runpodctl pod get <pod-id>` as
+  the source of truth for the direct `root@<ip> -p <port>` SSH endpoint; see
+  [2026-04-29-cp1-runpod-postmortem.md](2026-04-29-cp1-runpod-postmortem.md).
 - **Hugging Face token** `1-gen-vid` (fine-grained, `canReadGatedRepos: true`,
   identity `SystemicVoid`) added to project `.env` as `HF_TOKEN`. Bonus discovery:
   **`mistralai/Mistral-Small-24B-Base-2501` is no longer gated** as of this date
@@ -271,11 +280,20 @@ section can now be driven from the CLI on this machine.
 
 ### Out of scope — defer to launch time
 
-- **Network Volume.** $0.07/GB-mo standing charge ($7/mo for 100 GB) and
-  **region-locked at create**. Skip until the launching agent picks the DC and is
-  ready to start the first pod the same day. `runpodctl network-volume create` (or
-  GraphQL `saveNetworkVolume`) once region is fixed.
+- **Local adapter.** Use
+  [`scripts/infra/cloudctl.py`](../../../scripts/infra/cloudctl.py) and
+  [`scripts/infra/cloud/`](../../../scripts/infra/cloud/) for dry-run launch
+  rendering, direct SSH derivation, preflight, and cleanup checks.
+- **Network Volume.** Current docs list `$0.07/GB-month` under 1 TB and
+  `$0.05/GB-month` over 1 TB. Volumes persist independently of compute, mount at
+  `/workspace` for Secure Cloud pods, must be attached at pod deployment time, and
+  constrain pod placement to the volume datacenter. Use ephemeral storage for a
+  first one-shot CP1 smoke; create/prewarm a network volume for a second CP1 paid
+  attempt or CP2+ work. See
+  [2026-04-29-cp1-runpod-postmortem.md](2026-04-29-cp1-runpod-postmortem.md).
 - **Pod launch.** Owned by the agent driving the workload. Reference invocation:
+  Before paid CP1-style smoke launches, read the CP1 RunPod postmortem and guardrails:
+  [2026-04-29-cp1-runpod-postmortem.md](2026-04-29-cp1-runpod-postmortem.md).
 
   ```bash
   runpodctl pod create \
@@ -316,9 +334,10 @@ curl -sS -L -H "Authorization: Bearer $HF_TOKEN" -o /dev/null -w "%{http_code}\n
 ## 9. Launch checklist
 
 1. Verify H100 SXM availability in target region at [console.runpod.io/deploy](https://console.runpod.io/deploy).
-2. Create **100 GB Network Volume — Standard** in that region (`/workspace`, $7/mo).
-3. Launch **H100 SXM** Pod, attach volume, template = **Pytorch 2.4.0**, SSH on.
-4. Install deps once into the volume with `uv sync --frozen`; download the model with
+2. Choose storage mode: ephemeral for a first one-shot CP1 smoke; otherwise create
+   a **Network Volume** in that region and attach it at deploy time.
+3. Launch **H100 SXM** Pod, attach the volume if selected, template = **Pytorch 2.4.0**, SSH on.
+4. If using persistent storage, install deps once into the volume with `uv sync --no-dev`; download the model with
    `uv run huggingface-cli download mistralai/Mistral-Small-24B-Instruct-2501 --local-dir /workspace/models/Mistral-Small-24B-Instruct-2501`.
 5. Run `DRY_RUN=1 bash scripts/infra/mistral24b_replication.sh` to inspect the
    guarded command sequence, then run `bash scripts/infra/mistral24b_replication.sh`
