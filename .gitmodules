@@ -1,0 +1,4 @@
+[submodule "vendor/zombuul"]
+	path = vendor/zombuul
+	url = https://github.com/SystemicVoid/zombuul.git
+	branch = hneurons/main
