@@ -149,6 +149,19 @@ def _strings(table: dict[str, Any], key: str) -> list[str]:
     return value
 
 
+def _single_data_center_id(value: str, *, field: str = "data_center_id") -> str:
+    data_center_id = value.strip()
+    if (
+        not data_center_id
+        or "," in data_center_id
+        or any(char.isspace() for char in data_center_id)
+    ):
+        raise CloudctlError(f"{field} must be a single datacenter id")
+    if not re.fullmatch(r"[A-Za-z0-9-]+", data_center_id):
+        raise CloudctlError(f"{field} contains unsupported characters")
+    return data_center_id
+
+
 def _parse_cp_number(stage: str) -> int | None:
     match = re.fullmatch(r"cp(\d+)", stage.strip().lower())
     if not match:
@@ -245,7 +258,7 @@ def render_launch_command(
         raise CloudctlError("RunPod profile must set template_id or image")
 
     datacenters = (
-        [data_center_id]
+        [_single_data_center_id(data_center_id)]
         if data_center_id is not None
         else _strings(runpod, "data_center_ids")
     )
@@ -286,6 +299,7 @@ def render_network_volume_create_command(
     if resolved_size <= 0:
         raise CloudctlError("network volume size must be positive")
     resolved_name = name or f"{_string(runpod, 'pod_name')}-cp2-cache"
+    resolved_data_center_id = _single_data_center_id(data_center_id)
     return [
         "runpodctl",
         "network-volume",
@@ -295,7 +309,7 @@ def render_network_volume_create_command(
         "--size",
         str(resolved_size),
         "--data-center-id",
-        data_center_id,
+        resolved_data_center_id,
     ]
 
 

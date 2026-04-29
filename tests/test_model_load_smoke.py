@@ -114,9 +114,19 @@ def test_smoke_summary_is_non_claim_bearing_and_uses_registry_metadata(
 
 
 def _valid_cp1_summary() -> dict:
+    model_key = "mistral_small_24b_instruct_2501"
+    model_path = "mistralai/Mistral-Small-24B-Instruct-2501"
     return {
         "schema_version": "model_load_smoke/v1",
         "status": "ok",
+        "model_key": model_key,
+        "model_path": model_path,
+        "registered_model": model_load_smoke.model_metadata(model_key, model_path),
+        "tokenizer_kwargs": model_load_smoke.tokenizer_kwargs_for(
+            model_key,
+            model_path,
+        ),
+        "output_path": "data/mistral24b/preflight/model_load_smoke.json",
         "model_loaded": True,
         "runtime": {
             "requested_dtype": "torch.bfloat16",
@@ -186,6 +196,21 @@ def test_cp1_validator_rejects_auto_load_with_null_hf_device_map() -> None:
     assert result["checks"]["auto_load_has_hf_device_map"] is False
 
 
+def test_cp1_validator_rejects_auto_load_with_empty_hf_map_and_stale_effective_map() -> (
+    None
+):
+    summary = _valid_cp1_summary()
+    summary["runtime"]["requested_device_map"] = "auto"
+    summary["runtime"]["hf_device_map"] = {}
+    summary["runtime"]["effective_device_map"] = {"": "cuda:0"}
+
+    result = model_load_smoke.validate_cp1_smoke_summary(summary)
+
+    assert result["accepted"] is False
+    assert result["checks"]["auto_load_has_hf_device_map"] is False
+    assert result["checks"]["device_map_evidence"] is False
+
+
 def test_cp1_validator_rejects_wrong_dtype() -> None:
     summary = _valid_cp1_summary()
     summary["runtime"]["loaded_primary_dtype"] = "torch.float16"
@@ -243,6 +268,75 @@ def test_cp1_validator_rejects_local_16gb_cuda_gpu() -> None:
 
     assert result["accepted"] is False
     assert result["checks"]["target_cuda_hardware"] is False
+
+
+def test_cp1_validator_rejects_target_hardware_only_on_unloaded_device() -> None:
+    summary = _valid_cp1_summary()
+    loaded_device = summary["cuda_memory"]["devices"][0]
+    loaded_device["name"] = "NVIDIA GeForce RTX 5060 Ti"
+    loaded_device["total_memory_bytes"] = 16 * 1024**3
+    summary["cuda_memory"]["devices"].append(
+        {
+            "index": 1,
+            "name": "NVIDIA H100 80GB HBM3",
+            "total_memory_bytes": 80 * 1024**3,
+            "memory_allocated_bytes": 0,
+            "memory_reserved_bytes": 0,
+            "max_memory_allocated_bytes": 0,
+            "max_memory_reserved_bytes": 0,
+        }
+    )
+
+    result = model_load_smoke.validate_cp1_smoke_summary(summary)
+
+    assert result["accepted"] is False
+    assert result["checks"]["target_cuda_hardware"] is False
+    assert result["checks"]["nonzero_cuda_allocation"] is True
+
+
+def test_cp1_validator_rejects_allocation_only_on_unloaded_device() -> None:
+    summary = _valid_cp1_summary()
+    for key in [
+        "memory_allocated_bytes",
+        "memory_reserved_bytes",
+        "max_memory_allocated_bytes",
+        "max_memory_reserved_bytes",
+    ]:
+        summary["cuda_memory"]["devices"][0][key] = 0
+    summary["cuda_memory"]["devices"].append(
+        {
+            "index": 1,
+            "name": "NVIDIA H100 80GB HBM3",
+            "total_memory_bytes": 80 * 1024**3,
+            "memory_allocated_bytes": 47 * 1024**3,
+            "memory_reserved_bytes": 47 * 1024**3,
+            "max_memory_allocated_bytes": 47 * 1024**3,
+            "max_memory_reserved_bytes": 47 * 1024**3,
+        }
+    )
+
+    result = model_load_smoke.validate_cp1_smoke_summary(summary)
+
+    assert result["accepted"] is False
+    assert result["checks"]["target_cuda_hardware"] is True
+    assert result["checks"]["nonzero_cuda_allocation"] is False
+
+
+def test_cp1_validator_rejects_wrong_expected_context() -> None:
+    summary = _valid_cp1_summary()
+
+    result = model_load_smoke.validate_cp1_smoke_summary(
+        summary,
+        expected_model_key="mistral_small_24b_instruct_2501",
+        expected_model_path="mistralai/Mistral-Small-24B-Instruct-2501",
+        expected_output_path="data/mistral24b/preflight/other.json",
+        expected_device_map="cuda:0",
+    )
+
+    assert result["accepted"] is False
+    assert result["checks"]["expected_model_key"] is True
+    assert result["checks"]["expected_model_path"] is True
+    assert result["checks"]["expected_output_path"] is False
 
 
 def test_cp1_validator_rejects_cpu_load() -> None:

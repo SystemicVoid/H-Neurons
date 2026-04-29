@@ -71,6 +71,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Validate an existing token_span_audit_summary/v1 summary and exit.",
     )
     parser.add_argument(
+        "--expected_model_key",
+        type=str,
+        default=None,
+        help="Expected model key when validating an existing summary.",
+    )
+    parser.add_argument(
+        "--expected_model_path",
+        type=str,
+        default=None,
+        help="Expected model path/HF id when validating an existing summary.",
+    )
+    parser.add_argument(
+        "--expected_input_path",
+        type=str,
+        default=None,
+        help="Expected answer-token input path when validating an existing summary.",
+    )
+    parser.add_argument(
+        "--expected_output_path",
+        type=str,
+        default=None,
+        help="Expected audit output path when validating an existing summary.",
+    )
+    parser.add_argument(
+        "--expected_rendered_chat_path",
+        type=str,
+        default=None,
+        help="Expected rendered chat examples path when validating a summary.",
+    )
+    parser.add_argument(
         "--summary_path",
         type=Path,
         default=None,
@@ -406,13 +436,45 @@ def build_summary(
     }
 
 
-def validate_token_span_summary(summary: dict[str, Any]) -> dict[str, Any]:
+def _registered_model_key(metadata: Any) -> str | None:
+    if isinstance(metadata, dict) and isinstance(metadata.get("key"), str):
+        return metadata["key"]
+    return None
+
+
+def _registered_model_hf_id(metadata: Any) -> str | None:
+    if isinstance(metadata, dict) and isinstance(metadata.get("hf_id"), str):
+        return metadata["hf_id"]
+    return None
+
+
+def validate_token_span_summary(
+    summary: dict[str, Any],
+    *,
+    expected_model_key: str | None = None,
+    expected_model_path: str | None = None,
+    expected_input_path: str | None = None,
+    expected_output_path: str | None = None,
+    expected_rendered_chat_path: str | None = None,
+) -> dict[str, Any]:
     status_counts = summary.get("status_counts")
     status_counts = status_counts if isinstance(status_counts, dict) else {}
     audited_rows = summary.get("audited_rows")
     audited_rows = audited_rows if isinstance(audited_rows, int) else None
     missing_qids = summary.get("missing_answer_region_qids")
     missing_qids = missing_qids if isinstance(missing_qids, list) else None
+    audited_id_fingerprint = summary.get("audited_id_fingerprint")
+    expected_metadata = (
+        model_metadata(expected_model_key, expected_model_path)
+        if expected_model_key is not None or expected_model_path is not None
+        else None
+    )
+    expected_tokenizer_kwargs = (
+        tokenizer_kwargs_for(expected_model_key, expected_model_path)
+        if expected_model_key is not None or expected_model_path is not None
+        else None
+    )
+    registered_model = summary.get("registered_model")
     checks = {
         "schema_version": summary.get("schema_version") == SUMMARY_SCHEMA_VERSION,
         "status_ok": summary.get("status") == "ok",
@@ -420,19 +482,66 @@ def validate_token_span_summary(summary: dict[str, Any]) -> dict[str, Any]:
         "all_rows_ok": audited_rows is not None
         and status_counts.get("ok") == audited_rows,
         "no_missing_answer_regions": missing_qids == [],
+        "audited_id_fingerprint_present": isinstance(audited_id_fingerprint, str)
+        and len(audited_id_fingerprint) == 16,
         "model_not_loaded": summary.get("model_loaded") is False,
         "no_gpu_required": summary.get("gpu_required") is False,
         "no_api_required": summary.get("api_required") is False,
     }
+    if expected_model_key is not None:
+        checks["expected_model_key"] = summary.get("model_key") == expected_model_key
+        if expected_metadata is not None:
+            checks["expected_registered_model_key"] = (
+                _registered_model_key(registered_model) == expected_metadata["key"]
+            )
+    if expected_model_path is not None:
+        checks["expected_model_path"] = summary.get("model_path") == expected_model_path
+        if expected_metadata is not None:
+            checks["expected_registered_model_hf_id"] = (
+                _registered_model_hf_id(registered_model) == expected_metadata["hf_id"]
+            )
+    if expected_input_path is not None:
+        checks["expected_input_path"] = summary.get("input_path") == expected_input_path
+    if expected_output_path is not None:
+        checks["expected_output_path"] = (
+            summary.get("output_path") == expected_output_path
+        )
+    if expected_rendered_chat_path is not None:
+        checks["expected_rendered_chat_path"] = (
+            summary.get("rendered_chat_path") == expected_rendered_chat_path
+        )
+    if expected_tokenizer_kwargs is not None:
+        checks["expected_tokenizer_kwargs"] = (
+            summary.get("tokenizer_kwargs") == expected_tokenizer_kwargs
+        )
     messages = {
         "schema_version": f"schema_version must be {SUMMARY_SCHEMA_VERSION}",
         "status_ok": "summary status must be ok",
         "audited_rows_positive": "audited_rows must be positive",
         "all_rows_ok": "all audited rows must have status ok",
         "no_missing_answer_regions": "missing_answer_region_qids must be empty",
+        "audited_id_fingerprint_present": (
+            "audited_id_fingerprint must be a 16-character fingerprint"
+        ),
         "model_not_loaded": "token-span preflight must not load the model",
         "no_gpu_required": "token-span preflight must not require GPU",
         "no_api_required": "token-span preflight must not require API access",
+        "expected_model_key": "summary model_key does not match expected model key",
+        "expected_registered_model_key": (
+            "registered model key does not match expected model key"
+        ),
+        "expected_model_path": "summary model_path does not match expected model path",
+        "expected_registered_model_hf_id": (
+            "registered model HF id does not match expected model path"
+        ),
+        "expected_input_path": "summary input_path does not match expected path",
+        "expected_output_path": "summary output_path does not match expected path",
+        "expected_rendered_chat_path": (
+            "summary rendered_chat_path does not match expected path"
+        ),
+        "expected_tokenizer_kwargs": (
+            "summary tokenizer kwargs do not match expected model registry kwargs"
+        ),
     }
     reasons = [messages[key] for key, passed in checks.items() if not passed]
     accepted = not reasons
@@ -445,7 +554,15 @@ def validate_token_span_summary(summary: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def validate_token_span_summary_file(path: Path) -> dict[str, Any]:
+def validate_token_span_summary_file(
+    path: Path,
+    *,
+    expected_model_key: str | None = None,
+    expected_model_path: str | None = None,
+    expected_input_path: str | None = None,
+    expected_output_path: str | None = None,
+    expected_rendered_chat_path: str | None = None,
+) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         return {
@@ -455,13 +572,27 @@ def validate_token_span_summary_file(path: Path) -> dict[str, Any]:
             "checks": {},
             "reasons": [f"{path} must contain a JSON object"],
         }
-    return validate_token_span_summary(payload)
+    return validate_token_span_summary(
+        payload,
+        expected_model_key=expected_model_key,
+        expected_model_path=expected_model_path,
+        expected_input_path=expected_input_path,
+        expected_output_path=expected_output_path,
+        expected_rendered_chat_path=expected_rendered_chat_path,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.validate_summary is not None:
-        validation = validate_token_span_summary_file(args.validate_summary)
+        validation = validate_token_span_summary_file(
+            args.validate_summary,
+            expected_model_key=args.expected_model_key,
+            expected_model_path=args.expected_model_path,
+            expected_input_path=args.expected_input_path,
+            expected_output_path=args.expected_output_path,
+            expected_rendered_chat_path=args.expected_rendered_chat_path,
+        )
         print(json_dumps(validation))
         return 0 if validation["accepted"] else 1
 

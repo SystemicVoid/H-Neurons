@@ -142,6 +142,66 @@ def test_validate_token_span_summary_accepts_clean_summary(tmp_path: Path) -> No
     assert result["accepted"] is True
 
 
+def test_validate_token_span_summary_rejects_wrong_expected_context(
+    tmp_path: Path,
+) -> None:
+    summary = audit_token_spans.build_summary(
+        argparse.Namespace(
+            model_key="mistral_small_24b_instruct_2501",
+            model_path="mistralai/Mistral-Small-24B-Instruct-2501",
+            input_path=Path("data/mistral24b/answer_tokens_llm.jsonl"),
+            output_path=Path("data/mistral24b/preflight/token_span_audit.jsonl"),
+            rendered_chat_path=Path(
+                "data/mistral24b/preflight/rendered_chat_examples.json"
+            ),
+            sample_ids_path=None,
+        ),
+        rows=[{"qid": "tc_1", "status": "ok"}],
+        total_rows_scanned=1,
+        sample_ids=None,
+    )
+
+    result = audit_token_spans.validate_token_span_summary(
+        summary,
+        expected_model_key="mistral_small_24b_instruct_2501",
+        expected_model_path="mistralai/Mistral-Small-24B-Instruct-2501",
+        expected_input_path="data/mistral24b/other_answer_tokens.jsonl",
+        expected_output_path="data/mistral24b/preflight/token_span_audit.jsonl",
+        expected_rendered_chat_path=(
+            "data/mistral24b/preflight/rendered_chat_examples.json"
+        ),
+    )
+
+    assert result["accepted"] is False
+    assert result["checks"]["expected_model_key"] is True
+    assert result["checks"]["expected_model_path"] is True
+    assert result["checks"]["expected_input_path"] is False
+
+
+def test_validate_token_span_summary_rejects_missing_fingerprint(
+    tmp_path: Path,
+) -> None:
+    summary = audit_token_spans.build_summary(
+        argparse.Namespace(
+            model_key="gemma3_4b_it",
+            model_path="google/gemma-3-4b-it",
+            input_path=tmp_path / "answer_tokens.jsonl",
+            output_path=tmp_path / "token_span_audit.jsonl",
+            rendered_chat_path=None,
+            sample_ids_path=None,
+        ),
+        rows=[{"qid": "tc_1", "status": "ok"}],
+        total_rows_scanned=1,
+        sample_ids=None,
+    )
+    del summary["audited_id_fingerprint"]
+
+    result = audit_token_spans.validate_token_span_summary(summary)
+
+    assert result["accepted"] is False
+    assert result["checks"]["audited_id_fingerprint_present"] is False
+
+
 def test_validate_token_span_summary_rejects_missing_answer_region(
     tmp_path: Path,
 ) -> None:

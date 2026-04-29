@@ -1,51 +1,56 @@
 Validated 8 sample manifest locks.
 
-[2026-04-29T15:09:12Z] uv run python -m scripts.lib.pipeline active-run-status
+[2026-04-29T15:43:46Z] uv run python -m scripts.lib.pipeline active-run-status
 [dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] uv run python -m scripts.lib.pipeline check-active-run-git-guard
+[2026-04-29T15:43:46Z] uv run python -m scripts.lib.pipeline check-active-run-git-guard
 [dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] uv run python -m scripts.lib.pipeline gpu-preflight
+[2026-04-29T15:43:46Z] uv run python -m scripts.lib.pipeline gpu-preflight
 [dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] nvitop -1
+[2026-04-29T15:43:46Z] nvitop -1
 [dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] uv run python -m scripts.lib.pipeline gpu-hardware-guard --min-memory-gib 75 --name-pattern H100\|A100
+[2026-04-29T15:43:46Z] uv run python -m scripts.lib.pipeline gpu-hardware-guard --min-memory-gib 75 --name-pattern H100\|A100
 [dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] [dry-run] skipped environment capture
+[2026-04-29T15:43:46Z] [dry-run] skipped environment capture
 
-[2026-04-29T15:09:12Z] [skip:preflight] uv run python scripts/audit_token_spans.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/preflight/token_span_audit.jsonl --summary_path data/mistral24b/preflight/token_span_audit_summary.json --rendered_chat_path data/mistral24b/preflight/rendered_chat_examples.json --max_samples 50
+[2026-04-29T15:43:46Z] [skip:preflight] uv run python scripts/audit_token_spans.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/preflight/token_span_audit.jsonl --summary_path data/mistral24b/preflight/token_span_audit_summary.json --rendered_chat_path data/mistral24b/preflight/rendered_chat_examples.json --max_samples 50
 
-[2026-04-29T15:09:12Z] uv run python scripts/model_load_smoke.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --output_path data/mistral24b/preflight/model_load_smoke.json --max_new_tokens 1
+[2026-04-29T15:43:46Z] [skip:model_smoke] uv run python scripts/model_load_smoke.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --output_path data/mistral24b/preflight/model_load_smoke.json --max_new_tokens 1
+
+[2026-04-29T15:43:46Z] uv run python scripts/audit_token_spans.py --validate_summary data/mistral24b/preflight/token_span_audit_summary.json --expected_model_key mistral_small_24b_instruct_2501 --expected_model_path mistralai/Mistral-Small-24B-Instruct-2501 --expected_input_path data/mistral24b/answer_tokens_llm.jsonl --expected_output_path data/mistral24b/preflight/token_span_audit.jsonl --expected_rendered_chat_path data/mistral24b/preflight/rendered_chat_examples.json
 [dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] uv run python scripts/model_load_smoke.py --validate_summary data/mistral24b/preflight/model_load_smoke.json
+[2026-04-29T15:43:46Z] uv run python scripts/model_load_smoke.py --validate_summary data/mistral24b/preflight/model_load_smoke.json --expected_model_key mistral_small_24b_instruct_2501 --expected_model_path mistralai/Mistral-Small-24B-Instruct-2501 --expected_output_path data/mistral24b/preflight/model_load_smoke.json --expected_device_map cuda:0
 [dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] [skip:splits] uv run python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/train_qids_llm.json --num_samples 560 --seed 42
+[2026-04-29T15:43:46Z] [skip:splits] uv run python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/train_qids_llm.json --num_samples 560 --seed 42
 
-[2026-04-29T15:09:12Z] [skip:splits] uv run python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/dev_qids_llm.json --num_samples 160 --seed 43 --exclude_path data/mistral24b/pipeline/train_qids_llm.json
+[2026-04-29T15:43:46Z] [skip:splits] uv run python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/dev_qids_llm.json --num_samples 160 --seed 43 --exclude_path data/mistral24b/pipeline/train_qids_llm.json
 
-[2026-04-29T15:09:12Z] [skip:splits] uv run python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/test_qids_llm.json --num_samples 160 --seed 44 --exclude_path data/mistral24b/pipeline/train_qids_llm.json data/mistral24b/pipeline/dev_qids_llm.json
+[2026-04-29T15:43:46Z] [skip:splits] uv run python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/test_qids_llm.json --num_samples 160 --seed 44 --exclude_path data/mistral24b/pipeline/train_qids_llm.json data/mistral24b/pipeline/dev_qids_llm.json
 
-[2026-04-29T15:09:12Z] [skip:activations] uv run python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/train_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/train --device_map cuda:0 --locations answer_tokens all_except_answer_tokens
+[2026-04-29T15:43:46Z] uv run python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/train_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/train --device_map cuda:0 --locations answer_tokens all_except_answer_tokens
+[dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] [skip:activations] uv run python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/dev_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/dev --device_map cuda:0 --locations answer_tokens
+[2026-04-29T15:43:46Z] uv run python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/dev_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/dev --device_map cuda:0 --locations answer_tokens
+[dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] [skip:activations] uv run python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/test_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/test --device_map cuda:0 --locations answer_tokens
+[2026-04-29T15:43:46Z] uv run python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/test_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/test --device_map cuda:0 --locations answer_tokens
+[dry-run] skipped execution
 
-[2026-04-29T15:09:12Z] [skip:classifier] uv run python scripts/classifier.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --train_ids data/mistral24b/pipeline/train_qids_llm.json --train_ans_acts data/mistral24b/pipeline/activations_llm_canonical/train/answer_tokens --train_other_acts data/mistral24b/pipeline/activations_llm_canonical/train/all_except_answer_tokens --test_ids data/mistral24b/pipeline/dev_qids_llm.json --test_acts data/mistral24b/pipeline/activations_llm_canonical/dev/answer_tokens --train_mode 3-vs-1 --penalty l1 --solver liblinear --selection_metric auroc --c_values 0.001 0.005 0.01 0.05 0.1 0.5 1.0 --save_model models/mistral24b_classifier_canonical.pkl --metrics_out data/mistral24b/pipeline/classifier_canonical_dev_metrics.json
+[2026-04-29T15:43:46Z] [skip:classifier] uv run python scripts/classifier.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --train_ids data/mistral24b/pipeline/train_qids_llm.json --train_ans_acts data/mistral24b/pipeline/activations_llm_canonical/train/answer_tokens --train_other_acts data/mistral24b/pipeline/activations_llm_canonical/train/all_except_answer_tokens --test_ids data/mistral24b/pipeline/dev_qids_llm.json --test_acts data/mistral24b/pipeline/activations_llm_canonical/dev/answer_tokens --train_mode 3-vs-1 --penalty l1 --solver liblinear --selection_metric auroc --c_values 0.001 0.005 0.01 0.05 0.1 0.5 1.0 --save_model models/mistral24b_classifier_canonical.pkl --metrics_out data/mistral24b/pipeline/classifier_canonical_dev_metrics.json
 
-[2026-04-29T15:09:12Z] [skip:classifier] uv run python scripts/classifier.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --load_model models/mistral24b_classifier_canonical.pkl --test_ids data/mistral24b/pipeline/test_qids_llm.json --test_acts data/mistral24b/pipeline/activations_llm_canonical/test/answer_tokens --metrics_out data/mistral24b/pipeline/classifier_canonical_test_metrics.json
+[2026-04-29T15:43:46Z] [skip:classifier] uv run python scripts/classifier.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --load_model models/mistral24b_classifier_canonical.pkl --test_ids data/mistral24b/pipeline/test_qids_llm.json --test_acts data/mistral24b/pipeline/activations_llm_canonical/test/answer_tokens --metrics_out data/mistral24b/pipeline/classifier_canonical_test_metrics.json
 
-[2026-04-29T15:09:12Z] [skip:faitheval] uv run python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark faitheval --prompt_style standard --sample_manifest data/manifests/faitheval_seed42_n200_mistral24b.lock.json --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 --output_dir data/mistral24b/intervention/faitheval/experiment
+[2026-04-29T15:43:46Z] [skip:faitheval] uv run python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark faitheval --prompt_style standard --sample_manifest data/manifests/faitheval_seed42_n200_mistral24b.lock.json --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 --output_dir data/mistral24b/intervention/faitheval/experiment
 
-[2026-04-29T15:09:12Z] [skip:faitheval_controls] uv run python scripts/run_negative_control.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark faitheval --prompt_style standard --sample_manifest data/manifests/faitheval_seed42_n200_mistral24b.lock.json --output_base data/mistral24b/intervention/faitheval/control --h_neuron_baseline data/mistral24b/intervention/faitheval/experiment
+[2026-04-29T15:43:46Z] [skip:faitheval_controls] uv run python scripts/run_negative_control.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark faitheval --prompt_style standard --sample_manifest data/manifests/faitheval_seed42_n200_mistral24b.lock.json --output_base data/mistral24b/intervention/faitheval/control --h_neuron_baseline data/mistral24b/intervention/faitheval/experiment
 
-[2026-04-29T15:09:12Z] [skip:falseqa] uv run python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark falseqa --alphas 0.0 1.0 3.0 --max_samples 100 --output_dir data/mistral24b/intervention/falseqa/experiment
+[2026-04-29T15:43:46Z] [skip:falseqa] uv run python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark falseqa --alphas 0.0 1.0 3.0 --max_samples 100 --output_dir data/mistral24b/intervention/falseqa/experiment
 
-[2026-04-29T15:09:12Z] [skip:falseqa_controls] uv run python scripts/run_negative_control.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark falseqa --quick --max_samples 100 --output_base data/mistral24b/intervention/falseqa/control --h_neuron_baseline data/mistral24b/intervention/falseqa/experiment
-[2026-04-29T15:09:12Z] Mistral 24B replication wrapper completed.
+[2026-04-29T15:43:46Z] [skip:falseqa_controls] uv run python scripts/run_negative_control.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark falseqa --quick --max_samples 100 --output_base data/mistral24b/intervention/falseqa/control --h_neuron_baseline data/mistral24b/intervention/falseqa/experiment
+[2026-04-29T15:43:46Z] Mistral 24B replication wrapper completed.

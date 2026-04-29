@@ -75,6 +75,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Validate an existing model_load_smoke/v1 summary and exit.",
     )
     parser.add_argument(
+        "--expected_model_key",
+        type=str,
+        default=None,
+        help="Expected model key when validating an existing summary.",
+    )
+    parser.add_argument(
+        "--expected_model_path",
+        type=str,
+        default=None,
+        help="Expected model path/HF id when validating an existing summary.",
+    )
+    parser.add_argument(
+        "--expected_output_path",
+        type=str,
+        default=None,
+        help="Expected summary output path when validating an existing summary.",
+    )
+    parser.add_argument(
+        "--expected_device_map",
+        type=str,
+        default=None,
+        help="Expected requested device_map when validating an existing summary.",
+    )
+    parser.add_argument(
         "--max_new_tokens",
         type=int,
         default=1,
@@ -179,6 +203,17 @@ def _loaded_tensors_on_cuda0(runtime: dict[str, Any]) -> bool:
     )
 
 
+def _loaded_cuda_device_indexes(runtime: dict[str, Any]) -> set[int]:
+    indexes: set[int] = set()
+    for device, count in _device_counts(runtime).items():
+        if count <= 0:
+            continue
+        match = re.fullmatch(r"cuda:(\d+)", device)
+        if match:
+            indexes.add(int(match.group(1)))
+    return indexes
+
+
 def _cuda_devices(cuda_memory: dict[str, Any]) -> list[dict[str, Any]]:
     devices = cuda_memory.get("devices")
     if not isinstance(devices, list):
@@ -186,18 +221,25 @@ def _cuda_devices(cuda_memory: dict[str, Any]) -> list[dict[str, Any]]:
     return [device for device in devices if isinstance(device, dict)]
 
 
-def _has_nonzero_cuda_allocation(cuda_memory: dict[str, Any]) -> bool:
+def _cuda_devices_by_index(cuda_memory: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    indexed: dict[int, dict[str, Any]] = {}
+    for fallback_index, device in enumerate(_cuda_devices(cuda_memory)):
+        index = _as_int(device.get("index"))
+        indexed[fallback_index if index is None else index] = device
+    return indexed
+
+
+def _has_nonzero_cuda_allocation(device: dict[str, Any]) -> bool:
     allocation_keys = (
         "memory_allocated_bytes",
         "memory_reserved_bytes",
         "max_memory_allocated_bytes",
         "max_memory_reserved_bytes",
     )
-    for device in _cuda_devices(cuda_memory):
-        for key in allocation_keys:
-            value = _as_int(device.get(key))
-            if value is not None and value > 0:
-                return True
+    for key in allocation_keys:
+        value = _as_int(device.get(key))
+        if value is not None and value > 0:
+            return True
     return False
 
 
@@ -214,6 +256,31 @@ def _target_accelerator_present(cuda_memory: dict[str, Any]) -> bool:
     return any(_is_target_accelerator(device) for device in _cuda_devices(cuda_memory))
 
 
+def _loaded_cuda_devices_are_target_accelerators(
+    runtime: dict[str, Any],
+    cuda_memory: dict[str, Any],
+) -> bool:
+    indexes = _loaded_cuda_device_indexes(runtime)
+    devices_by_index = _cuda_devices_by_index(cuda_memory)
+    return bool(indexes) and all(
+        index in devices_by_index and _is_target_accelerator(devices_by_index[index])
+        for index in indexes
+    )
+
+
+def _loaded_cuda_devices_have_nonzero_allocation(
+    runtime: dict[str, Any],
+    cuda_memory: dict[str, Any],
+) -> bool:
+    indexes = _loaded_cuda_device_indexes(runtime)
+    devices_by_index = _cuda_devices_by_index(cuda_memory)
+    return bool(indexes) and all(
+        index in devices_by_index
+        and _has_nonzero_cuda_allocation(devices_by_index[index])
+        for index in indexes
+    )
+
+
 def derive_effective_device_map(runtime: dict[str, Any]) -> Any:
     hf_device_map = runtime.get("hf_device_map")
     if hf_device_map not in (None, {}):
@@ -222,6 +289,18 @@ def derive_effective_device_map(runtime: dict[str, Any]) -> Any:
         runtime
     ):
         return {"": "cuda:0"}
+    return None
+
+
+def _registered_model_key(metadata: Any) -> str | None:
+    if isinstance(metadata, dict) and isinstance(metadata.get("key"), str):
+        return metadata["key"]
+    return None
+
+
+def _registered_model_hf_id(metadata: Any) -> str | None:
+    if isinstance(metadata, dict) and isinstance(metadata.get("hf_id"), str):
+        return metadata["hf_id"]
     return None
 
 
@@ -346,16 +425,32 @@ def cuda_memory_summary() -> dict[str, Any]:
     return summary
 
 
-def validate_cp1_smoke_summary(summary: dict[str, Any]) -> dict[str, Any]:
+def validate_cp1_smoke_summary(
+    summary: dict[str, Any],
+    *,
+    expected_model_key: str | None = None,
+    expected_model_path: str | None = None,
+    expected_output_path: str | None = None,
+    expected_device_map: str | None = None,
+) -> dict[str, Any]:
     runtime = _runtime(summary)
     cuda_memory = _cuda_memory(summary)
     quantization = _quantization(summary)
     generation = _generation(summary)
     requested_device_map = runtime.get("requested_device_map")
     hf_device_map = runtime.get("hf_device_map")
-    effective_device_map = runtime.get("effective_device_map")
-    if effective_device_map is None:
-        effective_device_map = derive_effective_device_map(runtime)
+    effective_device_map = derive_effective_device_map(runtime)
+    expected_metadata = (
+        model_metadata(expected_model_key, expected_model_path)
+        if expected_model_key is not None or expected_model_path is not None
+        else None
+    )
+    expected_tokenizer_kwargs = (
+        tokenizer_kwargs_for(expected_model_key, expected_model_path)
+        if expected_model_key is not None or expected_model_path is not None
+        else None
+    )
+    registered_model = summary.get("registered_model")
 
     checks = {
         "schema_version": summary.get("schema_version") == SCHEMA_VERSION,
@@ -372,16 +467,44 @@ def validate_cp1_smoke_summary(summary: dict[str, Any]) -> dict[str, Any]:
         and generation.get("succeeded") is True
         and (_as_int(generation.get("generated_new_tokens")) or 0) >= 1,
         "auto_load_has_hf_device_map": requested_device_map != "auto"
-        or hf_device_map is not None,
+        or hf_device_map not in (None, {}),
         "device_map_evidence": effective_device_map is not None,
         "loaded_tensors_on_cuda": _loaded_tensors_on_cuda(runtime),
-        "explicit_null_map_loaded_on_cuda0": hf_device_map is not None
+        "explicit_null_map_loaded_on_cuda0": hf_device_map not in (None, {})
         or (requested_device_map == "cuda:0" and _loaded_tensors_on_cuda0(runtime)),
         "cuda_available": cuda_memory.get("available") is True,
         "cuda_bf16_supported": cuda_memory.get("bf16_supported") is True,
-        "target_cuda_hardware": _target_accelerator_present(cuda_memory),
-        "nonzero_cuda_allocation": _has_nonzero_cuda_allocation(cuda_memory),
+        "target_cuda_hardware": _loaded_cuda_devices_are_target_accelerators(
+            runtime,
+            cuda_memory,
+        ),
+        "nonzero_cuda_allocation": _loaded_cuda_devices_have_nonzero_allocation(
+            runtime,
+            cuda_memory,
+        ),
     }
+    if expected_model_key is not None:
+        checks["expected_model_key"] = summary.get("model_key") == expected_model_key
+        if expected_metadata is not None:
+            checks["expected_registered_model_key"] = (
+                _registered_model_key(registered_model) == expected_metadata["key"]
+            )
+    if expected_model_path is not None:
+        checks["expected_model_path"] = summary.get("model_path") == expected_model_path
+        if expected_metadata is not None:
+            checks["expected_registered_model_hf_id"] = (
+                _registered_model_hf_id(registered_model) == expected_metadata["hf_id"]
+            )
+    if expected_output_path is not None:
+        checks["expected_output_path"] = (
+            summary.get("output_path") == expected_output_path
+        )
+    if expected_device_map is not None:
+        checks["expected_device_map"] = requested_device_map == expected_device_map
+    if expected_tokenizer_kwargs is not None:
+        checks["expected_tokenizer_kwargs"] = (
+            summary.get("tokenizer_kwargs") == expected_tokenizer_kwargs
+        )
     messages = {
         "schema_version": f"schema_version must be {SCHEMA_VERSION}",
         "summary_status_ok": "summary status must be ok",
@@ -397,8 +520,25 @@ def validate_cp1_smoke_summary(summary: dict[str, Any]) -> dict[str, Any]:
         ),
         "cuda_available": "CUDA must be available",
         "cuda_bf16_supported": "CUDA BF16 support must be reported",
-        "target_cuda_hardware": "GPU must be H100/A100-class with >=75 GiB when known",
-        "nonzero_cuda_allocation": "CUDA allocation/reservation must be nonzero",
+        "target_cuda_hardware": (
+            "loaded CUDA devices must be H100/A100-class with >=75 GiB when known"
+        ),
+        "nonzero_cuda_allocation": (
+            "loaded CUDA devices must report nonzero allocation/reservation"
+        ),
+        "expected_model_key": "summary model_key does not match expected model key",
+        "expected_registered_model_key": (
+            "registered model key does not match expected model key"
+        ),
+        "expected_model_path": "summary model_path does not match expected model path",
+        "expected_registered_model_hf_id": (
+            "registered model HF id does not match expected model path"
+        ),
+        "expected_output_path": "summary output_path does not match expected path",
+        "expected_device_map": "requested device_map does not match expected value",
+        "expected_tokenizer_kwargs": (
+            "summary tokenizer kwargs do not match expected model registry kwargs"
+        ),
     }
     reasons = [messages[key] for key, passed in checks.items() if not passed]
     accepted = not reasons
@@ -412,7 +552,14 @@ def validate_cp1_smoke_summary(summary: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def validate_cp1_smoke_summary_file(path: Path) -> dict[str, Any]:
+def validate_cp1_smoke_summary_file(
+    path: Path,
+    *,
+    expected_model_key: str | None = None,
+    expected_model_path: str | None = None,
+    expected_output_path: str | None = None,
+    expected_device_map: str | None = None,
+) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         return {
@@ -423,7 +570,13 @@ def validate_cp1_smoke_summary_file(path: Path) -> dict[str, Any]:
             "reasons": [f"{path} must contain a JSON object"],
             "effective_device_map": None,
         }
-    return validate_cp1_smoke_summary(payload)
+    return validate_cp1_smoke_summary(
+        payload,
+        expected_model_key=expected_model_key,
+        expected_model_path=expected_model_path,
+        expected_output_path=expected_output_path,
+        expected_device_map=expected_device_map,
+    )
 
 
 def _first_model_device(model: Any) -> torch.device | None:
@@ -563,7 +716,13 @@ def build_smoke_summary(
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.validate_summary is not None:
-        validation = validate_cp1_smoke_summary_file(args.validate_summary)
+        validation = validate_cp1_smoke_summary_file(
+            args.validate_summary,
+            expected_model_key=args.expected_model_key,
+            expected_model_path=args.expected_model_path,
+            expected_output_path=args.expected_output_path,
+            expected_device_map=args.expected_device_map,
+        )
         print(json_dumps(validation))
         return 0 if validation["accepted"] else 1
 

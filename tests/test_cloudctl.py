@@ -73,6 +73,19 @@ def test_render_launch_requires_exact_datacenter_for_network_volume() -> None:
         )
 
 
+def test_render_launch_rejects_multi_datacenter_override_for_network_volume() -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+
+    with pytest.raises(cloudctl.CloudctlError, match="single datacenter"):
+        cloudctl.render_launch_command(
+            profile,
+            stage="cp2",
+            attempt=1,
+            network_volume_id="nv-test",
+            data_center_id="US-CA-2,US-OR-1",
+        )
+
+
 def test_render_network_volume_create_uses_profile_size_and_datacenter() -> None:
     profile = cloudctl.load_profile("mistral24b-runpod")
 
@@ -87,6 +100,16 @@ def test_render_network_volume_create_uses_profile_size_and_datacenter() -> None
     assert "--name hneurons-mistral24b-cp2" in rendered
     assert "--size 200" in rendered
     assert "--data-center-id US-CA-2" in rendered
+
+
+def test_render_network_volume_create_rejects_multi_datacenter() -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+
+    with pytest.raises(cloudctl.CloudctlError, match="single datacenter"):
+        cloudctl.render_network_volume_create_command(
+            profile,
+            data_center_id="US-CA-2,US-OR-1",
+        )
 
 
 def test_derive_direct_ssh_endpoint_from_pod_metadata() -> None:

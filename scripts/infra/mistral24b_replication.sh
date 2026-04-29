@@ -169,12 +169,21 @@ require_gpu_hardware() {
 
 validate_token_span_summary() {
     run_logged uv run python scripts/audit_token_spans.py \
-        --validate_summary "${TOKEN_SPAN_AUDIT_SUMMARY}"
+        --validate_summary "${TOKEN_SPAN_AUDIT_SUMMARY}" \
+        --expected_model_key "${MODEL_KEY}" \
+        --expected_model_path "${MODEL_PATH}" \
+        --expected_input_path "${ANSWER_TOKENS}" \
+        --expected_output_path "${TOKEN_SPAN_AUDIT}" \
+        --expected_rendered_chat_path "${RENDERED_CHAT_EXAMPLES}"
 }
 
 validate_model_load_smoke() {
     run_logged uv run python scripts/model_load_smoke.py \
-        --validate_summary "${MODEL_LOAD_SMOKE}"
+        --validate_summary "${MODEL_LOAD_SMOKE}" \
+        --expected_model_key "${MODEL_KEY}" \
+        --expected_model_path "${MODEL_PATH}" \
+        --expected_output_path "${MODEL_LOAD_SMOKE}" \
+        --expected_device_map "${DEVICE_MAP}"
 }
 
 validate_claim_stage_preflight() {
