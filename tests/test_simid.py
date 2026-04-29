@@ -459,6 +459,9 @@ def _prospective_authority_fixture(
     include_sample_design: bool = True,
     include_planned_manifest_sha256: bool = True,
     include_full_exclusion_provenance: bool = True,
+    extra_planned_manifest_rows: list[dict] | None = None,
+    locked_manifest_rows: list[dict] | None = None,
+    locked_manifest_max_items: int | None = None,
 ) -> tuple[Path, Path, dict]:
     tmp_path.mkdir(parents=True, exist_ok=True)
     run_dir = tmp_path / "future_run"
@@ -470,15 +473,16 @@ def _prospective_authority_fixture(
         "truthfulqa_seen_in_iti_fit": False,
     }
     planned_manifest = tmp_path / "planned_manifest.json"
+    planned_rows = [manifest_row, *(extra_planned_manifest_rows or [])]
     _write_json(
         planned_manifest,
-        {"schema_version": "simid_manifest/v1", "rows": [manifest_row]},
+        {"schema_version": "simid_manifest/v1", "rows": planned_rows},
     )
     locked_payload = {
         "schema_version": "simid_locked_manifest/v1",
         "source_manifest": str(planned_manifest),
-        "max_items": None,
-        "rows": [manifest_row],
+        "max_items": locked_manifest_max_items,
+        "rows": planned_rows if locked_manifest_rows is None else locked_manifest_rows,
     }
     if include_source_manifest_sha256:
         locked_payload["source_manifest_sha256"] = _sha256(planned_manifest)
@@ -629,6 +633,35 @@ def test_prospective_open_authority_binds_run_dir_and_exclusions(
         load_prospective_open_authority_manifest(authority, run_dir=run_dir)
 
 
+def test_prospective_open_authority_accepts_overlapped_calibration_exclusion(
+    tmp_path: Path,
+) -> None:
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(
+        tmp_path,
+        include_full_exclusion_provenance=False,
+    )
+    exclusions = tmp_path / "exclusions.jsonl"
+    _write_jsonl(
+        exclusions,
+        [
+            {
+                "source": "historical_mvp_locked_manifest",
+                "sample_id": "simid_old",
+                "base_sample_id": "simid_old",
+                "also_in_prospective_open_calibration_sample": True,
+            },
+        ],
+    )
+    authority_payload = json.loads(authority.read_text(encoding="utf-8"))
+    authority_payload["exclusions"]["content_sha256"] = _sha256(exclusions)
+    authority.write_text(json.dumps(authority_payload) + "\n", encoding="utf-8")
+
+    loaded = load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+    assert loaded is not None
+    assert loaded["authority_id"] == "fixture_authority"
+
+
 def test_prospective_open_authority_rejects_low_metrics_even_if_passed(
     tmp_path: Path,
 ) -> None:
@@ -663,6 +696,43 @@ def test_prospective_open_authority_requires_manifest_hash_and_exclusions(
         include_full_exclusion_provenance=False,
     )
     with pytest.raises(ValueError, match="exclusions missing expected provenance"):
+        load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+
+def test_prospective_open_authority_rejects_max_items_locked_manifest(
+    tmp_path: Path,
+) -> None:
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(
+        tmp_path,
+        locked_manifest_max_items=1,
+    )
+
+    with pytest.raises(ValueError, match="max_items"):
+        load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+
+def test_prospective_open_authority_rejects_truncated_locked_manifest(
+    tmp_path: Path,
+) -> None:
+    extra_row = {
+        **_manifest_row("simid_second", "Second?"),
+        "dataset": "truthfulqa",
+        "truthfulqa_leakage_policy": "heldout_only",
+        "truthfulqa_seen_in_iti_fit": False,
+    }
+    first_row = {
+        **_manifest_row("simid_new", "Fresh?"),
+        "dataset": "truthfulqa",
+        "truthfulqa_leakage_policy": "heldout_only",
+        "truthfulqa_seen_in_iti_fit": False,
+    }
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(
+        tmp_path,
+        extra_planned_manifest_rows=[extra_row],
+        locked_manifest_rows=[first_row],
+    )
+
+    with pytest.raises(ValueError, match="full planned manifest"):
         load_prospective_open_authority_manifest(authority, run_dir=run_dir)
 
 

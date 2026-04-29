@@ -21,6 +21,7 @@ from evaluate_intervention import (
     build_triviaqa_bridge_judge_messages,
     parse_simpleqa_verdict,
 )
+from build_simid_manifest import load_simid_manifest
 from run_simid import OPEN_GRADING_METHOD, assert_noop_equivalence, load_jsonl
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
@@ -1525,6 +1526,20 @@ def _resolved_paths_match(left: str, right: str) -> bool:
     )
 
 
+def _manifest_sample_ids(rows: list[Any], *, row_source: str) -> list[str]:
+    sample_ids: list[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        sample_id = row.get("sample_id") if isinstance(row, dict) else None
+        if not isinstance(sample_id, str) or not sample_id:
+            raise ValueError(f"{row_source} contains a row without sample_id")
+        if sample_id in seen:
+            raise ValueError(f"{row_source} contains duplicate sample_id: {sample_id}")
+        sample_ids.append(sample_id)
+        seen.add(sample_id)
+    return sample_ids
+
+
 def validate_locked_manifest_source_binding(
     *,
     run_dir: Path,
@@ -1550,6 +1565,13 @@ def validate_locked_manifest_source_binding(
         raise ValueError("locked manifest source_manifest is not recorded")
     if not isinstance(source_manifest_sha256, str) or not source_manifest_sha256:
         raise ValueError("locked manifest source_manifest_sha256 is not recorded")
+    if "max_items" not in locked_payload:
+        raise ValueError("locked manifest max_items is not recorded")
+    if locked_payload["max_items"] is not None:
+        raise ValueError(
+            "locked manifest was created with max_items; prospective open authority "
+            "requires the full planned manifest"
+        )
     if not _resolved_paths_match(source_manifest, planned_manifest):
         raise ValueError(
             "locked manifest was not built from the planned manifest path "
@@ -1566,6 +1588,26 @@ def validate_locked_manifest_source_binding(
         raise ValueError(
             "locked manifest source_manifest_sha256 does not match authority "
             "planned_run.sample_design.manifest_sha256"
+        )
+    planned_rows = load_simid_manifest(source_manifest_path)
+    locked_rows = locked_payload.get("rows")
+    if not isinstance(locked_rows, list) or not locked_rows:
+        raise ValueError("locked manifest rows are not recorded")
+    planned_sample_ids = _manifest_sample_ids(
+        planned_rows,
+        row_source=f"planned manifest {source_manifest_path}",
+    )
+    locked_sample_ids = _manifest_sample_ids(
+        locked_rows,
+        row_source="locked manifest",
+    )
+    if locked_sample_ids != planned_sample_ids:
+        missing = sorted(set(planned_sample_ids) - set(locked_sample_ids))[:5]
+        extra = sorted(set(locked_sample_ids) - set(planned_sample_ids))[:5]
+        raise ValueError(
+            "locked manifest sample_ids do not match the full planned manifest "
+            f"(locked={len(locked_sample_ids)}, planned={len(planned_sample_ids)}, "
+            f"missing={missing}, extra={extra})"
         )
 
 
@@ -1598,7 +1640,15 @@ def validate_exclusion_provenance(
             "exclusions.path"
         )
     rows = load_jsonl(exclusion_path)
-    sources = {str(row.get("source")) for row in rows if isinstance(row, dict)}
+    sources: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        source = row.get("source")
+        if isinstance(source, str) and source:
+            sources.add(source)
+        if row.get("also_in_prospective_open_calibration_sample") is True:
+            sources.add("prospective_open_calibration_private_case_map")
     required_sources = {
         "historical_mvp_locked_manifest",
         "prospective_open_calibration_private_case_map",
