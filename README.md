@@ -2,8 +2,6 @@
 
 This repository began as a fork of THUNLP's H-Neurons project and still retains the paper-faithful H-neuron pipeline, original reference materials, and example artifacts. Its current center of gravity is broader: a single-model Gemma-3-4B-IT case study on when strong internal readouts do and do not become useful steering targets. The working framework throughout the repo is `measurement`, `localization`, `control`, and `externality`.
 
-Current internal framing governor: [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md). Use that note before inheriting older strategy or outline language.
-
 Primary current narratives:
 
 - Site: [`site/`](site/)
@@ -11,8 +9,6 @@ Primary current narratives:
 - Current manuscript provenance: [`paper/icml/number_provenance.md`](paper/icml/number_provenance.md)
 - Measurement contract: [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
 - Mistral 24B ICML limitation-response workspace: [`notes/icml/mistral24b/`](notes/icml/mistral24b/)
-
-Historical long-draft materials were archived out of repo to `/home/hugo/Documents/Engineering/02-h-neurons-paper-draft-archive/`.
 
 ## Overview
 

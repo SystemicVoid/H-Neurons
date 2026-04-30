@@ -73,7 +73,7 @@ if [ -z "${INHIBIT_WRAPPED:-}" ] && command -v systemd-inhibit &>/dev/null; then
         -- bash "$0" "$@"
 fi
 
-cd /home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons
+cd "${PROJECT_DIR:-/workspace/02-h-neurons}"
 
 PIPELINE="uv run python -m scripts.lib.pipeline"
 LOG="logs/<name>_$(date +%Y%m%d_%H%M%S).log"
@@ -97,7 +97,7 @@ ${PIPELINE} gpu-preflight 2>&1 | tee -a "${LOG}" || true
 
 After successful completion, append claim-relevant runs to `notes/runs_to_analyse.md` using the format in `data/AGENTS.md`.
 
-Remote Lambda/GH200 specifics live in `scripts/infra/lambda-AGENTS.md`.
+Remote Lambda/GH200 specifics live in `scripts/infra/cloud/runbooks/lambda.md`.
 
 ## Cloud Adapter
 
