@@ -37,3 +37,17 @@ Run guard-library tests with:
 ```bash
 uv run pytest tests/test_pipeline.py
 ```
+
+## Bash Helpers
+
+Sibling bash helpers live alongside `pipeline.py` when the guard logic must
+re-exec or otherwise wrap the calling shell process (which Python guards
+cannot). Source them from infra wrappers; do not duplicate their logic
+inline. Each helper carries a header comment with the incident date and
+duplication count that justified centralising it.
+
+- `inhibit_suspend.sh` — `inhibit_suspend "<why>" "$@"` re-execs the wrapper
+  under `systemd-inhibit` with the comprehensive `--what=` class set and
+  disables COSMIC DE auto-suspend for the duration. Replaces ad-hoc
+  `systemd-inhibit --what=sleep:idle` blocks (~30+ wrappers). Honours
+  `DRY_RUN=1`. See `scripts/infra/AGENTS.md` for the wrapper-shape example.

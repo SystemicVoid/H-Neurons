@@ -68,19 +68,28 @@ Minimal wrapper pattern:
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ -z "${INHIBIT_WRAPPED:-}" ] && command -v systemd-inhibit &>/dev/null; then
-    exec env INHIBIT_WRAPPED=1 systemd-inhibit \
-        --what=sleep:idle --why="<pipeline name>" \
-        -- bash "$0" "$@"
-fi
+PROJECT_DIR="/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons"
+# shellcheck source=scripts/lib/inhibit_suspend.sh
+source "${PROJECT_DIR}/scripts/lib/inhibit_suspend.sh"
+inhibit_suspend "<pipeline name>" "$@"
 
-cd "${PROJECT_DIR:-/workspace/02-h-neurons}"
+cd "${PROJECT_DIR}"
 
 PIPELINE="uv run python -m scripts.lib.pipeline"
 LOG="logs/<name>_$(date +%Y%m%d_%H%M%S).log"
 
 ${PIPELINE} gpu-preflight 2>&1 | tee -a "${LOG}" || true
 ```
+
+`inhibit_suspend` (in `scripts/lib/inhibit_suspend.sh`) re-execs the wrapper
+under `systemd-inhibit` with the full
+`--what=sleep:idle:shutdown:handle-suspend-key:handle-power-key:handle-lid-switch`
+class set, then disables COSMIC DE auto-suspend for the run by writing a
+far-future sentinel into cosmic-idle's config (with restore on EXIT/INT/TERM).
+Incident 2026-04-30: a 9h local GPU run was suspended despite a block-mode
+`sleep:idle` inhibit because COSMIC's `cosmic-idle` daemon shells out to
+`systemctl suspend` on its own timer through a path the narrow class did not
+cover. Honours `DRY_RUN=1` (no-op).
 
 ## Evaluation Jobs
 
