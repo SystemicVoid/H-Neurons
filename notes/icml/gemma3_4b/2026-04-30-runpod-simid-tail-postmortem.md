@@ -7,6 +7,7 @@
 ## TL;DR
 
 - Per-IP/CDN ingress shaping on this pod throttled rsync/scp from local home to ~16-30 KB/s; HuggingFace Hub from this same pod hit ~18 MB/s. Stage bundles via a private HF dataset, not direct rsync.
+- **`UV_HTTP_TIMEOUT=900` is mandatory before `uv sync` on RunPod.** Default 30 s is far too short for `nvidia-cuda-runtime`/`nvidia-cusparse`/`nvidia-cusparselt-cu13` wheels (~150 MiB each) on RunPod's slow PyPI/Fastly route. We burned ~13 min on this exact failure even though yesterday's mistral24b CP1 postmortem warned the project venv would not skip its CUDA stack.
 - 5090 stock was empty in US datacenters at launch time. EUR-IS-1 (NL) had stock. Run `runpodctl gpu list -o json` before `render-launch`.
 - Bundle pinning needs a tag; piping `main` into `git bundle create` captures whatever HEAD is at bundle time, which can drift from your intended commit during plan-mode wait.
 - Default RunPod `runpod-torch-v240` template ships without `tmux`, `rsync`, or `pigz`. Bootstrap them; never background `apt-get` over ssh.
@@ -28,6 +29,7 @@ Expected: bundle from local main, scp to pod, run wrapper. Actual: bundle drifte
 | Default `runpod-torch-v240` template lacked `tmux`, `rsync`, `pigz`. | Template is minimal. | `apt-get update && apt-get install -y --no-install-recommends rsync tmux pigz`. `--no-install-recommends` keeps it fast. |
 | Direct ingress to pod was throttled to single-digit KB/s. | RunPod ingress is per-source/CDN-route shaped, not per-pod aggregate. | Stage bundle through HuggingFace Hub (private dataset). End-to-end ~45 s vs ~90 min via direct rsync. Recipe below. |
 | `/workspace` exhibited slow rename and small-file behavior. | `/workspace` is `mfs#eur-is-1.runpod.net:9421` — MooseFS over LAN. | Use rsync `--inplace`; avoid tight-loop small-file writes; treat `/workspace` as a network filesystem. |
+| `uv sync --no-dev` failed at ~13 min with `Failed to download distribution due to network timeout. Try increasing UV_HTTP_TIMEOUT (current value: 30s).` on `nvidia-cuda-runtime==13.0.96` (162 MiB). | RunPod's PyPI/Fastly route is slow (single-digit-to-low-hundreds KB/s); default 30 s timeout is exceeded by every nvidia-* wheel. The pod ships with system torch `2.4.1+cu124` but the project venv resolves a newer torch (`2.9.1+cu130` or `2.11+`) and a fresh `cuda-toolkit` chain regardless. Yesterday's mistral24b CP1 postmortem flagged that base-image CUDA does not skip project setup, but the timeout was not pinned then. | `export UV_HTTP_TIMEOUT=900` (15 min/file). The `uv-cache` is preserved across retries, so resuming after the timeout finishes the partials. Recipe added to `scripts/infra/cloud/runbooks/runpod.md` Pod Setup and `scripts/infra/CLAUDE.md` Cloud Adapter. |
 
 ## 2. CDN ingress shaping (measured)
 
@@ -181,3 +183,4 @@ See `scripts/infra/cloud/runbooks/runpod.md:78-81` for why retry, not recreate.
 - Do not retry direct rsync/scp into the pod after seeing single-digit KB/s — switch to HF staging.
 - Do not delete and recreate the pod when `cloudctl ssh-info` returns "pod not ready"; poll instead.
 - Do not leave the private HF bundle dataset around after the run; delete it.
+- **Do not run `uv sync` on a RunPod pod without `export UV_HTTP_TIMEOUT=900` first.** The 30 s default fails on every nvidia-* wheel here. Yesterday's CP1 postmortem warned the project venv won't skip CUDA setup; today's lesson is the timeout, not just the principle.
