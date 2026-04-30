@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import hashlib
 import json
@@ -34,6 +34,7 @@ from typing import Any, Literal, cast
 
 from scripts.utils import fingerprint_ids, format_alpha_label
 
+INTERVENTION_RUN_CONFIG_FILENAME = "intervention_run_config.json"
 ProtectedPathKind = Literal["file", "directory"]
 
 
@@ -72,16 +73,21 @@ def check_stage_complete(
     output_dir: Path,
     manifest: Path,
     alphas: list[float],
+    *,
+    manifest_id_prefix: str = "",
 ) -> bool:
     """Return True only if every alpha file exactly matches manifest IDs.
 
     Expected count is derived from the manifest (a JSON list of sample IDs).
+    ``manifest_id_prefix`` adapts source IDs when a benchmark emits a stable
+    record-ID namespace, such as TriviaQA bridge's ``tqa_bridge_`` prefix.
     Prints diagnostics for incomplete or mismatched files to stderr.
     """
-    expected_ids = _sample_manifest_ids(
+    manifest_ids = _sample_manifest_ids(
         json.loads(manifest.read_text(encoding="utf-8")),
         manifest,
     )
+    expected_ids = [f"{manifest_id_prefix}{sample_id}" for sample_id in manifest_ids]
     expected = len(expected_ids)
     expected_set = set(expected_ids)
     all_complete = True
@@ -152,6 +158,14 @@ def manifest_count(manifest: Path) -> int:
         f"Manifest {manifest} is neither a JSON list nor an object with an ids list "
         f"(got {type(data).__name__})"
     )
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 # Incident: 2026-04-28 — malformed claim-stage sample locks could otherwise
@@ -228,6 +242,160 @@ def validate_sample_manifest_locks(lock_paths: Sequence[Path]) -> list[str]:
             continue
         if source_ids != ids:
             errors.append(f"{path}: ids do not match source manifest order/content")
+    return errors
+
+
+def _json_object_at(payload: Mapping[str, Any], key: str, label: str) -> dict[str, Any]:
+    value = payload.get(key)
+    if isinstance(value, dict):
+        return cast(dict[str, Any], value)
+    raise ValueError(f"{label}.{key} must be an object")
+
+
+def _float_list(value: object) -> list[float] | None:
+    if not isinstance(value, list):
+        return None
+    try:
+        return [float(cast(Any, item)) for item in value]
+    except (TypeError, ValueError):
+        return None
+
+
+# Incident: 2026-04-30 — resumability guards could skip complete-looking
+# alpha files generated under a stale intervention contract after classifier,
+# model, or prompt changes.
+def validate_intervention_run_contract(
+    output_dir: Path,
+    *,
+    benchmark: str | None = None,
+    model_key: str | None = None,
+    model_path: str | None = None,
+    classifier_path: Path | None = None,
+    sample_manifest: Path | None = None,
+    alphas: Sequence[float] | None = None,
+    benchmark_config: Mapping[str, str] | None = None,
+) -> list[str]:
+    """Return errors if an intervention output dir has a stale run contract."""
+    contract_path = output_dir / INTERVENTION_RUN_CONFIG_FILENAME
+    if not contract_path.is_file():
+        return [f"{contract_path}: missing intervention run contract"]
+
+    try:
+        payload = json.loads(contract_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        return [f"{contract_path}: could not parse JSON: {exc}"]
+    if not isinstance(payload, dict):
+        return [f"{contract_path}: contract must be a JSON object"]
+
+    contract = cast(dict[str, Any], payload)
+    errors: list[str] = []
+    if contract.get("schema_version") != "intervention_run_config/v1":
+        errors.append(
+            f"{contract_path}: schema_version is not intervention_run_config/v1"
+        )
+
+    if benchmark is not None and contract.get("benchmark") != benchmark:
+        errors.append(
+            f"{contract_path}: benchmark mismatch "
+            f"(expected {benchmark!r}, observed {contract.get('benchmark')!r})"
+        )
+
+    if model_key is not None or model_path is not None:
+        try:
+            model = _json_object_at(contract, "model", str(contract_path))
+        except ValueError as exc:
+            errors.append(str(exc))
+            model = {}
+        if model_key is not None and model.get("key") != model_key:
+            errors.append(
+                f"{contract_path}: model.key mismatch "
+                f"(expected {model_key!r}, observed {model.get('key')!r})"
+            )
+        if model_path is not None and model.get("path") != model_path:
+            errors.append(
+                f"{contract_path}: model.path mismatch "
+                f"(expected {model_path!r}, observed {model.get('path')!r})"
+            )
+
+    if classifier_path is not None:
+        if not classifier_path.is_file():
+            errors.append(f"{classifier_path}: classifier file does not exist")
+            expected_classifier_hash = None
+        else:
+            expected_classifier_hash = _file_sha256(classifier_path)
+        try:
+            classifier = _json_object_at(contract, "classifier", str(contract_path))
+        except ValueError as exc:
+            errors.append(str(exc))
+            classifier = {}
+        observed_classifier_hash = classifier.get("content_sha256")
+        if (
+            expected_classifier_hash is not None
+            and observed_classifier_hash != expected_classifier_hash
+        ):
+            errors.append(
+                f"{contract_path}: classifier.content_sha256 mismatch "
+                f"(expected {expected_classifier_hash}, "
+                f"observed {observed_classifier_hash!r})"
+            )
+
+    if sample_manifest is not None:
+        if not sample_manifest.is_file():
+            errors.append(f"{sample_manifest}: sample manifest file does not exist")
+            expected_sample_manifest_hash = None
+        else:
+            expected_sample_manifest_hash = _file_sha256(sample_manifest)
+        try:
+            sample_selection = _json_object_at(
+                contract, "sample_selection", str(contract_path)
+            )
+            sample_manifest_payload = _json_object_at(
+                sample_selection,
+                "sample_manifest",
+                f"{contract_path}.sample_selection",
+            )
+        except ValueError as exc:
+            errors.append(str(exc))
+            sample_manifest_payload = {}
+        observed_sample_manifest_hash = sample_manifest_payload.get("content_sha256")
+        if (
+            expected_sample_manifest_hash is not None
+            and observed_sample_manifest_hash != expected_sample_manifest_hash
+        ):
+            errors.append(
+                f"{contract_path}: sample_manifest.content_sha256 mismatch "
+                f"(expected {expected_sample_manifest_hash}, "
+                f"observed {observed_sample_manifest_hash!r})"
+            )
+
+    if alphas is not None:
+        try:
+            schedule = _json_object_at(contract, "schedule", str(contract_path))
+        except ValueError as exc:
+            errors.append(str(exc))
+            schedule = {}
+        expected_alphas = [float(alpha) for alpha in alphas]
+        observed_alphas = _float_list(schedule.get("alphas"))
+        if observed_alphas != expected_alphas:
+            errors.append(
+                f"{contract_path}: schedule.alphas mismatch "
+                f"(expected {expected_alphas!r}, observed {observed_alphas!r})"
+            )
+
+    if benchmark_config:
+        try:
+            config = _json_object_at(contract, "benchmark_config", str(contract_path))
+        except ValueError as exc:
+            errors.append(str(exc))
+            config = {}
+        for key, expected_value in benchmark_config.items():
+            observed_value = config.get(key)
+            if observed_value != expected_value:
+                errors.append(
+                    f"{contract_path}: benchmark_config.{key} mismatch "
+                    f"(expected {expected_value!r}, observed {observed_value!r})"
+                )
+
     return errors
 
 
@@ -1014,9 +1182,53 @@ def _cli_check_stage(args: argparse.Namespace) -> int:
         output_dir=Path(args.output_dir),
         manifest=Path(args.manifest),
         alphas=args.alphas,
+        manifest_id_prefix=args.manifest_id_prefix,
     )
     # Exit 0 = complete (bash truthy), exit 1 = incomplete
     return 0 if ok else 1
+
+
+def _parse_key_value_args(values: Sequence[str], *, option_name: str) -> dict[str, str]:
+    parsed: dict[str, str] = {}
+    for raw in values:
+        if "=" not in raw:
+            raise ValueError(f"{option_name} entries must be KEY=VALUE, got {raw!r}")
+        key, value = raw.split("=", 1)
+        if not key:
+            raise ValueError(f"{option_name} entries must have a non-empty key")
+        if key in parsed:
+            raise ValueError(f"duplicate {option_name} key: {key}")
+        parsed[key] = value
+    return parsed
+
+
+def _cli_check_intervention_contract(args: argparse.Namespace) -> int:
+    try:
+        benchmark_config = _parse_key_value_args(
+            args.benchmark_config,
+            option_name="--benchmark-config",
+        )
+    except ValueError as exc:
+        print(f"check-intervention-contract: {exc}", file=sys.stderr)
+        return 2
+
+    errors = validate_intervention_run_contract(
+        output_dir=Path(args.output_dir),
+        benchmark=args.benchmark,
+        model_key=args.model_key,
+        model_path=args.model_path,
+        classifier_path=Path(args.classifier_path)
+        if args.classifier_path is not None
+        else None,
+        sample_manifest=Path(args.sample_manifest)
+        if args.sample_manifest is not None
+        else None,
+        alphas=args.alphas,
+        benchmark_config=benchmark_config,
+    )
+    for error in errors:
+        print(f"intervention-contract: {error}", file=sys.stderr)
+    return 0 if not errors else 1
 
 
 def _cli_manifest_count(args: argparse.Namespace) -> int:
@@ -1137,8 +1349,33 @@ def main(argv: list[str] | None = None) -> int:
     cs.add_argument(
         "--manifest", required=True, help="JSON manifest (list of sample IDs)"
     )
+    cs.add_argument(
+        "--manifest-id-prefix",
+        default="",
+        help="Prefix applied to each manifest ID before matching output record IDs",
+    )
     cs.add_argument("--alphas", type=float, nargs="+", required=True)
     cs.set_defaults(func=_cli_check_stage)
+
+    cic = sub.add_parser(
+        "check-intervention-contract",
+        help="Exit 0 if output_dir has a compatible intervention_run_config.json",
+    )
+    cic.add_argument("--output-dir", required=True)
+    cic.add_argument("--benchmark")
+    cic.add_argument("--model-key")
+    cic.add_argument("--model-path")
+    cic.add_argument("--classifier-path")
+    cic.add_argument("--sample-manifest")
+    cic.add_argument("--alphas", type=float, nargs="+")
+    cic.add_argument(
+        "--benchmark-config",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Expected benchmark_config entry; may be passed more than once",
+    )
+    cic.set_defaults(func=_cli_check_intervention_contract)
 
     mc = sub.add_parser(
         "manifest-count",

@@ -45,6 +45,7 @@ ${PIPELINE} gpu-preflight
 ${PIPELINE} gpu-hardware-guard --min-memory-gib 75 --name-pattern 'H100|A100'
 ${PIPELINE} active-run-status
 ${PIPELINE} check-stage --output-dir "${OUTPUT_DIR}" --manifest "${MANIFEST}" --alphas "${ALPHAS[@]}"
+${PIPELINE} check-intervention-contract --output-dir "${OUTPUT_DIR}" --classifier-path "${CLASSIFIER_PATH}" --alphas "${ALPHAS[@]}"
 ${PIPELINE} check-live-output-track-state --output-target "${OUTPUT_DIR}"
 ${PIPELINE} log-run --run-dir "${OUTPUT_DIR}" --description "<benchmark + method + alphas>"
 ```

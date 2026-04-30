@@ -19,6 +19,7 @@ Common subcommands:
 - `gpu-preflight`
 - `gpu-hardware-guard`
 - `check-sentinel`
+- `check-intervention-contract`
 - `log-run`
 - `active-run-status`
 - `check-active-run-git-guard`

@@ -25,6 +25,8 @@ Follow PEP 8 naming conventions enforced by ruff's `pep8-naming` rules:
 - Greedy jailbreak decode is valid for deterministic gold-label extraction only, not for jailbreak refusal evaluation.
 - Judge/evaluation paths that use OpenAI should use batch mode unless the script is explicitly a small synchronous canary.
 - Scripts that generate claim-bearing outputs must follow `docs/quantitative-reporting-standards.md` and pass `uv run python scripts/audit_ci_coverage.py`.
+- Resumability skips for intervention outputs must validate both alpha JSONL
+  completeness and `intervention_run_config.json` compatibility.
 
 ## Output Safety
 

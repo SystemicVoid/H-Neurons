@@ -30,6 +30,7 @@ from scripts.lib.pipeline import (
     main,
     manifest_count,
     path_intersects_live_run,
+    validate_intervention_run_contract,
     validate_sample_manifest_locks,
 )
 from scripts.validate_mistral24b_cp23 import validate_cp23_artifacts
@@ -525,6 +526,141 @@ class TestCheckStageComplete:
         check_stage_complete(stage_dir, manifest_file, [0.0])
         captured = capsys.readouterr()
         assert "missing" in captured.err
+
+    def test_manifest_id_prefix_matches_namespaced_outputs(
+        self, tmp_path: Path
+    ) -> None:
+        manifest = tmp_path / "triviaqa_manifest.json"
+        manifest.write_text(json.dumps(["bb_2174", "tc_42"]))
+        stage_dir = tmp_path / "experiment"
+        stage_dir.mkdir()
+        (stage_dir / "alpha_0.0.jsonl").write_text(
+            '{"id": "tqa_bridge_bb_2174", "alpha": 0.0}\n'
+            '{"id": "tqa_bridge_tc_42", "alpha": 0.0}\n'
+        )
+
+        assert (
+            check_stage_complete(
+                stage_dir,
+                manifest,
+                [0.0],
+                manifest_id_prefix="tqa_bridge_",
+            )
+            is True
+        )
+        assert check_stage_complete(stage_dir, manifest, [0.0]) is False
+
+
+# ---------------------------------------------------------------------------
+# validate_intervention_run_contract
+# ---------------------------------------------------------------------------
+
+
+def test_intervention_contract_validation_accepts_matching_contract(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "experiment"
+    output_dir.mkdir()
+    classifier = tmp_path / "classifier.pkl"
+    classifier.write_bytes(b"classifier-v1")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(["id_0", "id_1"]))
+    (output_dir / "intervention_run_config.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "intervention_run_config/v1",
+                "benchmark": "faitheval",
+                "model": {"key": "mistral", "path": "mistral/path"},
+                "classifier": {
+                    "content_sha256": hashlib.sha256(
+                        classifier.read_bytes()
+                    ).hexdigest()
+                },
+                "sample_selection": {
+                    "sample_manifest": {
+                        "content_sha256": hashlib.sha256(
+                            manifest.read_bytes()
+                        ).hexdigest()
+                    }
+                },
+                "schedule": {"alphas": [0.0, 1.0]},
+                "benchmark_config": {"prompt_style": "standard"},
+            }
+        )
+    )
+
+    assert (
+        validate_intervention_run_contract(
+            output_dir,
+            benchmark="faitheval",
+            model_key="mistral",
+            model_path="mistral/path",
+            classifier_path=classifier,
+            sample_manifest=manifest,
+            alphas=[0.0, 1.0],
+            benchmark_config={"prompt_style": "standard"},
+        )
+        == []
+    )
+    assert (
+        main(
+            [
+                "check-intervention-contract",
+                "--output-dir",
+                str(output_dir),
+                "--benchmark",
+                "faitheval",
+                "--model-key",
+                "mistral",
+                "--model-path",
+                "mistral/path",
+                "--classifier-path",
+                str(classifier),
+                "--sample-manifest",
+                str(manifest),
+                "--alphas",
+                "0.0",
+                "1.0",
+                "--benchmark-config",
+                "prompt_style=standard",
+            ]
+        )
+        == 0
+    )
+
+
+def test_intervention_contract_validation_rejects_stale_classifier(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "experiment"
+    output_dir.mkdir()
+    classifier = tmp_path / "classifier.pkl"
+    classifier.write_bytes(b"classifier-v2")
+    (output_dir / "intervention_run_config.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "intervention_run_config/v1",
+                "benchmark": "faitheval",
+                "model": {"key": "mistral", "path": "mistral/path"},
+                "classifier": {"content_sha256": "old-hash"},
+                "sample_selection": {"sample_manifest": None},
+                "schedule": {"alphas": [0.0]},
+                "benchmark_config": {"prompt_style": "standard"},
+            }
+        )
+    )
+
+    errors = validate_intervention_run_contract(
+        output_dir,
+        benchmark="faitheval",
+        model_key="mistral",
+        model_path="mistral/path",
+        classifier_path=classifier,
+        alphas=[0.0],
+        benchmark_config={"prompt_style": "standard"},
+    )
+
+    assert any("classifier.content_sha256 mismatch" in error for error in errors)
 
 
 # ---------------------------------------------------------------------------
