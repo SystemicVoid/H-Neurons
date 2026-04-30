@@ -319,6 +319,10 @@ def _image_pin_mismatch_message(check: RunPodImagePinCheck) -> str:
     )
 
 
+def _direct_image_fallback_allowed(check: RunPodImagePinCheck) -> bool:
+    return check.target_kind == "image" and check.actual_digest is not None
+
+
 def verify_runpod_image_pin(
     profile: dict[str, Any],
     *,
@@ -350,12 +354,15 @@ def verify_runpod_image_pin(
         expected=expected_pin,
         actual_image=actual_image,
     )
-    if check.matched or image_fallback_acknowledged:
+    if check.matched:
+        return check
+    if image_fallback_acknowledged and _direct_image_fallback_allowed(check):
         return check
     raise CloudctlError(
         _image_pin_mismatch_message(check)
-        + "; pass --allow-image-fallback --confirmed-image-pin only after "
-        "visually verifying the template/image digest is acceptable for this launch"
+        + "; update the RunPod template/profile digest, or use a digest-pinned "
+        "direct image with --allow-image-fallback --confirmed-image-pin after "
+        "verifying the fallback digest is acceptable for this launch"
     )
 
 

@@ -186,7 +186,7 @@ def test_verify_runpod_image_pin_rejects_template_digest_drift(
         cloudctl.verify_runpod_image_pin(profile)
 
 
-def test_verify_runpod_image_pin_fallback_bypasses_drift_after_ack(
+def test_verify_runpod_image_pin_rejects_template_drift_even_after_fallback_ack(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     profile = cloudctl.load_profile("mistral24b-runpod")
@@ -198,6 +198,23 @@ def test_verify_runpod_image_pin_fallback_bypasses_drift_after_ack(
 
     monkeypatch.setattr(cloudctl, "runpodctl_json", fake_runpodctl_json)
 
+    with pytest.raises(cloudctl.CloudctlError, match="image pin mismatch"):
+        cloudctl.verify_runpod_image_pin(
+            profile,
+            allow_image_fallback=True,
+            confirmed_image_pin=True,
+        )
+
+
+def test_verify_runpod_image_pin_allows_digest_pinned_direct_image_after_ack() -> None:
+    profile = editable_profile("mistral24b-runpod")
+    fallback_digest = (
+        "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    )
+    fallback_image = f"{EXPECTED_RUNPOD_REPOSITORY}@{fallback_digest}"
+    profile["runpod"].pop("template_id")
+    profile["runpod"]["image"] = fallback_image
+
     check = cloudctl.verify_runpod_image_pin(
         profile,
         allow_image_fallback=True,
@@ -206,7 +223,20 @@ def test_verify_runpod_image_pin_fallback_bypasses_drift_after_ack(
 
     assert check is not None
     assert not check.matched
-    assert check.actual_image == "runpod/pytorch:2.4.0-py3.11-cuda12.4.1"
+    assert check.actual_image == fallback_image
+
+
+def test_verify_runpod_image_pin_rejects_unpinned_direct_image_after_ack() -> None:
+    profile = editable_profile("mistral24b-runpod")
+    profile["runpod"].pop("template_id")
+    profile["runpod"]["image"] = "runpod/pytorch:2.4.0-py3.11-cuda12.4.1"
+
+    with pytest.raises(cloudctl.CloudctlError, match="digest-pinned direct image"):
+        cloudctl.verify_runpod_image_pin(
+            profile,
+            allow_image_fallback=True,
+            confirmed_image_pin=True,
+        )
 
 
 def test_image_fallback_flags_must_be_paired() -> None:

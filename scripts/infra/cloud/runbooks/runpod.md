@@ -19,9 +19,11 @@ the template image digest against `runpod.expected_image_digest` in the profile
 before printing the paid command. RunPod profiles without
 `expected_image_digest` fail unless explicitly marked
 `allow_unpinned_image = true` for non-production use. A profile that swaps
-`template_id` for a direct `image` also fails by default. Only bypass those
-guards with both `--allow-image-fallback` and `--confirmed-image-pin` after
-manually verifying the template/image digest is acceptable for the launch.
+`template_id` for a direct `image` also fails by default. A stale template is
+never a fallback case; update the template or the profile digest before
+rendering a launch. Only bypass the direct-image guard with both
+`--allow-image-fallback` and `--confirmed-image-pin` after manually verifying a
+digest-pinned fallback image is acceptable for the launch.
 
 Do not run remote dependency setup on RunPod pods. The template already ships
 `uv`, `tmux`, `rsync`, `pigz`, `openssh-server`, CUDA tooling, and the baked
