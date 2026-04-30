@@ -1,0 +1,12 @@
+*
+!requirements.txt
+!pyproject.toml
+!scripts/
+scripts/*
+!scripts/infra/
+scripts/infra/*
+!scripts/infra/docker/
+!scripts/infra/docker/Dockerfile
+!scripts/infra/docker/Dockerfile.dockerignore
+!scripts/infra/docker/start.sh
+!scripts/infra/docker/smoke_triton.py

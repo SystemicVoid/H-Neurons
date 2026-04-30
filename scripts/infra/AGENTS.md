@@ -105,3 +105,13 @@ Remote Lambda/GH200 specifics live in `scripts/infra/cloud/runbooks/lambda.md`.
 For RunPod/Lambda cloud orchestration, use `scripts/infra/cloudctl.py` and the
 runbooks under `scripts/infra/cloud/`. The `vendor/zombuul` submodule is
 reference-only; do not install or auto-load its plugin, skills, or prompts.
+
+**RunPod launch (template-based):** RunPod profiles use the private template
+`h-neurons-runpod-private` (`v88hqzvuxk`), backed by
+`ghcr.io/systemicvoid/h-neurons-runpod` with the project venv pre-baked at
+`/opt/h-neurons/.venv`. Render the default launch with
+`uv run python scripts/infra/cloudctl.py render-launch --profile mistral24b-runpod --stage cp1 --attempt 1`.
+Wrappers use `uv run --no-sync` and `UV_PROJECT_ENVIRONMENT`; no `uv sync` or
+tool installation happens on the pod. Rebuild and push the image when
+`requirements.txt`, `pyproject.toml`, or `scripts/infra/docker/*` changes; see
+`scripts/infra/cloud/runpod_bake_image.sh`.

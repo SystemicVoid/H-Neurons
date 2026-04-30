@@ -268,12 +268,20 @@ def render_launch_command(
 
     template_id = runpod.get("template_id")
     image = runpod.get("image")
-    if isinstance(template_id, str) and template_id:
+    has_template_id = isinstance(template_id, str) and bool(template_id)
+    has_image = isinstance(image, str) and bool(image)
+    if has_template_id and has_image:
+        raise CloudctlError(
+            "RunPod profile must set exactly one of template_id or image"
+        )
+    if has_template_id:
         command.extend(["--template-id", template_id])
-    elif isinstance(image, str) and image:
+    elif has_image:
         command.extend(["--image", image])
     else:
-        raise CloudctlError("RunPod profile must set template_id or image")
+        raise CloudctlError(
+            "RunPod profile must set exactly one of template_id or image"
+        )
 
     datacenters = (
         [_single_data_center_id(data_center_id)]

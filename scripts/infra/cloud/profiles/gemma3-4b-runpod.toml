@@ -8,10 +8,13 @@ bundle_branch = "main"
 [runpod]
 pod_name = "hneurons-gemma3-4b-simid-tail"
 cloud_type = "SECURE"
-template_id = "runpod-torch-v240"
+# Private template `h-neurons-runpod-private`; update it after each image bake.
+template_id = "v88hqzvuxk"
+# Template image pin:
+# ghcr.io/systemicvoid/h-neurons-runpod@sha256:15c9114da2420086a83ff85f261d07427e60ffd62835a177e587c3f2e431508e
 gpu_id = "NVIDIA GeForce RTX 5090"
 gpu_count = 1
-container_disk_gb = 30
+container_disk_gb = 50
 volume_gb = 50
 volume_mount_path = "/workspace"
 ports = "22/tcp"
@@ -29,5 +32,4 @@ model_key = "gemma3_4b_it"
 model_path = "google/gemma-3-4b-it"
 device_map = "cuda:0"
 wrapper = "scripts/infra/simid_remote_shard.sh"
-remote_uv_sync = "uv sync --no-dev"
 required_hardware = "BF16-capable CUDA GPU, >=16 GiB VRAM (RTX 5090 / 4090 / H100)"

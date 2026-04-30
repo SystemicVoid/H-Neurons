@@ -2,6 +2,92 @@
 
 RunPod is the first supported provider because it blocks the Mistral 24B CP2 path. Paid actions stay rendered until an operator manually runs the printed command.
 
+## Template-Based Launch
+
+RunPod profiles launch through the private template `h-neurons-runpod-private`
+(`v88hqzvuxk`), backed by a GHCR image with the project venv baked at
+`/opt/h-neurons/.venv`. The normal project launch path is a single local render
+command; inspect its paid `runpodctl pod create ... --template-id v88hqzvuxk`
+output, then run that output deliberately:
+
+```bash
+uv run python scripts/infra/cloudctl.py render-launch --profile mistral24b-runpod --stage cp1 --attempt 1
+```
+
+Do not run remote dependency setup on RunPod pods. The template already ships
+`uv`, `tmux`, `rsync`, `pigz`, `openssh-server`, CUDA tooling, and the baked
+project venv.
+
+## Template Maintenance
+
+Rebuild the template image whenever `requirements.txt`, `pyproject.toml`, or
+`scripts/infra/docker/*` changes.
+
+One-time GHCR login:
+
+```bash
+echo "$GH_PAT_TOKEN" | docker login ghcr.io -u SystemicVoid --password-stdin
+```
+
+Bake and push:
+
+```bash
+REGISTRY=ghcr.io/systemicvoid bash scripts/infra/cloud/runpod_bake_image.sh
+```
+
+The GHCR package is private. Keep a RunPod registry credential named
+`ghcr-systemicvoid` with a GitHub PAT that has `read:packages`, then update the
+private RunPod template `h-neurons-runpod-private` after each bake:
+
+```bash
+set -a
+source .env
+set +a
+
+: "${GH_PAT_TOKEN:?missing GH_PAT_TOKEN}"
+
+runpodctl registry list -o json
+
+# Only create this if `ghcr-systemicvoid` is missing from the registry list.
+runpodctl registry create \
+  --name ghcr-systemicvoid \
+  --username SystemicVoid \
+  --password "$GH_PAT_TOKEN"
+
+IMAGE="$(sed 's#^#ghcr.io/systemicvoid/h-neurons-runpod@#' /tmp/h-neurons-runpod-digest)"
+runpodctl template update v88hqzvuxk --image "$IMAGE"
+```
+
+If the registry credential already exists, do not recreate it; reuse the existing
+auth record. `runpodctl template update` works because the template already has
+`containerRegistryAuthId`; if recreating the template from scratch, use the
+RunPod console or REST API to attach the registry credential. Current template:
+`v88hqzvuxk`. Current image pin:
+`ghcr.io/systemicvoid/h-neurons-runpod@sha256:15c9114da2420086a83ff85f261d07427e60ffd62835a177e587c3f2e431508e`.
+
+Local image checks:
+
+```bash
+docker buildx build --load --platform=linux/amd64 \
+  -f scripts/infra/docker/Dockerfile \
+  -t h-neurons-runpod:test .
+docker run --rm h-neurons-runpod:test \
+  bash -lc 'python -V && python -c "import torch; print(torch.__version__)" && command -v ptxas'
+docker run --rm -v "$PWD:/workspace/02-h-neurons" -w /workspace/02-h-neurons \
+  h-neurons-runpod:test \
+  uv run --no-sync python -m scripts.lib.pipeline gpu-preflight
+docker run --rm -v "$PWD:/workspace/02-h-neurons" -w /workspace/02-h-neurons \
+  -e PYTHONPATH=scripts \
+  h-neurons-runpod:test \
+  uv run --no-sync python -c 'import run_simid'
+```
+
+If local Docker has NVIDIA runtime support, also run:
+
+```bash
+docker run --rm --gpus all h-neurons-runpod:test python /opt/smoke/triton.py
+```
+
 ## CP2 Volume and Launch
 
 Before paid work:
@@ -65,7 +151,7 @@ uv run python scripts/infra/cloudctl.py render-launch \
 
 RunPod network volumes for Pods are Secure Cloud-only, replace the default `/workspace` volume, and must be attached during deployment. Under 1 TB they are billed as network-volume storage, so keep the volume only for the short CP4/CP5 reuse window.
 
-## Pod Setup
+## Pod Setup (image-based)
 
 Derive direct SSH from pod metadata and prove access:
 
@@ -80,35 +166,24 @@ even when `runpodctl ssh info <pod-id>` already has the exposed TCP endpoint.
 `cloudctl ssh-info` falls back to that command; if both paths fail, wait and retry
 before deleting or recreating the pod.
 
-Sync only the bundle and required environment, then on the pod:
+Stage the git bundle through the Hugging Face route from Footguns, then on the pod:
 
 ```bash
 cd /workspace
 git clone -b main /workspace/h-neurons-cp2.bundle /workspace/02-h-neurons
-cd /workspace/02-h-neurons
 export HF_HOME=/workspace/hf
-export UV_CACHE_DIR=/workspace/uv-cache
-command -v uv || python3 -m pip install uv
-command -v tmux || (apt-get update && apt-get install -y tmux)
-command -v rsync || (apt-get update && apt-get install -y rsync)
-uv sync --no-dev
-git ls-files --error-unmatch uv.lock >/dev/null 2>&1 || rm -f uv.lock
+export PROJECT_DIR=/workspace/02-h-neurons
+cd /workspace/02-h-neurons
 STAGES=splits,activations,classifier \
-  TMUX_WRAPPED=1 \
-  INHIBIT_WRAPPED=1 \
-  PROJECT_DIR=/workspace/02-h-neurons \
+  TMUX_WRAPPED=1 INHIBIT_WRAPPED=1 \
   bash scripts/infra/mistral24b_replication.sh
 ```
 
 The wrapper asserts A100/H100-class CUDA, BF16 support, and at least 75 GiB before GPU stages. It also validates the token-span summary and CP1 model-load smoke before activation/classifier work.
-The official RunPod PyTorch template may not include `uv` or `tmux`; install only
-those small tools if absent. It may also omit `rsync`; install it before long
-artifact syncs, or use tar-over-SSH from `/workspace/02-h-neurons` as the fallback.
-If `uv sync --no-dev` creates an untracked `uv.lock` from this repo's unlocked
-project metadata, remove that generated file before the wrapper so provenance does
-not record a dirty checkout. The wrapper itself uses `uv run --no-sync` after the
-provisioning sync and removes only untracked generated `uv.lock` files before
-capturing environment provenance. A committed `uv.lock` must never be deleted.
+The image ships `uv`, `tmux`, `rsync`, `pigz`, `openssh-server`, and the baked
+project venv. The wrappers use `uv run --no-sync` with
+`UV_PROJECT_ENVIRONMENT=/opt/h-neurons/.venv`, so no PyPI traffic should happen
+on the pod.
 
 ## Sync Back and Cleanup
 
@@ -118,7 +193,7 @@ Sync back only canonical CP2/CP3 outputs: split JSONs, `activations_llm_canonica
 uv run python -m scripts.lib.pipeline active-run-status
 ```
 
-Prefer `rsync` when it is installed on both ends, but keep the allowlist narrow:
+Use the image-provided `rsync` and keep the allowlist narrow:
 
 ```bash
 rsync -av --prune-empty-dirs -e "ssh -p $SSH_PORT" \
@@ -139,8 +214,8 @@ rsync -av --prune-empty-dirs -e "ssh -p $SSH_PORT" \
   root@"$SSH_HOST":/workspace/02-h-neurons/ ./
 ```
 
-If remote `rsync` is unavailable and the pod is still alive, stream only the allowlisted
-paths from the network volume:
+If a damaged or mismatched pod lacks `rsync` but is still alive, stream only the
+allowlisted paths from the network volume:
 
 ```bash
 ssh -p "$SSH_PORT" root@"$SSH_HOST" 'cd /workspace/02-h-neurons && tar -cf - \
@@ -169,4 +244,11 @@ References: [network volumes](https://docs.runpod.io/storage/network-volumes), [
 
 ## Footguns
 
-- See `notes/icml/gemma3_4b/2026-04-30-runpod-simid-tail-postmortem.md` for the HF-staged bundle recipe and EUR-IS-1 CDN ingress shaping observations (direct rsync/scp ingress was throttled to single-digit KB/s; HF Hub hit ~18 MB/s on the same pod).
+- Stage git bundles through a private Hugging Face dataset rather than direct
+  `rsync`/`scp`; direct ingress was throttled to single-digit KB/s, while HF Hub
+  hit about 18 MB/s on the same pod.
+- Keep using `/workspace` for HF cache, model weights, cloned repo, and outputs.
+  The baked venv lives in the container layer at `/opt/h-neurons/.venv`.
+- See `notes/icml/gemma3_4b/2026-04-30-runpod-simid-tail-postmortem.md` for the
+  HF-staged bundle recipe and EUR-IS-1 ingress observations. Its default-template
+  bootstrap commands are historical and superseded by this template runbook.

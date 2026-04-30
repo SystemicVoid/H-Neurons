@@ -8,7 +8,10 @@ bundle_branch = "main"
 [runpod]
 pod_name = "hneurons-mistral24b"
 cloud_type = "SECURE"
-template_id = "runpod-torch-v240"
+# Private template `h-neurons-runpod-private`; update it after each image bake.
+template_id = "v88hqzvuxk"
+# Template image pin:
+# ghcr.io/systemicvoid/h-neurons-runpod@sha256:15c9114da2420086a83ff85f261d07427e60ffd62835a177e587c3f2e431508e
 # Use the runpodctl gpuId value here, not the display name from GPU listings.
 gpu_id = "NVIDIA A100-SXM4-80GB"
 gpu_count = 1
@@ -30,5 +33,4 @@ model_key = "mistral_small_24b_instruct_2501"
 model_path = "mistralai/Mistral-Small-24B-Instruct-2501"
 device_map = "cuda:0"
 wrapper = "scripts/infra/mistral24b_replication.sh"
-remote_uv_sync = "uv sync --no-dev"
 required_hardware = "A100/H100-class CUDA GPU, BF16 support, >=75 GiB VRAM"

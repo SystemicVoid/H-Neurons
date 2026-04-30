@@ -35,10 +35,19 @@ def test_render_launch_default_is_dry_command_without_network_volume() -> None:
     rendered = cloudctl.shell_join(command)
 
     assert command[:3] == ["runpodctl", "pod", "create"]
-    assert "--template-id runpod-torch-v240" in rendered
+    assert "--template-id v88hqzvuxk" in rendered
+    assert "--image" not in command
     assert "--gpu-id 'NVIDIA A100-SXM4-80GB'" in rendered
     assert "--volume-in-gb 100" in rendered
     assert "--network-volume-id" not in command
+
+
+def test_render_launch_rejects_profile_with_template_and_image() -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+    profile["runpod"]["image"] = "ghcr.io/systemicvoid/h-neurons-runpod:latest"
+
+    with pytest.raises(cloudctl.CloudctlError, match="exactly one"):
+        cloudctl.render_launch_command(profile, stage="cp1", attempt=1)
 
 
 def test_render_launch_requires_volume_for_cp2() -> None:
