@@ -1,0 +1,148 @@
+{
+  "candidates": [
+    {
+      "C": 0.05,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_0_05.pkl",
+      "candidate_model_sha256": "54cd42af2eace812adf27cb2ea557cab0cd097dabfefa17eccf827dc13ee485a",
+      "heldout_dev_accuracy": 0.5,
+      "selected_h_neurons": 0,
+      "selection_score": 1.175,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.675,
+      "triviaqa_n_deterministic_correct": 135,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_0_05/experiment/results.20260430_192059.json"
+    },
+    {
+      "C": 0.1,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_0_1.pkl",
+      "candidate_model_sha256": "cc4ab5b9fc90d371af0676c4ead99b47f00351610c237d5821a969baf8e65958",
+      "heldout_dev_accuracy": 0.5,
+      "selected_h_neurons": 1,
+      "selection_score": 1.1800000000000002,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.68,
+      "triviaqa_n_deterministic_correct": 136,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_0_1/experiment/results.20260430_192208.json"
+    },
+    {
+      "C": 0.3,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_0_3.pkl",
+      "candidate_model_sha256": "65cfdc3978159eed55fd82122713c45e941e1588abd19313f399d2e88b68ba2a",
+      "heldout_dev_accuracy": 0.695,
+      "selected_h_neurons": 5,
+      "selection_score": 1.355,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.66,
+      "triviaqa_n_deterministic_correct": 132,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_0_3/experiment/results.20260430_192300.json"
+    },
+    {
+      "C": 0.5,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_0_5.pkl",
+      "candidate_model_sha256": "18206afd9f99583ded6d9c160317a2037323e690f185f92e4072f5102ea744cc",
+      "heldout_dev_accuracy": 0.715,
+      "selected_h_neurons": 7,
+      "selection_score": 1.38,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.665,
+      "triviaqa_n_deterministic_correct": 133,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_0_5/experiment/results.20260430_192356.json"
+    },
+    {
+      "C": 0.75,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_0_75.pkl",
+      "candidate_model_sha256": "9ffa2f1a13a12b5742590c18c44b8997bf67597ae9b6b544f1762a1f87ca9671",
+      "heldout_dev_accuracy": 0.735,
+      "selected_h_neurons": 9,
+      "selection_score": 1.395,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.66,
+      "triviaqa_n_deterministic_correct": 132,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_0_75/experiment/results.20260430_192451.json"
+    },
+    {
+      "C": 1.0,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_1.pkl",
+      "candidate_model_sha256": "f5cea65496faedb54e1509bb5d931be1191862cc1d0abe0f787566de04211e2c",
+      "heldout_dev_accuracy": 0.745,
+      "selected_h_neurons": 10,
+      "selection_score": 1.375,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.63,
+      "triviaqa_n_deterministic_correct": 126,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_1/experiment/results.20260430_192547.json"
+    },
+    {
+      "C": 1.25,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_1_25.pkl",
+      "candidate_model_sha256": "770436ffc7031c1a2136a3639c99ed7c87f6470801cd2927043f1214b1c30f71",
+      "heldout_dev_accuracy": 0.74,
+      "selected_h_neurons": 12,
+      "selection_score": 1.3599999999999999,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.62,
+      "triviaqa_n_deterministic_correct": 124,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_1_25/experiment/results.20260430_192650.json"
+    },
+    {
+      "C": 1.5,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_1_5.pkl",
+      "candidate_model_sha256": "bb3e9872f0ee43ca8a8b3ed9b5da755363c40239f5858dd6878b4fef46f3c3df",
+      "heldout_dev_accuracy": 0.745,
+      "selected_h_neurons": 13,
+      "selection_score": 1.35,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.605,
+      "triviaqa_n_deterministic_correct": 121,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_1_5/experiment/results.20260430_192755.json"
+    },
+    {
+      "C": 2.0,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_2.pkl",
+      "candidate_model_sha256": "37f640a1db2ee0568cbb0231705ee35e8843317d4bab48d2965033e7ded3b3f0",
+      "heldout_dev_accuracy": 0.75,
+      "selected_h_neurons": 28,
+      "selection_score": 1.115,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.365,
+      "triviaqa_n_deterministic_correct": 73,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_2/experiment/results.20260430_192900.json"
+    },
+    {
+      "C": 3.0,
+      "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_3.pkl",
+      "candidate_model_sha256": "15483d1ad7b945f73e41c3a235ebc75450a7d2afa07555f84f85835449c30a79",
+      "heldout_dev_accuracy": 0.78,
+      "selected_h_neurons": 80,
+      "selection_score": 1.02,
+      "triviaqa_alpha0_deterministic_accuracy_rate": 0.24,
+      "triviaqa_n_deterministic_correct": 48,
+      "triviaqa_n_total": 200,
+      "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_3/experiment/results.20260430_193044.json"
+    }
+  ],
+  "classifier_metrics_path": "data/mistral24b/pipeline/h1_intervention_aware_c/classifier_c_sweep_metrics.json",
+  "schema_version": "intervention_aware_c_selection/v1",
+  "selected": {
+    "C": 0.75,
+    "candidate_model_path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_0_75.pkl",
+    "candidate_model_sha256": "9ffa2f1a13a12b5742590c18c44b8997bf67597ae9b6b544f1762a1f87ca9671",
+    "heldout_dev_accuracy": 0.735,
+    "selected_h_neurons": 9,
+    "selected_model_path": "models/mistral24b_classifier_h1_intervention_aware.pkl",
+    "selected_model_sha256": "9ffa2f1a13a12b5742590c18c44b8997bf67597ae9b6b544f1762a1f87ca9671",
+    "selection_score": 1.395,
+    "triviaqa_alpha0_deterministic_accuracy_rate": 0.66,
+    "triviaqa_n_deterministic_correct": 132,
+    "triviaqa_n_total": 200,
+    "triviaqa_summary_path": "data/mistral24b/intervention/triviaqa_bridge_h1_intervention_aware_c/c_0_75/experiment/results.20260430_192451.json"
+  },
+  "selection_score_formula": "heldout_dev_accuracy + triviaqa_alpha0_deterministic_accuracy_rate",
+  "tie_breakers": [
+    "higher selection_score",
+    "higher triviaqa_alpha0_deterministic_accuracy_rate",
+    "higher heldout_dev_accuracy",
+    "fewer selected_h_neurons",
+    "lower C"
+  ]
+}

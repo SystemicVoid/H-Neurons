@@ -1,0 +1,39 @@
+{
+  "benchmark": "triviaqa_bridge",
+  "benchmark_config": {
+    "triviaqa_bridge_manifest": "data/manifests/triviaqa_bridge_reserve200_seed42.json",
+    "triviaqa_bridge_parquet": "data/TriviaQA/rc.nocontext/validation-00000-of-00001.parquet"
+  },
+  "classifier": {
+    "content_sha256": "54cd42af2eace812adf27cb2ea557cab0cd097dabfefa17eccf827dc13ee485a",
+    "path": "data/mistral24b/pipeline/h1_intervention_aware_c/candidate_models/classifier_C_0_05.pkl"
+  },
+  "comparability_class": "claimable",
+  "generation_fingerprint": {
+    "id": "204c1111e25e6866",
+    "spec": {
+      "intervention_mode": "neuron",
+      "iti_decode_scope": null,
+      "jailbreak_generation": null,
+      "run_profile": "canonical"
+    }
+  },
+  "intervention": {
+    "mode": "neuron"
+  },
+  "model": {
+    "key": "mistral_small_24b_instruct_2501",
+    "path": "mistralai/Mistral-Small-24B-Instruct-2501"
+  },
+  "run_profile": "canonical",
+  "sample_selection": {
+    "max_samples": null,
+    "sample_manifest": null
+  },
+  "schedule": {
+    "alphas": [
+      0.0
+    ]
+  },
+  "schema_version": "intervention_run_config/v1"
+}

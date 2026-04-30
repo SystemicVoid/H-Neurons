@@ -1,0 +1,53 @@
+{
+  "benchmark": "faitheval",
+  "benchmark_config": {
+    "prompt_style": "standard"
+  },
+  "classifier": {
+    "content_sha256": "9ffa2f1a13a12b5742590c18c44b8997bf67597ae9b6b544f1762a1f87ca9671",
+    "path": "models/mistral24b_classifier_h1_intervention_aware.pkl"
+  },
+  "comparability_class": "claimable",
+  "generation_fingerprint": {
+    "id": "204c1111e25e6866",
+    "spec": {
+      "intervention_mode": "neuron",
+      "iti_decode_scope": null,
+      "jailbreak_generation": null,
+      "run_profile": "canonical"
+    }
+  },
+  "intervention": {
+    "mode": "neuron"
+  },
+  "model": {
+    "key": "mistral_small_24b_instruct_2501",
+    "path": "mistralai/Mistral-Small-24B-Instruct-2501"
+  },
+  "run_profile": "canonical",
+  "sample_selection": {
+    "max_samples": null,
+    "sample_manifest": {
+      "content_sha256": "0d5fd56122c2d0209e795d457ccb74d78686458382dedd95042064490d9bf84a",
+      "fingerprint": "a912a5bb29e4ab65",
+      "lock_context": "mistral24b_claim_stage",
+      "n_ids": 200,
+      "path": "data/manifests/faitheval_seed42_n200_mistral24b.lock.json",
+      "schema_version": "sample_manifest/v2",
+      "source_path": "data/manifests/faitheval_seed42_n200.json",
+      "source_sha256": "4da4ab5380255a217d8bde2f87331c2742f01ab3f966be126ba2730b3a2db568"
+    }
+  },
+  "schedule": {
+    "alphas": [
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0
+    ]
+  },
+  "schema_version": "intervention_run_config/v1"
+}
