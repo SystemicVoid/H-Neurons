@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-04-30 (Mistral 24B CP4 smoke reviewed)
+
+### What I did
+
+Reviewed the completed CP4 FaithEval pilot/control smoke under
+`data/mistral24b/intervention/faitheval_pilot_smoke/`. The H-neuron run and all
+four quick controls share the same n=20 Mistral sample lock, `standard` prompt,
+alpha grid `0.0 1.0 3.0`, model key/path, and classifier hash. The wrapper
+completed without launching CP5, and local `check-stage` revalidation passed
+for the H output plus all quick-control directories. I also patched the
+negative-control summarizer so this exact slope-only/no-op mismatch now returns
+`review_baseline_mismatch` instead of `specificity_supported`.
+
+### What this changes about my thinking
+
+CP4 passed as a prompt/parser/control readiness gate, not as an effect-size
+result. Parse failures were 0/20 for every H alpha and every control seed/alpha,
+so the standard FaithEval parser is safe enough for the n=200 run.
+
+The interesting warning is the pilot curve. H was 15/20 -> 13/20 -> 13/20,
+while every quick control was 13/20 -> 13/20 -> 13/20. The two apparent H flips
+(`MCAS_2006_9_44`, `Mercury_7012740`) were already false in every control
+alpha=0 rerun, so the synced CP4 `specificity_supported` triage is
+baseline/rerun variance, not intervention evidence. A read-only recomputation
+under the patched logic returns `review_baseline_mismatch`. CP5 should still
+run, but its review must separate endpoint and paired item effects from slope
+and reject any slope-only result driven by alpha=0 mismatch.
+
+### What I will do next
+
+Launch CP5 with `CP4_REVIEWED=1`, keep the 5 unconstrained plus 3
+layer-matched control schedule, and do not start Mistral SAE or CP6/CP7 until
+the full FaithEval result clears the no-op baseline audit.
+
+---
+
 ## 2026-04-29 (Mistral 24B CP2/CP3 detector gate reviewed)
 
 ### What I did

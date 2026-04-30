@@ -23,6 +23,7 @@ from run_negative_control import (  # noqa: E402
     build_comparison_summary,
     build_negative_control_run_contract,
     load_h_neuron_baseline_binding,
+    negative_control_triage,
     negative_control_schedule,
     parse_args,
 )
@@ -369,6 +370,94 @@ def test_comparison_summary_preserves_h_baseline_parse_failures(
     assert summary["unconstrained_random"]["per_seed"]["seed_0_unconstrained"][
         "parse_failures"
     ] == [2, 2, 2]
+
+
+def test_negative_control_triage_flags_baseline_mismatch(
+    tmp_path: Path,
+) -> None:
+    alphas = [0.0, 1.0, 3.0]
+    baseline = {
+        "n_h_neurons": 10,
+        "results": {
+            "0.0": {
+                "compliance_rate": 0.75,
+                "n_compliant": 15,
+                "n_total": 20,
+                "parse_failures": 0,
+            },
+            "1.0": {
+                "compliance_rate": 0.65,
+                "n_compliant": 13,
+                "n_total": 20,
+                "parse_failures": 0,
+            },
+            "3.0": {
+                "compliance_rate": 0.65,
+                "n_compliant": 13,
+                "n_total": 20,
+                "parse_failures": 0,
+            },
+        },
+    }
+    baseline_path = tmp_path / "baseline_results.json"
+    baseline_path.write_text(json.dumps(baseline))
+    control_results_a = {
+        "0.0": {
+            "compliance_rate": 0.65,
+            "n_compliant": 65,
+            "n_total": 100,
+            "parse_failures": 0,
+        },
+        "1.0": {
+            "compliance_rate": 0.66,
+            "n_compliant": 66,
+            "n_total": 100,
+            "parse_failures": 0,
+        },
+        "3.0": {
+            "compliance_rate": 0.65,
+            "n_compliant": 65,
+            "n_total": 100,
+            "parse_failures": 0,
+        },
+    }
+    control_results_b = {
+        "0.0": {
+            "compliance_rate": 0.65,
+            "n_compliant": 65,
+            "n_total": 100,
+            "parse_failures": 0,
+        },
+        "1.0": {
+            "compliance_rate": 0.64,
+            "n_compliant": 64,
+            "n_total": 100,
+            "parse_failures": 0,
+        },
+        "3.0": {
+            "compliance_rate": 0.65,
+            "n_compliant": 65,
+            "n_total": 100,
+            "parse_failures": 0,
+        },
+    }
+
+    summary = build_comparison_summary(
+        {
+            "seed_0_unconstrained": control_results_a,
+            "seed_1_unconstrained": control_results_b,
+        },
+        alphas,
+        baseline_path=str(baseline_path),
+    )
+    status, note, action = negative_control_triage(summary)
+
+    comparison = summary["comparison_to_h_neurons"]
+    assert comparison["alpha_0_h_minus_random_mean_pp"] == 10.0
+    assert comparison["alpha_3_h_rate_pct"] == comparison["alpha_3_random_mean_pct"]
+    assert status == "review_baseline_mismatch"
+    assert "alpha=0 baseline differs" in note
+    assert "no-op/rerun stability" in action
 
 
 def test_mistral_wrapper_has_token_span_preflight_before_claim_stages() -> None:

@@ -1036,7 +1036,19 @@ def build_comparison_summary(
         seed_rates_3_pct = [
             per_seed[k]["compliance_rates"][-1] * 100.0 for k in per_seed
         ]
+        seed_rates_0_pct = [
+            per_seed[k]["compliance_rates"][0] * 100.0 for k in per_seed
+        ]
         summary["comparison_to_h_neurons"] = {
+            "alpha_0_h_rate_pct": round(h_rates[0] * 100.0, 1),
+            "alpha_0_random_mean_pct": round(float(np.mean(seed_rates_0_pct)), 1),
+            "alpha_0_random_percentile_interval_pct": percentile_interval(
+                np.array(seed_rates_0_pct, dtype=float),
+                method="empirical_random_set_percentile",
+            ).to_dict(),
+            "alpha_0_h_minus_random_mean_pp": round(
+                (h_rates[0] * 100.0) - float(np.mean(seed_rates_0_pct)), 2
+            ),
             "alpha_3_h_rate_pct": round(h_rates[-1] * 100.0, 1),
             "alpha_3_random_mean_pct": round(float(np.mean(seed_rates_3_pct)), 1),
             "alpha_3_random_percentile_interval_pct": percentile_interval(
@@ -1290,6 +1302,25 @@ def negative_control_triage(summary: dict[str, Any]) -> tuple[str, str, str]:
             "H-neuron slope overlaps the random-set interval.",
             "Inspect seed ranking and rerun with more seeds or a second benchmark.",
         )
+
+    alpha_0_interval = comparison.get("alpha_0_random_percentile_interval_pct")
+    alpha_3_interval = comparison.get("alpha_3_random_percentile_interval_pct")
+    if alpha_0_interval is not None and alpha_3_interval is not None:
+        alpha_0_h = float(comparison["alpha_0_h_rate_pct"])
+        alpha_3_h = float(comparison["alpha_3_h_rate_pct"])
+        alpha_0_outside = not (
+            alpha_0_interval["lower"] <= alpha_0_h <= alpha_0_interval["upper"]
+        )
+        alpha_3_inside = (
+            alpha_3_interval["lower"] <= alpha_3_h <= alpha_3_interval["upper"]
+        )
+        if alpha_0_outside and alpha_3_inside:
+            return (
+                "review_baseline_mismatch",
+                "H-neuron slope separates, but the endpoint overlaps controls "
+                "and the alpha=0 baseline differs from control reruns.",
+                "Audit no-op/rerun stability before treating the slope as specificity.",
+            )
 
     return (
         "specificity_supported",
