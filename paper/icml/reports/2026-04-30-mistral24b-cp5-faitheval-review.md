@@ -15,6 +15,11 @@
 > our Gemma replication and the H-Neurons paper, including the
 > 2501-vs-2503 question and ranked falsifiable hypotheses):
 > [`../reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md`](../reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md).
+>
+> Post-CP5 H1 follow-up:
+> [`2026-04-30-mistral24b-h1-c-sweep-review.md`](2026-04-30-mistral24b-h1-c-sweep-review.md).
+> The intervention-aware C-sweep selected `C=0.75` with 9 H-neurons, but the
+> FaithEval follow-up remained flat, so it does not change the verdict here.
 
 ## Run Identity
 
@@ -87,6 +92,7 @@ flat controls. The paired endpoint, no-op-to-max endpoint, item-flip balance,
 and baseline offset audit all say not to claim an intervention replication.
 
 Do not launch downstream Mistral SAE, bridge, or manuscript-upgrade work on the
-assumption that CP5 passed. Any further Mistral FaithEval work should be framed
-as a null classification or measurement-stability audit, not as the next step
-after a successful H-neuron intervention gate.
+assumption that CP5 passed. The post-CP5 H1 C-sweep follow-up also returned a
+FaithEval null, so any further Mistral work should be framed as a new
+null-classification, checkpoint-transfer, or measurement-stability audit, not
+as the next step after a successful H-neuron intervention gate.

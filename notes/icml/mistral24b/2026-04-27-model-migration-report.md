@@ -4,7 +4,9 @@
 > `notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`.
 > Retained for historical code-migration context only. CP2/CP3 held-out metrics
 > that were open risks in this report are now analysed at
-> `notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`.
+> `paper/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`; the
+> later CP5/H1 intervention outcome is tracked only in the strategy memo and
+> `paper/icml/reports/2026-04-30-mistral24b-h1-c-sweep-review.md`.
 
 **Date:** 2026-04-27
 **Scope:** Codebase changes that make the H-neuron pipeline model-aware for the
@@ -191,7 +193,7 @@ correctly.
   comparison summary still depends on a separate GPT-4o judging pass.
 - **Held-out Mistral classifier metrics.**
   Superseded: CP2/CP3 generated canonical train/dev/test metrics on 2026-04-29.
-  Use `notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`.
+  Use `paper/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`.
 
 ## Remaining Blockers
 
@@ -203,7 +205,8 @@ correctly.
 - Train the sparse L1 3-vs-1 classifier and write held-out test metrics with
   provenance. Superseded by the 2026-04-29 CP2/CP3 review.
 - Run at least one judged Mistral intervention benchmark with H-neuron,
-  random, and layer-matched controls.
+  random, and layer-matched controls. Superseded: CP5 ran with controls and
+  H1 ran the intervention-aware C follow-up; both returned FaithEval nulls.
 - Run the wrapper on the target pod with at least `DRY_RUN=1` first, then resume
   through explicit `STAGES` as each artifact is verified.
 - Add a proper 2503 loader path before any exact-checkpoint Mistral Small 3.1

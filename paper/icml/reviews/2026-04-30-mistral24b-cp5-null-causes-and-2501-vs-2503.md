@@ -15,6 +15,14 @@ were already frozen in the [CP5 review](../reports/2026-04-30-mistral24b-cp5-fai
 [CP2/CP3 review](../reports/2026-04-29-mistral24b-cp23-pipeline-review.md),
 or extracted directly from the cited Gemma comparison summary.
 
+**Current status, 2026-04-30 later:** H1 has now been run. The H1 run
+decision and outcome are superseded by
+[the intervention-aware C-sweep review](../reports/2026-04-30-mistral24b-h1-c-sweep-review.md).
+The coupled selector chose `C=0.75` with 9 positive H-neurons, but the
+FaithEval follow-up stayed flat. This file remains useful as the historical
+hypothesis-formulation memo for CP5; it is no longer a live recommendation to
+spend GPU on H1.
+
 ## 1. Three numbers that frame the question
 
 |   | Our Mistral 2501 (CP5) | Our Gemma-3-4B replication | H-Neurons paper expectation |
@@ -179,12 +187,14 @@ predicts, how to test it.
   `--selection_metric` default `auroc`). Paper §6.1.3 explicit. Detector is
   strong (AUROC 0.871) yet intervention is null — exactly the failure mode
   the coupled criterion was designed to prevent.
-- *Predicts:* Re-running classifier sweep with intervention-aware
-  C-selection on Mistral 2501 would land at a different C, likely selecting
-  more neurons (~13–30), with stronger paired-endpoint effect at α=3.
-- *Testability:* High. Activation arrays already exist on disk. Re-running
-  the C grid-search with a TriviaQA-suppression scoring loop costs ~1 GPU
-  hour. No new data collection needed.
+- *Status after test:* Confirmed for model selection, rejected for FaithEval
+  rescue. The follow-up selected a different C (`0.75`) but selected fewer,
+  not more, positive H-neurons (9). FaithEval alpha `0.0 -> 3.0` was only
+  `+0.5 pp`, with paired bootstrap CI `[-3.0, +4.0]`. H1 is no longer a
+  sufficient explanation for the CP5 null.
+- *Testability:* Completed. See the
+  [H1 C-sweep review](../reports/2026-04-30-mistral24b-h1-c-sweep-review.md)
+  for the authoritative data and uncertainty analysis.
 
 **H2. L1 sparsity is too aggressive at our chosen C; tail of selected weights
 is functionally inert.**
@@ -313,38 +323,32 @@ noise.**
 - *Predicts:* No predictions.
 - *Testability:* N/A. Already verified to match.
 
-## 5. Most informative single follow-up
+## 5. H1 follow-up status
 
-If exactly one experiment is to be run, **H1 has the highest information
-yield per GPU-hour**: re-running the classifier C grid-search with the
-intervention-aware criterion the paper specifies, on Mistral 2501
-activations that already exist on disk. The retrained classifier is then
-plugged into the same CP5 wrapper for a single-pass H-only re-run (no fresh
-controls needed if the H endpoint is null again — and if it isn't, we have
-a Mistral intervention claim).
+The previously recommended single follow-up has now run. Authority:
+[2026-04-30 Mistral 24B H1 C-sweep Review](../reports/2026-04-30-mistral24b-h1-c-sweep-review.md).
 
-Approximate cost: ~1 GPU-hour for the C-sweep + suppression scoring (no
-fresh activation extraction needed) + a fresh H-only FaithEval run on the
-same n=200 lock (~1 GPU-hour on H100). Total ≤ 3 GPU-hours.
+The outcome is useful but negative for the rescue hypothesis:
 
-Strategically, this is also the *cheapest* hypothesis test for the strongest
-hypothesis, and it can be done without 2503 access. **H3** (2501-vs-2503)
-remains plausible but uneconomical to test under current spend envelope.
+- The coupled score did change model selection: `C=0.75`, 9 positive
+  H-neurons, score `1.395`.
+- The exact C winner is not robust against the local C plateau, but the
+  sweep strongly rejects broad high-C candidates because their TriviaQA
+  suppression accuracy collapses.
+- The FaithEval follow-up was essentially flat: rates
+  `51.5, 52.0, 51.5, 51.5, 52.0, 52.0, 52.0`; alpha `0.0 -> 3.0` was
+  `+0.5 pp` with CI `[-3.0, +4.0]`.
 
-If the H1 experiment surfaces a positive paired-endpoint effect, the
-manuscript framing shifts from "H-neuron intervention does not transfer to
-the same-family Mistral 24B 2501 anchor" to "H-neuron intervention
-transfers to Mistral 2501 only when the C grid-search uses the paper's
-intervention-aware criterion" — which is a more useful audit-framework
-result than a flat null.
-
-If the H1 experiment also returns null, **H3** (2501-vs-2503) becomes the
-leading remaining hypothesis, and the manuscript framing should explicitly
-foreground the checkpoint-mismatch caveat.
+Therefore do not spend further GPU on 2501 local C-grid tweaks unless there is
+a new pre-registered question. After H1, **H3** (2501-vs-2503) and
+benchmark/operator specificity remain plausible, but they are different
+branches; they do not rescue CP5 as a Mistral H-neuron intervention
+replication.
 
 ## 6. Cross-links and provenance
 
 - Numerical authority for CP5: [CP5 review](../reports/2026-04-30-mistral24b-cp5-faitheval-review.md).
+- H1 follow-up authority: [H1 C-sweep review](../reports/2026-04-30-mistral24b-h1-c-sweep-review.md).
 - CP5 plumbing/textural audit: [CP5 audit](2026-04-30-mistral24b-cp5-pipeline-audit.md).
 - Mistral progress and decisions: [strategy memo](../../../notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md).
 - Detector gate context: [CP2/CP3 review](../reports/2026-04-29-mistral24b-cp23-pipeline-review.md).

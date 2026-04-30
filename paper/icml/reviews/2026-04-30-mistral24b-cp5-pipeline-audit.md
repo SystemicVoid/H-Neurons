@@ -20,6 +20,13 @@ result diverged from the Gemma replication and the H-Neurons paper, including
 the 2501-vs-2503 question and a code-level intervention-aware C-selection
 divergence that this audit does not cover.
 
+**Current status, 2026-04-30 later:** that intervention-aware C-selection
+follow-up has now run. See
+[`../reports/2026-04-30-mistral24b-h1-c-sweep-review.md`](../reports/2026-04-30-mistral24b-h1-c-sweep-review.md).
+It selected `C=0.75` with 9 H-neurons and still produced a flat FaithEval
+curve, so the CP5 null verdict survives the strongest cheap protocol-mismatch
+test.
+
 ## Executive verdicts
 
 1. **The canonical review's verdict survives an adversarial recompute.** Every
@@ -315,15 +322,17 @@ Ordered by ratio of information gained per unit of GPU/API cost.
    limitation framing benefits from. Do not attempt to rescue it.
 3. **Update the strategy memo's CP5 entry** with a pointer to this audit
    alongside the canonical review (handled below).
-4. **If a Mistral intervention follow-up is justified later, it is a new
-   pre-registered branch, not a CP5 rerun.** Two candidate experiments worth
-   pre-registering:
+4. **After the completed H1 C-sweep, any further Mistral intervention
+   follow-up is a new pre-registered branch, not a CP5 rerun.** The
+   intervention-aware C-selection rescue hypothesis is closed for 2501. Two
+   remaining candidate experiments worth pre-registering, if new GPU is
+   justified:
    - **(a) Directional intervention in residual stream** instead of
      multiplicative neuron scaling. The Mistral classifier likely has a
      usable direction in the L15–L20 middle band; an additive ITI-shaped
      intervention might surface effects multiplicative scaling cannot.
    - **(b) Combined positive + negative-weight neuron rule.** The current
-     rule discards 10 anti-H neurons. A signed-amplification rule (boost
+     rule discards anti-H neurons. A signed-amplification rule (boost
      negatives, ablate positives) is closer to how the classifier itself
      uses the activations and is a non-trivial alternative null.
    Both are exploratory; neither earns claim-bearing status without its own
@@ -346,6 +355,7 @@ Ordered by ratio of information gained per unit of GPU/API cost.
 ## 10. Cross-links
 
 - Headline numbers and verdict: [CP5 review](../reports/2026-04-30-mistral24b-cp5-faitheval-review.md).
+- Post-CP5 H1 C-sweep follow-up: [H1 review](../reports/2026-04-30-mistral24b-h1-c-sweep-review.md).
 - Upstream detector gate: [CP2/CP3 review](../reports/2026-04-29-mistral24b-cp23-pipeline-review.md).
 - Mistral progress and decisions ledger: [strategy memo](../../../notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md).
 - Chronology and surprises: [research log 2026-04-30 entries](../../../notes/research-log.md).

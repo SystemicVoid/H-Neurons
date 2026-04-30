@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-04-30 (Mistral 24B H1 C-sweep reviewed)
+
+### What I did
+
+Synced the completed H1 intervention-aware C-sweep outputs from the retained
+RunPod volume using a temporary cheap CPU pod, then deleted that pod. Reviewed
+the split pipeline stages, candidate checkpoints, TriviaQA per-C contracts,
+selection summary, and locked FaithEval follow-up. Report:
+[`paper/icml/reports/2026-04-30-mistral24b-h1-c-sweep-review.md`](../paper/icml/reports/2026-04-30-mistral24b-h1-c-sweep-review.md).
+
+### What I expected vs what happened
+
+Expected the paper-style coupled C criterion to be the strongest cheap rescue
+hypothesis for the CP5 null. It did change selection, but not the conclusion:
+the selected model was `C=0.75` with 9 positive H-neurons, dev accuracy
+`0.735`, and TriviaQA alpha-0 accuracy `0.660`. The FaithEval follow-up was
+flat: alpha `0.0 -> 3.0` was `+0.5 pp` with paired CI `[-3.0, +4.0]`.
+
+### What this changes about my thinking
+
+H1 is closed as a sufficient explanation for the Mistral 2501 FaithEval null.
+The C-sweep usefully shows that high-C detector-favoring models damage
+TriviaQA under suppression, but avoiding that damage did not reveal a
+FaithEval steering lever. The manuscript should say readout yes,
+intervention no, under both AUROC-selected and intervention-aware-selected
+Mistral 2501 classifiers.
+
+### What I will do next
+
+Do not launch another 2501 C-grid tweak, CP4/CP5 rerun, or Mistral SAE as a
+continuation of CP5. Any further Mistral GPU work needs a new pre-registered
+question, most plausibly checkpoint transfer, prompt/measurement stability, or
+operator specificity.
+
+---
+
 ## 2026-04-30 (Mistral 24B CP5 full run reviewed)
 
 ### What I did
@@ -12,14 +48,14 @@ Ran and reviewed Mistral 24B CP5: full n=200 FaithEval H-neuron
 intervention plus five unconstrained and three layer-matched controls under the
 locked `standard` prompt and full alpha grid. The H100 pod was deleted after
 final artifact sync. Report:
-[`icml/reports/2026-04-30-mistral24b-cp5-faitheval-review.md`](./icml/reports/2026-04-30-mistral24b-cp5-faitheval-review.md).
+[`paper/icml/reports/2026-04-30-mistral24b-cp5-faitheval-review.md`](../paper/icml/reports/2026-04-30-mistral24b-cp5-faitheval-review.md).
 Companion adversarial pipeline audit (item-level texture, alternative readings,
 triage-script gap, uncertainty register):
-[`icml/reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md`](./icml/reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md).
+[`paper/icml/reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md`](../paper/icml/reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md).
 Companion hypothesis-formulation review (why CP5 diverged from our Gemma
 replication and the H-Neurons paper, including the 2501-vs-2503 question and
 ranked falsifiable hypotheses):
-[`icml/reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md`](./icml/reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md).
+[`paper/icml/reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md`](../paper/icml/reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md).
 
 ### What I expected vs what happened
 
@@ -91,7 +127,7 @@ splits, 1,840 activation arrays under
 `data/mistral24b/pipeline/activations_llm_canonical/`, and the saved L1
 classifier `models/mistral24b_classifier_canonical.pkl`. Wrote the canonical
 analysis at
-[2026-04-29-mistral24b-cp23-pipeline-review.md](./icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md),
+[2026-04-29-mistral24b-cp23-pipeline-review.md](../paper/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md),
 updated the Mistral strategy memo and older scope/pipeline context to point at
 it, and removed the run from `notes/runs_to_analyse.md`.
 
@@ -172,7 +208,7 @@ Reviewed the completed production SIMID open-calibration pass for
 `mvp_20260427_calibration`: 402 secondary `gpt-5.5` labels, 34
 disagreement adjudications, and the finalized
 `open_calibration_summary.json`. Wrote the current calibration authority at
-[2026-04-28-simid-open-calibration-review.md](./icml/reports/2026-04-28-simid-open-calibration-review.md)
+[2026-04-28-simid-open-calibration-review.md](../paper/icml/reports/2026-04-28-simid-open-calibration-review.md)
 and updated the SIMID measurement contract to distinguish missing calibration
 from recorded-but-failed calibration. Also patched the SIMID report renderer so
 future reports do not describe failed calibration as merely "not recorded."
@@ -204,7 +240,7 @@ multi-seed controls and a pre-specified curve summary land.
 
 ### What I did
 
-Audited the full SIMID MVP run at `mvp_20260427_calibration`: 400 manifest rows, 3 conditions, 4 alphas, 4,800 primary `gpt-4o` open adjudications, and a 402-row open-calibration queue awaiting secondary labeling/finalization. Wrote the canonical report at [2026-04-27-simid-mvp-calibration-audit.md](./icml/reports/2026-04-27-simid-mvp-calibration-audit.md). Also verified the parallel no-go review of the calibration-labeling bundle: the canary really was blocked by the new queue validator, and malformed primary grades could pass the pre-spend check before failing later. Patched both paths, added queue-row hashes for newly produced secondary labels, and verified with the SIMID test module plus shellcheck.
+Audited the full SIMID MVP run at `mvp_20260427_calibration`: 400 manifest rows, 3 conditions, 4 alphas, 4,800 primary `gpt-4o` open adjudications, and a 402-row open-calibration queue awaiting secondary labeling/finalization. Wrote the canonical report at [2026-04-27-simid-mvp-calibration-audit.md](../paper/icml/reports/2026-04-27-simid-mvp-calibration-audit.md). Also verified the parallel no-go review of the calibration-labeling bundle: the canary really was blocked by the new queue validator, and malformed primary grades could pass the pre-spend check before failing later. Patched both paths, added queue-row hashes for newly produced secondary labels, and verified with the SIMID test module plus shellcheck.
 
 ### What this changes about my thinking
 
@@ -218,7 +254,7 @@ Superseded by the 2026-04-28 entry above: the calibration pass has now run and f
 
 ### What I did
 
-End-to-end scientific-rigor audit of the new SIMID open-grading judge-adjudication pipeline introduced by the working-tree changes to `scripts/analyze_simid.py` (+675 lines), `scripts/evaluate_intervention.py` (parser fix), and `tests/test_simid.py` (+137 lines / 7 new tests), exercised on the `phase0_20260426_113707_gates` run (16 paired base items, `alphas=[0.0]`, conditions `{selected, unhooked}`, 2 option-order replicates → 64 adjudication rows; judge `gpt-4o`, prompt `simpleqa_verified_aliases/v1`, batch mode, `temperature=0`, `max_tokens=10`). Independently re-derived every reported aggregate from `open_adjudication.jsonl` and `results_adjudicated.json`: 40 CORRECT / 24 INCORRECT raw counts, 16 deterministic-vs-judge disagreements (all one-direction, all in TruthfulQA, on 4 unique base items × 4 replicates), pooled adjudicated open accuracy 0.6250 [0.3750, 0.8750], stratum rates 0.7500 (bridge) / 0.5000 (truthfulqa-test) / 0.5000 (truthfulqa-train) — every figure matches to floating-point precision. Verified provenance sidecars and `openai_request_id` per row, batch-state cleanup behaviour (`_clear_state` in `scripts/openai_batch.py:617` — the missing `*.batch_state.json` is correct), audit-queue compression (68 reasons → 16 disagreement entries), source-of-grade tracking (`effective_grade_source_counts: {adjudication: 64}` in full run, `{adjudication: 3, deterministic_alias: 61}` in canary), and end-to-end noop equivalence (selected ≡ unhooked at α=0 byte-identically through the judge). Wrote canonical pipeline review at [2026-04-27-simid-open-adjudication-pipeline-review.md](./icml/reports/2026-04-27-simid-open-adjudication-pipeline-review.md).
+End-to-end scientific-rigor audit of the new SIMID open-grading judge-adjudication pipeline introduced by the working-tree changes to `scripts/analyze_simid.py` (+675 lines), `scripts/evaluate_intervention.py` (parser fix), and `tests/test_simid.py` (+137 lines / 7 new tests), exercised on the `phase0_20260426_113707_gates` run (16 paired base items, `alphas=[0.0]`, conditions `{selected, unhooked}`, 2 option-order replicates → 64 adjudication rows; judge `gpt-4o`, prompt `simpleqa_verified_aliases/v1`, batch mode, `temperature=0`, `max_tokens=10`). Independently re-derived every reported aggregate from `open_adjudication.jsonl` and `results_adjudicated.json`: 40 CORRECT / 24 INCORRECT raw counts, 16 deterministic-vs-judge disagreements (all one-direction, all in TruthfulQA, on 4 unique base items × 4 replicates), pooled adjudicated open accuracy 0.6250 [0.3750, 0.8750], stratum rates 0.7500 (bridge) / 0.5000 (truthfulqa-test) / 0.5000 (truthfulqa-train) — every figure matches to floating-point precision. Verified provenance sidecars and `openai_request_id` per row, batch-state cleanup behaviour (`_clear_state` in `scripts/openai_batch.py:617` — the missing `*.batch_state.json` is correct), audit-queue compression (68 reasons → 16 disagreement entries), source-of-grade tracking (`effective_grade_source_counts: {adjudication: 64}` in full run, `{adjudication: 3, deterministic_alias: 61}` in canary), and end-to-end noop equivalence (selected ≡ unhooked at α=0 byte-identically through the judge). Wrote canonical pipeline review at [2026-04-27-simid-open-adjudication-pipeline-review.md](../paper/icml/reports/2026-04-27-simid-open-adjudication-pipeline-review.md).
 
 ### What this changes about my thinking
 
