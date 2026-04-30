@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-04-30 (Mistral 24B CP5 full run reviewed)
+
+### What I did
+
+Ran and reviewed Mistral 24B CP5: full n=200 FaithEval H-neuron
+intervention plus five unconstrained and three layer-matched controls under the
+locked `standard` prompt and full alpha grid. The H100 pod was deleted after
+final artifact sync. Report:
+[`icml/reports/2026-04-30-mistral24b-cp5-faitheval-review.md`](./icml/reports/2026-04-30-mistral24b-cp5-faitheval-review.md).
+
+### What I expected vs what happened
+
+Expected CP5 to decide whether the Mistral detector readout transfers to a
+behavioral intervention. It did not. Contracts and parser checks passed cleanly,
+with zero parse failures throughout, but the H endpoint was null: alpha
+`0.0 -> 3.0` was `0.0 pp` with balanced `9` true-to-false and `9`
+false-to-true item flips. The raw control summary marks the H slope as
+separated from random controls, but the stricter review rejects that slope-only
+result because the paired endpoint and no-op-to-max effects are null.
+
+### What this changes about my thinking
+
+The Mistral readout is real, but this positive-weight H-neuron intervention
+rule does not currently earn a cross-model FaithEval replication claim. The
+paper should not present Mistral as confirming the H-neuron intervention effect.
+If used, CP5 is a clean-control null: prompt/parser/control readiness passed,
+effect gate failed.
+
+### What I will do next
+
+Freeze the CP5 artifacts and update manuscript/reviewer framing around a
+Mistral null rather than launching a Mistral SAE or downstream transfer run as
+if CP5 succeeded.
+
+---
+
 ## 2026-04-30 (Mistral 24B CP4 smoke reviewed)
 
 ### What I did
@@ -34,9 +70,8 @@ and reject any slope-only result driven by alpha=0 mismatch.
 
 ### What I will do next
 
-Launch CP5 with `CP4_REVIEWED=1`, keep the 5 unconstrained plus 3
-layer-matched control schedule, and do not start Mistral SAE or CP6/CP7 until
-the full FaithEval result clears the no-op baseline audit.
+CP5 has since run and is reviewed above. Do not start Mistral SAE or CP6/CP7
+as if the full FaithEval result cleared the no-op baseline audit; it did not.
 
 ---
 
