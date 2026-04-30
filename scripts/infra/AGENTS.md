@@ -111,7 +111,12 @@ reference-only; do not install or auto-load its plugin, skills, or prompts.
 `ghcr.io/systemicvoid/h-neurons-runpod` with the project venv pre-baked at
 `/opt/h-neurons/.venv`. Render the default launch with
 `uv run python scripts/infra/cloudctl.py render-launch --profile mistral24b-runpod --stage cp1 --attempt 1`.
-Wrappers use `uv run --no-sync` and `UV_PROJECT_ENVIRONMENT`; no `uv sync` or
-tool installation happens on the pod. Rebuild and push the image when
-`requirements.txt`, `pyproject.toml`, or `scripts/infra/docker/*` changes; see
-`scripts/infra/cloud/runpod_bake_image.sh`.
+`render-launch` verifies the template image against the profile
+`expected_image_digest` before printing the paid command; direct-image fallback
+requires `--allow-image-fallback --confirmed-image-pin`, and unpinned RunPod
+profiles must be explicitly marked non-production with
+`allow_unpinned_image = true`. Wrappers use `uv run --no-sync` and
+`UV_PROJECT_ENVIRONMENT`; no `uv sync` or tool installation happens on the pod.
+Rebuild and push the image when
+`requirements.txt`, `pyproject.toml`, or `scripts/infra/docker/*` changes, then
+update the profile digest pins; see `scripts/infra/cloud/runpod_bake_image.sh`.

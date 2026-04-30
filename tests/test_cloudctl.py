@@ -2,10 +2,23 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from scripts.infra import cloudctl
+
+
+EXPECTED_RUNPOD_REPOSITORY = "ghcr.io/systemicvoid/h-neurons-runpod"
+EXPECTED_RUNPOD_DIGEST = (
+    "sha256:15c9114da2420086a83ff85f261d07427e60ffd62835a177e587c3f2e431508e"
+)
+EXPECTED_RUNPOD_IMAGE = f"{EXPECTED_RUNPOD_REPOSITORY}@{EXPECTED_RUNPOD_DIGEST}"
+
+
+def editable_profile(name: str) -> dict[str, Any]:
+    profile = cloudctl.load_profile(name)
+    return {**profile, "runpod": dict(profile["runpod"])}
 
 
 def test_load_mistral_runpod_profile() -> None:
@@ -13,6 +26,17 @@ def test_load_mistral_runpod_profile() -> None:
 
     assert profile["provider"] == "runpod"
     assert profile["name"] == "mistral24b-runpod"
+
+
+def test_runpod_production_profiles_require_baked_template_pin() -> None:
+    for name in ("mistral24b-runpod", "gemma3-4b-runpod"):
+        profile = cloudctl.load_profile(name)
+        runpod = profile["runpod"]
+
+        assert runpod["template_id"] == "v88hqzvuxk"
+        assert "image" not in runpod
+        assert runpod["expected_image_repository"] == EXPECTED_RUNPOD_REPOSITORY
+        assert runpod["expected_image_digest"] == EXPECTED_RUNPOD_DIGEST
 
 
 def test_storage_decision_switches_after_first_cp1_attempt() -> None:
@@ -43,11 +67,160 @@ def test_render_launch_default_is_dry_command_without_network_volume() -> None:
 
 
 def test_render_launch_rejects_profile_with_template_and_image() -> None:
-    profile = cloudctl.load_profile("mistral24b-runpod")
+    profile = editable_profile("mistral24b-runpod")
     profile["runpod"]["image"] = "ghcr.io/systemicvoid/h-neurons-runpod:latest"
 
     with pytest.raises(cloudctl.CloudctlError, match="exactly one"):
         cloudctl.render_launch_command(profile, stage="cp1", attempt=1)
+
+
+def test_render_launch_rejects_direct_image_for_pinned_profile() -> None:
+    profile = editable_profile("mistral24b-runpod")
+    profile["runpod"].pop("template_id")
+    profile["runpod"]["image"] = "runpod/pytorch:2.4.0-py3.11-cuda12.4.1"
+
+    with pytest.raises(cloudctl.CloudctlError, match="requires template_id"):
+        cloudctl.render_launch_command(profile, stage="cp1", attempt=1)
+
+
+def test_render_launch_rejects_unpinned_runpod_profile() -> None:
+    profile = editable_profile("mistral24b-runpod")
+    profile["runpod"].pop("expected_image_repository")
+    profile["runpod"].pop("expected_image_digest")
+
+    with pytest.raises(cloudctl.CloudctlError, match="expected_image_digest"):
+        cloudctl.render_launch_command(profile, stage="cp1", attempt=1)
+
+
+def test_render_launch_allows_direct_image_only_with_pin_ack() -> None:
+    profile = editable_profile("mistral24b-runpod")
+    profile["runpod"].pop("template_id")
+    profile["runpod"]["image"] = EXPECTED_RUNPOD_IMAGE
+
+    command = cloudctl.render_launch_command(
+        profile,
+        stage="cp1",
+        attempt=1,
+        allow_image_fallback=True,
+        confirmed_image_pin=True,
+    )
+
+    assert "--image" in command
+    assert EXPECTED_RUNPOD_IMAGE in command
+
+
+def test_verify_runpod_image_pin_accepts_matching_template(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+    calls: list[list[str]] = []
+
+    def fake_runpodctl_json(args: list[str]) -> object:
+        calls.append(args)
+        if args == ["template", "get", "v88hqzvuxk"]:
+            return {"imageName": EXPECTED_RUNPOD_IMAGE}
+        raise AssertionError(f"unexpected runpodctl args: {args}")
+
+    monkeypatch.setattr(cloudctl, "runpodctl_json", fake_runpodctl_json)
+
+    check = cloudctl.verify_runpod_image_pin(profile)
+
+    assert calls == [["template", "get", "v88hqzvuxk"]]
+    assert check is not None
+    assert check.matched
+    assert check.actual_image == EXPECTED_RUNPOD_IMAGE
+
+
+def test_render_launch_cli_verifies_image_pin_without_polluting_stdout(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[list[str]] = []
+
+    def fake_runpodctl_json(args: list[str]) -> object:
+        calls.append(args)
+        if args == ["template", "get", "v88hqzvuxk"]:
+            return {"imageName": EXPECTED_RUNPOD_IMAGE}
+        raise AssertionError(f"unexpected runpodctl args: {args}")
+
+    monkeypatch.setattr(cloudctl, "runpodctl_json", fake_runpodctl_json)
+
+    code = cloudctl.main(
+        [
+            "render-launch",
+            "--profile",
+            "mistral24b-runpod",
+            "--stage",
+            "cp1",
+            "--attempt",
+            "1",
+        ]
+    )
+
+    output = capsys.readouterr()
+    assert code == 0
+    assert calls == [["template", "get", "v88hqzvuxk"]]
+    assert output.err == ""
+    assert output.out.startswith("runpodctl pod create ")
+    assert "image pin" not in output.out
+
+
+def test_verify_runpod_image_pin_rejects_template_digest_drift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+
+    def fake_runpodctl_json(args: list[str]) -> object:
+        if args == ["template", "get", "v88hqzvuxk"]:
+            return {
+                "imageName": (
+                    "ghcr.io/systemicvoid/h-neurons-runpod@"
+                    "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                )
+            }
+        raise AssertionError(f"unexpected runpodctl args: {args}")
+
+    monkeypatch.setattr(cloudctl, "runpodctl_json", fake_runpodctl_json)
+
+    with pytest.raises(cloudctl.CloudctlError, match="image pin mismatch"):
+        cloudctl.verify_runpod_image_pin(profile)
+
+
+def test_verify_runpod_image_pin_fallback_bypasses_drift_after_ack(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile = cloudctl.load_profile("mistral24b-runpod")
+
+    def fake_runpodctl_json(args: list[str]) -> object:
+        if args == ["template", "get", "v88hqzvuxk"]:
+            return {"imageName": "runpod/pytorch:2.4.0-py3.11-cuda12.4.1"}
+        raise AssertionError(f"unexpected runpodctl args: {args}")
+
+    monkeypatch.setattr(cloudctl, "runpodctl_json", fake_runpodctl_json)
+
+    check = cloudctl.verify_runpod_image_pin(
+        profile,
+        allow_image_fallback=True,
+        confirmed_image_pin=True,
+    )
+
+    assert check is not None
+    assert not check.matched
+    assert check.actual_image == "runpod/pytorch:2.4.0-py3.11-cuda12.4.1"
+
+
+def test_image_fallback_flags_must_be_paired() -> None:
+    profile = editable_profile("mistral24b-runpod")
+    profile["runpod"].pop("template_id")
+    profile["runpod"]["image"] = EXPECTED_RUNPOD_IMAGE
+
+    with pytest.raises(cloudctl.CloudctlError, match="must be used together"):
+        cloudctl.render_launch_command(
+            profile,
+            stage="cp1",
+            attempt=1,
+            allow_image_fallback=True,
+        )
 
 
 def test_render_launch_requires_volume_for_cp2() -> None:

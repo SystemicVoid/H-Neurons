@@ -47,6 +47,24 @@ class RunPodSnapshot:
     user: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class RunPodImagePin:
+    repository: str | None
+    digest: str
+
+
+@dataclass(frozen=True)
+class RunPodImagePinCheck:
+    target_kind: str
+    target_value: str
+    expected_repository: str | None
+    expected_digest: str
+    actual_image: str
+    actual_repository: str | None
+    actual_digest: str | None
+    matched: bool
+
+
 def _run(
     args: list[str],
     *,
@@ -150,6 +168,197 @@ def _strings(table: dict[str, Any], key: str) -> list[str]:
     return value
 
 
+def _template_digest(value: str, *, field: str) -> str:
+    digest = value.strip().lower()
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+        raise CloudctlError(f"{field} must be a sha256:<64 hex> image digest")
+    return digest
+
+
+def _expected_image_pin(runpod: dict[str, Any]) -> RunPodImagePin | None:
+    digest_value = runpod.get("expected_image_digest")
+    if digest_value is None:
+        return None
+    if not isinstance(digest_value, str):
+        raise CloudctlError("runpod.expected_image_digest must be a string")
+    repository = runpod.get("expected_image_repository")
+    if repository is not None:
+        if not isinstance(repository, str) or not repository.strip():
+            raise CloudctlError(
+                "runpod.expected_image_repository must be a non-empty string"
+            )
+        repository = repository.strip()
+        if "@" in repository or any(char.isspace() for char in repository):
+            raise CloudctlError(
+                "runpod.expected_image_repository must be an image repository, "
+                "not a digest-pinned image"
+            )
+    return RunPodImagePin(
+        repository=repository,
+        digest=_template_digest(digest_value, field="runpod.expected_image_digest"),
+    )
+
+
+def _parse_digest_pinned_image(image: str) -> tuple[str, str] | None:
+    match = re.fullmatch(
+        r"(?P<repository>[^@\s]+)@(?P<digest>sha256:[0-9a-fA-F]{64})",
+        image.strip(),
+    )
+    if match is None:
+        return None
+    return match.group("repository"), match.group("digest").lower()
+
+
+def _image_fallback_acknowledged(
+    *, allow_image_fallback: bool, confirmed_image_pin: bool
+) -> bool:
+    if allow_image_fallback != confirmed_image_pin:
+        raise CloudctlError(
+            "--allow-image-fallback and --confirmed-image-pin must be used together"
+        )
+    return allow_image_fallback
+
+
+def _runpod_launch_target(
+    runpod: dict[str, Any],
+    *,
+    allow_image_fallback: bool = False,
+    confirmed_image_pin: bool = False,
+) -> tuple[str, str, RunPodImagePin | None]:
+    image_fallback_acknowledged = _image_fallback_acknowledged(
+        allow_image_fallback=allow_image_fallback,
+        confirmed_image_pin=confirmed_image_pin,
+    )
+    expected_pin = _expected_image_pin(runpod)
+    template_id = runpod.get("template_id")
+    image = runpod.get("image")
+    resolved_template_id = (
+        template_id if isinstance(template_id, str) and template_id else None
+    )
+    resolved_image = image if isinstance(image, str) and image else None
+    allow_unpinned_image = _bool(runpod, "allow_unpinned_image", False)
+    if expected_pin is None and not allow_unpinned_image:
+        if not image_fallback_acknowledged:
+            raise CloudctlError(
+                "RunPod profiles must set runpod.expected_image_digest; set "
+                "allow_unpinned_image = true only for non-production profiles or "
+                "pass --allow-image-fallback --confirmed-image-pin after visually "
+                "verifying the image pin"
+            )
+    if resolved_template_id is not None and resolved_image is not None:
+        raise CloudctlError(
+            "RunPod profile must set exactly one of template_id or image"
+        )
+    if resolved_template_id is None and resolved_image is None:
+        raise CloudctlError(
+            "RunPod profile must set exactly one of template_id or image"
+        )
+    if expected_pin is not None and resolved_template_id is None:
+        if not image_fallback_acknowledged:
+            raise CloudctlError(
+                "runpod.expected_image_digest requires template_id for normal "
+                "launches; direct image fallback requires --allow-image-fallback "
+                "--confirmed-image-pin after visually verifying the image pin"
+            )
+    if resolved_template_id is not None:
+        return "template", resolved_template_id, expected_pin
+    if resolved_image is None:
+        raise CloudctlError(
+            "RunPod profile must set exactly one of template_id or image"
+        )
+    return "image", resolved_image, expected_pin
+
+
+def _template_image_name(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        raise CloudctlError("runpodctl template get did not return a JSON object")
+    for key in ("imageName", "image", "containerImage", "dockerImage"):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    raise CloudctlError("runpodctl template get output did not include an image name")
+
+
+def _image_pin_check(
+    *,
+    target_kind: str,
+    target_value: str,
+    expected: RunPodImagePin,
+    actual_image: str,
+) -> RunPodImagePinCheck:
+    actual = _parse_digest_pinned_image(actual_image)
+    actual_repository = None
+    actual_digest = None
+    if actual is not None:
+        actual_repository, actual_digest = actual
+    matched = actual_digest == expected.digest
+    if expected.repository is not None:
+        matched = matched and actual_repository == expected.repository
+    return RunPodImagePinCheck(
+        target_kind=target_kind,
+        target_value=target_value,
+        expected_repository=expected.repository,
+        expected_digest=expected.digest,
+        actual_image=actual_image,
+        actual_repository=actual_repository,
+        actual_digest=actual_digest,
+        matched=matched,
+    )
+
+
+def _format_expected_image_pin(check: RunPodImagePinCheck) -> str:
+    if check.expected_repository is None:
+        return check.expected_digest
+    return f"{check.expected_repository}@{check.expected_digest}"
+
+
+def _image_pin_mismatch_message(check: RunPodImagePinCheck) -> str:
+    return (
+        f"RunPod {check.target_kind} {check.target_value} image pin mismatch: "
+        f"expected {_format_expected_image_pin(check)}, got {check.actual_image!r}"
+    )
+
+
+def verify_runpod_image_pin(
+    profile: dict[str, Any],
+    *,
+    allow_image_fallback: bool = False,
+    confirmed_image_pin: bool = False,
+) -> RunPodImagePinCheck | None:
+    if profile["provider"] != "runpod":
+        return None
+    runpod = _table(profile, "runpod")
+    image_fallback_acknowledged = _image_fallback_acknowledged(
+        allow_image_fallback=allow_image_fallback,
+        confirmed_image_pin=confirmed_image_pin,
+    )
+    target_kind, target_value, expected_pin = _runpod_launch_target(
+        runpod,
+        allow_image_fallback=allow_image_fallback,
+        confirmed_image_pin=confirmed_image_pin,
+    )
+    if expected_pin is None:
+        return None
+    if target_kind == "template":
+        template = runpodctl_json(["template", "get", target_value])
+        actual_image = _template_image_name(template)
+    else:
+        actual_image = target_value
+    check = _image_pin_check(
+        target_kind=target_kind,
+        target_value=target_value,
+        expected=expected_pin,
+        actual_image=actual_image,
+    )
+    if check.matched or image_fallback_acknowledged:
+        return check
+    raise CloudctlError(
+        _image_pin_mismatch_message(check)
+        + "; pass --allow-image-fallback --confirmed-image-pin only after "
+        "visually verifying the template/image digest is acceptable for this launch"
+    )
+
+
 def _single_data_center_id(value: str, *, field: str = "data_center_id") -> str:
     data_center_id = value.strip()
     if (
@@ -212,11 +421,18 @@ def render_launch_command(
     gpu_id: str | None = None,
     allow_gpu_fallback: bool = False,
     confirmed_gpu_stock: bool = False,
+    allow_image_fallback: bool = False,
+    confirmed_image_pin: bool = False,
 ) -> list[str]:
     if profile["provider"] != "runpod":
         raise CloudctlError("render-launch currently supports RunPod profiles only")
 
     runpod = _table(profile, "runpod")
+    target_kind, target_value, _expected_pin = _runpod_launch_target(
+        runpod,
+        allow_image_fallback=allow_image_fallback,
+        confirmed_image_pin=confirmed_image_pin,
+    )
     storage = decide_storage(profile, stage=stage, attempt=attempt)
     default_gpu_id = _string(runpod, "gpu_id")
     resolved_gpu_id = gpu_id or default_gpu_id
@@ -266,22 +482,10 @@ def render_launch_command(
         _string(runpod, "ports", "8888/http,22/tcp"),
     ]
 
-    template_id = runpod.get("template_id")
-    image = runpod.get("image")
-    has_template_id = isinstance(template_id, str) and bool(template_id)
-    has_image = isinstance(image, str) and bool(image)
-    if has_template_id and has_image:
-        raise CloudctlError(
-            "RunPod profile must set exactly one of template_id or image"
-        )
-    if has_template_id:
-        command.extend(["--template-id", template_id])
-    elif has_image:
-        command.extend(["--image", image])
+    if target_kind == "template":
+        command.extend(["--template-id", target_value])
     else:
-        raise CloudctlError(
-            "RunPod profile must set exactly one of template_id or image"
-        )
+        command.extend(["--image", target_value])
 
     datacenters = (
         [_single_data_center_id(data_center_id)]
@@ -479,6 +683,20 @@ def _print_result(name: str, result: subprocess.CompletedProcess[str]) -> bool:
     return ok
 
 
+def _print_image_pin_check(check: RunPodImagePinCheck | None) -> bool:
+    if check is None:
+        print("[ok] image pin not configured")
+        return True
+    if check.matched:
+        print(f"[ok] image pin {check.actual_image}")
+    else:
+        print(
+            "[ok] image pin fallback acknowledged: "
+            + _image_pin_mismatch_message(check)
+        )
+    return True
+
+
 def _git_dirty(status_output: str) -> bool:
     lines = [line for line in status_output.splitlines()[1:] if line.strip()]
     return bool(lines)
@@ -526,6 +744,19 @@ def run_preflight(args: argparse.Namespace) -> int:
         )
 
     failed = False
+    if profile["provider"] == "runpod":
+        try:
+            check = verify_runpod_image_pin(
+                profile,
+                allow_image_fallback=args.allow_image_fallback,
+                confirmed_image_pin=args.confirmed_image_pin,
+            )
+        except CloudctlError as exc:
+            print("[fail] image pin")
+            print(exc)
+            failed = True
+        else:
+            failed |= not _print_image_pin_check(check)
 
     status = _run(["git", "status", "--short", "--branch"])
     failed |= not _print_result("git status", status)
@@ -641,8 +872,36 @@ def run_render_launch(args: argparse.Namespace) -> int:
         gpu_id=args.gpu_id,
         allow_gpu_fallback=args.allow_gpu_fallback,
         confirmed_gpu_stock=args.confirmed_gpu_stock,
+        allow_image_fallback=args.allow_image_fallback,
+        confirmed_image_pin=args.confirmed_image_pin,
     )
+    check = verify_runpod_image_pin(
+        profile,
+        allow_image_fallback=args.allow_image_fallback,
+        confirmed_image_pin=args.confirmed_image_pin,
+    )
+    if check is not None and not check.matched:
+        print(
+            "cloudctl: image pin fallback acknowledged: "
+            + _image_pin_mismatch_message(check),
+            file=sys.stderr,
+        )
     print(shell_join(command))
+    return 0
+
+
+def run_verify_image_pin(args: argparse.Namespace) -> int:
+    profile = load_profile(args.profile)
+    check = verify_runpod_image_pin(
+        profile,
+        allow_image_fallback=args.allow_image_fallback,
+        confirmed_image_pin=args.confirmed_image_pin,
+    )
+    _print_image_pin_check(check)
+    if check is not None:
+        print(f"target: {check.target_kind} {check.target_value}")
+        print(f"expected: {_format_expected_image_pin(check)}")
+        print(f"actual: {check.actual_image}")
     return 0
 
 
@@ -687,7 +946,34 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Skip git bundle clone smoke test.",
     )
+    preflight.add_argument(
+        "--allow-image-fallback",
+        action="store_true",
+        help="Acknowledge an explicit non-profile image/template fallback decision.",
+    )
+    preflight.add_argument(
+        "--confirmed-image-pin",
+        action="store_true",
+        help="Acknowledge that the fallback template/image digest was verified.",
+    )
     preflight.set_defaults(func=run_preflight)
+
+    verify_image = sub.add_parser(
+        "verify-image-pin",
+        help="Verify a RunPod template/image digest against the profile pin.",
+    )
+    verify_image.add_argument("--profile", required=True)
+    verify_image.add_argument(
+        "--allow-image-fallback",
+        action="store_true",
+        help="Acknowledge an explicit non-profile image/template fallback decision.",
+    )
+    verify_image.add_argument(
+        "--confirmed-image-pin",
+        action="store_true",
+        help="Acknowledge that the fallback template/image digest was verified.",
+    )
+    verify_image.set_defaults(func=run_verify_image_pin)
 
     ssh_info = sub.add_parser("ssh-info", help="Print direct root@ip SSH command")
     ssh_info.add_argument("--pod-id", required=True)
@@ -732,6 +1018,16 @@ def build_parser() -> argparse.ArgumentParser:
             "Acknowledge that runpodctl datacenter output shows live stock for "
             "the chosen GPU in the exact network-volume datacenter."
         ),
+    )
+    render.add_argument(
+        "--allow-image-fallback",
+        action="store_true",
+        help="Acknowledge an explicit non-profile image/template fallback decision.",
+    )
+    render.add_argument(
+        "--confirmed-image-pin",
+        action="store_true",
+        help="Acknowledge that the fallback template/image digest was verified.",
     )
     render.set_defaults(func=run_render_launch)
 

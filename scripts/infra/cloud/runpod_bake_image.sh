@@ -36,3 +36,4 @@ printf '%s\n' "${DIGEST}" | tee /tmp/h-neurons-runpod-digest
 printf '\n'
 printf 'Image: %s:%s\n' "${IMAGE}" "${TAG}"
 printf 'Profile pin: %s@%s\n' "${IMAGE}" "${DIGEST}"
+printf 'Update runpod.expected_image_digest in scripts/infra/cloud/profiles/*-runpod.toml to: %s\n' "${DIGEST}"

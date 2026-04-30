@@ -14,6 +14,15 @@ output, then run that output deliberately:
 uv run python scripts/infra/cloudctl.py render-launch --profile mistral24b-runpod --stage cp1 --attempt 1
 ```
 
+`render-launch` calls `runpodctl template get v88hqzvuxk -o json` and verifies
+the template image digest against `runpod.expected_image_digest` in the profile
+before printing the paid command. RunPod profiles without
+`expected_image_digest` fail unless explicitly marked
+`allow_unpinned_image = true` for non-production use. A profile that swaps
+`template_id` for a direct `image` also fails by default. Only bypass those
+guards with both `--allow-image-fallback` and `--confirmed-image-pin` after
+manually verifying the template/image digest is acceptable for the launch.
+
 Do not run remote dependency setup on RunPod pods. The template already ships
 `uv`, `tmux`, `rsync`, `pigz`, `openssh-server`, CUDA tooling, and the baked
 project venv.
@@ -54,16 +63,21 @@ runpodctl registry create \
   --username SystemicVoid \
   --password "$GH_PAT_TOKEN"
 
-IMAGE="$(sed 's#^#ghcr.io/systemicvoid/h-neurons-runpod@#' /tmp/h-neurons-runpod-digest)"
+DIGEST="$(cat /tmp/h-neurons-runpod-digest)"
+IMAGE="ghcr.io/systemicvoid/h-neurons-runpod@${DIGEST}"
 runpodctl template update v88hqzvuxk --image "$IMAGE"
+# Update expected_image_digest in both RunPod profiles to ${DIGEST}, then verify:
+uv run python scripts/infra/cloudctl.py verify-image-pin --profile mistral24b-runpod
+uv run python scripts/infra/cloudctl.py verify-image-pin --profile gemma3-4b-runpod
 ```
 
 If the registry credential already exists, do not recreate it; reuse the existing
 auth record. `runpodctl template update` works because the template already has
 `containerRegistryAuthId`; if recreating the template from scratch, use the
 RunPod console or REST API to attach the registry credential. Current template:
-`v88hqzvuxk`. Current image pin:
-`ghcr.io/systemicvoid/h-neurons-runpod@sha256:15c9114da2420086a83ff85f261d07427e60ffd62835a177e587c3f2e431508e`.
+`v88hqzvuxk`. After each bake, update `expected_image_digest` in both RunPod
+profiles to the new `/tmp/h-neurons-runpod-digest` value before running the
+verification commands above.
 
 Local image checks:
 
