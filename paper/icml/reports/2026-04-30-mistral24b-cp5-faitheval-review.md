@@ -5,6 +5,12 @@
 > replication gate. The apparent H-neuron slope is a slope-only signal; paired
 > endpoint effects are null.
 
+> Companion adversarial audit (independent recompute, item-level texture,
+> alternative readings, triage-script gap, and uncertainty register):
+> [`../reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md`](../reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md).
+> The audit confirms every headline number in this report and complements,
+> rather than supersedes, the verdict here.
+
 ## Run Identity
 
 | Field | Value |

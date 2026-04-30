@@ -13,6 +13,9 @@ intervention plus five unconstrained and three layer-matched controls under the
 locked `standard` prompt and full alpha grid. The H100 pod was deleted after
 final artifact sync. Report:
 [`icml/reports/2026-04-30-mistral24b-cp5-faitheval-review.md`](./icml/reports/2026-04-30-mistral24b-cp5-faitheval-review.md).
+Companion adversarial pipeline audit (item-level texture, alternative readings,
+triage-script gap, uncertainty register):
+[`icml/reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md`](./icml/reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md).
 
 ### What I expected vs what happened
 
