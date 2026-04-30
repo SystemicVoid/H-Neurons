@@ -166,3 +166,7 @@ Keep the network volume only if CP4/CP5 reuse is immediate. If reuse is not
 immediate, sync critical artifacts locally and delete the volume too.
 
 References: [network volumes](https://docs.runpod.io/storage/network-volumes), [Pods pricing](https://docs.runpod.io/pods/pricing), [SSH over exposed TCP](https://docs.runpod.io/pods/configuration/use-ssh), [runpodctl pod](https://docs.runpod.io/runpodctl/reference/runpodctl-pod), and [runpodctl network-volume](https://docs.runpod.io/runpodctl/reference/runpodctl-network-volume).
+
+## Footguns
+
+- See `notes/icml/gemma3_4b/2026-04-30-runpod-simid-tail-postmortem.md` for the HF-staged bundle recipe and EUR-IS-1 CDN ingress shaping observations (direct rsync/scp ingress was throttled to single-digit KB/s; HF Hub hit ~18 MB/s on the same pod).
