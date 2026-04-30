@@ -1,0 +1,33 @@
+name = "gemma3-4b-runpod"
+provider = "runpod"
+description = "Gemma-3-4B SIMID one-shot tail-shard, RTX 5090 Secure Cloud, ephemeral storage."
+
+[git]
+bundle_branch = "main"
+
+[runpod]
+pod_name = "hneurons-gemma3-4b-simid-tail"
+cloud_type = "SECURE"
+template_id = "runpod-torch-v240"
+gpu_id = "NVIDIA GeForce RTX 5090"
+gpu_count = 1
+container_disk_gb = 30
+volume_gb = 50
+volume_mount_path = "/workspace"
+ports = "22/tcp"
+data_center_ids = ["US-MD-1", "US-MO-1", "US-WA-1", "EUR-IS-1"]
+ssh = true
+global_networking = false
+public_ip = false
+
+[storage]
+first_cp1_mode = "ephemeral"
+network_volume_size_gb = 0
+
+[gemma3_4b]
+model_key = "gemma3_4b_it"
+model_path = "google/gemma-3-4b-it"
+device_map = "cuda:0"
+wrapper = "scripts/infra/simid_remote_shard.sh"
+remote_uv_sync = "uv sync --no-dev"
+required_hardware = "BF16-capable CUDA GPU, >=16 GiB VRAM (RTX 5090 / 4090 / H100)"
