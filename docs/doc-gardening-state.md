@@ -7,7 +7,7 @@ Cross-run tracker for the documentation-gardening routine. Updated at the end of
 - **Date**: 2026-04-30
 - **Base commit**: `2bededd` (origin/main)
 - **Branch**: `docs/daily-garden-20260430-2bededd`
-- **PR**: _pending_
+- **PR**: `#1`
 - **Focus area**: Root docs/guidance + `scripts/infra/` (first-run: no prior state)
 
 ### Changed Files Scanned
