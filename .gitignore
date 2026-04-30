@@ -31,6 +31,7 @@ scripts/infra/watch_gh200_pipeline_and_sync.sh
 *.safetensors
 *.bin
 *.gguf
+*.pkl
 data/**/activations/
 data/**/activations_sae/
 data/**/activations_sae*/
