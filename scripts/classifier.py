@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 import os
 
@@ -90,6 +91,16 @@ def parse_args():
         type=str,
         default=None,
         help="Optional JSON path for sweep metrics and selected checkpoint metadata.",
+    )
+    parser.add_argument(
+        "--candidate_models_dir",
+        type=str,
+        default=None,
+        help=(
+            "Optional directory for saving every C-sweep candidate checkpoint. "
+            "When set, candidate checkpoint paths and SHA-256 hashes are recorded "
+            "in --metrics_out."
+        ),
     )
 
     parser.add_argument(
@@ -306,6 +317,35 @@ def ensure_parent_dir(path):
         os.makedirs(parent, exist_ok=True)
 
 
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def format_c_label(c_value):
+    return f"{float(c_value):g}".replace("-", "neg_").replace(".", "_")
+
+
+def candidate_model_path(candidate_models_dir, c_value):
+    return os.path.join(
+        candidate_models_dir,
+        f"classifier_C_{format_c_label(c_value)}.pkl",
+    )
+
+
+def persist_candidate_model(model, candidate_models_dir, c_value):
+    path = candidate_model_path(candidate_models_dir, c_value)
+    ensure_parent_dir(path)
+    joblib.dump(model, path)
+    return {
+        "candidate_model_path": path,
+        "candidate_model_sha256": file_sha256(path),
+    }
+
+
 def select_candidate_score(candidate, metric_name, prefer_test):
     dataset = candidate["test_metrics"] if prefer_test else candidate["train_metrics"]
     return dataset[metric_name]
@@ -322,16 +362,31 @@ def summarize_candidate(candidate, total_neurons, selection_metric, prefer_test)
         "selected_ratio_per_mille": float(ratio_per_mille),
         "train_metrics": candidate["train_metrics"],
         "test_metrics": candidate["test_metrics"],
+        **(
+            {
+                "candidate_model_path": candidate["candidate_model_path"],
+                "candidate_model_sha256": candidate["candidate_model_sha256"],
+            }
+            if "candidate_model_path" in candidate
+            else {}
+        ),
     }
 
 
 def main():
     args = parse_args()
+    if args.load_model and args.c_values:
+        raise ValueError("--c_values cannot be used with --load_model.")
+    if args.load_model and args.candidate_models_dir:
+        raise ValueError("--candidate_models_dir cannot be used with --load_model.")
+
     output_targets = []
     if args.metrics_out:
         output_targets.append(args.metrics_out)
     if not args.load_model and args.save_model:
         output_targets.append(args.save_model)
+    if not args.load_model and args.candidate_models_dir:
+        output_targets.append(args.candidate_models_dir)
     primary_target = args.metrics_out or (None if args.load_model else args.save_model)
     provenance_handle = (
         start_run_provenance(
@@ -348,9 +403,6 @@ def main():
         model_dimensions = get_model_dimensions(args.model_path, args.model_key)
         total_neurons = int(model_dimensions.total_ffn_neurons)
         prefer_test = bool(args.test_ids and args.test_acts)
-
-        if args.load_model and args.c_values:
-            raise ValueError("--c_values cannot be used with --load_model.")
 
         X_test = y_test = test_qids = None
         if prefer_test:
@@ -436,6 +488,14 @@ def main():
                     "test_metrics": test_metrics,
                 }
             )
+            if args.candidate_models_dir:
+                candidates[-1].update(
+                    persist_candidate_model(model, args.candidate_models_dir, c_value)
+                )
+                print(
+                    "Saved candidate checkpoint to "
+                    f"{candidates[-1]['candidate_model_path']}"
+                )
 
         best_candidate = max(
             candidates,
