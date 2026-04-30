@@ -1,0 +1,340 @@
+{
+  "h_neuron_baseline": {
+    "path": "data/mistral24b/intervention/faitheval_pilot_smoke/experiment/results.20260430_094341.json",
+    "n_h_neurons": 10,
+    "compliance_rates": [
+      0.75,
+      0.65,
+      0.65
+    ],
+    "slope_per_alpha": -2.86,
+    "spearman_rho": -0.866,
+    "parse_failures": [
+      0,
+      0,
+      0
+    ],
+    "compliance_ci_by_alpha": [
+      {
+        "estimate": 0.75,
+        "n_compliant": 15,
+        "n_total": 20,
+        "ci": {
+          "lower": 0.531299122381256,
+          "upper": 0.8881382985923343,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "estimate": 0.65,
+        "n_compliant": 13,
+        "n_total": 20,
+        "ci": {
+          "lower": 0.43285427668523624,
+          "upper": 0.818808175898918,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      {
+        "estimate": 0.65,
+        "n_compliant": 13,
+        "n_total": 20,
+        "ci": {
+          "lower": 0.43285427668523624,
+          "upper": 0.818808175898918,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      }
+    ]
+  },
+  "unconstrained_random": {
+    "mean_compliance_rates": [
+      0.65,
+      0.65,
+      0.65
+    ],
+    "std_compliance_rates": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "per_seed": {
+      "seed_0_unconstrained": {
+        "compliance_rates": [
+          0.65,
+          0.65,
+          0.65
+        ],
+        "slope_per_alpha": -0.0,
+        "spearman_rho": NaN,
+        "parse_failures": [
+          0,
+          0,
+          0
+        ],
+        "compliance_ci_by_alpha": [
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        ]
+      },
+      "seed_1_unconstrained": {
+        "compliance_rates": [
+          0.65,
+          0.65,
+          0.65
+        ],
+        "slope_per_alpha": -0.0,
+        "spearman_rho": NaN,
+        "parse_failures": [
+          0,
+          0,
+          0
+        ],
+        "compliance_ci_by_alpha": [
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        ]
+      },
+      "seed_2_unconstrained": {
+        "compliance_rates": [
+          0.65,
+          0.65,
+          0.65
+        ],
+        "slope_per_alpha": -0.0,
+        "spearman_rho": NaN,
+        "parse_failures": [
+          0,
+          0,
+          0
+        ],
+        "compliance_ci_by_alpha": [
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        ]
+      }
+    },
+    "mean_slope_per_alpha": 0.0,
+    "slope_percentile_interval": {
+      "lower": 0.0,
+      "upper": -0.0,
+      "level": 0.95,
+      "method": "empirical_random_set_percentile"
+    },
+    "mean_spearman_rho": NaN,
+    "any_seed_monotonic": true,
+    "mean_parse_failures": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "alpha_3_compliance_percentile_interval_pct": {
+      "lower": 65.0,
+      "upper": 65.0,
+      "level": 0.95,
+      "method": "empirical_random_set_percentile"
+    }
+  },
+  "layer_matched_random": {
+    "mean_compliance_rates": [
+      0.65,
+      0.65,
+      0.65
+    ],
+    "std_compliance_rates": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "per_seed": {
+      "seed_0_layer_matched": {
+        "compliance_rates": [
+          0.65,
+          0.65,
+          0.65
+        ],
+        "slope_per_alpha": -0.0,
+        "spearman_rho": NaN,
+        "parse_failures": [
+          0,
+          0,
+          0
+        ],
+        "compliance_ci_by_alpha": [
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          },
+          {
+            "estimate": 0.65,
+            "n_compliant": 13,
+            "n_total": 20,
+            "ci": {
+              "lower": 0.43285427668523624,
+              "upper": 0.818808175898918,
+              "level": 0.95,
+              "method": "wilson"
+            }
+          }
+        ]
+      }
+    },
+    "mean_slope_per_alpha": 0.0,
+    "slope_percentile_interval": {
+      "lower": -0.0,
+      "upper": -0.0,
+      "level": 0.95,
+      "method": "empirical_random_set_percentile"
+    },
+    "mean_spearman_rho": NaN,
+    "any_seed_monotonic": true,
+    "mean_parse_failures": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "alpha_3_compliance_percentile_interval_pct": {
+      "lower": 65.0,
+      "upper": 65.0,
+      "level": 0.95,
+      "method": "empirical_random_set_percentile"
+    }
+  },
+  "comparison_to_h_neurons": {
+    "alpha_3_h_rate_pct": 65.0,
+    "alpha_3_random_mean_pct": 65.0,
+    "alpha_3_random_percentile_interval_pct": {
+      "lower": 65.0,
+      "upper": 65.0,
+      "level": 0.95,
+      "method": "empirical_random_set_percentile"
+    },
+    "slope_h_pp_per_alpha": -2.86,
+    "slope_random_mean_pp_per_alpha": 0.0,
+    "slope_random_percentile_interval": {
+      "lower": 0.0,
+      "upper": -0.0,
+      "level": 0.95,
+      "method": "empirical_random_set_percentile"
+    }
+  },
+  "triage": {
+    "status": "specificity_supported",
+    "note": "H-neuron slope separates from the random-set interval.",
+    "recommended_next_action": "Use the strongest benchmark and seed spread views to choose the next validation run."
+  }
+}

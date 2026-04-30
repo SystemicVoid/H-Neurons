@@ -1,0 +1,840 @@
+Validated 8 sample manifest locks.
+
+[2026-04-30T09:42:08Z] uv run --no-sync python -m scripts.lib.pipeline active-run-status
+Active run registry: /workspace/02-h-neurons/.git/h-neurons-active-runs
+Live locks: 0
+Stale or remote locks: 0
+Malformed locks: 0
+
+[2026-04-30T09:42:08Z] uv run --no-sync python -m scripts.lib.pipeline check-active-run-git-guard
+
+[2026-04-30T09:42:08Z] uv run --no-sync python -m scripts.lib.pipeline gpu-preflight
+gpu_preflight: nvitop not found, skipping
+
+[2026-04-30T09:42:08Z] uv run --no-sync python -m scripts.lib.pipeline gpu-hardware-guard --min-memory-gib 75 --name-pattern H100\|A100
+{
+  "available": true,
+  "bf16_supported": true,
+  "current_device": 0,
+  "device_count": 1,
+  "devices": [
+    {
+      "index": 0,
+      "name": "NVIDIA H100 80GB HBM3",
+      "total_memory_bytes": 85017493504
+    }
+  ]
+}
+
+[2026-04-30T09:42:30Z] [skip:preflight] uv run --no-sync python scripts/audit_token_spans.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/preflight/token_span_audit.jsonl --summary_path data/mistral24b/preflight/token_span_audit_summary.json --rendered_chat_path data/mistral24b/preflight/rendered_chat_examples.json --max_samples 50
+
+[2026-04-30T09:42:30Z] [skip:model_smoke] uv run --no-sync python scripts/model_load_smoke.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --output_path data/mistral24b/preflight/model_load_smoke.json --max_new_tokens 1
+
+[2026-04-30T09:42:30Z] uv run --no-sync python scripts/audit_token_spans.py --validate_summary data/mistral24b/preflight/token_span_audit_summary.json --expected_model_key mistral_small_24b_instruct_2501 --expected_model_path mistralai/Mistral-Small-24B-Instruct-2501 --expected_input_path data/mistral24b/answer_tokens_llm.jsonl --expected_output_path data/mistral24b/preflight/token_span_audit.jsonl --expected_rendered_chat_path data/mistral24b/preflight/rendered_chat_examples.json
+{
+  "accepted": true,
+  "checks": {
+    "all_rows_ok": true,
+    "audited_id_fingerprint_present": true,
+    "audited_rows_positive": true,
+    "expected_input_path": true,
+    "expected_model_key": true,
+    "expected_model_path": true,
+    "expected_output_path": true,
+    "expected_registered_model_hf_id": true,
+    "expected_registered_model_key": true,
+    "expected_rendered_chat_path": true,
+    "expected_tokenizer_kwargs": true,
+    "model_not_loaded": true,
+    "no_api_required": true,
+    "no_gpu_required": true,
+    "no_missing_answer_regions": true,
+    "schema_version": true,
+    "status_ok": true
+  },
+  "reasons": [],
+  "schema_version": "token_span_audit_summary_validation/v1",
+  "status": "ok"
+}
+
+
+[2026-04-30T09:42:56Z] uv run --no-sync python scripts/model_load_smoke.py --validate_summary data/mistral24b/preflight/model_load_smoke.json --expected_model_key mistral_small_24b_instruct_2501 --expected_model_path mistralai/Mistral-Small-24B-Instruct-2501 --expected_output_path data/mistral24b/preflight/model_load_smoke.json --expected_device_map cuda:0
+{
+  "accepted": true,
+  "checks": {
+    "auto_load_has_hf_device_map": true,
+    "bf16_dtype_loaded": true,
+    "cuda_available": true,
+    "cuda_bf16_supported": true,
+    "device_map_evidence": true,
+    "expected_device_map": true,
+    "expected_model_key": true,
+    "expected_model_path": true,
+    "expected_output_path": true,
+    "expected_registered_model_hf_id": true,
+    "expected_registered_model_key": true,
+    "expected_tokenizer_kwargs": true,
+    "explicit_null_map_loaded_on_cuda0": true,
+    "generation_succeeded": true,
+    "loaded_tensors_on_cuda": true,
+    "model_loaded": true,
+    "no_quantization": true,
+    "nonzero_cuda_allocation": true,
+    "schema_version": true,
+    "summary_status_ok": true,
+    "target_cuda_hardware": true
+  },
+  "effective_device_map": {
+    "": "cuda:0"
+  },
+  "reasons": [],
+  "schema_version": "model_load_smoke_cp1_validation/v1",
+  "status": "ok"
+}
+
+
+[2026-04-30T09:43:20Z] [skip:splits] uv run --no-sync python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/train_qids_llm.json --num_samples 360 --seed 42 --strict
+
+[2026-04-30T09:43:20Z] [skip:splits] uv run --no-sync python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/dev_qids_llm.json --num_samples 100 --seed 43 --exclude_path data/mistral24b/pipeline/train_qids_llm.json --strict
+
+[2026-04-30T09:43:20Z] [skip:splits] uv run --no-sync python scripts/sample_balanced_ids.py --input_path data/mistral24b/answer_tokens_llm.jsonl --output_path data/mistral24b/pipeline/test_qids_llm.json --num_samples 100 --seed 44 --exclude_path data/mistral24b/pipeline/train_qids_llm.json data/mistral24b/pipeline/dev_qids_llm.json --strict
+
+[2026-04-30T09:43:20Z] [skip:activations] uv run --no-sync python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/train_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/train --device_map cuda:0 --locations answer_tokens all_except_answer_tokens
+
+[2026-04-30T09:43:20Z] [skip:activations] uv run --no-sync python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/dev_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/dev --device_map cuda:0 --locations answer_tokens
+
+[2026-04-30T09:43:20Z] [skip:activations] uv run --no-sync python scripts/extract_activations.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --input_path data/mistral24b/answer_tokens_llm.jsonl --train_ids_path data/mistral24b/pipeline/test_qids_llm.json --output_root data/mistral24b/pipeline/activations_llm_canonical/test --device_map cuda:0 --locations answer_tokens
+
+[2026-04-30T09:43:20Z] [skip:classifier] uv run --no-sync python scripts/classifier.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --train_ids data/mistral24b/pipeline/train_qids_llm.json --train_ans_acts data/mistral24b/pipeline/activations_llm_canonical/train/answer_tokens --train_other_acts data/mistral24b/pipeline/activations_llm_canonical/train/all_except_answer_tokens --test_ids data/mistral24b/pipeline/dev_qids_llm.json --test_acts data/mistral24b/pipeline/activations_llm_canonical/dev/answer_tokens --train_mode 3-vs-1 --penalty l1 --solver liblinear --selection_metric auroc --c_values 0.001 0.005 0.01 0.05 0.1 0.5 1.0 --save_model models/mistral24b_classifier_canonical.pkl --metrics_out data/mistral24b/pipeline/classifier_canonical_dev_metrics.json
+
+[2026-04-30T09:43:20Z] [skip:classifier] uv run --no-sync python scripts/classifier.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --load_model models/mistral24b_classifier_canonical.pkl --test_ids data/mistral24b/pipeline/test_qids_llm.json --test_acts data/mistral24b/pipeline/activations_llm_canonical/test/answer_tokens --metrics_out data/mistral24b/pipeline/classifier_canonical_test_metrics.json
+
+[2026-04-30T09:43:20Z] [skip:classifier] uv run --no-sync python scripts/validate_mistral24b_cp23.py --pipeline-dir data/mistral24b/pipeline --activation-root data/mistral24b/pipeline/activations_llm_canonical --model-path mistralai/Mistral-Small-24B-Instruct-2501 --model-key mistral_small_24b_instruct_2501 --classifier-path models/mistral24b_classifier_canonical.pkl
+
+[2026-04-30T09:43:20Z] uv run --no-sync python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark faitheval --prompt_style standard --sample_manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json --alphas 0.0 1.0 3.0 --output_dir data/mistral24b/intervention/faitheval_pilot_smoke/experiment
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading model: mistralai/Mistral-Small-24B-Instruct-2501
+Loading weights:   0%|          | 0/363 [00:00<?, ?it/s]Loading weights:   0%|          | 1/363 [00:03<18:45,  3.11s/it]Loading weights:   1%|          | 2/363 [00:07<23:51,  3.96s/it]Loading weights:   1%|▏         | 5/363 [00:08<07:56,  1.33s/it]Loading weights:   2%|▏         | 6/363 [00:09<07:30,  1.26s/it]Loading weights:   3%|▎         | 10/363 [00:09<03:17,  1.79it/s]Loading weights:   4%|▎         | 13/363 [00:10<02:36,  2.24it/s]Loading weights:   4%|▍         | 14/363 [00:11<02:58,  1.96it/s]Loading weights:   4%|▍         | 15/363 [00:12<03:17,  1.76it/s]Loading weights:   5%|▍         | 18/363 [00:12<02:01,  2.85it/s]Loading weights:   5%|▌         | 19/363 [00:12<01:46,  3.23it/s]Loading weights:   6%|▌         | 22/363 [00:13<01:51,  3.06it/s]Loading weights:   6%|▋         | 23/363 [00:14<02:24,  2.35it/s]Loading weights:   7%|▋         | 24/363 [00:15<02:54,  1.94it/s]Loading weights:   7%|▋         | 27/363 [00:15<01:47,  3.13it/s]Loading weights:   8%|▊         | 28/363 [00:15<01:38,  3.41it/s]Loading weights:   9%|▊         | 31/363 [00:17<01:51,  2.98it/s]Loading weights:   9%|▉         | 32/363 [00:18<02:29,  2.21it/s]Loading weights:   9%|▉         | 33/363 [00:19<03:07,  1.76it/s]Loading weights:  10%|▉         | 36/363 [00:19<01:50,  2.96it/s]Loading weights:  10%|█         | 37/363 [00:19<01:37,  3.33it/s]Loading weights:  11%|█         | 40/363 [00:20<01:45,  3.06it/s]Loading weights:  11%|█▏        | 41/363 [00:22<03:29,  1.54it/s]Loading weights:  12%|█▏        | 45/363 [00:23<01:53,  2.79it/s]Loading weights:  13%|█▎        | 46/363 [00:23<01:42,  3.10it/s]Loading weights:  13%|█▎        | 49/363 [00:24<01:47,  2.93it/s]Loading weights:  14%|█▍        | 50/363 [00:25<02:20,  2.23it/s]Loading weights:  14%|█▍        | 51/363 [00:26<02:53,  1.80it/s]Loading weights:  15%|█▍        | 54/363 [00:26<01:48,  2.85it/s]Loading weights:  15%|█▌        | 55/363 [00:27<01:52,  2.75it/s]Loading weights:  16%|█▌        | 58/363 [00:28<01:53,  2.69it/s]Loading weights:  16%|█▋        | 59/363 [00:29<02:31,  2.00it/s]Loading weights:  17%|█▋        | 60/363 [00:30<03:08,  1.60it/s]Loading weights:  17%|█▋        | 63/363 [00:30<01:50,  2.71it/s]Loading weights:  18%|█▊        | 64/363 [00:31<01:56,  2.58it/s]Loading weights:  18%|█▊        | 67/363 [00:32<01:49,  2.70it/s]Loading weights:  19%|█▊        | 68/363 [00:33<02:19,  2.12it/s]Loading weights:  19%|█▉        | 69/363 [00:34<02:45,  1.78it/s]Loading weights:  20%|█▉        | 72/363 [00:34<01:39,  2.92it/s]Loading weights:  20%|██        | 73/363 [00:34<01:35,  3.04it/s]Loading weights:  21%|██        | 76/363 [00:35<01:43,  2.78it/s]Loading weights:  21%|██        | 77/363 [00:36<02:12,  2.16it/s]Loading weights:  21%|██▏       | 78/363 [00:37<02:36,  1.82it/s]Loading weights:  22%|██▏       | 81/363 [00:37<01:35,  2.95it/s]Loading weights:  23%|██▎       | 82/363 [00:38<01:25,  3.27it/s]Loading weights:  23%|██▎       | 85/363 [00:39<01:27,  3.17it/s]Loading weights:  24%|██▎       | 86/363 [00:40<01:57,  2.35it/s]Loading weights:  24%|██▍       | 87/363 [00:41<02:32,  1.81it/s]Loading weights:  25%|██▍       | 90/363 [00:41<01:33,  2.93it/s]Loading weights:  25%|██▌       | 91/363 [00:41<01:22,  3.29it/s]Loading weights:  26%|██▌       | 94/363 [00:42<01:31,  2.93it/s]Loading weights:  26%|██▌       | 95/363 [00:43<02:03,  2.17it/s]Loading weights:  26%|██▋       | 96/363 [00:44<02:37,  1.69it/s]Loading weights:  27%|██▋       | 99/363 [00:45<01:34,  2.78it/s]Loading weights:  28%|██▊       | 100/363 [00:45<01:30,  2.90it/s]Loading weights:  28%|██▊       | 103/363 [00:46<01:33,  2.78it/s]Loading weights:  29%|██▊       | 104/363 [00:47<02:03,  2.10it/s]Loading weights:  29%|██▉       | 105/363 [00:48<02:35,  1.66it/s]Loading weights:  30%|██▉       | 108/363 [00:48<01:32,  2.74it/s]Loading weights:  30%|███       | 109/363 [00:49<01:21,  3.11it/s]Loading weights:  31%|███       | 112/363 [00:50<01:20,  3.10it/s]Loading weights:  31%|███       | 113/363 [00:50<01:49,  2.29it/s]Loading weights:  31%|███▏      | 114/363 [00:52<02:16,  1.82it/s]Loading weights:  32%|███▏      | 117/363 [00:52<01:21,  3.01it/s]Loading weights:  33%|███▎      | 118/363 [00:52<01:11,  3.43it/s]Loading weights:  33%|███▎      | 121/363 [00:53<01:14,  3.25it/s]Loading weights:  34%|███▎      | 122/363 [00:54<01:38,  2.44it/s]Loading weights:  34%|███▍      | 123/363 [00:55<02:02,  1.97it/s]Loading weights:  35%|███▍      | 126/363 [00:55<01:13,  3.22it/s]Loading weights:  35%|███▍      | 127/363 [00:55<01:13,  3.21it/s]Loading weights:  36%|███▌      | 130/363 [00:56<01:18,  2.97it/s]Loading weights:  36%|███▌      | 131/363 [00:57<01:43,  2.23it/s]Loading weights:  36%|███▋      | 132/363 [00:58<02:07,  1.81it/s]Loading weights:  37%|███▋      | 135/363 [00:58<01:16,  2.98it/s]Loading weights:  37%|███▋      | 136/363 [00:59<01:08,  3.33it/s]Loading weights:  38%|███▊      | 139/363 [01:00<01:11,  3.13it/s]Loading weights:  39%|███▊      | 140/363 [01:01<01:34,  2.36it/s]Loading weights:  39%|███▉      | 141/363 [01:02<02:00,  1.85it/s]Loading weights:  40%|███▉      | 144/363 [01:02<01:21,  2.67it/s]Loading weights:  41%|████      | 148/363 [01:03<01:08,  3.15it/s]Loading weights:  41%|████      | 149/363 [01:04<01:26,  2.49it/s]Loading weights:  41%|████▏     | 150/363 [01:05<01:43,  2.06it/s]Loading weights:  42%|████▏     | 153/363 [01:05<01:07,  3.11it/s]Loading weights:  42%|████▏     | 154/363 [01:05<01:02,  3.36it/s]Loading weights:  43%|████▎     | 157/363 [01:06<01:04,  3.20it/s]Loading weights:  44%|████▎     | 158/363 [01:07<01:25,  2.40it/s]Loading weights:  44%|████▍     | 159/363 [01:08<01:47,  1.90it/s]Loading weights:  45%|████▍     | 162/363 [01:09<01:04,  3.12it/s]Loading weights:  45%|████▍     | 163/363 [01:09<00:58,  3.43it/s]Loading weights:  46%|████▌     | 166/363 [01:10<01:01,  3.18it/s]Loading weights:  46%|████▌     | 167/363 [01:11<01:28,  2.22it/s]Loading weights:  46%|████▋     | 168/363 [01:12<01:49,  1.78it/s]Loading weights:  47%|████▋     | 171/363 [01:12<01:04,  2.97it/s]Loading weights:  47%|████▋     | 172/363 [01:12<01:05,  2.92it/s]Loading weights:  48%|████▊     | 175/363 [01:13<01:02,  3.00it/s]Loading weights:  48%|████▊     | 176/363 [01:14<01:24,  2.20it/s]Loading weights:  49%|████▉     | 177/363 [01:15<01:44,  1.79it/s]Loading weights:  50%|████▉     | 180/363 [01:16<00:59,  3.10it/s]Loading weights:  50%|████▉     | 181/363 [01:16<00:51,  3.51it/s]Loading weights:  51%|█████     | 184/363 [01:17<00:58,  3.05it/s]Loading weights:  51%|█████     | 185/363 [01:18<01:31,  1.95it/s]Loading weights:  51%|█████     | 186/363 [01:19<01:52,  1.57it/s]Loading weights:  52%|█████▏    | 189/363 [01:20<01:06,  2.60it/s]Loading weights:  52%|█████▏    | 190/363 [01:20<01:02,  2.76it/s]Loading weights:  53%|█████▎    | 193/363 [01:21<01:04,  2.64it/s]Loading weights:  53%|█████▎    | 194/363 [01:22<01:26,  1.95it/s]Loading weights:  54%|█████▎    | 195/363 [01:23<01:42,  1.63it/s]Loading weights:  55%|█████▍    | 198/363 [01:24<01:01,  2.68it/s]Loading weights:  55%|█████▍    | 199/363 [01:24<00:58,  2.80it/s]Loading weights:  56%|█████▌    | 202/363 [01:25<00:58,  2.77it/s]Loading weights:  56%|█████▌    | 203/363 [01:26<01:16,  2.08it/s]Loading weights:  56%|█████▌    | 204/363 [01:27<01:35,  1.66it/s]Loading weights:  57%|█████▋    | 207/363 [01:28<01:01,  2.56it/s]Loading weights:  58%|█████▊    | 211/363 [01:29<00:51,  2.95it/s]Loading weights:  58%|█████▊    | 212/363 [01:30<01:04,  2.35it/s]Loading weights:  59%|█████▊    | 213/363 [01:31<01:22,  1.81it/s]Loading weights:  60%|█████▉    | 216/363 [01:31<00:51,  2.84it/s]Loading weights:  60%|█████▉    | 217/363 [01:31<00:45,  3.18it/s]Loading weights:  61%|██████    | 220/363 [01:32<00:50,  2.85it/s]Loading weights:  61%|██████    | 221/363 [01:33<01:08,  2.06it/s]Loading weights:  61%|██████    | 222/363 [01:35<01:28,  1.60it/s]Loading weights:  62%|██████▏   | 225/363 [01:35<00:58,  2.36it/s]Loading weights:  63%|██████▎   | 229/363 [01:36<00:48,  2.76it/s]Loading weights:  63%|██████▎   | 230/363 [01:37<01:00,  2.19it/s]Loading weights:  64%|██████▎   | 231/363 [01:38<01:13,  1.80it/s]Loading weights:  64%|██████▍   | 234/363 [01:39<00:45,  2.84it/s]Loading weights:  65%|██████▍   | 235/363 [01:39<00:40,  3.19it/s]Loading weights:  66%|██████▌   | 238/363 [01:40<00:42,  2.94it/s]Loading weights:  66%|██████▌   | 239/363 [01:41<00:56,  2.18it/s]Loading weights:  66%|██████▌   | 240/363 [01:42<01:11,  1.73it/s]Loading weights:  67%|██████▋   | 243/363 [01:42<00:45,  2.61it/s]Loading weights:  68%|██████▊   | 247/363 [01:44<00:38,  2.99it/s]Loading weights:  68%|██████▊   | 248/363 [01:45<00:50,  2.26it/s]Loading weights:  69%|██████▊   | 249/363 [01:46<01:01,  1.84it/s]Loading weights:  69%|██████▉   | 252/363 [01:46<00:39,  2.82it/s]Loading weights:  70%|██████▉   | 253/363 [01:46<00:37,  2.95it/s]Loading weights:  71%|███████   | 256/363 [01:47<00:37,  2.89it/s]Loading weights:  71%|███████   | 257/363 [01:48<00:49,  2.13it/s]Loading weights:  71%|███████   | 258/363 [01:50<01:02,  1.68it/s]Loading weights:  72%|███████▏  | 261/363 [01:50<00:37,  2.71it/s]Loading weights:  72%|███████▏  | 262/363 [01:50<00:36,  2.81it/s]Loading weights:  73%|███████▎  | 265/363 [01:52<00:39,  2.46it/s]Loading weights:  73%|███████▎  | 266/363 [01:53<00:52,  1.83it/s]Loading weights:  74%|███████▎  | 267/363 [01:54<01:05,  1.47it/s]Loading weights:  74%|███████▍  | 270/363 [01:54<00:39,  2.38it/s]Loading weights:  75%|███████▍  | 271/363 [01:55<00:34,  2.68it/s]Loading weights:  75%|███████▌  | 274/363 [01:56<00:35,  2.53it/s]Loading weights:  76%|███████▌  | 275/363 [01:57<00:46,  1.89it/s]Loading weights:  76%|███████▌  | 276/363 [01:58<00:58,  1.50it/s]Loading weights:  77%|███████▋  | 279/363 [01:58<00:33,  2.51it/s]Loading weights:  77%|███████▋  | 280/363 [01:59<00:30,  2.73it/s]Loading weights:  78%|███████▊  | 283/363 [02:00<00:32,  2.49it/s]Loading weights:  78%|███████▊  | 284/363 [02:01<00:43,  1.80it/s]Loading weights:  79%|███████▊  | 285/363 [02:03<00:53,  1.45it/s]Loading weights:  79%|███████▉  | 288/363 [02:03<00:30,  2.45it/s]Loading weights:  80%|███████▉  | 289/363 [02:03<00:26,  2.78it/s]Loading weights:  80%|████████  | 292/363 [02:04<00:28,  2.53it/s]Loading weights:  81%|████████  | 293/363 [02:05<00:38,  1.83it/s]Loading weights:  81%|████████  | 294/363 [02:07<00:46,  1.48it/s]Loading weights:  82%|████████▏ | 297/363 [02:07<00:26,  2.49it/s]Loading weights:  82%|████████▏ | 298/363 [02:07<00:22,  2.83it/s]Loading weights:  83%|████████▎ | 301/363 [02:08<00:23,  2.60it/s]Loading weights:  83%|████████▎ | 302/363 [02:10<00:32,  1.85it/s]Loading weights:  83%|████████▎ | 303/363 [02:11<00:40,  1.47it/s]Loading weights:  84%|████████▍ | 306/363 [02:11<00:23,  2.45it/s]Loading weights:  85%|████████▍ | 307/363 [02:11<00:20,  2.76it/s]Loading weights:  85%|████████▌ | 310/363 [02:13<00:21,  2.47it/s]Loading weights:  86%|████████▌ | 311/363 [02:14<00:27,  1.87it/s]Loading weights:  86%|████████▌ | 312/363 [02:15<00:35,  1.45it/s]Loading weights:  87%|████████▋ | 315/363 [02:16<00:20,  2.29it/s]Loading weights:  88%|████████▊ | 319/363 [02:17<00:16,  2.60it/s]Loading weights:  88%|████████▊ | 320/363 [02:18<00:21,  2.04it/s]Loading weights:  88%|████████▊ | 321/363 [02:19<00:25,  1.63it/s]Loading weights:  89%|████████▉ | 324/363 [02:19<00:15,  2.53it/s]Loading weights:  90%|████████▉ | 325/363 [02:20<00:14,  2.67it/s]Loading weights:  90%|█████████ | 328/363 [02:21<00:13,  2.54it/s]Loading weights:  91%|█████████ | 329/363 [02:22<00:17,  1.90it/s]Loading weights:  91%|█████████ | 330/363 [02:23<00:21,  1.52it/s]Loading weights:  92%|█████████▏| 333/363 [02:24<00:12,  2.48it/s]Loading weights:  92%|█████████▏| 334/363 [02:24<00:10,  2.78it/s]Loading weights:  93%|█████████▎| 337/363 [02:25<00:08,  3.06it/s]Loading weights:  93%|█████████▎| 338/363 [02:26<00:10,  2.34it/s]Loading weights:  93%|█████████▎| 339/363 [02:26<00:12,  1.98it/s]Loading weights:  94%|█████████▍| 342/363 [02:27<00:06,  3.28it/s]Loading weights:  94%|█████████▍| 343/363 [02:27<00:05,  3.69it/s]Loading weights:  95%|█████████▌| 346/363 [02:28<00:04,  3.66it/s]Loading weights:  96%|█████████▌| 347/363 [02:28<00:05,  2.75it/s]Loading weights:  96%|█████████▌| 348/363 [02:29<00:06,  2.19it/s]Loading weights:  97%|█████████▋| 352/363 [02:29<00:02,  4.27it/s]Loading weights:  98%|█████████▊| 355/363 [02:30<00:01,  4.02it/s]Loading weights:  98%|█████████▊| 356/363 [02:31<00:02,  3.02it/s]Loading weights:  98%|█████████▊| 357/363 [02:32<00:02,  2.46it/s]Loading weights:  99%|█████████▉| 360/363 [02:32<00:00,  3.56it/s]Loading weights: 100%|██████████| 363/363 [02:32<00:00,  2.38it/s]
+Loading classifier: models/mistral24b_classifier_canonical.pkl
+H-Neurons: 10 across 7 layers
+Installed 7 hooks on 10 neurons
+
+Loading benchmark: faitheval
+Generating test split:   0%|          | 0/1000 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1000/1000 [00:00<00:00, 6439.35 examples/s]Generating test split: 100%|██████████| 1000/1000 [00:00<00:00, 5811.81 examples/s]
+Generating train split:   0%|          | 0/1119 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 1119/1119 [00:00<00:00, 66005.12 examples/s]
+Generating test split:   0%|          | 0/1172 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1172/1172 [00:00<00:00, 76702.73 examples/s]
+Generating validation split:   0%|          | 0/299 [00:00<?, ? examples/s]Generating validation split: 100%|██████████| 299/299 [00:00<00:00, 21719.35 examples/s]
+Filtered to 20 samples via manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json
+Loaded 20 samples
+FaithEval prompt style: standard
+Pre-tokenized 20 prompts for alpha sweep
+
+============================================================
+Running α = 0.0
+============================================================
+FaithEval α=0.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[transformers] The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+FaithEval α=0.0:   5%|▌         | 1/20 [00:04<01:18,  4.11s/it][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  10%|█         | 2/20 [00:04<00:33,  1.85s/it][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  15%|█▌        | 3/20 [00:04<00:21,  1.28s/it][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  20%|██        | 4/20 [00:05<00:18,  1.13s/it][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  25%|██▌       | 5/20 [00:06<00:13,  1.09it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  30%|███       | 6/20 [00:07<00:11,  1.17it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  35%|███▌      | 7/20 [00:07<00:09,  1.32it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  40%|████      | 8/20 [00:08<00:07,  1.60it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  45%|████▌     | 9/20 [00:08<00:06,  1.72it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  50%|█████     | 10/20 [00:09<00:05,  1.70it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  55%|█████▌    | 11/20 [00:09<00:04,  2.11it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  60%|██████    | 12/20 [00:09<00:03,  2.41it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  65%|██████▌   | 13/20 [00:09<00:02,  2.67it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  70%|███████   | 14/20 [00:10<00:01,  3.00it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  75%|███████▌  | 15/20 [00:10<00:01,  3.10it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  80%|████████  | 16/20 [00:10<00:01,  2.93it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  85%|████████▌ | 17/20 [00:11<00:01,  2.56it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  90%|█████████ | 18/20 [00:11<00:00,  2.56it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0:  95%|█████████▌| 19/20 [00:12<00:00,  2.36it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=0.0: 100%|██████████| 20/20 [00:12<00:00,  2.20it/s]FaithEval α=0.0: 100%|██████████| 20/20 [00:12<00:00,  1.57it/s]
+
+============================================================
+Running α = 1.0
+============================================================
+FaithEval α=1.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:   5%|▌         | 1/20 [00:00<00:05,  3.71it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  10%|█         | 2/20 [00:00<00:04,  4.13it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  15%|█▌        | 3/20 [00:00<00:04,  3.87it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  20%|██        | 4/20 [00:01<00:04,  3.69it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  25%|██▌       | 5/20 [00:01<00:04,  3.31it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  30%|███       | 6/20 [00:01<00:04,  3.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  35%|███▌      | 7/20 [00:01<00:03,  3.45it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  40%|████      | 8/20 [00:02<00:03,  3.38it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  45%|████▌     | 9/20 [00:02<00:03,  3.24it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  50%|█████     | 10/20 [00:02<00:02,  3.90it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.44it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  60%|██████    | 12/20 [00:03<00:02,  3.12it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  65%|██████▌   | 13/20 [00:03<00:02,  3.43it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  70%|███████   | 14/20 [00:03<00:01,  3.79it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  75%|███████▌  | 15/20 [00:04<00:01,  4.33it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  80%|████████  | 16/20 [00:04<00:00,  4.60it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.42it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  90%|█████████ | 18/20 [00:04<00:00,  4.28it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.20it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=1.0: 100%|██████████| 20/20 [00:05<00:00,  4.19it/s]FaithEval α=1.0: 100%|██████████| 20/20 [00:05<00:00,  3.83it/s]
+
+============================================================
+Running α = 3.0
+============================================================
+FaithEval α=3.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:   5%|▌         | 1/20 [00:00<00:05,  3.72it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  10%|█         | 2/20 [00:00<00:04,  4.15it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  15%|█▌        | 3/20 [00:00<00:04,  3.86it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  20%|██        | 4/20 [00:01<00:04,  3.67it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  25%|██▌       | 5/20 [00:01<00:04,  3.27it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  30%|███       | 6/20 [00:01<00:04,  3.27it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  35%|███▌      | 7/20 [00:02<00:03,  3.42it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  40%|████      | 8/20 [00:02<00:03,  3.34it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  45%|████▌     | 9/20 [00:02<00:03,  3.22it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  50%|█████     | 10/20 [00:02<00:02,  3.89it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.42it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  60%|██████    | 12/20 [00:03<00:02,  3.64it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.85it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  70%|███████   | 14/20 [00:03<00:01,  4.14it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.64it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  80%|████████  | 16/20 [00:04<00:00,  4.84it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.54it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  90%|█████████ | 18/20 [00:04<00:00,  4.37it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.27it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+FaithEval α=3.0: 100%|██████████| 20/20 [00:05<00:00,  4.23it/s]FaithEval α=3.0: 100%|██████████| 20/20 [00:05<00:00,  3.93it/s]
+
+============================================================
+Results Summary
+============================================================
+  α=0.0: 75.0% compliance (15/20)
+  α=1.0: 65.0% compliance (13/20)
+  α=3.0: 65.0% compliance (13/20)
+
+Saved results to data/mistral24b/intervention/faitheval_pilot_smoke/experiment/results.20260430_094341.json
+
+[2026-04-30T09:46:57Z] uv run --no-sync python -m scripts.lib.pipeline check-stage --output-dir data/mistral24b/intervention/faitheval_pilot_smoke/experiment --manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json --alphas 0.0 1.0 3.0
+
+[2026-04-30T09:46:57Z] uv run --no-sync python scripts/run_negative_control.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark faitheval --prompt_style standard --sample_manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json --quick --output_base data/mistral24b/intervention/faitheval_pilot_smoke/control --h_neuron_baseline data/mistral24b/intervention/faitheval_pilot_smoke/experiment
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading classifier for neuron sampling...
+  1310700 zero-weight neurons available for sampling
+  classifier geometry: 40 layers x 32768 FFN neurons (registered_or_hf_config); H-neurons=10
+  seed_0_unconstrained: 10 neurons across 10 layers
+  seed_1_unconstrained: 10 neurons across 7 layers
+  seed_2_unconstrained: 10 neurons across 9 layers
+  seed_0_layer_matched: 10 neurons across 7 layers
+
+Loading model: mistralai/Mistral-Small-24B-Instruct-2501
+Loading weights:   0%|          | 0/363 [00:00<?, ?it/s]Loading weights:   0%|          | 1/363 [00:00<01:01,  5.88it/s]Loading weights:   1%|          | 2/363 [00:00<01:06,  5.42it/s]Loading weights:   2%|▏         | 6/363 [00:00<00:25, 14.21it/s]Loading weights:   4%|▍         | 14/363 [00:00<00:11, 31.25it/s]Loading weights:   6%|▌         | 22/363 [00:00<00:07, 43.45it/s]Loading weights:   7%|▋         | 27/363 [00:00<00:07, 44.83it/s]Loading weights:   9%|▉         | 32/363 [00:00<00:07, 45.92it/s]Loading weights:  11%|█         | 40/363 [00:01<00:05, 54.08it/s]Loading weights:  13%|█▎        | 46/363 [00:01<00:05, 54.38it/s]Loading weights:  14%|█▍        | 52/363 [00:01<00:06, 49.60it/s]Loading weights:  16%|█▋        | 59/363 [00:01<00:05, 53.53it/s]Loading weights:  18%|█▊        | 67/363 [00:01<00:05, 58.97it/s]Loading weights:  20%|██        | 74/363 [00:01<00:04, 60.36it/s]Loading weights:  22%|██▏       | 81/363 [00:01<00:05, 55.61it/s]Loading weights:  24%|██▍       | 87/363 [00:01<00:05, 50.67it/s]Loading weights:  26%|██▌       | 95/363 [00:02<00:04, 56.78it/s]Loading weights:  28%|██▊       | 103/363 [00:02<00:04, 61.46it/s]Loading weights:  30%|███       | 110/363 [00:02<00:04, 61.83it/s]Loading weights:  32%|███▏      | 117/363 [00:02<00:04, 55.71it/s]Loading weights:  34%|███▍      | 123/363 [00:02<00:04, 50.28it/s]Loading weights:  36%|███▌      | 131/363 [00:02<00:04, 56.33it/s]Loading weights:  38%|███▊      | 139/363 [00:02<00:03, 60.38it/s]Loading weights:  40%|████      | 146/363 [00:02<00:03, 61.01it/s]Loading weights:  42%|████▏     | 153/363 [00:03<00:03, 56.09it/s]Loading weights:  44%|████▍     | 159/363 [00:03<00:03, 51.05it/s]Loading weights:  46%|████▌     | 167/363 [00:03<00:03, 56.99it/s]Loading weights:  48%|████▊     | 175/363 [00:03<00:03, 61.53it/s]Loading weights:  50%|█████     | 182/363 [00:03<00:02, 62.00it/s]Loading weights:  52%|█████▏    | 189/363 [00:03<00:03, 56.85it/s]Loading weights:  54%|█████▎    | 195/363 [00:03<00:03, 51.66it/s]Loading weights:  56%|█████▌    | 203/363 [00:03<00:02, 57.10it/s]Loading weights:  58%|█████▊    | 211/363 [00:04<00:02, 61.64it/s]Loading weights:  60%|██████    | 218/363 [00:04<00:02, 62.62it/s]Loading weights:  62%|██████▏   | 225/363 [00:04<00:02, 57.15it/s]Loading weights:  64%|██████▎   | 231/363 [00:04<00:02, 51.47it/s]Loading weights:  66%|██████▌   | 239/363 [00:04<00:02, 57.70it/s]Loading weights:  68%|██████▊   | 247/363 [00:04<00:01, 62.45it/s]Loading weights:  70%|██████▉   | 254/363 [00:04<00:01, 62.72it/s]Loading weights:  72%|███████▏  | 261/363 [00:04<00:01, 58.30it/s]Loading weights:  74%|███████▎  | 267/363 [00:05<00:01, 53.02it/s]Loading weights:  76%|███████▌  | 275/363 [00:05<00:01, 58.71it/s]Loading weights:  78%|███████▊  | 283/363 [00:05<00:01, 63.00it/s]Loading weights:  80%|███████▉  | 290/363 [00:05<00:01, 63.03it/s]Loading weights:  82%|████████▏ | 297/363 [00:05<00:01, 56.75it/s]Loading weights:  83%|████████▎ | 303/363 [00:05<00:01, 52.52it/s]Loading weights:  86%|████████▌ | 311/363 [00:05<00:00, 58.57it/s]Loading weights:  88%|████████▊ | 319/363 [00:05<00:00, 63.00it/s]Loading weights:  90%|████████▉ | 326/363 [00:05<00:00, 63.28it/s]Loading weights:  92%|█████████▏| 333/363 [00:06<00:00, 57.83it/s]Loading weights:  93%|█████████▎| 339/363 [00:06<00:00, 52.01it/s]Loading weights:  96%|█████████▌| 347/363 [00:06<00:00, 58.59it/s]Loading weights:  98%|█████████▊| 355/363 [00:06<00:00, 63.13it/s]Loading weights: 100%|█████████▉| 362/363 [00:06<00:00, 63.09it/s]Loading weights: 100%|██████████| 363/363 [00:06<00:00, 55.01it/s]
+Loading benchmark: faitheval
+  Filtered to 20 samples via manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json
+  20 samples
+
+[seed_0_unconstrained] Installed 10 hooks on 10 neurons
+[seed_0_unconstrained] α=0.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[transformers] The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[seed_0_unconstrained] α=0.0:   5%|▌         | 1/20 [00:00<00:18,  1.05it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  10%|█         | 2/20 [00:01<00:09,  1.84it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  15%|█▌        | 3/20 [00:01<00:09,  1.78it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  20%|██        | 4/20 [00:02<00:09,  1.73it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  25%|██▌       | 5/20 [00:02<00:08,  1.78it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  30%|███       | 6/20 [00:03<00:08,  1.72it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  35%|███▌      | 7/20 [00:04<00:07,  1.74it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  40%|████      | 8/20 [00:04<00:06,  1.99it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  45%|████▌     | 9/20 [00:04<00:05,  2.02it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  50%|█████     | 10/20 [00:05<00:04,  2.31it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  55%|█████▌    | 11/20 [00:05<00:03,  2.71it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  60%|██████    | 12/20 [00:06<00:03,  2.23it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  65%|██████▌   | 13/20 [00:06<00:02,  2.50it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  70%|███████   | 14/20 [00:06<00:02,  2.87it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  75%|███████▌  | 15/20 [00:06<00:01,  3.13it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  80%|████████  | 16/20 [00:07<00:01,  2.93it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  85%|████████▌ | 17/20 [00:07<00:01,  2.56it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  90%|█████████ | 18/20 [00:08<00:00,  2.55it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0:  95%|█████████▌| 19/20 [00:08<00:00,  2.37it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=0.0: 100%|██████████| 20/20 [00:09<00:00,  2.25it/s][seed_0_unconstrained] α=0.0: 100%|██████████| 20/20 [00:09<00:00,  2.19it/s]
+  α=0.0: 65.0% compliance (13/20), 0 parse failures
+[seed_0_unconstrained] α=1.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:   5%|▌         | 1/20 [00:00<00:05,  3.74it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  10%|█         | 2/20 [00:00<00:04,  4.14it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  15%|█▌        | 3/20 [00:00<00:04,  3.86it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  20%|██        | 4/20 [00:01<00:04,  3.68it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  25%|██▌       | 5/20 [00:01<00:04,  3.29it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  30%|███       | 6/20 [00:01<00:04,  3.28it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  35%|███▌      | 7/20 [00:01<00:03,  3.43it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  40%|████      | 8/20 [00:02<00:03,  3.36it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  45%|████▌     | 9/20 [00:02<00:03,  3.22it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  50%|█████     | 10/20 [00:02<00:02,  3.89it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.41it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  60%|██████    | 12/20 [00:03<00:02,  3.66it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.86it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  70%|███████   | 14/20 [00:03<00:01,  4.15it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.65it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  80%|████████  | 16/20 [00:04<00:00,  4.84it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.55it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  90%|█████████ | 18/20 [00:04<00:00,  4.37it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.32it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=1.0: 100%|██████████| 20/20 [00:05<00:00,  4.27it/s][seed_0_unconstrained] α=1.0: 100%|██████████| 20/20 [00:05<00:00,  3.95it/s]
+  α=1.0: 65.0% compliance (13/20), 0 parse failures
+[seed_0_unconstrained] α=3.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:   5%|▌         | 1/20 [00:00<00:05,  3.64it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  10%|█         | 2/20 [00:00<00:04,  4.07it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  15%|█▌        | 3/20 [00:00<00:04,  3.83it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  20%|██        | 4/20 [00:01<00:04,  3.66it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  25%|██▌       | 5/20 [00:01<00:04,  3.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  30%|███       | 6/20 [00:01<00:04,  3.28it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  35%|███▌      | 7/20 [00:02<00:03,  3.42it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  40%|████      | 8/20 [00:02<00:03,  3.34it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  45%|████▌     | 9/20 [00:02<00:03,  3.21it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  50%|█████     | 10/20 [00:02<00:02,  3.87it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.40it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  60%|██████    | 12/20 [00:03<00:02,  3.65it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.87it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  70%|███████   | 14/20 [00:03<00:01,  4.12it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.61it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  80%|████████  | 16/20 [00:04<00:00,  4.81it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.53it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  90%|█████████ | 18/20 [00:04<00:00,  4.36it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.29it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_unconstrained] α=3.0: 100%|██████████| 20/20 [00:05<00:00,  4.20it/s][seed_0_unconstrained] α=3.0: 100%|██████████| 20/20 [00:05<00:00,  3.92it/s]
+  α=3.0: 65.0% compliance (13/20), 0 parse failures
+
+[seed_1_unconstrained] Installed 7 hooks on 10 neurons
+[seed_1_unconstrained] α=0.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:   5%|▌         | 1/20 [00:00<00:05,  3.71it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  10%|█         | 2/20 [00:00<00:04,  4.14it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  15%|█▌        | 3/20 [00:00<00:04,  3.86it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  20%|██        | 4/20 [00:01<00:04,  3.66it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  25%|██▌       | 5/20 [00:01<00:04,  3.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  30%|███       | 6/20 [00:01<00:04,  3.29it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  35%|███▌      | 7/20 [00:01<00:03,  3.43it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  40%|████      | 8/20 [00:02<00:03,  3.35it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  45%|████▌     | 9/20 [00:02<00:03,  3.22it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  50%|█████     | 10/20 [00:02<00:02,  3.88it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.40it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  60%|██████    | 12/20 [00:03<00:02,  3.64it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.85it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  70%|███████   | 14/20 [00:03<00:01,  4.12it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.63it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  80%|████████  | 16/20 [00:04<00:00,  4.82it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.54it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  90%|█████████ | 18/20 [00:04<00:00,  4.36it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=0.0: 100%|██████████| 20/20 [00:05<00:00,  4.22it/s][seed_1_unconstrained] α=0.0: 100%|██████████| 20/20 [00:05<00:00,  3.93it/s]
+  α=0.0: 65.0% compliance (13/20), 0 parse failures
+[seed_1_unconstrained] α=1.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:   5%|▌         | 1/20 [00:00<00:05,  3.72it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  10%|█         | 2/20 [00:00<00:04,  4.11it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  15%|█▌        | 3/20 [00:00<00:04,  3.86it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  20%|██        | 4/20 [00:01<00:04,  3.68it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  25%|██▌       | 5/20 [00:01<00:04,  3.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  30%|███       | 6/20 [00:01<00:04,  3.28it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  35%|███▌      | 7/20 [00:01<00:03,  3.43it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  40%|████      | 8/20 [00:02<00:03,  3.36it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  45%|████▌     | 9/20 [00:02<00:03,  3.22it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  50%|█████     | 10/20 [00:02<00:02,  3.90it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.43it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  60%|██████    | 12/20 [00:03<00:02,  3.67it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.87it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  70%|███████   | 14/20 [00:03<00:01,  4.15it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.64it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  80%|████████  | 16/20 [00:04<00:00,  4.83it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.54it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  90%|█████████ | 18/20 [00:04<00:00,  4.34it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.27it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=1.0: 100%|██████████| 20/20 [00:05<00:00,  4.22it/s][seed_1_unconstrained] α=1.0: 100%|██████████| 20/20 [00:05<00:00,  3.94it/s]
+  α=1.0: 65.0% compliance (13/20), 0 parse failures
+[seed_1_unconstrained] α=3.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:   5%|▌         | 1/20 [00:00<00:05,  3.70it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  10%|█         | 2/20 [00:00<00:04,  4.07it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  15%|█▌        | 3/20 [00:00<00:04,  3.82it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  20%|██        | 4/20 [00:01<00:04,  3.65it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  25%|██▌       | 5/20 [00:01<00:04,  3.29it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  30%|███       | 6/20 [00:01<00:04,  3.28it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  35%|███▌      | 7/20 [00:02<00:03,  3.41it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  40%|████      | 8/20 [00:02<00:03,  3.34it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  45%|████▌     | 9/20 [00:02<00:03,  3.19it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  50%|█████     | 10/20 [00:02<00:02,  3.86it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.38it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  60%|██████    | 12/20 [00:03<00:02,  3.63it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.84it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  70%|███████   | 14/20 [00:03<00:01,  4.11it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.60it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  80%|████████  | 16/20 [00:04<00:00,  4.79it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.49it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  90%|█████████ | 18/20 [00:04<00:00,  4.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.25it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_1_unconstrained] α=3.0: 100%|██████████| 20/20 [00:05<00:00,  4.18it/s][seed_1_unconstrained] α=3.0: 100%|██████████| 20/20 [00:05<00:00,  3.91it/s]
+  α=3.0: 65.0% compliance (13/20), 0 parse failures
+
+[seed_2_unconstrained] Installed 9 hooks on 10 neurons
+[seed_2_unconstrained] α=0.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:   5%|▌         | 1/20 [00:00<00:05,  3.58it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  10%|█         | 2/20 [00:00<00:04,  4.07it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  15%|█▌        | 3/20 [00:00<00:04,  3.83it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  20%|██        | 4/20 [00:01<00:04,  3.62it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  25%|██▌       | 5/20 [00:01<00:04,  3.26it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  30%|███       | 6/20 [00:01<00:04,  3.25it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  35%|███▌      | 7/20 [00:02<00:03,  3.41it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  40%|████      | 8/20 [00:02<00:03,  3.32it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  45%|████▌     | 9/20 [00:02<00:03,  3.17it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  50%|█████     | 10/20 [00:02<00:02,  3.83it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.33it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  60%|██████    | 12/20 [00:03<00:02,  3.62it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.83it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  70%|███████   | 14/20 [00:03<00:01,  4.11it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.60it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  80%|████████  | 16/20 [00:04<00:00,  4.75it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.47it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  90%|█████████ | 18/20 [00:04<00:00,  4.28it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.23it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=0.0: 100%|██████████| 20/20 [00:05<00:00,  4.20it/s][seed_2_unconstrained] α=0.0: 100%|██████████| 20/20 [00:05<00:00,  3.89it/s]
+  α=0.0: 65.0% compliance (13/20), 0 parse failures
+[seed_2_unconstrained] α=1.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:   5%|▌         | 1/20 [00:00<00:05,  3.69it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  10%|█         | 2/20 [00:00<00:04,  4.11it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  15%|█▌        | 3/20 [00:00<00:04,  3.83it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  20%|██        | 4/20 [00:01<00:04,  3.65it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  25%|██▌       | 5/20 [00:01<00:04,  3.15it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  30%|███       | 6/20 [00:01<00:04,  3.18it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  35%|███▌      | 7/20 [00:02<00:03,  3.35it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  40%|████      | 8/20 [00:02<00:03,  3.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  45%|████▌     | 9/20 [00:02<00:03,  3.18it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  50%|█████     | 10/20 [00:02<00:02,  3.82it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.36it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  60%|██████    | 12/20 [00:03<00:02,  3.61it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.83it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  70%|███████   | 14/20 [00:03<00:01,  4.13it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.62it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  80%|████████  | 16/20 [00:04<00:00,  4.80it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.46it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  90%|█████████ | 18/20 [00:04<00:00,  4.32it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.26it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=1.0: 100%|██████████| 20/20 [00:05<00:00,  4.20it/s][seed_2_unconstrained] α=1.0: 100%|██████████| 20/20 [00:05<00:00,  3.89it/s]
+  α=1.0: 65.0% compliance (13/20), 0 parse failures
+[seed_2_unconstrained] α=3.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:   5%|▌         | 1/20 [00:00<00:05,  3.67it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  10%|█         | 2/20 [00:00<00:04,  4.12it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  15%|█▌        | 3/20 [00:00<00:04,  3.61it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  20%|██        | 4/20 [00:01<00:04,  3.52it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  25%|██▌       | 5/20 [00:01<00:04,  3.21it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  30%|███       | 6/20 [00:01<00:04,  3.23it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  35%|███▌      | 7/20 [00:02<00:03,  3.39it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  40%|████      | 8/20 [00:02<00:03,  3.31it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  45%|████▌     | 9/20 [00:02<00:03,  3.18it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  50%|█████     | 10/20 [00:02<00:02,  3.84it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.35it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  60%|██████    | 12/20 [00:03<00:02,  3.58it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.80it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  70%|███████   | 14/20 [00:03<00:01,  4.08it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.57it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  80%|████████  | 16/20 [00:04<00:00,  4.77it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.51it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  90%|█████████ | 18/20 [00:04<00:00,  4.34it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.27it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_2_unconstrained] α=3.0: 100%|██████████| 20/20 [00:05<00:00,  4.19it/s][seed_2_unconstrained] α=3.0: 100%|██████████| 20/20 [00:05<00:00,  3.88it/s]
+  α=3.0: 65.0% compliance (13/20), 0 parse failures
+
+[seed_0_layer_matched] Installed 7 hooks on 10 neurons
+[seed_0_layer_matched] α=0.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:   5%|▌         | 1/20 [00:00<00:05,  3.68it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  10%|█         | 2/20 [00:00<00:04,  4.12it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  15%|█▌        | 3/20 [00:00<00:04,  3.83it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  20%|██        | 4/20 [00:01<00:04,  3.64it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  25%|██▌       | 5/20 [00:01<00:04,  3.23it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  30%|███       | 6/20 [00:01<00:04,  3.23it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  35%|███▌      | 7/20 [00:02<00:03,  3.39it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  40%|████      | 8/20 [00:02<00:03,  3.32it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  45%|████▌     | 9/20 [00:02<00:03,  3.19it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  50%|█████     | 10/20 [00:02<00:02,  3.81it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.33it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  60%|██████    | 12/20 [00:03<00:02,  3.59it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.81it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  70%|███████   | 14/20 [00:03<00:01,  4.11it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.60it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  80%|████████  | 16/20 [00:04<00:00,  4.79it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.50it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  90%|█████████ | 18/20 [00:04<00:00,  4.33it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.29it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=0.0: 100%|██████████| 20/20 [00:05<00:00,  4.21it/s][seed_0_layer_matched] α=0.0: 100%|██████████| 20/20 [00:05<00:00,  3.90it/s]
+  α=0.0: 65.0% compliance (13/20), 0 parse failures
+[seed_0_layer_matched] α=1.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:   5%|▌         | 1/20 [00:00<00:05,  3.31it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  10%|█         | 2/20 [00:00<00:04,  3.91it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  15%|█▌        | 3/20 [00:00<00:04,  3.76it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  20%|██        | 4/20 [00:01<00:04,  3.62it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  25%|██▌       | 5/20 [00:01<00:04,  3.27it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  30%|███       | 6/20 [00:01<00:04,  3.27it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  35%|███▌      | 7/20 [00:02<00:03,  3.42it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  40%|████      | 8/20 [00:02<00:03,  3.34it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  45%|████▌     | 9/20 [00:02<00:03,  3.19it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  50%|█████     | 10/20 [00:02<00:02,  3.76it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  60%|██████    | 12/20 [00:03<00:02,  3.60it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.82it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  70%|███████   | 14/20 [00:03<00:01,  3.98it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.49it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  80%|████████  | 16/20 [00:04<00:00,  4.69it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.46it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  90%|█████████ | 18/20 [00:04<00:00,  4.31it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.26it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=1.0: 100%|██████████| 20/20 [00:05<00:00,  4.21it/s][seed_0_layer_matched] α=1.0: 100%|██████████| 20/20 [00:05<00:00,  3.87it/s]
+  α=1.0: 65.0% compliance (13/20), 0 parse failures
+[seed_0_layer_matched] α=3.0:   0%|          | 0/20 [00:00<?, ?it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:   5%|▌         | 1/20 [00:00<00:05,  3.71it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  10%|█         | 2/20 [00:00<00:04,  4.14it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  15%|█▌        | 3/20 [00:00<00:04,  3.86it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  20%|██        | 4/20 [00:01<00:04,  3.67it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  25%|██▌       | 5/20 [00:01<00:04,  3.30it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  30%|███       | 6/20 [00:01<00:04,  3.28it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  35%|███▌      | 7/20 [00:02<00:03,  3.39it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  40%|████      | 8/20 [00:02<00:03,  3.33it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  45%|████▌     | 9/20 [00:02<00:03,  3.20it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  50%|█████     | 10/20 [00:02<00:02,  3.87it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  55%|█████▌    | 11/20 [00:02<00:02,  4.40it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  60%|██████    | 12/20 [00:03<00:02,  3.64it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  65%|██████▌   | 13/20 [00:03<00:01,  3.85it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  70%|███████   | 14/20 [00:03<00:01,  4.14it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  75%|███████▌  | 15/20 [00:03<00:01,  4.63it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  80%|████████  | 16/20 [00:04<00:00,  4.80it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  85%|████████▌ | 17/20 [00:04<00:00,  4.52it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  90%|█████████ | 18/20 [00:04<00:00,  4.34it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0:  95%|█████████▌| 19/20 [00:04<00:00,  4.29it/s][transformers] The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+[transformers] Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
+[seed_0_layer_matched] α=3.0: 100%|██████████| 20/20 [00:05<00:00,  4.24it/s][seed_0_layer_matched] α=3.0: 100%|██████████| 20/20 [00:05<00:00,  3.93it/s]
+/workspace/02-h-neurons/scripts/run_negative_control.py:974: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  rho = stats.spearmanr(alpha_arr, r_arr).statistic
+  α=3.0: 65.0% compliance (13/20), 0 parse failures
+
+============================================================
+Building comparison summary...
+============================================================
+Saved summary to data/mistral24b/intervention/faitheval_pilot_smoke/control/comparison_summary.json
+
+--- KEY FINDINGS ---
+H-neurons: slope=-2.86%/α, ρ=-0.866
+unconstrained_random: mean_slope=0.0%/α, mean_ρ=nan, any_monotonic=True
+layer_matched_random: mean_slope=0.0%/α, mean_ρ=nan, any_monotonic=True
+α=3 compliance: H=65.0%, random mean=65.0%, random 95% interval=[65.00, 65.00]
+Slope: H=-2.86pp/α, random mean=0.0pp/α, random 95% interval=[0.00, -0.00]
+Saved plot to data/mistral24b/intervention/faitheval_pilot_smoke/control/negative_control_comparison.png
+[2026-04-30T09:48:43Z] verified output file: data/mistral24b/intervention/faitheval_pilot_smoke/control/control_run_config.json
+[2026-04-30T09:48:43Z] verified output file: data/mistral24b/intervention/faitheval_pilot_smoke/control/comparison_summary.json
+
+[2026-04-30T09:48:43Z] uv run --no-sync python -m scripts.lib.pipeline check-stage --output-dir data/mistral24b/intervention/faitheval_pilot_smoke/control/seed_0_unconstrained --manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json --alphas 0.0 1.0 3.0
+
+[2026-04-30T09:48:43Z] uv run --no-sync python -m scripts.lib.pipeline check-stage --output-dir data/mistral24b/intervention/faitheval_pilot_smoke/control/seed_1_unconstrained --manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json --alphas 0.0 1.0 3.0
+
+[2026-04-30T09:48:43Z] uv run --no-sync python -m scripts.lib.pipeline check-stage --output-dir data/mistral24b/intervention/faitheval_pilot_smoke/control/seed_2_unconstrained --manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json --alphas 0.0 1.0 3.0
+
+[2026-04-30T09:48:44Z] uv run --no-sync python -m scripts.lib.pipeline check-stage --output-dir data/mistral24b/intervention/faitheval_pilot_smoke/control/seed_0_layer_matched --manifest data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json --alphas 0.0 1.0 3.0
+
+[2026-04-30T09:48:44Z] [skip:faitheval] uv run --no-sync python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark faitheval --prompt_style standard --sample_manifest data/manifests/faitheval_seed42_n200_mistral24b.lock.json --alphas 0.0 0.5 1.0 1.5 2.0 2.5 3.0 --output_dir data/mistral24b/intervention/faitheval/experiment
+
+[2026-04-30T09:48:44Z] [skip:faitheval_controls] uv run --no-sync python scripts/run_negative_control.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark faitheval --prompt_style standard --sample_manifest data/manifests/faitheval_seed42_n200_mistral24b.lock.json --output_base data/mistral24b/intervention/faitheval/control --h_neuron_baseline data/mistral24b/intervention/faitheval/experiment
+
+[2026-04-30T09:48:44Z] [skip:falseqa] uv run --no-sync python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark falseqa --alphas 0.0 1.0 3.0 --max_samples 100 --output_dir data/mistral24b/intervention/falseqa/experiment
+
+[2026-04-30T09:48:44Z] [skip:falseqa_controls] uv run --no-sync python scripts/run_negative_control.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --classifier_path models/mistral24b_classifier_canonical.pkl --benchmark falseqa --quick --max_samples 100 --output_base data/mistral24b/intervention/falseqa/control --h_neuron_baseline data/mistral24b/intervention/falseqa/experiment
+[2026-04-30T09:48:44Z] Mistral 24B replication wrapper completed.

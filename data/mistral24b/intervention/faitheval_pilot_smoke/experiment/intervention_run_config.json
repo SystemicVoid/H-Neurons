@@ -1,0 +1,49 @@
+{
+  "benchmark": "faitheval",
+  "benchmark_config": {
+    "prompt_style": "standard"
+  },
+  "classifier": {
+    "content_sha256": "597435a84b19e68151f3f6903fd5ff1f12c61647440b07392dc34fdb8bea919d",
+    "path": "models/mistral24b_classifier_canonical.pkl"
+  },
+  "comparability_class": "claimable",
+  "generation_fingerprint": {
+    "id": "204c1111e25e6866",
+    "spec": {
+      "intervention_mode": "neuron",
+      "iti_decode_scope": null,
+      "jailbreak_generation": null,
+      "run_profile": "canonical"
+    }
+  },
+  "intervention": {
+    "mode": "neuron"
+  },
+  "model": {
+    "key": "mistral_small_24b_instruct_2501",
+    "path": "mistralai/Mistral-Small-24B-Instruct-2501"
+  },
+  "run_profile": "canonical",
+  "sample_selection": {
+    "max_samples": null,
+    "sample_manifest": {
+      "content_sha256": "fc53a9ba575320fb0b0732861f324c2c3c359b9020bcddb43e83e51c2c2e082b",
+      "fingerprint": "0fba68ed366d4061",
+      "lock_context": "mistral24b_claim_stage",
+      "n_ids": 20,
+      "path": "data/manifests/faitheval_iti_calibration_ids_seed42_n20_mistral24b.lock.json",
+      "schema_version": "sample_manifest/v2",
+      "source_path": "data/manifests/faitheval_iti_calibration_ids_seed42_n20.json",
+      "source_sha256": "acc62018c2ab3ab91c926dcd64ea2ec86d45d13b1a568ab8a12922966b4a6191"
+    }
+  },
+  "schedule": {
+    "alphas": [
+      0.0,
+      1.0,
+      3.0
+    ]
+  },
+  "schema_version": "intervention_run_config/v1"
+}

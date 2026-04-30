@@ -1,0 +1,10 @@
+Thu Apr 30 09:42:29 UTC 2026
+2bededd442f766709c8bfa2c17e48443608741f6
+?? data/mistral24b/pipeline/environment_20260430T094208Z.txt
+uv 0.11.8 (x86_64-unknown-linux-gnu)
+Python 3.11.10
+torch==2.11.0
+transformers==5.7.0
+accelerate==1.13.0
+datasets==4.8.5
+scikit-learn==1.8.0
