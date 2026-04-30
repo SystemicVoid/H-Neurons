@@ -9,7 +9,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from select_intervention_aware_c import select_intervention_aware_c  # noqa: E402
+from select_intervention_aware_c import (  # noqa: E402
+    SCHEMA_VERSION,
+    select_intervention_aware_c,
+)
 
 
 def _sha256(path: Path) -> str:
@@ -101,11 +104,14 @@ def test_selector_computes_coupled_score_and_copies_winner(tmp_path: Path) -> No
         0.1: _write_triviaqa_summary(tmp_path, 0.1, 0.30),
     }
 
+    summary_path = tmp_path / "selection_summary.json"
+    selected_model_path = tmp_path / "selected.pkl"
+
     summary = select_intervention_aware_c(
         classifier_metrics_path=metrics_path,
         triviaqa_results=triviaqa_results,
-        output_summary_path=tmp_path / "selection_summary.json",
-        selected_model_out=tmp_path / "selected.pkl",
+        output_summary_path=summary_path,
+        selected_model_out=selected_model_path,
     )
 
     selected = summary["selected"]
@@ -119,6 +125,21 @@ def test_selector_computes_coupled_score_and_copies_winner(tmp_path: Path) -> No
         Path(selected["selected_model_path"]).read_bytes()
         == Path(selected["candidate_model_path"]).read_bytes()
     )
+
+    provenance_paths = sorted(tmp_path.glob("selection_summary.json.provenance.*.json"))
+    assert len(provenance_paths) == 1
+    provenance = json.loads(provenance_paths[0].read_text(encoding="utf-8"))
+    assert provenance["status"] == "completed"
+    assert provenance["schema_version"] == "run_provenance/v1"
+    assert provenance["selection_schema_version"] == SCHEMA_VERSION
+    assert provenance["selected_C"] == selected["C"]
+    assert provenance["selected_model_sha256"] == _sha256(selected_model_path)
+    assert set(provenance["output_targets"]) == {
+        str(summary_path.resolve()),
+        str(selected_model_path.resolve()),
+    }
+    if active_run_lock_path := provenance.get("active_run_lock_path"):
+        assert not Path(active_run_lock_path).exists()
 
 
 def test_selector_tie_break_order_is_deterministic(tmp_path: Path) -> None:

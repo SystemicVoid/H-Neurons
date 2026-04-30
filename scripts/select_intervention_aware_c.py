@@ -8,6 +8,14 @@ import shutil
 from pathlib import Path
 from typing import Any, Mapping
 
+from utils import (
+    finish_run_provenance,
+    json_dumps,
+    provenance_error_message,
+    provenance_status_for_exception,
+    start_run_provenance,
+)
+
 
 SCHEMA_VERSION = "intervention_aware_c_selection/v1"
 SELECTION_SCORE_FORMULA = (
@@ -320,30 +328,62 @@ def select_intervention_aware_c(
     winner = choose_winner(rows)
 
     source_model = Path(str(winner["candidate_model_path"]))
-    selected_model_out.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source_model, selected_model_out)
-    selected_model_hash = file_sha256(selected_model_out)
+    provenance_handle = start_run_provenance(
+        {
+            "classifier_metrics": classifier_metrics_path,
+            "triviaqa_result": {
+                f"{c_value:g}": path for c_value, path in triviaqa_results.items()
+            },
+            "output_summary": output_summary_path,
+            "selected_model_out": selected_model_out,
+        },
+        primary_target=output_summary_path,
+        output_targets=[output_summary_path, selected_model_out],
+        extra={
+            "selection_schema_version": SCHEMA_VERSION,
+            "selection_score_formula": SELECTION_SCORE_FORMULA,
+            "tie_breakers": TIE_BREAKERS,
+        },
+    )
+    provenance_status = "completed"
+    provenance_extra: dict[str, Any] = {}
+    try:
+        selected_model_out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_model, selected_model_out)
+        selected_model_hash = file_sha256(selected_model_out)
 
-    selected = {
-        **winner,
-        "selected_model_path": str(selected_model_out),
-        "selected_model_sha256": selected_model_hash,
-    }
-    summary = {
-        "schema_version": SCHEMA_VERSION,
-        "classifier_metrics_path": str(classifier_metrics_path),
-        "selection_score_formula": SELECTION_SCORE_FORMULA,
-        "tie_breakers": TIE_BREAKERS,
-        "selected": selected,
-        "candidates": sorted(rows, key=lambda row: float(row["C"])),
-    }
+        selected = {
+            **winner,
+            "selected_model_path": str(selected_model_out),
+            "selected_model_sha256": selected_model_hash,
+        }
+        summary = {
+            "schema_version": SCHEMA_VERSION,
+            "classifier_metrics_path": str(classifier_metrics_path),
+            "selection_score_formula": SELECTION_SCORE_FORMULA,
+            "tie_breakers": TIE_BREAKERS,
+            "selected": selected,
+            "candidates": sorted(rows, key=lambda row: float(row["C"])),
+        }
 
-    output_summary_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_summary_path.open("w", encoding="utf-8") as handle:
-        json.dump(summary, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+        output_summary_path.parent.mkdir(parents=True, exist_ok=True)
+        output_summary_path.write_text(json_dumps(summary), encoding="utf-8")
 
-    return summary
+        provenance_extra.update(
+            {
+                "selected_C": selected["C"],
+                "selected_model_sha256": selected_model_hash,
+                "selection_summary_path": str(output_summary_path.resolve()),
+                "selected_model_path": str(selected_model_out.resolve()),
+            }
+        )
+        return summary
+    except BaseException as exc:
+        provenance_status = provenance_status_for_exception(exc)
+        provenance_extra["error"] = provenance_error_message(exc)
+        raise
+    finally:
+        finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

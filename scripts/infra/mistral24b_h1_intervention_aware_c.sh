@@ -26,7 +26,7 @@ fi
 
 cd "${PROJECT_DIR}"
 
-UV_RUN=(uv run)
+UV_RUN=(uv run --no-sync)
 PIPELINE=("${UV_RUN[@]}" python -m scripts.lib.pipeline)
 RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG_DIR="${LOG_DIR:-logs}"
@@ -161,6 +161,39 @@ triviaqa_output_dir_for_c() {
     printf '%s/c_%s/experiment' "${TRIVIAQA_ROOT}" "$(c_label "$1")"
 }
 
+triviaqa_summary_complete() {
+    local output_dir="$1"
+    local had_nullglob
+    local summaries=()
+
+    if [[ "${DRY_RUN}" == "1" ]]; then
+        run_logged test -f "${output_dir}/results.json"
+        return 1
+    fi
+
+    if [[ -f "${output_dir}/results.json" ]]; then
+        return 0
+    fi
+
+    if shopt -q nullglob; then
+        had_nullglob=1
+    else
+        had_nullglob=0
+    fi
+    shopt -s nullglob
+    summaries=("${output_dir}"/results.*.json)
+    if [[ "${had_nullglob}" == "0" ]]; then
+        shopt -u nullglob
+    fi
+
+    if ((${#summaries[@]} > 0)); then
+        return 0
+    fi
+
+    printf '  missing: %s/results.json or results.*.json\n' "${output_dir}" | tee -a "${LOG}" >&2
+    return 1
+}
+
 stage_complete_with_manifest_prefix() {
     local output_dir="$1"
     local manifest="$2"
@@ -280,7 +313,8 @@ for c_value in "${C_VALUES[@]}"; do
                 --classifier-path "${candidate_model}" \
                 --alphas "${TRIVIAQA_ALPHAS[@]}" \
                 --benchmark-config "triviaqa_bridge_manifest=${TRIVIAQA_MANIFEST}" \
-                --benchmark-config "triviaqa_bridge_parquet=${TRIVIAQA_PARQUET}"; then
+                --benchmark-config "triviaqa_bridge_parquet=${TRIVIAQA_PARQUET}" && \
+            triviaqa_summary_complete "${triviaqa_output_dir}"; then
             printf '[%s] TriviaQA C=%s complete; skipping\n' \
                 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${c_value}" | tee -a "${LOG}"
         else
