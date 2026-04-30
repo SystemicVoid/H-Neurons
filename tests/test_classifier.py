@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from classifier import (  # noqa: E402
     file_sha256,
     fit_model,
+    load_data,
     main as classifier_main,
     parse_args,
     persist_candidate_model,
@@ -148,6 +149,30 @@ def test_l1_liblinear_uses_l1_ratio_without_penalty_deprecation() -> None:
         "penalty" in message and "deprecated" in message for message in messages
     )
     assert not any("Inconsistent values" in message for message in messages)
+
+
+def test_load_data_rejects_missing_activation_files_by_default(tmp_path: Path) -> None:
+    ids_path = tmp_path / "train_qids.json"
+    ids_path.write_text(json.dumps({"f": ["f0"], "t": ["t0"]}), encoding="utf-8")
+    ans_dir = tmp_path / "answer_tokens"
+    _write_activation(ans_dir, "f0", [1.0, 0.0, 0.0])
+
+    with pytest.raises(FileNotFoundError, match="missing 1 required activation"):
+        load_data(ids_path, ans_dir)
+
+
+def test_load_data_allows_missing_activation_files_when_requested(
+    tmp_path: Path,
+) -> None:
+    ids_path = tmp_path / "train_qids.json"
+    ids_path.write_text(json.dumps({"f": ["f0"], "t": ["t0"]}), encoding="utf-8")
+    ans_dir = tmp_path / "answer_tokens"
+    _write_activation(ans_dir, "f0", [1.0, 0.0, 0.0])
+
+    X, y = load_data(ids_path, ans_dir, allow_missing=True)
+
+    assert X.shape == (1, 3)
+    assert y.tolist() == [1]
 
 
 def test_candidate_model_export_records_path_and_hash(tmp_path: Path) -> None:

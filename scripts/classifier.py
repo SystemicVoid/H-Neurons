@@ -102,6 +102,14 @@ def parse_args():
             "in --metrics_out."
         ),
     )
+    parser.add_argument(
+        "--allow_missing_activations",
+        action="store_true",
+        help=(
+            "Legacy mode: train/evaluate on the subset of IDs with activation files. "
+            "By default every expected act_<qid>.npy file must exist."
+        ),
+    )
 
     parser.add_argument(
         "--train_mode",
@@ -143,7 +151,12 @@ def parse_args():
 
 
 def load_data(
-    ids_path, ans_acts_dir, other_acts_dir=None, mode="1-vs-1", return_qids=False
+    ids_path,
+    ans_acts_dir,
+    other_acts_dir=None,
+    mode="1-vs-1",
+    return_qids=False,
+    allow_missing=False,
 ):
     """
     Flexible data loader.
@@ -155,6 +168,7 @@ def load_data(
         id_map = json.load(f)
 
     X, y, qids = [], [], []
+    missing_paths = []
 
     for qid in tqdm(id_map["f"], desc="Loading False Ans (Label 1)"):
         path = os.path.join(ans_acts_dir, f"act_{qid}.npy")
@@ -162,6 +176,8 @@ def load_data(
             X.append(np.load(path).flatten())
             y.append(1)
             qids.append(qid)
+        else:
+            missing_paths.append(path)
 
     for qid in tqdm(id_map["t"], desc="Loading True Ans (Label 0)"):
         path = os.path.join(ans_acts_dir, f"act_{qid}.npy")
@@ -169,6 +185,8 @@ def load_data(
             X.append(np.load(path).flatten())
             y.append(0)
             qids.append(qid)
+        else:
+            missing_paths.append(path)
 
     if mode == "3-vs-1":
         if not other_acts_dir:
@@ -184,6 +202,15 @@ def load_data(
                     X.append(np.load(path).flatten())
                     y.append(0)
                     qids.append(f"{qid}_other")
+                else:
+                    missing_paths.append(path)
+    if missing_paths and not allow_missing:
+        preview = ", ".join(missing_paths[:5])
+        suffix = "" if len(missing_paths) <= 5 else ", ..."
+        raise FileNotFoundError(
+            f"{ids_path}: missing {len(missing_paths)} required activation file(s): "
+            f"{preview}{suffix}"
+        )
     X_arr = np.array(X)
     y_arr = np.array(y)
     if return_qids:
@@ -412,6 +439,7 @@ def main():
                 args.test_acts,
                 mode="1-vs-1",
                 return_qids=True,
+                allow_missing=args.allow_missing_activations,
             )
             validate_activation_width(X_test, total_neurons, context="held-out")
 
@@ -462,6 +490,7 @@ def main():
             args.train_ans_acts,
             other_acts_dir=args.train_other_acts,
             mode=args.train_mode,
+            allow_missing=args.allow_missing_activations,
         )
         validate_activation_width(X_train, total_neurons, context="training")
 

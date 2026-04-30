@@ -10,8 +10,56 @@ if [[ "${DRY_RUN}" != "1" ]] && [ -z "${TMUX:-}" ] && [ -z "${TMUX_WRAPPED:-}" ]
     for arg in "$@"; do
         printf -v quoted_args '%s %q' "${quoted_args}" "${arg}"
     done
+    tmux_env=(
+        "TMUX_WRAPPED=1"
+        "PROJECT_DIR=${PROJECT_DIR}"
+        "TMUX_SESSION=${TMUX_SESSION}"
+        "DRY_RUN=${DRY_RUN}"
+    )
+    tmux_passthrough_vars=(
+        INHIBIT_WRAPPED
+        LOG
+        LOG_DIR
+        UV_PROJECT_ENVIRONMENT
+        MODEL_KEY
+        MODEL_PATH
+        DEVICE_MAP
+        OUTPUT_ROOT
+        MANIFEST_DIR
+        TRAIN_IDS
+        DEV_IDS
+        ACT_ROOT
+        TRAIN_PER_CLASS
+        DEV_PER_CLASS
+        FFN_LAYERS
+        FFN_NEURONS
+        C_SELECTION_ROOT
+        CANDIDATE_MODELS_DIR
+        CLASSIFIER_SWEEP_MODEL
+        CLASSIFIER_SWEEP_METRICS
+        SELECTION_SUMMARY
+        SELECTED_CLASSIFIER
+        TRIVIAQA_MANIFEST
+        TRIVIAQA_PARQUET
+        TRIVIAQA_ROOT
+        FAITHEVAL_MANIFEST
+        FAITHEVAL_OUTPUT_DIR
+        STAGES
+        H1_REVIEWED
+        GPU_MIN_MEMORY_GIB
+        GPU_NAME_PATTERN
+    )
+    for env_name in "${tmux_passthrough_vars[@]}"; do
+        if [[ -v "${env_name}" ]]; then
+            tmux_env+=("${env_name}=${!env_name}")
+        fi
+    done
+    quoted_env=""
+    for env_entry in "${tmux_env[@]}"; do
+        printf -v quoted_env '%s %q' "${quoted_env}" "${env_entry}"
+    done
     tmux new-session -d -s "${TMUX_SESSION}" \
-        "cd ${PROJECT_DIR@Q} && env TMUX_WRAPPED=1 bash ${0@Q}${quoted_args}"
+        "cd ${PROJECT_DIR@Q} && env${quoted_env} bash ${0@Q}${quoted_args}"
     printf 'Started tmux session %s. Attach with: tmux attach -t %s\n' \
         "${TMUX_SESSION}" "${TMUX_SESSION}"
     exit 0
@@ -57,6 +105,10 @@ STAGES="${STAGES:-all}"
 H1_REVIEWED="${H1_REVIEWED:-0}"
 GPU_MIN_MEMORY_GIB="${GPU_MIN_MEMORY_GIB:-75}"
 GPU_NAME_PATTERN="${GPU_NAME_PATTERN:-H100|A100}"
+TRAIN_PER_CLASS="${TRAIN_PER_CLASS:-360}"
+DEV_PER_CLASS="${DEV_PER_CLASS:-100}"
+FFN_LAYERS="${FFN_LAYERS:-40}"
+FFN_NEURONS="${FFN_NEURONS:-32768}"
 
 C_VALUES=(0.05 0.1 0.3 0.5 0.75 1.0 1.25 1.5 2.0 3.0)
 FAITHEVAL_ALPHAS=(0.0 0.5 1.0 1.5 2.0 2.5 3.0)
@@ -240,6 +292,20 @@ intervention_contract_complete() {
     "${contract_cmd[@]}" 2>&1 | tee -a "${LOG}"
 }
 
+validate_classifier_activation_inputs() {
+    run_stage classifier_c_sweep env PYTHONUNBUFFERED=1 "${UV_RUN[@]}" python scripts/validate_mistral24b_cp23.py \
+        --activation-inputs-only \
+        --train-ids-path "${TRAIN_IDS}" \
+        --dev-ids-path "${DEV_IDS}" \
+        --train-answer-dir "${ACT_ROOT}/train/answer_tokens" \
+        --train-other-dir "${ACT_ROOT}/train/all_except_answer_tokens" \
+        --dev-answer-dir "${ACT_ROOT}/dev/answer_tokens" \
+        --train-per-class "${TRAIN_PER_CLASS}" \
+        --dev-per-class "${DEV_PER_CLASS}" \
+        --layers "${FFN_LAYERS}" \
+        --ffn-neurons "${FFN_NEURONS}"
+}
+
 TRIVIAQA_RESULT_ARGS=()
 for c_value in "${C_VALUES[@]}"; do
     TRIVIAQA_RESULT_ARGS+=(--triviaqa_result "${c_value}=$(triviaqa_output_dir_for_c "${c_value}")")
@@ -254,9 +320,10 @@ printf 'Selected classifier: %s\n' "${SELECTED_CLASSIFIER}" | tee -a "${LOG}"
 
 require_file "${TRAIN_IDS}"
 require_file "${DEV_IDS}"
-require_file "${ACT_ROOT}/train/answer_tokens/metadata.json"
-require_file "${ACT_ROOT}/train/all_except_answer_tokens/metadata.json"
-require_file "${ACT_ROOT}/dev/answer_tokens/metadata.json"
+require_file "${ACT_ROOT}/train/metadata.json"
+require_file "${ACT_ROOT}/train/summary.json"
+require_file "${ACT_ROOT}/dev/metadata.json"
+require_file "${ACT_ROOT}/dev/summary.json"
 require_file "${TRIVIAQA_MANIFEST}"
 require_file "${TRIVIAQA_PARQUET}"
 require_file "${FAITHEVAL_MANIFEST}"
@@ -277,6 +344,8 @@ if should_run_any_stage "${GPU_STAGES[@]}"; then
     require_h1_review_for_gpu
     require_gpu_hardware
 fi
+
+validate_classifier_activation_inputs
 
 run_stage classifier_c_sweep env PYTHONUNBUFFERED=1 "${UV_RUN[@]}" python scripts/classifier.py \
     --model_key "${MODEL_KEY}" \
@@ -300,6 +369,7 @@ for c_value in "${C_VALUES[@]}"; do
     triviaqa_output_dir="$(triviaqa_output_dir_for_c "${c_value}")"
     if should_run_stage triviaqa_c_sweep; then
         require_h1_review_for_gpu
+        require_file "${candidate_model}"
         if stage_complete_with_manifest_prefix \
             "${triviaqa_output_dir}" \
             "${TRIVIAQA_MANIFEST}" \

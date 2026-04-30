@@ -33,7 +33,10 @@ from scripts.lib.pipeline import (
     validate_intervention_run_contract,
     validate_sample_manifest_locks,
 )
-from scripts.validate_mistral24b_cp23 import validate_cp23_artifacts
+from scripts.validate_mistral24b_cp23 import (
+    validate_classifier_activation_inputs,
+    validate_cp23_artifacts,
+)
 from scripts.utils import fingerprint_ids, format_alpha_label
 
 
@@ -259,6 +262,10 @@ def _write_activation_summary(
         ),
         encoding="utf-8",
     )
+    (split_root / "metadata.json").write_text(
+        json.dumps({"schema_version": 1}),
+        encoding="utf-8",
+    )
 
 
 def _write_activation_sample(
@@ -437,6 +444,96 @@ class TestMistralCp23Validator:
 
         assert result["accepted"] is False
         assert result["checks"]["test_loaded_model_path"] is False
+
+
+class TestMistralClassifierActivationInputValidator:
+    def test_accepts_complete_train_dev_activation_inputs(self, tmp_path: Path) -> None:
+        pipeline_dir = tmp_path / "pipeline"
+        activation_root = pipeline_dir / "activations_llm_canonical"
+        pipeline_dir.mkdir()
+        train_ids = pipeline_dir / "train_qids_llm.json"
+        dev_ids = pipeline_dir / "dev_qids_llm.json"
+        _write_cp23_split(train_ids, ["f1", "f2"], ["t1", "t2"])
+        _write_cp23_split(dev_ids, ["f3"], ["t3"])
+        _write_activation_summary(
+            activation_root,
+            "train",
+            ["answer_tokens", "all_except_answer_tokens"],
+            4,
+        )
+        _write_activation_summary(activation_root, "dev", ["answer_tokens"], 2)
+        for qid in ["f1", "f2", "t1", "t2"]:
+            _write_activation_sample(activation_root, "train", "answer_tokens", qid)
+            _write_activation_sample(
+                activation_root, "train", "all_except_answer_tokens", qid
+            )
+        for qid in ["f3", "t3"]:
+            _write_activation_sample(activation_root, "dev", "answer_tokens", qid)
+
+        result = validate_classifier_activation_inputs(
+            train_ids_path=train_ids,
+            dev_ids_path=dev_ids,
+            train_answer_dir=activation_root / "train" / "answer_tokens",
+            train_other_dir=activation_root / "train" / "all_except_answer_tokens",
+            dev_answer_dir=activation_root / "dev" / "answer_tokens",
+            train_per_class=2,
+            dev_per_class=1,
+            layers=2,
+            ffn_neurons=3,
+        )
+
+        assert result["accepted"] is True
+        assert (
+            result["checks"]["train_answer_tokens_all_expected_files_present"] is True
+        )
+        assert (
+            result["details"]["activation_inputs"]["dev_answer_tokens"][
+                "present_expected_count"
+            ]
+            == 2
+        )
+
+    def test_rejects_missing_activation_file_even_when_summary_claims_complete(
+        self, tmp_path: Path
+    ) -> None:
+        pipeline_dir = tmp_path / "pipeline"
+        activation_root = pipeline_dir / "activations_llm_canonical"
+        pipeline_dir.mkdir()
+        train_ids = pipeline_dir / "train_qids_llm.json"
+        dev_ids = pipeline_dir / "dev_qids_llm.json"
+        _write_cp23_split(train_ids, ["f1"], ["t1"])
+        _write_cp23_split(dev_ids, ["f2"], ["t2"])
+        _write_activation_summary(
+            activation_root,
+            "train",
+            ["answer_tokens", "all_except_answer_tokens"],
+            2,
+        )
+        _write_activation_summary(activation_root, "dev", ["answer_tokens"], 2)
+        for qid in ["f1", "t1"]:
+            _write_activation_sample(activation_root, "train", "answer_tokens", qid)
+            _write_activation_sample(
+                activation_root, "train", "all_except_answer_tokens", qid
+            )
+        _write_activation_sample(activation_root, "dev", "answer_tokens", "f2")
+
+        result = validate_classifier_activation_inputs(
+            train_ids_path=train_ids,
+            dev_ids_path=dev_ids,
+            train_answer_dir=activation_root / "train" / "answer_tokens",
+            train_other_dir=activation_root / "train" / "all_except_answer_tokens",
+            dev_answer_dir=activation_root / "dev" / "answer_tokens",
+            train_per_class=1,
+            dev_per_class=1,
+            layers=2,
+            ffn_neurons=3,
+        )
+
+        assert result["accepted"] is False
+        assert result["checks"]["dev_answer_tokens_all_expected_files_present"] is False
+        assert result["details"]["activation_inputs"]["dev_answer_tokens"][
+            "missing_ids_preview"
+        ] == ["t2"]
 
 
 # ---------------------------------------------------------------------------

@@ -14,6 +14,7 @@ from utils import json_dumps
 
 
 SCHEMA_VERSION = "mistral24b_cp23_validation/v1"
+ACTIVATION_INPUT_SCHEMA_VERSION = "mistral24b_classifier_activation_inputs/v1"
 DEFAULT_MODEL_KEY = "mistral_small_24b_instruct_2501"
 DEFAULT_MODEL_PATH = "mistralai/Mistral-Small-24B-Instruct-2501"
 DEFAULT_CLASSIFIER_PATH = "models/mistral24b_classifier_canonical.pkl"
@@ -48,7 +49,54 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--layers", type=int, default=40)
     parser.add_argument("--ffn-neurons", type=int, default=32768)
     parser.add_argument("--total-ffn-neurons", type=int, default=1_310_720)
-    return parser.parse_args(argv)
+    parser.add_argument(
+        "--activation-inputs-only",
+        action="store_true",
+        help=(
+            "Validate the exact train/dev activation inputs consumed by "
+            "scripts/classifier.py without requiring CP3 classifier metrics."
+        ),
+    )
+    parser.add_argument(
+        "--train-ids-path",
+        type=Path,
+        help="Train split JSON used by scripts/classifier.py.",
+    )
+    parser.add_argument(
+        "--dev-ids-path",
+        type=Path,
+        help="Dev/test split JSON used by scripts/classifier.py.",
+    )
+    parser.add_argument(
+        "--train-answer-dir",
+        type=Path,
+        help="Train answer-token activation directory.",
+    )
+    parser.add_argument(
+        "--train-other-dir",
+        type=Path,
+        help="Train all-except-answer-token activation directory.",
+    )
+    parser.add_argument(
+        "--dev-answer-dir",
+        type=Path,
+        help="Dev answer-token activation directory.",
+    )
+    args = parser.parse_args(argv)
+    if args.activation_inputs_only:
+        required = {
+            "--train-ids-path": args.train_ids_path,
+            "--dev-ids-path": args.dev_ids_path,
+            "--train-answer-dir": args.train_answer_dir,
+            "--train-other-dir": args.train_other_dir,
+            "--dev-answer-dir": args.dev_answer_dir,
+        }
+        missing = [name for name, value in required.items() if value is None]
+        if missing:
+            parser.error(
+                "--activation-inputs-only requires " + ", ".join(sorted(missing))
+            )
+    return args
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -297,6 +345,187 @@ def _validate_activations(
     return checks, details
 
 
+def _split_ids_for_classifier_input(
+    payload: dict[str, Any],
+) -> tuple[list[str], list[str], list[str]]:
+    false_ids = _split_ids(payload, "f")
+    true_ids = _split_ids(payload, "t")
+    return false_ids, true_ids, [*false_ids, *true_ids]
+
+
+def _validate_classifier_input_splits(
+    *,
+    train_ids_path: Path,
+    dev_ids_path: Path,
+    train_per_class: int,
+    dev_per_class: int,
+) -> tuple[dict[str, bool], dict[str, Any], dict[str, dict[str, Any]]]:
+    checks: dict[str, bool] = {}
+    details: dict[str, Any] = {"split_counts": {}}
+    payloads: dict[str, dict[str, Any]] = {}
+    split_specs = {
+        "train": (train_ids_path, train_per_class),
+        "dev": (dev_ids_path, dev_per_class),
+    }
+    split_sets: dict[str, set[str]] = {}
+
+    for split_name, (path, per_class) in split_specs.items():
+        payload = _read_json(path)
+        payloads[split_name] = payload
+        false_ids, true_ids, combined = _split_ids_for_classifier_input(payload)
+        details["split_counts"][split_name] = {
+            "f": len(false_ids),
+            "t": len(true_ids),
+            "total": len(combined),
+            "path": path.as_posix(),
+        }
+        checks[f"{split_name}_false_count"] = len(false_ids) == per_class
+        checks[f"{split_name}_true_count"] = len(true_ids) == per_class
+        checks[f"{split_name}_unique_ids"] = len(combined) == len(set(combined))
+        split_sets[split_name] = set(combined)
+
+    overlap = split_sets["train"] & split_sets["dev"]
+    checks["train_dev_disjoint"] = not overlap
+    details["train_dev_overlap_count"] = len(overlap)
+    return checks, details, payloads
+
+
+def _activation_location_file_checks(
+    *,
+    split_name: str,
+    location: str,
+    activation_dir: Path,
+    expected_ids: list[str],
+    expected_shape: tuple[int, int],
+) -> tuple[dict[str, bool], dict[str, Any]]:
+    check_prefix = f"{split_name}_{location}"
+    checks: dict[str, bool] = {}
+    details: dict[str, Any] = {}
+    split_root = activation_dir.parent
+    summary_path = split_root / "summary.json"
+    metadata_path = split_root / "metadata.json"
+
+    checks[f"{check_prefix}_dir_exists"] = activation_dir.is_dir()
+    checks[f"{check_prefix}_metadata_exists"] = metadata_path.is_file()
+    checks[f"{check_prefix}_summary_exists"] = summary_path.is_file()
+
+    summary = _read_json(summary_path) if summary_path.is_file() else {}
+    count = _activation_count(summary, location)
+    missing = _activation_missing_count(summary, location)
+    checks[f"{check_prefix}_summary_completed"] = summary.get("status") == "completed"
+    checks[f"{check_prefix}_summary_ready"] = (
+        summary.get("triage_status") == "ready_for_downstream"
+    )
+    checks[f"{check_prefix}_summary_count"] = count == len(expected_ids)
+    checks[f"{check_prefix}_summary_missing_zero"] = missing == 0
+
+    existing_ids: set[str] = set()
+    if activation_dir.is_dir():
+        existing_ids = {
+            path.stem.removeprefix("act_") for path in activation_dir.glob("act_*.npy")
+        }
+    expected_set = set(expected_ids)
+    missing_ids = sorted(expected_set - existing_ids)
+    unexpected_ids = sorted(existing_ids - expected_set)
+    present_expected_count = len(expected_set & existing_ids)
+
+    shape_errors: list[str] = []
+    for qid in expected_ids:
+        path = activation_dir / f"act_{qid}.npy"
+        if not path.is_file():
+            continue
+        try:
+            activation = np.load(path, mmap_mode="r")
+            shape = tuple(int(dim) for dim in activation.shape)
+        except Exception as exc:  # noqa: BLE001
+            shape_errors.append(f"{path}: could not load header: {exc}")
+            continue
+        if shape != expected_shape:
+            shape_errors.append(
+                f"{path}: shape {list(shape)} != expected {list(expected_shape)}"
+            )
+
+    checks[f"{check_prefix}_all_expected_files_present"] = not missing_ids
+    checks[f"{check_prefix}_expected_file_count"] = present_expected_count == len(
+        expected_ids
+    )
+    checks[f"{check_prefix}_all_shapes"] = not shape_errors
+    details.update(
+        {
+            "dir": activation_dir.as_posix(),
+            "metadata_path": metadata_path.as_posix(),
+            "summary_path": summary_path.as_posix(),
+            "expected_count": len(expected_ids),
+            "present_expected_count": present_expected_count,
+            "actual_act_file_count": len(existing_ids),
+            "missing_ids_preview": missing_ids[:10],
+            "missing_id_count": len(missing_ids),
+            "unexpected_ids_preview": unexpected_ids[:10],
+            "unexpected_id_count": len(unexpected_ids),
+            "summary_final_completed_count": count,
+            "summary_missing_region_count": missing,
+            "shape_errors_preview": shape_errors[:10],
+            "shape_error_count": len(shape_errors),
+        }
+    )
+    return checks, details
+
+
+def validate_classifier_activation_inputs(
+    *,
+    train_ids_path: Path,
+    dev_ids_path: Path,
+    train_answer_dir: Path,
+    train_other_dir: Path,
+    dev_answer_dir: Path,
+    train_per_class: int = 360,
+    dev_per_class: int = 100,
+    layers: int = 40,
+    ffn_neurons: int = 32768,
+) -> dict[str, Any]:
+    checks: dict[str, bool] = {}
+    details: dict[str, Any] = {"activation_inputs": {}}
+
+    split_checks, split_details, split_payloads = _validate_classifier_input_splits(
+        train_ids_path=train_ids_path,
+        dev_ids_path=dev_ids_path,
+        train_per_class=train_per_class,
+        dev_per_class=dev_per_class,
+    )
+    checks.update(split_checks)
+    details.update(split_details)
+
+    _, _, train_ids = _split_ids_for_classifier_input(split_payloads["train"])
+    _, _, dev_ids = _split_ids_for_classifier_input(split_payloads["dev"])
+    expected_shape = (layers, ffn_neurons)
+    locations = (
+        ("train", "answer_tokens", train_answer_dir, train_ids),
+        ("train", "all_except_answer_tokens", train_other_dir, train_ids),
+        ("dev", "answer_tokens", dev_answer_dir, dev_ids),
+    )
+    for split_name, location, activation_dir, expected_ids in locations:
+        location_checks, location_details = _activation_location_file_checks(
+            split_name=split_name,
+            location=location,
+            activation_dir=activation_dir,
+            expected_ids=expected_ids,
+            expected_shape=expected_shape,
+        )
+        checks.update(location_checks)
+        details["activation_inputs"][f"{split_name}_{location}"] = location_details
+
+    errors = _collect_errors(checks)
+    accepted = not errors
+    return {
+        "schema_version": ACTIVATION_INPUT_SCHEMA_VERSION,
+        "status": "ok" if accepted else "needs_review",
+        "accepted": accepted,
+        "checks": checks,
+        "details": details,
+        "errors": errors,
+    }
+
+
 def _validate_metrics(
     pipeline_dir: Path,
     *,
@@ -435,19 +664,32 @@ def validate_cp23_artifacts(
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    result = validate_cp23_artifacts(
-        pipeline_dir=args.pipeline_dir,
-        activation_root=args.activation_root,
-        model_key=args.model_key,
-        model_path=args.model_path,
-        classifier_path=args.classifier_path,
-        train_per_class=args.train_per_class,
-        dev_per_class=args.dev_per_class,
-        test_per_class=args.test_per_class,
-        layers=args.layers,
-        ffn_neurons=args.ffn_neurons,
-        total_ffn_neurons=args.total_ffn_neurons,
-    )
+    if args.activation_inputs_only:
+        result = validate_classifier_activation_inputs(
+            train_ids_path=args.train_ids_path,
+            dev_ids_path=args.dev_ids_path,
+            train_answer_dir=args.train_answer_dir,
+            train_other_dir=args.train_other_dir,
+            dev_answer_dir=args.dev_answer_dir,
+            train_per_class=args.train_per_class,
+            dev_per_class=args.dev_per_class,
+            layers=args.layers,
+            ffn_neurons=args.ffn_neurons,
+        )
+    else:
+        result = validate_cp23_artifacts(
+            pipeline_dir=args.pipeline_dir,
+            activation_root=args.activation_root,
+            model_key=args.model_key,
+            model_path=args.model_path,
+            classifier_path=args.classifier_path,
+            train_per_class=args.train_per_class,
+            dev_per_class=args.dev_per_class,
+            test_per_class=args.test_per_class,
+            layers=args.layers,
+            ffn_neurons=args.ffn_neurons,
+            total_ffn_neurons=args.total_ffn_neurons,
+        )
     print(json_dumps(result))
     return 0 if result["accepted"] else 1
 
