@@ -13,6 +13,13 @@ holds the headline verdict and frozen numbers. This file holds the deeper
 plumbing audit, item-level texture, alternative readings, a triage-script gap
 finding, and the stress-tested next steps.
 
+The companion hypothesis-formulation review
+[`2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md`](2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md)
+takes the verdict here as starting point and ranks why the Mistral 2501
+result diverged from the Gemma replication and the H-Neurons paper, including
+the 2501-vs-2503 question and a code-level intervention-aware C-selection
+divergence that this audit does not cover.
+
 ## Executive verdicts
 
 1. **The canonical review's verdict survives an adversarial recompute.** Every

@@ -10,6 +10,11 @@
 > [`../reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md`](../reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md).
 > The audit confirms every headline number in this report and complements,
 > rather than supersedes, the verdict here.
+>
+> Companion hypothesis-formulation review (why this result diverged from
+> our Gemma replication and the H-Neurons paper, including the
+> 2501-vs-2503 question and ranked falsifiable hypotheses):
+> [`../reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md`](../reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md).
 
 ## Run Identity
 

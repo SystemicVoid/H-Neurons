@@ -16,6 +16,10 @@ final artifact sync. Report:
 Companion adversarial pipeline audit (item-level texture, alternative readings,
 triage-script gap, uncertainty register):
 [`icml/reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md`](./icml/reviews/2026-04-30-mistral24b-cp5-pipeline-audit.md).
+Companion hypothesis-formulation review (why CP5 diverged from our Gemma
+replication and the H-Neurons paper, including the 2501-vs-2503 question and
+ranked falsifiable hypotheses):
+[`icml/reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md`](./icml/reviews/2026-04-30-mistral24b-cp5-null-causes-and-2501-vs-2503.md).
 
 ### What I expected vs what happened
 
