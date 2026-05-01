@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-05-01
+
+- Wrote canonical post-CP5 ICML strategy synthesis v2 at [`paper/icml/reports/2026-05-01-post-cp5-icml-strategy-synthesis-v2.md`](../paper/icml/reports/2026-05-01-post-cp5-icml-strategy-synthesis-v2.md) and moved superseded R1/R2/v1 strategy drafts to `notes/research-directions/`.
+
+---
+
 ## 2026-04-30 (Mistral 24B H1 C-sweep reviewed)
 
 ### What I did
