@@ -7,7 +7,7 @@ Cross-run tracker for the documentation-gardening routine. Updated at the end of
 - **Date**: 2026-05-01
 - **Base commit**: `147436d` (origin/main)
 - **Branch**: `docs/daily-garden-20260501-147436d`
-- **PR**: TBD
+- **PR**: `#2`
 - **Focus area**: Broken-reference sweep (root docs, `scripts/infra/`, `scripts/infra/cloud/`, `papers/`) + follow-up from PR #1
 
 ### Changed Files Scanned
@@ -16,7 +16,7 @@ All AGENTS.md files, README.md, docs/, notes/AGENTS.md, notes/icml/mistral24b/AG
 scripts/AGENTS.md, scripts/infra/AGENTS.md, scripts/lib/AGENTS.md, data/AGENTS.md, site/AGENTS.md,
 tests/gold_labels/AGENTS.md, vendor/AGENTS.md, papers/INDEX.md.
 
-Recent repo changes audited: commits `01ded23`–`147436d` (11 commits, 2026-04-30 to 2026-05-01).
+Recent repo changes audited: commits after `01ded23` through `147436d` (21 first-parent commits, 2026-04-30 to 2026-05-01).
 Key changes in scope: `inhibit_suspend.sh` helper added/hardened (`f0f7256`, `147436d`),
 RunPod template launch hardened (`637f311`, `f278827`, `8efb268`), mistral h1 c-sweep data + review
 added (`28d5c85`, `a9e8551`), 8 new papers imported to INDEX (`74e4a11`).
