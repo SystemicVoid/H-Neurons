@@ -458,7 +458,7 @@ Abstract: Steering vectors work for some concepts and layers but fail for others
 
 </details>
 
-<!-- New entries (added 2026-04-30 during probe-pivot Phase-0 literature audit; see notes/causal-decomposition-dossier/2026-04-30-probe-pivot-prior-art-discovery.md). Out-of-alphabetical-order; folded in at end to preserve prior layout. -->
+<!-- New entries added 2026-04-30 during probe-pivot Phase-0 literature audit. Out-of-alphabetical-order; folded in at end to preserve prior layout. -->
 
 <details>
 <summary>Simple Factuality Probes Detect Hallucinations in Long-Form Natural Language Generation (Han et al., Findings of EMNLP 2025) <code>detection</code> <code>probing</code></summary>

@@ -16,7 +16,7 @@ This is a research workspace for mechanistic intervention experiments in `google
 
 ## Current Status
 
-- Detection remains real, but interpretation is not trivial: the H-neuron replication keeps a held-out signal on the clean split (`76.5%` accuracy, `95% CI [73.6, 79.5]`), while the repo also contains evidence that detector interpretation can be fragile. See [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md), [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md), and [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md).
+- Detection remains real, but interpretation is not trivial: the H-neuron replication keeps a held-out signal on the clean split (`76.5%` accuracy, `95% CI [73.6, 79.5]`), while the repo also contains evidence that detector interpretation can be fragile. See [`data/gemma3_4b/pipeline/pipeline_report.md`](data/gemma3_4b/pipeline/pipeline_report.md), [`data/gemma3_4b/intervention_findings.md`](data/gemma3_4b/intervention_findings.md), and [`notes/research-log.md`](notes/research-log.md).
 - Localization, control, and externality are all live evidence families here. The FaithEval neuron-versus-SAE comparison is one strong localization/control result; the TriviaQA bridge benchmark carries the sharpest control/externality diagnosis; the jailbreak audits carry the measurement/conclusion story.
 - The Mistral 24B limitation-response branch has passed its CP2/CP3 held-out detector gate, but has not yet produced Mistral intervention evidence. Use [`notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md`](notes/icml/reports/2026-04-29-mistral24b-cp23-pipeline-review.md) for the current CP2/CP3 analysis and [`notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md`](notes/icml/mistral24b/2026-04-28-5.5-pro-l1-mitigation-strategy.md) for progress state.
 - Current repo guidance is intentionally plural-anchor. Do not assume one result is the project's default center of gravity just because it appears in older strategy or outline docs.
@@ -78,7 +78,7 @@ If you need the original forked-paper examples, start with [`data/original_paper
 - [`tests/`](tests/) - regression coverage for pipeline guards, reporting, evaluation, and exports
 - [`papers/`](papers/) - local paper corpus, H-neurons reference materials, and literature notes
 
-For the current committed data layout, also see [`docs/archive/project-structure.md`](docs/archive/project-structure.md).
+For the current committed data layout, also see [`data/AGENTS.md`](data/AGENTS.md).
 
 ## Measurement and Reproducibility
 
@@ -102,7 +102,6 @@ This repo still contains the upstream H-neurons lineage:
 
 Current project-facing reading order:
 
-- [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md)
 - [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
 - [`notes/research-log.md`](notes/research-log.md)
 - [`notes/icml/reports/`](notes/icml/reports/)
