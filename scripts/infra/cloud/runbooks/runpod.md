@@ -2,6 +2,83 @@
 
 RunPod is the first supported provider because it blocks the Mistral 24B CP2 path. Paid actions stay rendered until an operator manually runs the printed command.
 
+## Burst Shard Launch Pattern
+
+Use this pattern for urgent one-off SIMID tail shards where the value of the
+remote job is measured in hours, not days. Do not use the private baked
+`h-neurons-runpod-private` image for these jobs unless it has just been proven
+warm in the target datacenter.
+
+Launch from the official RunPod PyTorch 2.8 template for Blackwell-class GPUs:
+
+```bash
+runpodctl template get runpod-torch-v280 -o json
+runpodctl pod create \
+  --name hneurons-gemma3-4b-simid-burst \
+  --cloud-type SECURE \
+  --gpu-id "NVIDIA GeForce RTX 5090" \
+  --gpu-count 1 \
+  --container-disk-in-gb 80 \
+  --volume-in-gb 50 \
+  --volume-mount-path /workspace \
+  --ports 22/tcp \
+  --template-id runpod-torch-v280 \
+  --data-center-ids <single-live-datacenter> \
+  --ssh
+```
+
+Observed on 2026-05-01: `runpod-torch-v280` resolves to
+`runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`, with OCI index digest
+`sha256:0a360022e8de4375af99430f84e8b38951acc397252163a37ceac7204d01be35`
+and amd64 manifest digest
+`sha256:4d1721e62b56d345c83b4fd6090664be6daf9312caab5b2e76f23d8231941851`.
+The compressed amd64 image is large, about 10.6 GB, but it is an official/common
+template and should be much more likely to hit worker layer caches than the
+private GHCR image. This is still a canary, not a promise: if SSH is not exposed
+within 15-20 minutes, delete the pod and do not keep waiting.
+
+Once SSH is live, keep the pod setup narrow:
+
+```bash
+export HF_HOME=/opt/hf_cache
+export UV_CACHE_DIR=/opt/uv_cache
+mkdir -p "$HF_HOME" "$UV_CACHE_DIR" /opt/venvs /workspace
+
+command -v uv >/dev/null || python3 -m pip install uv
+PYTHON_BIN="$(command -v python3)"
+uv venv --python "$PYTHON_BIN" --system-site-packages /opt/venvs/h-neurons-simid
+source /opt/venvs/h-neurons-simid/bin/activate
+python - <<'PY'
+import torch
+print(torch.__version__, torch.cuda.is_available(), torch.version.cuda)
+PY
+```
+
+Do not run a project `uv sync` on this path. The official image's CUDA-capable
+Torch should remain the Torch. Install only missing runtime packages into the
+system-site venv, and explicitly exclude `torch`, `triton`, and `nvidia-*`
+packages from any generated requirements file. For repeat launches, stage that
+filtered wheelhouse through Hugging Face so the pod downloads wheels over the
+same fast path as the repo bundle and model weights. For a first canary, a
+small direct install of missing non-CUDA packages is acceptable only after
+confirming it will not resolve a new Torch/CUDA stack.
+
+Then use the existing HF-staged bundle route for the repo and run the wrapper
+with:
+
+```bash
+export PROJECT_DIR=/workspace/02-h-neurons
+export UV_PROJECT_ENVIRONMENT=/opt/venvs/h-neurons-simid
+export PYTHONPATH=/workspace/02-h-neurons/scripts
+cd "$PROJECT_DIR"
+bash scripts/infra/simid_remote_shard.sh
+```
+
+This pattern intentionally mirrors the useful part of the vendored Zombuul
+bootstrap: common public image first, fast container disk for venv/cache, durable
+workspace for repo and outputs, idempotent setup, then a normal tmux-managed
+wrapper. `vendor/zombuul` remains reference-only.
+
 ## Template-Based Launch
 
 RunPod profiles launch through the private template `h-neurons-runpod-private`
@@ -25,7 +102,9 @@ rendering a launch. Only bypass the direct-image guard with both
 `--allow-image-fallback` and `--confirmed-image-pin` after manually verifying a
 digest-pinned fallback image is acceptable for the launch.
 
-Do not run remote dependency setup on RunPod pods. The template already ships
+This is the reproducibility-oriented path for stable multi-stage work, not the
+urgent-start path for burst shards. Do not run remote dependency setup on pods
+launched from this private template. The template already ships
 `uv`, `tmux`, `rsync`, `pigz`, `openssh-server`, CUDA tooling, and the baked
 project venv.
 
@@ -263,8 +342,24 @@ References: [network volumes](https://docs.runpod.io/storage/network-volumes), [
 - Stage git bundles through a private Hugging Face dataset rather than direct
   `rsync`/`scp`; direct ingress was throttled to single-digit KB/s, while HF Hub
   hit about 18 MB/s on the same pod.
-- Keep using `/workspace` for HF cache, model weights, cloned repo, and outputs.
-  The baked venv lives in the container layer at `/opt/h-neurons/.venv`.
+- A RunPod template is not a VM snapshot and does not guarantee instant startup
+  for private custom images. A cold worker still pulls and extracts uncached image
+  layers before SSH exists; on 2026-05-01, the baked
+  `h-neurons-runpod@sha256:15c9114d...` template stayed at
+  `ssh.error="pod not ready"`/`uptimeSeconds=0` for ~2h48m before the user killed
+  it, with no remote output produced. The pinned amd64 image is about 5.0 GiB
+  compressed, with two layers alone around 3.10 GB and 1.51 GB. The baked venv
+  removes `uv sync` time after boot, but it does not solve urgent-start latency.
+  For short-notice tail shards, default to the Burst Shard Launch Pattern above:
+  official/common PyTorch image, no project `uv sync`, system-site venv, HF
+  bundle/model/wheelhouse transfer, and a 15-20 minute pre-SSH kill threshold.
+  Use a warm retained pod or a provider/path with explicit image prewarming or
+  snapshot semantics when repeated burst launches are expected.
+- For private-template and network-volume runs, keep `/workspace` as the
+  persistent home for HF cache, model weights, cloned repo, and outputs. For
+  urgent ephemeral burst shards, prefer `/opt` container disk for regenerable
+  venv/cache and `/workspace` for repo and outputs. The private baked venv lives
+  in the container layer at `/opt/h-neurons/.venv`.
 - See `notes/icml/gemma3_4b/2026-04-30-runpod-simid-tail-postmortem.md` for the
   HF-staged bundle recipe and EUR-IS-1 ingress observations. Its default-template
   bootstrap commands are historical and superseded by this template runbook.

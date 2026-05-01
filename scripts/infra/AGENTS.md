@@ -129,3 +129,9 @@ profiles must be explicitly marked non-production with
 Rebuild and push the image when
 `requirements.txt`, `pyproject.toml`, or `scripts/infra/docker/*` changes, then
 update the profile digest pins; see `scripts/infra/cloud/runpod_bake_image.sh`.
+
+**RunPod burst shards:** For urgent one-off Gemma/SIMID tail shards, the private
+template is not the default after the 2026-05-01 cold-pull incident. Use the
+Burst Shard Launch Pattern in `scripts/infra/cloud/runbooks/runpod.md`: official
+RunPod PyTorch template, timed SSH canary, system-site venv that reuses the
+image's CUDA Torch, HF-staged repo/model/wheelhouse, and no project `uv sync`.
