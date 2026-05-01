@@ -1,0 +1,1118 @@
+{
+  "schema_version": "simid_analysis/v1",
+  "run_dir": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_noop_preflight_20260429",
+  "generated_at_utc": "2026-04-30T10:44:29.473267+00:00",
+  "baseline_alpha": 0.0,
+  "alphas": [
+    0.0
+  ],
+  "conditions": {
+    "unhooked": {
+      "condition": "unhooked",
+      "summary_scope": "pooled_across_dataset_and_mc_endpoint",
+      "n_paired_items": 427,
+      "pairing_unit": "base_sample_id",
+      "n_rows_at_baseline": 854,
+      "alphas": [
+        0.0
+      ],
+      "baseline_alpha": 0.0,
+      "rates": {
+        "0.0": {
+          "mc_letter_likelihood_correct": {
+            "estimate": 0.5187353629976581,
+            "sum": 221.5,
+            "n": 427,
+            "ci": {
+              "lower": 0.47306791569086654,
+              "upper": 0.5620608899297423,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "mc_generated_letter_correct": {
+            "estimate": 0.5187353629976581,
+            "sum": 221.5,
+            "n": 427,
+            "ci": {
+              "lower": 0.47306791569086654,
+              "upper": 0.5620608899297423,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "mc_likelihood_full_correct": {
+            "estimate": 0.30679156908665106,
+            "sum": 131.0,
+            "n": 427,
+            "ci": {
+              "lower": 0.26229508196721313,
+              "upper": 0.34894613583138173,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "mc_likelihood_avg_correct": {
+            "estimate": 0.3395784543325527,
+            "sum": 145.0,
+            "n": 427,
+            "ci": {
+              "lower": 0.297423887587822,
+              "upper": 0.3840749414519906,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "open_correct": {
+            "estimate": 0.2154566744730679,
+            "sum": 92.0,
+            "n": 427,
+            "ci": {
+              "lower": 0.17798594847775176,
+              "upper": 0.25526932084309134,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "open_attempted": {
+            "estimate": 0.9976580796252927,
+            "sum": 426.0,
+            "n": 427,
+            "ci": {
+              "lower": 0.9929742388758782,
+              "upper": 1.0,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          }
+        }
+      },
+      "paired_deltas_vs_baseline": {},
+      "paired_margin_deltas_vs_baseline": {},
+      "mc_open_interactions": {
+        "0.0": {
+          "counts": {
+            "mc_R__open_R": 74.5,
+            "mc_R__open_W": 147.0,
+            "mc_W__open_R": 17.5,
+            "mc_W__open_W": 188.0
+          },
+          "agreement_rate": {
+            "estimate": 0.6147540983606558,
+            "sum": 262.5,
+            "n": 427,
+            "ci": {
+              "lower": 0.572599531615925,
+              "upper": 0.65807962529274,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          }
+        }
+      },
+      "flip_tables_vs_baseline": {},
+      "dataset_endpoint_summaries": {
+        "triviaqa_bridge::synthetic_mc1": {
+          "n_paired_items": 200,
+          "pairing_unit": "base_sample_id",
+          "n_rows_at_baseline": 400,
+          "alphas": [
+            0.0
+          ],
+          "baseline_alpha": 0.0,
+          "rates": {
+            "0.0": {
+              "mc_letter_likelihood_correct": {
+                "estimate": 0.6125,
+                "sum": 122.5,
+                "n": 200,
+                "ci": {
+                  "lower": 0.5499375000000002,
+                  "upper": 0.67,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_generated_letter_correct": {
+                "estimate": 0.6125,
+                "sum": 122.5,
+                "n": 200,
+                "ci": {
+                  "lower": 0.5499375000000002,
+                  "upper": 0.67,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_likelihood_full_correct": {
+                "estimate": 0.33,
+                "sum": 66.0,
+                "n": 200,
+                "ci": {
+                  "lower": 0.265,
+                  "upper": 0.4,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_likelihood_avg_correct": {
+                "estimate": 0.325,
+                "sum": 65.0,
+                "n": 200,
+                "ci": {
+                  "lower": 0.26,
+                  "upper": 0.395,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "open_correct": {
+                "estimate": 0.4,
+                "sum": 80.0,
+                "n": 200,
+                "ci": {
+                  "lower": 0.335,
+                  "upper": 0.47,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "open_attempted": {
+                "estimate": 1.0,
+                "sum": 200.0,
+                "n": 200,
+                "ci": {
+                  "lower": 1.0,
+                  "upper": 1.0,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              }
+            }
+          },
+          "paired_deltas_vs_baseline": {},
+          "paired_margin_deltas_vs_baseline": {},
+          "mc_open_interactions": {
+            "0.0": {
+              "counts": {
+                "mc_R__open_R": 66.0,
+                "mc_R__open_W": 56.5,
+                "mc_W__open_R": 14.0,
+                "mc_W__open_W": 63.5
+              },
+              "agreement_rate": {
+                "estimate": 0.6475,
+                "sum": 129.5,
+                "n": 200,
+                "ci": {
+                  "lower": 0.59,
+                  "upper": 0.705,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              }
+            }
+          },
+          "flip_tables_vs_baseline": {},
+          "dataset": "triviaqa_bridge",
+          "mc_endpoint": "synthetic_mc1"
+        },
+        "truthfulqa::truthfulqa_mc1::truthfulqa_artifact_split=test::truthfulqa_seen_in_iti_fit=false::truthfulqa_leakage_policy=heldout_only": {
+          "n_paired_items": 227,
+          "pairing_unit": "base_sample_id",
+          "n_rows_at_baseline": 454,
+          "alphas": [
+            0.0
+          ],
+          "baseline_alpha": 0.0,
+          "rates": {
+            "0.0": {
+              "mc_letter_likelihood_correct": {
+                "estimate": 0.43612334801762115,
+                "sum": 99.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.3766519823788546,
+                  "upper": 0.4956497797356825,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_generated_letter_correct": {
+                "estimate": 0.43612334801762115,
+                "sum": 99.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.3766519823788546,
+                  "upper": 0.4956497797356825,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_likelihood_full_correct": {
+                "estimate": 0.28634361233480177,
+                "sum": 65.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.2290748898678414,
+                  "upper": 0.34801762114537443,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_likelihood_avg_correct": {
+                "estimate": 0.3524229074889868,
+                "sum": 80.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.29515418502202645,
+                  "upper": 0.41409691629955947,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "open_correct": {
+                "estimate": 0.05286343612334802,
+                "sum": 12.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.02643171806167401,
+                  "upper": 0.08370044052863436,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "open_attempted": {
+                "estimate": 0.9955947136563876,
+                "sum": 226.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.986784140969163,
+                  "upper": 1.0,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              }
+            }
+          },
+          "paired_deltas_vs_baseline": {},
+          "paired_margin_deltas_vs_baseline": {},
+          "mc_open_interactions": {
+            "0.0": {
+              "counts": {
+                "mc_R__open_R": 8.5,
+                "mc_R__open_W": 90.5,
+                "mc_W__open_R": 3.5,
+                "mc_W__open_W": 124.5
+              },
+              "agreement_rate": {
+                "estimate": 0.5859030837004405,
+                "sum": 133.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.526431718061674,
+                  "upper": 0.6475770925110133,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              }
+            }
+          },
+          "flip_tables_vs_baseline": {},
+          "dataset": "truthfulqa",
+          "mc_endpoint": "truthfulqa_mc1",
+          "truthfulqa_leakage_metadata": {
+            "truthfulqa_artifact_split": "test",
+            "truthfulqa_seen_in_iti_fit": "false",
+            "truthfulqa_leakage_policy": "heldout_only"
+          }
+        }
+      }
+    },
+    "selected": {
+      "condition": "selected",
+      "summary_scope": "pooled_across_dataset_and_mc_endpoint",
+      "n_paired_items": 427,
+      "pairing_unit": "base_sample_id",
+      "n_rows_at_baseline": 854,
+      "alphas": [
+        0.0
+      ],
+      "baseline_alpha": 0.0,
+      "rates": {
+        "0.0": {
+          "mc_letter_likelihood_correct": {
+            "estimate": 0.5187353629976581,
+            "sum": 221.5,
+            "n": 427,
+            "ci": {
+              "lower": 0.47306791569086654,
+              "upper": 0.5620608899297423,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "mc_generated_letter_correct": {
+            "estimate": 0.5187353629976581,
+            "sum": 221.5,
+            "n": 427,
+            "ci": {
+              "lower": 0.47306791569086654,
+              "upper": 0.5620608899297423,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "mc_likelihood_full_correct": {
+            "estimate": 0.30679156908665106,
+            "sum": 131.0,
+            "n": 427,
+            "ci": {
+              "lower": 0.26229508196721313,
+              "upper": 0.34894613583138173,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "mc_likelihood_avg_correct": {
+            "estimate": 0.3395784543325527,
+            "sum": 145.0,
+            "n": 427,
+            "ci": {
+              "lower": 0.297423887587822,
+              "upper": 0.3840749414519906,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "open_correct": {
+            "estimate": 0.2154566744730679,
+            "sum": 92.0,
+            "n": 427,
+            "ci": {
+              "lower": 0.17798594847775176,
+              "upper": 0.25526932084309134,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          },
+          "open_attempted": {
+            "estimate": 0.9976580796252927,
+            "sum": 426.0,
+            "n": 427,
+            "ci": {
+              "lower": 0.9929742388758782,
+              "upper": 1.0,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          }
+        }
+      },
+      "paired_deltas_vs_baseline": {},
+      "paired_margin_deltas_vs_baseline": {},
+      "mc_open_interactions": {
+        "0.0": {
+          "counts": {
+            "mc_R__open_R": 74.5,
+            "mc_R__open_W": 147.0,
+            "mc_W__open_R": 17.5,
+            "mc_W__open_W": 188.0
+          },
+          "agreement_rate": {
+            "estimate": 0.6147540983606558,
+            "sum": 262.5,
+            "n": 427,
+            "ci": {
+              "lower": 0.572599531615925,
+              "upper": 0.65807962529274,
+              "level": 0.95,
+              "method": "bootstrap_percentile_item_grouped"
+            },
+            "bootstrap": {
+              "n_resamples": 2000,
+              "seed": 42,
+              "confidence": 0.95,
+              "resampling": "base_sample_id",
+              "interval": "percentile"
+            }
+          }
+        }
+      },
+      "flip_tables_vs_baseline": {},
+      "dataset_endpoint_summaries": {
+        "triviaqa_bridge::synthetic_mc1": {
+          "n_paired_items": 200,
+          "pairing_unit": "base_sample_id",
+          "n_rows_at_baseline": 400,
+          "alphas": [
+            0.0
+          ],
+          "baseline_alpha": 0.0,
+          "rates": {
+            "0.0": {
+              "mc_letter_likelihood_correct": {
+                "estimate": 0.6125,
+                "sum": 122.5,
+                "n": 200,
+                "ci": {
+                  "lower": 0.5499375000000002,
+                  "upper": 0.67,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_generated_letter_correct": {
+                "estimate": 0.6125,
+                "sum": 122.5,
+                "n": 200,
+                "ci": {
+                  "lower": 0.5499375000000002,
+                  "upper": 0.67,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_likelihood_full_correct": {
+                "estimate": 0.33,
+                "sum": 66.0,
+                "n": 200,
+                "ci": {
+                  "lower": 0.265,
+                  "upper": 0.4,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_likelihood_avg_correct": {
+                "estimate": 0.325,
+                "sum": 65.0,
+                "n": 200,
+                "ci": {
+                  "lower": 0.26,
+                  "upper": 0.395,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "open_correct": {
+                "estimate": 0.4,
+                "sum": 80.0,
+                "n": 200,
+                "ci": {
+                  "lower": 0.335,
+                  "upper": 0.47,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "open_attempted": {
+                "estimate": 1.0,
+                "sum": 200.0,
+                "n": 200,
+                "ci": {
+                  "lower": 1.0,
+                  "upper": 1.0,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              }
+            }
+          },
+          "paired_deltas_vs_baseline": {},
+          "paired_margin_deltas_vs_baseline": {},
+          "mc_open_interactions": {
+            "0.0": {
+              "counts": {
+                "mc_R__open_R": 66.0,
+                "mc_R__open_W": 56.5,
+                "mc_W__open_R": 14.0,
+                "mc_W__open_W": 63.5
+              },
+              "agreement_rate": {
+                "estimate": 0.6475,
+                "sum": 129.5,
+                "n": 200,
+                "ci": {
+                  "lower": 0.59,
+                  "upper": 0.705,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              }
+            }
+          },
+          "flip_tables_vs_baseline": {},
+          "dataset": "triviaqa_bridge",
+          "mc_endpoint": "synthetic_mc1"
+        },
+        "truthfulqa::truthfulqa_mc1::truthfulqa_artifact_split=test::truthfulqa_seen_in_iti_fit=false::truthfulqa_leakage_policy=heldout_only": {
+          "n_paired_items": 227,
+          "pairing_unit": "base_sample_id",
+          "n_rows_at_baseline": 454,
+          "alphas": [
+            0.0
+          ],
+          "baseline_alpha": 0.0,
+          "rates": {
+            "0.0": {
+              "mc_letter_likelihood_correct": {
+                "estimate": 0.43612334801762115,
+                "sum": 99.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.3766519823788546,
+                  "upper": 0.4956497797356825,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_generated_letter_correct": {
+                "estimate": 0.43612334801762115,
+                "sum": 99.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.3766519823788546,
+                  "upper": 0.4956497797356825,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_likelihood_full_correct": {
+                "estimate": 0.28634361233480177,
+                "sum": 65.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.2290748898678414,
+                  "upper": 0.34801762114537443,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "mc_likelihood_avg_correct": {
+                "estimate": 0.3524229074889868,
+                "sum": 80.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.29515418502202645,
+                  "upper": 0.41409691629955947,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "open_correct": {
+                "estimate": 0.05286343612334802,
+                "sum": 12.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.02643171806167401,
+                  "upper": 0.08370044052863436,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              },
+              "open_attempted": {
+                "estimate": 0.9955947136563876,
+                "sum": 226.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.986784140969163,
+                  "upper": 1.0,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              }
+            }
+          },
+          "paired_deltas_vs_baseline": {},
+          "paired_margin_deltas_vs_baseline": {},
+          "mc_open_interactions": {
+            "0.0": {
+              "counts": {
+                "mc_R__open_R": 8.5,
+                "mc_R__open_W": 90.5,
+                "mc_W__open_R": 3.5,
+                "mc_W__open_W": 124.5
+              },
+              "agreement_rate": {
+                "estimate": 0.5859030837004405,
+                "sum": 133.0,
+                "n": 227,
+                "ci": {
+                  "lower": 0.526431718061674,
+                  "upper": 0.6475770925110133,
+                  "level": 0.95,
+                  "method": "bootstrap_percentile_item_grouped"
+                },
+                "bootstrap": {
+                  "n_resamples": 2000,
+                  "seed": 42,
+                  "confidence": 0.95,
+                  "resampling": "base_sample_id",
+                  "interval": "percentile"
+                }
+              }
+            }
+          },
+          "flip_tables_vs_baseline": {},
+          "dataset": "truthfulqa",
+          "mc_endpoint": "truthfulqa_mc1",
+          "truthfulqa_leakage_metadata": {
+            "truthfulqa_artifact_split": "test",
+            "truthfulqa_seen_in_iti_fit": "false",
+            "truthfulqa_leakage_policy": "heldout_only"
+          }
+        }
+      }
+    }
+  },
+  "selected_minus_control_slopes": {},
+  "open_grading": {
+    "deterministic_alias_grader": {
+      "name": "deterministic_alias_grader",
+      "implementation": "triviaqa_bridge_alias_matcher",
+      "scope": "diagnostic_not_adjudicated",
+      "claim_requirement": "human_or_judge_adjudication_required_for_claimable_open_correctness"
+    },
+    "metric_correct": "open_correct",
+    "metric_attempted": "open_attempted",
+    "effective_grade_source_counts": {
+      "deterministic_alias": 1708
+    },
+    "adjudication": {
+      "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_noop_preflight_20260429/open_adjudication.jsonl",
+      "schema_version": "simid_open_adjudication/v1",
+      "judge_prompt_version": "simpleqa_verified_aliases/v1",
+      "prompt_builder": "evaluate_intervention.build_triviaqa_bridge_judge_messages",
+      "parser": "evaluate_intervention.parse_simpleqa_verdict",
+      "judge_grade_counts": {},
+      "n_valid": 0,
+      "n_unknown_or_error": 0,
+      "deterministic_vs_judge_disagreements": 0
+    },
+    "open_correctness_claim_contract": "diagnostic_only_until_judge_calibration_evidence_recorded",
+    "open_metrics_scope": "diagnostic_only",
+    "claimable_open_correctness": false,
+    "claimability_blocker": "judge_adjudication_not_loaded"
+  },
+  "alias_audit_queue": {
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_noop_preflight_20260429/alias_audit_queue.jsonl",
+    "n": 2154
+  },
+  "bootstrap": {
+    "n_resamples": 2000,
+    "seed": 42,
+    "confidence": 0.95
+  },
+  "phase0_gates": {
+    "noop_equivalence": {
+      "passed": true
+    },
+    "bridge_synthetic_mc_sanity": {
+      "passed": true,
+      "observed_rate": 0.6125,
+      "random_rate": 0.25,
+      "n_base_items": 200,
+      "replicate_policy": "mean_within_base_sample_id"
+    },
+    "bridge_option_order_stability": {
+      "passed": true,
+      "replicate_rates": {
+        "ord:0": 0.615,
+        "ord:1": 0.61
+      },
+      "global_max_rate_spread": 0.0050000000000000044,
+      "max_rate_spread": 0.0050000000000000044,
+      "item_flip_count": 33,
+      "item_flip_rate": 0.165,
+      "item_flip_base_sample_ids": [
+        "simid_bridge_odql_1087",
+        "simid_bridge_odql_12415",
+        "simid_bridge_odql_13356",
+        "simid_bridge_odql_14594",
+        "simid_bridge_odql_1925",
+        "simid_bridge_odql_257",
+        "simid_bridge_odql_5788",
+        "simid_bridge_odql_6602",
+        "simid_bridge_odql_6763",
+        "simid_bridge_odql_8669",
+        "simid_bridge_odql_8694",
+        "simid_bridge_qb_1414",
+        "simid_bridge_qb_4795",
+        "simid_bridge_qb_712",
+        "simid_bridge_qb_7255",
+        "simid_bridge_qb_8261",
+        "simid_bridge_qb_9425",
+        "simid_bridge_qb_9518",
+        "simid_bridge_qb_9820",
+        "simid_bridge_qf_1683",
+        "simid_bridge_qf_487",
+        "simid_bridge_qg_1729",
+        "simid_bridge_qg_1800",
+        "simid_bridge_qg_3389",
+        "simid_bridge_qg_3411",
+        "simid_bridge_qg_3884",
+        "simid_bridge_qw_13558",
+        "simid_bridge_qw_14082",
+        "simid_bridge_qw_15057",
+        "simid_bridge_qw_15255",
+        "simid_bridge_qw_16546",
+        "simid_bridge_qw_5425",
+        "simid_bridge_qw_658"
+      ],
+      "chosen_letter_distribution": {
+        "counts": {
+          "A": 109,
+          "B": 109,
+          "C": 94,
+          "D": 88
+        },
+        "n_rows": 400
+      },
+      "gold_position_correctness": {
+        "positions": {
+          "0": {
+            "n": 104,
+            "correct": 63,
+            "rate": 0.6057692307692307
+          },
+          "1": {
+            "n": 92,
+            "correct": 62,
+            "rate": 0.6739130434782609
+          },
+          "2": {
+            "n": 101,
+            "correct": 59,
+            "rate": 0.5841584158415841
+          },
+          "3": {
+            "n": 103,
+            "correct": 61,
+            "rate": 0.5922330097087378
+          }
+        },
+        "n_rows": 400,
+        "n_options_values": [
+          4
+        ],
+        "rate_unit": "mc_letter_likelihood_correct"
+      },
+      "expected_replicates": [
+        0,
+        1
+      ],
+      "n_base_items": 200,
+      "n_rows": 400,
+      "threshold": 0.25,
+      "rate_unit": "mc_letter_likelihood_correct"
+    },
+    "bridge_gold_position_balance": {
+      "passed": true,
+      "counts": {
+        "0": 104,
+        "1": 92,
+        "2": 101,
+        "3": 103
+      },
+      "n_rows": 400,
+      "n_options": 4,
+      "max_abs_deviation_share": 0.02,
+      "threshold": 0.2,
+      "small_n_leniency": false
+    },
+    "bridge_option_length_balance": {
+      "passed": true,
+      "mean_gold_minus_distractor_word_length": -0.04333333333333333,
+      "n_rows": 400,
+      "threshold_abs_words": 0.75
+    },
+    "bridge_open_margin_alignment": {
+      "passed": true,
+      "correct_mean_open_full_margin": 62.03027115,
+      "incorrect_mean_open_full_margin": -20.294080025000003,
+      "n_correct": 160,
+      "n_incorrect": 240
+    }
+  }
+}
