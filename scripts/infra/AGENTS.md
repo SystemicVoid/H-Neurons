@@ -68,7 +68,7 @@ Minimal wrapper pattern:
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons"
+PROJECT_DIR="${PROJECT_DIR:-/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons}"
 # shellcheck source=scripts/lib/inhibit_suspend.sh
 source "${PROJECT_DIR}/scripts/lib/inhibit_suspend.sh"
 inhibit_suspend "<pipeline name>" "$@"

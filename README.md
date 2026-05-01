@@ -78,7 +78,7 @@ If you need the original forked-paper examples, start with [`data/original_paper
 - [`tests/`](tests/) - regression coverage for pipeline guards, reporting, evaluation, and exports
 - [`papers/`](papers/) - local paper corpus, H-neurons reference materials, and literature notes
 
-For the current committed data layout, also see [`docs/archive/project-structure.md`](docs/archive/project-structure.md).
+For the current committed data layout, also see [`data/AGENTS.md`](data/AGENTS.md).
 
 ## Measurement and Reproducibility
 
@@ -102,7 +102,6 @@ This repo still contains the upstream H-neurons lineage:
 
 Current project-facing reading order:
 
-- [`notes/2026-04-21-claim-framing-governance.md`](notes/2026-04-21-claim-framing-governance.md)
 - [`notes/measurement-blueprint.md`](notes/measurement-blueprint.md)
 - [`notes/research-log.md`](notes/research-log.md)
 - [`notes/icml/reports/`](notes/icml/reports/)
