@@ -1,0 +1,160 @@
+{
+  "alphas_sampled": [
+    0.0,
+    8.0
+  ],
+  "authority_manifest": {
+    "content_sha256": "6a7f7ef92ef2eeabef09f0c633f5ae1cc54c38eea9ec4d137e5a939388074d8a",
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/effect_run_manifest.json"
+  },
+  "blind_row_field_whitelist": [
+    "blind_case_id",
+    "review_order",
+    "question",
+    "gold_aliases",
+    "predicted_answer",
+    "schema_version"
+  ],
+  "condition_families_sampled": [
+    "selected",
+    "random_head",
+    "random_direction"
+  ],
+  "created_at_utc": "2026-05-02T12:21:47+00:00",
+  "datasets_sampled": [
+    "truthfulqa",
+    "triviaqa_bridge"
+  ],
+  "frozen_rubric": {
+    "content_sha256": "80f9baf09d757a9296c931b6973e633571974411e3ec421e6b512dba53df6f6f",
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429/opus47_canary_200_blind_labels/rubric.md",
+    "source_path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/rubric.md",
+    "version": "simid_open_grading_rubric_prospective_20260429/v1"
+  },
+  "guarantees": [
+    "no outcome analysis performed during canary build",
+    "no comparison of selected vs control conditions",
+    "no inspection of mc/open accuracy summaries",
+    "rubric copied verbatim and hash-bound to source frozen rubric",
+    "blind rows contain only whitelisted fields"
+  ],
+  "is_canary": true,
+  "is_claim_bearing": false,
+  "label_output": {
+    "expected_row_count": 200,
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429/opus47_canary_200_blind_labels/prospective_open_labels_opus47_canary.jsonl"
+  },
+  "label_schema": {
+    "content_sha256": "26262b012d407103f46439f4183407d89ae2bb7c913ce6d965c7e31c486a292a",
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429/opus47_canary_200_blind_labels/label_schema.json",
+    "schema_version": "simid_prospective_effect_open_label/v1"
+  },
+  "private_case_map": {
+    "content_sha256": "31c3c4cbbd8a28bdbeb819f99446f81d85e6d581e4773d7c34b4f26279958ef7",
+    "must_not_be_shared_with_raters": true,
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429/opus47_canary_200_blind_labels/private_case_map.jsonl",
+    "row_count": 200
+  },
+  "purpose": "Pipeline / rubric / cost-risk canary for Opus 4.7 max adjudication on the prospective SIMID effect run. Strictly blind, append-only, no outcome analysis.",
+  "rater_intent": {
+    "blinded_to": [
+      "condition",
+      "alpha",
+      "dataset",
+      "sample_id",
+      "base_sample_id",
+      "private_case_map",
+      "deterministic_open_grade",
+      "existing_adjudication_labels"
+    ],
+    "effort": "max",
+    "model": "claude-opus-4.7",
+    "type": "llm"
+  },
+  "review_cases_blind": {
+    "content_sha256": "0592dfbc63d31e7fbd5c9d88c1809d876136292aa1f327107f37ec040e44b734",
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429/opus47_canary_200_blind_labels/review_cases_blind.jsonl",
+    "row_count": 200,
+    "schema_version": "simid_prospective_open_canary_case/v1"
+  },
+  "run_dir": {
+    "path": "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429"
+  },
+  "schema_version": "simid_prospective_open_canary_gate/v1",
+  "seed": 20260502,
+  "stratum_design": [
+    {
+      "alpha": 0.0,
+      "condition_family": "random_direction",
+      "dataset": "triviaqa_bridge",
+      "target_n": 17
+    },
+    {
+      "alpha": 8.0,
+      "condition_family": "random_direction",
+      "dataset": "triviaqa_bridge",
+      "target_n": 17
+    },
+    {
+      "alpha": 0.0,
+      "condition_family": "random_head",
+      "dataset": "triviaqa_bridge",
+      "target_n": 17
+    },
+    {
+      "alpha": 8.0,
+      "condition_family": "random_head",
+      "dataset": "triviaqa_bridge",
+      "target_n": 17
+    },
+    {
+      "alpha": 0.0,
+      "condition_family": "selected",
+      "dataset": "triviaqa_bridge",
+      "target_n": 17
+    },
+    {
+      "alpha": 8.0,
+      "condition_family": "selected",
+      "dataset": "triviaqa_bridge",
+      "target_n": 17
+    },
+    {
+      "alpha": 0.0,
+      "condition_family": "random_direction",
+      "dataset": "truthfulqa",
+      "target_n": 17
+    },
+    {
+      "alpha": 8.0,
+      "condition_family": "random_direction",
+      "dataset": "truthfulqa",
+      "target_n": 17
+    },
+    {
+      "alpha": 0.0,
+      "condition_family": "random_head",
+      "dataset": "truthfulqa",
+      "target_n": 16
+    },
+    {
+      "alpha": 8.0,
+      "condition_family": "random_head",
+      "dataset": "truthfulqa",
+      "target_n": 16
+    },
+    {
+      "alpha": 0.0,
+      "condition_family": "selected",
+      "dataset": "truthfulqa",
+      "target_n": 16
+    },
+    {
+      "alpha": 8.0,
+      "condition_family": "selected",
+      "dataset": "truthfulqa",
+      "target_n": 16
+    }
+  ],
+  "total_n": 200
+}

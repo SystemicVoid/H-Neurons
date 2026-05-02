@@ -1,0 +1,100 @@
+{
+  "$id": "simid_prospective_open_canary_label.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "blind_case_id": {
+      "pattern": "^simid_prosp_open_canary_blind_[0-9a-f]+$",
+      "type": "string"
+    },
+    "blind_cases_file_sha256": {
+      "const": "0592dfbc63d31e7fbd5c9d88c1809d876136292aa1f327107f37ec040e44b734"
+    },
+    "confidence": {
+      "maximum": 5,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "flags": {
+      "items": {
+        "enum": [
+          "bridge_partial_entity_or_modifier",
+          "truthfulqa_non_answer_boundary",
+          "truthfulqa_qualified_answer_boundary",
+          "wrong_extra_answer",
+          "multiple_candidates_no_commitment",
+          "alias_too_broad_or_too_narrow",
+          "malformed_case",
+          "other_boundary"
+        ],
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "label": {
+      "enum": [
+        "CORRECT",
+        "INCORRECT",
+        "NOT_ATTEMPTED"
+      ],
+      "type": "string"
+    },
+    "labeled_at_utc": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "rater": {
+      "additionalProperties": true,
+      "properties": {
+        "effort": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "review_order": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "rubric_sha256": {
+      "const": "80f9baf09d757a9296c931b6973e633571974411e3ec421e6b512dba53df6f6f"
+    },
+    "rule_gap": {
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "simid_prospective_effect_open_label/v1"
+    }
+  },
+  "required": [
+    "schema_version",
+    "blind_case_id",
+    "review_order",
+    "label",
+    "confidence",
+    "rule_gap",
+    "flags",
+    "notes",
+    "rater",
+    "blind_cases_file_sha256",
+    "rubric_sha256",
+    "labeled_at_utc"
+  ],
+  "title": "SIMID Prospective Open Effect Canary Label",
+  "type": "object"
+}
