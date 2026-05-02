@@ -563,15 +563,15 @@ The [Clarity template](https://github.com/lorenmt/clarity-template) is worth kee
 
 - Clarity is optimized for a polished single project page or research article.
 - This repo already has a multi-page site with differentiated roles:
-  [`index.html`](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/site/index.html),
-  [`story.html`](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/site/story.html),
-  [`results/gemma-3-4b.html`](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/site/results/gemma-3-4b.html),
-  [`methods.html`](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/site/methods.html),
+  [`index.html`](index.html),
+  [`story.html`](story.html),
+  [`results/gemma-3-4b.html`](results/gemma-3-4b.html),
+  [`methods.html`](methods.html),
   and the two deep dives.
 - The current technical constraint is data drift, not lack of visual polish.
 - The current site already has custom data hydration and chart wiring in
-  [`shared.js`](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/site/assets/shared.js)
-  and [`charts.js`](/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/site/assets/charts.js).
+  [`shared.js`](assets/shared.js)
+  and [`charts.js`](assets/charts.js).
 - A wholesale Clarity migration would likely add integration work without solving the main maintenance problem.
 
 ### Tradeoffs vs current approach
@@ -610,23 +610,3 @@ What remains is now a narrower maintenance queue, not a vague migration backlog:
 
 In short: the site no longer needs a scaling plan.
 It needs a maintenance model.
-
-
-Goal: Find world-class progressive disclosure UX/UI pattern that allows zooming in on evidence without breaking the flow of navigation
-
-A: 
-Click “Show evidence”
-expands in place with metrics, table, CI, provenance, maybe a mini chart
-
-
-
-Option B — best long-term polished version
-
-Right-side evidence drawer
-
-click “Inspect”
-a side panel opens with the deeper table / diagnostic breakdown
-main page stays visible underneath
-ideal if you want “mentor mode” without leaving the flow
-
-C: ? 
