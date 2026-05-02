@@ -38,4 +38,3 @@ Dataset / MC endpoint strata (TruthfulQA leakage split when available):
 - bridge_gold_position_balance: PASS
 - bridge_option_length_balance: PASS
 - bridge_open_margin_alignment: PASS
-
