@@ -7,7 +7,7 @@ Cross-run tracker for the documentation-gardening routine. Updated at the end of
 - **Date**: 2026-05-02
 - **Base commit**: `3243234` (origin/main)
 - **Branch**: `docs/daily-garden-20260502-3243234`
-- **PR**: TBD
+- **PR**: `#10`
 - **Focus area**: `site/` first audit (absolute-path fix + scratchpad removal in
   `site-maintenance-model.md`); README.md stale Mistral critical-path status
 
@@ -40,12 +40,12 @@ Key changes since last garden: none new since `3243234`; all 2026-04-30 commits
 ### Checks Run
 
 - `git diff --check`: passed (no trailing whitespace).
-- Python link-checker: all relative links in `README.md` resolve to committed paths (33/33 OK).
+- Python link-checker: 36 README links checked; all resolve to committed paths (36/36 OK).
 - Verified all new relative links in `site/site-maintenance-model.md` resolve from `site/`
   (`index.html`, `story.html`, `results/gemma-3-4b.html`, `methods.html`,
   `assets/shared.js`, `assets/charts.js` — all confirmed present).
-- `prek` not available in this environment (not on PATH).
-- Did not touch Python or CI manifest; `audit_ci_coverage.py` not applicable this run.
+- `prek run --files README.md docs/doc-gardening-state.md site/site-maintenance-model.md`: passed.
+- `uv run python scripts/audit_ci_coverage.py`: passed.
 - Did not stage anything under `data/`; `active-run-status` not required.
 
 ### Stale Info Removed
