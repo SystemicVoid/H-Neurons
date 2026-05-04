@@ -41,6 +41,7 @@ RUN apt-get update \
         git \
         openssh-server \
         pigz \
+        ripgrep \
         rsync \
         tmux \
  && rm -rf /var/lib/apt/lists/* \

@@ -11,7 +11,7 @@ cloud_type = "SECURE"
 # Private template `h-neurons-runpod-private`; update it after each image bake.
 template_id = "v88hqzvuxk"
 expected_image_repository = "ghcr.io/systemicvoid/h-neurons-runpod"
-expected_image_digest = "sha256:15c9114da2420086a83ff85f261d07427e60ffd62835a177e587c3f2e431508e"
+expected_image_digest = "sha256:61f62465337c017c010948a0d0598f5e9fb368c1ce2fd3a3c8d26c0a0b6c5224"
 gpu_id = "NVIDIA GeForce RTX 5090"
 gpu_count = 1
 container_disk_gb = 50
