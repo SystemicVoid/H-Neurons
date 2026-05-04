@@ -415,6 +415,7 @@ Markdown: [./steering-vectors-reliability-2407.12404.md](./steering-vectors-reli
 PDF: [./steering-vectors-reliability-2407.12404.pdf](./steering-vectors-reliability-2407.12404.pdf)
 
 Abstract: Rigorously investigates steering vector reliability on 40 MWE datasets. Shows in-distribution steerability is highly variable; spurious biases substantially contribute; steerability is mostly a property of the dataset. Out-of-distribution, SVs are brittle to prompt changes for several concepts. Key evidence that steering success is often surface-local.
+Useful refs for SIMID framing: L39-L45 motivate prompt/OOD generalisation checks; L105-L119 document high per-input variance, anti-steerability, and spurious answer-position/token biases that make aggregate steering gains insufficient without paired flip/control audits.
 
 </details>
 
