@@ -4,6 +4,50 @@
 
 ---
 
+## 2026-05-03 (SIMID prospective partial external-label review)
+
+### What I did
+
+Reviewed the unstaged partial external-label package for the completed SIMID
+prospective effect run:
+`selected` / `truthfulqa` / alpha `0.0` versus `8.0` under
+`data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429/`.
+Wrote the canonical review at
+[`paper/icml/reports/2026-05-03-simid-prospective-partial-external-label-review.md`](../paper/icml/reports/2026-05-03-simid-prospective-partial-external-label-review.md),
+then updated the measurement blueprint, the 2026-04-28 SIMID calibration review,
+and the post-CP5 ICML strategy synthesis to point at that single source of
+truth.
+
+### What I expected vs what happened
+
+Expected the highest-ROI slice to decide whether full r2 labeling was still
+worth pursuing. The package passes internal integrity checks for its partial
+scope: 908 labels, 454 paired sample IDs, complete private-map/run-row hash
+matches, no blind leakage, and 0 rule gaps. But the primary open-correctness
+gate fails: external open correctness is 155/454 = 34.14% at alpha 0 and
+173/454 = 38.11% at alpha 8, paired delta +3.96 pp with 95% CI
+[-1.98, +9.91], below the pre-specified +5 pp minimum and with CI crossing 0.
+The same selected TruthfulQA slice also shows MC letter-likelihood degradation:
+198/454 to 184/454, delta -3.08 pp with 95% CI [-5.95, -0.66].
+
+### What this changes about my thinking
+
+SIMID r2 should not be promoted into the ICML claim set. The external labels
+are useful descriptively, and they weakly suggest alpha 8 makes the model more
+cautious, but the evidence does not support a truthfulness-improvement claim:
+the effect is underpowered relative to the frozen gate, attempt rate drops by
+about 8.6 pp, MC worsens on the same scope, and the package is partial,
+LLM-rater-only, and intentionally incompatible with the canonical full
+claim-bearing loader.
+
+### What I will do next
+
+Keep the completed parent run in `notes/runs_to_analyse.md` until the full
+parent/control evidence is either reviewed or explicitly abandoned. Do not spend
+more labels for claim rescue unless the rater-policy mismatch and full-package
+schema are resolved first; any continuation should be diagnostic, focused on
+TruthfulQA qualified-answer/non-answer boundary cases and the MC/open tradeoff.
+
 ## 2026-05-01
 
 - Wrote canonical post-CP5 ICML strategy synthesis v2 at [`paper/icml/reports/2026-05-01-post-cp5-icml-strategy-synthesis-v2.md`](../paper/icml/reports/2026-05-01-post-cp5-icml-strategy-synthesis-v2.md) and moved superseded R1/R2/v1 strategy drafts to `notes/research-directions/`.

@@ -5,4 +5,8 @@ This file is a queue for runs that still need analysis. Any analysed runs must b
 ## 2026-05-02T11:13:57+00:00 | data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429
 What: SIMID prospective effect calibrated open Gemma 3 4B resume
 Key files: results.json, *.provenance.json
-Status: awaiting analysis
+Status: full parent/control analysis still pending. The unstaged partial
+`selected` / `truthfulqa` / alpha 0/8 external-label package has been reviewed
+in `paper/icml/reports/2026-05-03-simid-prospective-partial-external-label-review.md`;
+do not remove this queue entry until the remaining parent run evidence is
+reviewed or explicitly abandoned.

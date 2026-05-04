@@ -92,6 +92,18 @@ for selected alpha=8 versus alpha=0 under the calibrated rubric. This is a
 planning/claimability gate for a future run only; it still does not upgrade
 historical MVP open-correctness metrics.
 
+Update after partial prospective effect labels: the 2026-05-03 review of
+`prospective_effect_calibrated_open_20260429/external_open_label_package_selected_truthfulqa_alpha_0_8/`
+found that the selected/TruthfulQA alpha 8 versus alpha 0 partial Opus package
+is internally hash-bound and useful, but not claim-bearing. External open
+correctness was +3.96 pp with 95% CI [-1.98, +9.91], below the r2 +5 pp and
+lower-CI-positive primary gate; same-scope MC letter accuracy was -3.08 pp
+[-5.95, -0.66], and attempted rate was -8.59 pp [-13.44, -3.74]. The package
+is partial, not canonical-loader-compatible, and lacks external labels for
+controls and Bridge. Use
+[2026-05-03-simid-prospective-partial-external-label-review.md](./2026-05-03-simid-prospective-partial-external-label-review.md)
+for the current prospective-effect early-look status.
+
 ## Data Authority
 
 | Artifact | Path |
@@ -119,6 +131,7 @@ historical MVP open-correctness metrics.
 | Prospective human analysis | `human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_20260429.json` |
 | Prospective SIMID effect-run gate package (superseded diagnostic) | `human_review_package/prospective_effect_run_gate_20260429/` |
 | Prospective SIMID effect-run gate r2 package | `human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/` |
+| Prospective partial external-label review | `paper/icml/reports/2026-05-03-simid-prospective-partial-external-label-review.md` |
 
 Important artifact-status note: `results_adjudicated.json` and
 `report_adjudicated.md` were generated before the calibration pass and still
