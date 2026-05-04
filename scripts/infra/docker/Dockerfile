@@ -41,6 +41,7 @@ RUN apt-get update \
         git \
         openssh-server \
         pigz \
+        python-is-python3 \
         ripgrep \
         rsync \
         tmux \
