@@ -1,0 +1,186 @@
+All 13 rows verified: confidences are integers, labels are from the valid enum, flags use only the closed enum, constants match, blind_case_ids and review_order preserved.
+
+ACK chunk_001 13
+All 13 rows present with correct schema, constants, integer confidences, valid flags, and matching review_order/blind_case_id.
+
+ACK chunk_002 13
+All 13 rows validated: row count matches, blind_case_id and review_order preserved in input order, every confidence is an integer in [1,5], all flags are from the closed enum, all constants match required values, all timestamps end in Z, and rater matches exactly.
+
+ACK chunk_003 13
+ACK chunk_004 13
+Schema validation passes; 13 rows with 13 unique blind_case_ids and review_orders, all confidences are integers, all rule_gap booleans.
+
+ACK chunk_005 13
+All 13 rows validated: schema, constants, integer confidence, allowed labels and flags, rater identity, and blind_case_id/review_order alignment with the input.
+
+ACK chunk_006 13
+All 13 rows pass validation: row count matches, every confidence is an integer 1–5, every row preserves blind_case_id and review_order, all schema constants and the closed flag enum are satisfied, and the rater object is exact.
+
+ACK chunk_007 13
+All 13 rows validated: ids preserved, constants correct, integer confidences, allowed labels and flags, no extra fields.
+
+ACK chunk_008 13
+All 13 rows validated: schema constants correct, labels in enum, integer confidences, valid flags, blind_case_id and review_order preserved in input order.
+
+ACK chunk_009 13
+Output validated: 13 rows, all schema constraints satisfied (required keys, integer confidences, allowed flags, correct constants, rater object, ISO-8601 Z timestamps).
+
+ACK chunk_010 13
+All 13 rows pass validation: row count matches, all required keys present, no extras, all constants correct, all confidences are integers, all flags from the closed enum, and rater object exact-matches.
+
+ACK chunk_011 13
+All 13 rows validated: required keys present, constants match, labels in enum, confidences are integers, flags from closed enum, timestamps Z-suffixed, rater struct exact.
+
+ACK chunk_012 13
+All 13 rows validate against the schema with the required constants, valid flags, integer confidences, and matching blind_case_id/review_order pairs from the input.
+
+ACK chunk_013 13
+All 13 rows validate against the schema, blind_case_id/review_order pairs match the input order, and all confidence values are integers.
+
+ACK chunk_014 13
+All 13 rows validated: schema constants, integer confidence, allowed labels/flags, preserved blind_case_id and review_order.
+
+ACK chunk_015 13
+All 13 rows validate against the schema and required constants.
+
+ACK chunk_016 13
+Row count matches (13), all rows pass schema validation, all confidences are integers, blind_case_ids and review_orders are preserved, and constants/rater are correct.
+
+ACK chunk_017 13
+Validation passed: 13 rows, all schema/constants correct, IDs and review_orders aligned with input.
+
+ACK chunk_018 13
+Row count matches (13 = 13), all schema constants match, all confidences are integers, all flags use the closed enum, all rater objects exact, all timestamps end with Z.
+
+ACK chunk_019 13
+All 13 rows validated: row count matches input, all confidences are integers, all required fields and constants present, all flags drawn from the closed enum, all timestamps end with `Z`.
+
+ACK chunk_020 13
+All 13 rows validated: review_orders match input (269–281), all confidences are integers 1–5, all labels are in the allowed enum, all flags are in the closed set, and all constants/rater/timestamp formats are correct.
+
+ACK chunk_021 13
+All 13 rows validated against the schema, IDs and review_order match the input, and all constants are correct.
+
+ACK chunk_022 13
+ACK chunk_023 13
+All 13 rows pass schema validation, blind_case_id and review_order match the input, all confidences are integers, and all constants are correct.
+
+ACK chunk_024 13
+All 13 rows validated against schema and constants.
+
+ACK chunk_025 13
+All 13 rows validate against the schema and constants.
+
+ACK chunk_026 13
+All 13 rows validated: blind_case_id and review_order preserved, all constants match, labels and confidence integers are valid, flags are within the closed enum, rater is exact.
+
+ACK chunk_027 13
+ACK chunk_028 13
+Schema-valid, row counts match, IDs and order preserved, confidences are integers, rule_gap is bool, timestamps end in Z.
+
+ACK chunk_029 13
+All 13 rows validated against schema and constants.
+
+ACK chunk_030 13
+All 13 rows validated: schema constants, blind_case_id/review_order preservation, integer confidence, closed-enum flags, boolean rule_gap, exact rater object, no extra fields, and ISO-8601 UTC timestamps.
+
+ACK chunk_031 13
+All 13 rows validated against the schema, IDs and review_order preserved, every confidence is an integer, every rule_gap is boolean, and constants match.
+
+ACK chunk_032 13
+All 13 rows validate against the schema, blind_case_ids and review_orders are preserved in input order, all confidences are integers, and all rule_gap values are booleans.
+
+ACK chunk_033 13
+ACK chunk_034 13
+All 13 rows validated successfully — schema, constants, label/flag enums, integer confidences, and rater identity all match.
+
+ACK chunk_035 13
+All 13 rows validate against the schema and constants.
+
+ACK chunk_036 13
+All 13 rows validated: keys, constants, label enum, integer confidences, boolean rule_gap, allowed flags, ISO-8601 UTC timestamps, exact rater object, and blind_case_id/review_order match the input.
+
+ACK chunk_037 13
+All 13 rows validated: keys match the schema exactly, constants are correct, confidence values are integers, flags are from the closed enum, and rater object matches.
+
+ACK chunk_038 13
+All 13 rows validated: keys, constants, label/flag enums, integer confidences (1–5), boolean rule_gap, ISO-8601 UTC timestamps, and exact rater object all conform.
+
+ACK chunk_039 13
+Output file validated: 13 rows, all rows pass schema validation with correct constants, integer confidences, valid flags, and matching blind_case_id/review_order from input.
+
+ACK chunk_040 13
+All 13 rows are present. Each has correct schema_version, sha256 hashes, valid labels, integer confidences (1-5), boolean rule_gap, valid flag enums, notes, ISO-8601 UTC timestamps, and the required rater object. blind_case_ids and review_orders match the input. No extra fields.
+
+ACK chunk_041 13
+All 13 rows validated: schema fields, constants, integer confidences, allowed flags, blind_case_id and review_order alignment with input.
+
+ACK chunk_042 13
+All 13 rows validate against the schema and constants.
+
+ACK chunk_043 13
+All 13 rows validated: schema, constants, label enum, integer confidence, boolean rule_gap, allowed flags, exact rater, and ISO-8601 Z timestamp. IDs and review_order match the input.
+
+ACK chunk_044 13
+All 13 rows validated against the schema and constants.
+
+ACK chunk_045 13
+ACK chunk_046 13
+ACK chunk_047 13
+All 13 rows validate cleanly: keys, constants, label/confidence/flag enums, rater object, and blind_case_id↔review_order pairings all match.
+
+ACK chunk_048 13
+All 13 rows validate against the schema; IDs and review_orders match input order; confidences are integers; constants and rater field are correct.
+
+ACK chunk_049 13
+All 13 rows validated: schema constants match, confidences are integers, flags are within the closed enum, blind_case_id/review_order preserved.
+
+ACK chunk_050 13
+Validation passes: 13 rows, all required keys, label/flags/confidence valid, sha constants match.
+
+ACK chunk_051 13
+All 13 rows validated: schema, constants, flag enum, integer confidences, label enum, blind_case_id format, and ordering match the input.
+
+ACK chunk_052 13
+Row count matches (13), all confidences are integers, all rows satisfy schema constants and field requirements, review_order preserved.
+
+ACK chunk_053 13
+All 13 rows match the input count, schema, and constants.
+
+ACK chunk_054 13
+ACK chunk_055 13
+All 13 rows validated against schema constants, label/confidence/flag enums, and required keys.
+
+ACK chunk_056 13
+ACK chunk_057 13
+All 13 rows validated against the schema and constants.
+
+ACK chunk_058 13
+All 13 rows present, all confidences are integers, all schema constants match, and every row contains required fields with valid enum values.
+
+ACK chunk_059 13
+All 13 rows validated: schema fields, constants, label/flag enums, integer confidence, boolean rule_gap, and matching blind_case_id/review_order to the input chunk.
+
+ACK chunk_060 13
+All 12 rows validated: row count matches input, every confidence is an integer in [1,5], all required fields present with no extras, all constants/enums correct, all timestamps end in `Z`, and review_order/blind_case_id preserved.
+
+ACK chunk_061 12
+All 12 rows validate, blind_case_ids and review_order preserved, confidences are integers, rule_gap booleans, labeled_at_utc ends with Z, no schema errors.
+
+ACK chunk_062 12
+All 12 rows validated: schema-compliant, correct hashes, integer confidences, allowed flags only, and review_orders preserved.
+
+ACK chunk_063 12
+ACK chunk_064 12
+All 12 rows validated against the schema and constants. Row count matches input, all confidences are integers in [1,5], all flags from the closed enum, all required fields present and no extras, rater object matches exactly, and timestamps end in `Z`.
+
+ACK chunk_065 12
+Validation passes: 12 rows, all schema fields correct, integer confidences, allowed labels/flags, blind_case_id and review_order preserved in input order.
+
+ACK chunk_066 12
+All 12 rows validated against the schema and constants.
+
+ACK chunk_067 12
+Row count matches (12), all schema constants and types validated.
+
+ACK chunk_068 12

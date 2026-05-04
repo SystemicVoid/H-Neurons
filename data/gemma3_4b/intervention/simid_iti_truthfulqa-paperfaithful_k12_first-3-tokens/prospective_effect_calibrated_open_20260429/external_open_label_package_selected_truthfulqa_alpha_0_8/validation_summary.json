@@ -1,0 +1,14 @@
+{
+  "new_label_row_count": 876,
+  "paired_base_sample_id_clusters": 227,
+  "paired_sample_count": 454,
+  "reused_canary_row_count": 32,
+  "review_order_range": [
+    1,
+    908
+  ],
+  "rule_gap_count": 0,
+  "scope_row_count": 908,
+  "status": "PASS",
+  "validation_errors": []
+}

@@ -1,0 +1,74 @@
+{
+  "ci_method": {
+    "confidence_level": 0.95,
+    "name": "paired_cluster_bootstrap_percentile",
+    "paired_within_cluster_unit": "sample_id",
+    "rationale": "Cluster resampling keeps the two option-order replicates for each TruthfulQA base_sample_id together, matching the dependence structure while still estimating the paired alpha=8 minus alpha=0 delta over all 454 paired sample_id rows.",
+    "resamples": 10000,
+    "seed": 20260520,
+    "unit": "base_sample_id cluster"
+  },
+  "controls_not_satisfied": [
+    "selected_exceeds_random_direction",
+    "selected_exceeds_random_head",
+    "mc_degradation_blocker",
+    "attempt_shift_blocker (only partially informed by attempted delta here)"
+  ],
+  "gate_1_read": "Gate 1 does not yet clear the manifest rule on this partial package.",
+  "histograms": {
+    "confidence": {
+      "2": 23,
+      "3": 141,
+      "4": 236,
+      "5": 508
+    },
+    "flags": {
+      "alias_too_broad_or_too_narrow": 22,
+      "bridge_partial_entity_or_modifier": 10,
+      "multiple_candidates_no_commitment": 4,
+      "other_boundary": 31,
+      "truthfulqa_non_answer_boundary": 88,
+      "truthfulqa_qualified_answer_boundary": 283,
+      "wrong_extra_answer": 107
+    },
+    "label": {
+      "CORRECT": 328,
+      "INCORRECT": 473,
+      "NOT_ATTEMPTED": 107
+    }
+  },
+  "metrics": {
+    "attempted": {
+      "alpha_0_rate": 0.9251101321585903,
+      "alpha_8_rate": 0.8392070484581498,
+      "ci_95": [
+        -0.1343612334801762,
+        -0.037444933920704845
+      ],
+      "paired_delta_alpha8_minus_alpha0": -0.08590308370044053
+    },
+    "correctness": {
+      "alpha_0_rate": 0.34140969162995594,
+      "alpha_8_rate": 0.381057268722467,
+      "ci_95": [
+        -0.019823788546255508,
+        0.09911894273127753
+      ],
+      "gate_1_rule": "selected alpha=8 minus selected alpha=0 paired external-label open-correctness delta has lower 95% CI > 0 and point estimate >= +5 pp",
+      "paired_delta_alpha8_minus_alpha0": 0.039647577092511016
+    }
+  },
+  "rule_gap_count": 0,
+  "schema_version": "simid_prospective_open_external_partial_early_look/v1",
+  "scope": {
+    "alphas": [
+      0.0,
+      8.0
+    ],
+    "condition": "selected",
+    "dataset": "truthfulqa",
+    "paired_base_sample_id_clusters": 227,
+    "paired_sample_count": 454,
+    "row_count": 908
+  }
+}
