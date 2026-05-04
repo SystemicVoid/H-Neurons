@@ -342,6 +342,25 @@ References: [network volumes](https://docs.runpod.io/storage/network-volumes), [
 - Stage git bundles through a private Hugging Face dataset rather than direct
   `rsync`/`scp`; direct ingress was throttled to single-digit KB/s, while HF Hub
   hit about 18 MB/s on the same pod.
+- The 2026-05-04 Mistral anchor 3 H100 launch exposed a network-volume setup
+  trap: a persisted `/workspace/02-h-neurons` checkout can be stale, dirty, and
+  paired with a broken in-repo `.venv`. Do not launch from a repo while
+  `rsync --delete` is still replacing it unless the output root is outside that
+  repo and critical file hashes already match. For RunPod volume mirrors, use
+  `--no-owner --no-group --no-perms`; the volume rejected `chown` during a plain
+  `rsync -av`.
+- Do not trust `/workspace/02-h-neurons/.venv` on a retained network volume as a
+  paid-run runtime. In the 2026-05-04 incident it pointed at missing
+  `/usr/bin/python3`, lacked `torch`/`transformers`, and a mistaken
+  `uv sync --frozen` rewrote it to a tiny CPython 3.14 env because this repo has
+  no `uv.lock`. Use the baked `/opt/h-neurons/.venv`, a container-local
+  `/opt/venvs/...`, or an explicitly verified requirements-backed runtime.
+- Requirements-backed CUDA setup needs the PyTorch wheel index. If
+  `requirements.txt` contains local-version CUDA pins like `torch==2.9.1+cu130`,
+  default PyPI resolution is unsatisfiable; use the command family
+  `uv run --no-project --with-requirements requirements.txt --python 3.11 --index https://download.pytorch.org/whl/cu130 --index-strategy unsafe-best-match ...`.
+  Full incident note:
+  `notes/icml/mistral24b/2026-05-04-runpod-anchor3-generation-postmortem.md`.
 - A RunPod template is not a VM snapshot and does not guarantee instant startup
   for private custom images. A cold worker still pulls and extracts uncached image
   layers before SSH exists; on 2026-05-01, the baked

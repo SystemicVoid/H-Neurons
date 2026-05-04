@@ -115,6 +115,51 @@ For RunPod/Lambda cloud orchestration, use `scripts/infra/cloudctl.py` and the
 runbooks under `scripts/infra/cloud/`. The `vendor/zombuul` submodule is
 reference-only; do not install or auto-load its plugin, skills, or prompts.
 
+## Remote Runtime and Volume Rules
+
+Remote wrappers must make the runtime boring. Do not hand-assemble long
+`uv`/tmux commands in a paid SSH session when the wrapper can encode the choice.
+
+- Always set `PROJECT_DIR` explicitly on remote runs, usually
+  `/workspace/02-h-neurons`. Local workstation defaults are not valid remote
+  launch configuration.
+- Wrapper code should build one runtime command array and reuse it for guards and
+  workload commands. If the pod uses the baked image, prefer
+  `UV_PROJECT_ENVIRONMENT=/opt/h-neurons/.venv` with `uv run --no-sync`. If the
+  pod must recover from `requirements.txt`, use an explicit requirements mode:
+  `uv run --no-project --with-requirements requirements.txt --python 3.11 --index https://download.pytorch.org/whl/cu130 --index-strategy unsafe-best-match`.
+  Do not silently mix runtime modes inside one launch.
+- A requirements-backed runtime is an acceptable emergency path only after it
+  imports the exact stack with the same command family that will launch the run:
+  Python version, `torch.__version__`, `transformers.__version__`, CUDA
+  availability, GPU name, BF16 support, and memory guard. Log that proof before
+  model work.
+- Do not run `uv sync --frozen` in this repo on a pod unless a committed
+  `uv.lock` exists and the command also pins the intended Python/CUDA index.
+  Without a lockfile, `uv sync --frozen` is not a repair operation; it can select
+  a newer Python and rewrite `.venv`.
+- Never trust a retained network-volume `.venv` under
+  `/workspace/02-h-neurons/.venv` just because it is large. Treat it as invalid
+  until its Python target exists and the exact workload imports `torch`,
+  `transformers`, and CUDA successfully. Prefer container-local or baked
+  environments for paid runs.
+- For RunPod network-volume syncs, use `rsync` with
+  `--no-owner --no-group --no-perms`; plain archive mode may fail on `chown`.
+  For full mirrors, use `--delete --backup --backup-dir=<outside-repo> --partial`
+  and exclude machine-local state such as `.venv`, `.env`, caches, logs, and
+  wandb.
+- Do not launch from a repo tree while `rsync --delete` is still replacing that
+  same tree. The only acceptable parallel launch is after critical code,
+  manifest, classifier, and dependency hashes match, and outputs go outside the
+  repo being deleted/replaced.
+- Before detached tmux launch, run the wrapper in remote dry-run mode with the
+  same `PROJECT_DIR`, runtime mode, output root, and stage selection. Missing
+  sourced helpers such as `scripts/lib/inhibit_suspend.sh` should fail here, not
+  after tmux detaches.
+- For complex remote tmux scripts, prefer a checked-in wrapper, heredoc, or
+  base64 payload. Nested inline shell quoting with arrays is not acceptable for
+  claim-bearing launches.
+
 **RunPod launch (template-based):** RunPod profiles use the private template
 `h-neurons-runpod-private` (`v88hqzvuxk`), backed by
 `ghcr.io/systemicvoid/h-neurons-runpod` with the project venv pre-baked at
