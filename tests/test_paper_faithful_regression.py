@@ -25,6 +25,10 @@ from build_truthfulqa_splits import (
     build_mc_manifests,
     stable_question_id,
 )
+from build_truthfulqa_calibration_splits import (
+    build_anchor2_heldout_fold,
+    stable_ids_from_truthfulqa_mc_manifest,
+)
 from extract_truthfulness_iti import (
     ITIExample,
     _encode_with_answer_positions,
@@ -228,6 +232,55 @@ class TestStableIDs:
         assert mc_csv_indices.isdisjoint(example_csv_indices)
         # Together they cover everything
         assert mc_csv_indices | example_csv_indices == {q["csv_idx"] for q in questions}
+
+    def test_anchor2_fold_excludes_locked_mc_heldout_ids(self, tmp_path):
+        questions = _make_toy_questions(10)
+        manifest_path = tmp_path / "mc1.lock.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "ids": [
+                        f"truthfulqa_mc1_{questions[1]['csv_idx']}",
+                        f"truthfulqa_mc1_{questions[7]['csv_idx']}",
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        heldout_ids = stable_ids_from_truthfulqa_mc_manifest(
+            questions,
+            manifest_path,
+            expected_variant="mc1",
+        )
+        fold = build_anchor2_heldout_fold(
+            questions,
+            heldout_stable_ids=heldout_ids,
+            seed=42,
+            canonical_manifest_path="canonical.json",
+            canonical_fingerprint="fp",
+        )
+
+        fit_ids = set(fold["dev"]["train"]) | set(fold["dev"]["val"])
+        test_ids = set(fold["test"])
+        assert test_ids == set(heldout_ids)
+        assert fit_ids.isdisjoint(test_ids)
+        assert fit_ids | test_ids == {q["stable_id"] for q in questions}
+
+    def test_anchor2_manifest_rejects_wrong_mc_variant(self, tmp_path):
+        questions = _make_toy_questions(3)
+        manifest_path = tmp_path / "mc1.lock.json"
+        manifest_path.write_text(
+            json.dumps({"ids": ["truthfulqa_mc2_0"]}),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(ValueError, match="expected 'mc1'"):
+            stable_ids_from_truthfulqa_mc_manifest(
+                questions,
+                manifest_path,
+                expected_variant="mc1",
+            )
 
 
 # ---------------------------------------------------------------------------

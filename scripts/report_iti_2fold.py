@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Aggregate 2-fold ITI TruthfulQA results with paired bootstrap CIs.
+"""Aggregate ITI TruthfulQA results with paired bootstrap CIs.
 
 Reads per-fold JSONL outputs (alpha_0.0.jsonl and alpha_{locked}.jsonl)
-from both folds, computes per-fold and pooled MC1/MC2 deltas using paired
-bootstrap, and writes a structured report.
+from one or more fold/held-out directories, computes per-split and pooled
+MC1/MC2 deltas using paired bootstrap, and writes a structured report.
 
 Usage::
 
@@ -127,8 +127,20 @@ def compute_fold_report(
         baseline_map = extract_mc2_truthful_mass(baseline_records)
         locked_map = extract_mc2_truthful_mass(locked_records)
 
-    # Align by sample ID
-    common_ids = sorted(set(baseline_map) & set(locked_map))
+    # Align by sample ID. Claim-bearing reports must fail instead of silently
+    # dropping mismatched rows from an incomplete alpha file.
+    baseline_ids = set(baseline_map)
+    locked_ids = set(locked_map)
+    if baseline_ids != locked_ids:
+        missing_from_locked = sorted(baseline_ids - locked_ids)
+        missing_from_baseline = sorted(locked_ids - baseline_ids)
+        raise ValueError(
+            "paired sample IDs must match exactly for TruthfulQA ITI report "
+            f"(fold={fold_idx}, variant={variant}); "
+            f"missing_from_locked={missing_from_locked[:5]}, "
+            f"missing_from_baseline={missing_from_baseline[:5]}"
+        )
+    common_ids = sorted(baseline_ids)
 
     if variant == "mc1":
         baseline_arr = np.array([baseline_map[sid] for sid in common_ids], dtype=bool)
@@ -243,6 +255,32 @@ def compute_pooled_report(
     return report
 
 
+def build_gate_decision(
+    report: dict[str, Any], gate_mode: str
+) -> dict[str, Any] | None:
+    if gate_mode == "none":
+        return None
+    if gate_mode != "mc1_positive_ci":
+        raise ValueError(f"Unsupported gate_mode: {gate_mode!r}")
+    if report["variant"] != "mc1":
+        raise ValueError("--gate_mode mc1_positive_ci is only valid with --variant mc1")
+
+    pooled = report["pooled"]
+    delta_pp = pooled["delta_pp"]
+    estimate_pp = float(delta_pp["estimate_pp"])
+    lower_pp = float(delta_pp["ci_pp"]["lower"])
+    passed = estimate_pp > 0.0 and lower_pp > 0.0
+    return {
+        "mode": "mc1_positive_ci",
+        "passed": passed,
+        "criterion": "pooled MC1 delta estimate > 0 and paired-bootstrap 95% CI lower bound > 0",
+        "estimate_pp": estimate_pp,
+        "ci_lower_pp": lower_pp,
+        "ci_upper_pp": float(delta_pp["ci_pp"]["upper"]),
+        "n_samples_total": int(pooled["n_samples_total"]),
+    }
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -250,21 +288,57 @@ def compute_pooled_report(
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--fold0_dir", type=str, required=True)
-    p.add_argument("--fold1_dir", type=str, required=True)
+    p.add_argument("--fold0_dir", type=str, default=None)
+    p.add_argument("--fold1_dir", type=str, default=None)
+    p.add_argument(
+        "--fold_dirs",
+        type=str,
+        nargs="+",
+        default=None,
+        help=(
+            "One or more directories containing alpha_*.jsonl. If omitted, "
+            "--fold0_dir and --fold1_dir preserve the original 2-fold interface."
+        ),
+    )
     p.add_argument("--locked_alpha", type=float, required=True)
     p.add_argument("--locked_k", type=int, required=True)
     p.add_argument("--variant", type=str, default="mc1", choices=["mc1", "mc2"])
     p.add_argument("--output_dir", type=str, default="notes/act3-reports")
+    p.add_argument(
+        "--output_prefix",
+        type=str,
+        default="iti_2fold",
+        help="Prefix for the default report filename.",
+    )
+    p.add_argument(
+        "--output_path",
+        type=str,
+        default=None,
+        help="Explicit JSON report path. Overrides --output_dir/--output_prefix.",
+    )
+    p.add_argument(
+        "--gate_mode",
+        type=str,
+        default="none",
+        choices=["none", "mc1_positive_ci"],
+        help="Optional strict launch gate to embed in the report.",
+    )
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     out = Path(args.output_dir)
-    out.mkdir(parents=True, exist_ok=True)
+    if args.output_path is None:
+        out.mkdir(parents=True, exist_ok=True)
 
-    fold_dirs = [args.fold0_dir, args.fold1_dir]
+    if args.fold_dirs is not None:
+        fold_dirs = args.fold_dirs
+    elif args.fold0_dir is not None and args.fold1_dir is not None:
+        fold_dirs = [args.fold0_dir, args.fold1_dir]
+    else:
+        raise ValueError("Provide --fold_dirs or both --fold0_dir and --fold1_dir")
+
     fold_reports = []
     fold_arrays = []
     for fold_idx, fold_dir in enumerate(fold_dirs):
@@ -302,7 +376,22 @@ def main() -> None:
         "folds": fold_reports,
         "pooled": pooled,
     }
-    report_path = out / f"iti_2fold_{args.variant}_report.json"
+    gate = build_gate_decision(full_report, args.gate_mode)
+    if gate is not None:
+        full_report["gate"] = gate
+        print(
+            f"  Gate {gate['mode']}: "
+            f"{'PASS' if gate['passed'] else 'FAIL'} "
+            f"(estimate={gate['estimate_pp']:+.1f}pp, "
+            f"lower={gate['ci_lower_pp']:+.1f}pp)"
+        )
+
+    report_path = (
+        Path(args.output_path)
+        if args.output_path
+        else out / f"{args.output_prefix}_{args.variant}_report.json"
+    )
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w") as f:
         json.dump(full_report, f, indent=2)
         f.write("\n")

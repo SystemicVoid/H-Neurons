@@ -85,6 +85,14 @@ class StubChatTokenizer:
         raise AssertionError(f"Unexpected chat message roles: {roles}")
 
 
+class FakeModel:
+    def eval(self):
+        return None
+
+    def parameters(self):
+        yield torch.zeros(1)
+
+
 def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
@@ -153,6 +161,137 @@ class TestTriviaQAExamples:
         assert metadata["per_qid_weights"]["q1"]["truthful"][
             "weight_per_example"
         ] == pytest.approx(0.5)
+
+
+class TestMistralRegistryExtraction:
+    def test_main_passes_registered_mistral_tokenizer_kwargs(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        tokenizer_calls: list[tuple[str, dict]] = []
+        model_calls: list[tuple[str, dict]] = []
+
+        def fake_tokenizer_from_pretrained(model_path, **kwargs):
+            tokenizer_calls.append((model_path, kwargs))
+            return StubTokenizer()
+
+        def fake_model_from_pretrained(model_path, **kwargs):
+            model_calls.append((model_path, kwargs))
+            return FakeModel()
+
+        monkeypatch.setattr(
+            iti_extract.AutoTokenizer,
+            "from_pretrained",
+            fake_tokenizer_from_pretrained,
+        )
+        monkeypatch.setattr(
+            iti_extract.AutoModelForCausalLM,
+            "from_pretrained",
+            fake_model_from_pretrained,
+        )
+        monkeypatch.setattr(
+            iti_extract,
+            "build_truthfulqa_paper_examples",
+            lambda **_: (
+                [
+                    iti_extract.ITIExample(
+                        example_id="ex1",
+                        family="iti_truthfulqa_paperfaithful",
+                        split="train",
+                        qid="q1",
+                        question="Q?",
+                        answer="A",
+                        label=iti_extract.LABEL_TRUE,
+                        weight=1.0,
+                        prompt_text="Q? A",
+                        answer_positions=(1,),
+                        metadata={},
+                    )
+                ],
+                {
+                    "source_dataset": "toy",
+                    "prompt_format": "Q: {question}\\nA: {answer}",
+                    "answer_token_policy": "raw_prompt_answer_span",
+                    "question_ids_train": ["q1"],
+                    "question_ids_val": [],
+                    "question_ids_dev": ["q1"],
+                    "question_ids_test": ["q2"],
+                    "split_fingerprint": {},
+                    "question_counts": {"train": 1, "val": 0, "test_excluded": 1},
+                },
+            ),
+        )
+        monkeypatch.setattr(
+            iti_extract,
+            "collect_pre_o_proj_head_activations",
+            lambda **_: {},
+        )
+        monkeypatch.setattr(
+            iti_extract,
+            "rank_heads",
+            lambda *_, **__: (
+                [
+                    {
+                        "layer": 0,
+                        "head": 0,
+                        "position_summary": "last_answer_token",
+                        "auroc": 1.0,
+                        "balanced_accuracy": 1.0,
+                        "val_accuracy": 1.0,
+                    }
+                ],
+                {"top5": []},
+            ),
+        )
+        monkeypatch.setattr(
+            iti_extract,
+            "compute_head_directions",
+            lambda ranked_heads, *_, **__: [
+                {
+                    **ranked_heads[0],
+                    "direction": [1.0],
+                    "sigma": 1.0,
+                    "sign": 1,
+                }
+            ],
+        )
+        monkeypatch.setattr(
+            iti_extract,
+            "build_artifact",
+            lambda **kwargs: {
+                "family": kwargs["family"],
+                "ranked_heads": kwargs["ranked_heads"],
+            },
+        )
+
+        output_dir = tmp_path / "out"
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "extract_truthfulness_iti.py",
+                "--family",
+                "iti_truthfulqa_paperfaithful",
+                "--model_key",
+                "mistral24b",
+                "--fold_path",
+                str(tmp_path / "fold.json"),
+                "--output_dir",
+                str(output_dir),
+            ],
+        )
+
+        iti_extract.main()
+
+        assert tokenizer_calls == [
+            (
+                "mistralai/Mistral-Small-24B-Instruct-2501",
+                {"fix_mistral_regex": True},
+            )
+        ]
+        assert model_calls[0][0] == "mistralai/Mistral-Small-24B-Instruct-2501"
+        metadata = json.loads((output_dir / "extraction_metadata.json").read_text())
+        assert metadata["registered_model"]["key"] == "mistral_small_24b_instruct_2501"
+        assert metadata["tokenizer_kwargs"] == {"fix_mistral_regex": True}
 
 
 class TestContextGroundedExamples:

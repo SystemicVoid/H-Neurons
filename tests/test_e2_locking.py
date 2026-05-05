@@ -14,6 +14,7 @@ import extract_truthfulness_iti as extract_iti
 import lock_config
 import report_e2_canonical
 import report_simpleqa_shortlist_pilot
+import report_iti_2fold
 import run_calibration_sweep
 
 
@@ -82,6 +83,194 @@ class TestResolutionAwareSelection:
         assert diag["tie_break_path"][0]["step"] == "max_mc2"
         assert diag["tie_break_path"][1]["step"] == "min_alpha"
         assert diag["tie_break_path"][2]["step"] == "min_k"
+
+    def test_calibration_sweep_passes_registered_mistral_tokenizer_kwargs(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        tokenizer_calls: list[tuple[str, dict]] = []
+        model_calls: list[tuple[str, dict]] = []
+
+        class FakeModel:
+            def eval(self):
+                return None
+
+            def parameters(self):
+                import torch
+
+                yield torch.zeros(1)
+
+        class FakeScaler:
+            def __init__(self, *args, **kwargs):
+                self.alpha = 0.0
+
+            def remove(self):
+                return None
+
+        def fake_tokenizer_from_pretrained(model_path, **kwargs):
+            tokenizer_calls.append((model_path, kwargs))
+            return object()
+
+        def fake_model_from_pretrained(model_path, **kwargs):
+            model_calls.append((model_path, kwargs))
+            return FakeModel()
+
+        def fake_load_truthfulqa_mc(variant, csv_path="data/benchmarks/TruthfulQA.csv"):
+            return [{"id": f"{variant}_sample"}]
+
+        def fake_score_mc_samples(model, tokenizer, scaler, samples, alpha):
+            if samples and samples[0]["id"] == "mc1_sample":
+                return [{"id": "mc1_sample", "mc1_correct": True}]
+            return [{"id": "mc2_sample", "truthful_mass": 0.75}]
+
+        artifact_path = tmp_path / "iti_heads.pt"
+        artifact_path.write_bytes(b"fake")
+        mc1_manifest = tmp_path / "mc1.json"
+        mc2_manifest = tmp_path / "mc2.json"
+        mc1_manifest.write_text(json.dumps(["mc1_sample"]), encoding="utf-8")
+        mc2_manifest.write_text(json.dumps(["mc2_sample"]), encoding="utf-8")
+        output_dir = tmp_path / "sweep"
+
+        monkeypatch.setattr(
+            run_calibration_sweep.AutoTokenizer,
+            "from_pretrained",
+            fake_tokenizer_from_pretrained,
+        )
+        monkeypatch.setattr(
+            run_calibration_sweep.AutoModelForCausalLM,
+            "from_pretrained",
+            fake_model_from_pretrained,
+        )
+        monkeypatch.setattr(
+            run_calibration_sweep,
+            "load_iti_artifact",
+            lambda _: {
+                "family": "iti_truthfulqa_paperfaithful",
+                "ranked_heads": [{"layer": 0, "head": 0}],
+            },
+        )
+        monkeypatch.setattr(run_calibration_sweep, "ITIHeadScaler", FakeScaler)
+        monkeypatch.setattr(
+            run_calibration_sweep,
+            "load_truthfulqa_mc",
+            fake_load_truthfulqa_mc,
+        )
+        monkeypatch.setattr(
+            run_calibration_sweep,
+            "score_mc_samples",
+            fake_score_mc_samples,
+        )
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "run_calibration_sweep.py",
+                "--model_key",
+                "mistral24b",
+                "--artifact_path",
+                str(artifact_path),
+                "--cal_val_mc1_manifest",
+                str(mc1_manifest),
+                "--cal_val_mc2_manifest",
+                str(mc2_manifest),
+                "--k_values",
+                "1",
+                "--alpha_values",
+                "0.0",
+                "--output_dir",
+                str(output_dir),
+            ],
+        )
+
+        run_calibration_sweep.main()
+
+        assert tokenizer_calls == [
+            (
+                "mistralai/Mistral-Small-24B-Instruct-2501",
+                {"fix_mistral_regex": True},
+            )
+        ]
+        assert model_calls[0][0] == "mistralai/Mistral-Small-24B-Instruct-2501"
+        locked = json.loads((output_dir / "locked_iti_config.json").read_text())
+        assert locked["registered_model"]["key"] == "mistral_small_24b_instruct_2501"
+        assert locked["tokenizer_kwargs"] == {"fix_mistral_regex": True}
+
+
+class TestTruthfulQAMCGate:
+    @staticmethod
+    def _write_alpha(path: Path, rows: list[dict]) -> None:
+        path.write_text(
+            "".join(json.dumps(row) + "\n" for row in rows),
+            encoding="utf-8",
+        )
+
+    def test_mc1_positive_ci_gate_passes_for_uniform_paired_improvement(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        fold_dir = tmp_path / "mc1"
+        fold_dir.mkdir()
+        baseline_rows = [
+            {"id": f"q{i}", "compliance": False, "metric_value": 0.0} for i in range(6)
+        ]
+        locked_rows = [
+            {"id": f"q{i}", "compliance": True, "metric_value": 1.0} for i in range(6)
+        ]
+        self._write_alpha(fold_dir / "alpha_0.0.jsonl", baseline_rows)
+        self._write_alpha(fold_dir / "alpha_8.0.jsonl", locked_rows)
+        monkeypatch.setattr(
+            report_iti_2fold,
+            "paired_bootstrap_binary_rate_difference",
+            lambda baseline, locked: {
+                "estimate_pp": 100.0,
+                "ci_pp": {"lower": 100.0, "upper": 100.0},
+            },
+        )
+
+        fold_report, baseline_arr, locked_arr = report_iti_2fold.compute_fold_report(
+            str(fold_dir),
+            locked_alpha=8.0,
+            variant="mc1",
+            fold_idx=0,
+        )
+        pooled = report_iti_2fold.compute_pooled_report(
+            "mc1",
+            8.0,
+            [(baseline_arr, locked_arr)],
+        )
+        full_report = {
+            "locked_alpha": 8.0,
+            "locked_k": 12,
+            "variant": "mc1",
+            "folds": [fold_report],
+            "pooled": pooled,
+        }
+
+        gate = report_iti_2fold.build_gate_decision(
+            full_report,
+            "mc1_positive_ci",
+        )
+
+        assert gate is not None
+        assert gate["passed"] is True
+
+    def test_truthfulqa_report_rejects_mismatched_paired_ids(self, tmp_path: Path):
+        fold_dir = tmp_path / "mc1"
+        fold_dir.mkdir()
+        self._write_alpha(
+            fold_dir / "alpha_0.0.jsonl",
+            [{"id": "q1", "compliance": False, "metric_value": 0.0}],
+        )
+        self._write_alpha(
+            fold_dir / "alpha_8.0.jsonl",
+            [{"id": "q2", "compliance": True, "metric_value": 1.0}],
+        )
+
+        with pytest.raises(ValueError, match="paired sample IDs must match exactly"):
+            report_iti_2fold.compute_fold_report(
+                str(fold_dir),
+                locked_alpha=8.0,
+                variant="mc1",
+                fold_idx=0,
+            )
 
 
 class TestPilotPoisonGate:

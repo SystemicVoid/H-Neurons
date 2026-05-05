@@ -31,6 +31,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--test_comparison", type=Path, default=DEFAULT_TEST_COMPARISON)
     parser.add_argument("--output_dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument(
+        "--skip_dev",
+        action="store_true",
+        help=(
+            "Prepare only the test queue. Use this for direct claim runs that "
+            "do not have a separate bridge dev split."
+        ),
+    )
+    parser.add_argument(
         "--adjudication_rule_path",
         type=Path,
         help="Frozen adjudication rule document committed before test labeling starts.",
@@ -46,10 +54,14 @@ def main() -> None:
         args.output_dir / "adjudication_rule.md"
     )
 
-    dev_cases = extract_discordant_cases(
-        args.dev_baseline,
-        args.dev_comparison,
-        comparison_name="comparison",
+    dev_cases = (
+        []
+        if args.skip_dev
+        else extract_discordant_cases(
+            args.dev_baseline,
+            args.dev_comparison,
+            comparison_name="comparison",
+        )
     )
     test_cases = extract_discordant_cases(
         args.test_baseline,

@@ -35,6 +35,12 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from intervene_iti import ITIHeadScaler, load_iti_artifact
+from model_registry import (
+    assert_causal_lm_supported,
+    model_metadata,
+    model_path_for,
+    tokenizer_kwargs_for,
+)
 from run_intervention import (
     _reset_scaler_sample_stats,
     load_truthfulqa_mc,
@@ -46,7 +52,8 @@ from utils import (
     start_run_provenance,
 )
 
-DEFAULT_MODEL = os.environ.get("HNEURONS_MODEL_PATH", "google/gemma-3-4b-it")
+DEFAULT_MODEL_KEY = os.environ.get("HNEURONS_MODEL_KEY")
+DEFAULT_MODEL_PATH = os.environ.get("HNEURONS_MODEL_PATH")
 MIN_TOLERANCE_PP = 1.5
 
 
@@ -318,7 +325,16 @@ def parse_args() -> argparse.Namespace:
         default=[0.0, 0.5, 1.0, 2.0, 4.0, 6.0, 8.0, 12.0, 16.0],
     )
     p.add_argument("--output_dir", type=str, required=True)
-    p.add_argument("--model_path", type=str, default=DEFAULT_MODEL)
+    p.add_argument(
+        "--model_key",
+        type=str,
+        default=DEFAULT_MODEL_KEY,
+        help=(
+            "Registered model key. Used for model defaults, support checks, "
+            "and tokenizer quirks such as Mistral's regex fix."
+        ),
+    )
+    p.add_argument("--model_path", type=str, default=DEFAULT_MODEL_PATH)
     p.add_argument("--device_map", type=str, default="cuda:0")
     p.add_argument(
         "--tolerance_pp",
@@ -339,6 +355,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    args.model_path = model_path_for(args.model_key, args.model_path)
+    assert_causal_lm_supported(args.model_key, args.model_path)
+    registered_model = model_metadata(args.model_key, args.model_path)
+    tokenizer_kwargs = tokenizer_kwargs_for(args.model_key, args.model_path)
+
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -366,7 +387,10 @@ def main() -> None:
 
     # Load model
     print(f"Loading model: {args.model_path}")
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model_path,
+        **tokenizer_kwargs,
+    )
     model = AutoModelForCausalLM.from_pretrained(
         args.model_path, dtype=torch.bfloat16, device_map=args.device_map
     )
@@ -516,7 +540,10 @@ def main() -> None:
     with open(sweep_path, "w") as f:
         json.dump(
             {
+                "model_key": args.model_key,
                 "model_path": args.model_path,
+                "registered_model": registered_model,
+                "tokenizer_kwargs": tokenizer_kwargs,
                 "artifact_family": artifact_family,
                 "source_dataset": source_dataset,
                 "direction_type": direction_type,
@@ -562,7 +589,10 @@ def main() -> None:
     print("=" * 70)
 
     locked_config = {
+        "model_key": args.model_key,
         "model": args.model_path,
+        "registered_model": registered_model,
+        "tokenizer_kwargs": tokenizer_kwargs,
         "dataset_fingerprint": fingerprint_ids(
             [s["id"] for s in mc1_samples + mc2_samples]
         ),
