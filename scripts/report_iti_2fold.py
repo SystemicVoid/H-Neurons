@@ -61,6 +61,28 @@ def extract_mc2_truthful_mass(records: list[dict[str, Any]]) -> dict[str, float]
     return {r["id"]: float(r["metric_value"]) for r in records}
 
 
+def assert_unique_sample_ids(
+    records: list[dict[str, Any]],
+    *,
+    label: str,
+    fold_idx: int,
+    variant: str,
+) -> None:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for row in records:
+        sample_id = str(row["id"])
+        if sample_id in seen:
+            duplicates.add(sample_id)
+        else:
+            seen.add(sample_id)
+    if duplicates:
+        raise ValueError(
+            f"Duplicate sample IDs in {label} alpha file "
+            f"(fold={fold_idx}, variant={variant}): {sorted(duplicates)[:5]}"
+        )
+
+
 def mcnemar_p_value(
     baseline_correct: np.ndarray, intervened_correct: np.ndarray
 ) -> float:
@@ -119,6 +141,12 @@ def compute_fold_report(
 
     baseline_records = load_fold_records(fold_dir, baseline_label)
     locked_records = load_fold_records(fold_dir, locked_label)
+    assert_unique_sample_ids(
+        baseline_records, label="baseline", fold_idx=fold_idx, variant=variant
+    )
+    assert_unique_sample_ids(
+        locked_records, label="intervened", fold_idx=fold_idx, variant=variant
+    )
 
     if variant == "mc1":
         baseline_map = extract_mc1_correctness(baseline_records)
@@ -328,6 +356,12 @@ def parse_args() -> argparse.Namespace:
         choices=["none", "mc1_positive_ci"],
         help="Optional strict launch gate to embed in the report.",
     )
+    p.add_argument(
+        "--sample_manifest",
+        type=str,
+        default=None,
+        help="Optional sample manifest path to bind the report to a locked sample set.",
+    )
     return p.parse_args()
 
 
@@ -378,6 +412,8 @@ def main() -> None:
         "locked_alpha": args.locked_alpha,
         "locked_k": args.locked_k,
         "variant": args.variant,
+        "sample_manifest": args.sample_manifest,
+        "fold_dirs": fold_dirs,
         "folds": fold_reports,
         "pooled": pooled,
     }

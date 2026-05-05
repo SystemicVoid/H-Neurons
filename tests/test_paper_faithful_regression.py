@@ -27,6 +27,7 @@ from build_truthfulqa_splits import (
     stable_question_id,
 )
 from build_truthfulqa_calibration_splits import (
+    _validate_anchor2_cli_args,
     build_anchor2_heldout_fold,
     stable_ids_from_truthfulqa_mc_manifest,
 )
@@ -230,6 +231,33 @@ class TestSplitIntegrity:
         with pytest.raises(RuntimeError, match="outside the supplied fold test set"):
             _assert_no_truthfulqa_leakage(args)
 
+    def test_truthfulqa_mc_barrier_requires_manifest_with_fold(self, tmp_path: Path):
+        questions = _make_toy_questions(2)
+        canonical_path = tmp_path / "canonical.json"
+        canonical_path.write_text(
+            json.dumps({"questions": questions}),
+            encoding="utf-8",
+        )
+        fold_path = tmp_path / "fold.json"
+        fold = {
+            "canonical_manifest": str(canonical_path),
+            "dev": {"train": [questions[0]["stable_id"]], "val": []},
+            "test": [questions[1]["stable_id"]],
+        }
+        fold_path.write_text(json.dumps(fold), encoding="utf-8")
+        artifact_dir = tmp_path / "artifact"
+        artifact_dir.mkdir()
+
+        args = argparse.Namespace(
+            iti_head_path=str(artifact_dir / "iti_heads.pt"),
+            truthfulqa_fold_path=str(fold_path),
+            sample_manifest=None,
+            truthfulqa_variant="mc1",
+        )
+
+        with pytest.raises(RuntimeError, match="requires --sample_manifest"):
+            _assert_no_truthfulqa_leakage(args)
+
     def test_truthfulqa_mc_barrier_rejects_wrong_manifest_variant(self, tmp_path: Path):
         questions = _make_toy_questions(2)
         canonical_path = tmp_path / "canonical.json"
@@ -348,6 +376,28 @@ class TestStableIDs:
         assert test_ids == set(heldout_ids)
         assert fit_ids.isdisjoint(test_ids)
         assert fit_ids | test_ids == {q["stable_id"] for q in questions}
+
+    def test_anchor2_fold_rejects_empty_heldout_ids(self):
+        questions = _make_toy_questions(3)
+
+        with pytest.raises(ValueError, match="at least one held-out ID"):
+            build_anchor2_heldout_fold(
+                questions,
+                heldout_stable_ids=[],
+                seed=42,
+                canonical_manifest_path="canonical.json",
+                canonical_fingerprint="fp",
+            )
+
+    def test_only_anchor2_requires_locked_mc_manifests(self):
+        args = argparse.Namespace(
+            only_anchor2=True,
+            anchor2_heldout_mc1_manifest=None,
+            anchor2_heldout_mc2_manifest=None,
+        )
+
+        with pytest.raises(ValueError, match="--only-anchor2 requires both"):
+            _validate_anchor2_cli_args(args)
 
     def test_anchor2_manifest_rejects_wrong_mc_variant(self, tmp_path):
         questions = _make_toy_questions(3)

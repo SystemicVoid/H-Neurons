@@ -2856,6 +2856,11 @@ def _assert_no_truthfulqa_leakage(args: argparse.Namespace) -> None:
         test_ids = set(extraction_meta["question_ids_test"])
 
     sample_manifest_path = getattr(args, "sample_manifest", None)
+    if args.truthfulqa_fold_path and not sample_manifest_path:
+        raise RuntimeError(
+            "FATAL: --truthfulqa_fold_path requires --sample_manifest for "
+            "TruthfulQA MC runs so evaluation remains bound to the fold test set."
+        )
     if (
         args.truthfulqa_fold_path
         and sample_manifest_path

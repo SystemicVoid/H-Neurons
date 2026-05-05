@@ -1,5 +1,5 @@
 {
-  "active_run_lock_path": "/workspace/02-h-neurons/.git/h-neurons-active-runs/run_intervention-20260504_164232-2233.json",
+  "active_run_lock_path": ".git/h-neurons-active-runs/run_intervention-20260504_164232-2233.json",
   "args": {
     "alphas": [
       0.0,
@@ -38,7 +38,7 @@
     "model_key": "mistral_small_24b_instruct_2501",
     "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
     "n_templates": 5,
-    "output_dir": "/workspace/mistral24b_anchor3_full500/experiment",
+    "output_dir": "<source-root>/experiment",
     "prompt_style": "anti_compliance",
     "run_profile": "canonical",
     "sae_classifier_path": null,
@@ -57,7 +57,7 @@
     "truthfulqa_variant": "mc1"
   },
   "argv": [
-    "/root/.cache/uv/builds-v0/.tmpxOfqNq/bin/python",
+    "python",
     "scripts/run_intervention.py",
     "--model_key",
     "mistral_small_24b_instruct_2501",
@@ -80,12 +80,12 @@
     "--seed",
     "42",
     "--output_dir",
-    "/workspace/mistral24b_anchor3_full500/experiment"
+    "<source-root>/experiment"
   ],
-  "command": "/root/.cache/uv/builds-v0/.tmpxOfqNq/bin/python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --classifier_path models/mistral24b_classifier_canonical.pkl --device_map cuda:0 --benchmark jailbreak --sample_manifest data/manifests/jbb_d7_full_harmful500_seed42_mistral24b.lock.json --alphas 0.0 1.0 3.0 --run_profile canonical --seed 42 --output_dir /workspace/mistral24b_anchor3_full500/experiment",
+  "command": "python scripts/run_intervention.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --classifier_path models/mistral24b_classifier_canonical.pkl --device_map cuda:0 --benchmark jailbreak --sample_manifest data/manifests/jbb_d7_full_harmful500_seed42_mistral24b.lock.json --alphas 0.0 1.0 3.0 --run_profile canonical --seed 42 --output_dir <source-root>/experiment",
   "comparability_class": "claimable",
   "completed_at_utc": "2026-05-04T21:46:29.969129+00:00",
-  "cwd": "/workspace/02-h-neurons",
+  "cwd": ".",
   "generation_fingerprint": {
     "id": "85849bccaf9efd20",
     "spec": {
@@ -103,8 +103,8 @@
   },
   "git_dirty": false,
   "git_sha": "913713c40f6d1a0bc61de354e9edd68dc79d6379",
-  "hostname": "4ca5d6b39051",
-  "intervention_run_contract": "/workspace/mistral24b_anchor3_full500/experiment/intervention_run_config.json",
+  "hostname": "<redacted>",
+  "intervention_run_contract": "<source-root>/experiment/intervention_run_config.json",
   "jailbreak_generation": {
     "do_sample": true,
     "max_new_tokens": 5000,
@@ -113,12 +113,12 @@
     "top_p": 0.8
   },
   "output_targets": [
-    "/workspace/mistral24b_anchor3_full500/experiment",
-    "/workspace/mistral24b_anchor3_full500/experiment/results.20260504_164232.json",
-    "/workspace/mistral24b_anchor3_full500/experiment/intervention_run_config.json",
-    "/workspace/mistral24b_anchor3_full500/experiment/alpha_0.0.jsonl",
-    "/workspace/mistral24b_anchor3_full500/experiment/alpha_1.0.jsonl",
-    "/workspace/mistral24b_anchor3_full500/experiment/alpha_3.0.jsonl"
+    "<source-root>/experiment",
+    "<source-root>/experiment/results.20260504_164232.json",
+    "<source-root>/experiment/intervention_run_config.json",
+    "<source-root>/experiment/alpha_0.0.jsonl",
+    "<source-root>/experiment/alpha_1.0.jsonl",
+    "<source-root>/experiment/alpha_3.0.jsonl"
   ],
   "python_version": "3.11.15 (main, Apr 14 2026, 14:28:36) [Clang 22.1.3 ]",
   "run_id": "run_intervention-20260504_164232-2233",

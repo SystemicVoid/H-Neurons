@@ -204,17 +204,35 @@ require_mc_gate_passed() {
         return 0
     fi
     "${UV_RUN[@]}" python -c '
-import json, sys
-path = sys.argv[1]
+import json, math, sys
+path, expected_k, expected_alpha, expected_manifest = sys.argv[1:5]
 report = json.load(open(path, encoding="utf-8"))
 gate = report.get("gate", {})
 if gate.get("mode") != "mc1_positive_ci" or gate.get("passed") is not True:
     raise SystemExit(f"TruthfulQA MC gate failed or missing in {path}: {gate}")
+actual_k = report.get("locked_k")
+if int(actual_k) != int(expected_k):
+    raise SystemExit(
+        f"TruthfulQA MC gate K mismatch in {path}: "
+        f"expected {expected_k}, actual {actual_k}"
+    )
+actual_alpha = report.get("locked_alpha")
+if not math.isclose(float(actual_alpha), float(expected_alpha), rel_tol=0.0, abs_tol=1e-9):
+    raise SystemExit(
+        f"TruthfulQA MC gate alpha mismatch in {path}: "
+        f"expected {expected_alpha}, actual {actual_alpha}"
+    )
+actual_manifest = report.get("sample_manifest")
+if actual_manifest != expected_manifest:
+    raise SystemExit(
+        f"TruthfulQA MC gate sample_manifest mismatch in {path}: "
+        f"expected {expected_manifest!r}, actual {actual_manifest!r}"
+    )
 print(
     "TruthfulQA MC gate passed: estimate=%+.1fpp, lower=%+.1fpp"
     % (gate.get("estimate_pp", 0.0), gate.get("ci_lower_pp", 0.0))
 )
-' "${MC1_REPORT_PATH}" 2>&1 | tee -a "${LOG}"
+' "${MC1_REPORT_PATH}" "${LOCKED_K_VALUE}" "${LOCKED_ALPHA_VALUE}" "${TRUTHFULQA_MC1_MANIFEST}" 2>&1 | tee -a "${LOG}"
 }
 
 run_truthfulqa_variant() {
@@ -305,6 +323,7 @@ run_stage truthfulqa_report "${UV_RUN[@]}" python scripts/report_iti_2fold.py \
     --locked_alpha "${LOCKED_ALPHA_VALUE}" \
     --locked_k "${LOCKED_K_VALUE}" \
     --variant mc1 \
+    --sample_manifest "${TRUTHFULQA_MC1_MANIFEST}" \
     --output_path "${MC1_REPORT_PATH}" \
     --gate_mode mc1_positive_ci
 run_stage truthfulqa_report "${UV_RUN[@]}" python scripts/report_iti_2fold.py \
@@ -312,6 +331,7 @@ run_stage truthfulqa_report "${UV_RUN[@]}" python scripts/report_iti_2fold.py \
     --locked_alpha "${LOCKED_ALPHA_VALUE}" \
     --locked_k "${LOCKED_K_VALUE}" \
     --variant mc2 \
+    --sample_manifest "${TRUTHFULQA_MC2_MANIFEST}" \
     --output_path "${MC2_REPORT_PATH}"
 
 if should_run_any_stage bridge_generate bridge_judge bridge_irr_prepare; then

@@ -18,6 +18,9 @@ import report_iti_2fold
 import run_calibration_sweep
 
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
 def _toy_sweep_results() -> list[dict]:
     return [
         {"k": 8, "alpha": 8.0, "mc1": 0.3000, "mc2": 0.4200, "n_mc1": 81, "n_mc2": 81},
@@ -285,6 +288,41 @@ class TestTruthfulQAMCGate:
                 variant="mc1",
                 fold_idx=0,
             )
+
+    def test_truthfulqa_report_rejects_duplicate_paired_ids(self, tmp_path: Path):
+        fold_dir = tmp_path / "mc1"
+        fold_dir.mkdir()
+        self._write_alpha(
+            fold_dir / "alpha_0.0.jsonl",
+            [
+                {"id": "q1", "compliance": False, "metric_value": 0.0},
+                {"id": "q1", "compliance": True, "metric_value": 1.0},
+            ],
+        )
+        self._write_alpha(
+            fold_dir / "alpha_8.0.jsonl",
+            [{"id": "q1", "compliance": True, "metric_value": 1.0}],
+        )
+
+        with pytest.raises(ValueError, match="Duplicate sample IDs in baseline"):
+            report_iti_2fold.compute_fold_report(
+                str(fold_dir),
+                locked_alpha=8.0,
+                variant="mc1",
+                fold_idx=0,
+            )
+
+    def test_anchor2_wrapper_binds_mc_gate_report_to_locked_sample_set(self):
+        script = (
+            REPO_ROOT / "scripts/infra/mistral24b_anchor2_iti_bridge.sh"
+        ).read_text()
+
+        assert '--sample_manifest "${TRUTHFULQA_MC1_MANIFEST}"' in script
+        assert '--sample_manifest "${TRUTHFULQA_MC2_MANIFEST}"' in script
+        assert (
+            '"${MC1_REPORT_PATH}" "${LOCKED_K_VALUE}" "${LOCKED_ALPHA_VALUE}" '
+            '"${TRUTHFULQA_MC1_MANIFEST}"'
+        ) in script
 
 
 class TestPilotPoisonGate:

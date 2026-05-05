@@ -283,6 +283,8 @@ def build_anchor2_heldout_fold(
     all_ids = sorted(str(q["stable_id"]) for q in questions)
     all_id_set = set(all_ids)
     heldout_set = set(heldout_stable_ids)
+    if not heldout_set:
+        raise ValueError("Anchor2 held-out fold requires at least one held-out ID")
     unknown = heldout_set - all_id_set
     if unknown:
         raise ValueError(
@@ -418,6 +420,21 @@ def _write_json(path: Path, data: Any) -> None:
         f.write("\n")
 
 
+def _validate_anchor2_cli_args(args: argparse.Namespace) -> None:
+    if bool(args.anchor2_heldout_mc1_manifest) != bool(
+        args.anchor2_heldout_mc2_manifest
+    ):
+        raise ValueError(
+            "--anchor2-heldout-mc1-manifest and --anchor2-heldout-mc2-manifest "
+            "must be provided together"
+        )
+    if args.only_anchor2 and not args.anchor2_heldout_mc1_manifest:
+        raise ValueError(
+            "--only-anchor2 requires both --anchor2-heldout-mc1-manifest and "
+            "--anchor2-heldout-mc2-manifest"
+        )
+
+
 def main() -> None:
     args = parse_args()
     out = Path(args.output_dir)
@@ -445,13 +462,7 @@ def main() -> None:
         _write_json(canonical_path, manifest)
         print(f"  Wrote {len(questions)} questions → {canonical_path}")
 
-    if bool(args.anchor2_heldout_mc1_manifest) != bool(
-        args.anchor2_heldout_mc2_manifest
-    ):
-        raise ValueError(
-            "--anchor2-heldout-mc1-manifest and --anchor2-heldout-mc2-manifest "
-            "must be provided together"
-        )
+    _validate_anchor2_cli_args(args)
 
     if args.anchor2_heldout_mc1_manifest and args.anchor2_heldout_mc2_manifest:
         print("Building Anchor 2 locked-heldout fold...")

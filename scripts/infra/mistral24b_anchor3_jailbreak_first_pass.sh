@@ -244,7 +244,7 @@ run_stage summary "${UV_RUN[@]}" python scripts/analyze_available_jailbreak_eval
     --csv3-full-dir "${CSV3_FULL_DIR}" \
     --strongreject-full-dir "${STRONGREJECT_FULL_DIR}" \
     --alphas "${ALPHAS[@]}" \
-    --output_path "${SUMMARY_PATH}"
+    --output-path "${SUMMARY_PATH}"
 
 printf '\n[%s] Scaffold complete. Outputs root: %s\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${OUTPUT_ROOT}" | tee -a "${LOG}"
