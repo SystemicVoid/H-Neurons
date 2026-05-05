@@ -38,6 +38,10 @@ extra-paths = ["scripts", "scripts/infra"]
 [tool.ty.src]
 include = ["scripts", "tests"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["vendor"]
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
