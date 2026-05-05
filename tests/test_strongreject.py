@@ -15,12 +15,17 @@ from openai import OpenAI
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from evaluate_strongreject import (
+    _load_or_copy_alpha,
+    _record_forbidden_prompt,
     _strongreject_batch_state_path,
     _strongreject_custom_id,
+    _strongreject_sweep_batch_state_path,
     build_strongreject_messages,
     compute_gold_summary,
+    compute_sweep_summary,
     compute_strongreject_score,
     evaluate_batch,
+    parse_args,
     parse_strongreject_verdict,
 )
 
@@ -232,6 +237,20 @@ class TestMessageBuilder:
         msgs = build_strongreject_messages("p", "r")
         assert "red teaming" in str(msgs[0]["content"])
 
+    def test_record_forbidden_prompt_prefers_question(self):
+        record = {"question": "QUESTION_TEXT", "goal": "GOAL_TEXT"}
+
+        assert _record_forbidden_prompt(record) == "QUESTION_TEXT"
+
+    def test_record_forbidden_prompt_falls_back_to_goal(self):
+        record = {"goal": "GOAL_TEXT"}
+
+        assert _record_forbidden_prompt(record) == "GOAL_TEXT"
+
+    def test_record_forbidden_prompt_rejects_missing_instruction(self):
+        with pytest.raises(ValueError, match="question.*goal"):
+            _record_forbidden_prompt({"id": "missing-prompt"})
+
 
 class TestGoldSummary:
     def test_no_evaluable_records_preserves_summary_shape(self):
@@ -350,3 +369,178 @@ class TestBatchResumability:
             output_dir, gold_path, "gpt-test"
         )
         assert all("strongreject" in record for record in result)
+
+    def test_evaluate_batch_uses_goal_for_intervention_records(
+        self, tmp_path, monkeypatch
+    ):
+        output_dir = tmp_path / "out"
+        output_dir.mkdir()
+        source_path = tmp_path / "alpha_0.0.jsonl"
+        source_path.write_text(
+            '{"id":"rec-goal","alpha":0.0,"goal":"GOAL_TEXT","response":"RESP_TEXT"}\n'
+        )
+        records = [
+            {
+                "id": "rec-goal",
+                "alpha": 0.0,
+                "goal": "GOAL_TEXT",
+                "response": "RESP_TEXT",
+            }
+        ]
+        captured_user_content: str | None = None
+
+        import openai_batch
+
+        def fake_build_chat_request(custom_id, model, messages, **kwargs):
+            nonlocal captured_user_content
+            captured_user_content = str(messages[1]["content"])
+            return {
+                "custom_id": custom_id,
+                "body": {"model": model, "messages": messages},
+            }
+
+        def fake_resume_or_submit(
+            _client,
+            requests,
+            state_path,
+            *,
+            metadata=None,
+            poll_interval=None,
+            max_enqueued_tokens=None,
+        ):
+            return {req["custom_id"]: {"content": VALID_RESPONSE} for req in requests}
+
+        monkeypatch.setattr(openai_batch, "build_chat_request", fake_build_chat_request)
+        monkeypatch.setattr(openai_batch, "resume_or_submit", fake_resume_or_submit)
+        monkeypatch.setattr(
+            openai_batch,
+            "parse_chat_content",
+            lambda entry: entry["content"],
+        )
+
+        evaluate_batch(
+            records,
+            output_dir,
+            source_path,
+            client=cast(OpenAI, object()),
+            judge_model="gpt-test",
+            metadata_benchmark="strongreject_sweep",
+        )
+
+        assert captured_user_content is not None
+        assert "GOAL_TEXT" in captured_user_content
+        assert "RESP_TEXT" in captured_user_content
+
+    def test_sweep_batch_state_path_changes_with_model_and_input_contents(
+        self, tmp_path
+    ):
+        input_dir = tmp_path / "input"
+        output_dir = tmp_path / "out"
+        input_dir.mkdir()
+        output_dir.mkdir()
+        source = input_dir / "alpha_0.0.jsonl"
+        source.write_text('{"id":"rec-1","alpha":0.0,"response":"first"}\n')
+
+        first = _strongreject_sweep_batch_state_path(
+            output_dir, input_dir, [0.0], "gpt-test"
+        )
+        second = _strongreject_sweep_batch_state_path(
+            output_dir, input_dir, [0.0], "gpt-other"
+        )
+
+        source.write_text('{"id":"rec-1","alpha":0.0,"response":"changed"}\n')
+        third = _strongreject_sweep_batch_state_path(
+            output_dir, input_dir, [0.0], "gpt-test"
+        )
+
+        assert first != second
+        assert first != third
+
+
+class TestSweepMode:
+    def test_load_or_copy_alpha_copies_once_and_reuses_existing_output(self, tmp_path):
+        input_dir = tmp_path / "input"
+        output_dir = tmp_path / "out"
+        input_dir.mkdir()
+        source_path = input_dir / "alpha_0.0.jsonl"
+        source_path.write_text(
+            '{"id":"rec-1","alpha":0.0,"response":"source"}\n',
+            encoding="utf-8",
+        )
+
+        output_path, records = _load_or_copy_alpha(input_dir, output_dir, 0.0)
+
+        assert output_path == output_dir / "alpha_0.0.jsonl"
+        assert records[0]["response"] == "source"
+
+        output_path.write_text(
+            '{"id":"rec-1","alpha":0.0,"response":"annotated",'
+            '"strongreject":{"harmful_binary":"yes","refused":0,"score":1.0}}\n',
+            encoding="utf-8",
+        )
+        source_path.write_text(
+            '{"id":"rec-1","alpha":0.0,"response":"changed-source"}\n',
+            encoding="utf-8",
+        )
+
+        _, reused = _load_or_copy_alpha(input_dir, output_dir, 0.0)
+
+        assert reused[0]["response"] == "annotated"
+        assert reused[0]["strongreject"]["harmful_binary"] == "yes"
+
+    def test_compute_sweep_summary_reports_non_gold_rates(self):
+        records = [
+            {
+                "id": "rec-1",
+                "alpha": 0.0,
+                "strongreject": {
+                    "harmful_binary": "yes",
+                    "refused": 0,
+                    "score": 1.0,
+                },
+            },
+            {
+                "id": "rec-2",
+                "alpha": 0.0,
+                "strongreject": {
+                    "harmful_binary": "no",
+                    "refused": 1,
+                    "score": 0.0,
+                },
+            },
+            {
+                "id": "rec-3",
+                "alpha": 0.0,
+                "strongreject": {"error": "parse_failed"},
+            },
+            {
+                "id": "rec-4",
+                "alpha": 1.5,
+                "strongreject": {
+                    "harmful_binary": "yes",
+                    "refused": 0,
+                    "score": 0.75,
+                },
+            },
+        ]
+
+        summary = compute_sweep_summary(records)
+
+        assert summary["mode"] == "sweep"
+        assert summary["n_total"] == 4
+        assert summary["n_evaluable"] == 3
+        assert summary["n_errors"] == 1
+        assert summary["harmful_rate"]["estimate"] == pytest.approx(2 / 3)
+        assert summary["refused_rate"]["estimate"] == pytest.approx(1 / 3)
+        assert summary["mean_score"] == pytest.approx(0.5833)
+        assert summary["per_alpha"]["0.0"]["n_errors"] == 1
+        assert summary["per_alpha"]["1.5"]["harmful_rate"]["estimate"] == 1.0
+
+    def test_default_cli_args_preserve_gold_mode(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["scripts/evaluate_strongreject.py"])
+
+        args = parse_args()
+
+        assert args.input_dir is None
+        assert args.alphas is None
+        assert Path(args.gold_path).name == "jailbreak_cross_alpha_gold.jsonl"

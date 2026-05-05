@@ -17,6 +17,13 @@ Usage:
         --output_dir data/judge_validation/strongreject \\
         --judge_model gpt-4o-mini \\
         --api-mode batch
+
+    uv run python scripts/evaluate_strongreject.py \\
+        --input_dir data/mistral24b/intervention/jailbreak_anchor3_full500/experiment \\
+        --output_dir data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation \\
+        --alphas 0.0 1.0 1.5 3.0 \\
+        --judge_model gpt-4o-2024-11-20 \\
+        --api-mode batch
 """
 
 from __future__ import annotations
@@ -26,6 +33,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -116,6 +124,7 @@ STRONGREJECT_JUDGE_KWARGS: dict[str, Any] = {
     "temperature": 0.0,
     "max_tokens": 500,
 }
+STRONGREJECT_FORBIDDEN_PROMPT_POLICY = "question_then_goal_v1"
 
 GOLD_DIR = Path(__file__).resolve().parent.parent / "tests" / "gold_labels"
 DEFAULT_GOLD_PATH = GOLD_DIR / "jailbreak_cross_alpha_gold.jsonl"
@@ -141,6 +150,19 @@ def build_strongreject_messages(
             ),
         },
     ]
+
+
+def _record_forbidden_prompt(record: dict[str, Any]) -> str:
+    """Return the user instruction field used by StrongREJECT."""
+    for key in ("question", "goal"):
+        value = record.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    record_id = str(record.get("id", "<unknown>"))
+    raise ValueError(
+        "StrongREJECT records must include a non-empty 'question' or 'goal' "
+        f"field; record id={record_id!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +262,12 @@ def load_gold(gold_path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def load_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Load JSONL records, skipping blank lines."""
+    with open(path, encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
 def _write_records(path: Path, records: list[dict[str, Any]]) -> None:
     """Write records to JSONL (single open — called only for finalized results)."""
     with open(path, "w") as f:
@@ -272,7 +300,7 @@ def _stable_record_key(record: dict[str, Any]) -> str:
         return f"id:{record_id}|alpha:{alpha_label}"
 
     fallback_payload = {
-        "question": record.get("question", ""),
+        "question": _record_forbidden_prompt(record),
         "response": record.get("response", ""),
         "alpha": alpha_label,
     }
@@ -302,6 +330,7 @@ def _strongreject_batch_state_path(
         "schema_version": STRONGREJECT_SCHEMA_VERSION,
         "judge_model": judge_model,
         "judge_kwargs": STRONGREJECT_JUDGE_KWARGS,
+        "forbidden_prompt_policy": STRONGREJECT_FORBIDDEN_PROMPT_POLICY,
         "gold_path": str(gold_path.resolve()),
         "gold_sha256": _read_file_digest(gold_path),
         "system_prompt_sha256": hashlib.sha256(
@@ -318,6 +347,71 @@ def _strongreject_batch_state_path(
     return output_dir / f".strongreject_batch_state_{model_slug}_{fingerprint}.json"
 
 
+def _strongreject_sweep_batch_state_path(
+    output_dir: Path, input_dir: Path, alphas: list[float], judge_model: str
+) -> Path:
+    """Namespace sweep batch state by evaluator config and source alpha files."""
+    input_files = []
+    for alpha in alphas:
+        alpha_label = format_alpha_label(alpha)
+        path = input_dir / f"alpha_{alpha_label}.jsonl"
+        input_files.append(
+            {
+                "alpha": alpha_label,
+                "path": str(path.resolve()),
+                "sha256": _read_file_digest(path),
+            }
+        )
+
+    fingerprint_payload = {
+        "schema_version": STRONGREJECT_SCHEMA_VERSION,
+        "mode": "sweep",
+        "judge_model": judge_model,
+        "judge_kwargs": STRONGREJECT_JUDGE_KWARGS,
+        "forbidden_prompt_policy": STRONGREJECT_FORBIDDEN_PROMPT_POLICY,
+        "input_dir": str(input_dir.resolve()),
+        "input_files": input_files,
+        "system_prompt_sha256": hashlib.sha256(
+            STRONGREJECT_SYSTEM_PROMPT.encode("utf-8")
+        ).hexdigest(),
+        "user_template_sha256": hashlib.sha256(
+            STRONGREJECT_USER_TEMPLATE.encode("utf-8")
+        ).hexdigest(),
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(fingerprint_payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:16]
+    model_slug = _slugify_filename_component(judge_model, max_length=32)
+    return output_dir / f".strongreject_batch_state_{model_slug}_{fingerprint}.json"
+
+
+def _load_or_copy_alpha(
+    input_dir: Path, output_dir: Path, alpha: float
+) -> tuple[Path, list[dict[str, Any]]]:
+    """Load an output alpha file when present, otherwise copy it from input."""
+    alpha_label = format_alpha_label(alpha)
+    output_path = output_dir / f"alpha_{alpha_label}.jsonl"
+    input_path = input_dir / f"alpha_{alpha_label}.jsonl"
+
+    if output_path.exists():
+        records = load_jsonl(output_path)
+        already = sum(1 for record in records if "strongreject" in record)
+        print(
+            f"  alpha={alpha_label}: loaded {len(records)} records "
+            f"({already} already annotated)"
+        )
+        return output_path, records
+
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(input_path, output_path)
+    records = load_jsonl(output_path)
+    print(f"  alpha={alpha_label}: copied {len(records)} records from input")
+    return output_path, records
+
+
 # ---------------------------------------------------------------------------
 # Batch evaluation
 # ---------------------------------------------------------------------------
@@ -331,8 +425,10 @@ def evaluate_batch(
     judge_model: str,
     prompt_cache_retention: str | None = None,
     batch_max_enqueued_tokens: int | None = None,
+    state_path: Path | None = None,
+    metadata_benchmark: str = "strongreject_gold",
 ) -> list[dict[str, Any]]:
-    """Evaluate gold records via the OpenAI Batch API."""
+    """Evaluate records via the OpenAI Batch API."""
     from openai_batch import build_chat_request, parse_chat_content, resume_or_submit
 
     batch_requests: list[dict[str, Any]] = []
@@ -348,7 +444,7 @@ def evaluate_batch(
                 f"{_stable_record_key(rec)!r}; check fixture IDs and alpha values"
             )
         messages = build_strongreject_messages(
-            rec.get("question", ""), rec.get("response", "")
+            _record_forbidden_prompt(rec), rec.get("response", "")
         )
 
         req_kwargs: dict[str, Any] = {**STRONGREJECT_JUDGE_KWARGS}
@@ -373,12 +469,13 @@ def evaluate_batch(
         f"  Submitting {len(batch_requests)} StrongREJECT judge requests "
         f"via Batch API..."
     )
-    state_path = _strongreject_batch_state_path(output_dir, gold_path, judge_model)
+    if state_path is None:
+        state_path = _strongreject_batch_state_path(output_dir, gold_path, judge_model)
     results = resume_or_submit(
         client,
         batch_requests,
         state_path,
-        metadata={"benchmark": "strongreject_gold", "script": "evaluate_strongreject"},
+        metadata={"benchmark": metadata_benchmark, "script": "evaluate_strongreject"},
         max_enqueued_tokens=batch_max_enqueued_tokens,
     )
 
@@ -441,7 +538,7 @@ def evaluate_sync(
         if "strongreject" in rec:
             continue
         messages = build_strongreject_messages(
-            rec.get("question", ""), rec.get("response", "")
+            _record_forbidden_prompt(rec), rec.get("response", "")
         )
         content: str | None = None
         for attempt in range(5):
@@ -579,7 +676,7 @@ def compute_gold_summary(
         if isinstance(r.get("strongreject"), dict) and "error" in r["strongreject"]
     )
 
-    summary = {
+    summary: dict[str, Any] = {
         "evaluator": "strongreject",
         "schema_version": STRONGREJECT_SCHEMA_VERSION,
         "n_total": len(records),
@@ -598,6 +695,63 @@ def compute_gold_summary(
     }
     if n == 0:
         summary["note"] = "no evaluable records"
+    return summary
+
+
+def _valid_strongreject_records(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return records with a parsed StrongREJECT verdict."""
+    return [
+        record
+        for record in records
+        if isinstance(record.get("strongreject"), dict)
+        and "error" not in record["strongreject"]
+    ]
+
+
+def _summarize_sweep_records(records: list[dict[str, Any]]) -> dict[str, Any]:
+    valid = _valid_strongreject_records(records)
+    harmful = sum(
+        1 for record in valid if record["strongreject"].get("harmful_binary") == "yes"
+    )
+    refused = sum(1 for record in valid if record["strongreject"].get("refused") == 1)
+    scores = [
+        float(record["strongreject"]["score"])
+        for record in valid
+        if "score" in record["strongreject"]
+    ]
+    return {
+        "n_total": len(records),
+        "n_evaluable": len(valid),
+        "n_errors": len(records) - len(valid),
+        "harmful_rate": build_rate_summary(
+            harmful, len(valid), count_key="yes", total_key="n"
+        ),
+        "refused_rate": build_rate_summary(
+            refused, len(valid), count_key="refused", total_key="n"
+        ),
+        "mean_score": round(sum(scores) / len(scores), 4) if scores else 0.0,
+    }
+
+
+def compute_sweep_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize StrongREJECT results for a non-gold intervention sweep."""
+    by_alpha: dict[float, list[dict[str, Any]]] = defaultdict(list)
+    for record in records:
+        by_alpha[float(record["alpha"])].append(record)
+
+    summary: dict[str, Any] = {
+        "evaluator": "strongreject",
+        "mode": "sweep",
+        "schema_version": STRONGREJECT_SCHEMA_VERSION,
+        **_summarize_sweep_records(records),
+        "per_alpha": {},
+    }
+    for alpha in sorted(by_alpha):
+        summary["per_alpha"][format_alpha_label(alpha)] = _summarize_sweep_records(
+            by_alpha[alpha]
+        )
     return summary
 
 
@@ -639,6 +793,24 @@ def print_summary(summary: dict[str, Any], judge_model: str) -> None:
     print("=" * 60)
 
 
+def print_sweep_summary(summary: dict[str, Any], judge_model: str) -> None:
+    """Print a compact non-gold sweep summary."""
+    print(f"\n{'=' * 60}")
+    print(f"StrongREJECT Sweep Summary (judge={judge_model})")
+    print(f"{'=' * 60}")
+    for alpha_label, alpha_summary in summary.get("per_alpha", {}).items():
+        harmful_rate = alpha_summary["harmful_rate"]["estimate"]
+        refused_rate = alpha_summary["refused_rate"]["estimate"]
+        print(
+            f"  alpha={alpha_label}: harmful={harmful_rate:.1%} "
+            f"refused={refused_rate:.1%} "
+            f"mean_score={alpha_summary['mean_score']:.3f} "
+            f"errors={alpha_summary['n_errors']} "
+            f"(n={alpha_summary['n_evaluable']}/{alpha_summary['n_total']})"
+        )
+    print("=" * 60)
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -646,10 +818,23 @@ def print_summary(summary: dict[str, Any], judge_model: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="StrongREJECT rubric evaluation for jailbreak gold labels"
+        description="StrongREJECT rubric evaluation for jailbreak responses"
     )
     p.add_argument("--gold_path", type=str, default=str(DEFAULT_GOLD_PATH))
+    p.add_argument(
+        "--input_dir",
+        type=str,
+        default=None,
+        help="Evaluate an intervention sweep directory instead of gold labels.",
+    )
     p.add_argument("--output_dir", type=str, default=str(DEFAULT_OUTPUT_DIR))
+    p.add_argument(
+        "--alphas",
+        type=float,
+        nargs="+",
+        default=None,
+        help="Alpha files to evaluate in --input_dir sweep mode.",
+    )
     p.add_argument("--judge_model", type=str, default=DEFAULT_JUDGE_MODEL)
     p.add_argument(
         "--api-mode",
@@ -675,6 +860,145 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+def run_gold_mode(
+    args: argparse.Namespace,
+    *,
+    gold_path: Path,
+    output_dir: Path,
+    client: OpenAI,
+) -> dict[str, Any]:
+    """Run the existing gold-label agreement workflow."""
+    gold_records = load_gold(gold_path)
+    print(
+        f"StrongREJECT evaluation: {args.judge_model} (mode={args.api_mode})\n"
+        f"  Gold: {gold_path} ({len(gold_records)} evaluable records)\n"
+        f"  Output: {output_dir}"
+    )
+
+    if args.api_mode == "batch":
+        gold_records = evaluate_batch(
+            gold_records,
+            output_dir,
+            gold_path,
+            client,
+            args.judge_model,
+            prompt_cache_retention=args.prompt_cache_retention,
+            batch_max_enqueued_tokens=args.batch_max_enqueued_tokens,
+        )
+    else:
+        gold_records = evaluate_sync(
+            gold_records,
+            client,
+            args.judge_model,
+            prompt_cache_retention=args.prompt_cache_retention,
+        )
+
+    by_alpha: dict[float, list[dict[str, Any]]] = defaultdict(list)
+    for rec in gold_records:
+        by_alpha[rec["alpha"]].append(rec)
+
+    for alpha in sorted(by_alpha):
+        alpha_path = output_dir / f"alpha_{alpha:.1f}.jsonl"
+        _write_records(alpha_path, by_alpha[alpha])
+        n_ok = sum(
+            1
+            for record in by_alpha[alpha]
+            if isinstance(record.get("strongreject"), dict)
+            and "error" not in record["strongreject"]
+        )
+        print(f"  alpha={alpha:.1f}: {n_ok}/{len(by_alpha[alpha])} annotated")
+
+    combined_path = output_dir / "strongreject_gold_results.jsonl"
+    _write_records(combined_path, gold_records)
+
+    summary = compute_gold_summary(gold_records)
+    summary["judge_model"] = args.judge_model
+    summary["gold_fixture"] = str(gold_path)
+
+    results_path = output_dir / "results.json"
+    with open(results_path, "w") as f:
+        json.dump(summary, f, indent=2, default=str)
+    print(f"\n  Saved: {results_path}")
+
+    print_summary(summary, args.judge_model)
+    return summary
+
+
+def run_sweep_mode(
+    args: argparse.Namespace,
+    *,
+    input_dir: Path,
+    output_dir: Path,
+    client: OpenAI,
+) -> dict[str, Any]:
+    """Run StrongREJECT over intervention alpha files without gold labels."""
+    if not args.alphas:
+        raise ValueError("--alphas is required with --input_dir sweep mode")
+
+    alpha_data: dict[float, tuple[Path, list[dict[str, Any]]]] = {}
+    for alpha in args.alphas:
+        alpha_data[alpha] = _load_or_copy_alpha(input_dir, output_dir, alpha)
+
+    all_records = [record for _, records in alpha_data.values() for record in records]
+    print(
+        f"StrongREJECT sweep evaluation: {args.judge_model} "
+        f"(mode={args.api_mode})\n"
+        f"  Input:  {input_dir}\n"
+        f"  Output: {output_dir}\n"
+        f"  Alphas: {[format_alpha_label(alpha) for alpha in args.alphas]}"
+    )
+
+    if args.api_mode == "batch":
+        state_path = _strongreject_sweep_batch_state_path(
+            output_dir, input_dir, args.alphas, args.judge_model
+        )
+        all_records = evaluate_batch(
+            all_records,
+            output_dir,
+            input_dir,
+            client,
+            args.judge_model,
+            prompt_cache_retention=args.prompt_cache_retention,
+            batch_max_enqueued_tokens=args.batch_max_enqueued_tokens,
+            state_path=state_path,
+            metadata_benchmark="strongreject_sweep",
+        )
+    else:
+        all_records = evaluate_sync(
+            all_records,
+            client,
+            args.judge_model,
+            prompt_cache_retention=args.prompt_cache_retention,
+        )
+
+    for alpha, (path, records) in alpha_data.items():
+        _write_records(path, records)
+        n_ok = sum(
+            1
+            for record in records
+            if isinstance(record.get("strongreject"), dict)
+            and "error" not in record["strongreject"]
+        )
+        alpha_label = format_alpha_label(alpha)
+        print(f"  alpha={alpha_label}: {n_ok}/{len(records)} annotated")
+
+    combined_path = output_dir / "strongreject_results.jsonl"
+    _write_records(combined_path, all_records)
+
+    summary = compute_sweep_summary(all_records)
+    summary["judge_model"] = args.judge_model
+    summary["input_dir"] = str(input_dir)
+    summary["alphas"] = [format_alpha_label(alpha) for alpha in args.alphas]
+
+    results_path = output_dir / "results.json"
+    with open(results_path, "w") as f:
+        json.dump(summary, f, indent=2, default=str)
+    print(f"\n  Saved: {results_path}")
+
+    print_sweep_summary(summary, args.judge_model)
+    return summary
+
+
 def main() -> None:
     args = parse_args()
     gold_path = Path(args.gold_path)
@@ -696,65 +1020,24 @@ def main() -> None:
             raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or --api_key")
         client = OpenAI(api_key=api_key)
 
-        gold_records = load_gold(gold_path)
-        print(
-            f"StrongREJECT evaluation: {args.judge_model} (mode={args.api_mode})\n"
-            f"  Gold: {gold_path} ({len(gold_records)} evaluable records)\n"
-            f"  Output: {output_dir}"
-        )
-
-        if args.api_mode == "batch":
-            gold_records = evaluate_batch(
-                gold_records,
-                output_dir,
-                gold_path,
-                client,
-                args.judge_model,
-                prompt_cache_retention=args.prompt_cache_retention,
-                batch_max_enqueued_tokens=args.batch_max_enqueued_tokens,
+        if args.input_dir:
+            summary = run_sweep_mode(
+                args,
+                input_dir=Path(args.input_dir),
+                output_dir=output_dir,
+                client=client,
             )
+            provenance_extra["n_evaluable"] = summary["n_evaluable"]
+            provenance_extra["harmful_rate"] = summary["harmful_rate"]["estimate"]
         else:
-            gold_records = evaluate_sync(
-                gold_records,
-                client,
-                args.judge_model,
-                prompt_cache_retention=args.prompt_cache_retention,
+            summary = run_gold_mode(
+                args,
+                gold_path=gold_path,
+                output_dir=output_dir,
+                client=client,
             )
-
-        # Write per-alpha JSONL
-        by_alpha: dict[float, list[dict[str, Any]]] = defaultdict(list)
-        for rec in gold_records:
-            by_alpha[rec["alpha"]].append(rec)
-
-        for alpha in sorted(by_alpha):
-            alpha_path = output_dir / f"alpha_{alpha:.1f}.jsonl"
-            _write_records(alpha_path, by_alpha[alpha])
-            n_ok = sum(
-                1
-                for r in by_alpha[alpha]
-                if isinstance(r.get("strongreject"), dict)
-                and "error" not in r["strongreject"]
-            )
-            print(f"  alpha={alpha:.1f}: {n_ok}/{len(by_alpha[alpha])} annotated")
-
-        # Write combined file
-        combined_path = output_dir / "strongreject_gold_results.jsonl"
-        _write_records(combined_path, gold_records)
-
-        # Compute and write summary
-        summary = compute_gold_summary(gold_records)
-        summary["judge_model"] = args.judge_model
-        summary["gold_fixture"] = str(gold_path)
-
-        results_path = output_dir / "results.json"
-        with open(results_path, "w") as f:
-            json.dump(summary, f, indent=2, default=str)
-        print(f"\n  Saved: {results_path}")
-
-        print_summary(summary, args.judge_model)
-
-        provenance_extra["n_evaluable"] = summary["n_evaluable"]
-        provenance_extra["accuracy"] = summary["accuracy"]["estimate"]
+            provenance_extra["n_evaluable"] = summary["n_evaluable"]
+            provenance_extra["accuracy"] = summary["accuracy"]["estimate"]
 
     except BaseException as exc:
         provenance_status = provenance_status_for_exception(exc)
