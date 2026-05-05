@@ -1,0 +1,64 @@
+{
+  "benchmark": "jailbreak",
+  "benchmark_config": {
+    "jailbreak_generation": {
+      "do_sample": true,
+      "max_new_tokens": 5000,
+      "temperature": 0.7,
+      "top_k": 20,
+      "top_p": 0.8
+    },
+    "jailbreak_path": "data/benchmarks/forbidden_question_set.csv",
+    "jailbreak_source": "jailbreakbench",
+    "n_templates": 5
+  },
+  "classifier": {
+    "content_sha256": "597435a84b19e68151f3f6903fd5ff1f12c61647440b07392dc34fdb8bea919d",
+    "path": "models/mistral24b_classifier_canonical.pkl"
+  },
+  "comparability_class": "claimable",
+  "generation_fingerprint": {
+    "id": "85849bccaf9efd20",
+    "spec": {
+      "intervention_mode": "neuron",
+      "iti_decode_scope": null,
+      "jailbreak_generation": {
+        "do_sample": true,
+        "max_new_tokens": 5000,
+        "temperature": 0.7,
+        "top_k": 20,
+        "top_p": 0.8
+      },
+      "run_profile": "canonical"
+    }
+  },
+  "intervention": {
+    "mode": "neuron"
+  },
+  "model": {
+    "key": "mistral_small_24b_instruct_2501",
+    "path": "mistralai/Mistral-Small-24B-Instruct-2501"
+  },
+  "run_profile": "canonical",
+  "sample_selection": {
+    "max_samples": null,
+    "sample_manifest": {
+      "content_sha256": "85ca97936c936aeff0266820ac846d7242dc7edac051299d2394f827ed7e870c",
+      "fingerprint": "ca15ee582b45a77a",
+      "lock_context": "mistral24b_claim_stage",
+      "n_ids": 500,
+      "path": "data/manifests/jbb_d7_full_harmful500_seed42_mistral24b.lock.json",
+      "schema_version": "sample_manifest/v2",
+      "source_path": "data/manifests/jbb_d7_full_harmful500_seed42.json",
+      "source_sha256": "7630558379a59df4f93281eff87be0866706fb6fb646c804ed7916a0004ed7ac"
+    }
+  },
+  "schedule": {
+    "alphas": [
+      0.0,
+      1.0,
+      3.0
+    ]
+  },
+  "schema_version": "intervention_run_config/v1"
+}

@@ -1,0 +1,164 @@
+{
+  "errors": [],
+  "expected_alphas": [
+    "0.0",
+    "1.0",
+    "1.5",
+    "3.0"
+  ],
+  "metadata": {
+    "artifact_manifest.sha256": {
+      "mirror_exists": false,
+      "mirror_path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/artifact_manifest.sha256",
+      "source_exists": false,
+      "source_path": "/workspace/mistral24b_anchor3_full500/artifact_manifest.sha256"
+    },
+    "artifact_validation.json": {
+      "mirror_exists": false,
+      "mirror_path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/artifact_validation.json",
+      "source_exists": false,
+      "source_path": "/workspace/mistral24b_anchor3_full500/artifact_validation.json"
+    },
+    "experiment/alpha15_separate_run_metadata/README.md": {
+      "mirror_exists": true,
+      "mirror_path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha15_separate_run_metadata/README.md",
+      "source_exists": true,
+      "source_path": "/workspace/mistral24b_anchor3_full500/experiment/alpha15_separate_run_metadata/README.md"
+    },
+    "experiment/alpha15_separate_run_metadata/intervention_run_config.json": {
+      "mirror_exists": true,
+      "mirror_path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha15_separate_run_metadata/intervention_run_config.json",
+      "source_exists": true,
+      "source_path": "/workspace/mistral24b_anchor3_full500/experiment/alpha15_separate_run_metadata/intervention_run_config.json"
+    },
+    "experiment/alpha15_separate_run_metadata/results.20260504_215118.json": {
+      "mirror_exists": true,
+      "mirror_path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha15_separate_run_metadata/results.20260504_215118.json",
+      "source_exists": true,
+      "source_path": "/workspace/mistral24b_anchor3_full500/experiment/alpha15_separate_run_metadata/results.20260504_215118.json"
+    },
+    "experiment/alpha15_separate_run_metadata/run_intervention.provenance.20260504_215118.json": {
+      "mirror_exists": true,
+      "mirror_path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha15_separate_run_metadata/run_intervention.provenance.20260504_215118.json",
+      "source_exists": true,
+      "source_path": "/workspace/mistral24b_anchor3_full500/experiment/alpha15_separate_run_metadata/run_intervention.provenance.20260504_215118.json"
+    },
+    "experiment/intervention_run_config.json": {
+      "mirror_exists": true,
+      "mirror_path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/intervention_run_config.json",
+      "source_exists": true,
+      "source_path": "/workspace/mistral24b_anchor3_full500/experiment/intervention_run_config.json"
+    },
+    "experiment/run_intervention.provenance.20260504_164232.json": {
+      "mirror_exists": true,
+      "mirror_path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/run_intervention.provenance.20260504_164232.json",
+      "source_exists": true,
+      "source_path": "/workspace/mistral24b_anchor3_full500/experiment/run_intervention.provenance.20260504_164232.json"
+    }
+  },
+  "mirror_root": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500",
+  "source_root": "/workspace/mistral24b_anchor3_full500",
+  "summary": {
+    "mirror": {
+      "0.0": {
+        "bad_json_lines": [],
+        "bytes": 1627938,
+        "duplicate_ids": 0,
+        "missing_id_lines": [],
+        "path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_0.0.jsonl",
+        "rows": 500,
+        "sha256": "82ccbe62fa5a5579274f9325d5747aef010756b3bc8acf3829992bfbdc7c4e48",
+        "unique_ids": 500,
+        "valid_json_rows": 500,
+        "wrong_alpha_lines": []
+      },
+      "1.0": {
+        "bad_json_lines": [],
+        "bytes": 1460746,
+        "duplicate_ids": 0,
+        "missing_id_lines": [],
+        "path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.0.jsonl",
+        "rows": 500,
+        "sha256": "52f9bb3aec1d3802ddf01c1d888175f067b4b77dc73ed60a7c90813db396c860",
+        "unique_ids": 500,
+        "valid_json_rows": 500,
+        "wrong_alpha_lines": []
+      },
+      "1.5": {
+        "bad_json_lines": [],
+        "bytes": 1518487,
+        "duplicate_ids": 0,
+        "missing_id_lines": [],
+        "path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.5.jsonl",
+        "rows": 500,
+        "sha256": "d20cf96e94bf48c7276d3c1a7dabd901276b3a7bd4192868af1136746aaee9ab",
+        "unique_ids": 500,
+        "valid_json_rows": 500,
+        "wrong_alpha_lines": []
+      },
+      "3.0": {
+        "bad_json_lines": [],
+        "bytes": 1603909,
+        "duplicate_ids": 0,
+        "missing_id_lines": [],
+        "path": "/workspace/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_3.0.jsonl",
+        "rows": 500,
+        "sha256": "91e1f3570f13bd9111931017582a531e267f03f7b7bcf14b22161dbcdceed7c9",
+        "unique_ids": 500,
+        "valid_json_rows": 500,
+        "wrong_alpha_lines": []
+      }
+    },
+    "source": {
+      "0.0": {
+        "bad_json_lines": [],
+        "bytes": 1627938,
+        "duplicate_ids": 0,
+        "missing_id_lines": [],
+        "path": "/workspace/mistral24b_anchor3_full500/experiment/alpha_0.0.jsonl",
+        "rows": 500,
+        "sha256": "82ccbe62fa5a5579274f9325d5747aef010756b3bc8acf3829992bfbdc7c4e48",
+        "unique_ids": 500,
+        "valid_json_rows": 500,
+        "wrong_alpha_lines": []
+      },
+      "1.0": {
+        "bad_json_lines": [],
+        "bytes": 1460746,
+        "duplicate_ids": 0,
+        "missing_id_lines": [],
+        "path": "/workspace/mistral24b_anchor3_full500/experiment/alpha_1.0.jsonl",
+        "rows": 500,
+        "sha256": "52f9bb3aec1d3802ddf01c1d888175f067b4b77dc73ed60a7c90813db396c860",
+        "unique_ids": 500,
+        "valid_json_rows": 500,
+        "wrong_alpha_lines": []
+      },
+      "1.5": {
+        "bad_json_lines": [],
+        "bytes": 1518487,
+        "duplicate_ids": 0,
+        "missing_id_lines": [],
+        "path": "/workspace/mistral24b_anchor3_full500/experiment/alpha_1.5.jsonl",
+        "rows": 500,
+        "sha256": "d20cf96e94bf48c7276d3c1a7dabd901276b3a7bd4192868af1136746aaee9ab",
+        "unique_ids": 500,
+        "valid_json_rows": 500,
+        "wrong_alpha_lines": []
+      },
+      "3.0": {
+        "bad_json_lines": [],
+        "bytes": 1603909,
+        "duplicate_ids": 0,
+        "missing_id_lines": [],
+        "path": "/workspace/mistral24b_anchor3_full500/experiment/alpha_3.0.jsonl",
+        "rows": 500,
+        "sha256": "91e1f3570f13bd9111931017582a531e267f03f7b7bcf14b22161dbcdceed7c9",
+        "unique_ids": 500,
+        "valid_json_rows": 500,
+        "wrong_alpha_lines": []
+      }
+    }
+  },
+  "validated_at_utc": "2026-05-04T23:33:44.829789Z"
+}
