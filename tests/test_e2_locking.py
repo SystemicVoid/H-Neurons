@@ -272,6 +272,20 @@ class TestTruthfulQAMCGate:
                 fold_idx=0,
             )
 
+    def test_truthfulqa_report_rejects_empty_paired_ids(self, tmp_path: Path):
+        fold_dir = tmp_path / "mc1"
+        fold_dir.mkdir()
+        self._write_alpha(fold_dir / "alpha_0.0.jsonl", [])
+        self._write_alpha(fold_dir / "alpha_8.0.jsonl", [])
+
+        with pytest.raises(ValueError, match="no paired sample IDs"):
+            report_iti_2fold.compute_fold_report(
+                str(fold_dir),
+                locked_alpha=8.0,
+                variant="mc1",
+                fold_idx=0,
+            )
+
 
 class TestPilotPoisonGate:
     def test_pilot_gate_filters_poisoned_candidates(self):

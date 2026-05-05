@@ -140,6 +140,11 @@ def compute_fold_report(
             f"missing_from_locked={missing_from_locked[:5]}, "
             f"missing_from_baseline={missing_from_baseline[:5]}"
         )
+    if not baseline_ids:
+        raise ValueError(
+            "TruthfulQA ITI report has no paired sample IDs "
+            f"(fold={fold_idx}, variant={variant})"
+        )
     common_ids = sorted(baseline_ids)
 
     if variant == "mc1":
