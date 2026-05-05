@@ -1322,6 +1322,32 @@ def negative_control_triage(summary: dict[str, Any]) -> tuple[str, str, str]:
                 "Audit no-op/rerun stability before treating the slope as specificity.",
             )
 
+        alpha_3_outside = not alpha_3_inside
+        alpha_0_midpoint = (
+            float(alpha_0_interval["lower"]) + float(alpha_0_interval["upper"])
+        ) / 2.0
+        alpha_3_midpoint = (
+            float(alpha_3_interval["lower"]) + float(alpha_3_interval["upper"])
+        ) / 2.0
+        alpha_0_offset_pp = alpha_0_h - alpha_0_midpoint
+        alpha_3_offset_pp = alpha_3_h - alpha_3_midpoint
+        same_offset_side = (alpha_0_offset_pp > 0.0 and alpha_3_offset_pp > 0.0) or (
+            alpha_0_offset_pp < 0.0 and alpha_3_offset_pp < 0.0
+        )
+        offset_difference_pp = abs(abs(alpha_0_offset_pp) - abs(alpha_3_offset_pp))
+        if (
+            alpha_0_outside
+            and alpha_3_outside
+            and same_offset_side
+            and offset_difference_pp <= 1.0
+        ):
+            return (
+                "review_constant_offset",
+                "H-neuron slope separates, but both endpoint rates sit outside "
+                "their random bands with a same-direction, similar-magnitude offset.",
+                "Audit baseline/control rerun offsets before treating the slope as specificity.",
+            )
+
     return (
         "specificity_supported",
         "H-neuron slope separates from the random-set interval.",

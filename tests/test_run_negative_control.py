@@ -5,6 +5,7 @@ import hashlib
 from pathlib import Path
 import re
 import sys
+from typing import Any
 
 import pytest
 
@@ -372,6 +373,36 @@ def test_comparison_summary_preserves_h_baseline_parse_failures(
     ] == [2, 2, 2]
 
 
+def _negative_control_triage_summary(
+    *,
+    alpha_0_h_rate_pct: float,
+    alpha_3_h_rate_pct: float,
+    alpha_0_interval: tuple[float, float] = (40.0, 60.0),
+    alpha_3_interval: tuple[float, float] = (45.0, 65.0),
+    slope_h_pp_per_alpha: float = 3.0,
+    slope_interval: tuple[float, float] = (-1.0, 1.0),
+) -> dict[str, Any]:
+    return {
+        "comparison_to_h_neurons": {
+            "alpha_0_h_rate_pct": alpha_0_h_rate_pct,
+            "alpha_0_random_percentile_interval_pct": {
+                "lower": alpha_0_interval[0],
+                "upper": alpha_0_interval[1],
+            },
+            "alpha_3_h_rate_pct": alpha_3_h_rate_pct,
+            "alpha_3_random_percentile_interval_pct": {
+                "lower": alpha_3_interval[0],
+                "upper": alpha_3_interval[1],
+            },
+            "slope_h_pp_per_alpha": slope_h_pp_per_alpha,
+            "slope_random_percentile_interval": {
+                "lower": slope_interval[0],
+                "upper": slope_interval[1],
+            },
+        }
+    }
+
+
 def test_negative_control_triage_flags_baseline_mismatch(
     tmp_path: Path,
 ) -> None:
@@ -458,6 +489,41 @@ def test_negative_control_triage_flags_baseline_mismatch(
     assert status == "review_baseline_mismatch"
     assert "alpha=0 baseline differs" in note
     assert "no-op/rerun stability" in action
+
+
+def test_negative_control_triage_flags_constant_offset() -> None:
+    summary = _negative_control_triage_summary(
+        alpha_0_h_rate_pct=62.0,
+        alpha_3_h_rate_pct=66.5,
+    )
+
+    status, note, action = negative_control_triage(summary)
+
+    assert status == "review_constant_offset"
+    assert "same-direction, similar-magnitude offset" in note
+    assert "baseline/control rerun offsets" in action
+
+
+@pytest.mark.parametrize(
+    ("alpha_0_h_rate_pct", "alpha_3_h_rate_pct"),
+    [
+        (38.0, 66.5),
+        (62.0, 69.5),
+        (50.0, 66.5),
+    ],
+)
+def test_negative_control_triage_requires_constant_offset_predicate(
+    alpha_0_h_rate_pct: float,
+    alpha_3_h_rate_pct: float,
+) -> None:
+    summary = _negative_control_triage_summary(
+        alpha_0_h_rate_pct=alpha_0_h_rate_pct,
+        alpha_3_h_rate_pct=alpha_3_h_rate_pct,
+    )
+
+    status, _, _ = negative_control_triage(summary)
+
+    assert status == "specificity_supported"
 
 
 def test_mistral_wrapper_has_token_span_preflight_before_claim_stages() -> None:
