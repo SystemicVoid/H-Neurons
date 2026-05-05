@@ -19,6 +19,8 @@ Usage::
 from __future__ import annotations
 
 import argparse
+from collections import Counter
+from collections.abc import Sequence
 import json
 from pathlib import Path
 from typing import Any
@@ -31,7 +33,7 @@ from uncertainty import (
     percentile_interval,
     wilson_interval,
 )
-from utils import format_alpha_label
+from utils import fingerprint_ids, format_alpha_label, load_sample_manifest_ids
 
 
 # ---------------------------------------------------------------------------
@@ -83,6 +85,55 @@ def assert_unique_sample_ids(
         )
 
 
+def _duplicate_sample_ids(ids: Sequence[str]) -> list[str]:
+    counts = Counter(ids)
+    return sorted(sample_id for sample_id, count in counts.items() if count > 1)
+
+
+def validate_sample_manifest_binding(
+    fold_sample_ids: Sequence[Sequence[str]],
+    sample_manifest: str | Path,
+) -> dict[str, Any]:
+    """Validate that pooled report IDs exactly match a locked sample manifest."""
+    manifest_path = Path(sample_manifest)
+    manifest_ids = load_sample_manifest_ids(manifest_path)
+    manifest_duplicates = _duplicate_sample_ids(manifest_ids)
+    if manifest_duplicates:
+        raise ValueError(
+            f"{manifest_path}: duplicate sample IDs in --sample_manifest: "
+            f"{manifest_duplicates[:5]}"
+        )
+
+    report_ids = [sample_id for fold_ids in fold_sample_ids for sample_id in fold_ids]
+    report_duplicates = _duplicate_sample_ids(report_ids)
+    if report_duplicates:
+        raise ValueError(
+            "TruthfulQA ITI report has duplicate sample IDs across fold "
+            f"directories for --sample_manifest {manifest_path}: "
+            f"{report_duplicates[:5]}"
+        )
+
+    manifest_set = set(manifest_ids)
+    report_set = set(report_ids)
+    if report_set != manifest_set or len(report_ids) != len(manifest_ids):
+        missing_from_report = sorted(manifest_set - report_set)
+        unexpected_in_report = sorted(report_set - manifest_set)
+        raise ValueError(
+            "TruthfulQA ITI report sample IDs must exactly match "
+            f"--sample_manifest {manifest_path}; "
+            f"manifest_n={len(manifest_ids)}, report_n={len(report_ids)}, "
+            f"missing_from_report={missing_from_report[:5]}, "
+            f"unexpected_in_report={unexpected_in_report[:5]}"
+        )
+
+    return {
+        "path": str(manifest_path),
+        "n_ids": len(manifest_ids),
+        "fingerprint": fingerprint_ids(manifest_ids),
+        "validated": True,
+    }
+
+
 def mcnemar_p_value(
     baseline_correct: np.ndarray, intervened_correct: np.ndarray
 ) -> float:
@@ -125,16 +176,16 @@ def _bootstrap_mean_ci(
 # ---------------------------------------------------------------------------
 
 
-def compute_fold_report(
+def compute_fold_report_with_ids(
     fold_dir: str,
     locked_alpha: float,
     variant: str,
     fold_idx: int,
-) -> tuple[dict[str, Any], np.ndarray, np.ndarray]:
+) -> tuple[dict[str, Any], np.ndarray, np.ndarray, list[str]]:
     """Compute single-fold baseline vs intervened comparison.
 
-    Returns (report_dict, baseline_values, intervened_values) where values
-    are aligned numpy arrays (bool for mc1, float for mc2).
+    Returns (report_dict, baseline_values, intervened_values, sample_ids)
+    where values are aligned numpy arrays (bool for mc1, float for mc2).
     """
     baseline_label = format_alpha_label(0.0)
     locked_label = format_alpha_label(locked_alpha)
@@ -229,6 +280,22 @@ def compute_fold_report(
             "delta_pp": delta,
         }
 
+    return report, baseline_arr, locked_arr, common_ids
+
+
+def compute_fold_report(
+    fold_dir: str,
+    locked_alpha: float,
+    variant: str,
+    fold_idx: int,
+) -> tuple[dict[str, Any], np.ndarray, np.ndarray]:
+    """Compute single-fold report while preserving the historical return shape."""
+    report, baseline_arr, locked_arr, _sample_ids = compute_fold_report_with_ids(
+        fold_dir,
+        locked_alpha,
+        variant,
+        fold_idx,
+    )
     return report, baseline_arr, locked_arr
 
 
@@ -360,7 +427,10 @@ def parse_args() -> argparse.Namespace:
         "--sample_manifest",
         type=str,
         default=None,
-        help="Optional sample manifest path to bind the report to a locked sample set.",
+        help=(
+            "Optional sample manifest path. When supplied, the pooled sample IDs "
+            "across all fold directories must exactly match this locked set."
+        ),
     )
     return p.parse_args()
 
@@ -380,12 +450,14 @@ def main() -> None:
 
     fold_reports = []
     fold_arrays = []
+    fold_sample_ids = []
     for fold_idx, fold_dir in enumerate(fold_dirs):
-        report, baseline_arr, locked_arr = compute_fold_report(
+        report, baseline_arr, locked_arr, sample_ids = compute_fold_report_with_ids(
             fold_dir, args.locked_alpha, args.variant, fold_idx
         )
         fold_reports.append(report)
         fold_arrays.append((baseline_arr, locked_arr))
+        fold_sample_ids.append(sample_ids)
         b = report["baseline"]
         i = report["intervened"]
         d = report["delta_pp"]
@@ -393,6 +465,13 @@ def main() -> None:
             f"Fold {fold_idx}: {args.variant} baseline={b['rate']:.3f}, "
             f"intervened={i['rate']:.3f}, Δ={d['estimate_pp']:+.1f}pp "
             f"[{d['ci_pp']['lower']:+.1f}, {d['ci_pp']['upper']:+.1f}]"
+        )
+
+    sample_manifest_binding = None
+    if args.sample_manifest is not None:
+        sample_manifest_binding = validate_sample_manifest_binding(
+            fold_sample_ids,
+            args.sample_manifest,
         )
 
     pooled = compute_pooled_report(args.variant, args.locked_alpha, fold_arrays)
@@ -417,6 +496,8 @@ def main() -> None:
         "folds": fold_reports,
         "pooled": pooled,
     }
+    if sample_manifest_binding is not None:
+        full_report["sample_manifest_binding"] = sample_manifest_binding
     gate = build_gate_decision(full_report, args.gate_mode)
     if gate is not None:
         full_report["gate"] = gate

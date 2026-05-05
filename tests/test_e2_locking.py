@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -254,6 +255,82 @@ class TestTruthfulQAMCGate:
 
         assert gate is not None
         assert gate["passed"] is True
+
+    def test_sample_manifest_binding_accepts_exact_pooled_ids(self, tmp_path: Path):
+        manifest = tmp_path / "manifest.json"
+        manifest.write_text(json.dumps(["q1", "q2"]), encoding="utf-8")
+
+        binding = report_iti_2fold.validate_sample_manifest_binding(
+            [["q2"], ["q1"]],
+            manifest,
+        )
+
+        assert binding["path"] == str(manifest)
+        assert binding["n_ids"] == 2
+        assert binding["validated"] is True
+
+    def test_sample_manifest_binding_rejects_duplicate_pooled_ids(self, tmp_path: Path):
+        manifest = tmp_path / "manifest.json"
+        manifest.write_text(json.dumps(["q1", "q2"]), encoding="utf-8")
+
+        with pytest.raises(
+            ValueError,
+            match="duplicate sample IDs across fold directories",
+        ):
+            report_iti_2fold.validate_sample_manifest_binding(
+                [["q1"], ["q1"]],
+                manifest,
+            )
+
+    def test_truthfulqa_report_rejects_manifest_mismatch_before_gate(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        fold_dir = tmp_path / "mc1"
+        fold_dir.mkdir()
+        manifest = tmp_path / "manifest.json"
+        output_path = tmp_path / "report.json"
+        manifest.write_text(json.dumps(["q1", "q2"]), encoding="utf-8")
+        self._write_alpha(
+            fold_dir / "alpha_0.0.jsonl",
+            [{"id": "q1", "compliance": False, "metric_value": 0.0}],
+        )
+        self._write_alpha(
+            fold_dir / "alpha_8.0.jsonl",
+            [{"id": "q1", "compliance": True, "metric_value": 1.0}],
+        )
+        monkeypatch.setattr(
+            report_iti_2fold,
+            "paired_bootstrap_binary_rate_difference",
+            lambda baseline, locked: {
+                "estimate_pp": 100.0,
+                "ci_pp": {"lower": 100.0, "upper": 100.0},
+            },
+        )
+        monkeypatch.setattr(
+            report_iti_2fold,
+            "parse_args",
+            lambda: argparse.Namespace(
+                fold0_dir=None,
+                fold1_dir=None,
+                fold_dirs=[str(fold_dir)],
+                locked_alpha=8.0,
+                locked_k=12,
+                variant="mc1",
+                output_dir=str(tmp_path),
+                output_prefix="iti_2fold",
+                output_path=str(output_path),
+                gate_mode="mc1_positive_ci",
+                sample_manifest=str(manifest),
+            ),
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="sample IDs must exactly match --sample_manifest",
+        ):
+            report_iti_2fold.main()
+
+        assert not output_path.exists()
 
     def test_truthfulqa_report_rejects_mismatched_paired_ids(self, tmp_path: Path):
         fold_dir = tmp_path / "mc1"

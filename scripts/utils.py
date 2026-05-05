@@ -540,6 +540,29 @@ def fingerprint_ids(values: list[str]) -> str:
     return hashlib.sha256("\n".join(sorted(values)).encode("utf-8")).hexdigest()[:16]
 
 
+def load_sample_manifest_ids(path: str | os.PathLike[str]) -> list[str]:
+    """Load sample IDs from a JSON list or manifest object.
+
+    Supports the repository's plain ID-list manifests and wrapped
+    ``sample_manifest/v2``-style objects with ``ids`` or ``sample_ids``.
+    Callers that need strict binding should validate duplicates and exact
+    expected membership after loading.
+    """
+    manifest_path = Path(path)
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if isinstance(payload, list):
+        return [str(item) for item in payload]
+    if isinstance(payload, dict):
+        for key in ("ids", "sample_ids"):
+            ids = payload.get(key)
+            if isinstance(ids, list):
+                return [str(item) for item in ids]
+    raise ValueError(
+        f"{manifest_path}: sample manifest must be a JSON list or an object "
+        "with an 'ids' or 'sample_ids' list"
+    )
+
+
 def parse_semicolon_answers(cell: object) -> list[str]:
     """Split a semicolon-delimited TruthfulQA answer cell into individual answers."""
     return [a.strip() for a in str(cell).split(";") if a.strip()]
