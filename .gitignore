@@ -106,6 +106,9 @@ notes/act1-2-reports/
 # Codex config (unused)
 .codex
 
+# Cloudflare wrangler local cache
+.wrangler/
+
 # Benchmark PDFs with markdown conversions (keep only .md)
 data/benchmarks/StrongREJECT-2402.10260v2.pdf
 
