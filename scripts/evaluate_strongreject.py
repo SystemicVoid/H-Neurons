@@ -125,6 +125,8 @@ STRONGREJECT_JUDGE_KWARGS: dict[str, Any] = {
     "max_tokens": 500,
 }
 STRONGREJECT_FORBIDDEN_PROMPT_POLICY = "question_then_goal_v1"
+STRONGREJECT_ANNOTATION_VERSION = "strongreject_annotation_v1"
+STRONGREJECT_ANNOTATION_FINGERPRINT_FIELD = "evaluation_fingerprint"
 
 GOLD_DIR = Path(__file__).resolve().parent.parent / "tests" / "gold_labels"
 DEFAULT_GOLD_PATH = GOLD_DIR / "jailbreak_cross_alpha_gold.jsonl"
@@ -322,6 +324,67 @@ def _strongreject_custom_id(record: dict[str, Any]) -> str:
     return f"sr_{slug}_a{alpha_label}_{key_digest}"
 
 
+def _strongreject_annotation_fingerprint(
+    record: dict[str, Any], judge_model: str
+) -> str:
+    """Fingerprint the exact evaluator inputs represented by an annotation."""
+    fingerprint_payload = {
+        "annotation_version": STRONGREJECT_ANNOTATION_VERSION,
+        "schema_version": STRONGREJECT_SCHEMA_VERSION,
+        "judge_model": judge_model,
+        "judge_kwargs": STRONGREJECT_JUDGE_KWARGS,
+        "forbidden_prompt_policy": STRONGREJECT_FORBIDDEN_PROMPT_POLICY,
+        "record_key": _stable_record_key(record),
+        "forbidden_prompt": _record_forbidden_prompt(record),
+        "response": record.get("response", ""),
+        "system_prompt_sha256": hashlib.sha256(
+            STRONGREJECT_SYSTEM_PROMPT.encode("utf-8")
+        ).hexdigest(),
+        "user_template_sha256": hashlib.sha256(
+            STRONGREJECT_USER_TEMPLATE.encode("utf-8")
+        ).hexdigest(),
+    }
+    return hashlib.sha256(
+        json.dumps(fingerprint_payload, sort_keys=True, ensure_ascii=False).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+
+
+def _with_strongreject_metadata(
+    record: dict[str, Any], annotation: dict[str, Any], judge_model: str
+) -> dict[str, Any]:
+    """Attach cache-validation metadata to a StrongREJECT annotation."""
+    annotated = dict(annotation)
+    annotated.setdefault("schema_version", STRONGREJECT_SCHEMA_VERSION)
+    annotated["annotation_version"] = STRONGREJECT_ANNOTATION_VERSION
+    annotated["judge_model"] = judge_model
+    annotated["judge_kwargs"] = dict(STRONGREJECT_JUDGE_KWARGS)
+    annotated["forbidden_prompt_policy"] = STRONGREJECT_FORBIDDEN_PROMPT_POLICY
+    annotated[STRONGREJECT_ANNOTATION_FINGERPRINT_FIELD] = (
+        _strongreject_annotation_fingerprint(record, judge_model)
+    )
+    return annotated
+
+
+def _strongreject_annotation_is_current(
+    record: dict[str, Any], judge_model: str
+) -> bool:
+    """Return True when a record's cached annotation matches current inputs."""
+    annotation = record.get("strongreject")
+    if not isinstance(annotation, dict):
+        return False
+    return (
+        annotation.get("annotation_version") == STRONGREJECT_ANNOTATION_VERSION
+        and annotation.get("schema_version") == STRONGREJECT_SCHEMA_VERSION
+        and annotation.get("judge_model") == judge_model
+        and annotation.get("forbidden_prompt_policy")
+        == STRONGREJECT_FORBIDDEN_PROMPT_POLICY
+        and annotation.get(STRONGREJECT_ANNOTATION_FINGERPRINT_FIELD)
+        == _strongreject_annotation_fingerprint(record, judge_model)
+    )
+
+
 def _strongreject_batch_state_path(
     output_dir: Path, gold_path: Path, judge_model: str
 ) -> Path:
@@ -385,25 +448,76 @@ def _strongreject_sweep_batch_state_path(
     return output_dir / f".strongreject_batch_state_{model_slug}_{fingerprint}.json"
 
 
+def _unique_records_by_stable_key(
+    records: list[dict[str, Any]], *, context: str
+) -> dict[str, dict[str, Any]]:
+    """Index cached records with unambiguous stable identities."""
+    by_key: dict[str, dict[str, Any]] = {}
+    duplicate_keys: set[str] = set()
+    skipped = 0
+    for record in records:
+        try:
+            key = _stable_record_key(record)
+        except ValueError:
+            skipped += 1
+            continue
+        if key in duplicate_keys:
+            continue
+        if key in by_key:
+            duplicate_keys.add(key)
+            del by_key[key]
+            continue
+        by_key[key] = record
+    if duplicate_keys or skipped:
+        print(
+            f"  Warning: ignored ambiguous StrongREJECT cache rows in {context} "
+            f"(duplicate_keys={len(duplicate_keys)}, missing_identity={skipped})"
+        )
+    return by_key
+
+
 def _load_or_copy_alpha(
-    input_dir: Path, output_dir: Path, alpha: float
+    input_dir: Path, output_dir: Path, alpha: float, judge_model: str
 ) -> tuple[Path, list[dict[str, Any]]]:
-    """Load an output alpha file when present, otherwise copy it from input."""
+    """Load an alpha file while invalidating stale cached annotations."""
     alpha_label = format_alpha_label(alpha)
     output_path = output_dir / f"alpha_{alpha_label}.jsonl"
     input_path = input_dir / f"alpha_{alpha_label}.jsonl"
 
-    if output_path.exists():
-        records = load_jsonl(output_path)
-        already = sum(1 for record in records if "strongreject" in record)
-        print(
-            f"  alpha={alpha_label}: loaded {len(records)} records "
-            f"({already} already annotated)"
-        )
-        return output_path, records
-
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    if output_path.exists():
+        source_records = load_jsonl(input_path)
+        cached_records = load_jsonl(output_path)
+        cached_by_key = _unique_records_by_stable_key(
+            cached_records, context=str(output_path)
+        )
+        reused = 0
+        records: list[dict[str, Any]] = []
+        for source_record in source_records:
+            record = dict(source_record)
+            cached_record = cached_by_key.get(_stable_record_key(source_record))
+            cached_annotation = None
+            if isinstance(cached_record, dict):
+                cached_annotation = cached_record.get("strongreject")
+            if isinstance(cached_annotation, dict):
+                candidate = dict(source_record)
+                candidate["strongreject"] = cached_annotation
+                if _strongreject_annotation_is_current(candidate, judge_model):
+                    record["strongreject"] = cached_annotation
+                    reused += 1
+            records.append(record)
+
+        cached_annotations = sum(
+            1 for record in cached_records if "strongreject" in record
+        )
+        invalidated = cached_annotations - reused
+        print(
+            f"  alpha={alpha_label}: loaded {len(records)} records from input "
+            f"({reused} current annotations reused, {invalidated} stale invalidated)"
+        )
+        return output_path, records
 
     output_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(input_path, output_path)
@@ -435,8 +549,9 @@ def evaluate_batch(
     request_map: dict[str, int] = {}
 
     for idx, rec in enumerate(gold_records):
-        if "strongreject" in rec:
+        if _strongreject_annotation_is_current(rec, judge_model):
             continue
+        rec.pop("strongreject", None)
         custom_id = _strongreject_custom_id(rec)
         if custom_id in request_map:
             raise ValueError(
@@ -483,25 +598,35 @@ def evaluate_batch(
     for custom_id, idx in request_map.items():
         entry = results.get(custom_id)
         if entry is None:
-            gold_records[idx]["strongreject"] = {"error": "missing_from_batch"}
+            gold_records[idx]["strongreject"] = _with_strongreject_metadata(
+                gold_records[idx], {"error": "missing_from_batch"}, judge_model
+            )
             errors += 1
             continue
 
         content = parse_chat_content(entry)
         if content is None:
-            gold_records[idx]["strongreject"] = {"error": "batch_request_failed"}
+            gold_records[idx]["strongreject"] = _with_strongreject_metadata(
+                gold_records[idx], {"error": "batch_request_failed"}, judge_model
+            )
             errors += 1
             continue
 
         verdict = parse_strongreject_verdict(content)
         if verdict is None:
-            gold_records[idx]["strongreject"] = {
-                "error": "parse_failed",
-                "raw_response": content[:2000],
-            }
+            gold_records[idx]["strongreject"] = _with_strongreject_metadata(
+                gold_records[idx],
+                {
+                    "error": "parse_failed",
+                    "raw_response": content[:2000],
+                },
+                judge_model,
+            )
             errors += 1
         else:
-            gold_records[idx]["strongreject"] = verdict
+            gold_records[idx]["strongreject"] = _with_strongreject_metadata(
+                gold_records[idx], verdict, judge_model
+            )
 
     if errors:
         print(f"  Warning: {errors} requests failed or could not be parsed")
@@ -528,15 +653,20 @@ def evaluate_sync(
     if prompt_cache_retention:
         extra_kwargs["prompt_cache_retention"] = prompt_cache_retention
 
-    needs = sum(1 for r in gold_records if "strongreject" not in r)
+    needs = sum(
+        1
+        for record in gold_records
+        if not _strongreject_annotation_is_current(record, judge_model)
+    )
     if needs == 0:
         print("  All records already annotated")
         return gold_records
 
     print(f"  Judging {needs} records synchronously...")
     for rec in tqdm(gold_records, desc="StrongREJECT"):
-        if "strongreject" in rec:
+        if _strongreject_annotation_is_current(rec, judge_model):
             continue
+        rec.pop("strongreject", None)
         messages = build_strongreject_messages(
             _record_forbidden_prompt(rec), rec.get("response", "")
         )
@@ -562,17 +692,23 @@ def evaluate_sync(
                 time.sleep(2**attempt)
 
         if content is None:
-            rec["strongreject"] = {"error": "api_failed"}
+            rec["strongreject"] = _with_strongreject_metadata(
+                rec, {"error": "api_failed"}, judge_model
+            )
             continue
 
         verdict = parse_strongreject_verdict(content)
         if verdict is None:
-            rec["strongreject"] = {
-                "error": "parse_failed",
-                "raw_response": content[:2000],
-            }
+            rec["strongreject"] = _with_strongreject_metadata(
+                rec,
+                {
+                    "error": "parse_failed",
+                    "raw_response": content[:2000],
+                },
+                judge_model,
+            )
         else:
-            rec["strongreject"] = verdict
+            rec["strongreject"] = _with_strongreject_metadata(rec, verdict, judge_model)
 
     print(f"\n{cache_stats.summary()}")
     return gold_records
@@ -937,7 +1073,9 @@ def run_sweep_mode(
 
     alpha_data: dict[float, tuple[Path, list[dict[str, Any]]]] = {}
     for alpha in args.alphas:
-        alpha_data[alpha] = _load_or_copy_alpha(input_dir, output_dir, alpha)
+        alpha_data[alpha] = _load_or_copy_alpha(
+            input_dir, output_dir, alpha, args.judge_model
+        )
 
     all_records = [record for _, records in alpha_data.values() for record in records]
     print(

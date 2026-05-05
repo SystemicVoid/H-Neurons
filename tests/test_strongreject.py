@@ -5,6 +5,7 @@ No API calls — tests the parsing logic and formula only.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from typing import cast
@@ -20,6 +21,7 @@ from evaluate_strongreject import (
     _strongreject_batch_state_path,
     _strongreject_custom_id,
     _strongreject_sweep_batch_state_path,
+    _with_strongreject_metadata,
     build_strongreject_messages,
     compute_gold_summary,
     compute_sweep_summary,
@@ -458,35 +460,71 @@ class TestBatchResumability:
 
 
 class TestSweepMode:
-    def test_load_or_copy_alpha_copies_once_and_reuses_existing_output(self, tmp_path):
+    def test_load_or_copy_alpha_invalidates_legacy_output_annotations(self, tmp_path):
         input_dir = tmp_path / "input"
         output_dir = tmp_path / "out"
         input_dir.mkdir()
         source_path = input_dir / "alpha_0.0.jsonl"
         source_path.write_text(
-            '{"id":"rec-1","alpha":0.0,"response":"source"}\n',
+            '{"id":"rec-1","alpha":0.0,"goal":"source prompt","response":"source"}\n',
             encoding="utf-8",
         )
 
-        output_path, records = _load_or_copy_alpha(input_dir, output_dir, 0.0)
+        output_path, records = _load_or_copy_alpha(
+            input_dir, output_dir, 0.0, "gpt-test"
+        )
 
         assert output_path == output_dir / "alpha_0.0.jsonl"
         assert records[0]["response"] == "source"
 
         output_path.write_text(
-            '{"id":"rec-1","alpha":0.0,"response":"annotated",'
+            '{"id":"rec-1","alpha":0.0,"goal":"old prompt",'
+            '"response":"annotated",'
             '"strongreject":{"harmful_binary":"yes","refused":0,"score":1.0}}\n',
             encoding="utf-8",
         )
         source_path.write_text(
-            '{"id":"rec-1","alpha":0.0,"response":"changed-source"}\n',
+            '{"id":"rec-1","alpha":0.0,"goal":"changed prompt",'
+            '"response":"changed-source"}\n',
             encoding="utf-8",
         )
 
-        _, reused = _load_or_copy_alpha(input_dir, output_dir, 0.0)
+        _, reused = _load_or_copy_alpha(input_dir, output_dir, 0.0, "gpt-test")
 
-        assert reused[0]["response"] == "annotated"
+        assert reused[0]["response"] == "changed-source"
+        assert "strongreject" not in reused[0]
+
+    def test_load_or_copy_alpha_reuses_current_output_annotations(self, tmp_path):
+        input_dir = tmp_path / "input"
+        output_dir = tmp_path / "out"
+        input_dir.mkdir()
+        output_dir.mkdir()
+        source_path = input_dir / "alpha_0.0.jsonl"
+        output_path = output_dir / "alpha_0.0.jsonl"
+        source_record = {
+            "id": "rec-1",
+            "alpha": 0.0,
+            "goal": "source prompt",
+            "response": "source response",
+        }
+        annotation = _with_strongreject_metadata(
+            source_record,
+            {"harmful_binary": "yes", "refused": 0, "score": 1.0},
+            "gpt-test",
+        )
+        source_path.write_text(json.dumps(source_record) + "\n", encoding="utf-8")
+        output_path.write_text(
+            json.dumps({**source_record, "strongreject": annotation}) + "\n",
+            encoding="utf-8",
+        )
+
+        _, reused = _load_or_copy_alpha(input_dir, output_dir, 0.0, "gpt-test")
+
         assert reused[0]["strongreject"]["harmful_binary"] == "yes"
+        assert (
+            reused[0]["strongreject"]["evaluation_fingerprint"]
+            == (annotation["evaluation_fingerprint"])
+        )
 
     def test_compute_sweep_summary_reports_non_gold_rates(self):
         records = [
