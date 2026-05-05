@@ -30,7 +30,7 @@ LOG_DIR="${LOG_DIR:-logs}"
 mkdir -p "${LOG_DIR}"
 LOG="${LOG:-${LOG_DIR}/mistral24b_anchor2_${RUN_TS}.log}"
 
-UV_RUNTIME_MODE="${UV_RUNTIME_MODE:-no-sync}"
+UV_RUNTIME_MODE="${UV_RUNTIME_MODE:-baked}"
 case "${UV_RUNTIME_MODE}" in
     baked)
         export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-/opt/h-neurons/.venv}"
