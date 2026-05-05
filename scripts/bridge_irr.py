@@ -45,6 +45,8 @@ LABELS = (
     "formal_refusal",
 )
 CONFIDENCE_LEVELS = ("low", "medium", "high")
+TRIVIAQA_BRIDGE_FINAL_GRADES = {"CORRECT", "INCORRECT", "NOT_ATTEMPTED"}
+TRIVIAQA_BRIDGE_AUDIT_TYPES = {"nonmatch", "match_audit"}
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -112,7 +114,75 @@ def build_adjudication_rule_metadata(rule_path: Path) -> dict[str, str]:
 
 
 def bridge_correct(row: dict[str, Any]) -> bool:
-    return bool(row.get("compliance"))
+    compliance = row.get("compliance")
+    if not isinstance(compliance, bool):
+        row_id = row.get("id", "<unknown>")
+        raise ValueError(
+            "Bridge IRR requires judged bridge rows; "
+            f"id={row_id!r} has non-boolean or missing compliance"
+        )
+    return compliance
+
+
+def bridge_judgement_errors(row: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    compliance = row.get("compliance")
+    if not isinstance(compliance, bool):
+        errors.append("missing or non-boolean compliance")
+
+    grade = row.get("triviaqa_bridge_grade")
+    if grade is not None and grade not in TRIVIAQA_BRIDGE_FINAL_GRADES:
+        errors.append(f"non-final triviaqa_bridge_grade={grade!r}")
+
+    judge = row.get("judge")
+    if judge is not None and judge not in TRIVIAQA_BRIDGE_FINAL_GRADES:
+        errors.append(f"non-final judge={judge!r}")
+
+    audit_type = row.get("judge_audit_type")
+    if audit_type is not None and audit_type not in TRIVIAQA_BRIDGE_AUDIT_TYPES:
+        errors.append(f"unknown judge_audit_type={audit_type!r}")
+
+    has_final_grade = grade in TRIVIAQA_BRIDGE_FINAL_GRADES
+    if has_final_grade and isinstance(compliance, bool):
+        expected_compliance = grade == "CORRECT"
+        if compliance != expected_compliance:
+            errors.append(
+                f"compliance does not match final triviaqa_bridge_grade {grade!r}"
+            )
+    elif row.get("deterministic_correct") is True:
+        if compliance is False:
+            errors.append(
+                "unaudited deterministic match has compliance=false; "
+                "expected final judge/audit fields for an overturned match"
+            )
+    else:
+        errors.append("missing final triviaqa_bridge_grade")
+
+    return errors
+
+
+def validate_bridge_rows_judged(
+    path: Path,
+    rows_by_id: dict[str, dict[str, Any]],
+) -> None:
+    offenders: list[str] = []
+    for row_id, row in sorted(rows_by_id.items()):
+        errors = bridge_judgement_errors(row)
+        if errors:
+            offenders.append(f"{row_id}: {', '.join(errors)}")
+
+    if not offenders:
+        return
+
+    preview = "; ".join(offenders[:5])
+    if len(offenders) > 5:
+        preview += f"; ... ({len(offenders)} total)"
+    raise ValueError(
+        "Bridge IRR requires judged bridge outputs before queue preparation. "
+        f"{path}: offending ids: {preview}. Run "
+        "scripts/evaluate_intervention.py --benchmark triviaqa_bridge and ensure "
+        "the batch audit completed without ERROR records."
+    )
 
 
 def bridge_grade_label(row: dict[str, Any], *, default_if_incorrect: str) -> str:
@@ -130,6 +200,7 @@ def load_bridge_rows(path: Path) -> dict[str, dict[str, Any]]:
         if row_id in rows_by_id:
             raise ValueError(f"Duplicate bridge id in {path}: {row_id}")
         rows_by_id[row_id] = row
+    validate_bridge_rows_judged(path, rows_by_id)
     return rows_by_id
 
 

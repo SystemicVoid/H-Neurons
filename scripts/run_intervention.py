@@ -436,7 +436,14 @@ def build_intervention_run_contract(
         benchmark_config["truthfulqa_variant"] = args.truthfulqa_variant
         benchmark_config["truthfulqa_fold_path"] = args.truthfulqa_fold_path
     elif args.benchmark == "triviaqa_bridge":
+        if not args.triviaqa_bridge_manifest:
+            raise ValueError(
+                "--benchmark triviaqa_bridge requires --triviaqa_bridge_manifest"
+            )
         benchmark_config["triviaqa_bridge_manifest"] = args.triviaqa_bridge_manifest
+        benchmark_config["triviaqa_bridge_manifest_identity"] = (
+            describe_sample_manifest(args.triviaqa_bridge_manifest)
+        )
         benchmark_config["triviaqa_bridge_parquet"] = args.triviaqa_bridge_parquet
     elif args.benchmark in {"jailbreak", "jailbreak_benign"}:
         benchmark_config["jailbreak_source"] = args.jailbreak_source
