@@ -37,7 +37,8 @@ if [[ "${DRY_RUN}" != "1" ]] && [[ -z "${TMUX:-}" ]] && [[ -z "${TMUX_WRAPPED:-}
         FULL_DIR
         TRUNC_256_DIR
         CSV3_FULL_DIR
-        CSV3_TRUNC_256_DIR
+        STRONGREJECT_FULL_DIR
+        SUMMARY_PATH
         JUDGE_MODEL
         OPENAI_API_KEY
         OPENAI_BATCH_MAX_ENQUEUED_TOKENS
@@ -90,12 +91,12 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-data/mistral24b/intervention/jailbreak_anchor3_full5
 FULL_DIR="${FULL_DIR:-${OUTPUT_ROOT}/experiment}"
 TRUNC_256_DIR="${TRUNC_256_DIR:-${OUTPUT_ROOT}/truncated_256_eval_input}"
 CSV3_FULL_DIR="${CSV3_FULL_DIR:-${OUTPUT_ROOT}/csv2_v3_evaluation}"
-CSV3_TRUNC_256_DIR="${CSV3_TRUNC_256_DIR:-${OUTPUT_ROOT}/truncated_256_csv2_v3_evaluation}"
-JUDGE_MODEL="${JUDGE_MODEL:-gpt-4o}"
-FIRST_PASS_JUDGE_STAGES="truncate_256,binary_full,binary_256,csv3_full"
-DEFERRED_JUDGE_STAGES="csv3_256"
-STAGES="${STAGES:-generate}"
-read -r -a ALPHAS <<<"${ALPHAS:-0.0 1.0 3.0}"
+STRONGREJECT_FULL_DIR="${STRONGREJECT_FULL_DIR:-${OUTPUT_ROOT}/strongreject_evaluation}"
+SUMMARY_PATH="${SUMMARY_PATH:-${OUTPUT_ROOT}/mistral_anchor3_jailbreak_evaluator_summary.json}"
+JUDGE_MODEL="${JUDGE_MODEL:-gpt-4o-2024-11-20}"
+FIRST_PASS_JUDGE_STAGES="truncate_256,binary_full,binary_256,csv3_full,strongreject_full,summary"
+STAGES="${STAGES:-${FIRST_PASS_JUDGE_STAGES}}"
+read -r -a ALPHAS <<<"${ALPHAS:-0.0 1.0 1.5 3.0}"
 MAX_SAMPLE_ARGS=()
 if [[ -n "${MAX_SAMPLES}" ]]; then
     MAX_SAMPLE_ARGS=(--max_samples "${MAX_SAMPLES}")
@@ -166,10 +167,10 @@ print_scaffold_summary() {
     else
         printf '[config] MAX_SAMPLES unset: generation uses the full locked 500-row manifest.\n' | tee -a "${LOG}"
     fi
-    printf '[plan] Generate once with STAGES=generate, then judge progressively with STAGES=%s.\n' \
+    printf '[plan] Evaluate existing full responses with STAGES=%s.\n' \
         "${FIRST_PASS_JUDGE_STAGES}" | tee -a "${LOG}"
-    printf '[plan] Defer %s, StrongREJECT, and gold labels until first results justify more API work.\n' \
-        "${DEFERRED_JUDGE_STAGES}" | tee -a "${LOG}"
+    printf '[plan] No csv3_256 or strongreject_256 stage is included in this pass.\n' \
+        | tee -a "${LOG}"
 }
 
 print_scaffold_summary
@@ -204,7 +205,7 @@ run_stage truncate_256 "${UV_RUN[@]}" python scripts/materialize_jailbreak_trunc
     --model_path "${MODEL_PATH}" \
     --response-token-limit 256
 
-if should_run_stage binary_full || should_run_stage binary_256 || should_run_stage csv3_full || should_run_stage csv3_256; then
+if should_run_stage binary_full || should_run_stage binary_256 || should_run_stage csv3_full || should_run_stage strongreject_full; then
     require_api_approval
 fi
 
@@ -229,12 +230,21 @@ run_stage csv3_full "${UV_RUN[@]}" python scripts/evaluate_csv2.py \
     --judge_model "${JUDGE_MODEL}" \
     --api-mode batch
 
-run_stage csv3_256 "${UV_RUN[@]}" python scripts/evaluate_csv2.py \
-    --input_dir "${TRUNC_256_DIR}" \
-    --output_dir "${CSV3_TRUNC_256_DIR}" \
+run_stage strongreject_full "${UV_RUN[@]}" python scripts/evaluate_strongreject.py \
+    --input_dir "${FULL_DIR}" \
+    --output_dir "${STRONGREJECT_FULL_DIR}" \
     --alphas "${ALPHAS[@]}" \
     --judge_model "${JUDGE_MODEL}" \
     --api-mode batch
+
+run_stage summary "${UV_RUN[@]}" python scripts/analyze_available_jailbreak_evaluators.py \
+    --mode mistral-anchor \
+    --binary-full-dir "${FULL_DIR}" \
+    --binary-256-dir "${TRUNC_256_DIR}" \
+    --csv3-full-dir "${CSV3_FULL_DIR}" \
+    --strongreject-full-dir "${STRONGREJECT_FULL_DIR}" \
+    --alphas "${ALPHAS[@]}" \
+    --output_path "${SUMMARY_PATH}"
 
 printf '\n[%s] Scaffold complete. Outputs root: %s\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${OUTPUT_ROOT}" | tee -a "${LOG}"
