@@ -10,6 +10,7 @@ Guards against bugs found during audit:
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -36,6 +37,7 @@ from extract_truthfulness_iti import (
     compute_head_directions,
     rank_heads,
 )
+from run_intervention import _assert_no_truthfulqa_leakage
 from utils import fingerprint_ids
 
 
@@ -183,6 +185,86 @@ class TestSplitIntegrity:
         assert example_qids.isdisjoint(test_ids), (
             f"test IDs leaked into examples: {example_qids & test_ids}"
         )
+
+    def test_truthfulqa_mc_barrier_rejects_manifest_outside_fold_test(
+        self, tmp_path: Path
+    ):
+        questions = _make_toy_questions(4)
+        canonical_path = tmp_path / "canonical.json"
+        canonical_path.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "fingerprint": fingerprint_ids([q["stable_id"] for q in questions]),
+                    "questions": questions,
+                }
+            ),
+            encoding="utf-8",
+        )
+        fold_path = tmp_path / "fold.json"
+        fold = {
+            "canonical_manifest": str(canonical_path),
+            "dev": {"train": [questions[0]["stable_id"]], "val": []},
+            "test": [questions[1]["stable_id"]],
+        }
+        fold_path.write_text(json.dumps(fold), encoding="utf-8")
+        artifact_dir = tmp_path / "artifact"
+        artifact_dir.mkdir()
+        (artifact_dir / "extraction_metadata.json").write_text(
+            json.dumps({"question_ids_dev": [questions[0]["stable_id"]]}),
+            encoding="utf-8",
+        )
+        manifest_path = tmp_path / "mc1.json"
+        manifest_path.write_text(
+            json.dumps([f"truthfulqa_mc1_{questions[0]['csv_idx']}"]),
+            encoding="utf-8",
+        )
+
+        args = argparse.Namespace(
+            iti_head_path=str(artifact_dir / "iti_heads.pt"),
+            truthfulqa_fold_path=str(fold_path),
+            sample_manifest=str(manifest_path),
+            truthfulqa_variant="mc1",
+        )
+
+        with pytest.raises(RuntimeError, match="outside the supplied fold test set"):
+            _assert_no_truthfulqa_leakage(args)
+
+    def test_truthfulqa_mc_barrier_rejects_wrong_manifest_variant(self, tmp_path: Path):
+        questions = _make_toy_questions(2)
+        canonical_path = tmp_path / "canonical.json"
+        canonical_path.write_text(
+            json.dumps({"questions": questions}),
+            encoding="utf-8",
+        )
+        fold_path = tmp_path / "fold.json"
+        fold = {
+            "canonical_manifest": str(canonical_path),
+            "dev": {"train": [questions[0]["stable_id"]], "val": []},
+            "test": [questions[1]["stable_id"]],
+        }
+        fold_path.write_text(json.dumps(fold), encoding="utf-8")
+        artifact_dir = tmp_path / "artifact"
+        artifact_dir.mkdir()
+        (artifact_dir / "extraction_metadata.json").write_text(
+            json.dumps({"question_ids_dev": [questions[0]["stable_id"]]}),
+            encoding="utf-8",
+        )
+        manifest_path = tmp_path / "mc2.json"
+        manifest_path.write_text(
+            json.dumps([f"truthfulqa_mc2_{questions[1]['csv_idx']}"]),
+            encoding="utf-8",
+        )
+
+        args = argparse.Namespace(
+            iti_head_path=str(artifact_dir / "iti_heads.pt"),
+            truthfulqa_fold_path=str(fold_path),
+            sample_manifest=str(manifest_path),
+            truthfulqa_variant="mc1",
+        )
+
+        with pytest.raises(RuntimeError, match="truthfulqa_variant is 'mc1'"):
+            _assert_no_truthfulqa_leakage(args)
 
 
 # ---------------------------------------------------------------------------
