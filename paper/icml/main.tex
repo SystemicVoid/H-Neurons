@@ -619,6 +619,97 @@ Non-substitution R$\to$W flips show \emph{larger} margin compression than substi
 The behavioral wrong-entity-substitution taxonomy ($\kappa = 0.90$) is therefore a reliable description of \emph{what} the model emits, but does not correspond to a distinct margin-shift signature at the log-likelihood level.
 This refines rather than contradicts the §\ref{sec:externality} externality claim: the dominant-failure-mode statement is behavioral and interrater-defensible, and the margin analysis confirms ITI shifts probability mass in the predicted direction but changes the margin-level reading from substitution-specific entity suppression to answer-commitment margin compression on R$\to$W flips in general.
 
+\section{Claim-Defense Ledger}
+\label{app:claim_defense}
+
+Table~\ref{tab:claim_defense} maps the main claim families to the exact metric-ledger IDs and source artifacts used to defend them.
+It is a reviewer-facing index over existing measurements, not an additional analysis layer.
+
+\begin{table*}[p]
+\centering
+\caption{Claim-defense ledger. IDs/artifacts anchor to \texttt{metric\_ledger.jsonl} and \texttt{surface\_crosswalk.jsonl}; brace notation expands prefixes; answer-span locators come from \texttt{heldout\_summary.json}.}
+\label{tab:claim_defense}
+\vskip 0.02in
+\footnotesize
+\setlength{\tabcolsep}{1pt}
+\renewcommand{\arraystretch}{0.82}
+\resizebox{0.915\textwidth}{!}{%
+\begin{tabular}{@{}L{2.15cm}L{7.2cm}L{2.35cm}L{2.45cm}L{2.6cm}@{}}
+\toprule
+\textbf{Claim} & \textbf{Exact metric ID / source artifact} & \textbf{Estimator / CI} & \textbf{Gate status} & \textbf{Caveat} \\
+\midrule
+Comparable readouts &
+\path|readout.disjoint.{auroc,accuracy}| / \path|classifier_disjoint_summary|;
+\path|readout.sae.{auroc,accuracy}| / \path|classifier_sae_summary| &
+Unpaired; stratified bootstrap for H-neuron readout; SAE point only. &
+Localization / monitoring passed. &
+L1; individual-weight interpretation remains fragile. \\
+
+Gemma FaithEval H-neuron control &
+\path|intervention.faitheval.anti.{slope_pp_per_alpha,delta_noop_to_max_pp,delta_0_to_max_pp}| / \path|intervention_sweep_site|;
+\path|intervention.faitheval.{random_mean_slope_pp_per_alpha,random_max_slope_pp_per_alpha}| / \path|faitheval_control_comparison| &
+Paired bootstrap for slope / deltas; random summaries. &
+FaithEval control and specificity passed. &
+Surface-local compliance claim, not general truthfulness. \\
+
+SAE H-feature null &
+\path|intervention.faitheval_sae.{h_slope_pp_per_alpha,neuron_minus_sae_slope_pp_per_alpha,permutation_p}| / \path|faitheval_sae_control_comparison|, \path|faitheval_sae_slope_difference| &
+SAE slope summary; paired bootstrap gap; permutation test. &
+SAE control failed; localization-to-control dissociation passed. &
+L2 / L3 operator-form and layer-coverage limits. \\
+
+Within-SAE selector defense &
+\path|intervention.faitheval_sae_utility.{utility_minus_noop_compliance_pp,utility_minus_noop_margin,utility_minus_readout_margin}| / \path|faitheval_sae_utility_selector_heldout|;
+\path|heldout_summary.json::{heldout_answer_span_margin,heldout_compliance_answer_span_selected}| &
+Paired bootstrap for compliance; continuous bootstrap for margins and answer-span locators. &
+No selector reaches compliance endpoint. &
+Margin-only, metric-specific, cross-metric mixed. \\
+
+Surface-local H-neuron behavior &
+\path|intervention.falseqa.{slope_pp_per_alpha,delta_0_to_max_pp}| / \path|falseqa_results|;
+\path|intervention.bioasq.{delta_0_to_max_pp,changed_response_count}| / \path|bioasq_results|, \path|bioasq_alpha_0_rows|, \path|bioasq_alpha_3_rows| &
+Paired bootstrap for effects; paired response-join count for text change. &
+FalseQA passes; BioASQ factual-accuracy endpoint fails / null. &
+Alias and domain surface; not a general factuality gain. \\
+
+ITI MC vs. generation &
+\path|transfer.truthfulqa_mc.{mc1.iti.delta_pp,mc2.iti.delta_pp}| / TruthfulQA ITI fold artifacts;
+\path|transfer.simpleqa.{compliance_delta_0_to_8_pp,attempt_delta_0_to_8_pp}| / \path|simpleqa_ranked_results|, \path|simpleqa_alpha_0_rows|, \path|simpleqa_alpha_8_rows| &
+Paired bootstrap on matched items / folds. &
+MC answer-selection passed; open-generation transfer failed. &
+MC / generation mismatch. \\
+
+Bridge externality &
+\path|transfer.bridge.{adjudicated_accuracy_delta_pp,mcnemar_p,base_correct_iti_wrong,base_wrong_iti_correct}| / \path|bridge_phase3_site|;
+\path|measurement.bridge_irr.{right_to_wrong.wrong_entity_substitution,cohen_kappa}| / \path|bridge_irr_summary| &
+Report percentile CI; McNemar / flips; Wilson share; kappa. &
+Externality failed and failure taxonomy accepted. &
+L4 LLM second rater; wide Wilson interval. \\
+
+Bridge margin boundary &
+\path|transfer.bridge_margins.{a_rw_substitution.first3_shift_nats,b_rw_nonsubstitution.first3_shift_nats,c_wr_rescue.first3_shift_nats,a_vs_d.first3_shift_nats_gap,a_vs_d.first3_shift_nats_p}| / \path|bridge_margins_test_results| &
+Paired within-cohort bootstrap; unpaired gap; permutation test. &
+Broad margin sanity passed; substitution-specific mechanism failed. &
+Behavioral diagnosis only. \\
+
+Jailbreak measurement granularity &
+\path|intervention.jailbreak.binary.delta_0_to_max_pp| / \path|jailbreak_results|;
+\path|measurement.jailbreak.v2.{h_slope_csv2_yes_pp_per_alpha,random_mean_slope_csv2_yes_pp_per_alpha,gap_h_minus_random_mean_pp_per_alpha,h_minus_random_permutation_p}| / \path|jailbreak_control_v2|, \path|jailbreak_seed0_control_audit| &
+Binary paired bootstrap; graded v2 summaries; seed-0 permutation. &
+Graded measurement detects signal; binary endpoint inconclusive. &
+L5 single-seed specificity. \\
+
+Evaluator holdout &
+\path|measurement.holdout.{csv2v3.accuracy,sr.accuracy,csv2v3_vs_sr_discordant_count,csv2v3_vs_sr_mcnemar_p,min_pairwise_mcnemar_p}| / \path|holdout_comparison| &
+Cluster bootstrap by prompt ID; McNemar / discordance counts. &
+No CSV-v3 superiority claim; construct-pluralism caveat retained. &
+$n = 50$ holdout. \\
+\bottomrule
+\end{tabular}
+}%
+\end{table*}
+\clearpage
+
 \section{Limitation Inventory}
 \label{app:limitations}
 
