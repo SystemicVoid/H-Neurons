@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Any
+
+from utils import format_alpha_label
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_PATH = (
@@ -32,7 +35,10 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def repo_relative(path: Path) -> str:
-    return str(path.relative_to(ROOT))
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def rate_summary(yes: int, total: int) -> dict[str, Any]:
@@ -107,6 +113,233 @@ def summarize_v3(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "rate": 0.0 if not valid_rows else substantive / len(valid_rows),
     }
     return summary
+
+
+def _mistral_key(
+    row: dict[str, Any], alpha: float, source_name: str
+) -> tuple[str, str]:
+    record_id = row.get("id")
+    if not isinstance(record_id, str) or not record_id:
+        raise ValueError(f"{source_name}: row missing non-empty string id")
+
+    expected_alpha = format_alpha_label(alpha)
+    row_alpha = format_alpha_label(float(row.get("alpha", alpha)))
+    if row_alpha != expected_alpha:
+        raise ValueError(
+            f"{source_name}: row id={record_id!r} has alpha {row_alpha}, "
+            f"expected {expected_alpha}"
+        )
+    return record_id, expected_alpha
+
+
+def _load_mistral_keyed_rows(
+    directory: Path, alphas: list[float], source_name: str
+) -> dict[tuple[str, str], dict[str, Any]]:
+    keyed: dict[tuple[str, str], dict[str, Any]] = {}
+    for alpha in alphas:
+        alpha_label = format_alpha_label(alpha)
+        path = directory / f"alpha_{alpha_label}.jsonl"
+        rows = load_jsonl(path)
+        for row in rows:
+            key = _mistral_key(row, alpha, source_name)
+            if key in keyed:
+                raise ValueError(f"{source_name}: duplicate key {key!r}")
+            keyed[key] = row
+    return keyed
+
+
+def _require_matching_mistral_keys(
+    expected: set[tuple[str, str]],
+    actual: set[tuple[str, str]],
+    source_name: str,
+) -> None:
+    if expected == actual:
+        return
+    missing = sorted(expected - actual)[:5]
+    extra = sorted(actual - expected)[:5]
+    raise ValueError(
+        f"{source_name}: keys do not match binary_full "
+        f"(missing={missing}, extra={extra})"
+    )
+
+
+def _binary_label(row: dict[str, Any]) -> bool | None:
+    judge = row.get("judge")
+    if judge == "HARMFUL":
+        return True
+    if judge == "SAFE":
+        return False
+    return None
+
+
+def _csv3_label(row: dict[str, Any]) -> bool | None:
+    payload = row.get("csv2")
+    if not isinstance(payload, dict) or payload.get("error"):
+        return None
+    harmful_binary = payload.get("harmful_binary")
+    if harmful_binary == "yes":
+        return True
+    if harmful_binary == "no":
+        return False
+    return None
+
+
+def _strongreject_label(row: dict[str, Any]) -> bool | None:
+    payload = row.get("strongreject")
+    if not isinstance(payload, dict) or payload.get("error"):
+        return None
+    harmful_binary = payload.get("harmful_binary")
+    if harmful_binary == "yes":
+        return True
+    if harmful_binary == "no":
+        return False
+    return None
+
+
+def _summarize_mistral_evaluator(
+    joined: list[dict[str, Any]], field: str
+) -> dict[str, Any]:
+    labels = [row[field] for row in joined]
+    valid = [label for label in labels if label is not None]
+    harmful = sum(label is True for label in valid)
+    summary = rate_summary(harmful, len(valid))
+    summary["valid"] = len(valid)
+    summary["errors"] = len(labels) - len(valid)
+    return summary
+
+
+def _summarize_mistral_pair(
+    joined: list[dict[str, Any]], left_field: str, right_field: str
+) -> dict[str, Any]:
+    left_valid = [row for row in joined if row[left_field] is not None]
+    right_valid = [row for row in joined if row[right_field] is not None]
+    paired = [
+        row
+        for row in joined
+        if row[left_field] is not None and row[right_field] is not None
+    ]
+    left_yes_right_yes = sum(
+        row[left_field] is True and row[right_field] is True for row in paired
+    )
+    left_yes_right_no = sum(
+        row[left_field] is True and row[right_field] is False for row in paired
+    )
+    left_no_right_yes = sum(
+        row[left_field] is False and row[right_field] is True for row in paired
+    )
+    left_no_right_no = sum(
+        row[left_field] is False and row[right_field] is False for row in paired
+    )
+    agreements = left_yes_right_yes + left_no_right_no
+    disagreements = left_yes_right_no + left_no_right_yes
+    return {
+        "n_records": len(joined),
+        "n_paired_evaluable": len(paired),
+        "left_valid": len(left_valid),
+        "right_valid": len(right_valid),
+        "left_errors": len(joined) - len(left_valid),
+        "right_errors": len(joined) - len(right_valid),
+        "agreement": rate_summary(agreements, len(paired)),
+        "disagreement": rate_summary(disagreements, len(paired)),
+        "left_harmful": rate_summary(
+            sum(row[left_field] is True for row in left_valid), len(left_valid)
+        ),
+        "right_harmful": rate_summary(
+            sum(row[right_field] is True for row in right_valid), len(right_valid)
+        ),
+        "left_yes_right_yes": left_yes_right_yes,
+        "left_yes_right_no": left_yes_right_no,
+        "left_no_right_yes": left_no_right_yes,
+        "left_no_right_no": left_no_right_no,
+    }
+
+
+def _summarize_mistral_pair_by_alpha(
+    joined: list[dict[str, Any]], left_field: str, right_field: str
+) -> dict[str, Any]:
+    by_alpha: dict[str, list[dict[str, Any]]] = {}
+    for row in joined:
+        by_alpha.setdefault(row["alpha_label"], []).append(row)
+    return {
+        "combined": _summarize_mistral_pair(joined, left_field, right_field),
+        "per_alpha": {
+            alpha: _summarize_mistral_pair(rows, left_field, right_field)
+            for alpha, rows in sorted(by_alpha.items())
+        },
+    }
+
+
+def compute_mistral_anchor_summary(
+    *,
+    binary_full_dir: Path,
+    binary_256_dir: Path,
+    csv3_full_dir: Path,
+    strongreject_full_dir: Path,
+    alphas: list[float],
+) -> dict[str, Any]:
+    """Summarize Mistral anchor evaluator agreement from local artifacts."""
+    binary_full = _load_mistral_keyed_rows(binary_full_dir, alphas, "binary_full")
+    sources = {
+        "binary_256": _load_mistral_keyed_rows(binary_256_dir, alphas, "binary_256"),
+        "csv3_full": _load_mistral_keyed_rows(csv3_full_dir, alphas, "csv3_full"),
+        "strongreject_full": _load_mistral_keyed_rows(
+            strongreject_full_dir, alphas, "strongreject_full"
+        ),
+    }
+    expected_keys = set(binary_full)
+    for source_name, rows in sources.items():
+        _require_matching_mistral_keys(expected_keys, set(rows), source_name)
+
+    joined: list[dict[str, Any]] = []
+    for record_id, alpha_label in sorted(
+        expected_keys, key=lambda key: (float(key[1]), key[0])
+    ):
+        key = (record_id, alpha_label)
+        joined.append(
+            {
+                "id": record_id,
+                "alpha": float(alpha_label),
+                "alpha_label": alpha_label,
+                "binary_full": _binary_label(binary_full[key]),
+                "binary_256": _binary_label(sources["binary_256"][key]),
+                "csv3_full": _csv3_label(sources["csv3_full"][key]),
+                "strongreject_full": _strongreject_label(
+                    sources["strongreject_full"][key]
+                ),
+            }
+        )
+
+    return {
+        "mode": "mistral_anchor_jailbreak_evaluator_summary",
+        "n_records": len(joined),
+        "alphas": [format_alpha_label(alpha) for alpha in alphas],
+        "sources": {
+            "binary_full": repo_relative(binary_full_dir),
+            "binary_256": repo_relative(binary_256_dir),
+            "csv3_full": repo_relative(csv3_full_dir),
+            "strongreject_full": repo_relative(strongreject_full_dir),
+        },
+        "evaluators": {
+            field: _summarize_mistral_evaluator(joined, field)
+            for field in (
+                "binary_full",
+                "binary_256",
+                "csv3_full",
+                "strongreject_full",
+            )
+        },
+        "pairs": {
+            "binary_256_vs_binary_full": _summarize_mistral_pair_by_alpha(
+                joined, "binary_256", "binary_full"
+            ),
+            "binary_full_vs_csv3_full": _summarize_mistral_pair_by_alpha(
+                joined, "binary_full", "csv3_full"
+            ),
+            "csv3_full_vs_strongreject_full": _summarize_mistral_pair_by_alpha(
+                joined, "csv3_full", "strongreject_full"
+            ),
+        },
+    }
 
 
 def v2_v3_transition(
@@ -340,19 +573,63 @@ def compute_coverage_matrix() -> dict[str, Any]:
     return coverage
 
 
-def main() -> None:
-    summary = {
+def compute_available_summary() -> dict[str, Any]:
+    return {
         "coverage_matrix": compute_coverage_matrix(),
         "gold_comparison": compute_gold_summary(),
         "h_neuron_sweep": compute_h_sweep_summary(),
         "controls": compute_control_summary(),
         "d7": compute_d7_summary(),
     }
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Summarize available jailbreak evaluator comparisons."
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["available", "mistral-anchor"],
+        default="available",
+    )
+    parser.add_argument("--output_path", type=Path, default=OUTPUT_PATH)
+    parser.add_argument("--binary-full-dir", type=Path, default=None)
+    parser.add_argument("--binary-256-dir", type=Path, default=None)
+    parser.add_argument("--csv3-full-dir", type=Path, default=None)
+    parser.add_argument("--strongreject-full-dir", type=Path, default=None)
+    parser.add_argument("--alphas", type=float, nargs="+", default=None)
+    return parser.parse_args()
+
+
+def _required_path(value: Path | None, arg_name: str) -> Path:
+    if value is None:
+        raise ValueError(f"{arg_name} is required for --mode mistral-anchor")
+    return value
+
+
+def main() -> None:
+    args = parse_args()
+    if args.mode == "mistral-anchor":
+        if not args.alphas:
+            raise ValueError("--alphas is required for --mode mistral-anchor")
+        summary = compute_mistral_anchor_summary(
+            binary_full_dir=_required_path(args.binary_full_dir, "--binary-full-dir"),
+            binary_256_dir=_required_path(args.binary_256_dir, "--binary-256-dir"),
+            csv3_full_dir=_required_path(args.csv3_full_dir, "--csv3-full-dir"),
+            strongreject_full_dir=_required_path(
+                args.strongreject_full_dir, "--strongreject-full-dir"
+            ),
+            alphas=args.alphas,
+        )
+    else:
+        summary = compute_available_summary()
+
+    output_path = Path(args.output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, sort_keys=True)
         f.write("\n")
-    print(f"Wrote {OUTPUT_PATH}")
+    print(f"Wrote {output_path}")
 
 
 if __name__ == "__main__":
