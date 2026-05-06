@@ -223,6 +223,14 @@ Tests harmful compliance on adversarial jailbreak prompts. Data: JailbreakBench 
 
 </details>
 
+**Cross-model note (2026-05-06):** This Gemma artifact should not be generalized
+to the Mistral anchor-3 JailbreakBench replication. The Mistral report finds a
+strong full-output alpha curve, but its same-output 256-token diagnostic is only
+1.3 pp lower overall than full-output binary scoring, with per-alpha net bias
+between -1.0 and -1.6 pp. Mistral often produces short complete refusals and
+earlier harmful spans, so the 256 diagnostic usually contains enough judge
+signal. See the [Mistral anchor-3 measurement review](../../paper/icml/reports/2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md).
+
 #### Canonical results — binary judge (5000-token, sampled decoding — 2026-03-25, α=1.0 added 2026-03-27)
 
 | α | Compliant | Total | Rate | 95% CI (Wilson) |
@@ -514,7 +522,13 @@ The 38 H-neurons were selected by L1-regularised logistic regression with C=1.0 
 
 ### Scope
 
-All results are for `google/gemma-3-4b-it` only. The H-neuron replication for `Mistral-Small-24B-Instruct-2501` uses a separately trained classifier (12 neurons, 1-vs-1 mode) and has not yet been run through the same intervention benchmarks.
+All results in this report are for `google/gemma-3-4b-it` only. A separate
+`Mistral-Small-24B-Instruct-2501` anchor-3 JailbreakBench review exists, using a
+separately trained classifier (12 neurons, 1-vs-1 mode) and a different branch
+of measurement evidence. It reports a strong Mistral jailbreak alpha curve but
+does **not** reproduce the Gemma 256-token truncation artifact; it also lacks
+matched Mistral random-neuron or layer-matched controls, so it is not an
+H-neuron specificity claim.
 
 ---
 

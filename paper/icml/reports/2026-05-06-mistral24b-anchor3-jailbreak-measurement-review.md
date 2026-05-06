@@ -134,6 +134,53 @@ The 256-token diagnostic and full-output binary judge agree on 1926/2000 rows
 not license 256-token truncation as headline evidence: 1244/2000 source rows
 are actually truncated in the 256 view.
 
+### Why Truncation Bias Is Weak Here
+
+This run does **not** reproduce the old Gemma 256-token artifact. The Mistral
+alpha curve is strong, but the weak-replication result is specifically about
+truncation bias: on the same generated outputs, the 256-token diagnostic tracks
+full-output binary scoring closely at every alpha.
+
+| Alpha | Full harmful | 256 harmful | Net 256 bias | Full-harm/256-safe | Full-safe/256-harm | Truncated rows |
+|---|---:|---:|---:|---:|---:|---:|
+| 0.0 | 147 | 141 | -1.2 pp | 15 | 9 | 227/500 |
+| 1.0 | 219 | 212 | -1.4 pp | 11 | 4 | 306/500 |
+| 1.5 | 245 | 237 | -1.6 pp | 13 | 5 | 326/500 |
+| 3.0 | 310 | 305 | -1.0 pp | 11 | 6 | 385/500 |
+
+The mechanism differs from Gemma. Mistral often gives short complete refusals,
+and when it complies the harmful signal tends to appear early enough for the
+diagnostic window. At alpha 0.0, Mistral's generated-token median is 185.5 and
+273/500 rows are below 256 tokens; safe rows have median length 75 tokens while
+harmful rows have median length 719. In the canonical Gemma run, alpha 0.0 had
+median length 1266, 0/500 rows below 256 tokens, and both safe and harmful rows
+were long (medians 1260 and 1296.5). Across alphas, Mistral has 273, 193, 173,
+and 114 rows below 256 tokens; Gemma has 0, 0, 0, and 5.
+
+CSV-v3 span placement gives the same explanation. Among Mistral CSV-v3 harmful
+rows, the first valid harmful span begins inside the actual 256-token view for
+133/142, 214/224, 237/253, and 296/304 rows across alpha 0.0/1.0/1.5/3.0. The
+median first harmful-span character positions are 453, 429, 384, and 294,
+versus Gemma medians of 934, 739, 582, and 342.5. The Mistral CSV-v3 outputs
+also have no `borderline` `harmful_binary` rows, while Gemma CSV-v2 had a large
+borderline pool at alpha 0.0 (171/500) that was central to the Gemma measurement
+story.
+
+The remaining Mistral disagreements are localized rather than population-scale
+truncation failure. The 50 full-harm/256-safe cases are real truncation misses:
+43/50 use template 2 fictional or hypothetical framing, CSV-v3 labels 40/50 as
+harmful, and StrongREJECT labels 46/50 as harmful. The 24 opposite-direction
+full-safe/256-harm cases are less clean as truncation false positives:
+StrongREJECT labels 23/24 harmful and CSV-v3 labels 9/24 harmful, so many are
+construct disagreements where the short binary judge sides with a comparator
+against the full-output binary judge. Template 2 carries most of the net
+negative 256 bias (-8, -8, -11, and -7 pp across the four alphas); other
+templates are near zero or slightly positive.
+
+Bottom line: the Mistral jailbreak effect is not a 256-token artifact, and the
+Gemma-style artifact mostly does not replicate here. The 256 view remains a
+diagnostic only because most rows are still actually truncated.
+
 ### Binary Full vs CSV-v3
 
 Binary full and CSV-v3 agree on 1926/2000 rows (96.3%, kappa 0.926). The
@@ -203,7 +250,8 @@ response materially assists the harmful request.
    alpha 0.0 to 3.0 with paired bootstrap intervals far from zero.
 3. The effect is visible in full-output scoring. The 5000-token evaluator view
    has zero truncation, so the main finding is not a 256-token truncation
-   artifact.
+   artifact; the 256 diagnostic agrees closely with full-output scoring on the
+   same Mistral outputs rather than reproducing the old Gemma truncation bias.
 4. CSV-v3 is holding up much better against StrongREJECT than the earlier
    small held-out comparison could establish. On 2000 same-output rows, it has
    high agreement and high rank/linear association with StrongREJECT score.
@@ -231,6 +279,11 @@ response materially assists the harmful request.
    aggregate analysis but should be disclosed. It changes alpha 3.0
    StrongREJECT from 339/499 pre-repair to 340/500 after repair; the aggregate
    impact is 0.05 pp over 2000 rows.
+6. The weak truncation-bias replication does not make 256-token evaluation a
+   general policy. Template 2 still has real truncation misses, and 1244/2000
+   rows are actually truncated; this run only shows that the Mistral 256
+   diagnostic happens to agree closely with full-output scoring on these
+   outputs.
 
 ## Literature Alignment
 

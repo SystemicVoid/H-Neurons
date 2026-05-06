@@ -20,6 +20,14 @@ Three findings reshape the story told by the original truncated evaluation:
 
 4. **Alpha=1.0 (identity baseline) confirms continuous dose-response and reveals a structural decomposition.** *(2026-03-27)* Adding the natural-activation baseline (α=1.0 means no scaling) fills the gap between suppression (α=0.0) and amplification (α=1.5). All text-level metrics interpolate smoothly: refusal rate 80.4% → 79.6% → 77.8% → 76.8%, response length std 951 → 1239 → 1380 → 1661 (monotonic, significant). *(2026-03-28: Binary judge and CSV-v2 now complete. Key result: 76% of the harmful count increase is ablation recovery (α=0→1), while severity escalation (V, S, payload share) is amplification-driven and monotonic through α=3.0. See Part VI Finding 30.)*
 
+**Cross-model update (2026-05-06):** The truncation findings in this audit are
+Gemma-specific. The Mistral anchor-3 JailbreakBench review finds a strong
+full-output alpha curve, but the same-output 256-token diagnostic agrees closely
+with full-output binary scoring (96.3% agreement, kappa 0.925, only 1.3 pp lower
+overall). Mistral often gives short complete refusals and earlier harmful spans,
+so the Gemma disclaimer-first 256-token artifact mostly does not replicate
+there. See the [Mistral anchor-3 measurement review](../../paper/icml/reports/2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md).
+
 ---
 
 ## Complete Cross-Alpha Results
