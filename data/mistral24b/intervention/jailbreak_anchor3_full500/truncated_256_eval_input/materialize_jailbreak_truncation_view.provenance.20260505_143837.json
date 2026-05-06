@@ -1,0 +1,84 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/materialize_jailbreak_truncation_view-20260505_143837-194456.json",
+  "args": {
+    "alphas": [
+      0.0,
+      1.0,
+      1.5,
+      3.0
+    ],
+    "input_dir": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment",
+    "model_key": "mistral_small_24b_instruct_2501",
+    "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "output_dir": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input",
+    "response_token_limit": 256
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/materialize_jailbreak_truncation_view.py",
+    "--input_dir",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment",
+    "--output_dir",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input",
+    "--alphas",
+    "0.0",
+    "1.0",
+    "1.5",
+    "3.0",
+    "--model_key",
+    "mistral_small_24b_instruct_2501",
+    "--model_path",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "--response-token-limit",
+    "256"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/materialize_jailbreak_truncation_view.py --input_dir data/mistral24b/intervention/jailbreak_anchor3_full500/experiment --output_dir data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input --alphas 0.0 1.0 1.5 3.0 --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --response-token-limit 256",
+  "completed_at_utc": "2026-05-05T14:38:39.507372+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "files": {
+    "0.0": {
+      "input_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_0.0.jsonl",
+      "n_records": 500,
+      "output_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/alpha_0.0.jsonl"
+    },
+    "1.0": {
+      "input_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.0.jsonl",
+      "n_records": 500,
+      "output_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/alpha_1.0.jsonl"
+    },
+    "1.5": {
+      "input_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.5.jsonl",
+      "n_records": 500,
+      "output_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/alpha_1.5.jsonl"
+    },
+    "3.0": {
+      "input_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_3.0.jsonl",
+      "n_records": 500,
+      "output_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/alpha_3.0.jsonl"
+    }
+  },
+  "git_dirty": false,
+  "git_sha": "3ad596900da137044bd9c87223ba65018203a1eb",
+  "hostname": "excurio",
+  "input_dir": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment",
+  "manifest_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/truncation_view_manifest.json",
+  "n_records": 2000,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/alpha_0.0.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/alpha_1.0.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/alpha_1.5.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/alpha_3.0.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input/truncation_view_manifest.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "response_token_limit": 256,
+  "run_id": "materialize_jailbreak_truncation_view-20260505_143837-194456",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "materialize_jailbreak_truncation_view.py",
+  "started_at_utc": "2026-05-05T14:38:37.538228+00:00",
+  "status": "completed",
+  "tokenizer_model_key": "mistral_small_24b_instruct_2501",
+  "tokenizer_model_path": "mistralai/Mistral-Small-24B-Instruct-2501"
+}

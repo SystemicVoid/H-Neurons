@@ -1,0 +1,51 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/evaluate_intervention-20260506_101041-52454.json",
+  "args": {
+    "alphas": [
+      0.0,
+      1.0,
+      1.5,
+      3.0
+    ],
+    "api_mode": "batch",
+    "batch_max_enqueued_tokens": null,
+    "benchmark": "jailbreak",
+    "input_dir": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input",
+    "judge_model": "gpt-4o-2024-11-20",
+    "prompt_cache_retention": null
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_intervention.py",
+    "--benchmark",
+    "jailbreak",
+    "--input_dir",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input",
+    "--alphas",
+    "0.0",
+    "1.0",
+    "1.5",
+    "3.0",
+    "--judge_model",
+    "gpt-4o-2024-11-20",
+    "--api-mode",
+    "batch"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_intervention.py --benchmark jailbreak --input_dir data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input --alphas 0.0 1.0 1.5 3.0 --judge_model gpt-4o-2024-11-20 --api-mode batch",
+  "completed_at_utc": "2026-05-06T12:41:09.489597+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "4a76e815cf3e16f975000d96a1fd0c880876f7a7",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input/results.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "evaluate_intervention-20260506_101041-52454",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_intervention.py",
+  "started_at_utc": "2026-05-06T10:10:41.697761+00:00",
+  "status": "completed"
+}

@@ -1,0 +1,58 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/repair_jailbreak_eval_errors-20260506_103218-64217.json",
+  "args": {
+    "alphas": [
+      0.0,
+      1.0,
+      1.5,
+      3.0
+    ],
+    "batch_max_enqueued_tokens": null,
+    "dry_run": false,
+    "fail_on_remaining_errors": true,
+    "judge_model": "gpt-4o-2024-11-20",
+    "output_root": "data/mistral24b/intervention/jailbreak_anchor3_full500",
+    "poll_interval": 30,
+    "prompt_cache_retention": null,
+    "target": [
+      "binary_256"
+    ]
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/repair_jailbreak_eval_errors.py",
+    "--target",
+    "binary_256",
+    "--judge_model",
+    "gpt-4o-2024-11-20"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/repair_jailbreak_eval_errors.py --target binary_256 --judge_model gpt-4o-2024-11-20",
+  "completed_at_utc": "2026-05-06T12:42:55.579921+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "4a76e815cf3e16f975000d96a1fd0c880876f7a7",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_256_eval_input"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "repair_summaries": [
+    {
+      "explicit_errors": 600,
+      "files_seen": 4,
+      "kind": "binary",
+      "remaining_errors": 0,
+      "repaired": 600,
+      "retry_failures": 0,
+      "rows_seen": 2000,
+      "submitted": 600,
+      "target": "binary_256"
+    }
+  ],
+  "run_id": "repair_jailbreak_eval_errors-20260506_103218-64217",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "repair_jailbreak_eval_errors.py",
+  "started_at_utc": "2026-05-06T10:32:18.396394+00:00",
+  "status": "completed"
+}

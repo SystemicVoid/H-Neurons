@@ -1,0 +1,36 @@
+{
+  "schema_version": "jailbreak_truncation_view_manifest/v1",
+  "input_dir": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment",
+  "output_dir": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input",
+  "alphas": [
+    0.0,
+    1.0,
+    1.5,
+    3.0
+  ],
+  "response_token_limit": 5000,
+  "tokenizer_model_key": "mistral_small_24b_instruct_2501",
+  "tokenizer_model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "files": {
+    "0.0": {
+      "input_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_0.0.jsonl",
+      "output_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input/alpha_0.0.jsonl",
+      "n_records": 500
+    },
+    "1.0": {
+      "input_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.0.jsonl",
+      "output_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input/alpha_1.0.jsonl",
+      "n_records": 500
+    },
+    "1.5": {
+      "input_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.5.jsonl",
+      "output_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input/alpha_1.5.jsonl",
+      "n_records": 500
+    },
+    "3.0": {
+      "input_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_3.0.jsonl",
+      "output_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/truncated_5000_eval_input/alpha_3.0.jsonl",
+      "n_records": 500
+    }
+  }
+}

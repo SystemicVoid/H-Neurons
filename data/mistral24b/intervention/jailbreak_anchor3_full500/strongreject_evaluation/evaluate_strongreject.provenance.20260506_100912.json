@@ -1,0 +1,53 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/evaluate_strongreject-20260506_100912-51512.json",
+  "args": {
+    "alphas": [
+      0.0,
+      1.0,
+      1.5,
+      3.0
+    ],
+    "api_mode": "batch",
+    "batch_max_enqueued_tokens": null,
+    "gold_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/tests/gold_labels/jailbreak_cross_alpha_gold.jsonl",
+    "input_dir": "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment",
+    "judge_model": "gpt-4o-2024-11-20",
+    "output_dir": "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation",
+    "prompt_cache_retention": null
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3",
+    "scripts/evaluate_strongreject.py",
+    "--input_dir",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment",
+    "--output_dir",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation",
+    "--alphas",
+    "0.0",
+    "1.0",
+    "1.5",
+    "3.0",
+    "--judge_model",
+    "gpt-4o-2024-11-20",
+    "--api-mode",
+    "batch"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python3 scripts/evaluate_strongreject.py --input_dir data/mistral24b/intervention/jailbreak_anchor3_full500/experiment --output_dir data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation --alphas 0.0 1.0 1.5 3.0 --judge_model gpt-4o-2024-11-20 --api-mode batch",
+  "completed_at_utc": "2026-05-06T12:36:34.568237+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "4a76e815cf3e16f975000d96a1fd0c880876f7a7",
+  "harmful_rate": 0.5182591295647824,
+  "hostname": "excurio",
+  "n_evaluable": 1999,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "evaluate_strongreject-20260506_100912-51512",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "evaluate_strongreject.py",
+  "started_at_utc": "2026-05-06T10:09:12.757031+00:00",
+  "status": "completed"
+}
