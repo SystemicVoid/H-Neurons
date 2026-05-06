@@ -5,9 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
+from uncertainty import paired_bootstrap_curve_effects
 from utils import format_alpha_label
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -196,6 +200,100 @@ def _strongreject_label(row: dict[str, Any]) -> bool | None:
     return None
 
 
+def _safe_number(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)) and math.isfinite(float(value)):
+        return float(value)
+    return None
+
+
+def _mean(values: list[float]) -> float | None:
+    return None if not values else sum(values) / len(values)
+
+
+def _rankdata_average(values: list[float]) -> list[float]:
+    indexed = sorted(enumerate(values), key=lambda item: item[1])
+    ranks = [0.0] * len(values)
+    i = 0
+    while i < len(indexed):
+        j = i + 1
+        while j < len(indexed) and indexed[j][1] == indexed[i][1]:
+            j += 1
+        avg_rank = (i + 1 + j) / 2.0
+        for k in range(i, j):
+            ranks[indexed[k][0]] = avg_rank
+        i = j
+    return ranks
+
+
+def _pearson(xs: list[float], ys: list[float]) -> float | None:
+    if len(xs) < 2 or len(xs) != len(ys):
+        return None
+    mean_x = sum(xs) / len(xs)
+    mean_y = sum(ys) / len(ys)
+    dx = [x - mean_x for x in xs]
+    dy = [y - mean_y for y in ys]
+    denom_x = sum(x * x for x in dx)
+    denom_y = sum(y * y for y in dy)
+    if denom_x == 0.0 or denom_y == 0.0:
+        return None
+    return sum(x * y for x, y in zip(dx, dy, strict=True)) / math.sqrt(
+        denom_x * denom_y
+    )
+
+
+def _spearman(xs: list[float], ys: list[float]) -> float | None:
+    if len(xs) < 2 or len(xs) != len(ys):
+        return None
+    return _pearson(_rankdata_average(xs), _rankdata_average(ys))
+
+
+def _numeric_association(
+    rows: list[dict[str, Any]], left_field: str, right_field: str
+) -> dict[str, Any]:
+    pairs: list[tuple[float, float]] = []
+    for row in rows:
+        left = _safe_number(row.get(left_field))
+        right = _safe_number(row.get(right_field))
+        if left is not None and right is not None:
+            pairs.append((left, right))
+    xs = [left for left, _ in pairs]
+    ys = [right for _, right in pairs]
+    return {
+        "n": len(pairs),
+        "pearson": _pearson(xs, ys),
+        "spearman": _spearman(xs, ys),
+    }
+
+
+def _cohen_kappa_from_counts(
+    left_yes_right_yes: int,
+    left_yes_right_no: int,
+    left_no_right_yes: int,
+    left_no_right_no: int,
+) -> float | None:
+    n = left_yes_right_yes + left_yes_right_no + left_no_right_yes + left_no_right_no
+    if n == 0:
+        return None
+    observed = (left_yes_right_yes + left_no_right_no) / n
+    left_yes = (left_yes_right_yes + left_yes_right_no) / n
+    right_yes = (left_yes_right_yes + left_no_right_yes) / n
+    expected = left_yes * right_yes + (1.0 - left_yes) * (1.0 - right_yes)
+    if expected == 1.0:
+        return 1.0 if observed == 1.0 else None
+    return (observed - expected) / (1.0 - expected)
+
+
+def _mcnemar_exact_two_sided(left_yes_right_no: int, left_no_right_yes: int) -> float:
+    n = left_yes_right_no + left_no_right_yes
+    if n == 0:
+        return 1.0
+    smaller = min(left_yes_right_no, left_no_right_yes)
+    tail = sum(math.comb(n, k) for k in range(smaller + 1)) * (0.5**n)
+    return min(1.0, 2.0 * tail)
+
+
 def _summarize_mistral_evaluator(
     joined: list[dict[str, Any]], field: str
 ) -> dict[str, Any]:
@@ -232,6 +330,10 @@ def _summarize_mistral_pair(
     )
     agreements = left_yes_right_yes + left_no_right_no
     disagreements = left_yes_right_no + left_no_right_yes
+    left_harmful = sum(row[left_field] is True for row in left_valid)
+    right_harmful = sum(row[right_field] is True for row in right_valid)
+    left_rate = 0.0 if not left_valid else left_harmful / len(left_valid)
+    right_rate = 0.0 if not right_valid else right_harmful / len(right_valid)
     return {
         "n_records": len(joined),
         "n_paired_evaluable": len(paired),
@@ -241,11 +343,18 @@ def _summarize_mistral_pair(
         "right_errors": len(joined) - len(right_valid),
         "agreement": rate_summary(agreements, len(paired)),
         "disagreement": rate_summary(disagreements, len(paired)),
-        "left_harmful": rate_summary(
-            sum(row[left_field] is True for row in left_valid), len(left_valid)
+        "left_harmful": rate_summary(left_harmful, len(left_valid)),
+        "right_harmful": rate_summary(right_harmful, len(right_valid)),
+        "left_minus_right_harmful_rate_pp": (left_rate - right_rate) * 100.0,
+        "cohen_kappa": _cohen_kappa_from_counts(
+            left_yes_right_yes,
+            left_yes_right_no,
+            left_no_right_yes,
+            left_no_right_no,
         ),
-        "right_harmful": rate_summary(
-            sum(row[right_field] is True for row in right_valid), len(right_valid)
+        "mcnemar_exact_two_sided_p": _mcnemar_exact_two_sided(
+            left_yes_right_no,
+            left_no_right_yes,
         ),
         "left_yes_right_yes": left_yes_right_yes,
         "left_yes_right_no": left_yes_right_no,
@@ -266,6 +375,160 @@ def _summarize_mistral_pair_by_alpha(
             alpha: _summarize_mistral_pair(rows, left_field, right_field)
             for alpha, rows in sorted(by_alpha.items())
         },
+    }
+
+
+def _summarize_csv3_diagnostics(joined: list[dict[str, Any]]) -> dict[str, Any]:
+    valid = [row for row in joined if row["csv3_full"] is not None]
+    harmful = [row for row in valid if row["csv3_full"] is True]
+    outcomes: dict[str, int] = {}
+    for row in valid:
+        outcome = row.get("csv3_primary_outcome")
+        if isinstance(outcome, str):
+            outcomes[outcome] = outcomes.get(outcome, 0) + 1
+    c_values = [
+        value for row in valid if (value := _safe_number(row.get("csv3_C"))) is not None
+    ]
+    s_values = [
+        value for row in valid if (value := _safe_number(row.get("csv3_S"))) is not None
+    ]
+    v_values = [
+        value for row in valid if (value := _safe_number(row.get("csv3_V"))) is not None
+    ]
+    high_specificity = sum(
+        bool((value := _safe_number(row.get("csv3_S"))) is not None and value >= 3)
+        for row in valid
+    )
+    return {
+        "n_valid": len(valid),
+        "harmful": rate_summary(len(harmful), len(valid)),
+        "primary_outcome_counts": dict(sorted(outcomes.items())),
+        "substantive_compliance": rate_summary(
+            outcomes.get("substantive_compliance", 0), len(valid)
+        ),
+        "partial_or_substantive_compliance": rate_summary(
+            outcomes.get("partial_compliance", 0)
+            + outcomes.get("substantive_compliance", 0),
+            len(valid),
+        ),
+        "high_specificity_s_ge_3": rate_summary(high_specificity, len(valid)),
+        "mean_C": _mean(c_values),
+        "mean_S": _mean(s_values),
+        "mean_V_when_present": _mean(v_values),
+    }
+
+
+def _summarize_strongreject_diagnostics(joined: list[dict[str, Any]]) -> dict[str, Any]:
+    valid = [row for row in joined if row["strongreject_full"] is not None]
+    harmful = [row for row in valid if row["strongreject_full"] is True]
+    refused = sum(row.get("strongreject_refused") == 1 for row in valid)
+    scores = [
+        value
+        for row in valid
+        if (value := _safe_number(row.get("strongreject_score"))) is not None
+    ]
+    convincingness = [
+        value
+        for row in valid
+        if (value := _safe_number(row.get("strongreject_convincingness"))) is not None
+    ]
+    specificity = [
+        value
+        for row in valid
+        if (value := _safe_number(row.get("strongreject_specificity"))) is not None
+    ]
+    return {
+        "n_valid": len(valid),
+        "harmful": rate_summary(len(harmful), len(valid)),
+        "refused": rate_summary(refused, len(valid)),
+        "mean_score": _mean(scores),
+        "mean_convincingness": _mean(convincingness),
+        "mean_specificity": _mean(specificity),
+    }
+
+
+def _summarize_csv3_strongreject_association(
+    joined: list[dict[str, Any]],
+) -> dict[str, Any]:
+    paired = [
+        row
+        for row in joined
+        if row["csv3_full"] is not None and row["strongreject_full"] is not None
+    ]
+    score_by_outcome: dict[str, list[float]] = {}
+    for row in paired:
+        outcome = row.get("csv3_primary_outcome")
+        score = _safe_number(row.get("strongreject_score"))
+        if isinstance(outcome, str) and score is not None:
+            score_by_outcome.setdefault(outcome, []).append(score)
+    return {
+        "n_paired": len(paired),
+        "associations_with_strongreject_score": {
+            "csv3_harmful_binary": _numeric_association(
+                paired, "csv3_harmful_numeric", "strongreject_score"
+            ),
+            "csv3_C": _numeric_association(paired, "csv3_C", "strongreject_score"),
+            "csv3_S": _numeric_association(paired, "csv3_S", "strongreject_score"),
+            "csv3_V": _numeric_association(paired, "csv3_V", "strongreject_score"),
+            "csv3_substantive_compliance": _numeric_association(
+                paired, "csv3_substantive_numeric", "strongreject_score"
+            ),
+        },
+        "mean_strongreject_score_by_csv3_outcome": {
+            outcome: {"n": len(scores), "mean_score": _mean(scores)}
+            for outcome, scores in sorted(score_by_outcome.items())
+        },
+    }
+
+
+def _binary_curve_effects(
+    joined: list[dict[str, Any]], field: str, alphas: list[float]
+) -> dict[str, Any]:
+    alpha_labels = [format_alpha_label(alpha) for alpha in alphas]
+    by_id: dict[str, dict[str, dict[str, Any]]] = {}
+    for row in joined:
+        by_id.setdefault(str(row["id"]), {})[str(row["alpha_label"])] = row
+
+    trajectories: list[list[bool]] = []
+    dropped_incomplete = 0
+    for rows_by_alpha in by_id.values():
+        trajectory: list[bool] = []
+        complete = True
+        for alpha_label in alpha_labels:
+            row = rows_by_alpha.get(alpha_label)
+            label = None if row is None else row.get(field)
+            if label is None:
+                complete = False
+                break
+            trajectory.append(bool(label))
+        if complete:
+            trajectories.append(trajectory)
+        else:
+            dropped_incomplete += 1
+
+    if not trajectories:
+        return {
+            "n_complete_ids": 0,
+            "dropped_incomplete_ids": dropped_incomplete,
+            "effects": None,
+        }
+
+    if len(alphas) < 2:
+        matrix = np.asarray(trajectories, dtype=bool)
+        return {
+            "n_complete_ids": len(trajectories),
+            "dropped_incomplete_ids": dropped_incomplete,
+            "effects": {"rates": matrix.mean(axis=0).tolist()},
+        }
+
+    effects = paired_bootstrap_curve_effects(
+        np.asarray(trajectories, dtype=bool),
+        np.asarray(alphas, dtype=float),
+    )
+    return {
+        "n_complete_ids": len(trajectories),
+        "dropped_incomplete_ids": dropped_incomplete,
+        "effects": effects,
     }
 
 
@@ -295,6 +558,12 @@ def compute_mistral_anchor_summary(
         expected_keys, key=lambda key: (float(key[1]), key[0])
     ):
         key = (record_id, alpha_label)
+        csv3_row = sources["csv3_full"][key]
+        strongreject_row = sources["strongreject_full"][key]
+        csv3_payload = csv3_row.get("csv2", {})
+        strongreject_payload = strongreject_row.get("strongreject", {})
+        csv3_label = _csv3_label(csv3_row)
+        strongreject_label = _strongreject_label(strongreject_row)
         joined.append(
             {
                 "id": record_id,
@@ -302,12 +571,59 @@ def compute_mistral_anchor_summary(
                 "alpha_label": alpha_label,
                 "binary_full": _binary_label(binary_full[key]),
                 "binary_256": _binary_label(sources["binary_256"][key]),
-                "csv3_full": _csv3_label(sources["csv3_full"][key]),
-                "strongreject_full": _strongreject_label(
-                    sources["strongreject_full"][key]
+                "csv3_full": csv3_label,
+                "csv3_harmful_numeric": (
+                    None if csv3_label is None else float(csv3_label)
+                ),
+                "csv3_primary_outcome": (
+                    csv3_payload.get("primary_outcome")
+                    if isinstance(csv3_payload, dict)
+                    else None
+                ),
+                "csv3_substantive_numeric": (
+                    1.0
+                    if isinstance(csv3_payload, dict)
+                    and csv3_payload.get("primary_outcome") == "substantive_compliance"
+                    else 0.0
+                    if csv3_label is not None
+                    else None
+                ),
+                "csv3_C": (
+                    csv3_payload.get("C") if isinstance(csv3_payload, dict) else None
+                ),
+                "csv3_S": (
+                    csv3_payload.get("S") if isinstance(csv3_payload, dict) else None
+                ),
+                "csv3_V": (
+                    csv3_payload.get("V") if isinstance(csv3_payload, dict) else None
+                ),
+                "strongreject_full": strongreject_label,
+                "strongreject_score": (
+                    strongreject_payload.get("score")
+                    if isinstance(strongreject_payload, dict)
+                    else None
+                ),
+                "strongreject_refused": (
+                    strongreject_payload.get("refused")
+                    if isinstance(strongreject_payload, dict)
+                    else None
+                ),
+                "strongreject_convincingness": (
+                    strongreject_payload.get("convincingness")
+                    if isinstance(strongreject_payload, dict)
+                    else None
+                ),
+                "strongreject_specificity": (
+                    strongreject_payload.get("specificity")
+                    if isinstance(strongreject_payload, dict)
+                    else None
                 ),
             }
         )
+
+    joined_by_alpha: dict[str, list[dict[str, Any]]] = {}
+    for row in joined:
+        joined_by_alpha.setdefault(row["alpha_label"], []).append(row)
 
     return {
         "mode": "mistral_anchor_jailbreak_evaluator_summary",
@@ -328,12 +644,47 @@ def compute_mistral_anchor_summary(
                 "strongreject_full",
             )
         },
+        "curve_effects": {
+            field: _binary_curve_effects(joined, field, alphas)
+            for field in (
+                "binary_full",
+                "binary_256",
+                "csv3_full",
+                "strongreject_full",
+            )
+        },
+        "diagnostics": {
+            "csv3_full": {
+                "combined": _summarize_csv3_diagnostics(joined),
+                "per_alpha": {
+                    alpha: _summarize_csv3_diagnostics(rows)
+                    for alpha, rows in sorted(joined_by_alpha.items())
+                },
+            },
+            "strongreject_full": {
+                "combined": _summarize_strongreject_diagnostics(joined),
+                "per_alpha": {
+                    alpha: _summarize_strongreject_diagnostics(rows)
+                    for alpha, rows in sorted(joined_by_alpha.items())
+                },
+            },
+            "csv3_vs_strongreject_full": {
+                "combined": _summarize_csv3_strongreject_association(joined),
+                "per_alpha": {
+                    alpha: _summarize_csv3_strongreject_association(rows)
+                    for alpha, rows in sorted(joined_by_alpha.items())
+                },
+            },
+        },
         "pairs": {
             "binary_256_vs_binary_full": _summarize_mistral_pair_by_alpha(
                 joined, "binary_256", "binary_full"
             ),
             "binary_full_vs_csv3_full": _summarize_mistral_pair_by_alpha(
                 joined, "binary_full", "csv3_full"
+            ),
+            "binary_full_vs_strongreject_full": _summarize_mistral_pair_by_alpha(
+                joined, "binary_full", "strongreject_full"
             ),
             "csv3_full_vs_strongreject_full": _summarize_mistral_pair_by_alpha(
                 joined, "csv3_full", "strongreject_full"

@@ -91,6 +91,8 @@ def test_mistral_anchor_summary_reports_pairwise_discordance(tmp_path: Path) -> 
     assert binary_pair["left_no_right_yes"] == 1
     assert binary_pair["left_no_right_no"] == 0
     assert binary_pair["disagreement"]["rate"] == pytest.approx(2 / 3)
+    assert binary_pair["cohen_kappa"] == pytest.approx(-0.5)
+    assert binary_pair["mcnemar_exact_two_sided_p"] == pytest.approx(1.0)
 
     csv3_pair = summary["pairs"]["binary_full_vs_csv3_full"]["combined"]
     assert csv3_pair["left_yes_right_no"] == 1
@@ -99,6 +101,9 @@ def test_mistral_anchor_summary_reports_pairwise_discordance(tmp_path: Path) -> 
     sr_pair = summary["pairs"]["csv3_full_vs_strongreject_full"]["combined"]
     assert sr_pair["left_no_right_yes"] == 1
     assert sr_pair["agreement"]["rate"] == pytest.approx(2 / 3)
+    assert (
+        summary["diagnostics"]["csv3_vs_strongreject_full"]["combined"]["n_paired"] == 3
+    )
 
 
 def test_mistral_anchor_summary_fails_on_id_mismatch(tmp_path: Path) -> None:
