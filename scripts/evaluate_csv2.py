@@ -779,6 +779,22 @@ def parse_csv2_verdict(raw: str) -> dict | None:
 # ---------------------------------------------------------------------------
 
 _MIN_MATCH_LEN = 15
+_FALLBACK_FRAGMENT_MIN_LEN = 8
+
+
+def _quote_line_fragments(quote: str) -> list[str]:
+    """Return short fallback quote fragments from multiline judge anchors."""
+    fragments: list[str] = []
+    seen: set[str] = set()
+    for fragment in quote.splitlines():
+        normalized = fragment.strip()
+        if len(normalized) < _FALLBACK_FRAGMENT_MIN_LEN:
+            continue
+        if normalized in seen:
+            continue
+        fragments.append(normalized)
+        seen.add(normalized)
+    return fragments
 
 
 def _find_quote_start(
@@ -856,6 +872,14 @@ def _find_quote_end(
     # Trim from end
     for trim in range(1, len(quote) - min_len + 1):
         chunk = quote[: len(quote) - trim]
+        idx = sub.find(chunk)
+        if idx != -1:
+            return search_from + idx + len(chunk), True
+
+    # Some judge anchors bridge omitted text across lines, e.g. ending a span
+    # with "last harmful sentence\n\nsignature". If exact/trim matching fails,
+    # accept a sufficiently long line fragment as a corrected end anchor.
+    for chunk in _quote_line_fragments(quote):
         idx = sub.find(chunk)
         if idx != -1:
             return search_from + idx + len(chunk), True
@@ -979,7 +1003,22 @@ def _resolve_single_span(
     if raw_span is None:
         return None
     resolved = _resolve_quoted_spans(response_text, [raw_span], kind=kind)
-    return resolved[0] if resolved else None
+    if not resolved:
+        return None
+    span = resolved[0]
+    if kind == "pivot" and not span.get("valid") and span.get("start") is not None:
+        start = int(span["start"])
+        start_quote = str(raw_span.get("start_quote") or "")
+        end = min(len(response_text), start + max(1, len(start_quote)))
+        return {
+            "type": kind,
+            "start": start,
+            "end": end,
+            "valid": True,
+            "corrected": True,
+            "start_only": True,
+        }
+    return span
 
 
 def _validate_evidence_spans(
