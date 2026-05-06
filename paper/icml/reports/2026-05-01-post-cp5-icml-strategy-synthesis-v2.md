@@ -47,6 +47,17 @@ open-correctness gate (+3.96 pp, 95% CI [-1.98, +9.91]), shows same-scope MC
 degradation (-3.08 pp [-5.95, -0.66]), and remains partial/non-claim-bearing.
 Do not promote SIMID into the ICML claim set from this evidence.
 
+2026-05-06 update: the Mistral anchor-3 JailbreakBench measurement branch has
+since completed and been reviewed in
+[2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md](./2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md).
+This supersedes v2's "zero additional Mistral/Jailbreak work" posture for that
+already-executed branch. The result is measurement-relevant: all four judges
+are complete for 2000/2000 rows, CSV-v3 and StrongREJECT agree on 91.8% of
+same-output rows, and all judges show a large alpha 0.0 -> 3.0 JBB harmfulness
+increase. It does **not** change the CP5/H1 FaithEval null or justify a
+Mistral H-neuron specificity claim without matched random/layer-matched
+Jailbreak controls.
+
 ## Corrections to v1
 
 | v1 statement | Verdict | Corrected v2 position |
@@ -94,9 +105,9 @@ live-run-state constraints instead of uncited price estimates.
 
 | Rank | Direction | Decision | Concrete next move |
 |---:|---|---|---|
-| 1 | Claim-defense appendix and triage patch | Do now. | Implement `review_constant_offset` in `negative_control_triage` or file a patch-ready issue with exact predicate: both endpoint H rates outside their corresponding random percentile bands, same sign relative to each band midpoint, and offset difference <= 1.0 pp; return before `specificity_supported`. Add regression tests in `tests/test_run_negative_control.py`. If code changes, run `ruff check scripts`, `ruff format scripts`, and `ty check` (`scripts/run_negative_control.py`:1288-1329; `.pre-commit-config.yaml`:17-33). |
-| 2 | Gemma claim-defense appendix | Do now. | Table columns: claim, exact metric ID/source artifact, paired estimator/CI method, gate status, caveat. Use `notes/ground-truth/metric_ledger.jsonl` and `surface_crosswalk.jsonl` for source anchoring; manually add gates/caveats from reports and `paper/icml/main.tex` limitation rows because the crosswalk lacks those fields (`notes/ground-truth/README.md`:9-12, 21-29; `notes/ground-truth/surface_crosswalk.jsonl`:1; `paper/icml/main.tex`:622-640). |
-| 3 | ICML Mistral reframing | Do now, no new run. | Add an appendix/Section 6 paragraph: Mistral 2501 has a held-out readout but no FaithEval steering endpoint under AUROC-selected or intervention-aware C selection. Include exact caveats: 2501 not 2503, FFN positive-weight scaling, standard FaithEval prompt, reserve-200 H1 proxy (`paper/icml/reports/2026-04-30-mistral24b-h1-c-sweep-review.md`:289-301). **Could be outdated; verify before acting.** |
+| 1 | Claim-defense appendix and triage patch | Do now. | Implement `review_constant_offset` in `negative_control_triage` or file a patch-ready issue with exact predicate: both endpoint H rates outside their corresponding random percentile bands, same sign relative to each band midpoint, and offset difference <= 1.0 pp; return before `specificity_supported`. Add regression tests in `tests/test_run_negative_control.py`. If code changes, run `ruff check scripts`, `ruff format scripts`, and `ty check` (`scripts/run_negative_control.py`:1288-1329; `.pre-commit-config.yaml`:17-33). | DONE
+| 2 | Gemma claim-defense appendix | Do now. | Table columns: claim, exact metric ID/source artifact, paired estimator/CI method, gate status, caveat. Use `notes/ground-truth/metric_ledger.jsonl` and `surface_crosswalk.jsonl` for source anchoring; manually add gates/caveats from reports and `paper/icml/main.tex` limitation rows because the crosswalk lacks those fields (`notes/ground-truth/README.md`:9-12, 21-29; `notes/ground-truth/surface_crosswalk.jsonl`:1; `paper/icml/main.tex`:622-640). | DONE (need review)
+| 3 | ICML Mistral reframing | Do now. | Add an appendix/Section 6 paragraph: Mistral 2501 has a held-out readout but no FaithEval steering endpoint under AUROC-selected or intervention-aware C selection. Include exact caveats: 2501 not 2503, FFN positive-weight scaling, standard FaithEval prompt, reserve-200 H1 proxy (`paper/icml/reports/2026-04-30-mistral24b-h1-c-sweep-review.md`:289-301). Also acknowledge the completed anchor-3 JBB measurement result as safety-surface evidence, not specificity-controlled intervention evidence; use [`2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md`](./2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md) as the source. |
 | 4 | SIMID r2 handling | Contain, do not promote. | The r2 grid has completed, but the partial selected/TruthfulQA external-label review missed the primary gate and showed MC degradation. Full claim-bearing open correctness would still require canonical complete external labels and control/Bridge gates (`data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_effect_run_gate_20260429_r2_external_labels/protocol.md`:52-60, 69-97; `paper/icml/reports/2026-05-03-simid-prospective-partial-external-label-review.md`). **Could be outdated; verify before acting.** |
 | 5 | Optional bridge human-human sensitivity | Optional. | If an external human rater is available immediately, run the 20-case stratified supplement check; otherwise leave L4 as the current LLM-second-rater sensitivity, already disclosed (`paper/icml/reports/2026-04-21-bridge-irr-review.md`:197-203, 251-258). **Could be outdated; verify whether bridge human labeling has already been completed before acting.** |
 | 6 | Probe-pivot prereg/schema | Defer beyond ICML unless it is paperwork-only. | It is label-free if it freezes cell IDs, split hashes, blinded prompt IDs, purpose-probe AUROC, frozen-ITI signed-projection AUROC, AUROC gap, nuisance features, and random-label controls without open-label/outcome/generation columns. Do not compute or join outcomes pre-ICML (`notes/research-directions/2026-04-30-claude-opus-4-7-probe-pivot-sister-paper-plan.md`:355-369). |

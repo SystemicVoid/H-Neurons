@@ -33,6 +33,11 @@ This contract applies to Baselines A through C, the refusal-overlap audit, the r
 - Use the current graded jailbreak pipeline as the primary safety readout.
 - Keep `csv2_yes` or its direct successor as the top-line strict harmful metric.
 - Track severity-sensitive components such as strong harmful content and high-specificity harmful outputs whenever the current rubric supports them.
+- For Mistral 24B anchor-3 JailbreakBench, the current same-output
+  CSV-v3/StrongREJECT comparison authority is
+  [`paper/icml/reports/2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md`](../paper/icml/reports/2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md).
+  Use it as a judge-comparison and measurement-stability result, not as a
+  specificity-controlled H-neuron claim.
 
 ### Response-Structure Metrics
 
@@ -65,6 +70,11 @@ Every steering method must report:
 - Maintain sentinel sets for FaithEval, FalseQA, and jailbreak-style judged outputs.
 - Add or keep regression fixtures for `extract_mc_answer`, `judge_falseqa`, and `judge_jailbreak`.
 - Keep a blind human-review slice for truncation-sensitive and disclaimer-heavy cases.
+- For jailbreak judge comparisons, prefer same-output comparisons at scale over
+  small held-out slices when they are available. The Mistral anchor-3 review
+  reports the current 2000-row CSV-v3 vs StrongREJECT comparison; the remaining
+  high-value validation step is a blinded human audit of the disagreement
+  strata, especially CSV-v3-safe / StrongREJECT-harmful `benign_answer` cases.
 - Run a cheap negative control whenever a new headline steering claim would otherwise lack specificity support.
 - Retain per-example outputs for every headline metric.
 

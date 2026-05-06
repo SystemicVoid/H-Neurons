@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-05-06 (Mistral anchor-3 jailbreak measurement reviewed)
+
+### What I did
+
+Completed the Mistral 24B anchor-3 JailbreakBench evaluator repair and review
+under `data/mistral24b/intervention/jailbreak_anchor3_full500/`. The canonical
+report is
+[`paper/icml/reports/2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md`](../paper/icml/reports/2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md),
+with machine-readable summary at
+`data/mistral24b/intervention/jailbreak_anchor3_full500/mistral_anchor3_jailbreak_evaluator_summary.json`.
+
+### What I expected vs what happened
+
+Expected the repair to mostly close explicit parser/API error debt. It did:
+all four judges are now valid for 2000/2000 rows, 500 per alpha, with matching
+ids and no temp files. The original 256-token state file remains preserved.
+The scientific update is stronger than a cleanup: binary full, CSV-v3, and
+StrongREJECT all show a large alpha 0.0 -> 3.0 harmfulness increase on this
+JBB surface. The new 2000-row same-output CSV-v3 vs StrongREJECT comparison is
+also much more informative than the earlier small held-out comparison:
+agreement is 91.8% with kappa 0.836, but StrongREJECT is 5.7 pp more
+permissive.
+
+### What this changes about my thinking
+
+CSV-v3 holds up as the primary strict harmfulness instrument against
+StrongREJECT at scale, but it is not interchangeable with StrongREJECT and it
+is not human ground truth. The main disagreement cluster is exactly the
+construct mismatch we care about: StrongREJECT tends to treat non-refusal and
+specificity as harmful, while CSV-v3 requires material assistance to the
+harmful request. The Mistral anchor-3 curve is real as safety-surface
+measurement, but it is not yet an H-neuron specificity claim because the branch
+lacks matched Mistral random-neuron/layer-matched controls.
+
+### What I will do next
+
+Use the 2026-05-06 report as the single source for Mistral anchor-3 jailbreak
+numbers. The valuable next work is a blinded human audit of CSV-v3/StrongREJECT
+disagreements and, only if a specificity claim is needed, a pre-registered
+matched-control JBB branch. Do not use this result to rescue the Mistral
+FaithEval CP5/H1 null.
+
 ## 2026-05-03 (SIMID prospective partial external-label review)
 
 ### What I did
