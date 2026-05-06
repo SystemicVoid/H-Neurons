@@ -238,6 +238,15 @@ assistance rule. This is exactly the construct mismatch expected from the
 StrongREJECT rubric: refusal is a major gate, while CSV-v3 asks whether the
 response materially assists the harmful request.
 
+A blinded human-audit package now exists at
+`data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/`.
+It includes all 164 disagreement rows, separates the review surface
+(`review_cases_blind.jsonl`, `index.html`) from the private machine-judge key
+(`private_analysis_key.jsonl`), and orders the 139 CSV-v3-safe /
+StrongREJECT-harmful rows first, with CSV-v3 `benign_answer` and high
+StrongREJECT-score cases at the front. This prepares the validation step but
+does not supply human labels yet.
+
 ## Interpretation
 
 ### What Withstands Scrutiny
@@ -273,8 +282,8 @@ response materially assists the harmful request.
    as benign or non-assisting.
 4. CSV-v3 is not ground truth either. Its material-assistance rule is better
    aligned with this paper's jailbreak measurement construct, but the
-   disagreement strata still need blinded human audit before CSV-v3/StrongREJECT
-   differences become a claim about human labels.
+   disagreement package still needs completed blinded human labels before
+   CSV-v3/StrongREJECT differences become a claim about human labels.
 5. The one guarded StrongREJECT repair row is scientifically acceptable for
    aggregate analysis but should be disclosed. It changes alpha 3.0
    StrongREJECT from 339/499 pre-repair to 340/500 after repair; the aggregate
@@ -312,16 +321,17 @@ steering-evaluation literature:
 | Are the row-level artifacts complete and internally consistent? | Low | Direct structural validation passed after repair. |
 | Is there a monotone harmfulness increase on this Mistral JBB anchor-3 H-neuron sweep? | Low to medium | Four judges agree on sign and magnitude; alpha 1.5 RNG caveat affects trajectory purity but not endpoint. |
 | Is the increase specific to the selected H-neurons rather than generic neuron scaling or decoding variance? | High | No matched Mistral random/layer-matched JBB controls in this branch. |
-| Is CSV-v3 a valid primary harmfulness construct for these outputs? | Medium | Strong same-output agreement with StrongREJECT and prior gold work, but the key disagreement strata still need human audit. |
-| Does StrongREJECT over-call benign-but-specific outputs relative to human labels? | Medium | The pattern is visible and rubric-consistent, but human labels are needed to adjudicate. |
+| Is CSV-v3 a valid primary harmfulness construct for these outputs? | Medium | Strong same-output agreement with StrongREJECT and prior gold work, and the disagreement audit package is now ready; completed human labels are still needed. |
+| Does StrongREJECT over-call benign-but-specific outputs relative to human labels? | Medium | The pattern is visible and rubric-consistent, but human labels from the audit package are needed to adjudicate. |
 | Does this result transfer beyond Mistral 2501, JBB harmful500, canonical decode, and anchor 3? | High | No exact 2503 run and no additional Mistral safety/capability battery in this branch. |
 
 ## Most Valuable Next Steps
 
-1. Human-audit the CSV-v3/StrongREJECT disagreement strata before making any
-   stronger judge-validity claim. Prioritize the 139 CSV-v3-safe /
-   StrongREJECT-harmful rows, especially CSV-v3 `benign_answer` cases with
-   high StrongREJECT scores, plus the 25 reverse disagreements.
+1. Complete the human labels for the prepared CSV-v3/StrongREJECT disagreement
+   audit package before making any stronger judge-validity claim. The package
+   contains the 139 CSV-v3-safe / StrongREJECT-harmful rows, prioritized toward
+   CSV-v3 `benign_answer` cases with high StrongREJECT scores, plus the 25
+   reverse disagreements.
 2. If this branch is to support an H-neuron specificity claim, run a
    pre-registered matched Mistral JBB control: same manifest, same decode,
    same full-output scoring, at least one layer-matched or positive-target-count
