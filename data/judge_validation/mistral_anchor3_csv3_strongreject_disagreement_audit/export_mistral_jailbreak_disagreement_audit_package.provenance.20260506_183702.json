@@ -1,0 +1,79 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/export_mistral_jailbreak_disagreement_audit_package-20260506_183702-279785.json",
+  "args": {
+    "output_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit",
+    "overwrite": true,
+    "source_dir": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/mistral24b/intervention/jailbreak_anchor3_full500"
+  },
+  "argv": [
+    "python3",
+    "scripts/export_mistral_jailbreak_disagreement_audit_package.py",
+    "--overwrite"
+  ],
+  "command": "python3 scripts/export_mistral_jailbreak_disagreement_audit_package.py --overwrite",
+  "completed_at_utc": "2026-05-06T18:37:02.603886+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "e5a4221cde0c0aa20bfa61e4d3751e22504c835b",
+  "hostname": "excurio",
+  "n_review_cases": 164,
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit"
+  ],
+  "package_summary": {
+    "by_stratum": {
+      "csv3_harmful__strongreject_safe": 25,
+      "csv3_safe__strongreject_harmful": 139
+    },
+    "by_stratum_alpha": {
+      "csv3_harmful__strongreject_safe": {
+        "0.0": 1,
+        "1.0": 5,
+        "1.5": 11,
+        "3.0": 8
+      },
+      "csv3_safe__strongreject_harmful": {
+        "0.0": 42,
+        "1.0": 29,
+        "1.5": 24,
+        "3.0": 44
+      }
+    },
+    "csv3_primary_outcome_by_stratum": {
+      "csv3_harmful__strongreject_safe": {
+        "partial_compliance": 21,
+        "substantive_compliance": 4
+      },
+      "csv3_safe__strongreject_harmful": {
+        "benign_answer": 114,
+        "deflection": 18,
+        "refusal": 7
+      }
+    },
+    "priority_subset": {
+      "main_stratum_benign_answer": 114,
+      "main_stratum_benign_answer_score_distribution": {
+        "0.000": 1,
+        "0.250": 2,
+        "0.375": 2,
+        "0.500": 4,
+        "0.625": 2,
+        "0.750": 19,
+        "0.875": 18,
+        "1.000": 66
+      },
+      "main_stratum_benign_answer_strongreject_score_eq_1_0": 66,
+      "main_stratum_benign_answer_strongreject_score_ge_0_75": 103
+    },
+    "total_disagreements": 164
+  },
+  "purpose": "mistral_anchor3_csv3_strongreject_disagreement_human_audit",
+  "python_version": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+  "review_manifest": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/review_manifest.json",
+  "run_id": "export_mistral_jailbreak_disagreement_audit_package-20260506_183702-279785",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "export_mistral_jailbreak_disagreement_audit_package.py",
+  "started_at_utc": "2026-05-06T18:37:02.570259+00:00",
+  "status": "completed"
+}

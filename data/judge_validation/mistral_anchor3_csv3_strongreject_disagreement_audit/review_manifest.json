@@ -1,0 +1,233 @@
+{
+  "blinding": {
+    "private_key_file": "private_analysis_key.jsonl",
+    "review_surface_files": [
+      "review_cases_blind.jsonl",
+      "index.html"
+    ],
+    "review_surface_omits": [
+      "csv3.harmful_binary",
+      "csv3.primary_outcome",
+      "csv3.reasoning",
+      "strongreject.harmful_binary",
+      "strongreject.score",
+      "strongreject.reasoning",
+      "stratum",
+      "priority_reason"
+    ]
+  },
+  "created_at_utc": "2026-05-06T21:23:25.207286+00:00",
+  "files": {
+    "README.md": {
+      "content_sha256": "ed25a5611ea46b1928c28d107db5688a4413b994e2a64b984a77c63533a863d5",
+      "path": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/README.md"
+    },
+    "adjudication_rule.md": {
+      "content_sha256": "78db5f341b409eb24bed777fd193aa674b2f3ad928a329ab5d103bb31a4a9be1",
+      "path": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/adjudication_rule.md"
+    },
+    "audit_summary.md": {
+      "content_sha256": "f33b31ce7bb228fbf0e70174bf9fbee39abeb57151fa2825db33dfa8f9064756",
+      "path": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/audit_summary.md"
+    },
+    "index.html": {
+      "content_sha256": "16886186813a8840cd5bf3ca4d153e3ac0cb863775a587c7902c4c8ad0df46e0",
+      "path": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/index.html"
+    },
+    "label_schema.json": {
+      "content_sha256": "c46f7d3ec4505b07df2f9675630a93b820e909f7b88cd9d42d02d64ea47e4331",
+      "path": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/label_schema.json"
+    },
+    "private_analysis_key.jsonl": {
+      "content_sha256": "45a2716969710c581bb23e2ec44802737d9c9794df11638d691bc6a47f3d355d",
+      "path": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/private_analysis_key.jsonl"
+    },
+    "review_cases_blind.jsonl": {
+      "content_sha256": "e3502f2764b8e78843d22a19b7bedc41424997707c472d200fdab34078d334bc",
+      "path": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/review_cases_blind.jsonl"
+    }
+  },
+  "generator": {
+    "git_dirty_scripts": true,
+    "git_sha": "e5a4221cde0c0aa20bfa61e4d3751e22504c835b",
+    "provenance_sidecar": "data/judge_validation/mistral_anchor3_csv3_strongreject_disagreement_audit/export_mistral_jailbreak_disagreement_audit_package.provenance.20260506_212325.json",
+    "script": "scripts/export_mistral_jailbreak_disagreement_audit_package.py"
+  },
+  "label_schema": {
+    "prompt_version": "mistral_anchor3_disagreement_human_audit/v1",
+    "rubric_version": "harmful_material_assistance_independent_audit/v1",
+    "schema_version": "mistral_anchor3_disagreement_human_label/v1",
+    "valid_flags": [
+      "material_assistance",
+      "benign_or_preventive_alternative",
+      "fictional_or_hypothetical_framing",
+      "refusal_or_deflection",
+      "specific_but_not_enabling",
+      "partial_enabling_detail",
+      "judge_construct_boundary",
+      "malformed_case",
+      "other_boundary"
+    ],
+    "valid_labels": [
+      "HARMFUL",
+      "SAFE",
+      "AMBIGUOUS_OR_MALFORMED"
+    ]
+  },
+  "prioritization": {
+    "description": "Main stratum first; within it, CSV-v3 benign_answer rows first, then StrongREJECT score descending, convincingness descending, specificity descending, alpha descending, source ID ascending. Reverse disagreements follow, with CSV-v3 severity descending.",
+    "main_stratum": "csv3_safe__strongreject_harmful",
+    "reverse_stratum": "csv3_harmful__strongreject_safe"
+  },
+  "schema_version": "mistral_anchor3_disagreement_audit_package/v1",
+  "selection": {
+    "alphas": [
+      "0.0",
+      "1.0",
+      "1.5",
+      "3.0"
+    ],
+    "counts_by_stratum": {
+      "csv3_harmful__strongreject_safe": 25,
+      "csv3_safe__strongreject_harmful": 139
+    },
+    "counts_by_stratum_alpha": {
+      "csv3_harmful__strongreject_safe": {
+        "0.0": 1,
+        "1.0": 5,
+        "1.5": 11,
+        "3.0": 8
+      },
+      "csv3_safe__strongreject_harmful": {
+        "0.0": 42,
+        "1.0": 29,
+        "1.5": 24,
+        "3.0": 44
+      }
+    },
+    "csv3_primary_outcome_by_stratum": {
+      "csv3_harmful__strongreject_safe": {
+        "partial_compliance": 21,
+        "substantive_compliance": 4
+      },
+      "csv3_safe__strongreject_harmful": {
+        "benign_answer": 114,
+        "deflection": 18,
+        "refusal": 7
+      }
+    },
+    "n_review_cases": 164,
+    "priority_subset": {
+      "main_stratum_benign_answer": 114,
+      "main_stratum_benign_answer_score_distribution": {
+        "0.000": 1,
+        "0.250": 2,
+        "0.375": 2,
+        "0.500": 4,
+        "0.625": 2,
+        "0.750": 19,
+        "0.875": 18,
+        "1.000": 66
+      },
+      "main_stratum_benign_answer_strongreject_score_eq_1_0": 66,
+      "main_stratum_benign_answer_strongreject_score_ge_0_75": 103
+    },
+    "review_seed": "mistral_anchor3_csv3_strongreject_disagreement_audit_20260506",
+    "source": "CSV-v3/StrongREJECT same-output disagreements"
+  },
+  "source_files": {
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/csv2_v3_evaluation/alpha_0.0.jsonl": "bf65b2e5e288f7760f9baef06192e23d441d8db772aa8ea8c13cd0c5b4db1989",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/csv2_v3_evaluation/alpha_1.0.jsonl": "6bf89f67930f781ee4e25329f41941ac2b574a2c3b16e995f94999c4476b6384",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/csv2_v3_evaluation/alpha_1.5.jsonl": "db8e37bdcb92f9df1878581d131e98fd8146e4d9bee0f0e11983c4b36ffa3d8e",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/csv2_v3_evaluation/alpha_3.0.jsonl": "906fe80321b05dc3c34e05bce992e36b168096092fd94895c48100c50f5d63bb",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_0.0.jsonl": "82ccbe62fa5a5579274f9325d5747aef010756b3bc8acf3829992bfbdc7c4e48",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.0.jsonl": "52f9bb3aec1d3802ddf01c1d888175f067b4b77dc73ed60a7c90813db396c860",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.5.jsonl": "d20cf96e94bf48c7276d3c1a7dabd901276b3a7bd4192868af1136746aaee9ab",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_3.0.jsonl": "91e1f3570f13bd9111931017582a531e267f03f7b7bcf14b22161dbcdceed7c9",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation/alpha_0.0.jsonl": "233988c6d92e32771806bee11fb26c8b7b59bbbeb9e3dd85ef10a9a763e29c9f",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation/alpha_1.0.jsonl": "2d7184a23f5b53736f012bc65664b82dd8767a735fb2d6ac1e43272300ef46a8",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation/alpha_1.5.jsonl": "6e30ac955f0bbd2141b47072e235045d59844e17b703ab5ddb4dfb8e4bb38ef1",
+    "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation/alpha_3.0.jsonl": "b2d12b0676ee8725ee5c571bc4d46c2ee669cfb15caa734e6be66c2efa30b92f"
+  },
+  "source_run": {
+    "anchor": 3,
+    "benchmark": "JailbreakBench harmful500",
+    "decode": "canonical 5000-token full output",
+    "model": "mistral_small_24b_instruct_2501",
+    "path": "data/mistral24b/intervention/jailbreak_anchor3_full500"
+  },
+  "status": "exported_for_blinded_human_review",
+  "verification": {
+    "key_matching": {
+      "0.0": {
+        "csv3_rows": 500,
+        "experiment_rows": 500,
+        "matched_keys": 500,
+        "matched_responses": 500,
+        "strongreject_rows": 500
+      },
+      "1.0": {
+        "csv3_rows": 500,
+        "experiment_rows": 500,
+        "matched_keys": 500,
+        "matched_responses": 500,
+        "strongreject_rows": 500
+      },
+      "1.5": {
+        "csv3_rows": 500,
+        "experiment_rows": 500,
+        "matched_keys": 500,
+        "matched_responses": 500,
+        "strongreject_rows": 500
+      },
+      "3.0": {
+        "csv3_rows": 500,
+        "experiment_rows": 500,
+        "matched_keys": 500,
+        "matched_responses": 500,
+        "strongreject_rows": 500
+      }
+    },
+    "source_file_sha256": {
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/csv2_v3_evaluation/alpha_0.0.jsonl": "bf65b2e5e288f7760f9baef06192e23d441d8db772aa8ea8c13cd0c5b4db1989",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/csv2_v3_evaluation/alpha_1.0.jsonl": "6bf89f67930f781ee4e25329f41941ac2b574a2c3b16e995f94999c4476b6384",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/csv2_v3_evaluation/alpha_1.5.jsonl": "db8e37bdcb92f9df1878581d131e98fd8146e4d9bee0f0e11983c4b36ffa3d8e",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/csv2_v3_evaluation/alpha_3.0.jsonl": "906fe80321b05dc3c34e05bce992e36b168096092fd94895c48100c50f5d63bb",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_0.0.jsonl": "82ccbe62fa5a5579274f9325d5747aef010756b3bc8acf3829992bfbdc7c4e48",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.0.jsonl": "52f9bb3aec1d3802ddf01c1d888175f067b4b77dc73ed60a7c90813db396c860",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_1.5.jsonl": "d20cf96e94bf48c7276d3c1a7dabd901276b3a7bd4192868af1136746aaee9ab",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/experiment/alpha_3.0.jsonl": "91e1f3570f13bd9111931017582a531e267f03f7b7bcf14b22161dbcdceed7c9",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation/alpha_0.0.jsonl": "233988c6d92e32771806bee11fb26c8b7b59bbbeb9e3dd85ef10a9a763e29c9f",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation/alpha_1.0.jsonl": "2d7184a23f5b53736f012bc65664b82dd8767a735fb2d6ac1e43272300ef46a8",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation/alpha_1.5.jsonl": "6e30ac955f0bbd2141b47072e235045d59844e17b703ab5ddb4dfb8e4bb38ef1",
+      "data/mistral24b/intervention/jailbreak_anchor3_full500/strongreject_evaluation/alpha_3.0.jsonl": "b2d12b0676ee8725ee5c571bc4d46c2ee669cfb15caa734e6be66c2efa30b92f"
+    },
+    "stratum_counts_against_source_summary": {
+      "agreement_count": 1836,
+      "agreement_rate": 0.918,
+      "cohen_kappa": 0.8364659086263238,
+      "combined_expected": {
+        "csv3_harmful__strongreject_safe": 25,
+        "csv3_safe__strongreject_harmful": 139
+      },
+      "n_paired_evaluable": 2000,
+      "per_alpha_expected": {
+        "csv3_harmful__strongreject_safe": {
+          "0.0": 1,
+          "1.0": 5,
+          "1.5": 11,
+          "3.0": 8
+        },
+        "csv3_safe__strongreject_harmful": {
+          "0.0": 42,
+          "1.0": 29,
+          "1.5": 24,
+          "3.0": 44
+        }
+      },
+      "source_summary_pair": "csv3_full_vs_strongreject_full",
+      "source_summary_path": "data/mistral24b/intervention/jailbreak_anchor3_full500/mistral_anchor3_jailbreak_evaluator_summary.json",
+      "status": "passed"
+    }
+  }
+}
