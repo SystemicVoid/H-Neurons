@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
+from typing import cast
 
 import pytest
+from openai import OpenAI
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
@@ -453,3 +456,34 @@ class TestNormalizeModelLimitKey:
         assert _normalize_model_limit_key("gpt-5x") is None
         assert _normalize_model_limit_key("gpt-5.5x") is None
         assert _normalize_model_limit_key("gpt-55") is None
+
+
+class TestResumeOrSubmitSafety:
+    def test_retrieve_only_resume_failure_preserves_state_and_does_not_submit(
+        self, tmp_path, monkeypatch
+    ):
+        state_path = tmp_path / ".repair_state.json"
+        state_path.write_text(
+            json.dumps({"batch_id": "batch-existing", "input_file_id": "file-1"}),
+            encoding="utf-8",
+        )
+
+        def fake_poll_batch(_client, _batch_id, _poll_interval):
+            raise RuntimeError("lost contact")
+
+        def fail_submit(*_args, **_kwargs):
+            raise AssertionError("submit_and_poll must not be called")
+
+        monkeypatch.setattr(openai_batch, "_poll_batch", fake_poll_batch)
+        monkeypatch.setattr(openai_batch, "submit_and_poll", fail_submit)
+
+        with pytest.raises(RuntimeError, match="refusing to resubmit"):
+            openai_batch.resume_or_submit(
+                client=cast(OpenAI, object()),
+                requests=[{"custom_id": "r1", "body": {"model": "gpt-4o"}}],
+                state_path=state_path,
+                resubmit_on_resume_failure=False,
+            )
+
+        assert state_path.exists()
+        assert json.loads(state_path.read_text())["batch_id"] == "batch-existing"

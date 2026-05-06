@@ -691,12 +691,17 @@ def resume_or_submit(
     metadata: dict[str, str] | None = None,
     poll_interval: int = DEFAULT_POLL_INTERVAL,
     max_enqueued_tokens: int | None = None,
+    resubmit_on_resume_failure: bool = True,
 ) -> dict[str, dict[str, Any]]:
     """Resume an existing batch if state file exists, otherwise submit new.
 
     Auto-chunks large request sets that exceed the enqueued token limit.
     Crash-resumable: completed chunk results are persisted to a partial
     results file so interrupted runs continue without resubmitting.
+
+    Set ``resubmit_on_resume_failure=False`` for retrieve-only continuations
+    where a transient resume failure must preserve the state file and fail
+    closed instead of risking a duplicate submission.
     """
     results_path = state_path.with_suffix(".results.jsonl")
 
@@ -705,8 +710,10 @@ def resume_or_submit(
 
     # 2. Try to resume in-flight batch (current chunk)
     state = _read_state(state_path)
+    resumed_batch_id: str | None = None
     if state and "batch_id" in state:
         batch_id = state["batch_id"]
+        resumed_batch_id = batch_id
         print(f"  Resuming batch {batch_id} from state file")
         try:
             batch = _poll_batch(client, batch_id, poll_interval)
@@ -720,10 +727,16 @@ def resume_or_submit(
                 _append_partial_results(results_path, chunk_results)
                 _clear_state(state_path)
             elif batch.status in TERMINAL_STATUSES:
-                print(
-                    f"  Resumed batch {batch_id} has status '{batch.status}' "
-                    f"— resubmitting chunk"
+                message = (
+                    f"Resumed batch {batch_id} has terminal status "
+                    f"'{batch.status}' without retrievable results"
                 )
+                if not resubmit_on_resume_failure:
+                    raise RuntimeError(
+                        f"{message}; leaving state file in place and refusing "
+                        "to resubmit"
+                    )
+                print(f"  {message} — resubmitting chunk")
                 _clear_state(state_path)
         except (AuthenticationError, PermissionDeniedError):
             # Auth/permission errors are NOT transient — resubmitting would
@@ -732,6 +745,11 @@ def resume_or_submit(
             # the API key / project permissions and re-run safely.
             raise
         except Exception as exc:
+            if not resubmit_on_resume_failure:
+                raise RuntimeError(
+                    f"Resume failed for batch {batch_id}; leaving state file "
+                    "in place and refusing to resubmit"
+                ) from exc
             print(
                 f"  Warning: resume failed ({exc}) — resubmitting",
                 file=sys.stderr,
@@ -741,6 +759,13 @@ def resume_or_submit(
     # 3. Filter out already-completed requests
     completed_ids = set(all_results.keys())
     remaining = [r for r in requests if r["custom_id"] not in completed_ids]
+
+    if resumed_batch_id is not None and not resubmit_on_resume_failure and remaining:
+        raise RuntimeError(
+            f"Resumed batch {resumed_batch_id} returned no results for "
+            f"{len(remaining)} requested ids; refusing to submit a replacement "
+            "chunk"
+        )
 
     if not remaining:
         try:
