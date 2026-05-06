@@ -43,6 +43,7 @@ if [[ "${DRY_RUN}" != "1" ]] && [[ -z "${TMUX:-}" ]] && [[ -z "${TMUX_WRAPPED:-}
         OPENAI_API_KEY
         OPENAI_BATCH_MAX_ENQUEUED_TOKENS
         OPENAI_BATCH_QUEUE_SAFETY_MARGIN
+        OPENAI_BATCH_USAGE_TIER
         STAGES
         ALPHAS
         GPU_MIN_MEMORY_GIB

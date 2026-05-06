@@ -1,4 +1,24 @@
 
+## 2026-05-06T10:30:00+00:00 | OpenAI Batch API tier-4 upgrade
+
+What: account is now Tier 4; make the local model-aware Batch queue cap resolver use Tier 4 by default while preserving Tier 3 values for explicit overrides.
+Key files: `scripts/openai_batch.py`, `scripts/infra/check_openai_batch_limits_via_codex.sh`, `scripts/infra/mistral24b_anchor3_jailbreak_first_pass.sh`, `tests/test_openai_batch.py`
+Status: implemented
+
+Verified Tier-4 queue limits checked on 2026-05-06 against official OpenAI model docs:
+
+| Model       | Tier 3        | Tier 4          | Source URL                                         |
+|-------------|---------------|-----------------|----------------------------------------------------|
+| gpt-4o      | 50,000,000    | 200,000,000     | developers.openai.com/api/docs/models/gpt-4o      |
+| gpt-4o-mini | 40,000,000    | 1,000,000,000   | developers.openai.com/api/docs/models/gpt-4o-mini |
+| gpt-4.1     | 50,000,000    | 200,000,000     | developers.openai.com/api/docs/models/gpt-4.1     |
+| gpt-5       | 100,000,000   | 200,000,000     | developers.openai.com/api/docs/models/gpt-5       |
+| gpt-5-mini  | 40,000,000    | 1,000,000,000   | developers.openai.com/api/docs/models/gpt-5-mini  |
+| o3          | 50,000,000    | 200,000,000     | developers.openai.com/api/docs/models/o3          |
+| o4-mini     | 40,000,000    | 1,000,000,000   | developers.openai.com/api/docs/models/o4-mini     |
+
+Practical impact: default `gpt-4o` batch chunking now uses a `180,000,000` estimated-token cap at the existing 0.9 safety margin. Set `OPENAI_BATCH_USAGE_TIER=3` to reproduce the previous Tier-3 resolver behavior.
+
 ## 2026-04-01T10:42:00+00:00 | OpenAI Batch API tier-3 upgrade
 
 What: account upgraded from Tier 2 → Tier 3; update local batch-queue-limit table in `scripts/openai_batch.py` to reflect new ceilings.

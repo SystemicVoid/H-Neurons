@@ -42,21 +42,34 @@ MAX_UPLOAD_RETRIES = 5
 UPLOAD_RETRY_BACKOFF = 2
 CHARS_PER_TOKEN = 4
 TOKENS_PER_MESSAGE_OVERHEAD = 4
+DEFAULT_OPENAI_BATCH_USAGE_TIER = 4
 DEFAULT_BATCH_QUEUE_SAFETY_MARGIN = 0.9
 MAX_ENQUEUED_TOKENS_FALLBACK = 80_000
 MAX_ENQUEUED_TOKENS_ENV = "OPENAI_BATCH_MAX_ENQUEUED_TOKENS"
 BATCH_QUEUE_SAFETY_MARGIN_ENV = "OPENAI_BATCH_QUEUE_SAFETY_MARGIN"
+OPENAI_BATCH_USAGE_TIER_ENV = "OPENAI_BATCH_USAGE_TIER"
 
-# Tier-3 Batch queue limits verified against current OpenAI model pages on
-# 2026-04-01. Keep this table local and update it when the docs change.
-TIER3_BATCH_QUEUE_LIMITS = {
-    "gpt-4o": 50_000_000,
-    "gpt-4o-mini": 40_000_000,
-    "gpt-4.1": 50_000_000,
-    "gpt-5": 100_000_000,
-    "gpt-5-mini": 40_000_000,
-    "o3": 50_000_000,
-    "o4-mini": 40_000_000,
+# Batch queue limits verified against current OpenAI model pages on
+# 2026-05-06. Keep this table local and update it when the docs change.
+BATCH_QUEUE_LIMITS_BY_TIER = {
+    3: {
+        "gpt-4o": 50_000_000,
+        "gpt-4o-mini": 40_000_000,
+        "gpt-4.1": 50_000_000,
+        "gpt-5": 100_000_000,
+        "gpt-5-mini": 40_000_000,
+        "o3": 50_000_000,
+        "o4-mini": 40_000_000,
+    },
+    4: {
+        "gpt-4o": 200_000_000,
+        "gpt-4o-mini": 1_000_000_000,
+        "gpt-4.1": 200_000_000,
+        "gpt-5": 200_000_000,
+        "gpt-5-mini": 1_000_000_000,
+        "o3": 200_000_000,
+        "o4-mini": 1_000_000_000,
+    },
 }
 
 MODEL_LIMIT_PREFIXES = (
@@ -181,6 +194,7 @@ class MaxEnqueuedTokensResolution:
     models: tuple[str, ...] = ()
     queue_limit: int | None = None
     safety_margin: float | None = None
+    usage_tier: int | None = None
 
     def summary(self) -> str:
         if self.source == "explicit":
@@ -193,7 +207,7 @@ class MaxEnqueuedTokensResolution:
             models = ", ".join(self.models) if self.models else "unknown"
             return (
                 f"  Using model-aware batch token cap {self.value:,} "
-                f"for {models} (Tier-3 queue {self.queue_limit:,} "
+                f"for {models} (Tier {self.usage_tier} queue {self.queue_limit:,} "
                 f"x safety margin {self.safety_margin:.2f})"
             )
         return f"  Using fallback batch token cap {self.value:,} (unknown model)"
@@ -227,6 +241,26 @@ def _parse_max_enqueued_tokens_override(raw: str, source: str) -> int:
         ) from exc
     if value <= 0:
         raise ValueError(f"{source} must be > 0, got {value}")
+    return value
+
+
+def _resolve_openai_batch_usage_tier() -> int:
+    """Resolve which local OpenAI usage-tier queue table to use."""
+    raw = os.environ.get(OPENAI_BATCH_USAGE_TIER_ENV)
+    if raw is None:
+        return DEFAULT_OPENAI_BATCH_USAGE_TIER
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"{OPENAI_BATCH_USAGE_TIER_ENV} must be an integer tier, got {raw!r}"
+        ) from exc
+    if value not in BATCH_QUEUE_LIMITS_BY_TIER:
+        supported = ", ".join(str(tier) for tier in sorted(BATCH_QUEUE_LIMITS_BY_TIER))
+        raise ValueError(
+            f"{OPENAI_BATCH_USAGE_TIER_ENV}={value} is unsupported; "
+            f"supported tiers: {supported}"
+        )
     return value
 
 
@@ -289,7 +323,9 @@ def _resolve_max_enqueued_tokens(
             models=tuple(models),
         )
 
-    queue_limit = min(TIER3_BATCH_QUEUE_LIMITS[key] for key in limit_keys)
+    usage_tier = _resolve_openai_batch_usage_tier()
+    queue_limits = BATCH_QUEUE_LIMITS_BY_TIER[usage_tier]
+    queue_limit = min(queue_limits[key] for key in limit_keys)
     safety_margin = _resolve_batch_queue_safety_margin()
     effective_limit = max(1, int(queue_limit * safety_margin))
     return MaxEnqueuedTokensResolution(
@@ -298,6 +334,7 @@ def _resolve_max_enqueued_tokens(
         models=tuple(models),
         queue_limit=queue_limit,
         safety_margin=safety_margin,
+        usage_tier=usage_tier,
     )
 
 

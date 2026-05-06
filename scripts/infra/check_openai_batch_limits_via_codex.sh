@@ -17,12 +17,14 @@ LOG_FILE="$LOG_DIR/openai_batch_limit_check_${TIMESTAMP}.log"
 SUMMARY_FILE="$LOG_DIR/openai_batch_limit_check_${TIMESTAMP}.summary.txt"
 TIMEOUT_DURATION="${OPENAI_LIMIT_CHECK_TIMEOUT:-10m}"
 CODEX_MODEL="${CODEX_LIMIT_CHECK_CODEX_MODEL:-}"
+TARGET_TIER="${OPENAI_LIMIT_CHECK_TIER:-4}"
 TARGET_MODELS="${OPENAI_LIMIT_CHECK_MODELS:-gpt-4o gpt-4o-mini gpt-4.1 gpt-5 gpt-5-mini o3 o4-mini}"
 
 echo "=========================================="
 echo "OpenAI Batch Limit Check via Codex CLI"
 echo "Started: $(date -Iseconds)"
 echo "Repo:    $ROOT_DIR"
+echo "Tier:    $TARGET_TIER"
 echo "Models:  $TARGET_MODELS"
 echo "Log:     $LOG_FILE"
 echo "Summary: $SUMMARY_FILE"
@@ -43,15 +45,15 @@ fi
 
 PROMPT=$(
     cat <<EOF
-Verify the current OpenAI Tier 3 Batch queue limits for these models: ${TARGET_MODELS}.
+Verify the current OpenAI Tier ${TARGET_TIER} Batch queue limits for these models: ${TARGET_MODELS}.
 
 Requirements:
 - Use official OpenAI sources only: developers.openai.com and platform.openai.com.
 - Compare the verified values against the local registry in scripts/openai_batch.py.
-- If any local Tier 3 queue limit is stale, update only:
+- If any local Tier ${TARGET_TIER} queue limit is stale, update only:
   1. scripts/openai_batch.py
   2. docs/tier2-batch-size-adjustments.md
-- Keep the existing model-aware resolution logic intact. Only update the hardcoded Tier 3 values and verification note as needed.
+- Keep the existing model-aware resolution logic intact. Only update the hardcoded Tier ${TARGET_TIER} values and verification note as needed.
 - If nothing changed, do not edit files.
 - In the final response, list the verified limits and say whether local files changed.
 EOF
