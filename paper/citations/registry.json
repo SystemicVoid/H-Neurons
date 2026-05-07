@@ -629,6 +629,24 @@
     "tier": 2,
     "notes": "Downloaded from ACL Anthology and converted to markdown"
   },
+  "yona2026metacognition": {
+    "id": "S35",
+    "title": "Hallucinations Undermine Trust; Metacognition is a Way Forward",
+    "authors": "Gal Yona, Mor Geva, Yossi Matias",
+    "year": 2026,
+    "venue": "arXiv preprint",
+    "arxiv": "2605.01428",
+    "doi": null,
+    "url": "https://arxiv.org/abs/2605.01428",
+    "local_pdf": null,
+    "local_md": "papers/Hallucinations Undermine Trust;2605.01428v1.md",
+    "acquired": false,
+    "md_converted": true,
+    "role": "Adjacent factuality-evaluation guidance: calibration vs discrimination, utility-error tradeoffs, faithful uncertainty, and spillover-cost reporting.",
+    "supports_claims": ["C08", "C13"],
+    "tier": 2,
+    "notes": "Markdown-only local addition; no local PDF present"
+  },
   "surgical2025causal": {
     "id": "EXTRA01",
     "title": "Surgical Activation Steering via Generative Causal Mediation",
