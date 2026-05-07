@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-05-07 (Mistral anchor-2 TruthfulQA MC gate reviewed)
+
+### What I did
+
+Synced the overnight Anchor 2 RunPod/R2 artifacts for the Mistral
+TruthfulQA paper-faithful ITI branch and reviewed the completed MC1/MC2 stage.
+The canonical report is
+[`paper/icml/reports/2026-05-07-mistral24b-anchor2-truthfulqa-mc-review.md`](../paper/icml/reports/2026-05-07-mistral24b-anchor2-truthfulqa-mc-review.md).
+
+### What I expected vs what happened
+
+Expected either a clear TruthfulQA MC source-surface pass that would justify
+bridge, or a clean gate failure. The result is closer to the second: MC1 moved
+from 58/163 to 60/163, paired delta +1.23 pp with CI crossing zero, so the
+wrapper stopped before bridge generation. MC2 truthful mass did improve by
+about +1.91 pp with a positive paired interval, but that was not the gate and
+is weaker than the calibration sweep suggested.
+
+### What this changes about my thinking
+
+Anchor 2 does not harden the Gemma bridge/control-externality story on Mistral.
+At most it suggests a weak Mistral truthfulness-pressure direction whose
+continuous MC2 effect is more convincing than its discrete MC1 effect. Running
+bridge after this would be exploratory stress testing, not a confirmatory
+source-positive/generation-negative transfer result.
+
+### What I will do next
+
+Do not spend RunPod/API on Anchor 2 bridge until the wrapper and judge paths
+are reviewed and a new rationale is recorded. Keep Mistral paper-facing
+framing anchored on CP5/H1 FaithEval null, anchor-3 jailbreak measurement, and
+this weak/failed-gate Anchor 2 result.
+
 ## 2026-05-06 (Mistral anchor-3 jailbreak measurement reviewed)
 
 ### What I did
