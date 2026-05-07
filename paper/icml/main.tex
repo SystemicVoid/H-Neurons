@@ -452,8 +452,13 @@ The four-stage audit framework (measurement, localization, control, and external
 % ======================================================================
 \section*{Impact Statement}
 
-This paper presents work whose goal is to advance the field of Machine Learning, specifically evaluation methodology for safety-relevant model interventions.
-The wrong-entity substitution failure mode documented here has implications for deployment of steering-based safety mitigations: interventions that appear beneficial on constrained evaluation surfaces may corrupt factual generation in ways that are harder to detect than outright refusal.
+This paper's main impact is methodological: it argues that safety-relevant activation interventions should not be judged from predictive readouts or single-surface gains alone.
+Our results show that a signal can monitor behavior without providing a useful control lever, that a control result can fail to transfer to nearby generation settings, and that evaluation choices can change the verdict on the same model outputs.
+The practical contribution is therefore a reporting discipline for mechanistic steering claims: validate the measurement surface, test whether the localized component actually controls behavior, include matched negative controls, and report externality costs alongside headline gains.
+
+This discipline is intended to reduce overclaiming in interpretability-based safety work.
+It may also make activation interventions easier to reproduce or adapt, including for undesirable steering objectives; however, the paper does not introduce a new steering method and emphasizes failure cases, measurement risks, and scope limits.
+The strongest deployment-relevant lesson is cautionary: an intervention that appears beneficial on a constrained benchmark may still corrupt open-ended factual generation or change harmful-compliance judgments under a different evaluator.
 
 % ======================================================================
 % REFERENCES
