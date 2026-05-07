@@ -1,6 +1,6 @@
 # Failure Coding Manifest
 
-This manifest documents the reviewer-facing coding surface for the TriviaQA bridge wrong-entity substitution audit in §4.3 of the paper. For the full pipeline review, original-intent check against the L4 plan, uncertainty analysis, and next-step recommendations, see [`../reports/2026-04-21-bridge-irr-review.md`](../reports/2026-04-21-bridge-irr-review.md) (authoritative prose analysis).
+This manifest documents the reviewer-facing coding surface for the TriviaQA bridge wrong-entity substitution audit in §4.3 of the paper. It is the bundled derivative for bridge IRR interpretation, alongside [`support/externality_summary.md`](support/externality_summary.md), [`data/judge_validation/bridge_irr/bridge_irr_summary.json`](data/judge_validation/bridge_irr/bridge_irr_summary.json), and the redacted case-label file.
 
 ## Unit of Analysis
 
@@ -58,12 +58,12 @@ Since the second rater is an LLM judge rather than an independent human, we pres
 | Bridge grading stack | `code/scripts/evaluate_intervention.py` |
 | Bundled manifest builder | `code/scripts/build_triviaqa_bridge_manifest.py` |
 | Dual-rater workflow implementation | `code/scripts/prepare_bridge_irr_queue.py`, `code/scripts/bridge_irr_rater_b.py`, `code/scripts/bridge_irr_label.py`, `code/scripts/finalize_bridge_irr.py` |
-| Rubric + adjudication rule | `data/judge_validation/bridge_irr/adjudication_rule.md` (git `0e965d5`) |
-| Machine-readable IRR summary | `data/judge_validation/bridge_irr/bridge_irr_summary.json` |
-| Adjudicated labels | `data/judge_validation/bridge_irr/adjudicated_labels.jsonl` |
+| Rubric + adjudication rule | [`data/judge_validation/bridge_irr/adjudication_rule.md`](data/judge_validation/bridge_irr/adjudication_rule.md) (git `0e965d5`) |
+| Machine-readable IRR summary | [`data/judge_validation/bridge_irr/bridge_irr_summary.json`](data/judge_validation/bridge_irr/bridge_irr_summary.json) |
+| Redacted adjudicated labels | [`data/judge_validation/bridge_irr/adjudicated_labels.jsonl`](data/judge_validation/bridge_irr/adjudicated_labels.jsonl) |
 
 ## Caveats
 
 - This coding surface is a behavioral diagnosis, not a claim about the exact internal circuit mechanism.
 - Rater B is an LLM judge; these numbers are a sensitivity check on category shares, not a strong-form human–human IRR.
-- Raw bridge response JSONLs are not bundled here; this supplement surfaces only the reviewer-facing taxonomy and paired outcome summary.
+- Raw bridge response JSONLs, blinded queues, and raw rater progress files are omitted for safety/anonymization. The bundled reviewer-facing derivatives are the frozen rule, machine-readable summary, and redacted adjudicated labels.

@@ -41,6 +41,18 @@
       "dst": "data/judge_validation/holdout_comparison.json"
     },
     {
+      "src": "paper/icml/supplement/data/judge_validation/bridge_irr/adjudication_rule.md",
+      "dst": "data/judge_validation/bridge_irr/adjudication_rule.md"
+    },
+    {
+      "src": "paper/icml/supplement/data/judge_validation/bridge_irr/bridge_irr_summary.json",
+      "dst": "data/judge_validation/bridge_irr/bridge_irr_summary.json"
+    },
+    {
+      "src": "paper/icml/supplement/data/judge_validation/bridge_irr/adjudicated_labels.jsonl",
+      "dst": "data/judge_validation/bridge_irr/adjudicated_labels.jsonl"
+    },
+    {
       "glob": "paper/icml/supplement/data/manifests/*.json",
       "dst_dir": "data/manifests"
     },

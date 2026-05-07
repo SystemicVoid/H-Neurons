@@ -11,6 +11,7 @@ Review date: May 7, 2026. Package treated as a frozen snapshot. Reviewed `paper/
 | 3 | Addressed | [`d4c69fa`](https://github.com/SystemicVoid/H-Neurons/commit/d4c69fa27623388a86a18d2f6f16bb07d65a65b3) | Figure generators now escape TeX percent labels, disable label clipping, add export padding, and regenerate Figures 2-3 plus `paper/icml/main.pdf`; script reruns, rendered-page inspection, and LaTeX log checks guard the fix. |
 | 4 | Addressed | [`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c) | Measurement wording now says same-output choices change whether the intervention clears the claimed effect gate, mirrored in the supplement reference copy and rebuilt PDF; `rg` and `pdftotext` checks guard against stale reversal wording. |
 | 5 | Addressed | [`8b34c63`](https://github.com/SystemicVoid/H-Neurons/commit/8b34c6315cd9beddbf10616a87dc7ac619cf9b1b) | Bridge rubric wording now uses pre-specified/frozen language across the manuscript and supplement reference; `scripts/check_icml_prose.py paper/icml/main.tex` and an Issue 5 target `rg` check guard against stale unsupported bridge wording. |
+| 6 | Addressed | [`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa) | The supplement package now bundles the bridge IRR rule, machine-readable summary, and redacted adjudicated labels, replaces report links with bundled derivatives, and `build_icml_supplement_package.py` validates relative Markdown links. |
 
 ## 1. Verdict
 
@@ -75,6 +76,7 @@ Most important remaining edit: regenerate the rendered PDF after fixing figure s
 
 ### Issue 6 — Broken supplement cross-links and missing referenced IRR artifacts
 
+**Status:** Addressed in [`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa).
 **Severity:** Major  
 **Location:** `supplement/support/externality_summary.md:80`; `supplement/failure_coding_manifest.md:3`, `52-63`; `supplement/artifact_manifest.md:5-31`, `32-44`; `supplement/README.md:19-24`.  
 **Problem:** The supplement points readers to report and machine-readable artifacts that are not in the supplement tree. `supplement/support/externality_summary.md:80` links to `../../reports/2026-04-21-bridge-irr-review.md`; `supplement/failure_coding_manifest.md:3` links to `../reports/2026-04-21-bridge-irr-review.md`. No `supplement/reports/` directory exists in the package. The manifest also lists `data/judge_validation/bridge_irr/bridge_irr_summary.json` and `data/judge_validation/bridge_irr/adjudicated_labels.jsonl` in `supplement/failure_coding_manifest.md:61-63`, but these files are not included under `supplement/data/judge_validation/`.  
@@ -204,7 +206,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 | 4 | Reformat or move Table 9. | `paper/main.tex:642-741`; supplement ledger. | Claim-defense evidence is readable at 100% zoom or moved to supplement with a short in-paper index. |
 | 5 | Replace “reverse the conclusion.” | `paper/main.tex:300-327`. | Measurement section says scoring granularity changes whether the effect clears the gate; it does not claim sign reversal. |
 | 6 | Replace unsupported “pre-registered” phrasing. | `paper/main.tex:255`; supplement bridge wording. | Uses “pre-specified,” “pre-frozen,” or includes an actual preregistration artifact. |
-| 7 | Fix supplement links and missing-artifact declarations. | `supplement/support/externality_summary.md`, `supplement/failure_coding_manifest.md`, `supplement/artifact_manifest.md`. | Every relative link resolves; absent `bridge_irr_summary.json` / `adjudicated_labels.jsonl` are either included, redacted, or explicitly marked omitted. |
+| 7 | Fix supplement links and missing-artifact declarations. | `supplement/support/externality_summary.md`, `supplement/failure_coding_manifest.md`, `supplement/artifact_manifest.md`. | Addressed in [`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa): every relative supplement link resolves during package build, and `bridge_irr_summary.json` plus redacted `adjudicated_labels.jsonl` are bundled and declared. |
 | 8 | Correct Table 5 caption and define Table 7 MDE. | `paper/main.tex:505-525`, `582-601`. | Captions match displayed columns; MDE assumptions are stated. |
 | 9 | Add single-model scope to abstract. | `paper/main.tex:68-75`. | Abstract begins with or clearly includes “single-model Gemma-3-4B-IT case study.” |
 | 10 | Final build and log sweep. | `paper/main.pdf`, `paper/main.log`, rendered pages. | No undefined citations/references, no overfull boxes, no severe underfull layout defects, metadata anonymized. |
@@ -218,6 +220,6 @@ I did not perform an external literature freshness search. Given the user-suppli
 - [x] Replace “pre-registered” unless a public preregistration artifact is included ([`8b34c63`](https://github.com/SystemicVoid/H-Neurons/commit/8b34c6315cd9beddbf10616a87dc7ac619cf9b1b)).
 - [x] Replace “reverse the conclusion” with “change the gate/pass-fail verdict” ([`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c)).
 - [ ] Fix Table 5 CI caption and Table 7 MDE definition.
-- [ ] Resolve or remove all supplement links to absent reports/artifacts.
+- [x] Resolve or remove all supplement links to absent reports/artifacts ([`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa)).
 - [ ] Add an explicit artifact-scope note for omitted raw JSONLs, harmful prompt gold labels, provenance sidecars, bridge IRR summary, and adjudicated labels.
 - [ ] Run final LaTeX checks: no undefined refs/citations, no overfull boxes, acceptable underfull warnings only, anonymous metadata, correct title, and page count within the workshop limit.

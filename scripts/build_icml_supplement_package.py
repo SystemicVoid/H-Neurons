@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
+from urllib.parse import unquote, urlparse
 from zipfile import ZIP_DEFLATED, ZipFile
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +22,7 @@ DEFAULT_ZIP_PATH = SUPPLEMENT_ROOT / "build/icml_supplement_package.zip"
 
 TEXT_SUFFIXES = {
     ".json",
+    ".jsonl",
     ".md",
     ".py",
     ".tex",
@@ -30,6 +33,9 @@ TEXT_SUFFIXES = {
 }
 
 PUBLIC_MANIFEST_PATH = Path("package_manifest.json")
+
+MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)")
+EXTERNAL_LINK_SCHEMES = {"http", "https", "mailto", "tel"}
 
 CODE_README = """# Curated Code Bundle
 
@@ -227,6 +233,58 @@ def scan_output_for_banned_strings(output_dir: Path, banned_strings: list[str]) 
         raise ValueError(f"anonymization scan failed:\n{joined}")
 
 
+def _normalise_markdown_target(raw_target: str) -> str:
+    target = raw_target.strip()
+    if target.startswith("<"):
+        end = target.find(">")
+        if end != -1:
+            return target[1:end]
+    return target.split()[0] if target else ""
+
+
+def validate_markdown_relative_links(output_dir: Path) -> None:
+    """Ensure bundled Markdown links point to files inside the package."""
+
+    root = output_dir.resolve()
+    violations: list[str] = []
+    for path in sorted(output_dir.rglob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        for match in MARKDOWN_LINK_RE.finditer(text):
+            line_no = text.count("\n", 0, match.start()) + 1
+            target = _normalise_markdown_target(match.group(1))
+            if not target or target.startswith("#"):
+                continue
+            parsed = urlparse(target)
+            if parsed.scheme in EXTERNAL_LINK_SCHEMES or parsed.netloc:
+                continue
+            if parsed.scheme and parsed.scheme not in EXTERNAL_LINK_SCHEMES:
+                violations.append(
+                    f"{path.relative_to(output_dir)}:{line_no} "
+                    f"uses unsupported link scheme {parsed.scheme!r}"
+                )
+                continue
+            target_path = parsed.path
+            if not target_path:
+                continue
+            candidate = (path.parent / unquote(target_path)).resolve()
+            try:
+                candidate.relative_to(root)
+            except ValueError:
+                violations.append(
+                    f"{path.relative_to(output_dir)}:{line_no} "
+                    f"links outside the package: {target}"
+                )
+                continue
+            if not candidate.exists():
+                violations.append(
+                    f"{path.relative_to(output_dir)}:{line_no} "
+                    f"links to missing file: {target}"
+                )
+    if violations:
+        joined = "\n".join(violations)
+        raise ValueError(f"markdown link validation failed:\n{joined}")
+
+
 def _write_generated_code_files(output_dir: Path) -> None:
     _write(output_dir / "code/README.md", CODE_README)
     _write(output_dir / "code/pyproject.toml", CODE_PYPROJECT)
@@ -288,6 +346,7 @@ def build_package(
     )
     _write_generated_code_files(output_dir)
     _write_public_manifest(output_dir, manifest)
+    validate_markdown_relative_links(output_dir)
     scan_output_for_banned_strings(output_dir, banned_strings)
     _write_zip(output_dir, zip_path)
 

@@ -77,7 +77,7 @@ Interpretation: ITI improves constrained answer selection on held-out TruthfulQA
 | Answer dilution / verbosity | 3 | 7.0% | [2.4, 18.6] |
 | Formal refusal | 0 | 0.0% | [0.0, 8.2] |
 
-Inter-rater reliability on all 57 discordant test cases (43 R→W + 14 W→R): raw agreement 55/57 = 96.5% [88.1, 99.0], Cohen's κ = 0.90, Gwet's AC1 = 0.96. The 14 W→R rescues are all wrong-entity substitution (100% [78.5, 100]). Rater A is the first author (human); Rater B is an LLM judge (`gpt-4o-2024-11-20`, temperature=0, strict JSON schema); the 2 disagreements were resolved under a pre-frozen adjudication rule (rule_gap=0/2). See [`../../reports/2026-04-21-bridge-irr-review.md`](../../reports/2026-04-21-bridge-irr-review.md) for the full analysis.
+Inter-rater reliability on all 57 discordant test cases (43 R→W + 14 W→R): raw agreement 55/57 = 96.5% [88.1, 99.0], Cohen's κ = 0.90, Gwet's AC1 = 0.96. The 14 W→R rescues are all wrong-entity substitution (100% [78.5, 100]). Rater A is the first author (human); Rater B is an LLM judge (`gpt-4o-2024-11-20`, temperature=0, strict JSON schema); the 2 disagreements were resolved under a pre-frozen adjudication rule (rule_gap=0/2). See [`../failure_coding_manifest.md`](../failure_coding_manifest.md) and [`../data/judge_validation/bridge_irr/bridge_irr_summary.json`](../data/judge_validation/bridge_irr/bridge_irr_summary.json) for the bundled reviewer-facing analysis.
 
 ### Representative wrong-entity substitutions
 

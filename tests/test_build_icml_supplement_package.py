@@ -40,6 +40,15 @@ class TestBuildIcmlSupplementPackage:
         assert (output_dir / "code/pyproject.toml").exists()
         assert (output_dir / "code/scripts/run_intervention.py").exists()
         assert (output_dir / "code/tests/test_utils.py").exists()
+        assert (
+            output_dir / "data/judge_validation/bridge_irr/adjudication_rule.md"
+        ).exists()
+        assert (
+            output_dir / "data/judge_validation/bridge_irr/bridge_irr_summary.json"
+        ).exists()
+        assert (
+            output_dir / "data/judge_validation/bridge_irr/adjudicated_labels.jsonl"
+        ).exists()
         assert zip_path.exists()
 
         with ZipFile(zip_path) as archive:
@@ -47,6 +56,9 @@ class TestBuildIcmlSupplementPackage:
         assert "README.md" in names
         assert "code/README.md" in names
         assert "code/scripts/evaluate_csv2.py" in names
+        assert "data/judge_validation/bridge_irr/adjudication_rule.md" in names
+        assert "data/judge_validation/bridge_irr/bridge_irr_summary.json" in names
+        assert "data/judge_validation/bridge_irr/adjudicated_labels.jsonl" in names
 
     def test_scan_output_rejects_banned_strings(self, tmp_path):
         _write(tmp_path / "README.md", "keep /home/hugo out of the bundle")
@@ -127,3 +139,15 @@ class TestBuildIcmlSupplementPackage:
             == "Original banned_strings values are omitted from the bundled public "
             "manifest to preserve anonymization."
         )
+
+    def test_validate_markdown_relative_links_rejects_missing_files(self, tmp_path):
+        _write(tmp_path / "README.md", "[missing](missing.md)\n")
+
+        with pytest.raises(ValueError, match="markdown link validation failed"):
+            build_icml_supplement_package.validate_markdown_relative_links(tmp_path)
+
+    def test_validate_markdown_relative_links_rejects_escaped_paths(self, tmp_path):
+        _write(tmp_path / "support/summary.md", "[report](../../reports/full.md)\n")
+
+        with pytest.raises(ValueError, match="links outside the package"):
+            build_icml_supplement_package.validate_markdown_relative_links(tmp_path)
