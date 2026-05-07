@@ -83,10 +83,13 @@ Each listed row resolves in one hop to a bundled reviewer-facing support file or
 | E0 `α = 8.0` deterministic delta | -4.6 pp | [-7.6, -1.6] | `support/externality_summary.md` |
 | Bridge paired significance | McNemar `p = 0.0002` | — | `support/externality_summary.md` |
 | Bridge flip counts | 43 right→wrong, 14 wrong→right | net -29 | `support/externality_summary.md` |
-| Wrong-entity substitution | 30 / 43 (70%) | — | `support/externality_summary.md` |
-| Evasion / factual denial | 8 / 43 (19%) | — | `support/externality_summary.md` |
-| Answer dilution / verbosity | 3 / 43 (7%) | — | `support/externality_summary.md` |
-| Formal refusal among right→wrong flips | 2 / 43 (5%) | — | `support/externality_summary.md` |
+| Wrong-entity substitution | 31 / 43 (72.1%) | [57.3, 83.3] (Wilson) | `support/externality_summary.md` |
+| Evasion / factual denial | 9 / 43 (20.9%) | [11.4, 35.2] (Wilson) | `support/externality_summary.md` |
+| Answer dilution / verbosity | 3 / 43 (7.0%) | [2.4, 18.6] (Wilson) | `support/externality_summary.md` |
+| Formal refusal among right→wrong flips | 0 / 43 (0.0%) | [0.0, 8.2] (Wilson) | `support/externality_summary.md` |
+| Dual-rater raw agreement (all 57 discordant) | 55 / 57 (96.5%) | [88.1, 99.0] (Wilson) | `support/externality_summary.md` |
+| Cohen's κ (A vs B, 4-category) | 0.90 | — | `support/externality_summary.md` |
+| Gwet's AC1 (A vs B, 4-category) | 0.96 | — | `support/externality_summary.md` |
 | NOT_ATTEMPTED counts (baseline / ITI) | 2 / 8 | — | `support/externality_summary.md` |
 | Bridge test set size | 500 | — | `support/externality_summary.md` |
 

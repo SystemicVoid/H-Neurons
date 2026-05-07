@@ -1,10 +1,15 @@
 import json
 from pathlib import Path
+import re
 import sys
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+KAPPA = "\u03ba"
+RIGHT_ARROW = "\u2192"
+EM_DASH = "\u2014"
 
 from bridge_irr import (  # noqa: E402
     build_blinded_case_artifacts,
@@ -27,6 +32,161 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
         "".join(json.dumps(row) + "\n" for row in rows),
         encoding="utf-8",
     )
+
+
+def _markdown_rows_by_first_cell(path: Path) -> dict[str, list[str]]:
+    rows: dict[str, list[str]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not cells or cells[0] in {"---", "Claim", "Category", "Metric"}:
+            continue
+        rows[cells[0]] = cells
+    return rows
+
+
+def _extract_main_bridge_claims() -> dict[str, str]:
+    text = (ROOT / "paper/icml/main.tex").read_text(encoding="utf-8")
+    patterns = {
+        "raw_agreement": r"Raw agreement was 96\.5\\%",
+        "cohen_kappa": r"Cohen's \$\\kappa = 0\.90\$",
+        "gwet_ac1": r"Gwet's AC1 = 0\.96",
+        "wrong_entity_substitution": r"31/43 = 72\\%",
+        "evasion_or_factual_denial": r"evasion/factual denial \(9/43, 21\\%\)",
+        "answer_dilution": r"answer dilution \(3/43, 7\\%\)",
+        "formal_refusal": r"formal refusal \(0/43\)",
+    }
+    return {
+        name: pattern for name, pattern in patterns.items() if re.search(pattern, text)
+    }
+
+
+def test_paper_bridge_taxonomy_provenance_matches_irr_summary() -> None:
+    summary = json.loads(
+        (ROOT / "data/judge_validation/bridge_irr/bridge_irr_summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    categories = summary["direction_summaries"]["right_to_wrong"]["categories"]
+    expected_categories = {
+        "wrong_entity_substitution": {
+            "count": 31,
+            "denominator": 43,
+            "share": "72.1%",
+            "ci": "[57.3, 83.3]",
+        },
+        "evasion_or_factual_denial": {
+            "count": 9,
+            "denominator": 43,
+            "share": "20.9%",
+            "ci": "[11.4, 35.2]",
+        },
+        "answer_dilution": {
+            "count": 3,
+            "denominator": 43,
+            "share": "7.0%",
+            "ci": "[2.4, 18.6]",
+        },
+        "formal_refusal": {
+            "count": 0,
+            "denominator": 43,
+            "share": "0.0%",
+            "ci": "[0.0, 8.2]",
+        },
+    }
+    for key, expected in expected_categories.items():
+        source = categories[key]
+        assert source["count"] == expected["count"]
+        assert source["denominator"] == expected["denominator"]
+        assert f"{source['share_pct']:.1f}%" == expected["share"]
+        assert (
+            f"[{source['share_ci_pct']['lower']:.1f}, "
+            f"{source['share_ci_pct']['upper']:.1f}]" == expected["ci"]
+        )
+
+    irr = summary["irr"]
+    assert irr["raw_agreement"]["count"] == 55
+    assert irr["raw_agreement"]["n"] == 57
+    assert f"{irr['raw_agreement']['estimate_pct']:.1f}%" == "96.5%"
+    assert round(irr["cohen_kappa"], 2) == 0.90
+    assert round(irr["gwet_ac1"], 2) == 0.96
+
+    paper_rows = _markdown_rows_by_first_cell(ROOT / "paper/icml/number_provenance.md")
+    supplement_rows = _markdown_rows_by_first_cell(
+        ROOT / "paper/icml/supplement/number_provenance.md"
+    )
+    support_rows = _markdown_rows_by_first_cell(
+        ROOT / "paper/icml/supplement/support/externality_summary.md"
+    )
+    manifest_rows = _markdown_rows_by_first_cell(
+        ROOT / "paper/icml/supplement/failure_coding_manifest.md"
+    )
+
+    paper_expected_rows = {
+        f"Wrong-entity substitution (adjudicated, R{RIGHT_ARROW}W)": (
+            "31 / 43 (72.1%)",
+            "[57.3, 83.3] (Wilson)",
+        ),
+        f"Evasion / factual denial (adjudicated, R{RIGHT_ARROW}W)": (
+            "9 / 43 (20.9%)",
+            "[11.4, 35.2] (Wilson)",
+        ),
+        f"Answer dilution / verbosity (adjudicated, R{RIGHT_ARROW}W)": (
+            "3 / 43 (7.0%)",
+            "[2.4, 18.6] (Wilson)",
+        ),
+        f"Formal refusal among right{RIGHT_ARROW}wrong flips (adjudicated)": (
+            "0 / 43 (0.0%)",
+            "[0.0, 8.2] (Wilson)",
+        ),
+        "Dual-rater raw agreement (all 57 discordant)": (
+            "55 / 57 (96.5%)",
+            "[88.1, 99.0] (Wilson)",
+        ),
+        f"Cohen's {KAPPA} (A vs B, 4-category)": ("0.90", EM_DASH),
+        "Gwet's AC1 (A vs B, 4-category)": ("0.96", EM_DASH),
+    }
+    for claim, (value, interval) in paper_expected_rows.items():
+        assert paper_rows[claim][1:3] == [value, interval]
+
+    supplement_expected_rows = {
+        "Wrong-entity substitution": ("31 / 43 (72.1%)", "[57.3, 83.3] (Wilson)"),
+        "Evasion / factual denial": ("9 / 43 (20.9%)", "[11.4, 35.2] (Wilson)"),
+        "Answer dilution / verbosity": ("3 / 43 (7.0%)", "[2.4, 18.6] (Wilson)"),
+        f"Formal refusal among right{RIGHT_ARROW}wrong flips": (
+            "0 / 43 (0.0%)",
+            "[0.0, 8.2] (Wilson)",
+        ),
+        "Dual-rater raw agreement (all 57 discordant)": (
+            "55 / 57 (96.5%)",
+            "[88.1, 99.0] (Wilson)",
+        ),
+        f"Cohen's {KAPPA} (A vs B, 4-category)": ("0.90", EM_DASH),
+        "Gwet's AC1 (A vs B, 4-category)": ("0.96", EM_DASH),
+    }
+    for claim, (value, interval) in supplement_expected_rows.items():
+        assert supplement_rows[claim][1:3] == [value, interval]
+
+    support_expected_rows = {
+        "Wrong-entity substitution": ("31", "72.1%", "[57.3, 83.3]"),
+        "Evasion / factual denial": ("9", "20.9%", "[11.4, 35.2]"),
+        "Answer dilution / verbosity": ("3", "7.0%", "[2.4, 18.6]"),
+        "Formal refusal": ("0", "0.0%", "[0.0, 8.2]"),
+    }
+    for category, expected_cells in support_expected_rows.items():
+        assert support_rows[category][1:4] == list(expected_cells)
+        assert manifest_rows[category][2:5] == list(expected_cells)
+
+    assert _extract_main_bridge_claims().keys() == {
+        "raw_agreement",
+        "cohen_kappa",
+        "gwet_ac1",
+        "wrong_entity_substitution",
+        "evasion_or_factual_denial",
+        "answer_dilution",
+        "formal_refusal",
+    }
 
 
 def test_extract_discordant_cases_identifies_damage_and_rescue(tmp_path: Path) -> None:
