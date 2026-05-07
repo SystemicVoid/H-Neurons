@@ -1,0 +1,110 @@
+{
+  "locked_alpha": 4.0,
+  "locked_k": 40,
+  "variant": "mc1",
+  "sample_manifest": "data/manifests/truthfulqa_paper_heldout_mc1_ids_seed42_mistral24b.lock.json",
+  "fold_dirs": [
+    "data/mistral24b/intervention/anchor2_truthfulqa_mc1_iti_truthfulqa_paperfaithful/experiment"
+  ],
+  "folds": [
+    {
+      "fold": 0,
+      "variant": "mc1",
+      "n_samples": 163,
+      "baseline": {
+        "alpha": 0.0,
+        "rate": 0.355828,
+        "ci": {
+          "lower": 0.2864250093616944,
+          "upper": 0.4318704291209475,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "intervened": {
+        "alpha": 4.0,
+        "rate": 0.368098,
+        "ci": {
+          "lower": 0.2978904175149627,
+          "upper": 0.44437987726702877,
+          "level": 0.95,
+          "method": "wilson"
+        }
+      },
+      "delta_pp": {
+        "estimate_pp": 1.2269938650306733,
+        "ci_pp": {
+          "lower": -1.8404907975460127,
+          "upper": 4.294478527607359,
+          "level": 0.95,
+          "method": "bootstrap_percentile_paired"
+        },
+        "bootstrap": {
+          "n_resamples": 10000,
+          "seed": 42,
+          "confidence": 0.95,
+          "resampling": "paired_by_sample_id",
+          "interval": "percentile"
+        }
+      },
+      "mcnemar_p": 0.6875
+    }
+  ],
+  "pooled": {
+    "variant": "mc1",
+    "n_samples_total": 163,
+    "n_folds": 1,
+    "baseline": {
+      "alpha": 0.0,
+      "rate": 0.355828,
+      "ci": {
+        "lower": 0.2864250093616944,
+        "upper": 0.4318704291209475,
+        "level": 0.95,
+        "method": "wilson"
+      }
+    },
+    "intervened": {
+      "alpha": 4.0,
+      "rate": 0.368098,
+      "ci": {
+        "lower": 0.2978904175149627,
+        "upper": 0.44437987726702877,
+        "level": 0.95,
+        "method": "wilson"
+      }
+    },
+    "delta_pp": {
+      "estimate_pp": 1.2269938650306733,
+      "ci_pp": {
+        "lower": -1.8404907975460127,
+        "upper": 4.294478527607359,
+        "level": 0.95,
+        "method": "bootstrap_percentile_paired"
+      },
+      "bootstrap": {
+        "n_resamples": 10000,
+        "seed": 42,
+        "confidence": 0.95,
+        "resampling": "paired_by_sample_id",
+        "interval": "percentile"
+      }
+    },
+    "mcnemar_p": 0.6875
+  },
+  "sample_manifest_binding": {
+    "path": "data/manifests/truthfulqa_paper_heldout_mc1_ids_seed42_mistral24b.lock.json",
+    "n_ids": 163,
+    "fingerprint": "e13700ae35c2892c",
+    "validated": true
+  },
+  "gate": {
+    "mode": "mc1_positive_ci",
+    "passed": false,
+    "criterion": "pooled MC1 delta estimate > 0 and paired-bootstrap 95% CI lower bound > 0",
+    "estimate_pp": 1.2269938650306733,
+    "ci_lower_pp": -1.8404907975460127,
+    "ci_upper_pp": 4.294478527607359,
+    "n_samples_total": 163
+  }
+}

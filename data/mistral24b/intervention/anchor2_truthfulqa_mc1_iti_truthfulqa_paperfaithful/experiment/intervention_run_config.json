@@ -1,0 +1,59 @@
+{
+  "benchmark": "truthfulqa_mc",
+  "benchmark_config": {
+    "truthfulqa_fold_path": "data/manifests/truthfulqa_anchor2_mistral24b_fold_seed42.json",
+    "truthfulqa_variant": "mc1"
+  },
+  "classifier": {
+    "content_sha256": null,
+    "path": null
+  },
+  "comparability_class": "claimable",
+  "generation_fingerprint": {
+    "id": "c073e64229a3d6e5",
+    "spec": {
+      "intervention_mode": "iti_head",
+      "iti_decode_scope": "first_3_tokens",
+      "jailbreak_generation": null,
+      "run_profile": "canonical"
+    }
+  },
+  "intervention": {
+    "iti_collect_debug_stats": false,
+    "iti_decode_scope": "first_3_tokens",
+    "iti_direction_mode": "artifact",
+    "iti_direction_random_seed": null,
+    "iti_family": "truthfulqa_paperfaithful",
+    "iti_head_path": "data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/artifact/iti_heads.pt",
+    "iti_head_sha256": "07402ccf34d644d85a103c3f18e16c6e735e1b0d98ee15985178ca7edd58de97",
+    "iti_k": 40,
+    "iti_random_seed": 42,
+    "iti_selection_strategy": "ranked",
+    "mode": "iti_head"
+  },
+  "model": {
+    "key": "mistral_small_24b_instruct_2501",
+    "path": "mistralai/Mistral-Small-24B-Instruct-2501"
+  },
+  "run_profile": "canonical",
+  "sample_selection": {
+    "max_samples": null,
+    "sample_manifest": {
+      "content_sha256": "276fdbed9713d3eefa98430bee584b5025192cf203d6862ed91295cc22953b32",
+      "fingerprint": "e13700ae35c2892c",
+      "lock_context": "mistral24b_claim_stage",
+      "n_ids": 163,
+      "path": "data/manifests/truthfulqa_paper_heldout_mc1_ids_seed42_mistral24b.lock.json",
+      "schema_version": "sample_manifest/v2",
+      "source_path": "data/manifests/truthfulqa_paper_heldout_mc1_ids_seed42.json",
+      "source_sha256": "b734e156ae2034fb89ef11b64ca9c053f1b3a914cecf580ed57fe8b5856aa6d8"
+    }
+  },
+  "schedule": {
+    "alphas": [
+      0.0,
+      4.0
+    ]
+  },
+  "schema_version": "intervention_run_config/v1"
+}
