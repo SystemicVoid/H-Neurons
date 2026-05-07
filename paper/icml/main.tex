@@ -253,8 +253,8 @@ The dominant damage is factual corruption.
 \textbf{Wrong-entity substitution is the most common dual-rated failure mode.}
 Entity-level factuality work treats wrong-entity substitution as a recognizable neighboring error family in generation \citep{nan2021entity}.
 We use that literature only as adjacent taxonomy; it supplies no prior evidence for this exact steering failure mode.
-Each of the 57 discordant test cases (43 R$\to$W + 14 W$\to$R) was coded by the first author and a blinded LLM judge (\texttt{gpt-4o-2024-11-20}, temperature 0, strict JSON schema) against a pre-registered four-category rubric whose decision rules were committed before any test label was appended.
-Raw agreement was 96.5\% (Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96); the two disagreements were resolved under the pre-committed rule.
+Each of the 57 discordant test cases (43 R$\to$W + 14 W$\to$R) was coded by the first author and a blinded LLM judge (\texttt{gpt-4o-2024-11-20}, temperature 0, strict JSON schema) against a pre-specified four-category rubric whose adjudication rule was frozen before final label commitment.
+Raw agreement was 96.5\% (Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96); the two disagreements were resolved under the same frozen rule.
 Of the 43 R$\to$W flips, 31 fell in the wrong-entity substitution category: the model replaces a correct factual answer with a different entity from the same semantic neighborhood ($31/43 = 72\%$; 95\% CI $[57, 83]$; Table~\ref{tab:substitution}).
 The remaining 12 flips split into evasion/factual denial (9/43, 21\%), answer dilution (3/43, 7\%), and formal refusal (0/43).
 This profile is consistent with a coarse behavior-level reweighting toward nearby wrong candidates; we treat it as a behavioral diagnosis without claiming an internal substitution circuit.
@@ -616,7 +616,7 @@ This appendix quantifies the corresponding teacher-forced log-likelihood-margin 
 \paragraph{Design.}
 For each case we sum per-token gold and wrong-entity logprobs over the first three continuation positions under baseline and ITI conditions, and report the per-case shift $\Delta_\text{margin} = \Delta_\text{ITI} - \Delta_\text{base}$, where $\Delta = \log p(\text{gold}) - \log p(\text{wrong})$.
 Four cohorts: (A) $n = 31$ right-to-wrong (R$\to$W) wrong-entity substitutions; (B) $n = 12$ R$\to$W non-substitution flips (evasion/denial, dilution); (C) $n = 14$ wrong-to-right (W$\to$R) rescues; (D) $n = 200$ length-matched random wrong-entity controls drawn from unrelated bridge questions.
-The analysis plan (endpoints, cohort partition, one-sided permutation direction) was sealed \emph{before} the full 257-case run executed; results are reported against that locked tree.
+The pre-specified analysis plan (endpoints, cohort partition, one-sided permutation direction) was frozen before the full 257-case run executed; results are reported against that locked tree.
 
 \begin{table}[!htbp]
 \centering

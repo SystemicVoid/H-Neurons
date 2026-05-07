@@ -86,6 +86,13 @@ FORBIDDEN_CLAIMS: tuple[tuple[str, re.Pattern[str]], ...] = (
             re.IGNORECASE,
         ),
     ),
+    (
+        "unsupported-preregistration",
+        re.compile(
+            r"\bpre[-\s]?(?:register(?:ed|ing|s)?|registrations?)\b",
+            re.IGNORECASE,
+        ),
+    ),
 )
 
 TRUTHFULNESS_QUALIFIERS = (

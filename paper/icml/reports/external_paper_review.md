@@ -10,6 +10,7 @@ Review date: May 7, 2026. Package treated as a frozen snapshot. Reviewed `paper/
 | 2 | Addressed | [`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99) | Appendix floats now render in source order via a one-column appendix, section barriers, and rebuilt `paper/icml/main.pdf`; `make -C paper/icml`, rendered-page inspection, and LaTeX log checks guard the fix. |
 | 3 | Addressed | [`d4c69fa`](https://github.com/SystemicVoid/H-Neurons/commit/d4c69fa27623388a86a18d2f6f16bb07d65a65b3) | Figure generators now escape TeX percent labels, disable label clipping, add export padding, and regenerate Figures 2-3 plus `paper/icml/main.pdf`; script reruns, rendered-page inspection, and LaTeX log checks guard the fix. |
 | 4 | Addressed | [`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c) | Measurement wording now says same-output choices change whether the intervention clears the claimed effect gate, mirrored in the supplement reference copy and rebuilt PDF; `rg` and `pdftotext` checks guard against stale reversal wording. |
+| 5 | Addressed | [`8b34c63`](https://github.com/SystemicVoid/H-Neurons/commit/8b34c6315cd9beddbf10616a87dc7ac619cf9b1b) | Bridge rubric wording now uses pre-specified/frozen language across the manuscript and supplement reference; `scripts/check_icml_prose.py paper/icml/main.tex` and an Issue 5 target `rg` check guard against stale unsupported bridge wording. |
 
 ## 1. Verdict
 
@@ -64,6 +65,7 @@ Most important remaining edit: regenerate the rendered PDF after fixing figure s
 
 ### Issue 5 — “Pre-registered” is not supported by the package
 
+**Status:** Addressed in [`8b34c63`](https://github.com/SystemicVoid/H-Neurons/commit/8b34c6315cd9beddbf10616a87dc7ac619cf9b1b).
 **Severity:** Major  
 **Location:** `paper/main.tex:255`; related bridge-margin phrasing at `paper/main.tex:612`; `supplement/failure_coding_manifest.md:17`, `40`, `61`; `supplement/support/externality_summary.md:80`, `95-96`.  
 **Problem:** The paper says the bridge coding rubric was “pre-registered.” The package supports “pre-frozen,” “pre-committed,” or “internally frozen” via a git hash/commit and adjudication rule, but I did not find a public preregistration record or timestamped registry artifact. “Pre-registered” has a stronger methodological meaning and invites an avoidable challenge.  
@@ -213,7 +215,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 - [x] Rebuild Figures 2 and 3; inspect standalone PDFs and pages 5-6 ([`d4c69fa`](https://github.com/SystemicVoid/H-Neurons/commit/d4c69fa27623388a86a18d2f6f16bb07d65a65b3)).
 - [x] Repair appendix float placement with barriers/clear pages; re-render and inspect pages 11-17 ([`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99)).
 - [ ] Move or split the claim-defense ledger so it is readable.
-- [ ] Replace “pre-registered” unless a public preregistration artifact is included.
+- [x] Replace “pre-registered” unless a public preregistration artifact is included ([`8b34c63`](https://github.com/SystemicVoid/H-Neurons/commit/8b34c6315cd9beddbf10616a87dc7ac619cf9b1b)).
 - [x] Replace “reverse the conclusion” with “change the gate/pass-fail verdict” ([`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c)).
 - [ ] Fix Table 5 CI caption and Table 7 MDE definition.
 - [ ] Resolve or remove all supplement links to absent reports/artifacts.
