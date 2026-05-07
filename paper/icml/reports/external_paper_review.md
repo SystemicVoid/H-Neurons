@@ -7,6 +7,7 @@ Review date: May 7, 2026. Package treated as a frozen snapshot. Reviewed `paper/
 | Issue | Status | Commit | Concise state |
 |---:|---|---|---|
 | 1 | Addressed | [`b6a40bd`](https://github.com/SystemicVoid/H-Neurons/commit/b6a40bd79b24e6991bb753adfb630a39d1631332) | Supplement number provenance now matches the bridge IRR source and support files: 31/43 wrong-entity, 9/43 evasion, 3/43 dilution, 0/43 formal refusal, plus 55/57 agreement, κ = 0.90, AC1 = 0.96. `tests/test_bridge_irr.py::test_paper_bridge_taxonomy_provenance_matches_irr_summary` guards the cross-file consistency. |
+| 2 | Addressed | [`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99) | Appendix floats now render in source order via a one-column appendix, section barriers, and rebuilt `paper/icml/main.pdf`; `make -C paper/icml`, rendered-page inspection, and LaTeX log checks guard the fix. |
 
 ## 1. Verdict
 
@@ -30,6 +31,7 @@ Most important remaining edit: regenerate the rendered PDF after fixing figure s
 
 ### Issue 2 — Appendix rendering is not reviewer-legible
 
+**Status:** Addressed in [`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99).
 **Severity:** Major, potentially blocking for submission polish  
 **Location:** PDF pages 11-17; rendered images `rendered-pages/page-11.png` through `page-17.png`; appendix source `paper/main.tex:472-819`.  
 **Problem:** Appendix section headings are orphaned or detached from their content. Page 11 shows Appendix B and C headings with little/no content before D; pages 12-13 contain tables whose sections appeared earlier; page 15 is mostly blank with Appendix H and I headings; Tables 10 and 11 appear on pages 16-17 after large whitespace. This makes the appendix hard to use as reviewer evidence.  
@@ -204,7 +206,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 
 - [x] Regenerate `supplement/number_provenance.md` and verify bridge counts match `paper/main.tex`, `paper/number_provenance.md`, `support/externality_summary.md`, and `failure_coding_manifest.md` ([`b6a40bd`](https://github.com/SystemicVoid/H-Neurons/commit/b6a40bd79b24e6991bb753adfb630a39d1631332)).
 - [ ] Rebuild Figures 2 and 3; inspect standalone PDFs and pages 5-6.
-- [ ] Repair appendix float placement with barriers/clear pages; re-render and inspect pages 11-17.
+- [x] Repair appendix float placement with barriers/clear pages; re-render and inspect pages 11-17 ([`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99)).
 - [ ] Move or split the claim-defense ledger so it is readable.
 - [ ] Replace “pre-registered” unless a public preregistration artifact is included.
 - [ ] Replace “reverse the conclusion” with “change the gate/pass-fail verdict.”
