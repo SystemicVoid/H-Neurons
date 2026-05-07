@@ -8,6 +8,7 @@ Review date: May 7, 2026. Package treated as a frozen snapshot. Reviewed `paper/
 |---:|---|---|---|
 | 1 | Addressed | [`b6a40bd`](https://github.com/SystemicVoid/H-Neurons/commit/b6a40bd79b24e6991bb753adfb630a39d1631332) | Supplement number provenance now matches the bridge IRR source and support files: 31/43 wrong-entity, 9/43 evasion, 3/43 dilution, 0/43 formal refusal, plus 55/57 agreement, κ = 0.90, AC1 = 0.96. `tests/test_bridge_irr.py::test_paper_bridge_taxonomy_provenance_matches_irr_summary` guards the cross-file consistency. |
 | 2 | Addressed | [`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99) | Appendix floats now render in source order via a one-column appendix, section barriers, and rebuilt `paper/icml/main.pdf`; `make -C paper/icml`, rendered-page inspection, and LaTeX log checks guard the fix. |
+| 3 | Addressed | [`d4c69fa`](https://github.com/SystemicVoid/H-Neurons/commit/d4c69fa27623388a86a18d2f6f16bb07d65a65b3) | Figure generators now escape TeX percent labels, disable label clipping, add export padding, and regenerate Figures 2-3 plus `paper/icml/main.pdf`; script reruns, rendered-page inspection, and LaTeX log checks guard the fix. |
 
 ## 1. Verdict
 
@@ -41,6 +42,7 @@ Most important remaining edit: regenerate the rendered PDF after fixing figure s
 
 ### Issue 3 — Figure labels are visibly clipped or malformed
 
+**Status:** Addressed in [`d4c69fa`](https://github.com/SystemicVoid/H-Neurons/commit/d4c69fa27623388a86a18d2f6f16bb07d65a65b3).
 **Severity:** Major  
 **Location:** PDF pages 5-6; `rendered-pages/page-05.png`, `rendered-pages/page-06.png`; `paper/figures/fig2_matched.pdf`; `paper/figures/fig3_bridge.pdf`; figure captions in `paper/main.tex:200-208` and `paper/main.tex:288-295`.  
 **Problem:** Figure 2 panel (b) contains a malformed annotation: the second line appears as only “95” rather than a complete CI statement. Figure 3 panel (b) has truncated bar labels such as “31 (72”, “9 (21”, “3 (7”, and “0 (0”, missing percent signs/closing parentheses. These defects will be noticed immediately in review.  
@@ -205,7 +207,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 ## 8. Final Checklist
 
 - [x] Regenerate `supplement/number_provenance.md` and verify bridge counts match `paper/main.tex`, `paper/number_provenance.md`, `support/externality_summary.md`, and `failure_coding_manifest.md` ([`b6a40bd`](https://github.com/SystemicVoid/H-Neurons/commit/b6a40bd79b24e6991bb753adfb630a39d1631332)).
-- [ ] Rebuild Figures 2 and 3; inspect standalone PDFs and pages 5-6.
+- [x] Rebuild Figures 2 and 3; inspect standalone PDFs and pages 5-6 ([`d4c69fa`](https://github.com/SystemicVoid/H-Neurons/commit/d4c69fa27623388a86a18d2f6f16bb07d65a65b3)).
 - [x] Repair appendix float placement with barriers/clear pages; re-render and inspect pages 11-17 ([`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99)).
 - [ ] Move or split the claim-defense ledger so it is readable.
 - [ ] Replace “pre-registered” unless a public preregistration artifact is included.

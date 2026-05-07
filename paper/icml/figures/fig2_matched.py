@@ -208,13 +208,14 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
         r"$\Delta$"
         + f" slope = {data['slope_diff']:+.2f} pp/"
         + r"$\alpha$"
-        + f"\n95% CI [{slope_ci['lower']:+.2f}, {slope_ci['upper']:+.2f}]",
+        + f"\n95\\% CI [{slope_ci['lower']:+.2f}, {slope_ci['upper']:+.2f}]",
         transform=ax.transAxes,
         ha="left",
         va="top",
         fontsize=5.5,
+        clip_on=False,
         bbox=dict(
-            boxstyle="round,pad=0.25",
+            boxstyle="round,pad=0.30",
             facecolor="white",
             edgecolor="#D4DCE3",
             alpha=0.95,
@@ -249,7 +250,7 @@ def main() -> None:
     draw_panel_a(ax_a, data)
     draw_panel_b(ax_b, data)
     fig.savefig(
-        OUTPUT, dpi=300, bbox_inches="tight", facecolor=BG_COLOR, pad_inches=0.04
+        OUTPUT, dpi=300, bbox_inches="tight", facecolor=BG_COLOR, pad_inches=0.08
     )
     plt.close(fig)
     print(f"Saved: {OUTPUT}")

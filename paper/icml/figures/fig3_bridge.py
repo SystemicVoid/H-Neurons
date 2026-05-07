@@ -212,14 +212,15 @@ def draw_panel_b(ax: plt.Axes) -> None:
     for bar, count in zip(bars, counts):
         pct = count / total * 100
         ax.text(
-            bar.get_width() + 0.15,
+            bar.get_width() + 0.40,
             bar.get_y() + bar.get_height() / 2,
-            f"{count}  ({pct:.0f}%)",
+            f"{count} ({pct:.0f}\\%)",
             ha="left",
             va="center",
             fontsize=6.5,
             fontweight="bold",
             color=TITLE_COLOR,
+            clip_on=False,
         )
 
     ax.set_yticks(y)
@@ -234,7 +235,7 @@ def draw_panel_b(ax: plt.Axes) -> None:
         loc="left",
         pad=5,
     )
-    ax.set_xlim(0, 38.0)
+    ax.set_xlim(0, max(counts) + 8.5)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(axis="x", labelsize=6)
@@ -248,7 +249,7 @@ def main() -> None:
     draw_panel_a(ax_a)
     draw_panel_b(ax_b)
     fig.savefig(
-        OUTPUT, dpi=300, bbox_inches="tight", facecolor=BG_COLOR, pad_inches=0.04
+        OUTPUT, dpi=300, bbox_inches="tight", facecolor=BG_COLOR, pad_inches=0.08
     )
     plt.close(fig)
     print(f"Saved: {OUTPUT}")
