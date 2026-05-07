@@ -20,13 +20,9 @@ It is a reviewer-facing reproducibility bundle, not a full repository snapshot.
 
 Use this package as the anonymized code/data supplement for OpenReview upload. It follows the ICML supplementary-code route and the Mechanistic Interpretability Workshop reproducibility-access expectation by bundling the curated code slice, safe data manifests, bridge IRR derivatives, and reviewer-facing support ledgers. If the same material is mirrored as an anonymous repository, use these package contents on a frozen submission branch.
 
-## Deliberate Scope Boundary
+## Artifact Scope
 
-- This package is tied to the current submitted manuscript and only includes evidence supporting the current claims.
-- Pending follow-up work is intentionally excluded unless it is completed and integrated into the manuscript-facing summaries before submission.
-- This package supports claim traceability and minimal rerun orientation. It does not support full recomputation from raw generations.
-- Raw response/scored JSONLs, harmful prompt gold labels, raw bridge IRR queues/progress files, and raw provenance sidecars are excluded for safety/anonymization.
-- The bridge IRR reviewer surface is bundled as `data/judge_validation/bridge_irr/bridge_irr_summary.json`, `data/judge_validation/bridge_irr/adjudication_rule.md`, and the redacted case-label file `data/judge_validation/bridge_irr/adjudicated_labels.jsonl`.
+This package is tied to the current submitted manuscript and supports claim traceability plus minimal rerun orientation. It does not enable full recomputation from raw generations. Raw response/scored JSONLs, harmful prompt gold labels, raw bridge IRR queues/progress files, and raw provenance sidecars are omitted for safety/anonymization; where omitted, reviewer-facing summaries and safe manifests are provided. The bridge IRR reviewer surface is bundled: `data/judge_validation/bridge_irr/bridge_irr_summary.json` is included, `data/judge_validation/bridge_irr/adjudication_rule.md` is included, and `data/judge_validation/bridge_irr/adjudicated_labels.jsonl` is redacted. Pending follow-up work is excluded unless it is completed and integrated into the manuscript-facing summaries before submission.
 
 ## Public-Release Reminder
 

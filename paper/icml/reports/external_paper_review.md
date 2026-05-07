@@ -13,6 +13,7 @@ Review date: May 7, 2026. Package treated as a frozen snapshot. Reviewed `paper/
 | 5 | Addressed | [`8b34c63`](https://github.com/SystemicVoid/H-Neurons/commit/8b34c6315cd9beddbf10616a87dc7ac619cf9b1b) | Bridge rubric wording now uses pre-specified/frozen language across the manuscript and supplement reference; `scripts/check_icml_prose.py paper/icml/main.tex` and an Issue 5 target `rg` check guard against stale unsupported bridge wording. |
 | 6 | Addressed | [`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa) | The supplement package now bundles the bridge IRR rule, machine-readable summary, and redacted adjudicated labels, replaces report links with bundled derivatives, and `build_icml_supplement_package.py` validates relative Markdown links. |
 | 7 | Addressed | [`d642ba0`](https://github.com/SystemicVoid/H-Neurons/commit/d642ba002b2d079a450d1e9e88a52219931bcbea) | The full claim-defense ledger now lives in the supplement provenance ledger, with compact readable indexes in the manuscript and supplement reference appendices; `make -C paper/icml`, rendered page-14 inspection, and supplement package checks guard it. |
+| 8 | Addressed | [`ad90c46`](https://github.com/SystemicVoid/H-Neurons/commit/ad90c46b2afafc23062e5cdc99cce76838ac4495) | Supplement front matter now has an explicit Artifact Scope paragraph covering raw JSONL/gold-label/provenance omissions and included/redacted bridge IRR derivatives; `tests/test_build_icml_supplement_package.py::TestBuildIcmlSupplementPackage::test_repo_manifest_builds_bundle` guards the built README wording. |
 
 ## 1. Verdict
 
@@ -97,6 +98,7 @@ Most important remaining edit: regenerate the rendered PDF after fixing figure s
 
 ### Issue 8 — Raw-artifact boundary is reasonable but must be clearer in the manuscript package
 
+**Status:** Addressed in [`ad90c46`](https://github.com/SystemicVoid/H-Neurons/commit/ad90c46b2afafc23062e5cdc99cce76838ac4495).
 **Severity:** Major for reproducibility framing; not a scientific invalidation  
 **Location:** `PACKAGE_MANIFEST.md:40-42`; `supplement/README.md:19-24`; `supplement/artifact_manifest.md:32-44`; `supplement/evaluation_manifest.md:56-80`; `supplement/reproduction_manifest.md:58-62`.  
 **Problem:** The package intentionally excludes raw response JSONLs, raw scored JSONLs, raw provenance sidecars, harmful prompt gold labels, bridge IRR machine-readable summary, and adjudicated labels. This is a defensible safety/anonymization choice, but the paper/supplement should not imply full independent recomputation from the upload.  
@@ -223,5 +225,5 @@ I did not perform an external literature freshness search. Given the user-suppli
 - [x] Replace “reverse the conclusion” with “change the gate/pass-fail verdict” ([`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c)).
 - [ ] Fix Table 5 CI caption and Table 7 MDE definition.
 - [x] Resolve or remove all supplement links to absent reports/artifacts ([`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa)).
-- [ ] Add an explicit artifact-scope note for omitted raw JSONLs, harmful prompt gold labels, provenance sidecars, bridge IRR summary, and adjudicated labels.
+- [x] Add an explicit artifact-scope note for omitted raw JSONLs, harmful prompt gold labels, provenance sidecars, and bridge IRR derivative status ([`ad90c46`](https://github.com/SystemicVoid/H-Neurons/commit/ad90c46b2afafc23062e5cdc99cce76838ac4495)).
 - [ ] Run final LaTeX checks: no undefined refs/citations, no overfull boxes, acceptable underfull warnings only, anonymous metadata, correct title, and page count within the workshop limit.

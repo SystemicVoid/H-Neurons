@@ -51,6 +51,22 @@ class TestBuildIcmlSupplementPackage:
         ).exists()
         assert zip_path.exists()
 
+        readme_text = (output_dir / "README.md").read_text(encoding="utf-8")
+        assert "## Artifact Scope" in readme_text
+        assert "does not enable full recomputation from raw generations" in readme_text
+        assert "Raw response/scored JSONLs" in readme_text
+        assert "harmful prompt gold labels" in readme_text
+        assert "raw provenance sidecars" in readme_text
+        assert "omitted for safety/anonymization" in readme_text
+        assert (
+            "`data/judge_validation/bridge_irr/bridge_irr_summary.json` is included"
+            in readme_text
+        )
+        assert (
+            "`data/judge_validation/bridge_irr/adjudicated_labels.jsonl` is redacted"
+            in readme_text
+        )
+
         with ZipFile(zip_path) as archive:
             names = set(archive.namelist())
         assert "README.md" in names
