@@ -80,20 +80,18 @@ PANEL_A_DATA = [
     },
 ]
 
-DEFAULT_FLIP_TAXONOMY = [
-    ("Wrong-entity\nsubstitution", 30, C_SUBSTITUTION),
-    ("Evasion /\nfactual denial", 8, C_EVASION),
-    ("Verbosity /\ndilution", 3, C_VERBOSITY),
-    ("Formal\nrefusal", 2, C_OTHER),
-]
-
 
 def load_flip_taxonomy() -> list[tuple[str, int, str]]:
     if not IRR_SUMMARY.exists():
-        return DEFAULT_FLIP_TAXONOMY
+        raise FileNotFoundError(
+            f"Missing adjudicated bridge IRR summary: {IRR_SUMMARY}"
+        )
     payload = json.loads(IRR_SUMMARY.read_text(encoding="utf-8"))
     if payload.get("status") != "adjudicated":
-        return DEFAULT_FLIP_TAXONOMY
+        status = payload.get("status")
+        raise ValueError(
+            f"Bridge IRR summary must be adjudicated, found status={status!r}"
+        )
     categories = payload["direction_summaries"]["right_to_wrong"]["categories"]
     return [
         (
