@@ -2,12 +2,14 @@
 
 ## What This Surface Measures
 
-These surfaces track how evaluator choice, scoring cleanup, adjudication, and audit-derived corrections change the observed jailbreak or FaithEval conclusions. Primary artifacts in this family: `available_jailbreak_evaluator_comparison`, `bridge_irr_labels`, `bridge_irr_summary`, `csv2_v3_results`, `evaluator_4way_audit`, `faitheval_standard_remap`, `holdout_comparison`, `jailbreak_binary_alpha_0_0_rows`, `jailbreak_binary_alpha_1_5_rows`, `jailbreak_binary_alpha_3_0_rows`, `jailbreak_control_v2`, `jailbreak_control_v3`, `jailbreak_csv2_v2_alpha_0_0_rows`, `jailbreak_csv2_v2_alpha_1_5_rows`, `jailbreak_csv2_v2_alpha_3_0_rows`, `jailbreak_csv2_v3_alpha_0_0_rows`, `jailbreak_csv2_v3_alpha_1_5_rows`, `jailbreak_csv2_v3_alpha_3_0_rows`, `jailbreak_gold_labels`, `jailbreak_measurement_cleanup_audit`, `jailbreak_seed0_control_audit`, `jailbreak_strongreject_alpha_0_0_rows`, `jailbreak_strongreject_alpha_1_5_rows`, `jailbreak_strongreject_alpha_3_0_rows`, `strongreject_results`.
+These surfaces track how evaluator choice, scoring cleanup, adjudication, and audit-derived corrections change the observed jailbreak or FaithEval conclusions. Primary artifacts in this family: `available_jailbreak_evaluator_comparison`, `bridge_irr_labels`, `bridge_irr_summary`, `csv2_v3_results`, `evaluator_4way_audit`, `faitheval_standard_remap`, `holdout_comparison`, `jailbreak_binary_alpha_0_0_rows`, `jailbreak_binary_alpha_1_5_rows`, `jailbreak_binary_alpha_3_0_rows`, `jailbreak_control_v2`, `jailbreak_control_v3`, `jailbreak_csv2_v2_alpha_0_0_rows`, `jailbreak_csv2_v2_alpha_1_5_rows`, `jailbreak_csv2_v2_alpha_3_0_rows`, `jailbreak_csv2_v3_alpha_0_0_rows`, `jailbreak_csv2_v3_alpha_1_5_rows`, `jailbreak_csv2_v3_alpha_3_0_rows`, `jailbreak_gold_labels`, `jailbreak_measurement_cleanup_audit`, `jailbreak_seed0_control_audit`, `jailbreak_strongreject_alpha_0_0_rows`, `jailbreak_strongreject_alpha_1_5_rows`, `jailbreak_strongreject_alpha_3_0_rows`, `mistral24b_anchor3_jailbreak_summary`, `simid_open_calibration_summary`, `simid_prospective_open_calibration_codex55`, `simid_prospective_open_calibration_human`, `simid_prospective_open_calibration_opus47`, `strongreject_results`.
 
 ## High-Signal Patterns
 
 - On the holdout comparison, CSV-v3 and StrongREJECT both land at 96.0% with 0 discordant records and minimum pairwise McNemar p 0.250 [`measurement.holdout.csv2v3.accuracy`, `measurement.holdout.sr.accuracy`, `measurement.holdout.csv2v3_vs_sr_discordant_count`, `measurement.holdout.min_pairwise_mcnemar_p`, `holdout_comparison`].
 - Binary and graded jailbreak measurement disagree materially: binary harmful counts move from 152 to 167, while the graded surface reports +2.30 pp/alpha slope and +7.6 pp endpoint shift [`measurement.jailbreak.binary.alpha_0_count`, `measurement.jailbreak.binary.alpha_3_count`, `measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha`, `measurement.jailbreak.v2.endpoint_delta_csv2_yes_pp`, `jailbreak_results`, `jailbreak_control_v2`].
+- Mistral Anchor3 JBB full-output judge curves move together: binary delta +32.6 pp, CSV3 delta +32.4 pp, and StrongREJECT delta +31.4 pp [`measurement.mistral24b.jailbreak_anchor3.binary_full.delta_0_to_3_pp`, `measurement.mistral24b.jailbreak_anchor3.csv3_full.delta_0_to_3_pp`, `measurement.mistral24b.jailbreak_anchor3.strongreject_full.delta_0_to_3_pp`, `mistral24b_anchor3_jailbreak_summary`].
+- SIMID open-label calibration is tracked at both stages: frozen raw agreement 91.5% with kappa 0.759, and prospective Opus raw agreement 92.0% with kappa 0.873 [`measurement.simid.open_calibration.raw_agreement`, `measurement.simid.open_calibration.cohen_kappa`, `measurement.simid.prospective_open_calibration.opus47.raw_agreement`, `measurement.simid.prospective_open_calibration.opus47.cohen_kappa`, `simid_open_calibration_summary`, `simid_prospective_open_calibration_opus47`].
 - FaithEval remap cleanup is large enough to change interpretation: raw standard slope is -1.41 pp/alpha, with 150 parse failures and 140 strict recoveries at alpha 3.0 [`measurement.faitheval.standard_raw.slope_pp_per_alpha`, `measurement.faitheval.standard_remap.parse_failures`, `measurement.faitheval.standard_remap.strict_recovered_count`, `measurement.faitheval.standard_remap.strict_rescored_compliance_rate`, `intervention_sweep_site`, `faitheval_standard_remap`].
 - Across 43 adjudicated right-to-wrong cases, wrong-entity substitution is 72.1%, evasion/factual denial 20.9%, answer dilution 7.0%; the separate IRR study recorded 2 rater disagreements total [`measurement.bridge_irr.right_to_wrong.wrong_entity_substitution`, `measurement.bridge_irr.right_to_wrong.evasion_or_factual_denial`, `measurement.bridge_irr.right_to_wrong.answer_dilution`, `measurement.bridge_irr.n_disagreements`, `bridge_irr_summary`].
 - The StrongREJECT model-upgrade story is calibration-limited: rerun dev accuracy reaches 78.4% versus prior 74.3%, but the holdout gap after upgrade is only +0.0 pp and 16 of 19 false negatives persist [`measurement.strongreject.audit.gpt4o_dev_accuracy_after_rerun`, `measurement.strongreject.audit.gpt4o_mini_dev_accuracy_prior`, `measurement.strongreject.audit.holdout_gap_after_model_upgrade_pp`, `measurement.strongreject.audit.persistent_false_negatives_after_upgrade`, `jailbreak_measurement_cleanup_audit`, `evaluator_4way_audit`].
@@ -18,6 +20,7 @@ These surfaces track how evaluator choice, scoring cleanup, adjudication, and au
 - The holdout comparison is only n=50, so ties here are coarse-grained rather than high-resolution [`measurement.holdout.sample_size`, `holdout_comparison`].
 - The 74-row evaluator comparison is still dev-set evidence with calibration overlap; the README and this surface keep that caveat explicit [`measurement.csv2_v3.dev_accuracy`, `measurement.strongreject.audit.gpt4o_mini_dev_accuracy_prior`, `csv2_v3_results`, `evaluator_4way_audit`].
 - The canary note is evidence about pipeline integrity, not benchmark performance; one benign span-ordering mismatch does not move the main rates [`jailbreak_measurement_cleanup_audit`].
+- SIMID calibration rows differ across returned-rater gates, so downstream interpretation should cite the exact rater stage [`measurement.simid.prospective_open_calibration.opus47.raw_agreement`, `measurement.simid.prospective_open_calibration.codex55.raw_agreement`, `measurement.simid.prospective_open_calibration.human.raw_agreement`, `simid_prospective_open_calibration_opus47`, `simid_prospective_open_calibration_codex55`, `simid_prospective_open_calibration_human`].
 
 ## Grouped Metric Tables
 
@@ -43,6 +46,35 @@ These surfaces track how evaluator choice, scoring cleanup, adjudication, and au
 | `measurement.jailbreak.v3.h_slope_csv2_yes_pp_per_alpha` | +0.46 pp/alpha | 500 | `—` | `jailbreak_control_v3` |
 | `measurement.jailbreak.v3.random_mean_slope_csv2_yes_pp_per_alpha` | -0.34 pp/alpha | 1 | `—` | `jailbreak_control_v3` |
 
+### Mistral Jailbreak
+
+| metric_id | estimate | n | ci | source_ids |
+|---|---:|---:|---|---|
+| `measurement.mistral24b.jailbreak_anchor3.binary_256_vs_full.agreement` | 96.3% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_256_vs_full.cohen_kappa` | 0.925 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_256_vs_full.left_minus_right_harmful_rate_pp` | -1.3 pp | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_256_vs_full.mcnemar_p` | 0.003 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full.combined_harmful_rate` | 46.1% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full.delta_0_to_3_pp` | +32.6 pp | 500 | `[+28.2, +37.2]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full.explicit_error_count` | 0 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full.slope_pp_per_alpha` | +10.67 pp/alpha | 500 | `[+9.2, +12.2]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full_vs_csv3.agreement` | 96.3% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full_vs_csv3.cohen_kappa` | 0.926 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full_vs_csv3.left_minus_right_harmful_rate_pp` | -0.1 pp | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full_vs_csv3.mcnemar_p` | 0.908 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_full.combined_harmful_rate` | 46.2% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_full.delta_0_to_3_pp` | +32.4 pp | 500 | `[+28.0, +36.8]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_full.explicit_error_count` | 0 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_full.slope_pp_per_alpha` | +10.51 pp/alpha | 500 | `[+9.0, +12.0]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_vs_strongreject.agreement` | 91.8% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_vs_strongreject.cohen_kappa` | 0.836 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_vs_strongreject.left_minus_right_harmful_rate_pp` | -5.7 pp | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_vs_strongreject.mcnemar_p` | 2.29e-20 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.strongreject_full.combined_harmful_rate` | 51.8% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.strongreject_full.delta_0_to_3_pp` | +31.4 pp | 500 | `[+27.0, +35.8]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.strongreject_full.explicit_error_count` | 0 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.strongreject_full.slope_pp_per_alpha` | +10.29 pp/alpha | 500 | `[+8.9, +11.8]` | `mistral24b_anchor3_jailbreak_summary` |
+
 ### FaithEval Cleanup
 
 | metric_id | estimate | n | ci | source_ids |
@@ -51,6 +83,28 @@ These surfaces track how evaluator choice, scoring cleanup, adjudication, and au
 | `measurement.faitheval.standard_remap.parse_failures` | 150 | 1000 | `—` | `faitheval_standard_remap` |
 | `measurement.faitheval.standard_remap.strict_recovered_count` | 140 | 1000 | `—` | `faitheval_standard_remap` |
 | `measurement.faitheval.standard_remap.strict_rescored_compliance_rate` | 72.1% | 1000 | `—` | `faitheval_standard_remap` |
+
+### SIMID Calibration
+
+| metric_id | estimate | n | ci | source_ids |
+|---|---:|---:|---|---|
+| `measurement.simid.open_calibration.cohen_kappa` | 0.759 | 402 | `—` | `simid_open_calibration_summary` |
+| `measurement.simid.open_calibration.gwet_ac1` | 0.897 | 402 | `—` | `simid_open_calibration_summary` |
+| `measurement.simid.open_calibration.n_disagreements` | 34 | 402 | `—` | `simid_open_calibration_summary` |
+| `measurement.simid.open_calibration.raw_agreement` | 91.5% | 402 | `[88.4, 93.9]%` | `simid_open_calibration_summary` |
+| `measurement.simid.open_calibration.rule_gap_rate` | 0.0% | 34 | `[0.0, 10.2]%` | `simid_open_calibration_summary` |
+| `measurement.simid.prospective_open_calibration.codex55.cohen_kappa` | 0.821 | 150 | `—` | `simid_prospective_open_calibration_codex55` |
+| `measurement.simid.prospective_open_calibration.codex55.gwet_ac1` | 0.835 | 150 | `—` | `simid_prospective_open_calibration_codex55` |
+| `measurement.simid.prospective_open_calibration.codex55.raw_agreement` | 88.7% | 150 | `[82.6, 92.8]%` | `simid_prospective_open_calibration_codex55` |
+| `measurement.simid.prospective_open_calibration.codex55.rule_gap_count` | 0 | 150 | `—` | `simid_prospective_open_calibration_codex55` |
+| `measurement.simid.prospective_open_calibration.human.cohen_kappa` | 0.798 | 150 | `—` | `simid_prospective_open_calibration_human` |
+| `measurement.simid.prospective_open_calibration.human.gwet_ac1` | 0.816 | 150 | `—` | `simid_prospective_open_calibration_human` |
+| `measurement.simid.prospective_open_calibration.human.raw_agreement` | 87.3% | 150 | `[81.1, 91.7]%` | `simid_prospective_open_calibration_human` |
+| `measurement.simid.prospective_open_calibration.human.rule_gap_count` | 0 | 150 | `—` | `simid_prospective_open_calibration_human` |
+| `measurement.simid.prospective_open_calibration.opus47.cohen_kappa` | 0.873 | 150 | `—` | `simid_prospective_open_calibration_opus47` |
+| `measurement.simid.prospective_open_calibration.opus47.gwet_ac1` | 0.883 | 150 | `—` | `simid_prospective_open_calibration_opus47` |
+| `measurement.simid.prospective_open_calibration.opus47.raw_agreement` | 92.0% | 150 | `[86.5, 95.4]%` | `simid_prospective_open_calibration_opus47` |
+| `measurement.simid.prospective_open_calibration.opus47.rule_gap_count` | 0 | 150 | `—` | `simid_prospective_open_calibration_opus47` |
 
 ### Evaluator Validation
 

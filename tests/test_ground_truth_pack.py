@@ -389,6 +389,151 @@ def test_new_sae_utility_surfaces_have_manifest_and_crosswalk_coverage() -> None
     )
 
 
+def test_sae_answer_span_metrics_are_promoted_from_v6_surfaces() -> None:
+    metrics = {
+        row["metric_id"]: row for row in load_jsonl(PACK_DIR / "metric_ledger.jsonl")
+    }
+    crosswalk = {
+        row["surface_id"]: row
+        for row in load_jsonl(PACK_DIR / "surface_crosswalk.jsonl")
+    }
+    expected = {
+        "intervention.faitheval_sae_answer_span.selected_k": (
+            "faitheval_sae_utility_selector_summary",
+            "data/gemma3_4b/intervention/faitheval_sae_utility_selector/selector/selector_summary.json",
+            "families.answer_span_selected.k",
+        ),
+        "intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_answer_span_margin": (
+            "faitheval_sae_utility_selector_heldout",
+            "data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json",
+            "heldout_answer_span_margin.paired_deltas.answer_span_selected_minus_noop.estimate",
+        ),
+        "intervention.faitheval_sae_answer_span.answer_span_selected_minus_random_seed_mean_answer_span_margin": (
+            "faitheval_sae_utility_selector_heldout",
+            "data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json",
+            "heldout_answer_span_margin.across_seeds.seed_mean_summary.estimate",
+        ),
+        "intervention.faitheval_sae_answer_span.answer_span_selected_minus_utility_selected_anti_margin": (
+            "faitheval_sae_utility_selector_heldout",
+            "data/gemma3_4b/intervention/faitheval_sae_utility_selector/report/heldout_summary.json",
+            "heldout_anti_compliance_margin_answer_span_selected.paired_deltas.answer_span_selected_minus_utility_selected.estimate",
+        ),
+    }
+
+    for metric_id, (artifact_id, source_path, locator) in expected.items():
+        metric = metrics[metric_id]
+        assert metric["source_artifact_ids"] == [artifact_id]
+        assert metric["source_locators"] == [
+            {
+                "artifact_id": artifact_id,
+                "source_path": source_path,
+                "locator": locator,
+                "derivation": "direct",
+            }
+        ]
+        surface_id = f"surface:{source_path}:{locator}"
+        assert crosswalk[surface_id]["coverage_status"] == "exact_metric"
+        assert crosswalk[surface_id]["ledger_metric_ids"] == [metric_id]
+
+
+def test_mistral_and_simid_sources_are_manifested_and_crosswalked() -> None:
+    manifest = load_json(MANIFEST_PATH)
+    artifact_ids = {artifact["artifact_id"] for artifact in manifest["artifacts"]}
+    assert {
+        "mistral24b_classifier_test_metrics",
+        "mistral24b_faitheval_cp5_results",
+        "mistral24b_faitheval_cp5_control",
+        "mistral24b_h1_selection_summary",
+        "mistral24b_h1_faitheval_results",
+        "mistral24b_anchor3_jailbreak_summary",
+        "mistral24b_anchor2_truthfulqa_mc1_report",
+        "mistral24b_anchor2_truthfulqa_mc2_report",
+        "simid_mvp_results_adjudicated",
+        "simid_open_calibration_summary",
+        "simid_prospective_open_calibration_opus47",
+        "simid_prospective_open_calibration_codex55",
+        "simid_prospective_open_calibration_human",
+        "simid_prospective_partial_effect_early_look",
+        "simid_prospective_partial_private_map",
+        "simid_prospective_selected_alpha0_rows",
+        "simid_prospective_selected_alpha8_rows",
+    } <= artifact_ids
+
+    metrics = {
+        row["metric_id"]: row for row in load_jsonl(PACK_DIR / "metric_ledger.jsonl")
+    }
+    crosswalk = {
+        row["surface_id"]: row
+        for row in load_jsonl(PACK_DIR / "surface_crosswalk.jsonl")
+    }
+    expected = {
+        "readout.mistral24b.test.auroc": (
+            "mistral24b_classifier_test_metrics",
+            "data/mistral24b/pipeline/classifier_canonical_test_metrics.json",
+            "evaluation.metrics.auroc.estimate",
+        ),
+        "intervention.mistral24b.cp5.faitheval.delta_0_to_3_pp": (
+            "mistral24b_faitheval_cp5_results",
+            "data/mistral24b/intervention/faitheval/experiment/results.20260430_112305.json",
+            "effects.compliance_curve.delta_0_to_max_pp.estimate",
+        ),
+        "intervention.mistral24b.h1.selection.selected_c": (
+            "mistral24b_h1_selection_summary",
+            "data/mistral24b/pipeline/h1_intervention_aware_c/selection_summary.json",
+            "selected.C",
+        ),
+        "measurement.mistral24b.jailbreak_anchor3.csv3_full.delta_0_to_3_pp": (
+            "mistral24b_anchor3_jailbreak_summary",
+            "data/mistral24b/intervention/jailbreak_anchor3_full500/mistral_anchor3_jailbreak_evaluator_summary.json",
+            "curve_effects.csv3_full.effects.delta_0_to_max_pp.estimate",
+        ),
+        "transfer.mistral24b_anchor2.truthfulqa_mc1.delta_alpha4_minus_alpha0_pp": (
+            "mistral24b_anchor2_truthfulqa_mc1_report",
+            "data/mistral24b/intervention/anchor2_truthfulqa_mc/reports/mistral_anchor2_heldout_mc1_report.json",
+            "pooled.delta_pp.estimate_pp",
+        ),
+        "measurement.simid.open_calibration.cohen_kappa": (
+            "simid_open_calibration_summary",
+            "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/open_calibration_summary.json",
+            "irr.cohen_kappa",
+        ),
+        "measurement.simid.prospective_open_calibration.opus47.cohen_kappa": (
+            "simid_prospective_open_calibration_opus47",
+            "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/mvp_20260427_calibration/human_review_package/prospective_open_calibration_gate_20260429/prospective_open_calibration_analysis_opus_4_7_max_run_001.json",
+            "metrics.cohen_kappa",
+        ),
+        "transfer.simid_prospective_partial.selected_truthfulqa.external_open_correct_delta_alpha8_pp": (
+            "simid_prospective_partial_effect_early_look",
+            "data/gemma3_4b/intervention/simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/prospective_effect_calibrated_open_20260429/external_open_label_package_selected_truthfulqa_alpha_0_8/early_look_paired_delta_analysis.json",
+            "metrics.correctness.paired_delta_alpha8_minus_alpha0",
+        ),
+    }
+
+    for metric_id, (artifact_id, source_path, locator) in expected.items():
+        metric = metrics[metric_id]
+        assert metric["source_artifact_ids"] == [artifact_id]
+        assert metric["source_locators"][0] == {
+            "artifact_id": artifact_id,
+            "source_path": source_path,
+            "locator": locator,
+            "derivation": "direct",
+        }
+        surface_id = f"surface:{source_path}:{locator}"
+        assert crosswalk[surface_id]["coverage_status"] == "exact_metric"
+        assert metric_id in crosswalk[surface_id]["ledger_metric_ids"]
+
+    mc_delta = metrics[
+        "transfer.simid_prospective_partial.selected_truthfulqa.mc_letter_delta_alpha8_pp"
+    ]
+    assert mc_delta["estimate"] == pytest.approx(-3.0837004405286343)
+    assert set(mc_delta["source_artifact_ids"]) == {
+        "simid_prospective_partial_effect_early_look",
+        "simid_prospective_partial_private_map",
+        "simid_prospective_selected_alpha0_rows",
+        "simid_prospective_selected_alpha8_rows",
+    }
+
+
 def test_faitheval_mean_slope_difference_uses_seed_bootstrap_mean_contract() -> None:
     summary = load_json(
         ROOT

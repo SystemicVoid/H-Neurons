@@ -353,6 +353,35 @@ def bootstrap_mean_ci(
     }
 
 
+def bootstrap_clustered_mean_ci(
+    cluster_values: list[list[float]],
+    *,
+    seed: int = BOOTSTRAP_SEED,
+    n_resamples: int = BOOTSTRAP_RESAMPLES,
+) -> JsonDict:
+    if not cluster_values or any(not values for values in cluster_values):
+        raise ValueError("cluster bootstrap requires non-empty clusters")
+    flat_values = [value for values in cluster_values for value in values]
+    estimate = sum(flat_values) / len(flat_values)
+    rng = random.Random(seed)
+    draws: list[float] = []
+    for _ in range(n_resamples):
+        sample_values: list[float] = []
+        for _ in cluster_values:
+            sample_values.extend(cluster_values[rng.randrange(len(cluster_values))])
+        draws.append(sum(sample_values) / len(sample_values))
+    draws.sort()
+    return {
+        "estimate": estimate,
+        "ci_lower": percentile(draws, 0.025),
+        "ci_upper": percentile(draws, 0.975),
+        "ci_level": 0.95,
+        "ci_method": "bootstrap_percentile_clustered_mean",
+        "n": len(flat_values),
+        "paired": True,
+    }
+
+
 def metric_row(
     *,
     metric_id: str,
@@ -676,6 +705,16 @@ class Builder:
             "faitheval_sae_utility_selector": self.extract_faitheval_sae_utility_selector,
             "faitheval_sae_utility_selector_heldout": self.extract_faitheval_sae_utility_selector_heldout,
             "faitheval_sae_utility_selector_augment": self.extract_faitheval_sae_utility_selector_augment,
+            "mistral24b_readout": self.extract_mistral24b_readout,
+            "mistral24b_faitheval_results": self.extract_mistral24b_faitheval_results,
+            "mistral24b_faitheval_control": self.extract_mistral24b_faitheval_control,
+            "mistral24b_h1_selection": self.extract_mistral24b_h1_selection,
+            "mistral24b_jailbreak_anchor3": self.extract_mistral24b_jailbreak_anchor3,
+            "mistral24b_anchor2_truthfulqa_mc": self.extract_mistral24b_anchor2_truthfulqa_mc,
+            "simid_mvp_results": self.extract_simid_mvp_results,
+            "simid_open_calibration": self.extract_simid_open_calibration,
+            "simid_prospective_open_calibration": self.extract_simid_prospective_open_calibration,
+            "simid_prospective_partial_effect": self.extract_simid_prospective_partial_effect,
             "falseqa_results": self.extract_falseqa_results,
             "bioasq_results": self.extract_bioasq_results,
             "bioasq_control_comparison": self.extract_bioasq_control_comparison,
@@ -1265,6 +1304,51 @@ class Builder:
             ],
             locator="family_overlap.utility_selected_vs_readout_selected.jaccard",
         )
+        answer_span = data["families"]["answer_span_selected"]
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_answer_span.selected_k",
+            spec=spec,
+            metric_name="answer_span_selected_k",
+            comparison_type="summary_value",
+            condition_a="answer_span_selected",
+            condition_b="answer_span_selected",
+            point=answer_span["k"],
+            unit="count",
+            n=data["candidate_pool"]["n_features"],
+            locator="families.answer_span_selected.k",
+        )
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_answer_span.outside_old_shortlist_fraction",
+            spec=spec,
+            metric_name="answer_span_outside_old_shortlist_fraction",
+            comparison_type="selector_diagnostic",
+            condition_a="answer_span_selected",
+            condition_b="old_shortlist",
+            point=answer_span["outside_old_shortlist"]["fraction"],
+            unit="proportion",
+            n=answer_span["k"],
+            locator="families.answer_span_selected.outside_old_shortlist.fraction",
+        )
+        for overlap_name, condition_b in [
+            ("answer_span_selected_vs_readout_selected", "readout_selected"),
+            ("answer_span_selected_vs_utility_selected", "utility_selected"),
+        ]:
+            overlap = data["family_overlap"][overlap_name]
+            self.add_metric_from_point(
+                metric_id=(
+                    "intervention.faitheval_sae_answer_span."
+                    f"{condition_b.replace('_selected', '')}_overlap_jaccard"
+                ),
+                spec=spec,
+                metric_name=f"answer_span_{condition_b}_overlap_jaccard",
+                comparison_type="selector_overlap",
+                condition_a="answer_span_selected",
+                condition_b=condition_b,
+                point=overlap["jaccard"],
+                unit="proportion",
+                n=overlap["union_count"],
+                locator=f"family_overlap.{overlap_name}.jaccard",
+            )
 
     def extract_faitheval_sae_utility_selector_heldout(self, spec: JsonDict) -> None:
         data = load_json(self.path(spec["source_path"]))
@@ -1363,6 +1447,172 @@ class Builder:
                 locator=f"heldout_anti_compliance_margin.paired_deltas.{delta_name}.estimate",
             )
 
+        answer_span_compliance = data["heldout_compliance_answer_span_selected"]
+        answer_span_family = answer_span_compliance["families"]["answer_span_selected"]
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_answer_span.answer_span_selected_compliance",
+            spec=spec,
+            metric_name="answer_span_selected_compliance",
+            comparison_type="heldout_rate",
+            condition_a="answer_span_selected",
+            condition_b="answer_span_selected",
+            point=answer_span_family["estimate"],
+            unit="proportion",
+            n=answer_span_family["n_total"],
+            ci_lower=answer_span_family["ci"]["lower"],
+            ci_upper=answer_span_family["ci"]["upper"],
+            ci_level=answer_span_family["ci"]["level"],
+            ci_method=answer_span_family["ci"]["method"],
+            locator="heldout_compliance_answer_span_selected.families.answer_span_selected.estimate",
+        )
+        for delta_name in [
+            "answer_span_selected_minus_noop",
+            "answer_span_selected_minus_readout",
+            "answer_span_selected_minus_utility_selected",
+        ]:
+            delta = answer_span_compliance["paired_deltas_pp"][delta_name]
+            self.add_metric_from_point(
+                metric_id=(
+                    f"intervention.faitheval_sae_answer_span.{delta_name}_compliance_pp"
+                ),
+                spec=spec,
+                metric_name=f"{delta_name}_compliance_pp",
+                comparison_type="paired_effect",
+                condition_a=delta_name.split("_minus_", 1)[1],
+                condition_b="answer_span_selected",
+                point=delta["estimate_pp"],
+                unit="pp",
+                n=data["n_samples"],
+                paired=True,
+                ci_lower=delta["ci_pp"]["lower"],
+                ci_upper=delta["ci_pp"]["upper"],
+                ci_level=delta["ci_pp"]["level"],
+                ci_method=delta["ci_pp"]["method"],
+                locator=(
+                    "heldout_compliance_answer_span_selected.paired_deltas_pp."
+                    f"{delta_name}.estimate_pp"
+                ),
+            )
+
+        answer_span_margin = data["heldout_answer_span_margin"]
+        answer_span_margin_family = answer_span_margin["families"][
+            "answer_span_selected"
+        ]
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_answer_span.answer_span_selected_answer_span_margin",
+            spec=spec,
+            metric_name="answer_span_selected_answer_span_margin",
+            comparison_type="heldout_margin",
+            condition_a="answer_span_selected",
+            condition_b="answer_span_selected",
+            point=answer_span_margin_family["estimate"],
+            unit="logprob_margin",
+            n=answer_span_margin_family["n"],
+            ci_lower=answer_span_margin_family["ci"]["lower"],
+            ci_upper=answer_span_margin_family["ci"]["upper"],
+            ci_level=answer_span_margin_family["ci"]["level"],
+            ci_method=answer_span_margin_family["ci"]["method"],
+            locator="heldout_answer_span_margin.families.answer_span_selected.estimate",
+        )
+        for delta_name in [
+            "answer_span_selected_minus_noop",
+            "answer_span_selected_minus_readout",
+            "answer_span_selected_minus_utility_selected",
+        ]:
+            delta = answer_span_margin["paired_deltas"][delta_name]
+            self.add_metric_from_point(
+                metric_id=(
+                    "intervention.faitheval_sae_answer_span."
+                    f"{delta_name}_answer_span_margin"
+                ),
+                spec=spec,
+                metric_name=f"{delta_name}_answer_span_margin",
+                comparison_type="paired_effect",
+                condition_a=delta_name.split("_minus_", 1)[1],
+                condition_b="answer_span_selected",
+                point=delta["estimate"],
+                unit="logprob_margin",
+                n=data["n_samples"],
+                paired=True,
+                ci_lower=delta["ci"]["lower"],
+                ci_upper=delta["ci"]["upper"],
+                ci_level=delta["ci"]["level"],
+                ci_method=delta["ci"]["method"],
+                locator=(
+                    f"heldout_answer_span_margin.paired_deltas.{delta_name}.estimate"
+                ),
+            )
+        nested_ci = answer_span_margin["across_seeds"]["seed_mean_summary"][
+            "nested_bootstrap"
+        ]["ci"]
+        self.add_metric_from_point(
+            metric_id=(
+                "intervention.faitheval_sae_answer_span."
+                "answer_span_selected_minus_random_seed_mean_answer_span_margin"
+            ),
+            spec=spec,
+            metric_name="answer_span_selected_minus_random_seed_mean_answer_span_margin",
+            comparison_type="seed_mean_gap",
+            condition_a="matched_random_answer_span",
+            condition_b="answer_span_selected",
+            point=answer_span_margin["across_seeds"]["seed_mean_summary"]["estimate"],
+            unit="logprob_margin",
+            n=answer_span_margin["across_seeds"]["seed_mean_summary"]["n_seeds"],
+            paired=True,
+            ci_lower=nested_ci["lower"],
+            ci_upper=nested_ci["upper"],
+            ci_level=nested_ci["level"],
+            ci_method=nested_ci["method"],
+            locator="heldout_answer_span_margin.across_seeds.seed_mean_summary.estimate",
+        )
+
+        anti_margin = data["heldout_anti_compliance_margin_answer_span_selected"]
+        anti_family = anti_margin["families"]["answer_span_selected"]
+        self.add_metric_from_point(
+            metric_id="intervention.faitheval_sae_answer_span.answer_span_selected_anti_margin",
+            spec=spec,
+            metric_name="answer_span_selected_anti_margin",
+            comparison_type="heldout_margin",
+            condition_a="answer_span_selected",
+            condition_b="answer_span_selected",
+            point=anti_family["estimate"],
+            unit="logprob_margin",
+            n=anti_family["n"],
+            ci_lower=anti_family["ci"]["lower"],
+            ci_upper=anti_family["ci"]["upper"],
+            ci_level=anti_family["ci"]["level"],
+            ci_method=anti_family["ci"]["method"],
+            locator="heldout_anti_compliance_margin_answer_span_selected.families.answer_span_selected.estimate",
+        )
+        for delta_name in [
+            "answer_span_selected_minus_noop",
+            "answer_span_selected_minus_readout",
+            "answer_span_selected_minus_utility_selected",
+        ]:
+            delta = anti_margin["paired_deltas"][delta_name]
+            self.add_metric_from_point(
+                metric_id=(
+                    f"intervention.faitheval_sae_answer_span.{delta_name}_anti_margin"
+                ),
+                spec=spec,
+                metric_name=f"{delta_name}_anti_margin",
+                comparison_type="paired_effect",
+                condition_a=delta_name.split("_minus_", 1)[1],
+                condition_b="answer_span_selected",
+                point=delta["estimate"],
+                unit="logprob_margin",
+                n=data["n_samples"],
+                paired=True,
+                ci_lower=delta["ci"]["lower"],
+                ci_upper=delta["ci"]["upper"],
+                ci_level=delta["ci"]["level"],
+                ci_method=delta["ci"]["method"],
+                locator=(
+                    "heldout_anti_compliance_margin_answer_span_selected."
+                    f"paired_deltas.{delta_name}.estimate"
+                ),
+            )
+
     def extract_faitheval_sae_utility_selector_augment(self, spec: JsonDict) -> None:
         data = load_json(self.path(spec["source_path"]))
         self.add_metric_from_point(
@@ -1450,6 +1700,783 @@ class Builder:
             ci_level=margin_delta["ci"]["level"],
             ci_method=margin_delta["ci"]["method"],
             locator="heldout_anti_compliance_margin.paired_deltas.utility_positive_minus_noop.estimate",
+        )
+
+    def extract_mistral24b_readout(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        evaluation = data["evaluation"]
+        for name in ["accuracy", "f1", "auroc"]:
+            point = evaluation["metrics"][name]
+            self.add_metric_from_point(
+                metric_id=f"readout.mistral24b.test.{name}",
+                spec=spec,
+                metric_name=f"mistral24b_test_{name}",
+                comparison_type="heldout_detector_metric",
+                condition_a="test_split",
+                condition_b="test_split",
+                point=point["estimate"],
+                unit="auroc" if name == "auroc" else "proportion",
+                n=evaluation["n_examples"],
+                ci_lower=point["ci"]["lower"],
+                ci_upper=point["ci"]["upper"],
+                ci_level=point["ci"]["level"],
+                ci_method=point["ci"]["method"],
+                locator=f"evaluation.metrics.{name}.estimate",
+            )
+        for field in ["selected_h_neurons", "total_ffn_neurons"]:
+            self.add_metric_from_point(
+                metric_id=f"readout.mistral24b.{field}",
+                spec=spec,
+                metric_name=field,
+                comparison_type="summary_value",
+                condition_a="mistral24b_detector",
+                condition_b="mistral24b_detector",
+                point=data[field],
+                unit="count",
+                n=None,
+                locator=field,
+            )
+        for field in ["fp", "fn"]:
+            self.add_metric_from_point(
+                metric_id=f"readout.mistral24b.test.confusion.{field}",
+                spec=spec,
+                metric_name=f"test_confusion_{field}",
+                comparison_type="heldout_confusion_count",
+                condition_a="test_split",
+                condition_b="test_split",
+                point=evaluation["confusion_matrix"][field],
+                unit="count",
+                n=evaluation["n_examples"],
+                locator=f"evaluation.confusion_matrix.{field}",
+            )
+
+    def extract_mistral24b_faitheval_results(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        run_slug = "h1" if "h1" in spec["artifact_id"] else "cp5"
+        prefix = f"intervention.mistral24b.{run_slug}.faitheval"
+        self.add_metric_from_point(
+            metric_id=f"{prefix}.n_h_neurons",
+            spec=spec,
+            metric_name="n_h_neurons",
+            comparison_type="summary_value",
+            condition_a=run_slug,
+            condition_b=run_slug,
+            point=data["n_h_neurons"],
+            unit="count",
+            n=None,
+            locator="n_h_neurons",
+        )
+        for alpha in ["0.0", "3.0"]:
+            point = data["results"][alpha]["compliance"]
+            self.add_metric_from_point(
+                metric_id=f"{prefix}.{alpha_code(alpha)}_compliance",
+                spec=spec,
+                metric_name=f"{alpha_code(alpha)}_compliance",
+                comparison_type="condition_rate",
+                condition_a=f"alpha_{alpha}",
+                condition_b=f"alpha_{alpha}",
+                point=point["estimate"],
+                unit="proportion",
+                n=point["n_total"],
+                ci_lower=point["ci"]["lower"],
+                ci_upper=point["ci"]["upper"],
+                ci_level=point["ci"]["level"],
+                ci_method=point["ci"]["method"],
+                locator=f"results.{alpha}.compliance.estimate",
+            )
+        curve = data["effects"]["compliance_curve"]
+        for metric_name, value_key, locator, condition_a in [
+            (
+                "delta_0_to_3_pp",
+                "delta_0_to_max_pp",
+                "effects.compliance_curve.delta_0_to_max_pp.estimate",
+                "alpha_0.0",
+            ),
+            (
+                "delta_1_to_3_pp",
+                "delta_noop_to_max_pp",
+                "effects.compliance_curve.delta_noop_to_max_pp.estimate",
+                "alpha_1.0",
+            ),
+            (
+                "slope_pp_per_alpha",
+                "slope_pp_per_alpha",
+                "effects.compliance_curve.slope_pp_per_alpha.estimate",
+                "alpha_curve",
+            ),
+        ]:
+            point = curve[value_key]
+            ci = point["ci"]
+            self.add_metric_from_point(
+                metric_id=f"{prefix}.{metric_name}",
+                spec=spec,
+                metric_name=metric_name,
+                comparison_type="paired_effect"
+                if metric_name.startswith("delta")
+                else "slope",
+                condition_a=condition_a,
+                condition_b="alpha_3.0"
+                if metric_name.startswith("delta")
+                else "alpha_curve",
+                point=point["estimate"],
+                unit="pp" if metric_name.startswith("delta") else "pp_per_alpha",
+                n=data["results"]["0.0"]["n_total"],
+                paired=True,
+                ci_lower=ci["lower"],
+                ci_upper=ci["upper"],
+                ci_level=ci["level"],
+                ci_method=ci["method"],
+                locator=locator,
+            )
+
+    def extract_mistral24b_faitheval_control(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        random_specs = [
+            (
+                "unconstrained_random",
+                "unconstrained_random",
+                "unconstrained_random.mean_slope_per_alpha",
+            ),
+            (
+                "layer_matched_random",
+                "layer_matched_random",
+                "layer_matched_random.mean_slope_per_alpha",
+            ),
+        ]
+        for metric_slug, key, locator in random_specs:
+            series = data[key]
+            ci = series["slope_percentile_interval"]
+            self.add_metric_from_point(
+                metric_id=(
+                    "intervention.mistral24b.cp5.faitheval."
+                    f"{metric_slug}_mean_slope_pp_per_alpha"
+                ),
+                spec=spec,
+                metric_name=f"{metric_slug}_mean_slope_pp_per_alpha",
+                comparison_type="control_slope",
+                condition_a=metric_slug,
+                condition_b=metric_slug,
+                point=series["mean_slope_per_alpha"],
+                unit="pp_per_alpha",
+                n=len(series["per_seed"]),
+                ci_lower=ci["lower"],
+                ci_upper=ci["upper"],
+                ci_level=ci["level"],
+                ci_method=ci["method"],
+                locator=locator,
+            )
+        comparison = data["comparison_to_h_neurons"]
+        h_minus_random = (
+            comparison["slope_h_pp_per_alpha"]
+            - comparison["slope_random_mean_pp_per_alpha"]
+        )
+        self.add_metric_from_point(
+            metric_id=(
+                "intervention.mistral24b.cp5.faitheval."
+                "h_minus_unconstrained_random_slope_pp_per_alpha"
+            ),
+            spec=spec,
+            metric_name="h_minus_unconstrained_random_slope_pp_per_alpha",
+            comparison_type="control_gap",
+            condition_a="unconstrained_random_mean",
+            condition_b="h_neurons",
+            point=h_minus_random,
+            unit="pp_per_alpha",
+            n=len(data["unconstrained_random"]["per_seed"]),
+            locator="comparison_to_h_neurons.slope_h_pp_per_alpha",
+        )
+
+    def extract_mistral24b_h1_selection(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        selected = data["selected"]
+        for metric_slug, source_key, unit, n_value in [
+            ("selected_c", "C", "scalar", len(data["candidates"])),
+            ("selected_h_neurons", "selected_h_neurons", "count", None),
+            ("selection_score", "selection_score", "scalar", len(data["candidates"])),
+            (
+                "heldout_dev_accuracy",
+                "heldout_dev_accuracy",
+                "proportion",
+                selected["triviaqa_n_total"],
+            ),
+            (
+                "triviaqa_alpha0_deterministic_accuracy",
+                "triviaqa_alpha0_deterministic_accuracy_rate",
+                "proportion",
+                selected["triviaqa_n_total"],
+            ),
+        ]:
+            self.add_metric_from_point(
+                metric_id=f"intervention.mistral24b.h1.selection.{metric_slug}",
+                spec=spec,
+                metric_name=metric_slug,
+                comparison_type="selection_summary",
+                condition_a="candidate_grid",
+                condition_b="selected_candidate",
+                point=selected[source_key],
+                unit=unit,
+                n=n_value,
+                locator=f"selected.{source_key}",
+            )
+
+    def extract_mistral24b_jailbreak_anchor3(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        for judge in ["binary_full", "csv3_full", "strongreject_full"]:
+            evaluator = data["evaluators"][judge]
+            self.add_metric_from_point(
+                metric_id=(
+                    "measurement.mistral24b.jailbreak_anchor3."
+                    f"{judge}.combined_harmful_rate"
+                ),
+                spec=spec,
+                metric_name=f"{judge}_combined_harmful_rate",
+                comparison_type="evaluator_rate",
+                condition_a=judge,
+                condition_b=judge,
+                point=evaluator["rate"],
+                unit="proportion",
+                n=evaluator["valid"],
+                locator=f"evaluators.{judge}.rate",
+            )
+            self.add_metric_from_point(
+                metric_id=(
+                    "measurement.mistral24b.jailbreak_anchor3."
+                    f"{judge}.explicit_error_count"
+                ),
+                spec=spec,
+                metric_name=f"{judge}_explicit_error_count",
+                comparison_type="evaluator_integrity",
+                condition_a=judge,
+                condition_b=judge,
+                point=evaluator["errors"],
+                unit="count",
+                n=evaluator["total"],
+                locator=f"evaluators.{judge}.errors",
+            )
+            effects = data["curve_effects"][judge]["effects"]
+            for metric_name, value_key, unit in [
+                ("delta_0_to_3_pp", "delta_0_to_max_pp", "pp"),
+                ("slope_pp_per_alpha", "slope_pp_per_alpha", "pp_per_alpha"),
+            ]:
+                point = effects[value_key]
+                ci = point["ci"]
+                self.add_metric_from_point(
+                    metric_id=(
+                        "measurement.mistral24b.jailbreak_anchor3."
+                        f"{judge}.{metric_name}"
+                    ),
+                    spec=spec,
+                    metric_name=f"{judge}_{metric_name}",
+                    comparison_type="paired_effect" if unit == "pp" else "slope",
+                    condition_a="alpha_0.0" if unit == "pp" else "alpha_curve",
+                    condition_b="alpha_3.0" if unit == "pp" else "alpha_curve",
+                    point=point["estimate"],
+                    unit=unit,
+                    n=data["curve_effects"][judge]["n_complete_ids"],
+                    paired=True,
+                    ci_lower=ci["lower"],
+                    ci_upper=ci["upper"],
+                    ci_level=ci["level"],
+                    ci_method=ci["method"],
+                    locator=f"curve_effects.{judge}.effects.{value_key}.estimate",
+                )
+        pair_specs = [
+            ("binary_full_vs_csv3_full", "binary_full_vs_csv3"),
+            ("csv3_full_vs_strongreject_full", "csv3_vs_strongreject"),
+            ("binary_256_vs_binary_full", "binary_256_vs_full"),
+        ]
+        for pair_key, pair_slug in pair_specs:
+            pair = data["pairs"][pair_key]["combined"]
+            for metric_slug, source_key, unit in [
+                ("agreement", "agreement", "proportion"),
+                ("cohen_kappa", "cohen_kappa", "kappa"),
+                (
+                    "left_minus_right_harmful_rate_pp",
+                    "left_minus_right_harmful_rate_pp",
+                    "pp",
+                ),
+                ("mcnemar_p", "mcnemar_exact_two_sided_p", "p_value"),
+            ]:
+                value = pair[source_key]
+                if isinstance(value, dict):
+                    value = value["rate"]
+                    locator = f"pairs.{pair_key}.combined.{source_key}.rate"
+                else:
+                    locator = f"pairs.{pair_key}.combined.{source_key}"
+                self.add_metric_from_point(
+                    metric_id=(
+                        "measurement.mistral24b.jailbreak_anchor3."
+                        f"{pair_slug}.{metric_slug}"
+                    ),
+                    spec=spec,
+                    metric_name=f"{pair_slug}_{metric_slug}",
+                    comparison_type="evaluator_pairing",
+                    condition_a=pair_key.split("_vs_", 1)[0],
+                    condition_b=pair_key.split("_vs_", 1)[1],
+                    point=value,
+                    unit=unit,
+                    n=pair["n_paired_evaluable"],
+                    paired=True,
+                    locator=locator,
+                )
+
+    def extract_mistral24b_anchor2_truthfulqa_mc(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        variant = data["variant"]
+        prefix = f"transfer.mistral24b_anchor2.truthfulqa_{variant}"
+        pooled = data["pooled"]
+        for metric_slug, block_key in [
+            ("baseline_rate", "baseline"),
+            ("intervened_rate", "intervened"),
+        ]:
+            point = pooled[block_key]
+            ci = point["ci"]
+            self.add_metric_from_point(
+                metric_id=f"{prefix}.{metric_slug}",
+                spec=spec,
+                metric_name=f"{variant}_{metric_slug}",
+                comparison_type="condition_rate",
+                condition_a=f"alpha_{point['alpha']}",
+                condition_b=f"alpha_{point['alpha']}",
+                point=point["rate"],
+                unit="proportion",
+                n=pooled["n_samples_total"],
+                ci_lower=ci["lower"],
+                ci_upper=ci["upper"],
+                ci_level=ci["level"],
+                ci_method=ci["method"],
+                locator=f"pooled.{block_key}.rate",
+            )
+        delta = pooled["delta_pp"]
+        ci = delta["ci_pp"]
+        self.add_metric_from_point(
+            metric_id=f"{prefix}.delta_alpha4_minus_alpha0_pp",
+            spec=spec,
+            metric_name=f"{variant}_delta_alpha4_minus_alpha0_pp",
+            comparison_type="paired_effect",
+            condition_a="alpha_0.0",
+            condition_b="alpha_4.0",
+            point=delta["estimate_pp"],
+            unit="pp",
+            n=pooled["n_samples_total"],
+            paired=True,
+            ci_lower=ci["lower"],
+            ci_upper=ci["upper"],
+            ci_level=ci["level"],
+            ci_method=ci["method"],
+            locator="pooled.delta_pp.estimate_pp",
+        )
+        if "mcnemar_p" in pooled:
+            self.add_metric_from_point(
+                metric_id=f"{prefix}.mcnemar_p",
+                spec=spec,
+                metric_name=f"{variant}_mcnemar_p",
+                comparison_type="paired_significance",
+                condition_a="alpha_0.0",
+                condition_b="alpha_4.0",
+                point=pooled["mcnemar_p"],
+                unit="p_value",
+                n=pooled["n_samples_total"],
+                paired=True,
+                locator="pooled.mcnemar_p",
+            )
+
+    def extract_simid_mvp_results(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+
+        def add_simid_rate(metric_id: str, condition: str, metric: str) -> None:
+            point = data["conditions"][condition]["rates"]["0.0"][metric]
+            self.add_metric_from_point(
+                metric_id=metric_id,
+                spec=spec,
+                metric_name=metric.rsplit("_", 1)[0],
+                comparison_type="condition_rate",
+                condition_a=f"{condition}_alpha_0.0",
+                condition_b=f"{condition}_alpha_0.0",
+                point=point["estimate"],
+                unit="proportion",
+                n=point["n"],
+                ci_lower=point["ci"]["lower"],
+                ci_upper=point["ci"]["upper"],
+                ci_level=point["ci"]["level"],
+                ci_method=point["ci"]["method"],
+                locator=f"conditions.{condition}.rates.0.0.{metric}.estimate",
+            )
+
+        def add_simid_delta(metric_id: str, condition: str, metric: str) -> None:
+            point = data["conditions"][condition]["paired_deltas_vs_baseline"]["8.0"][
+                metric
+            ]
+            self.add_metric_from_point(
+                metric_id=metric_id,
+                spec=spec,
+                metric_name=f"{metric}_delta_alpha8_minus_alpha0",
+                comparison_type="paired_effect",
+                condition_a=f"{condition}_alpha_0.0",
+                condition_b=f"{condition}_alpha_8.0",
+                point=point["estimate_pp"],
+                unit="pp",
+                n=data["conditions"][condition]["n_paired_items"],
+                paired=True,
+                ci_lower=point["ci_pp"]["lower"],
+                ci_upper=point["ci_pp"]["upper"],
+                ci_level=point["ci_pp"]["level"],
+                ci_method=point["ci_pp"]["method"],
+                locator=(
+                    f"conditions.{condition}.paired_deltas_vs_baseline."
+                    f"8.0.{metric}.estimate_pp"
+                ),
+            )
+
+        add_simid_rate(
+            "transfer.simid_mvp.selected.pooled.adjudicated_open_baseline",
+            "selected",
+            "adjudicated_open_correct",
+        )
+        add_simid_rate(
+            "transfer.simid_mvp.selected.pooled.mc_letter_baseline",
+            "selected",
+            "mc_letter_likelihood_correct",
+        )
+        add_simid_delta(
+            "transfer.simid_mvp.selected.pooled.adjudicated_open_delta_alpha8_pp",
+            "selected",
+            "adjudicated_open_correct",
+        )
+        add_simid_delta(
+            "transfer.simid_mvp.selected.pooled.mc_letter_delta_alpha8_pp",
+            "selected",
+            "mc_letter_likelihood_correct",
+        )
+        for condition in ["random_direction_seed1", "random_head_seed1"]:
+            add_simid_delta(
+                (
+                    "transfer.simid_mvp."
+                    f"{condition}.pooled.adjudicated_open_delta_alpha8_pp"
+                ),
+                condition,
+                "adjudicated_open_correct",
+            )
+        dataset_keys = {
+            "bridge": "triviaqa_bridge::synthetic_mc1",
+            "truthfulqa": (
+                "truthfulqa::truthfulqa_mc1::truthfulqa_artifact_split=test::"
+                "truthfulqa_seen_in_iti_fit=false::truthfulqa_leakage_policy=heldout_only"
+            ),
+        }
+        for dataset_slug, dataset_key in dataset_keys.items():
+            summary = data["conditions"]["selected"]["dataset_endpoint_summaries"][
+                dataset_key
+            ]
+            for metric in ["adjudicated_open_correct", "mc_letter_likelihood_correct"]:
+                point = summary["paired_deltas_vs_baseline"]["8.0"][metric]
+                self.add_metric_from_point(
+                    metric_id=(
+                        "transfer.simid_mvp.selected."
+                        f"{dataset_slug}.{metric}_delta_alpha8_pp"
+                    ),
+                    spec=spec,
+                    metric_name=f"{dataset_slug}_{metric}_delta_alpha8_pp",
+                    comparison_type="paired_effect",
+                    condition_a=f"selected_{dataset_slug}_alpha_0.0",
+                    condition_b=f"selected_{dataset_slug}_alpha_8.0",
+                    point=point["estimate_pp"],
+                    unit="pp",
+                    n=summary["n_paired_items"],
+                    paired=True,
+                    ci_lower=point["ci_pp"]["lower"],
+                    ci_upper=point["ci_pp"]["upper"],
+                    ci_level=point["ci_pp"]["level"],
+                    ci_method=point["ci_pp"]["method"],
+                    locator=(
+                        "conditions.selected.dataset_endpoint_summaries."
+                        f"{dataset_key}.paired_deltas_vs_baseline.8.0."
+                        f"{metric}.estimate_pp"
+                    ),
+                )
+        for control, control_slug in [
+            ("random_direction_seed1", "random_direction"),
+            ("random_head_seed1", "random_head"),
+        ]:
+            point = data["selected_minus_control_slopes"][control]["open_first3_margin"]
+            self.add_metric_from_point(
+                metric_id=(
+                    "transfer.simid_mvp.selected_vs_"
+                    f"{control_slug}.open_first3_margin_slope_gap"
+                ),
+                spec=spec,
+                metric_name=(
+                    f"selected_vs_{control_slug}_open_first3_margin_slope_gap"
+                ),
+                comparison_type="slope_gap",
+                condition_a=control,
+                condition_b="selected",
+                point=point["estimate"],
+                unit="logprob_margin",
+                n=data["conditions"]["selected"]["n_paired_items"],
+                paired=True,
+                ci_lower=point["ci"]["lower"],
+                ci_upper=point["ci"]["upper"],
+                ci_level=point["ci"]["level"],
+                ci_method=point["ci"]["method"],
+                locator=(
+                    f"selected_minus_control_slopes.{control}."
+                    "open_first3_margin.estimate"
+                ),
+            )
+
+    def extract_simid_open_calibration(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        raw = data["irr"]["raw_agreement"]
+        self.add_metric_from_point(
+            metric_id="measurement.simid.open_calibration.raw_agreement",
+            spec=spec,
+            metric_name="raw_agreement",
+            comparison_type="calibration_agreement",
+            condition_a="primary_judge",
+            condition_b="secondary_rater",
+            point=raw["estimate"],
+            unit="proportion",
+            n=raw["n"],
+            ci_lower=raw["ci"]["lower"],
+            ci_upper=raw["ci"]["upper"],
+            ci_level=raw["ci"]["level"],
+            ci_method=raw["ci"]["method"],
+            locator="irr.raw_agreement.estimate",
+        )
+        for metric_slug, key, unit in [
+            ("cohen_kappa", "cohen_kappa", "kappa"),
+            ("gwet_ac1", "gwet_ac1", "ac1"),
+            ("n_disagreements", "n_disagreements", "count"),
+        ]:
+            self.add_metric_from_point(
+                metric_id=f"measurement.simid.open_calibration.{metric_slug}",
+                spec=spec,
+                metric_name=metric_slug,
+                comparison_type="calibration_agreement",
+                condition_a="primary_judge",
+                condition_b="secondary_rater",
+                point=data["irr"][key],
+                unit=unit,
+                n=data["irr"]["n_cases"],
+                locator=f"irr.{key}",
+            )
+        rule_gap = data["adjudication"]["rule_gap_cases"]
+        self.add_metric_from_point(
+            metric_id="measurement.simid.open_calibration.rule_gap_rate",
+            spec=spec,
+            metric_name="rule_gap_rate",
+            comparison_type="calibration_rule_gap",
+            condition_a="disagreements",
+            condition_b="adjudicated_rule",
+            point=rule_gap["estimate"],
+            unit="proportion",
+            n=rule_gap["n"],
+            ci_lower=rule_gap["ci"]["lower"],
+            ci_upper=rule_gap["ci"]["upper"],
+            ci_level=rule_gap["ci"]["level"],
+            ci_method=rule_gap["ci"]["method"],
+            locator="adjudication.rule_gap_cases.estimate",
+        )
+
+    def extract_simid_prospective_open_calibration(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        run_slug = spec["artifact_id"].rsplit("_", 1)[-1]
+        metrics = data["metrics"]
+        raw = metrics["raw_agreement"]
+        self.add_metric_from_point(
+            metric_id=(
+                "measurement.simid.prospective_open_calibration."
+                f"{run_slug}.raw_agreement"
+            ),
+            spec=spec,
+            metric_name=f"{run_slug}_raw_agreement",
+            comparison_type="prospective_calibration_agreement",
+            condition_a="returned_labels",
+            condition_b="reference_labels",
+            point=raw["estimate"],
+            unit="proportion",
+            n=raw["n"],
+            ci_lower=raw["ci"]["lower"],
+            ci_upper=raw["ci"]["upper"],
+            ci_level=raw["ci"]["level"],
+            ci_method=raw["ci"]["method"],
+            locator="metrics.raw_agreement.estimate",
+        )
+        for metric_slug, key, unit in [
+            ("cohen_kappa", "cohen_kappa", "kappa"),
+            ("gwet_ac1", "gwet_ac1", "ac1"),
+            ("rule_gap_count", "rule_gap_count", "count"),
+        ]:
+            self.add_metric_from_point(
+                metric_id=(
+                    "measurement.simid.prospective_open_calibration."
+                    f"{run_slug}.{metric_slug}"
+                ),
+                spec=spec,
+                metric_name=f"{run_slug}_{metric_slug}",
+                comparison_type="prospective_calibration_agreement",
+                condition_a="returned_labels",
+                condition_b="reference_labels",
+                point=metrics[key],
+                unit=unit,
+                n=data["n_cases"],
+                locator=f"metrics.{key}",
+            )
+
+    def _simid_partial_mc_delta(self) -> JsonDict:
+        root = self.path(
+            "data/gemma3_4b/intervention/"
+            "simid_iti_truthfulqa-paperfaithful_k12_first-3-tokens/"
+            "prospective_effect_calibrated_open_20260429"
+        )
+        package = root / "external_open_label_package_selected_truthfulqa_alpha_0_8"
+        private_rows = load_jsonl(package / "private_case_map.jsonl")
+        scoped_by_alpha: dict[float, set[str]] = defaultdict(set)
+        base_by_sample: dict[str, str] = {}
+        for row in private_rows:
+            sample_id = str(row["sample_id"])
+            scoped_by_alpha[float(row["alpha"])].add(sample_id)
+            base_by_sample[sample_id] = str(row["base_sample_id"])
+        rows_by_alpha: dict[float, dict[str, JsonDict]] = {}
+        for alpha in [0.0, 8.0]:
+            rows_by_alpha[alpha] = {
+                str(row["sample_id"]): row
+                for row in load_jsonl(root / "selected" / f"alpha_{alpha:.1f}.jsonl")
+                if row.get("dataset") == "truthfulqa"
+                and str(row["sample_id"]) in scoped_by_alpha[alpha]
+            }
+        sample_ids = sorted(scoped_by_alpha[0.0] & scoped_by_alpha[8.0])
+        cluster_diffs: dict[str, list[float]] = defaultdict(list)
+        for sample_id in sample_ids:
+            before = rows_by_alpha[0.0][sample_id]["mc_letter_likelihood"]["full"][
+                "chosen_is_gold"
+            ]
+            after = rows_by_alpha[8.0][sample_id]["mc_letter_likelihood"]["full"][
+                "chosen_is_gold"
+            ]
+            cluster_diffs[base_by_sample[sample_id]].append(
+                (float(after) - float(before)) * 100.0
+            )
+        return bootstrap_clustered_mean_ci(
+            [cluster_diffs[key] for key in sorted(cluster_diffs)],
+            seed=20260520,
+        )
+
+    def extract_simid_prospective_partial_effect(self, spec: JsonDict) -> None:
+        data = load_json(self.path(spec["source_path"]))
+        scope = data["scope"]
+        for metric_slug, metric_key in [
+            ("external_open_correct", "correctness"),
+            ("external_open_attempted", "attempted"),
+        ]:
+            metric = data["metrics"][metric_key]
+            self.add_metric_from_point(
+                metric_id=(
+                    "transfer.simid_prospective_partial.selected_truthfulqa."
+                    f"{metric_slug}_delta_alpha8_pp"
+                ),
+                spec=spec,
+                metric_name=f"{metric_slug}_delta_alpha8_pp",
+                comparison_type="paired_effect",
+                condition_a="selected_truthfulqa_alpha_0.0",
+                condition_b="selected_truthfulqa_alpha_8.0",
+                point=metric["paired_delta_alpha8_minus_alpha0"] * 100.0,
+                unit="pp",
+                n=scope["paired_sample_count"],
+                paired=True,
+                ci_lower=metric["ci_95"][0] * 100.0,
+                ci_upper=metric["ci_95"][1] * 100.0,
+                ci_level=0.95,
+                ci_method=data["ci_method"]["name"],
+                locator=f"metrics.{metric_key}.paired_delta_alpha8_minus_alpha0",
+            )
+            for alpha in ["0", "8"]:
+                self.add_metric_from_point(
+                    metric_id=(
+                        "transfer.simid_prospective_partial.selected_truthfulqa."
+                        f"{metric_slug}_alpha{alpha}_rate"
+                    ),
+                    spec=spec,
+                    metric_name=f"{metric_slug}_alpha{alpha}_rate",
+                    comparison_type="condition_rate",
+                    condition_a=f"selected_truthfulqa_alpha_{alpha}.0",
+                    condition_b=f"selected_truthfulqa_alpha_{alpha}.0",
+                    point=metric[f"alpha_{alpha}_rate"],
+                    unit="proportion",
+                    n=scope["paired_sample_count"],
+                    locator=f"metrics.{metric_key}.alpha_{alpha}_rate",
+                )
+        self.add_metric_from_point(
+            metric_id=(
+                "transfer.simid_prospective_partial.selected_truthfulqa."
+                "paired_sample_count"
+            ),
+            spec=spec,
+            metric_name="paired_sample_count",
+            comparison_type="summary_value",
+            condition_a="partial_package",
+            condition_b="partial_package",
+            point=scope["paired_sample_count"],
+            unit="count",
+            n=scope["row_count"],
+            locator="scope.paired_sample_count",
+        )
+        self.add_metric_from_point(
+            metric_id=(
+                "transfer.simid_prospective_partial.selected_truthfulqa.rule_gap_count"
+            ),
+            spec=spec,
+            metric_name="rule_gap_count",
+            comparison_type="label_integrity",
+            condition_a="partial_package",
+            condition_b="partial_package",
+            point=data["rule_gap_count"],
+            unit="count",
+            n=scope["row_count"],
+            locator="rule_gap_count",
+        )
+        mc_delta = self._simid_partial_mc_delta()
+        self.add_metric_from_point(
+            metric_id=(
+                "transfer.simid_prospective_partial.selected_truthfulqa."
+                "mc_letter_delta_alpha8_pp"
+            ),
+            spec=spec,
+            metric_name="mc_letter_delta_alpha8_pp",
+            comparison_type="paired_effect",
+            condition_a="selected_truthfulqa_alpha_0.0",
+            condition_b="selected_truthfulqa_alpha_8.0",
+            point=mc_delta["estimate"],
+            unit="pp",
+            n=mc_delta["n"],
+            paired=True,
+            ci_lower=mc_delta["ci_lower"],
+            ci_upper=mc_delta["ci_upper"],
+            ci_level=mc_delta["ci_level"],
+            ci_method=mc_delta["ci_method"],
+            source_locators=[
+                self.source_locator(
+                    spec["artifact_id"],
+                    "scope.paired_sample_count",
+                    derivation="scope_filter",
+                ),
+                self.source_locator(
+                    "simid_prospective_partial_private_map",
+                    "rows[*].sample_id",
+                    derivation="scope_filter",
+                ),
+                self.source_locator(
+                    "simid_prospective_selected_alpha0_rows",
+                    "rows[*].mc_letter_likelihood.full.chosen_is_gold",
+                    derivation="paired_cluster_bootstrap",
+                ),
+                self.source_locator(
+                    "simid_prospective_selected_alpha8_rows",
+                    "rows[*].mc_letter_likelihood.full.chosen_is_gold",
+                    derivation="paired_cluster_bootstrap",
+                ),
+            ],
         )
 
     def extract_falseqa_results(self, spec: JsonDict) -> None:
@@ -3890,7 +4917,10 @@ class Builder:
     def _family_metric_groups(self, family_id: str) -> list[tuple[str, list[str]]]:
         groups = {
             "readout_surfaces": [
-                ("Detector Quality", ["readout.disjoint.", "readout.overlap."]),
+                (
+                    "Detector Quality",
+                    ["readout.disjoint.", "readout.overlap.", "readout.mistral24b."],
+                ),
                 ("SAE Readout", ["readout.sae."]),
                 (
                     "Localization / Sparsity",
@@ -3906,13 +4936,17 @@ class Builder:
                         "intervention.faitheval_sae.",
                         "intervention.faitheval_sae_utility.",
                         "intervention.faitheval_sae_utility_positive.",
+                        "intervention.faitheval_sae_answer_span.",
                     ],
                 ),
+                ("Mistral FaithEval", ["intervention.mistral24b."]),
                 ("Binary Jailbreak", ["intervention.jailbreak.binary."]),
             ],
             "measurement_surfaces": [
                 ("Jailbreak Ruler Sensitivity", ["measurement.jailbreak."]),
+                ("Mistral Jailbreak", ["measurement.mistral24b."]),
                 ("FaithEval Cleanup", ["measurement.faitheval."]),
+                ("SIMID Calibration", ["measurement.simid."]),
                 (
                     "Evaluator Validation",
                     [
@@ -3925,6 +4959,11 @@ class Builder:
             ],
             "transfer_externality_surfaces": [
                 ("TruthfulQA Multiple Choice", ["transfer.truthfulqa_mc."]),
+                ("Mistral TruthfulQA", ["transfer.mistral24b_anchor2."]),
+                (
+                    "SIMID Transfer",
+                    ["transfer.simid_mvp.", "transfer.simid_prospective_partial."],
+                ),
                 ("SimpleQA", ["transfer.simpleqa."]),
                 ("Bridge Outcome Surface", ["transfer.bridge."]),
                 ("Bridge Margin Analysis", ["transfer.bridge_margins."]),
@@ -4146,6 +5185,13 @@ class Builder:
                     f"{self._cite('readout.sae.auroc', 'readout.sae.test_size', 'readout.sae.n_positive_features', 'readout.sae.layer_count')}."
                 ),
                 (
+                    "The pack now includes the Mistral 24B detector surface: "
+                    f"test AUROC {format_metric_value(metrics['readout.mistral24b.test.auroc'])}, "
+                    f"accuracy {format_metric_value(metrics['readout.mistral24b.test.accuracy'])}, and "
+                    f"{format_metric_value(metrics['readout.mistral24b.selected_h_neurons'])} selected neurons "
+                    f"{self._cite('readout.mistral24b.test.auroc', 'readout.mistral24b.test.accuracy', 'readout.mistral24b.selected_h_neurons')}."
+                ),
+                (
                     "False positives and false negatives are nearly balanced on the disjoint split "
                     f"({format_metric_value(metrics['readout.disjoint.confusion.fp'])} FP vs "
                     f"{format_metric_value(metrics['readout.disjoint.confusion.fn'])} FN), so the dominant issue is not a one-sided collapse but boundary cases around answer normalization and consistency support "
@@ -4187,6 +5233,20 @@ class Builder:
                     f"{self._cite('intervention.faitheval_sae_utility.utility_minus_noop_compliance_pp', 'intervention.faitheval_sae_utility.utility_minus_noop_margin', 'intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_compliance_pp', 'intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin', sources=['faitheval_sae_utility_selector_audit', 'faitheval_sae_utility_selector_augment_audit'])}."
                 ),
                 (
+                    "The SAE answer-span extension adds a span-targeted selector: "
+                    f"answer-span-minus-noop span margin {format_metric_value(metrics['intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_answer_span_margin'])}, "
+                    f"seed-mean random gap {format_metric_value(metrics['intervention.faitheval_sae_answer_span.answer_span_selected_minus_random_seed_mean_answer_span_margin'])}, and "
+                    f"compliance delta {format_metric_value(metrics['intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_compliance_pp'])} "
+                    f"{self._cite('intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_answer_span_margin', 'intervention.faitheval_sae_answer_span.answer_span_selected_minus_random_seed_mean_answer_span_margin', 'intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_compliance_pp')}."
+                ),
+                (
+                    "Mistral FaithEval stays near-flat in both intervention branches: "
+                    f"CP5 delta {format_metric_value(metrics['intervention.mistral24b.cp5.faitheval.delta_0_to_3_pp'])}, "
+                    f"H1 delta {format_metric_value(metrics['intervention.mistral24b.h1.faitheval.delta_0_to_3_pp'])}, and "
+                    f"H1 selected C {format_metric_value(metrics['intervention.mistral24b.h1.selection.selected_c'])} "
+                    f"{self._cite('intervention.mistral24b.cp5.faitheval.delta_0_to_3_pp', 'intervention.mistral24b.h1.faitheval.delta_0_to_3_pp', 'intervention.mistral24b.h1.selection.selected_c')}."
+                ),
+                (
                     "The jailbreak binary surface is smaller than the graded surface: binary full-sweep delta is "
                     f"{format_metric_value(metrics['intervention.jailbreak.binary.delta_0_to_max_pp'])}, while the graded CSV-v2 surface reports "
                     f"{format_metric_value(metrics['measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha'])} slope and "
@@ -4213,6 +5273,21 @@ class Builder:
                     f"{format_metric_value(metrics['measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha'])} slope and "
                     f"{format_metric_value(metrics['measurement.jailbreak.v2.endpoint_delta_csv2_yes_pp'])} endpoint shift "
                     f"{self._cite('measurement.jailbreak.binary.alpha_0_count', 'measurement.jailbreak.binary.alpha_3_count', 'measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha', 'measurement.jailbreak.v2.endpoint_delta_csv2_yes_pp')}."
+                ),
+                (
+                    "Mistral Anchor3 JBB full-output judge curves move together: binary delta "
+                    f"{format_metric_value(metrics['measurement.mistral24b.jailbreak_anchor3.binary_full.delta_0_to_3_pp'])}, "
+                    f"CSV3 delta {format_metric_value(metrics['measurement.mistral24b.jailbreak_anchor3.csv3_full.delta_0_to_3_pp'])}, and "
+                    f"StrongREJECT delta {format_metric_value(metrics['measurement.mistral24b.jailbreak_anchor3.strongreject_full.delta_0_to_3_pp'])} "
+                    f"{self._cite('measurement.mistral24b.jailbreak_anchor3.binary_full.delta_0_to_3_pp', 'measurement.mistral24b.jailbreak_anchor3.csv3_full.delta_0_to_3_pp', 'measurement.mistral24b.jailbreak_anchor3.strongreject_full.delta_0_to_3_pp')}."
+                ),
+                (
+                    "SIMID open-label calibration is tracked at both stages: frozen raw agreement "
+                    f"{format_metric_value(metrics['measurement.simid.open_calibration.raw_agreement'])} with kappa "
+                    f"{format_metric_value(metrics['measurement.simid.open_calibration.cohen_kappa'])}, and prospective Opus raw agreement "
+                    f"{format_metric_value(metrics['measurement.simid.prospective_open_calibration.opus47.raw_agreement'])} with kappa "
+                    f"{format_metric_value(metrics['measurement.simid.prospective_open_calibration.opus47.cohen_kappa'])} "
+                    f"{self._cite('measurement.simid.open_calibration.raw_agreement', 'measurement.simid.open_calibration.cohen_kappa', 'measurement.simid.prospective_open_calibration.opus47.raw_agreement', 'measurement.simid.prospective_open_calibration.opus47.cohen_kappa')}."
                 ),
                 (
                     "FaithEval remap cleanup is large enough to change interpretation: raw standard slope is "
@@ -4252,6 +5327,19 @@ class Builder:
                     f"{format_metric_value(metrics['transfer.truthfulqa_mc.mc1.iti.delta_pp'])} and MC2 delta "
                     f"{format_metric_value(metrics['transfer.truthfulqa_mc.mc2.iti.delta_pp'])} "
                     f"{self._cite('transfer.truthfulqa_mc.mc1.iti.delta_pp', 'transfer.truthfulqa_mc.mc2.iti.delta_pp')}."
+                ),
+                (
+                    "Mistral Anchor2 TruthfulQA MC records a small MC1 delta and larger MC2 mass delta: "
+                    f"MC1 {format_metric_value(metrics['transfer.mistral24b_anchor2.truthfulqa_mc1.delta_alpha4_minus_alpha0_pp'])}, "
+                    f"MC2 {format_metric_value(metrics['transfer.mistral24b_anchor2.truthfulqa_mc2.delta_alpha4_minus_alpha0_pp'])} "
+                    f"{self._cite('transfer.mistral24b_anchor2.truthfulqa_mc1.delta_alpha4_minus_alpha0_pp', 'transfer.mistral24b_anchor2.truthfulqa_mc2.delta_alpha4_minus_alpha0_pp')}."
+                ),
+                (
+                    "Prospective SIMID partial labels put selected TruthfulQA open correctness at "
+                    f"{format_metric_value(metrics['transfer.simid_prospective_partial.selected_truthfulqa.external_open_correct_delta_alpha8_pp'])}, "
+                    f"attempt rate at {format_metric_value(metrics['transfer.simid_prospective_partial.selected_truthfulqa.external_open_attempted_delta_alpha8_pp'])}, and "
+                    f"MC-letter mass at {format_metric_value(metrics['transfer.simid_prospective_partial.selected_truthfulqa.mc_letter_delta_alpha8_pp'])} "
+                    f"{self._cite('transfer.simid_prospective_partial.selected_truthfulqa.external_open_correct_delta_alpha8_pp', 'transfer.simid_prospective_partial.selected_truthfulqa.external_open_attempted_delta_alpha8_pp', 'transfer.simid_prospective_partial.selected_truthfulqa.mc_letter_delta_alpha8_pp')}."
                 ),
                 (
                     "SimpleQA externalities are negative in both answer quality and willingness to answer: compliance delta "
@@ -4331,6 +5419,10 @@ class Builder:
                     "Readout quality does not transport to control utility by itself; the pack keeps detector metrics and intervention metrics separate on purpose "
                     f"{self._cite('readout.disjoint.auroc', 'intervention.faitheval.anti.slope_pp_per_alpha', 'intervention.faitheval_sae.h_slope_pp_per_alpha')}."
                 ),
+                (
+                    "The Mistral detector rows are same-family readout rows and should be interpreted beside the Gemma detector, not merged into a pooled detector score "
+                    f"{self._cite('readout.mistral24b.test.auroc', 'readout.disjoint.auroc')}."
+                ),
             ]
         if family_id == "intervention_surfaces":
             return [
@@ -4345,6 +5437,10 @@ class Builder:
                 (
                     "Binary jailbreak measurements are under-sensitive relative to the graded CSV surfaces and should not be used alone for null-vs-positive calls "
                     f"{self._cite('intervention.jailbreak.binary.delta_0_to_max_pp', 'measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha')}."
+                ),
+                (
+                    "Mistral CP5 and H1 FaithEval curves are near zero with intervals crossing zero, so these rows are control-scope rows for interpretation "
+                    f"{self._cite('intervention.mistral24b.cp5.faitheval.delta_0_to_3_pp', 'intervention.mistral24b.h1.faitheval.delta_0_to_3_pp')}."
                 ),
             ]
         if family_id == "measurement_surfaces":
@@ -4361,6 +5457,10 @@ class Builder:
                     "The canary note is evidence about pipeline integrity, not benchmark performance; one benign span-ordering mismatch does not move the main rates "
                     f"{self._cite(sources=['jailbreak_measurement_cleanup_audit'])}."
                 ),
+                (
+                    "SIMID calibration rows differ across returned-rater gates, so downstream interpretation should cite the exact rater stage "
+                    f"{self._cite('measurement.simid.prospective_open_calibration.opus47.raw_agreement', 'measurement.simid.prospective_open_calibration.codex55.raw_agreement', 'measurement.simid.prospective_open_calibration.human.raw_agreement')}."
+                ),
             ]
         if family_id == "transfer_externality_surfaces":
             return [
@@ -4371,6 +5471,10 @@ class Builder:
                 (
                     "Bridge adjudicated and deterministic deltas are close but not identical, which is why the pack keeps both rather than collapsing to one score "
                     f"{self._cite('transfer.bridge.adjudicated_accuracy_delta_pp', 'transfer.bridge.deterministic_accuracy_delta_pp')}."
+                ),
+                (
+                    "SIMID prospective partial labels cover a returned subset, so the paired sample count is part of the metric definition "
+                    f"{self._cite('transfer.simid_prospective_partial.selected_truthfulqa.paired_sample_count', 'transfer.simid_prospective_partial.selected_truthfulqa.external_open_correct_delta_alpha8_pp')}."
                 ),
             ]
         return [

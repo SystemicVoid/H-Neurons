@@ -2,19 +2,21 @@
 
 ## What This Surface Measures
 
-These surfaces track whether the H-neuron and SAE readouts are real detectors, how sparse they are, and where the main classification errors land. Primary artifacts in this family: `classifier_disjoint_summary`, `classifier_overlap_summary`, `classifier_sae_summary`, `classifier_structure_summary`, `pipeline_answer_tokens`, `pipeline_consistency_samples`, `pipeline_summary_site`.
+These surfaces track whether the H-neuron and SAE readouts are real detectors, how sparse they are, and where the main classification errors land. Primary artifacts in this family: `classifier_disjoint_summary`, `classifier_overlap_summary`, `classifier_sae_summary`, `classifier_structure_summary`, `mistral24b_classifier_test_metrics`, `pipeline_answer_tokens`, `pipeline_consistency_samples`, `pipeline_summary_site`.
 
 ## High-Signal Patterns
 
 - H-neuron detector quality is real on the disjoint split: AUROC 84.3%, accuracy 76.5% [`readout.disjoint.auroc`, `readout.disjoint.accuracy`, `classifier_disjoint_summary`].
 - Localization is sparse rather than diffuse: 38 selected neurons out of 348160, with layer counts skewed early (18) relative to middle/late (10, 10) [`readout.pipeline.selected_h_neurons`, `readout.pipeline.total_ffn_neurons`, `readout.structure.band.early`, `readout.structure.band.middle`, `readout.structure.band.late`, `pipeline_summary_site`, `classifier_disjoint_summary`, `classifier_structure_summary`].
 - SAE readout parity is close on detection quality but much less sparse: SAE AUROC 84.8% on 782 examples, with 266 positive features across 10 layers [`readout.sae.auroc`, `readout.sae.test_size`, `readout.sae.n_positive_features`, `readout.sae.layer_count`, `classifier_sae_summary`].
+- The pack now includes the Mistral 24B detector surface: test AUROC 0.871, accuracy 77.5%, and 10 selected neurons [`readout.mistral24b.test.auroc`, `readout.mistral24b.test.accuracy`, `readout.mistral24b.selected_h_neurons`, `mistral24b_classifier_test_metrics`].
 - False positives and false negatives are nearly balanced on the disjoint split (90 FP vs 93 FN), so the dominant issue is not a one-sided collapse but boundary cases around answer normalization and consistency support [`readout.disjoint.confusion.fp`, `readout.disjoint.confusion.fn`, `classifier_disjoint_summary`].
 
 ## Measurement / Interpretation Risks
 
 - The overlap split is slightly easier than the disjoint split, so readout quality should be read off the disjoint numbers first [`readout.overlap.accuracy`, `readout.disjoint.accuracy`, `readout.overlap.auroc`, `readout.disjoint.auroc`, `classifier_overlap_summary`, `classifier_disjoint_summary`].
 - Readout quality does not transport to control utility by itself; the pack keeps detector metrics and intervention metrics separate on purpose [`readout.disjoint.auroc`, `intervention.faitheval.anti.slope_pp_per_alpha`, `intervention.faitheval_sae.h_slope_pp_per_alpha`, `classifier_disjoint_summary`, `intervention_sweep_site`, `faitheval_sae_control_comparison`].
+- The Mistral detector rows are same-family readout rows and should be interpreted beside the Gemma detector, not merged into a pooled detector score [`readout.mistral24b.test.auroc`, `readout.disjoint.auroc`, `mistral24b_classifier_test_metrics`, `classifier_disjoint_summary`].
 
 ## Grouped Metric Tables
 
@@ -32,6 +34,13 @@ These surfaces track whether the H-neuron and SAE readouts are real detectors, h
 | `readout.disjoint.precision` | 76.7% | 780 | `[73.4, 80.1]%` | `classifier_disjoint_summary` |
 | `readout.disjoint.recall` | 76.1% | 780 | `[71.7, 80.5]%` | `classifier_disjoint_summary` |
 | `readout.disjoint.test_size` | 780 | 780 | `—` | `classifier_disjoint_summary` |
+| `readout.mistral24b.selected_h_neurons` | 10 | — | `—` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.accuracy` | 77.5% | 200 | `[71.5, 83.0]%` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.auroc` | 0.871 | 200 | `[0.818, 0.917]` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.confusion.fn` | 21 | 200 | `—` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.confusion.fp` | 24 | 200 | `—` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.f1` | 77.8% | 200 | `[71.8, 83.5]%` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.total_ffn_neurons` | 1310720 | — | `—` | `mistral24b_classifier_test_metrics` |
 | `readout.overlap.accuracy` | 77.7% | 1993 | `[75.9, 79.5]%` | `classifier_overlap_summary` |
 | `readout.overlap.auroc` | 86.3% | 1993 | `[84.7, 87.9]%` | `classifier_overlap_summary` |
 

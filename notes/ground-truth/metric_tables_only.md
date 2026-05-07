@@ -16,6 +16,13 @@
 | `readout.disjoint.precision` | 76.7% | 780 | `[73.4, 80.1]%` | `classifier_disjoint_summary` |
 | `readout.disjoint.recall` | 76.1% | 780 | `[71.7, 80.5]%` | `classifier_disjoint_summary` |
 | `readout.disjoint.test_size` | 780 | 780 | `—` | `classifier_disjoint_summary` |
+| `readout.mistral24b.selected_h_neurons` | 10 | — | `—` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.accuracy` | 77.5% | 200 | `[71.5, 83.0]%` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.auroc` | 0.871 | 200 | `[0.818, 0.917]` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.confusion.fn` | 21 | 200 | `—` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.confusion.fp` | 24 | 200 | `—` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.test.f1` | 77.8% | 200 | `[71.8, 83.5]%` | `mistral24b_classifier_test_metrics` |
+| `readout.mistral24b.total_ffn_neurons` | 1310720 | — | `—` | `mistral24b_classifier_test_metrics` |
 | `readout.overlap.accuracy` | 77.7% | 1993 | `[75.9, 79.5]%` | `classifier_overlap_summary` |
 | `readout.overlap.auroc` | 86.3% | 1993 | `[84.7, 87.9]%` | `classifier_overlap_summary` |
 
@@ -85,6 +92,23 @@
 | `intervention.faitheval_sae.neuron_minus_sae_slope_pp_per_alpha` | +1.93 pp/alpha | 1000 | `[+0.9, +2.9]` | `faitheval_sae_slope_difference` |
 | `intervention.faitheval_sae.permutation_p` | 1.00e-04 | 50000 | `—` | `faitheval_sae_slope_difference` |
 | `intervention.faitheval_sae.random_mean_slope_pp_per_alpha` | +0.59 pp/alpha | 3 | `—` | `faitheval_sae_control_comparison` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_answer_span_margin` | +1.80 | 840 | `[1.069, 2.536]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_anti_margin` | +8.00 | 840 | `[6.897, 9.088]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_compliance` | 67.4% | 840 | `[64.1, 70.5]%` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_answer_span_margin` | -0.33 | 840 | `[-0.608, -0.055]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_anti_margin` | -0.30 | 840 | `[-0.728, 0.120]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_compliance_pp` | +1.0 pp | 840 | `[-0.8, +2.7]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_random_seed_mean_answer_span_margin` | -0.53 | 10 | `[-0.811, -0.262]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_readout_answer_span_margin` | -0.98 | 840 | `[-1.380, -0.565]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_readout_anti_margin` | -1.22 | 840 | `[-1.773, -0.665]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_readout_compliance_pp` | +1.4 pp | 840 | `[-0.4, +3.2]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_utility_selected_answer_span_margin` | -0.22 | 840 | `[-0.468, 0.008]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_utility_selected_anti_margin` | +0.46 | 840 | `[0.161, 0.750]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_utility_selected_compliance_pp` | +1.2 pp | 840 | `[-0.4, +2.7]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.outside_old_shortlist_fraction` | 32.7% | 266 | `—` | `faitheval_sae_utility_selector_summary` |
+| `intervention.faitheval_sae_answer_span.readout_overlap_jaccard` | 35.7% | 392 | `—` | `faitheval_sae_utility_selector_summary` |
+| `intervention.faitheval_sae_answer_span.selected_k` | 266 | 509 | `—` | `faitheval_sae_utility_selector_summary` |
+| `intervention.faitheval_sae_answer_span.utility_overlap_jaccard` | 45.8% | 365 | `—` | `faitheval_sae_utility_selector_summary` |
 | `intervention.faitheval_sae_utility.candidate_pool_size` | 509 | 509 | `—` | `faitheval_sae_utility_selector_summary` |
 | `intervention.faitheval_sae_utility.heldout_sample_size` | 840 | 840 | `—` | `faitheval_sae_utility_selector_heldout` |
 | `intervention.faitheval_sae_utility.outside_old_shortlist_fraction` | 28.2% | 266 | `—` | `faitheval_sae_utility_selector_summary` |
@@ -103,6 +127,31 @@
 | `intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin` | -0.72 | 840 | `[-1.041, -0.385]` | `faitheval_sae_utility_selector_augment` |
 | `intervention.faitheval_sae_utility_positive.utility_positive_selected_compliance` | 66.5% | 840 | `[63.3, 69.7]%` | `faitheval_sae_utility_selector_augment` |
 | `intervention.faitheval_sae_utility_positive.utility_positive_selected_margin` | +7.59 | 840 | `[6.512, 8.637]` | `faitheval_sae_utility_selector_augment` |
+
+### Mistral FaithEval
+
+| metric_id | estimate | n | ci | source_ids |
+|---|---:|---:|---|---|
+| `intervention.mistral24b.cp5.faitheval.alpha_0_0_compliance` | 53.0% | 200 | `[46.1, 59.8]%` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.alpha_3_0_compliance` | 53.0% | 200 | `[46.1, 59.8]%` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.delta_0_to_3_pp` | +0.0 pp | 200 | `[-4.0, +4.0]` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.delta_1_to_3_pp` | +1.0 pp | 200 | `[-2.5, +4.5]` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.h_minus_unconstrained_random_slope_pp_per_alpha` | +0.81 pp/alpha | 5 | `—` | `mistral24b_faitheval_cp5_control` |
+| `intervention.mistral24b.cp5.faitheval.layer_matched_random_mean_slope_pp_per_alpha` | -0.04 pp/alpha | 3 | `[-0.0, -0.0]` | `mistral24b_faitheval_cp5_control` |
+| `intervention.mistral24b.cp5.faitheval.n_h_neurons` | 10 | — | `—` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.slope_pp_per_alpha` | +0.79 pp/alpha | 200 | `[-0.6, +2.2]` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.unconstrained_random_mean_slope_pp_per_alpha` | -0.02 pp/alpha | 5 | `[-0.1, +0.1]` | `mistral24b_faitheval_cp5_control` |
+| `intervention.mistral24b.h1.faitheval.alpha_0_0_compliance` | 51.5% | 200 | `[44.6, 58.3]%` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.alpha_3_0_compliance` | 52.0% | 200 | `[45.1, 58.8]%` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.delta_0_to_3_pp` | +0.5 pp | 200 | `[-3.0, +4.0]` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.delta_1_to_3_pp` | +0.5 pp | 200 | `[-2.0, +3.0]` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.n_h_neurons` | 9 | — | `—` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.slope_pp_per_alpha` | +0.14 pp/alpha | 200 | `[-0.9, +1.2]` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.selection.heldout_dev_accuracy` | 73.5% | 200 | `—` | `mistral24b_h1_selection_summary` |
+| `intervention.mistral24b.h1.selection.selected_c` | 0.750 | 10 | `—` | `mistral24b_h1_selection_summary` |
+| `intervention.mistral24b.h1.selection.selected_h_neurons` | 9 | — | `—` | `mistral24b_h1_selection_summary` |
+| `intervention.mistral24b.h1.selection.selection_score` | 1.395 | 10 | `—` | `mistral24b_h1_selection_summary` |
+| `intervention.mistral24b.h1.selection.triviaqa_alpha0_deterministic_accuracy` | 66.0% | 200 | `—` | `mistral24b_h1_selection_summary` |
 
 ### Binary Jailbreak
 
@@ -135,6 +184,35 @@
 | `measurement.jailbreak.v3.h_slope_csv2_yes_pp_per_alpha` | +0.46 pp/alpha | 500 | `—` | `jailbreak_control_v3` |
 | `measurement.jailbreak.v3.random_mean_slope_csv2_yes_pp_per_alpha` | -0.34 pp/alpha | 1 | `—` | `jailbreak_control_v3` |
 
+### Mistral Jailbreak
+
+| metric_id | estimate | n | ci | source_ids |
+|---|---:|---:|---|---|
+| `measurement.mistral24b.jailbreak_anchor3.binary_256_vs_full.agreement` | 96.3% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_256_vs_full.cohen_kappa` | 0.925 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_256_vs_full.left_minus_right_harmful_rate_pp` | -1.3 pp | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_256_vs_full.mcnemar_p` | 0.003 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full.combined_harmful_rate` | 46.1% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full.delta_0_to_3_pp` | +32.6 pp | 500 | `[+28.2, +37.2]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full.explicit_error_count` | 0 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full.slope_pp_per_alpha` | +10.67 pp/alpha | 500 | `[+9.2, +12.2]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full_vs_csv3.agreement` | 96.3% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full_vs_csv3.cohen_kappa` | 0.926 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full_vs_csv3.left_minus_right_harmful_rate_pp` | -0.1 pp | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.binary_full_vs_csv3.mcnemar_p` | 0.908 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_full.combined_harmful_rate` | 46.2% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_full.delta_0_to_3_pp` | +32.4 pp | 500 | `[+28.0, +36.8]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_full.explicit_error_count` | 0 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_full.slope_pp_per_alpha` | +10.51 pp/alpha | 500 | `[+9.0, +12.0]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_vs_strongreject.agreement` | 91.8% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_vs_strongreject.cohen_kappa` | 0.836 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_vs_strongreject.left_minus_right_harmful_rate_pp` | -5.7 pp | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.csv3_vs_strongreject.mcnemar_p` | 2.29e-20 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.strongreject_full.combined_harmful_rate` | 51.8% | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.strongreject_full.delta_0_to_3_pp` | +31.4 pp | 500 | `[+27.0, +35.8]` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.strongreject_full.explicit_error_count` | 0 | 2000 | `—` | `mistral24b_anchor3_jailbreak_summary` |
+| `measurement.mistral24b.jailbreak_anchor3.strongreject_full.slope_pp_per_alpha` | +10.29 pp/alpha | 500 | `[+8.9, +11.8]` | `mistral24b_anchor3_jailbreak_summary` |
+
 ### FaithEval Cleanup
 
 | metric_id | estimate | n | ci | source_ids |
@@ -143,6 +221,28 @@
 | `measurement.faitheval.standard_remap.parse_failures` | 150 | 1000 | `—` | `faitheval_standard_remap` |
 | `measurement.faitheval.standard_remap.strict_recovered_count` | 140 | 1000 | `—` | `faitheval_standard_remap` |
 | `measurement.faitheval.standard_remap.strict_rescored_compliance_rate` | 72.1% | 1000 | `—` | `faitheval_standard_remap` |
+
+### SIMID Calibration
+
+| metric_id | estimate | n | ci | source_ids |
+|---|---:|---:|---|---|
+| `measurement.simid.open_calibration.cohen_kappa` | 0.759 | 402 | `—` | `simid_open_calibration_summary` |
+| `measurement.simid.open_calibration.gwet_ac1` | 0.897 | 402 | `—` | `simid_open_calibration_summary` |
+| `measurement.simid.open_calibration.n_disagreements` | 34 | 402 | `—` | `simid_open_calibration_summary` |
+| `measurement.simid.open_calibration.raw_agreement` | 91.5% | 402 | `[88.4, 93.9]%` | `simid_open_calibration_summary` |
+| `measurement.simid.open_calibration.rule_gap_rate` | 0.0% | 34 | `[0.0, 10.2]%` | `simid_open_calibration_summary` |
+| `measurement.simid.prospective_open_calibration.codex55.cohen_kappa` | 0.821 | 150 | `—` | `simid_prospective_open_calibration_codex55` |
+| `measurement.simid.prospective_open_calibration.codex55.gwet_ac1` | 0.835 | 150 | `—` | `simid_prospective_open_calibration_codex55` |
+| `measurement.simid.prospective_open_calibration.codex55.raw_agreement` | 88.7% | 150 | `[82.6, 92.8]%` | `simid_prospective_open_calibration_codex55` |
+| `measurement.simid.prospective_open_calibration.codex55.rule_gap_count` | 0 | 150 | `—` | `simid_prospective_open_calibration_codex55` |
+| `measurement.simid.prospective_open_calibration.human.cohen_kappa` | 0.798 | 150 | `—` | `simid_prospective_open_calibration_human` |
+| `measurement.simid.prospective_open_calibration.human.gwet_ac1` | 0.816 | 150 | `—` | `simid_prospective_open_calibration_human` |
+| `measurement.simid.prospective_open_calibration.human.raw_agreement` | 87.3% | 150 | `[81.1, 91.7]%` | `simid_prospective_open_calibration_human` |
+| `measurement.simid.prospective_open_calibration.human.rule_gap_count` | 0 | 150 | `—` | `simid_prospective_open_calibration_human` |
+| `measurement.simid.prospective_open_calibration.opus47.cohen_kappa` | 0.873 | 150 | `—` | `simid_prospective_open_calibration_opus47` |
+| `measurement.simid.prospective_open_calibration.opus47.gwet_ac1` | 0.883 | 150 | `—` | `simid_prospective_open_calibration_opus47` |
+| `measurement.simid.prospective_open_calibration.opus47.raw_agreement` | 92.0% | 150 | `[86.5, 95.4]%` | `simid_prospective_open_calibration_opus47` |
+| `measurement.simid.prospective_open_calibration.opus47.rule_gap_count` | 0 | 150 | `—` | `simid_prospective_open_calibration_opus47` |
 
 ### Evaluator Validation
 
@@ -203,6 +303,44 @@
 | `transfer.truthfulqa_mc.mc2.iti.delta_pp` | +7.5 pp | 655 | `[+5.3, +9.8]` | `truthfulqa_mc2_iti_fold0_alpha0, truthfulqa_mc2_iti_fold1_alpha0, truthfulqa_mc2_iti_fold0_alpha8, truthfulqa_mc2_iti_fold1_alpha8` |
 | `transfer.truthfulqa_mc.mc2.iti.right_to_wrong` | 0 | 655 | `—` | `truthfulqa_mc2_iti_fold0_alpha0, truthfulqa_mc2_iti_fold1_alpha0, truthfulqa_mc2_iti_fold0_alpha8, truthfulqa_mc2_iti_fold1_alpha8` |
 | `transfer.truthfulqa_mc.mc2.iti.wrong_to_right` | 0 | 655 | `—` | `truthfulqa_mc2_iti_fold0_alpha0, truthfulqa_mc2_iti_fold1_alpha0, truthfulqa_mc2_iti_fold0_alpha8, truthfulqa_mc2_iti_fold1_alpha8` |
+
+### Mistral TruthfulQA
+
+| metric_id | estimate | n | ci | source_ids |
+|---|---:|---:|---|---|
+| `transfer.mistral24b_anchor2.truthfulqa_mc1.baseline_rate` | 35.6% | 163 | `[28.6, 43.2]%` | `mistral24b_anchor2_truthfulqa_mc1_report` |
+| `transfer.mistral24b_anchor2.truthfulqa_mc1.delta_alpha4_minus_alpha0_pp` | +1.2 pp | 163 | `[-1.8, +4.3]` | `mistral24b_anchor2_truthfulqa_mc1_report` |
+| `transfer.mistral24b_anchor2.truthfulqa_mc1.intervened_rate` | 36.8% | 163 | `[29.8, 44.4]%` | `mistral24b_anchor2_truthfulqa_mc1_report` |
+| `transfer.mistral24b_anchor2.truthfulqa_mc1.mcnemar_p` | 0.688 | 163 | `—` | `mistral24b_anchor2_truthfulqa_mc1_report` |
+| `transfer.mistral24b_anchor2.truthfulqa_mc2.baseline_rate` | 55.1% | 163 | `[48.6, 61.3]%` | `mistral24b_anchor2_truthfulqa_mc2_report` |
+| `transfer.mistral24b_anchor2.truthfulqa_mc2.delta_alpha4_minus_alpha0_pp` | +1.9 pp | 163 | `[+0.5, +3.4]` | `mistral24b_anchor2_truthfulqa_mc2_report` |
+| `transfer.mistral24b_anchor2.truthfulqa_mc2.intervened_rate` | 57.0% | 163 | `[50.5, 63.3]%` | `mistral24b_anchor2_truthfulqa_mc2_report` |
+
+### SIMID Transfer
+
+| metric_id | estimate | n | ci | source_ids |
+|---|---:|---:|---|---|
+| `transfer.simid_mvp.random_direction_seed1.pooled.adjudicated_open_delta_alpha8_pp` | +3.0 pp | 200 | `[-1.0, +7.0]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.random_head_seed1.pooled.adjudicated_open_delta_alpha8_pp` | -0.5 pp | 200 | `[-4.5, +3.0]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected.bridge.adjudicated_open_correct_delta_alpha8_pp` | -6.0 pp | 100 | `[-12.0, +0.0]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected.bridge.mc_letter_likelihood_correct_delta_alpha8_pp` | -1.0 pp | 100 | `[-4.0, +1.5]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected.pooled.adjudicated_open_baseline` | 38.5% | 200 | `[32.0, 45.5]%` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected.pooled.adjudicated_open_delta_alpha8_pp` | +3.0 pp | 200 | `[-2.0, +8.5]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected.pooled.mc_letter_baseline` | 58.2% | 200 | `[52.0, 64.5]%` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected.pooled.mc_letter_delta_alpha8_pp` | -2.2 pp | 200 | `[-4.5, +0.0]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected.truthfulqa.adjudicated_open_correct_delta_alpha8_pp` | +12.0 pp | 100 | `[+4.0, +20.0]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected.truthfulqa.mc_letter_likelihood_correct_delta_alpha8_pp` | -3.5 pp | 100 | `[-7.0, -0.5]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected_vs_random_direction.open_first3_margin_slope_gap` | +0.23 | 200 | `[0.071, 0.390]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_mvp.selected_vs_random_head.open_first3_margin_slope_gap` | +0.12 | 200 | `[-0.026, 0.271]` | `simid_mvp_results_adjudicated` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.external_open_attempted_alpha0_rate` | 92.5% | 454 | `—` | `simid_prospective_partial_effect_early_look` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.external_open_attempted_alpha8_rate` | 83.9% | 454 | `—` | `simid_prospective_partial_effect_early_look` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.external_open_attempted_delta_alpha8_pp` | -8.6 pp | 454 | `[-13.4, -3.7]` | `simid_prospective_partial_effect_early_look` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.external_open_correct_alpha0_rate` | 34.1% | 454 | `—` | `simid_prospective_partial_effect_early_look` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.external_open_correct_alpha8_rate` | 38.1% | 454 | `—` | `simid_prospective_partial_effect_early_look` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.external_open_correct_delta_alpha8_pp` | +4.0 pp | 454 | `[-2.0, +9.9]` | `simid_prospective_partial_effect_early_look` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.mc_letter_delta_alpha8_pp` | -3.1 pp | 454 | `[-5.7, -0.7]` | `simid_prospective_partial_effect_early_look, simid_prospective_partial_private_map, simid_prospective_selected_alpha0_rows, simid_prospective_selected_alpha8_rows` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.paired_sample_count` | 454 | 908 | `—` | `simid_prospective_partial_effect_early_look` |
+| `transfer.simid_prospective_partial.selected_truthfulqa.rule_gap_count` | 0 | 908 | `—` | `simid_prospective_partial_effect_early_look` |
 
 ### SimpleQA
 

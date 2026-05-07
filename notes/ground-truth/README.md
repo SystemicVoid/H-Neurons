@@ -8,23 +8,23 @@ This pack keeps the JSONL ledgers exact and turns the Markdown into deterministi
 
 - Start with `metric_ledger.jsonl`, `example_ledger.jsonl`, and `surface_crosswalk.jsonl` if you need machine-stable evidence.
 - `exact_metric` means the claim lands on a ledger metric; `exact_example` means example-only coverage; `structured_surface_only` means a structured scalar exists but is not promoted; `markdown_fallback_only` means only prose/audit context exists; `historical_only` means provenance is preserved but intentionally not promoted as live evidence.
-- This build contains 203 `exact_metric` crosswalk rows and 15 ledger metrics sourced directly from markdown audits.
+- This build contains 336 `exact_metric` crosswalk rows and 15 ledger metrics sourced directly from markdown audits.
 
 ## Family Map
 
-- `readout_surfaces`: `01_readout_surfaces.md`; 27 metrics; 8 examples.
-- `intervention_surfaces`: `02_intervention_surfaces.md`; 45 metrics; 16 examples.
-- `measurement_surfaces`: `03_measurement_surfaces.md`; 44 metrics; 9 examples.
-- `transfer_externality_surfaces`: `04_transfer_externality_surfaces.md`; 44 metrics; 16 examples.
+- `readout_surfaces`: `01_readout_surfaces.md`; 34 metrics; 8 examples.
+- `intervention_surfaces`: `02_intervention_surfaces.md`; 82 metrics; 16 examples.
+- `measurement_surfaces`: `03_measurement_surfaces.md`; 85 metrics; 9 examples.
+- `transfer_externality_surfaces`: `04_transfer_externality_surfaces.md`; 72 metrics; 16 examples.
 - `mechanism_diagnostic_surfaces`: `05_mechanism_diagnostic_surfaces.md`; 29 metrics; 8 examples.
 
 ## Coverage Summary
 
-- Crosswalk rows: 4836 total.
-- `exact_metric`: 203.
+- Crosswalk rows: 12253 total.
+- `exact_metric`: 336.
 - `exact_example`: 27.
-- `structured_surface_only`: 4593.
-- `markdown_fallback_only`: 12.
+- `structured_surface_only`: 11881.
+- `markdown_fallback_only`: 8.
 - `historical_only`: 1.
 - `unresolved`: 0.
 - Fallback-only sources:

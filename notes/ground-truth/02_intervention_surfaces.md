@@ -2,7 +2,7 @@
 
 ## What This Surface Measures
 
-These surfaces track direct intervention effects on FaithEval, FalseQA, BioASQ, SAE variants, and the binary jailbreak readout, with controls kept separate from interpretation. Primary artifacts in this family: `bioasq_alpha_0_rows`, `bioasq_alpha_3_rows`, `bioasq_control_comparison`, `bioasq_pipeline_audit`, `bioasq_results`, `faitheval_alpha_0_rows`, `faitheval_alpha_3_rows`, `faitheval_control_comparison`, `faitheval_control_slope_difference`, `faitheval_sae_control_comparison`, `faitheval_sae_slope_difference`, `faitheval_sae_utility_selector_audit`, `faitheval_sae_utility_selector_augment`, `faitheval_sae_utility_selector_augment_audit`, `faitheval_sae_utility_selector_heldout`, `faitheval_sae_utility_selector_summary`, `falseqa_alpha_0_rows`, `falseqa_alpha_3_rows`, `falseqa_results`, `intervention_sweep_site`, `jailbreak_alpha_0_rows`, `jailbreak_alpha_3_rows`, `jailbreak_results`.
+These surfaces track direct intervention effects on FaithEval, FalseQA, BioASQ, SAE variants, and the binary jailbreak readout, with controls kept separate from interpretation. Primary artifacts in this family: `bioasq_alpha_0_rows`, `bioasq_alpha_3_rows`, `bioasq_control_comparison`, `bioasq_pipeline_audit`, `bioasq_results`, `faitheval_alpha_0_rows`, `faitheval_alpha_3_rows`, `faitheval_control_comparison`, `faitheval_control_slope_difference`, `faitheval_sae_control_comparison`, `faitheval_sae_slope_difference`, `faitheval_sae_utility_selector_audit`, `faitheval_sae_utility_selector_augment`, `faitheval_sae_utility_selector_augment_audit`, `faitheval_sae_utility_selector_heldout`, `faitheval_sae_utility_selector_summary`, `falseqa_alpha_0_rows`, `falseqa_alpha_3_rows`, `falseqa_results`, `intervention_sweep_site`, `jailbreak_alpha_0_rows`, `jailbreak_alpha_3_rows`, `jailbreak_results`, `mistral24b_faitheval_cp5_control`, `mistral24b_faitheval_cp5_results`, `mistral24b_h1_faitheval_results`, `mistral24b_h1_selection_summary`.
 
 ## High-Signal Patterns
 
@@ -10,6 +10,8 @@ These surfaces track direct intervention effects on FaithEval, FalseQA, BioASQ, 
 - FalseQA stays positive on the same intervention family: slope +1.62 pp/alpha and full-sweep delta +4.8 pp [`intervention.falseqa.slope_pp_per_alpha`, `intervention.falseqa.delta_0_to_max_pp`, `falseqa_results`].
 - BioASQ is mostly style drift, not alias-accuracy gain: compliance delta -0.1 pp despite 1339 changed responses, with mean response length shrinking from 41.3 to 26.6 characters [`intervention.bioasq.delta_0_to_max_pp`, `intervention.bioasq.changed_response_count`, `intervention.bioasq.response_length_mean_alpha0`, `intervention.bioasq.response_length_mean_alpha3`, `bioasq_results`, `bioasq_alpha_0_rows`, `bioasq_alpha_3_rows`, `bioasq_pipeline_audit`].
 - SAE utility selection moves held-out anti-compliance margins without moving held-out compliance: utility-minus-noop compliance is -0.2 pp while utility-minus-noop margin is -0.76; the utility-positive augment stays similarly null on compliance (+0.1 pp) with negative margin shift (-0.72) [`intervention.faitheval_sae_utility.utility_minus_noop_compliance_pp`, `intervention.faitheval_sae_utility.utility_minus_noop_margin`, `intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_compliance_pp`, `intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin`, `faitheval_sae_utility_selector_heldout`, `faitheval_sae_utility_selector_augment`, `faitheval_sae_utility_selector_audit`, `faitheval_sae_utility_selector_augment_audit`].
+- The SAE answer-span extension adds a span-targeted selector: answer-span-minus-noop span margin -0.33, seed-mean random gap -0.53, and compliance delta +1.0 pp [`intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_answer_span_margin`, `intervention.faitheval_sae_answer_span.answer_span_selected_minus_random_seed_mean_answer_span_margin`, `intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_compliance_pp`, `faitheval_sae_utility_selector_heldout`].
+- Mistral FaithEval stays near-flat in both intervention branches: CP5 delta +0.0 pp, H1 delta +0.5 pp, and H1 selected C 0.750 [`intervention.mistral24b.cp5.faitheval.delta_0_to_3_pp`, `intervention.mistral24b.h1.faitheval.delta_0_to_3_pp`, `intervention.mistral24b.h1.selection.selected_c`, `mistral24b_faitheval_cp5_results`, `mistral24b_h1_faitheval_results`, `mistral24b_h1_selection_summary`].
 - The jailbreak binary surface is smaller than the graded surface: binary full-sweep delta is +3.0 pp, while the graded CSV-v2 surface reports +2.30 pp/alpha slope and +7.6 pp endpoint shift [`intervention.jailbreak.binary.delta_0_to_max_pp`, `measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha`, `measurement.jailbreak.v2.endpoint_delta_csv2_yes_pp`, `jailbreak_results`, `jailbreak_control_v2`].
 
 ## Measurement / Interpretation Risks
@@ -17,6 +19,7 @@ These surfaces track direct intervention effects on FaithEval, FalseQA, BioASQ, 
 - BioASQ remains audit-heavy: the relevant caveat is flat alias accuracy under heavy response drift, not a positive benchmark effect [`intervention.bioasq.delta_0_to_max_pp`, `bioasq_results`, `bioasq_pipeline_audit`].
 - The SAE utility-selector audits are still fallback-only notes, so the safe read is margin-shift evidence with null held-out compliance change [`intervention.faitheval_sae_utility.utility_minus_noop_compliance_pp`, `intervention.faitheval_sae_utility.utility_minus_noop_margin`, `faitheval_sae_utility_selector_heldout`, `faitheval_sae_utility_selector_audit`, `faitheval_sae_utility_selector_augment_audit`].
 - Binary jailbreak measurements are under-sensitive relative to the graded CSV surfaces and should not be used alone for null-vs-positive calls [`intervention.jailbreak.binary.delta_0_to_max_pp`, `measurement.jailbreak.v2.h_slope_csv2_yes_pp_per_alpha`, `jailbreak_results`, `jailbreak_control_v2`].
+- Mistral CP5 and H1 FaithEval curves are near zero with intervals crossing zero, so these rows are control-scope rows for interpretation [`intervention.mistral24b.cp5.faitheval.delta_0_to_3_pp`, `intervention.mistral24b.h1.faitheval.delta_0_to_3_pp`, `mistral24b_faitheval_cp5_results`, `mistral24b_h1_faitheval_results`].
 
 ## Grouped Metric Tables
 
@@ -59,6 +62,23 @@ These surfaces track direct intervention effects on FaithEval, FalseQA, BioASQ, 
 | `intervention.faitheval_sae.neuron_minus_sae_slope_pp_per_alpha` | +1.93 pp/alpha | 1000 | `[+0.9, +2.9]` | `faitheval_sae_slope_difference` |
 | `intervention.faitheval_sae.permutation_p` | 1.00e-04 | 50000 | `—` | `faitheval_sae_slope_difference` |
 | `intervention.faitheval_sae.random_mean_slope_pp_per_alpha` | +0.59 pp/alpha | 3 | `—` | `faitheval_sae_control_comparison` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_answer_span_margin` | +1.80 | 840 | `[1.069, 2.536]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_anti_margin` | +8.00 | 840 | `[6.897, 9.088]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_compliance` | 67.4% | 840 | `[64.1, 70.5]%` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_answer_span_margin` | -0.33 | 840 | `[-0.608, -0.055]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_anti_margin` | -0.30 | 840 | `[-0.728, 0.120]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_noop_compliance_pp` | +1.0 pp | 840 | `[-0.8, +2.7]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_random_seed_mean_answer_span_margin` | -0.53 | 10 | `[-0.811, -0.262]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_readout_answer_span_margin` | -0.98 | 840 | `[-1.380, -0.565]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_readout_anti_margin` | -1.22 | 840 | `[-1.773, -0.665]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_readout_compliance_pp` | +1.4 pp | 840 | `[-0.4, +3.2]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_utility_selected_answer_span_margin` | -0.22 | 840 | `[-0.468, 0.008]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_utility_selected_anti_margin` | +0.46 | 840 | `[0.161, 0.750]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.answer_span_selected_minus_utility_selected_compliance_pp` | +1.2 pp | 840 | `[-0.4, +2.7]` | `faitheval_sae_utility_selector_heldout` |
+| `intervention.faitheval_sae_answer_span.outside_old_shortlist_fraction` | 32.7% | 266 | `—` | `faitheval_sae_utility_selector_summary` |
+| `intervention.faitheval_sae_answer_span.readout_overlap_jaccard` | 35.7% | 392 | `—` | `faitheval_sae_utility_selector_summary` |
+| `intervention.faitheval_sae_answer_span.selected_k` | 266 | 509 | `—` | `faitheval_sae_utility_selector_summary` |
+| `intervention.faitheval_sae_answer_span.utility_overlap_jaccard` | 45.8% | 365 | `—` | `faitheval_sae_utility_selector_summary` |
 | `intervention.faitheval_sae_utility.candidate_pool_size` | 509 | 509 | `—` | `faitheval_sae_utility_selector_summary` |
 | `intervention.faitheval_sae_utility.heldout_sample_size` | 840 | 840 | `—` | `faitheval_sae_utility_selector_heldout` |
 | `intervention.faitheval_sae_utility.outside_old_shortlist_fraction` | 28.2% | 266 | `—` | `faitheval_sae_utility_selector_summary` |
@@ -77,6 +97,31 @@ These surfaces track direct intervention effects on FaithEval, FalseQA, BioASQ, 
 | `intervention.faitheval_sae_utility_positive.utility_positive_minus_noop_margin` | -0.72 | 840 | `[-1.041, -0.385]` | `faitheval_sae_utility_selector_augment` |
 | `intervention.faitheval_sae_utility_positive.utility_positive_selected_compliance` | 66.5% | 840 | `[63.3, 69.7]%` | `faitheval_sae_utility_selector_augment` |
 | `intervention.faitheval_sae_utility_positive.utility_positive_selected_margin` | +7.59 | 840 | `[6.512, 8.637]` | `faitheval_sae_utility_selector_augment` |
+
+### Mistral FaithEval
+
+| metric_id | estimate | n | ci | source_ids |
+|---|---:|---:|---|---|
+| `intervention.mistral24b.cp5.faitheval.alpha_0_0_compliance` | 53.0% | 200 | `[46.1, 59.8]%` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.alpha_3_0_compliance` | 53.0% | 200 | `[46.1, 59.8]%` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.delta_0_to_3_pp` | +0.0 pp | 200 | `[-4.0, +4.0]` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.delta_1_to_3_pp` | +1.0 pp | 200 | `[-2.5, +4.5]` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.h_minus_unconstrained_random_slope_pp_per_alpha` | +0.81 pp/alpha | 5 | `—` | `mistral24b_faitheval_cp5_control` |
+| `intervention.mistral24b.cp5.faitheval.layer_matched_random_mean_slope_pp_per_alpha` | -0.04 pp/alpha | 3 | `[-0.0, -0.0]` | `mistral24b_faitheval_cp5_control` |
+| `intervention.mistral24b.cp5.faitheval.n_h_neurons` | 10 | — | `—` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.slope_pp_per_alpha` | +0.79 pp/alpha | 200 | `[-0.6, +2.2]` | `mistral24b_faitheval_cp5_results` |
+| `intervention.mistral24b.cp5.faitheval.unconstrained_random_mean_slope_pp_per_alpha` | -0.02 pp/alpha | 5 | `[-0.1, +0.1]` | `mistral24b_faitheval_cp5_control` |
+| `intervention.mistral24b.h1.faitheval.alpha_0_0_compliance` | 51.5% | 200 | `[44.6, 58.3]%` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.alpha_3_0_compliance` | 52.0% | 200 | `[45.1, 58.8]%` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.delta_0_to_3_pp` | +0.5 pp | 200 | `[-3.0, +4.0]` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.delta_1_to_3_pp` | +0.5 pp | 200 | `[-2.0, +3.0]` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.n_h_neurons` | 9 | — | `—` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.faitheval.slope_pp_per_alpha` | +0.14 pp/alpha | 200 | `[-0.9, +1.2]` | `mistral24b_h1_faitheval_results` |
+| `intervention.mistral24b.h1.selection.heldout_dev_accuracy` | 73.5% | 200 | `—` | `mistral24b_h1_selection_summary` |
+| `intervention.mistral24b.h1.selection.selected_c` | 0.750 | 10 | `—` | `mistral24b_h1_selection_summary` |
+| `intervention.mistral24b.h1.selection.selected_h_neurons` | 9 | — | `—` | `mistral24b_h1_selection_summary` |
+| `intervention.mistral24b.h1.selection.selection_score` | 1.395 | 10 | `—` | `mistral24b_h1_selection_summary` |
+| `intervention.mistral24b.h1.selection.triviaqa_alpha0_deterministic_accuracy` | 66.0% | 200 | `—` | `mistral24b_h1_selection_summary` |
 
 ### Binary Jailbreak
 
