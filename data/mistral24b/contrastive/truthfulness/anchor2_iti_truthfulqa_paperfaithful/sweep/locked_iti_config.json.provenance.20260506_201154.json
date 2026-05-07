@@ -1,0 +1,232 @@
+{
+  "active_run_lock_path": "/workspace/02-h-neurons/.git/h-neurons-active-runs/run_calibration_sweep-20260506_201154-34227.json",
+  "args": {
+    "alpha_values": [
+      0.0,
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      6.0,
+      8.0,
+      12.0,
+      16.0
+    ],
+    "artifact_path": "data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/artifact/iti_heads.pt",
+    "cal_val_mc1_manifest": "data/manifests/truthfulqa_anchor2_mistral24b_cal_val_mc1_seed42.json",
+    "cal_val_mc2_manifest": "data/manifests/truthfulqa_anchor2_mistral24b_cal_val_mc2_seed42.json",
+    "device_map": "cuda:0",
+    "k_values": [
+      8,
+      12,
+      16,
+      24,
+      32,
+      40
+    ],
+    "model_key": "mistral_small_24b_instruct_2501",
+    "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "output_dir": "data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/sweep",
+    "tolerance_pp": null,
+    "truthfulqa_csv": "data/benchmarks/TruthfulQA.csv"
+  },
+  "argv": [
+    "/opt/h-neurons/.venv/bin/python3",
+    "scripts/run_calibration_sweep.py",
+    "--model_key",
+    "mistral_small_24b_instruct_2501",
+    "--model_path",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "--device_map",
+    "cuda:0",
+    "--artifact_path",
+    "data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/artifact/iti_heads.pt",
+    "--cal_val_mc1_manifest",
+    "data/manifests/truthfulqa_anchor2_mistral24b_cal_val_mc1_seed42.json",
+    "--cal_val_mc2_manifest",
+    "data/manifests/truthfulqa_anchor2_mistral24b_cal_val_mc2_seed42.json",
+    "--k_values",
+    "8",
+    "12",
+    "16",
+    "24",
+    "32",
+    "40",
+    "--alpha_values",
+    "0.0",
+    "0.5",
+    "1.0",
+    "2.0",
+    "4.0",
+    "6.0",
+    "8.0",
+    "12.0",
+    "16.0",
+    "--output_dir",
+    "data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/sweep"
+  ],
+  "command": "/opt/h-neurons/.venv/bin/python3 scripts/run_calibration_sweep.py --model_key mistral_small_24b_instruct_2501 --model_path mistralai/Mistral-Small-24B-Instruct-2501 --device_map cuda:0 --artifact_path data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/artifact/iti_heads.pt --cal_val_mc1_manifest data/manifests/truthfulqa_anchor2_mistral24b_cal_val_mc1_seed42.json --cal_val_mc2_manifest data/manifests/truthfulqa_anchor2_mistral24b_cal_val_mc2_seed42.json --k_values 8 12 16 24 32 40 --alpha_values 0.0 0.5 1.0 2.0 4.0 6.0 8.0 12.0 16.0 --output_dir data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/sweep",
+  "completed_at_utc": "2026-05-07T05:43:50.787210+00:00",
+  "cwd": "/workspace/02-h-neurons",
+  "git_dirty": false,
+  "git_sha": "b7723f2aa8d6e569971d5984b9b445152982481e",
+  "hostname": "edd05cd5ed94",
+  "locked_config": {
+    "K_locked": 40,
+    "alpha_locked": 4.0,
+    "answer_token_policy": "raw_prompt_answer_span",
+    "artifact_family": "iti_truthfulqa_paperfaithful",
+    "artifact_fingerprint": "07402ccf34d644d8",
+    "calibration_artifact_path": "data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/artifact/iti_heads.pt",
+    "calibration_mc1": 0.369231,
+    "calibration_mc2": 0.587422,
+    "dataset_fingerprint": "4f11c42590cbea87",
+    "direction_type": "mass_mean",
+    "family_fingerprint": {
+      "answer_token_policy": "raw_prompt_answer_span",
+      "artifact_family": "iti_truthfulqa_paperfaithful",
+      "direction_type": "mass_mean",
+      "position_policy": "last_answer_token",
+      "ranking_metric": "val_accuracy",
+      "source_dataset": "data/benchmarks/TruthfulQA.csv"
+    },
+    "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "model_key": "mistral_small_24b_instruct_2501",
+    "position_policy": "last_answer_token",
+    "ranking_metric": "val_accuracy",
+    "registered_model": {
+      "default_classifier_path": "models/mistral24b_classifier.pkl",
+      "dimensions": {
+        "hidden_size": 5120,
+        "intermediate_size": 32768,
+        "max_position_embeddings": 32768,
+        "num_attention_heads": 32,
+        "num_hidden_layers": 40,
+        "num_key_value_heads": 8,
+        "torch_dtype": "bfloat16",
+        "total_ffn_neurons": 1310720
+      },
+      "hf_id": "mistralai/Mistral-Small-24B-Instruct-2501",
+      "key": "mistral_small_24b_instruct_2501",
+      "loader_family": "causal_lm",
+      "notes": "Canonical Mistral 24B second-model extension. Same-family 2501 checkpoint, not exact Mistral Small 3.1/2503 replication.",
+      "output_root": "data/mistral24b",
+      "slug": "mistral24b",
+      "supported": true,
+      "tokenizer_kwargs": {
+        "fix_mistral_regex": true
+      }
+    },
+    "seed": 42,
+    "selection_diagnostics": {
+      "best_mc1": 0.369231,
+      "locked_candidate_summary": {
+        "alpha": 4.0,
+        "k": 40,
+        "mc1": 0.369231,
+        "mc1_gap_pp_from_best": 0.0,
+        "mc2": 0.587422,
+        "n_mc1": 130,
+        "n_mc2": 130
+      },
+      "mc1_resolution_pp": 0.7692307692307693,
+      "n_calibration_samples": 130,
+      "n_candidates_within_tolerance_pp": 2,
+      "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+      "shortlist": [
+        {
+          "alpha": 4.0,
+          "k": 40,
+          "mc1": 0.369231,
+          "mc1_gap_pp_from_best": 0.0,
+          "mc2": 0.587422,
+          "n_mc1": 130,
+          "n_mc2": 130
+        },
+        {
+          "alpha": 2.0,
+          "k": 40,
+          "mc1": 0.361538,
+          "mc1_gap_pp_from_best": 0.7693,
+          "mc2": 0.570126,
+          "n_mc1": 130,
+          "n_mc2": 130
+        }
+      ],
+      "tie_break_path": [
+        {
+          "criterion": "maximize_mc2",
+          "n_survivors": 1,
+          "selected_value": 0.587422,
+          "step": "max_mc2",
+          "survivors": [
+            {
+              "alpha": 4.0,
+              "k": 40,
+              "mc1": 0.369231,
+              "mc1_gap_pp_from_best": 0.0,
+              "mc2": 0.587422,
+              "n_mc1": 130,
+              "n_mc2": 130
+            }
+          ]
+        },
+        {
+          "criterion": "minimize_alpha",
+          "n_survivors": 1,
+          "selected_value": 4.0,
+          "step": "min_alpha",
+          "survivors": [
+            {
+              "alpha": 4.0,
+              "k": 40,
+              "mc1": 0.369231,
+              "mc1_gap_pp_from_best": 0.0,
+              "mc2": 0.587422,
+              "n_mc1": 130,
+              "n_mc2": 130
+            }
+          ]
+        },
+        {
+          "criterion": "minimize_k",
+          "n_survivors": 1,
+          "selected_value": 40,
+          "step": "min_k",
+          "survivors": [
+            {
+              "alpha": 4.0,
+              "k": 40,
+              "mc1": 0.369231,
+              "mc1_gap_pp_from_best": 0.0,
+              "mc2": 0.587422,
+              "n_mc1": 130,
+              "n_mc2": 130
+            }
+          ]
+        }
+      ],
+      "tie_break_triggered": true,
+      "tolerance_floor_rule": "max(100/n_cal, 1.5)",
+      "tolerance_pp_applied": 1.5,
+      "tolerance_pp_requested": null,
+      "tolerance_raised_to_resolution_floor": false
+    },
+    "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+    "source_dataset": "data/benchmarks/TruthfulQA.csv",
+    "tokenizer_kwargs": {
+      "fix_mistral_regex": true
+    }
+  },
+  "output_targets": [
+    "/workspace/02-h-neurons/data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/sweep/locked_iti_config.json",
+    "/workspace/02-h-neurons/data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/sweep/sweep_results.json"
+  ],
+  "python_version": "3.11.15 (main, Apr 14 2026, 14:28:36) [Clang 22.1.3 ]",
+  "run_id": "run_calibration_sweep-20260506_201154-34227",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "run_calibration_sweep.py",
+  "started_at_utc": "2026-05-06T20:11:54.465290+00:00",
+  "status": "completed"
+}

@@ -1,0 +1,147 @@
+{
+  "model_key": "mistral_small_24b_instruct_2501",
+  "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "registered_model": {
+    "key": "mistral_small_24b_instruct_2501",
+    "slug": "mistral24b",
+    "hf_id": "mistralai/Mistral-Small-24B-Instruct-2501",
+    "output_root": "data/mistral24b",
+    "loader_family": "causal_lm",
+    "supported": true,
+    "tokenizer_kwargs": {
+      "fix_mistral_regex": true
+    },
+    "dimensions": {
+      "num_hidden_layers": 40,
+      "hidden_size": 5120,
+      "intermediate_size": 32768,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 8,
+      "max_position_embeddings": 32768,
+      "torch_dtype": "bfloat16",
+      "total_ffn_neurons": 1310720
+    },
+    "default_classifier_path": "models/mistral24b_classifier.pkl",
+    "notes": "Canonical Mistral 24B second-model extension. Same-family 2501 checkpoint, not exact Mistral Small 3.1/2503 replication."
+  },
+  "tokenizer_kwargs": {
+    "fix_mistral_regex": true
+  },
+  "dataset_fingerprint": "4f11c42590cbea87",
+  "artifact_family": "iti_truthfulqa_paperfaithful",
+  "source_dataset": "data/benchmarks/TruthfulQA.csv",
+  "direction_type": "mass_mean",
+  "ranking_metric": "val_accuracy",
+  "position_policy": "last_answer_token",
+  "answer_token_policy": "raw_prompt_answer_span",
+  "K_locked": 40,
+  "alpha_locked": 4.0,
+  "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+  "selection_diagnostics": {
+    "selection_rule": "mc1_within_tolerance_then_mc2_then_min_alpha_then_min_k",
+    "tolerance_pp_requested": null,
+    "tolerance_pp_applied": 1.5,
+    "tolerance_floor_rule": "max(100/n_cal, 1.5)",
+    "mc1_resolution_pp": 0.7692307692307693,
+    "n_calibration_samples": 130,
+    "best_mc1": 0.369231,
+    "n_candidates_within_tolerance_pp": 2,
+    "tie_break_triggered": true,
+    "shortlist": [
+      {
+        "k": 40,
+        "alpha": 4.0,
+        "mc1": 0.369231,
+        "mc2": 0.587422,
+        "n_mc1": 130,
+        "n_mc2": 130,
+        "mc1_gap_pp_from_best": 0.0
+      },
+      {
+        "k": 40,
+        "alpha": 2.0,
+        "mc1": 0.361538,
+        "mc2": 0.570126,
+        "n_mc1": 130,
+        "n_mc2": 130,
+        "mc1_gap_pp_from_best": 0.7693
+      }
+    ],
+    "tie_break_path": [
+      {
+        "step": "max_mc2",
+        "criterion": "maximize_mc2",
+        "selected_value": 0.587422,
+        "n_survivors": 1,
+        "survivors": [
+          {
+            "k": 40,
+            "alpha": 4.0,
+            "mc1": 0.369231,
+            "mc2": 0.587422,
+            "n_mc1": 130,
+            "n_mc2": 130,
+            "mc1_gap_pp_from_best": 0.0
+          }
+        ]
+      },
+      {
+        "step": "min_alpha",
+        "criterion": "minimize_alpha",
+        "selected_value": 4.0,
+        "n_survivors": 1,
+        "survivors": [
+          {
+            "k": 40,
+            "alpha": 4.0,
+            "mc1": 0.369231,
+            "mc2": 0.587422,
+            "n_mc1": 130,
+            "n_mc2": 130,
+            "mc1_gap_pp_from_best": 0.0
+          }
+        ]
+      },
+      {
+        "step": "min_k",
+        "criterion": "minimize_k",
+        "selected_value": 40,
+        "n_survivors": 1,
+        "survivors": [
+          {
+            "k": 40,
+            "alpha": 4.0,
+            "mc1": 0.369231,
+            "mc2": 0.587422,
+            "n_mc1": 130,
+            "n_mc2": 130,
+            "mc1_gap_pp_from_best": 0.0
+          }
+        ]
+      }
+    ],
+    "locked_candidate_summary": {
+      "k": 40,
+      "alpha": 4.0,
+      "mc1": 0.369231,
+      "mc2": 0.587422,
+      "n_mc1": 130,
+      "n_mc2": 130,
+      "mc1_gap_pp_from_best": 0.0
+    },
+    "tolerance_raised_to_resolution_floor": false
+  },
+  "calibration_mc1": 0.369231,
+  "calibration_mc2": 0.587422,
+  "seed": 42,
+  "calibration_artifact_path": "data/mistral24b/contrastive/truthfulness/anchor2_iti_truthfulqa_paperfaithful/artifact/iti_heads.pt",
+  "artifact_fingerprint": "07402ccf34d644d8",
+  "family_fingerprint": {
+    "artifact_family": "iti_truthfulqa_paperfaithful",
+    "source_dataset": "data/benchmarks/TruthfulQA.csv",
+    "ranking_metric": "val_accuracy",
+    "position_policy": "last_answer_token",
+    "answer_token_policy": "raw_prompt_answer_span",
+    "direction_type": "mass_mean"
+  }
+}
