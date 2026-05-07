@@ -646,106 +646,64 @@ Non-substitution R$\to$W flips show \emph{larger} margin compression than substi
 The behavioral wrong-entity-substitution taxonomy ($\kappa = 0.90$) is therefore a reliable description of \emph{what} the model emits, while the log-likelihood analysis gives no distinct margin-shift signature for that taxonomy.
 This refines the \S\ref{sec:externality} externality claim: the dominant-failure-mode statement is behavioral and interrater-defensible, and the margin analysis confirms ITI shifts probability mass in the predicted direction while changing the margin-level reading from substitution-specific entity suppression to answer-commitment margin compression on R$\to$W flips in general.
 \FloatBarrier
+\clearpage
 
-\section{Claim-Defense Ledger}
+\section{Claim-Defense Index}
 \label{app:claim_defense}
 
-Table~\ref{tab:claim_defense} maps the main claim families to the exact metric-ledger IDs and source artifacts used to defend them.
-It is a reviewer-facing index over existing measurements.
+Table~\ref{tab:claim_defense} maps the main claim families to compact metric groups and one-hop support files.
+Support files are under \texttt{supplement/support/}; the full metric-ID ledger is in the supplement's \texttt{number\_provenance.md}.
 
-\begin{table}[!p]
+\begin{table}[!htbp]
 \centering
-\caption{Claim-defense ledger. IDs/artifacts anchor to \texttt{metric\_ledger.jsonl} and \texttt{surface\_crosswalk.jsonl}; brace notation expands prefixes; answer-span locators come from \texttt{heldout\_summary.json}.}
+\caption{Readable claim-defense index. Metric groups point to the full supplement ledger; support files are bundled reviewer-facing derivatives.}
 \label{tab:claim_defense}
-\vskip 0.02in
-\footnotesize
-\setlength{\tabcolsep}{1pt}
-\renewcommand{\arraystretch}{0.72}
-\resizebox{0.86\textwidth}{!}{%
-\begin{tabular}{@{}L{1.9cm}L{2.1cm}L{6.4cm}L{2.15cm}L{2.2cm}L{2.3cm}@{}}
+\vskip 0.05in
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}L{3.0cm}L{4.0cm}L{4.0cm}L{4.0cm}@{}}
 \toprule
-\textbf{Claim} & \textbf{Model / surface} & \textbf{Exact metric ID / source artifact} & \textbf{Estimator / CI} & \textbf{Gate status} & \textbf{Caveat} \\
+\textbf{Claim family} & \textbf{Short metric group} & \textbf{One-hop support} & \textbf{Gate / scope} \\
 \midrule
 Comparable readouts &
-Gemma-3-4B-IT / FaithEval readout &
-\path|readout.disjoint.{auroc,accuracy}| / \path|classifier_disjoint_summary|;
-\path|readout.sae.{auroc,accuracy}| / \path|classifier_sae_summary| &
-Unpaired; stratified bootstrap for H-neuron readout; SAE point only. &
-Localization / monitoring passed. &
-L1; individual-weight interpretation remains fragile. \\
+H/SAE readout AUROC, accuracy &
+\path|localization_summary.md| &
+Localization/monitoring passed; detector interpretation caveats remain. \\
 
-Gemma FaithEval H-neuron control &
-Gemma-3-4B-IT / FaithEval anti-compliance, neuron scaling &
-\path|intervention.faitheval.anti.{slope_pp_per_alpha,delta_noop_to_max_pp,delta_0_to_max_pp}| / \path|intervention_sweep_site|;
-\path|intervention.faitheval.{random_mean_slope_pp_per_alpha,random_max_slope_pp_per_alpha}| / \path|faitheval_control_comparison| &
-Paired bootstrap for slope / deltas; random summaries. &
-FaithEval control and specificity passed. &
-Surface-local compliance claim; no general factuality claim. \\
+FaithEval control &
+H slope/deltas; random controls &
+\path|localization_summary.md| &
+H-neuron FaithEval control and specificity passed under the tested operator. \\
 
-SAE H-feature null &
-Gemma-3-4B-IT / FaithEval, tested Gemma Scope SAE operators &
-\path|intervention.faitheval_sae.{h_slope_pp_per_alpha,neuron_minus_sae_slope_pp_per_alpha,permutation_p}| / \path|faitheval_sae_control_comparison|, \path|faitheval_sae_slope_difference| &
-SAE slope summary; paired bootstrap gap; permutation test. &
-SAE control gate did not pass; localization-to-control dissociation passed. &
-L2 / L3 operator-form and layer-coverage limits. \\
-
-Within-SAE selector defense &
-Gemma-3-4B-IT / FaithEval, 509-feature SAE pool &
-\path|intervention.faitheval_sae_utility.{utility_minus_noop_compliance_pp,utility_minus_noop_margin,utility_minus_readout_margin}| / \path|faitheval_sae_utility_selector_heldout|;
-\path|heldout_summary.json::{heldout_answer_span_margin,heldout_compliance_answer_span_selected}| &
-Paired bootstrap for compliance; continuous bootstrap for margins and answer-span locators. &
-No selector reaches compliance endpoint. &
-Margin-only, metric-specific, cross-metric mixed. \\
+SAE control and selector checks &
+SAE slope/gap/p; selector margins &
+\path|localization_summary.md| &
+SAE control gate did not pass; selector effects remain metric-level. \\
 
 Surface-local H-neuron behavior &
-Gemma-3-4B-IT / FalseQA and BioASQ, neuron scaling &
-\path|intervention.falseqa.{slope_pp_per_alpha,delta_0_to_max_pp}| / \path|falseqa_results|;
-\path|intervention.bioasq.{delta_0_to_max_pp,changed_response_count}| / \path|bioasq_results|, \path|bioasq_alpha_0_rows|, \path|bioasq_alpha_3_rows| &
-Paired bootstrap for effects; paired response-join count for text change. &
-FalseQA passes; BioASQ factual-accuracy endpoint fails / null. &
-Alias and domain surface; no general factuality gain. \\
+FalseQA slope/delta; BioASQ delta/changed &
+\path|externality_summary.md| &
+FalseQA passes; BioASQ factual-accuracy endpoint is null. \\
 
-ITI MC vs. generation &
-Gemma-3-4B-IT / TruthfulQA MC and SimpleQA open generation &
-\path|transfer.truthfulqa_mc.{mc1.iti.delta_pp,mc2.iti.delta_pp}| / TruthfulQA ITI fold artifacts;
-\path|transfer.simpleqa.{compliance_delta_0_to_8_pp,attempt_delta_0_to_8_pp}| / \path|simpleqa_ranked_results|, \path|simpleqa_alpha_0_rows|, \path|simpleqa_alpha_8_rows| &
-Paired bootstrap on matched items / folds. &
-MC answer-selection passed; open-generation transfer failed. &
-MC / generation mismatch. \\
+Answer-selection transfer &
+TruthfulQA MC1/MC2; SimpleQA accuracy/attempt &
+\path|externality_summary.md| &
+MC answer-selection passes; open-generation check is negative. \\
 
-Bridge externality &
-Gemma-3-4B-IT / TriviaQA bridge open generation, ITI &
-\path|transfer.bridge.{adjudicated_accuracy_delta_pp,mcnemar_p,base_correct_iti_wrong,base_wrong_iti_correct}| / \path|bridge_phase3_site|;
-\path|measurement.bridge_irr.{right_to_wrong.wrong_entity_substitution,cohen_kappa}| / \path|bridge_irr_summary| &
-Report percentile CI; McNemar / flips; Wilson share; kappa. &
-Externality failed and failure taxonomy accepted. &
-L4 LLM second rater; wide Wilson interval. \\
+Bridge externality and margins &
+Bridge accuracy/flips/taxonomy/margins &
+\path|externality_summary.md|; supplement ledger &
+Externality failed; margin analysis supports only the broader probability-shift reading. \\
 
-Bridge margin boundary &
-Gemma-3-4B-IT / TriviaQA bridge teacher-forced margins &
-\path|transfer.bridge_margins.{a_rw_substitution.first3_shift_nats,b_rw_nonsubstitution.first3_shift_nats,c_wr_rescue.first3_shift_nats,a_vs_d.first3_shift_nats_gap,a_vs_d.first3_shift_nats_p}| / \path|bridge_margins_test_results| &
-Paired within-cohort bootstrap; unpaired gap; permutation test. &
-Broad margin sanity passed; substitution-specific mechanism failed. &
-Behavioral diagnosis only. \\
-
-Jailbreak measurement granularity &
-Gemma-3-4B-IT / JailbreakBench, neuron scaling &
-\path|intervention.jailbreak.binary.delta_0_to_max_pp| / \path|jailbreak_results|;
-\path|measurement.jailbreak.v2.{h_slope_csv2_yes_pp_per_alpha,random_mean_slope_csv2_yes_pp_per_alpha,gap_h_minus_random_mean_pp_per_alpha,h_minus_random_permutation_p}| / \path|jailbreak_control_v2|, \path|jailbreak_seed0_control_audit| &
-Binary paired bootstrap; graded v2 summaries; seed-0 permutation. &
-Graded measurement detects signal; binary endpoint inconclusive. &
-L5 single-seed specificity. \\
-
-Evaluator holdout &
-Gemma-3-4B-IT / JailbreakBench evaluator holdout &
-\path|measurement.holdout.{csv2v3.accuracy,sr.accuracy,csv2v3_vs_sr_discordant_count,csv2v3_vs_sr_mcnemar_p,min_pairwise_mcnemar_p}| / \path|holdout_comparison| &
-Cluster bootstrap by prompt ID; McNemar / discordance counts. &
-No CSV-v3 superiority claim; construct-pluralism caveat retained. &
-$n = 50$ holdout. \\
+Jailbreak measurement and holdout &
+JBB binary/graded/holdout &
+\path|measurement_summary.md| &
+Graded measurement detects a signal; binary endpoint is inconclusive; evaluator-superiority claim withheld. \\
 \bottomrule
 \end{tabular}
-}%
 \end{table}
+\FloatBarrier
 \clearpage
 
 \section{Second-Checkpoint and Diagnostic Stress Tests}

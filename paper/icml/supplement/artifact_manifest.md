@@ -9,7 +9,7 @@ This package is a submission-safe, reviewer-facing supplement for the ICML manus
 | `README.md` | Front-door index for reviewers, plus public-release scope note. | All sections |
 | `package_manifest.json` | Explicit allowlist plus a redacted public summary of the supplement builder's anonymization rules. | All sections |
 | `reference/main.tex` | Anonymous TeX manuscript copy used as the section-numbering anchor for this supplement. | All sections |
-| `number_provenance.md` | Canonical reviewer-facing ledger for the manuscript’s main-body quantitative claims, keyed to one-hop bundled support files. | Abstract, §§3-5 |
+| `number_provenance.md` | Canonical reviewer-facing ledger for the manuscript’s main-body quantitative claims, plus the detailed claim-defense ledger moved out of the appendix and keyed to one-hop bundled support files. | Abstract, §§3-5, appendix claim-defense index |
 | `evaluation_manifest.md` | Judge prompts, rubric versions, judge models, holdout artifact, and scoring entrypoints. | §5 |
 | `failure_coding_manifest.md` | Coding guide and provenance for the TriviaQA bridge wrong-entity substitution audit. | §4.3 |
 | `reproduction_manifest.md` | Minimal rerun map for the paper’s anchor results, with expected outputs and omitted sidecars policy. | §§3-5 |

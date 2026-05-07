@@ -520,6 +520,62 @@ BioASQ         & 1,600 & flat                & ${\sim}2$ pp \\
 \end{tabular}
 \end{table}
 
+\section{Claim-Defense Index}
+\label{app:claim_defense}
+
+Table~\ref{tab:claim_defense} maps the main claim families to compact metric groups and one-hop support files.
+Support files are under \texttt{support/}; the full metric-ID ledger is in \texttt{number\_provenance.md}.
+
+\begin{table}[ht]
+\centering
+\caption{Readable claim-defense index. Metric groups point to the full supplement ledger; support files are bundled reviewer-facing derivatives.}
+\label{tab:claim_defense}
+\vskip 0.05in
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}L{3.0cm}L{4.0cm}L{4.0cm}L{4.0cm}@{}}
+\toprule
+\textbf{Claim family} & \textbf{Short metric group} & \textbf{One-hop support} & \textbf{Gate / scope} \\
+\midrule
+Comparable readouts &
+H/SAE readout AUROC, accuracy &
+\path|localization_summary.md| &
+Localization/monitoring passed; detector interpretation caveats remain. \\
+
+FaithEval control &
+H slope/deltas; random controls &
+\path|localization_summary.md| &
+H-neuron FaithEval control and specificity passed under the tested operator. \\
+
+SAE control and selector checks &
+SAE slope/gap/p; selector margins &
+\path|localization_summary.md| &
+SAE control gate did not pass; selector effects remain metric-level. \\
+
+Surface-local H-neuron behavior &
+FalseQA slope/delta; BioASQ delta/changed &
+\path|externality_summary.md| &
+FalseQA passes; BioASQ factual-accuracy endpoint is null. \\
+
+Answer-selection transfer &
+TruthfulQA MC1/MC2; SimpleQA accuracy/attempt &
+\path|externality_summary.md| &
+MC answer-selection passes; open-generation check is negative. \\
+
+Bridge externality and margins &
+Bridge accuracy/flips/taxonomy/margins &
+\path|externality_summary.md|; supplement ledger &
+Externality failed; margin analysis supports only the broader probability-shift reading. \\
+
+Jailbreak measurement and holdout &
+JBB binary/graded/holdout &
+\path|measurement_summary.md| &
+Graded measurement detects a signal; binary endpoint is inconclusive; evaluator-superiority claim withheld. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Limitation Inventory}
 \label{app:limitations}
 

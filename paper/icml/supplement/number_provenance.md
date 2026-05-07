@@ -111,6 +111,120 @@ Each listed row resolves in one hop to a bundled reviewer-facing support file or
 | Evaluator tie statement kept in main text | CSV-v3 and StrongREJECT have identical error sets | 0 discordant records; McNemar `p = 1.0` | `support/measurement_summary.md`; `data/judge_validation/holdout_comparison.json` |
 | Pairwise holdout significance summary | no pairwise holdout difference statistically confirmable | all six McNemar exact `p` values `>= 0.25` | `support/measurement_summary.md`; `data/judge_validation/holdout_comparison.json` |
 
+## Detailed Claim-Defense Ledger
+
+This is the full claim-defense ledger moved out of the manuscript appendix for readability. Brace notation expands metric-ID prefixes. Internal artifact IDs name the source-repository artifacts used to produce the reviewer-facing summaries; bundled support files provide the one-hop supplement surface.
+
+### Comparable Readouts
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / FaithEval readout |
+| Exact metric IDs / internal artifacts | `readout.disjoint.{auroc,accuracy}` / `classifier_disjoint_summary`; `readout.sae.{auroc,accuracy}` / `classifier_sae_summary` |
+| Estimator / CI | Unpaired; stratified bootstrap for H-neuron readout; SAE point and CI summary. |
+| Gate status | Localization / monitoring passed. |
+| Caveat | Individual-weight interpretation remains fragile. |
+| Bundled support | `support/localization_summary.md` |
+
+### Gemma FaithEval H-Neuron Control
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / FaithEval anti-compliance, neuron scaling |
+| Exact metric IDs / internal artifacts | `intervention.faitheval.anti.{slope_pp_per_alpha,delta_noop_to_max_pp,delta_0_to_max_pp}` / `intervention_sweep_site`; `intervention.faitheval.{random_mean_slope_pp_per_alpha,random_max_slope_pp_per_alpha}` / `faitheval_control_comparison` |
+| Estimator / CI | Paired bootstrap for slope / deltas; random-control summaries. |
+| Gate status | FaithEval control and specificity passed. |
+| Caveat | Surface-local compliance claim; no general factuality claim. |
+| Bundled support | `support/localization_summary.md` |
+
+### SAE H-Feature Null
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / FaithEval, tested Gemma Scope SAE operators |
+| Exact metric IDs / internal artifacts | `intervention.faitheval_sae.{h_slope_pp_per_alpha,neuron_minus_sae_slope_pp_per_alpha,permutation_p}` / `faitheval_sae_control_comparison`, `faitheval_sae_slope_difference` |
+| Estimator / CI | SAE slope summary; paired bootstrap gap; permutation test. |
+| Gate status | SAE control gate did not pass; localization-to-control dissociation passed. |
+| Caveat | Operator-form and layer-coverage limits remain. |
+| Bundled support | `support/localization_summary.md` |
+
+### Within-SAE Selector Defense
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / FaithEval, 509-feature SAE pool |
+| Exact metric IDs / internal artifacts | `intervention.faitheval_sae_utility.{utility_minus_noop_compliance_pp,utility_minus_noop_margin,utility_minus_readout_margin}` / `faitheval_sae_utility_selector_heldout`; `heldout_summary.json::{heldout_answer_span_margin,heldout_compliance_answer_span_selected}` |
+| Estimator / CI | Paired bootstrap for compliance; continuous bootstrap for margins and answer-span locators. |
+| Gate status | No selector reaches the compliance endpoint. |
+| Caveat | Margin-only, metric-specific, cross-metric mixed. |
+| Bundled support | `support/localization_summary.md` |
+
+### Surface-Local H-Neuron Behavior
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / FalseQA and BioASQ, neuron scaling |
+| Exact metric IDs / internal artifacts | `intervention.falseqa.{slope_pp_per_alpha,delta_0_to_max_pp}` / `falseqa_results`; `intervention.bioasq.{delta_0_to_max_pp,changed_response_count}` / `bioasq_results`, `bioasq_alpha_0_rows`, `bioasq_alpha_3_rows` |
+| Estimator / CI | Paired bootstrap for effects; paired response-join count for text change. |
+| Gate status | FalseQA passes; BioASQ factual-accuracy endpoint fails / null. |
+| Caveat | Alias and domain surface; no general factuality gain. |
+| Bundled support | `support/externality_summary.md` |
+
+### ITI MC vs. Generation
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / TruthfulQA MC and SimpleQA open generation |
+| Exact metric IDs / internal artifacts | `transfer.truthfulqa_mc.{mc1.iti.delta_pp,mc2.iti.delta_pp}` / TruthfulQA ITI fold artifacts; `transfer.simpleqa.{compliance_delta_0_to_8_pp,attempt_delta_0_to_8_pp}` / `simpleqa_ranked_results`, `simpleqa_alpha_0_rows`, `simpleqa_alpha_8_rows` |
+| Estimator / CI | Paired bootstrap on matched items / folds. |
+| Gate status | MC answer-selection passed; open-generation transfer failed. |
+| Caveat | MC / generation mismatch. |
+| Bundled support | `support/externality_summary.md` |
+
+### Bridge Externality
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / TriviaQA bridge open generation, ITI |
+| Exact metric IDs / internal artifacts | `transfer.bridge.{adjudicated_accuracy_delta_pp,mcnemar_p,base_correct_iti_wrong,base_wrong_iti_correct}` / `bridge_phase3_site`; `measurement.bridge_irr.{right_to_wrong.wrong_entity_substitution,cohen_kappa}` / `bridge_irr_summary` |
+| Estimator / CI | Report percentile CI; McNemar / flips; Wilson share; kappa. |
+| Gate status | Externality failed and failure taxonomy accepted. |
+| Caveat | LLM second rater; wide Wilson interval. |
+| Bundled support | `support/externality_summary.md`; `failure_coding_manifest.md`; `data/judge_validation/bridge_irr/bridge_irr_summary.json` |
+
+### Bridge Margin Boundary
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / TriviaQA bridge teacher-forced margins |
+| Exact metric IDs / internal artifacts | `transfer.bridge_margins.{a_rw_substitution.first3_shift_nats,b_rw_nonsubstitution.first3_shift_nats,c_wr_rescue.first3_shift_nats,a_vs_d.first3_shift_nats_gap,a_vs_d.first3_shift_nats_p}` / `bridge_margins_test_results` |
+| Estimator / CI | Paired within-cohort bootstrap; unpaired gap; permutation test. |
+| Gate status | Broad margin sanity passed; substitution-specific mechanism failed. |
+| Caveat | Behavioral diagnosis only. |
+| Bundled support | This ledger section and the bridge margin analysis in the manuscript appendix. |
+
+### Jailbreak Measurement Granularity
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / JailbreakBench, neuron scaling |
+| Exact metric IDs / internal artifacts | `intervention.jailbreak.binary.delta_0_to_max_pp` / `jailbreak_results`; `measurement.jailbreak.v2.{h_slope_csv2_yes_pp_per_alpha,random_mean_slope_csv2_yes_pp_per_alpha,gap_h_minus_random_mean_pp_per_alpha,h_minus_random_permutation_p}` / `jailbreak_control_v2`, `jailbreak_seed0_control_audit` |
+| Estimator / CI | Binary paired bootstrap; graded v2 summaries; seed-0 permutation. |
+| Gate status | Graded measurement detects signal; binary endpoint inconclusive. |
+| Caveat | Single-seed specificity. |
+| Bundled support | `support/measurement_summary.md` |
+
+### Evaluator Holdout
+
+| Field | Entry |
+|---|---|
+| Model / surface | Gemma-3-4B-IT / JailbreakBench evaluator holdout |
+| Exact metric IDs / internal artifacts | `measurement.holdout.{csv2v3.accuracy,sr.accuracy,csv2v3_vs_sr_discordant_count,csv2v3_vs_sr_mcnemar_p,min_pairwise_mcnemar_p}` / `holdout_comparison` |
+| Estimator / CI | Cluster bootstrap by prompt ID; McNemar / discordance counts. |
+| Gate status | CSV-v3 superiority claim withheld; construct-pluralism caveat retained. |
+| Caveat | `n = 50` holdout. |
+| Bundled support | `support/measurement_summary.md`; `data/judge_validation/holdout_comparison.json` |
+
 ## Scope Note
 
 This supplement ledger is intentionally limited to main-body paper claims. Historical-only and appendix-only quantitative rows from the broader repository are omitted here unless they are needed to support a main-body statement.

@@ -12,6 +12,7 @@ Review date: May 7, 2026. Package treated as a frozen snapshot. Reviewed `paper/
 | 4 | Addressed | [`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c) | Measurement wording now says same-output choices change whether the intervention clears the claimed effect gate, mirrored in the supplement reference copy and rebuilt PDF; `rg` and `pdftotext` checks guard against stale reversal wording. |
 | 5 | Addressed | [`8b34c63`](https://github.com/SystemicVoid/H-Neurons/commit/8b34c6315cd9beddbf10616a87dc7ac619cf9b1b) | Bridge rubric wording now uses pre-specified/frozen language across the manuscript and supplement reference; `scripts/check_icml_prose.py paper/icml/main.tex` and an Issue 5 target `rg` check guard against stale unsupported bridge wording. |
 | 6 | Addressed | [`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa) | The supplement package now bundles the bridge IRR rule, machine-readable summary, and redacted adjudicated labels, replaces report links with bundled derivatives, and `build_icml_supplement_package.py` validates relative Markdown links. |
+| 7 | Addressed | [`d642ba0`](https://github.com/SystemicVoid/H-Neurons/commit/d642ba002b2d079a450d1e9e88a52219931bcbea) | The full claim-defense ledger now lives in the supplement provenance ledger, with compact readable indexes in the manuscript and supplement reference appendices; `make -C paper/icml`, rendered page-14 inspection, and supplement package checks guard it. |
 
 ## 1. Verdict
 
@@ -86,6 +87,7 @@ Most important remaining edit: regenerate the rendered PDF after fixing figure s
 
 ### Issue 7 — Claim-defense ledger is too compressed to be useful
 
+**Status:** Addressed in [`d642ba0`](https://github.com/SystemicVoid/H-Neurons/commit/d642ba002b2d079a450d1e9e88a52219931bcbea).
 **Severity:** Major  
 **Location:** PDF page 14; `rendered-pages/page-14.png`; `paper/main.tex:642-741`.  
 **Problem:** Table 9 is a dense, tiny claim-defense ledger. Long metric IDs and source paths wrap every few characters. It is technically present, but not reviewer-legible at normal zoom, and it consumes an appendix page while failing its purpose.  
@@ -203,7 +205,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 | 1 | Reconcile bridge taxonomy counts across all paper and supplement ledgers. | `supplement/number_provenance.md`, `paper/number_provenance.md`, `supplement/support/externality_summary.md`, `supplement/failure_coding_manifest.md`, Figure 3 data source. | Addressed in [`b6a40bd`](https://github.com/SystemicVoid/H-Neurons/commit/b6a40bd79b24e6991bb753adfb630a39d1631332): no stale 30/43, 8/43, or 2/43 formal-refusal live rows remain; all reviewer-facing files report 31/43, 9/43, 3/43, 0/43 and 55/57 agreement. |
 | 2 | Regenerate Figures 2 and 3. | `paper/figures/fig2_matched.py`, `fig2_matched.pdf`, `fig3_bridge.py`, `fig3_bridge.pdf`, PDF pages 5-6. | No clipped text; all bar/annotation labels complete in standalone PDFs and rendered manuscript. |
 | 3 | Fix appendix float placement and whitespace. | `paper/main.tex:472-819`. | Pages 11-17 have no orphan headings, detached tables, or mostly blank pages; appendix headings are followed by their content. |
-| 4 | Reformat or move Table 9. | `paper/main.tex:642-741`; supplement ledger. | Claim-defense evidence is readable at 100% zoom or moved to supplement with a short in-paper index. |
+| 4 | Reformat or move Table 9. | `paper/main.tex:642-741`; supplement ledger. | Addressed in [`d642ba0`](https://github.com/SystemicVoid/H-Neurons/commit/d642ba002b2d079a450d1e9e88a52219931bcbea): the detailed ledger moved to `supplement/number_provenance.md`, and the paper-facing index is readable at 100% zoom. |
 | 5 | Replace “reverse the conclusion.” | `paper/main.tex:300-327`. | Measurement section says scoring granularity changes whether the effect clears the gate; it does not claim sign reversal. |
 | 6 | Replace unsupported “pre-registered” phrasing. | `paper/main.tex:255`; supplement bridge wording. | Uses “pre-specified,” “pre-frozen,” or includes an actual preregistration artifact. |
 | 7 | Fix supplement links and missing-artifact declarations. | `supplement/support/externality_summary.md`, `supplement/failure_coding_manifest.md`, `supplement/artifact_manifest.md`. | Addressed in [`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa): every relative supplement link resolves during package build, and `bridge_irr_summary.json` plus redacted `adjudicated_labels.jsonl` are bundled and declared. |
@@ -216,7 +218,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 - [x] Regenerate `supplement/number_provenance.md` and verify bridge counts match `paper/main.tex`, `paper/number_provenance.md`, `support/externality_summary.md`, and `failure_coding_manifest.md` ([`b6a40bd`](https://github.com/SystemicVoid/H-Neurons/commit/b6a40bd79b24e6991bb753adfb630a39d1631332)).
 - [x] Rebuild Figures 2 and 3; inspect standalone PDFs and pages 5-6 ([`d4c69fa`](https://github.com/SystemicVoid/H-Neurons/commit/d4c69fa27623388a86a18d2f6f16bb07d65a65b3)).
 - [x] Repair appendix float placement with barriers/clear pages; re-render and inspect pages 11-17 ([`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99)).
-- [ ] Move or split the claim-defense ledger so it is readable.
+- [x] Move or split the claim-defense ledger so it is readable ([`d642ba0`](https://github.com/SystemicVoid/H-Neurons/commit/d642ba002b2d079a450d1e9e88a52219931bcbea)).
 - [x] Replace “pre-registered” unless a public preregistration artifact is included ([`8b34c63`](https://github.com/SystemicVoid/H-Neurons/commit/8b34c6315cd9beddbf10616a87dc7ac619cf9b1b)).
 - [x] Replace “reverse the conclusion” with “change the gate/pass-fail verdict” ([`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c)).
 - [ ] Fix Table 5 CI caption and Table 7 MDE definition.
