@@ -15,7 +15,10 @@ from run_intervention import (  # noqa: E402
     INTERVENTION_RUN_CONFIG_FILENAME,
     _faitheval_prompt,
     assert_or_write_intervention_run_contract,
+    build_generation_fingerprint,
+    build_intervention_run_contract,
     describe_sample_manifest,
+    parse_args as parse_intervention_args,
 )
 from run_negative_control import (  # noqa: E402
     _jailbreak_csv2_eval_dir,
@@ -28,6 +31,7 @@ from run_negative_control import (  # noqa: E402
     negative_control_schedule,
     parse_args,
 )
+from utils import fingerprint_ids  # noqa: E402
 
 
 _FAKE_SAMPLE = {
@@ -237,6 +241,110 @@ def test_intervention_contract_rejects_legacy_outputs_without_guard(
             str(output_dir),
             contract,
             [0.0],
+            write_if_missing=True,
+        )
+
+
+def _write_bridge_lock(path: Path, ids: list[str]) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "sample_manifest/v2",
+                "benchmark": "triviaqa_bridge",
+                "split_name": "unit",
+                "ids": ids,
+                "n_ids": len(ids),
+                "fingerprint": fingerprint_ids(ids),
+                "source_path": "unit-source.json",
+                "source_sha256": hashlib.sha256(
+                    json.dumps(ids).encode("utf-8")
+                ).hexdigest(),
+                "lock_context": "unit",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _build_bridge_contract(manifest_path: Path) -> dict[str, Any]:
+    args = parse_intervention_args(
+        [
+            "--model_key",
+            "mistral24b",
+            "--benchmark",
+            "triviaqa_bridge",
+            "--triviaqa_bridge_manifest",
+            str(manifest_path),
+            "--triviaqa_bridge_parquet",
+            "data/TriviaQA/rc.nocontext/validation-00000-of-00001.parquet",
+            "--intervention_mode",
+            "iti_head",
+            "--iti_head_path",
+            "models/unit_iti_heads.pt",
+            "--iti_family",
+            "truthfulqa_paperfaithful",
+            "--iti_decode_scope",
+            "first_3_tokens",
+            "--alphas",
+            "0.0",
+            "8.0",
+            "--run_profile",
+            "canonical",
+        ]
+    )
+    return build_intervention_run_contract(
+        args,
+        sample_manifest=None,
+        run_profile="canonical",
+        comparability_class="claimable",
+        generation_fingerprint=build_generation_fingerprint(
+            args=args,
+            jailbreak_generation=None,
+        ),
+        jailbreak_generation=None,
+    )
+
+
+def test_triviaqa_bridge_contract_binds_same_path_manifest_content(
+    tmp_path: Path,
+) -> None:
+    manifest_path = tmp_path / "triviaqa_bridge.lock.json"
+    output_dir = tmp_path / "experiment"
+    output_dir.mkdir()
+
+    _write_bridge_lock(manifest_path, ["q1"])
+    first_contract = _build_bridge_contract(manifest_path)
+    _write_bridge_lock(manifest_path, ["q2"])
+    second_contract = _build_bridge_contract(manifest_path)
+
+    first_identity = first_contract["benchmark_config"][
+        "triviaqa_bridge_manifest_identity"
+    ]
+    second_identity = second_contract["benchmark_config"][
+        "triviaqa_bridge_manifest_identity"
+    ]
+    assert first_contract["benchmark_config"]["triviaqa_bridge_manifest"] == str(
+        manifest_path
+    )
+    assert second_contract["benchmark_config"]["triviaqa_bridge_manifest"] == str(
+        manifest_path
+    )
+    assert first_identity["path"] == second_identity["path"] == str(manifest_path)
+    assert first_identity["content_sha256"] != second_identity["content_sha256"]
+    assert first_identity["fingerprint"] != second_identity["fingerprint"]
+    assert first_identity["lock_context"] == "unit"
+
+    assert_or_write_intervention_run_contract(
+        str(output_dir),
+        first_contract,
+        [0.0, 8.0],
+        write_if_missing=True,
+    )
+    with pytest.raises(RuntimeError, match="triviaqa_bridge_manifest_identity"):
+        assert_or_write_intervention_run_contract(
+            str(output_dir),
+            second_contract,
+            [0.0, 8.0],
             write_if_missing=True,
         )
 

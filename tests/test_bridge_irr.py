@@ -18,6 +18,7 @@ from bridge_irr import (  # noqa: E402
     load_adjudication_progress,
     load_label_progress,
 )
+import prepare_bridge_irr_queue  # noqa: E402
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -113,6 +114,115 @@ def test_extract_discordant_cases_identifies_damage_and_rescue(tmp_path: Path) -
     assert case_by_id["q1"]["incorrect_response"] == "Nearby wrong entity"
     assert case_by_id["q2"]["incorrect_condition"] == "baseline"
     assert case_by_id["q2"]["incorrect_grade"] == "NOT_ATTEMPTED"
+
+
+def test_extract_discordant_cases_rejects_unjudged_generation_rows(
+    tmp_path: Path,
+) -> None:
+    baseline_path = tmp_path / "baseline.jsonl"
+    comparison_path = tmp_path / "comparison.jsonl"
+    _write_jsonl(
+        baseline_path,
+        [
+            {
+                "id": "q1",
+                "question": "Question 1",
+                "ground_truth_aliases": ["Alpha"],
+                "response": "Alpha",
+                "deterministic_correct": True,
+                "match_tier": "exact",
+            }
+        ],
+    )
+    _write_jsonl(
+        comparison_path,
+        [
+            {
+                "id": "q1",
+                "question": "Question 1",
+                "ground_truth_aliases": ["Alpha"],
+                "response": "Wrong entity",
+                "deterministic_correct": False,
+                "match_tier": "no_match",
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="requires judged bridge outputs") as exc_info:
+        extract_discordant_cases(
+            baseline_path,
+            comparison_path,
+            comparison_name="comparison",
+        )
+
+    message = str(exc_info.value)
+    assert str(baseline_path) in message
+    assert "q1" in message
+    assert "compliance" in message
+
+
+def test_prepare_bridge_irr_queue_rejects_partial_judge_failures(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    baseline_path = tmp_path / "baseline.jsonl"
+    comparison_path = tmp_path / "comparison.jsonl"
+    rule_path = tmp_path / "adjudication_rule.md"
+    output_dir = tmp_path / "irr"
+    rule_path.write_text("# frozen\n", encoding="utf-8")
+    _write_jsonl(
+        baseline_path,
+        [
+            {
+                "id": "q1",
+                "question": "Question 1",
+                "ground_truth_aliases": ["Alpha"],
+                "response": "Alpha",
+                "deterministic_correct": True,
+                "match_tier": "exact",
+                "compliance": True,
+            }
+        ],
+    )
+    _write_jsonl(
+        comparison_path,
+        [
+            {
+                "id": "q1",
+                "question": "Question 1",
+                "ground_truth_aliases": ["Alpha"],
+                "response": "Wrong entity",
+                "deterministic_correct": False,
+                "match_tier": "no_match",
+                "compliance": False,
+                "judge": "ERROR",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prepare_bridge_irr_queue.py",
+            "--skip_dev",
+            "--test_baseline",
+            str(baseline_path),
+            "--test_comparison",
+            str(comparison_path),
+            "--output_dir",
+            str(output_dir),
+            "--adjudication_rule_path",
+            str(rule_path),
+        ],
+    )
+
+    with pytest.raises(ValueError, match="requires judged bridge outputs") as exc_info:
+        prepare_bridge_irr_queue.main()
+
+    message = str(exc_info.value)
+    assert str(comparison_path) in message
+    assert "q1" in message
+    assert "ERROR" in message
 
 
 def test_build_blinded_case_artifacts_produces_queue_and_key() -> None:
@@ -247,6 +357,67 @@ def test_build_pending_status_payload_keeps_external_paths_absolute(
     assert status["files"]["rater_b_provenance"] == str(
         (tmp_path / "rater_b_provenance.json").resolve()
     ).replace("\\", "/")
+
+
+def test_prepare_bridge_irr_queue_can_skip_dev_split(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    baseline_path = tmp_path / "baseline.jsonl"
+    comparison_path = tmp_path / "comparison.jsonl"
+    rule_path = tmp_path / "adjudication_rule.md"
+    output_dir = tmp_path / "irr"
+    rule_path.write_text("# frozen\n", encoding="utf-8")
+    _write_jsonl(
+        baseline_path,
+        [
+            {
+                "id": "q1",
+                "question": "Question 1",
+                "ground_truth_aliases": ["Alpha"],
+                "response": "Alpha",
+                "compliance": True,
+                "attempted": True,
+                "triviaqa_bridge_grade": "CORRECT",
+            }
+        ],
+    )
+    _write_jsonl(
+        comparison_path,
+        [
+            {
+                "id": "q1",
+                "question": "Question 1",
+                "ground_truth_aliases": ["Alpha"],
+                "response": "Wrong entity",
+                "compliance": False,
+                "attempted": True,
+                "triviaqa_bridge_grade": "INCORRECT",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prepare_bridge_irr_queue.py",
+            "--skip_dev",
+            "--test_baseline",
+            str(baseline_path),
+            "--test_comparison",
+            str(comparison_path),
+            "--output_dir",
+            str(output_dir),
+            "--adjudication_rule_path",
+            str(rule_path),
+        ],
+    )
+
+    prepare_bridge_irr_queue.main()
+
+    status = json.loads((output_dir / "bridge_irr_status.json").read_text())
+    assert status["counts"]["dev"]["discordant_total"] == 0
+    assert status["counts"]["test"]["discordant_total"] == 1
+    assert (output_dir / "dev_calibration_queue.jsonl").read_text() == ""
 
 
 def test_gwet_ac1_is_one_for_perfect_agreement() -> None:

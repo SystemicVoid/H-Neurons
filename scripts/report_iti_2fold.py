@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Aggregate 2-fold ITI TruthfulQA results with paired bootstrap CIs.
+"""Aggregate ITI TruthfulQA results with paired bootstrap CIs.
 
 Reads per-fold JSONL outputs (alpha_0.0.jsonl and alpha_{locked}.jsonl)
-from both folds, computes per-fold and pooled MC1/MC2 deltas using paired
-bootstrap, and writes a structured report.
+from one or more fold/held-out directories, computes per-split and pooled
+MC1/MC2 deltas using paired bootstrap, and writes a structured report.
 
 Usage::
 
@@ -19,6 +19,8 @@ Usage::
 from __future__ import annotations
 
 import argparse
+from collections import Counter
+from collections.abc import Sequence
 import json
 from pathlib import Path
 from typing import Any
@@ -31,7 +33,7 @@ from uncertainty import (
     percentile_interval,
     wilson_interval,
 )
-from utils import format_alpha_label
+from utils import fingerprint_ids, format_alpha_label, load_sample_manifest_ids
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +61,77 @@ def extract_mc1_correctness(records: list[dict[str, Any]]) -> dict[str, bool]:
 def extract_mc2_truthful_mass(records: list[dict[str, Any]]) -> dict[str, float]:
     """Extract per-sample truthful mass for MC2 (continuous 0–1)."""
     return {r["id"]: float(r["metric_value"]) for r in records}
+
+
+def assert_unique_sample_ids(
+    records: list[dict[str, Any]],
+    *,
+    label: str,
+    fold_idx: int,
+    variant: str,
+) -> None:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for row in records:
+        sample_id = str(row["id"])
+        if sample_id in seen:
+            duplicates.add(sample_id)
+        else:
+            seen.add(sample_id)
+    if duplicates:
+        raise ValueError(
+            f"Duplicate sample IDs in {label} alpha file "
+            f"(fold={fold_idx}, variant={variant}): {sorted(duplicates)[:5]}"
+        )
+
+
+def _duplicate_sample_ids(ids: Sequence[str]) -> list[str]:
+    counts = Counter(ids)
+    return sorted(sample_id for sample_id, count in counts.items() if count > 1)
+
+
+def validate_sample_manifest_binding(
+    fold_sample_ids: Sequence[Sequence[str]],
+    sample_manifest: str | Path,
+) -> dict[str, Any]:
+    """Validate that pooled report IDs exactly match a locked sample manifest."""
+    manifest_path = Path(sample_manifest)
+    manifest_ids = load_sample_manifest_ids(manifest_path)
+    manifest_duplicates = _duplicate_sample_ids(manifest_ids)
+    if manifest_duplicates:
+        raise ValueError(
+            f"{manifest_path}: duplicate sample IDs in --sample_manifest: "
+            f"{manifest_duplicates[:5]}"
+        )
+
+    report_ids = [sample_id for fold_ids in fold_sample_ids for sample_id in fold_ids]
+    report_duplicates = _duplicate_sample_ids(report_ids)
+    if report_duplicates:
+        raise ValueError(
+            "TruthfulQA ITI report has duplicate sample IDs across fold "
+            f"directories for --sample_manifest {manifest_path}: "
+            f"{report_duplicates[:5]}"
+        )
+
+    manifest_set = set(manifest_ids)
+    report_set = set(report_ids)
+    if report_set != manifest_set or len(report_ids) != len(manifest_ids):
+        missing_from_report = sorted(manifest_set - report_set)
+        unexpected_in_report = sorted(report_set - manifest_set)
+        raise ValueError(
+            "TruthfulQA ITI report sample IDs must exactly match "
+            f"--sample_manifest {manifest_path}; "
+            f"manifest_n={len(manifest_ids)}, report_n={len(report_ids)}, "
+            f"missing_from_report={missing_from_report[:5]}, "
+            f"unexpected_in_report={unexpected_in_report[:5]}"
+        )
+
+    return {
+        "path": str(manifest_path),
+        "n_ids": len(manifest_ids),
+        "fingerprint": fingerprint_ids(manifest_ids),
+        "validated": True,
+    }
 
 
 def mcnemar_p_value(
@@ -103,22 +176,28 @@ def _bootstrap_mean_ci(
 # ---------------------------------------------------------------------------
 
 
-def compute_fold_report(
+def compute_fold_report_with_ids(
     fold_dir: str,
     locked_alpha: float,
     variant: str,
     fold_idx: int,
-) -> tuple[dict[str, Any], np.ndarray, np.ndarray]:
+) -> tuple[dict[str, Any], np.ndarray, np.ndarray, list[str]]:
     """Compute single-fold baseline vs intervened comparison.
 
-    Returns (report_dict, baseline_values, intervened_values) where values
-    are aligned numpy arrays (bool for mc1, float for mc2).
+    Returns (report_dict, baseline_values, intervened_values, sample_ids)
+    where values are aligned numpy arrays (bool for mc1, float for mc2).
     """
     baseline_label = format_alpha_label(0.0)
     locked_label = format_alpha_label(locked_alpha)
 
     baseline_records = load_fold_records(fold_dir, baseline_label)
     locked_records = load_fold_records(fold_dir, locked_label)
+    assert_unique_sample_ids(
+        baseline_records, label="baseline", fold_idx=fold_idx, variant=variant
+    )
+    assert_unique_sample_ids(
+        locked_records, label="intervened", fold_idx=fold_idx, variant=variant
+    )
 
     if variant == "mc1":
         baseline_map = extract_mc1_correctness(baseline_records)
@@ -127,8 +206,25 @@ def compute_fold_report(
         baseline_map = extract_mc2_truthful_mass(baseline_records)
         locked_map = extract_mc2_truthful_mass(locked_records)
 
-    # Align by sample ID
-    common_ids = sorted(set(baseline_map) & set(locked_map))
+    # Align by sample ID. Claim-bearing reports must fail instead of silently
+    # dropping mismatched rows from an incomplete alpha file.
+    baseline_ids = set(baseline_map)
+    locked_ids = set(locked_map)
+    if baseline_ids != locked_ids:
+        missing_from_locked = sorted(baseline_ids - locked_ids)
+        missing_from_baseline = sorted(locked_ids - baseline_ids)
+        raise ValueError(
+            "paired sample IDs must match exactly for TruthfulQA ITI report "
+            f"(fold={fold_idx}, variant={variant}); "
+            f"missing_from_locked={missing_from_locked[:5]}, "
+            f"missing_from_baseline={missing_from_baseline[:5]}"
+        )
+    if not baseline_ids:
+        raise ValueError(
+            "TruthfulQA ITI report has no paired sample IDs "
+            f"(fold={fold_idx}, variant={variant})"
+        )
+    common_ids = sorted(baseline_ids)
 
     if variant == "mc1":
         baseline_arr = np.array([baseline_map[sid] for sid in common_ids], dtype=bool)
@@ -184,6 +280,22 @@ def compute_fold_report(
             "delta_pp": delta,
         }
 
+    return report, baseline_arr, locked_arr, common_ids
+
+
+def compute_fold_report(
+    fold_dir: str,
+    locked_alpha: float,
+    variant: str,
+    fold_idx: int,
+) -> tuple[dict[str, Any], np.ndarray, np.ndarray]:
+    """Compute single-fold report while preserving the historical return shape."""
+    report, baseline_arr, locked_arr, _sample_ids = compute_fold_report_with_ids(
+        fold_dir,
+        locked_alpha,
+        variant,
+        fold_idx,
+    )
     return report, baseline_arr, locked_arr
 
 
@@ -243,6 +355,32 @@ def compute_pooled_report(
     return report
 
 
+def build_gate_decision(
+    report: dict[str, Any], gate_mode: str
+) -> dict[str, Any] | None:
+    if gate_mode == "none":
+        return None
+    if gate_mode != "mc1_positive_ci":
+        raise ValueError(f"Unsupported gate_mode: {gate_mode!r}")
+    if report["variant"] != "mc1":
+        raise ValueError("--gate_mode mc1_positive_ci is only valid with --variant mc1")
+
+    pooled = report["pooled"]
+    delta_pp = pooled["delta_pp"]
+    estimate_pp = float(delta_pp["estimate_pp"])
+    lower_pp = float(delta_pp["ci_pp"]["lower"])
+    passed = estimate_pp > 0.0 and lower_pp > 0.0
+    return {
+        "mode": "mc1_positive_ci",
+        "passed": passed,
+        "criterion": "pooled MC1 delta estimate > 0 and paired-bootstrap 95% CI lower bound > 0",
+        "estimate_pp": estimate_pp,
+        "ci_lower_pp": lower_pp,
+        "ci_upper_pp": float(delta_pp["ci_pp"]["upper"]),
+        "n_samples_total": int(pooled["n_samples_total"]),
+    }
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -250,29 +388,76 @@ def compute_pooled_report(
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--fold0_dir", type=str, required=True)
-    p.add_argument("--fold1_dir", type=str, required=True)
+    p.add_argument("--fold0_dir", type=str, default=None)
+    p.add_argument("--fold1_dir", type=str, default=None)
+    p.add_argument(
+        "--fold_dirs",
+        type=str,
+        nargs="+",
+        default=None,
+        help=(
+            "One or more directories containing alpha_*.jsonl. If omitted, "
+            "--fold0_dir and --fold1_dir preserve the original 2-fold interface."
+        ),
+    )
     p.add_argument("--locked_alpha", type=float, required=True)
     p.add_argument("--locked_k", type=int, required=True)
     p.add_argument("--variant", type=str, default="mc1", choices=["mc1", "mc2"])
     p.add_argument("--output_dir", type=str, default="notes/act3-reports")
+    p.add_argument(
+        "--output_prefix",
+        type=str,
+        default="iti_2fold",
+        help="Prefix for the default report filename.",
+    )
+    p.add_argument(
+        "--output_path",
+        type=str,
+        default=None,
+        help="Explicit JSON report path. Overrides --output_dir/--output_prefix.",
+    )
+    p.add_argument(
+        "--gate_mode",
+        type=str,
+        default="none",
+        choices=["none", "mc1_positive_ci"],
+        help="Optional strict launch gate to embed in the report.",
+    )
+    p.add_argument(
+        "--sample_manifest",
+        type=str,
+        default=None,
+        help=(
+            "Optional sample manifest path. When supplied, the pooled sample IDs "
+            "across all fold directories must exactly match this locked set."
+        ),
+    )
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     out = Path(args.output_dir)
-    out.mkdir(parents=True, exist_ok=True)
+    if args.output_path is None:
+        out.mkdir(parents=True, exist_ok=True)
 
-    fold_dirs = [args.fold0_dir, args.fold1_dir]
+    if args.fold_dirs is not None:
+        fold_dirs = args.fold_dirs
+    elif args.fold0_dir is not None and args.fold1_dir is not None:
+        fold_dirs = [args.fold0_dir, args.fold1_dir]
+    else:
+        raise ValueError("Provide --fold_dirs or both --fold0_dir and --fold1_dir")
+
     fold_reports = []
     fold_arrays = []
+    fold_sample_ids = []
     for fold_idx, fold_dir in enumerate(fold_dirs):
-        report, baseline_arr, locked_arr = compute_fold_report(
+        report, baseline_arr, locked_arr, sample_ids = compute_fold_report_with_ids(
             fold_dir, args.locked_alpha, args.variant, fold_idx
         )
         fold_reports.append(report)
         fold_arrays.append((baseline_arr, locked_arr))
+        fold_sample_ids.append(sample_ids)
         b = report["baseline"]
         i = report["intervened"]
         d = report["delta_pp"]
@@ -280,6 +465,13 @@ def main() -> None:
             f"Fold {fold_idx}: {args.variant} baseline={b['rate']:.3f}, "
             f"intervened={i['rate']:.3f}, Δ={d['estimate_pp']:+.1f}pp "
             f"[{d['ci_pp']['lower']:+.1f}, {d['ci_pp']['upper']:+.1f}]"
+        )
+
+    sample_manifest_binding = None
+    if args.sample_manifest is not None:
+        sample_manifest_binding = validate_sample_manifest_binding(
+            fold_sample_ids,
+            args.sample_manifest,
         )
 
     pooled = compute_pooled_report(args.variant, args.locked_alpha, fold_arrays)
@@ -299,10 +491,29 @@ def main() -> None:
         "locked_alpha": args.locked_alpha,
         "locked_k": args.locked_k,
         "variant": args.variant,
+        "sample_manifest": args.sample_manifest,
+        "fold_dirs": fold_dirs,
         "folds": fold_reports,
         "pooled": pooled,
     }
-    report_path = out / f"iti_2fold_{args.variant}_report.json"
+    if sample_manifest_binding is not None:
+        full_report["sample_manifest_binding"] = sample_manifest_binding
+    gate = build_gate_decision(full_report, args.gate_mode)
+    if gate is not None:
+        full_report["gate"] = gate
+        print(
+            f"  Gate {gate['mode']}: "
+            f"{'PASS' if gate['passed'] else 'FAIL'} "
+            f"(estimate={gate['estimate_pp']:+.1f}pp, "
+            f"lower={gate['ci_lower_pp']:+.1f}pp)"
+        )
+
+    report_path = (
+        Path(args.output_path)
+        if args.output_path
+        else out / f"{args.output_prefix}_{args.variant}_report.json"
+    )
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w") as f:
         json.dump(full_report, f, indent=2)
         f.write("\n")

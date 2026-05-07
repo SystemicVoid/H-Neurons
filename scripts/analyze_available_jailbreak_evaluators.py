@@ -943,7 +943,7 @@ def parse_args() -> argparse.Namespace:
         choices=["available", "mistral-anchor"],
         default="available",
     )
-    parser.add_argument("--output_path", type=Path, default=OUTPUT_PATH)
+    parser.add_argument("--output-path", type=Path, default=OUTPUT_PATH)
     parser.add_argument("--binary-full-dir", type=Path, default=None)
     parser.add_argument("--binary-256-dir", type=Path, default=None)
     parser.add_argument("--csv3-full-dir", type=Path, default=None)

@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import re
 from collections import defaultdict
@@ -53,6 +54,12 @@ from build_truthfulness_contrastive import (
     validate_disjoint_qid_splits,
 )
 from intervene_iti import _get_decoder_layers
+from model_registry import (
+    assert_causal_lm_supported,
+    model_metadata,
+    model_path_for,
+    tokenizer_kwargs_for,
+)
 from utils import (
     audit_split_leakage,
     finish_run_provenance,
@@ -79,6 +86,8 @@ REFUSAL_FAMILIES = (
     "iti_refusal_probe",
     "iti_refusal_causal",
 )
+DEFAULT_MODEL_KEY = os.environ.get("HNEURONS_MODEL_KEY")
+DEFAULT_MODEL_PATH = os.environ.get("HNEURONS_MODEL_PATH")
 
 
 @dataclass(frozen=True)
@@ -125,9 +134,18 @@ def parse_args() -> argparse.Namespace:
         ],
     )
     parser.add_argument(
+        "--model_key",
+        type=str,
+        default=DEFAULT_MODEL_KEY,
+        help=(
+            "Registered model key. Used for model defaults, support checks, "
+            "and tokenizer quirks such as Mistral's regex fix."
+        ),
+    )
+    parser.add_argument(
         "--model_path",
         type=str,
-        default="google/gemma-3-4b-it",
+        default=DEFAULT_MODEL_PATH,
     )
     parser.add_argument(
         "--output_dir",
@@ -1638,6 +1656,11 @@ def build_artifact(
 
 def main() -> None:
     args = parse_args()
+    args.model_path = model_path_for(args.model_key, args.model_path)
+    assert_causal_lm_supported(args.model_key, args.model_path)
+    registered_model = model_metadata(args.model_key, args.model_path)
+    tokenizer_kwargs = tokenizer_kwargs_for(args.model_key, args.model_path)
+
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -1659,7 +1682,10 @@ def main() -> None:
     provenance_extra: dict[str, Any] = {}
 
     try:
-        tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.model_path,
+            **tokenizer_kwargs,
+        )
         causal_pairs: list[D7CausalPair] = []
         if args.family == "iti_triviaqa_transfer":
             examples, family_metadata = build_triviaqa_transfer_examples(
@@ -1767,7 +1793,10 @@ def main() -> None:
         metadata = {
             "family": args.family,
             "artifact_family": args.family,
+            "model_key": args.model_key,
             "model_path": args.model_path,
+            "registered_model": registered_model,
+            "tokenizer_kwargs": tokenizer_kwargs,
             "source_dataset": family_metadata["source_dataset"],
             "git_sha": get_git_sha(),
             "head_ranking_metric": rank_primary,

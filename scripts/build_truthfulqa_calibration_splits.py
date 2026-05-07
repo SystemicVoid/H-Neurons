@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 from pathlib import Path
 from typing import Any
 
@@ -217,6 +218,133 @@ def build_production_fold(
     }
 
 
+_TRUTHFULQA_MC_ID_RE = re.compile(r"^truthfulqa_(mc[12])_(\d+)$")
+
+
+def _load_sample_manifest_ids(path: str | Path) -> list[str]:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if isinstance(payload, list):
+        return [str(item) for item in payload]
+    if isinstance(payload, dict):
+        for key in ("ids", "sample_ids"):
+            ids = payload.get(key)
+            if isinstance(ids, list):
+                return [str(item) for item in ids]
+    raise ValueError(f"{path} must be a JSON list or an object with an 'ids' list")
+
+
+def stable_ids_from_truthfulqa_mc_manifest(
+    questions: list[dict[str, Any]],
+    manifest_path: str | Path,
+    *,
+    expected_variant: str,
+) -> list[str]:
+    """Map TruthfulQA MC sample IDs back to canonical stable question IDs."""
+    csv_idx_to_stable_id = {int(q["csv_idx"]): str(q["stable_id"]) for q in questions}
+    stable_ids: list[str] = []
+    seen: set[str] = set()
+    for sample_id in _load_sample_manifest_ids(manifest_path):
+        match = _TRUTHFULQA_MC_ID_RE.match(sample_id)
+        if not match:
+            raise ValueError(f"Malformed TruthfulQA MC sample ID: {sample_id!r}")
+        variant, csv_idx_text = match.groups()
+        if variant != expected_variant:
+            raise ValueError(
+                f"{manifest_path} contains {variant!r} ID {sample_id!r}; "
+                f"expected {expected_variant!r}"
+            )
+        csv_idx = int(csv_idx_text)
+        try:
+            stable_id = csv_idx_to_stable_id[csv_idx]
+        except KeyError as exc:
+            raise ValueError(
+                f"{manifest_path} references CSV index {csv_idx}, "
+                "which is absent from the canonical TruthfulQA manifest"
+            ) from exc
+        if stable_id in seen:
+            raise ValueError(
+                f"Duplicate TruthfulQA question in {manifest_path}: {stable_id}"
+            )
+        seen.add(stable_id)
+        stable_ids.append(stable_id)
+    return sorted(stable_ids)
+
+
+def build_anchor2_heldout_fold(
+    questions: list[dict[str, Any]],
+    *,
+    heldout_stable_ids: list[str],
+    seed: int,
+    canonical_manifest_path: str,
+    canonical_fingerprint: str,
+    fold_name: str = "anchor2_mistral24b",
+) -> dict[str, Any]:
+    """Build the direct Anchor 2 fit fold excluding locked held-out MC IDs."""
+    all_ids = sorted(str(q["stable_id"]) for q in questions)
+    all_id_set = set(all_ids)
+    heldout_set = set(heldout_stable_ids)
+    if not heldout_set:
+        raise ValueError("Anchor2 held-out fold requires at least one held-out ID")
+    unknown = heldout_set - all_id_set
+    if unknown:
+        raise ValueError(
+            "Anchor2 held-out IDs are absent from the canonical TruthfulQA manifest: "
+            f"{sorted(unknown)[:5]}"
+        )
+
+    dev_ids = sorted(all_id_set - heldout_set)
+    rng = random.Random(seed)
+    dev_shuffled = list(dev_ids)
+    rng.shuffle(dev_shuffled)
+    n_val = len(dev_shuffled) // 5
+    val_ids = sorted(dev_shuffled[:n_val])
+    train_ids = sorted(dev_shuffled[n_val:])
+
+    assert set(train_ids).isdisjoint(val_ids), "anchor2 train/val overlap"
+    assert (set(train_ids) | set(val_ids)).isdisjoint(heldout_set), (
+        "anchor2 dev/test overlap"
+    )
+    assert set(train_ids) | set(val_ids) | heldout_set == all_id_set, (
+        "anchor2 fold coverage"
+    )
+
+    return {
+        "version": 1,
+        "seed": seed,
+        "fold": fold_name,
+        "protocol": "anchor2_locked_heldout_exclusion",
+        "dev": {
+            "train": train_ids,
+            "val": val_ids,
+        },
+        "test": sorted(heldout_set),
+        "counts": {
+            "train": len(train_ids),
+            "val": len(val_ids),
+            "test": len(heldout_set),
+        },
+        "canonical_manifest": canonical_manifest_path,
+        "canonical_fingerprint": canonical_fingerprint,
+        "heldout_fingerprint": fingerprint_ids(sorted(heldout_set)),
+    }
+
+
+def build_mc_manifests_for_stable_ids(
+    questions: list[dict[str, Any]],
+    stable_ids: list[str],
+    *,
+    seed: int,
+    prefix: str,
+) -> dict[str, list[str]]:
+    sid_to_csv_idx = {str(q["stable_id"]): int(q["csv_idx"]) for q in questions}
+    csv_indices = sorted(sid_to_csv_idx[sid] for sid in stable_ids)
+    manifests: dict[str, list[str]] = {}
+    for variant in ("mc1", "mc2"):
+        key = f"{prefix}_cal_val_{variant}_seed{seed}"
+        manifests[key] = [f"truthfulqa_{variant}_{csv_idx}" for csv_idx in csv_indices]
+    return manifests
+
+
 def build_cal_val_mc_manifests(
     questions: list[dict[str, Any]],
     cal_val_ids: list[str],
@@ -256,6 +384,33 @@ def parse_args() -> argparse.Namespace:
         default=0.10,
         help="Fraction of questions for each of cal_train and cal_val (default: 0.10)",
     )
+    p.add_argument(
+        "--anchor2-heldout-mc1-manifest",
+        type=str,
+        default=None,
+        help=(
+            "Optional locked TruthfulQA MC1 manifest. When provided with the MC2 "
+            "manifest, writes an Anchor 2 fold that excludes exactly those "
+            "held-out questions from extraction/sweep data."
+        ),
+    )
+    p.add_argument(
+        "--anchor2-heldout-mc2-manifest",
+        type=str,
+        default=None,
+        help="Optional locked TruthfulQA MC2 manifest paired with --anchor2-heldout-mc1-manifest.",
+    )
+    p.add_argument(
+        "--anchor2-prefix",
+        type=str,
+        default="truthfulqa_anchor2_mistral24b",
+        help="Filename prefix for Anchor 2 fold and internal cal-val manifests.",
+    )
+    p.add_argument(
+        "--only-anchor2",
+        action="store_true",
+        help="Write only the Anchor 2 fold/manifests and leave existing generic files untouched.",
+    )
     return p.parse_args()
 
 
@@ -263,6 +418,21 @@ def _write_json(path: Path, data: Any) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
+
+
+def _validate_anchor2_cli_args(args: argparse.Namespace) -> None:
+    if bool(args.anchor2_heldout_mc1_manifest) != bool(
+        args.anchor2_heldout_mc2_manifest
+    ):
+        raise ValueError(
+            "--anchor2-heldout-mc1-manifest and --anchor2-heldout-mc2-manifest "
+            "must be provided together"
+        )
+    if args.only_anchor2 and not args.anchor2_heldout_mc1_manifest:
+        raise ValueError(
+            "--only-anchor2 requires both --anchor2-heldout-mc1-manifest and "
+            "--anchor2-heldout-mc2-manifest"
+        )
 
 
 def main() -> None:
@@ -291,6 +461,55 @@ def main() -> None:
         }
         _write_json(canonical_path, manifest)
         print(f"  Wrote {len(questions)} questions → {canonical_path}")
+
+    _validate_anchor2_cli_args(args)
+
+    if args.anchor2_heldout_mc1_manifest and args.anchor2_heldout_mc2_manifest:
+        print("Building Anchor 2 locked-heldout fold...")
+        mc1_heldout = stable_ids_from_truthfulqa_mc_manifest(
+            questions,
+            args.anchor2_heldout_mc1_manifest,
+            expected_variant="mc1",
+        )
+        mc2_heldout = stable_ids_from_truthfulqa_mc_manifest(
+            questions,
+            args.anchor2_heldout_mc2_manifest,
+            expected_variant="mc2",
+        )
+        if mc1_heldout != mc2_heldout:
+            raise ValueError(
+                "Anchor 2 MC1/MC2 held-out manifests refer to different "
+                "TruthfulQA question sets"
+            )
+        anchor2_fold = build_anchor2_heldout_fold(
+            questions,
+            heldout_stable_ids=mc1_heldout,
+            seed=args.seed,
+            canonical_manifest_path=str(canonical_path),
+            canonical_fingerprint=canonical_fp,
+            fold_name=args.anchor2_prefix,
+        )
+        anchor2_fold_path = out / f"{args.anchor2_prefix}_fold_seed{args.seed}.json"
+        _write_json(anchor2_fold_path, anchor2_fold)
+        print(
+            f"  Anchor2 fold: train={anchor2_fold['counts']['train']}, "
+            f"val={anchor2_fold['counts']['val']}, "
+            f"test={anchor2_fold['counts']['test']} → {anchor2_fold_path}"
+        )
+        anchor2_mc = build_mc_manifests_for_stable_ids(
+            questions,
+            anchor2_fold["dev"]["val"],
+            seed=args.seed,
+            prefix=args.anchor2_prefix,
+        )
+        for name, ids in anchor2_mc.items():
+            path = out / f"{name}.json"
+            _write_json(path, ids)
+            print(f"  {len(ids)} Anchor2 internal cal-val IDs → {path}")
+
+    if args.only_anchor2:
+        print("Done.")
+        return
 
     # --- Calibration split ---
     print(f"Building calibration split (cal_frac={args.cal_frac})...")

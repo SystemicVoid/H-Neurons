@@ -92,6 +92,7 @@ COMPARABILITY_CLASS_BY_PROFILE = {
     "canonical": "claimable",
     "fast": "experimental",
 }
+TRUTHFULQA_MC_SAMPLE_ID_RE = re.compile(r"^truthfulqa_(mc[12])_(\d+)$")
 CANONICAL_JAILBREAK_GENERATION = {
     "do_sample": True,
     "temperature": 0.7,
@@ -435,7 +436,14 @@ def build_intervention_run_contract(
         benchmark_config["truthfulqa_variant"] = args.truthfulqa_variant
         benchmark_config["truthfulqa_fold_path"] = args.truthfulqa_fold_path
     elif args.benchmark == "triviaqa_bridge":
+        if not args.triviaqa_bridge_manifest:
+            raise ValueError(
+                "--benchmark triviaqa_bridge requires --triviaqa_bridge_manifest"
+            )
         benchmark_config["triviaqa_bridge_manifest"] = args.triviaqa_bridge_manifest
+        benchmark_config["triviaqa_bridge_manifest_identity"] = (
+            describe_sample_manifest(args.triviaqa_bridge_manifest)
+        )
         benchmark_config["triviaqa_bridge_parquet"] = args.triviaqa_bridge_parquet
     elif args.benchmark in {"jailbreak", "jailbreak_benign"}:
         benchmark_config["jailbreak_source"] = args.jailbreak_source
@@ -2840,11 +2848,43 @@ def _assert_no_truthfulqa_leakage(args: argparse.Namespace) -> None:
 
     # Load test IDs — prefer explicit fold path, fall back to metadata
     test_ids: set[str] = set()
+    fold: dict[str, Any] | None = None
     if args.truthfulqa_fold_path:
         fold = json.loads(Path(args.truthfulqa_fold_path).read_text(encoding="utf-8"))
         test_ids = set(fold["test"])
     elif extraction_meta.get("question_ids_test"):
         test_ids = set(extraction_meta["question_ids_test"])
+
+    sample_manifest_path = getattr(args, "sample_manifest", None)
+    if args.truthfulqa_fold_path and not sample_manifest_path:
+        raise RuntimeError(
+            "FATAL: --truthfulqa_fold_path requires --sample_manifest for "
+            "TruthfulQA MC runs so evaluation remains bound to the fold test set."
+        )
+    if (
+        args.truthfulqa_fold_path
+        and sample_manifest_path
+        and fold is not None
+        and test_ids
+    ):
+        manifest_qids = _truthfulqa_mc_manifest_question_ids(
+            Path(sample_manifest_path),
+            fold=fold,
+            fold_path=Path(args.truthfulqa_fold_path),
+            expected_variant=getattr(args, "truthfulqa_variant", "mc1"),
+        )
+        outside_test = sorted(manifest_qids - test_ids)
+        if outside_test:
+            raise RuntimeError(
+                "FATAL: TruthfulQA MC sample manifest includes question(s) outside "
+                f"the supplied fold test set. Non-held-out IDs (first 5): "
+                f"{outside_test[:5]}. Manifest: {sample_manifest_path}; "
+                f"fold: {args.truthfulqa_fold_path}"
+            )
+        print(
+            f"Sample-manifest barrier OK: {len(manifest_qids)} "
+            "TruthfulQA question IDs all belong to the fold test set"
+        )
 
     if not fit_ids or not test_ids:
         print(
@@ -2865,6 +2905,59 @@ def _assert_no_truthfulqa_leakage(args: argparse.Namespace) -> None:
         f"Leakage barrier OK: {len(fit_ids)} fit IDs, "
         f"{len(test_ids)} test IDs, 0 overlap"
     )
+
+
+def _truthfulqa_canonical_manifest_path(
+    fold: dict[str, Any],
+    *,
+    fold_path: Path,
+) -> Path:
+    canonical = Path(str(fold["canonical_manifest"]))
+    if canonical.is_file() or canonical.is_absolute():
+        return canonical
+    fold_relative = fold_path.parent / canonical
+    if fold_relative.is_file():
+        return fold_relative
+    return canonical
+
+
+def _truthfulqa_mc_manifest_question_ids(
+    manifest_path: Path,
+    *,
+    fold: dict[str, Any],
+    fold_path: Path,
+    expected_variant: str,
+) -> set[str]:
+    canonical_path = _truthfulqa_canonical_manifest_path(fold, fold_path=fold_path)
+    canonical = json.loads(canonical_path.read_text(encoding="utf-8"))
+    csv_idx_to_stable_id = {
+        int(question["csv_idx"]): str(question["stable_id"])
+        for question in canonical["questions"]
+    }
+
+    question_ids: set[str] = set()
+    for sample_id in load_sample_manifest_ids(str(manifest_path)):
+        match = TRUTHFULQA_MC_SAMPLE_ID_RE.match(sample_id)
+        if not match:
+            raise RuntimeError(
+                f"FATAL: malformed TruthfulQA MC sample ID in {manifest_path}: "
+                f"{sample_id!r}"
+            )
+        variant, csv_idx_text = match.groups()
+        if variant != expected_variant:
+            raise RuntimeError(
+                f"FATAL: {manifest_path} contains {variant!r} sample {sample_id!r}, "
+                f"but --truthfulqa_variant is {expected_variant!r}"
+            )
+        csv_idx = int(csv_idx_text)
+        try:
+            question_ids.add(csv_idx_to_stable_id[csv_idx])
+        except KeyError as exc:
+            raise RuntimeError(
+                f"FATAL: {manifest_path} references TruthfulQA CSV index {csv_idx}, "
+                f"which is absent from {canonical_path}"
+            ) from exc
+    return question_ids
 
 
 def load_truthfulqa_mc(
@@ -4752,6 +4845,16 @@ def main():
             write_if_missing=True,
         )
 
+        # --- Leakage barrier: TruthfulQA MC + ITI ---
+        # Run this before model load so a stale fold/manifest pairing fails
+        # before an expensive H100/A100 allocation starts doing model work.
+        if (
+            args.benchmark == "truthfulqa_mc"
+            and args.intervention_mode == "iti_head"
+            and args.iti_head_path
+        ):
+            _assert_no_truthfulqa_leakage(args)
+
         # Load model
         print(f"Loading model: {args.model_path}")
         model, tokenizer = load_model_and_tokenizer(
@@ -4859,14 +4962,6 @@ def main():
 
             scaler = HNeuronScaler(model, neuron_map, device)
             print(f"Installed {scaler.n_hooks} hooks on {scaler.n_neurons} neurons")
-
-        # --- Leakage barrier: TruthfulQA MC + ITI ---
-        if (
-            args.benchmark == "truthfulqa_mc"
-            and args.intervention_mode == "iti_head"
-            and args.iti_head_path
-        ):
-            _assert_no_truthfulqa_leakage(args)
 
         # Load benchmark data
         print(f"\nLoading benchmark: {args.benchmark}")

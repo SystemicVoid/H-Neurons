@@ -22,7 +22,9 @@ for pair in "${PAIRS[@]}"; do
   slug="${pair%%:*}"
   loc="${pair##*:}"
   echo "=== Linking $slug -> $DOMAIN/$loc ==="
-  curl -sS https://here.now/api/v1/links \
+  curl -sS --fail-with-body --connect-timeout 10 --max-time 60 \
+    --retry 3 --retry-all-errors --retry-delay 2 \
+    https://here.now/api/v1/links \
     -H "Authorization: Bearer $API_KEY" \
     -H "Content-Type: application/json" \
     -d "{\"location\": \"$loc\", \"slug\": \"$slug\", \"domain\": \"$DOMAIN\"}"
@@ -30,5 +32,7 @@ for pair in "${PAIRS[@]}"; do
 done
 
 echo "=== Final link list ==="
-curl -sS "https://here.now/api/v1/links?domain=$DOMAIN" \
+curl -sS --fail-with-body --connect-timeout 10 --max-time 60 \
+  --retry 3 --retry-all-errors --retry-delay 2 \
+  "https://here.now/api/v1/links?domain=$DOMAIN" \
   -H "Authorization: Bearer $API_KEY" | jq .
