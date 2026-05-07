@@ -286,7 +286,7 @@ Comic whose June 1938 issue introduced Superman? & Action Comics & Detective Com
 The preceding sections established that detection quality does not predict steerability (\S\ref{sec:localization}) and that successful steering is narrow in scope (\S\ref{sec:externality}).
 Both conclusions rest on behavioral measurements (jailbreak harmfulness rates, severity scores, and generation-surface accuracy) that are themselves products of evaluation choices.
 In this section we show that those choices are part of the scientific result: truncation and scoring granularity shifted what we would have concluded about whether a given intervention worked on the same outputs, while the evaluator audit exposes residual rubric dependence on a held-out set.
-The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that same-output measurement choices can reverse the conclusion about a representation-engineering intervention in the RepE sense \citep{zou2023repe}, even when two held-out evaluators tie in aggregate accuracy.
+The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that same-output measurement choices can change whether a representation-engineering intervention clears the claimed effect gate, even when two held-out evaluators tie in aggregate accuracy.
 
 We organize the case study around the H-neuron jailbreak scaling experiment (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n = 500$ per condition), because its moderate effect size makes it sensitive to every measurement decision we examine.
 

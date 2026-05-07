@@ -9,6 +9,7 @@ Review date: May 7, 2026. Package treated as a frozen snapshot. Reviewed `paper/
 | 1 | Addressed | [`b6a40bd`](https://github.com/SystemicVoid/H-Neurons/commit/b6a40bd79b24e6991bb753adfb630a39d1631332) | Supplement number provenance now matches the bridge IRR source and support files: 31/43 wrong-entity, 9/43 evasion, 3/43 dilution, 0/43 formal refusal, plus 55/57 agreement, κ = 0.90, AC1 = 0.96. `tests/test_bridge_irr.py::test_paper_bridge_taxonomy_provenance_matches_irr_summary` guards the cross-file consistency. |
 | 2 | Addressed | [`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99) | Appendix floats now render in source order via a one-column appendix, section barriers, and rebuilt `paper/icml/main.pdf`; `make -C paper/icml`, rendered-page inspection, and LaTeX log checks guard the fix. |
 | 3 | Addressed | [`d4c69fa`](https://github.com/SystemicVoid/H-Neurons/commit/d4c69fa27623388a86a18d2f6f16bb07d65a65b3) | Figure generators now escape TeX percent labels, disable label clipping, add export padding, and regenerate Figures 2-3 plus `paper/icml/main.pdf`; script reruns, rendered-page inspection, and LaTeX log checks guard the fix. |
+| 4 | Addressed | [`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c) | Measurement wording now says same-output choices change whether the intervention clears the claimed effect gate, mirrored in the supplement reference copy and rebuilt PDF; `rg` and `pdftotext` checks guard against stale reversal wording. |
 
 ## 1. Verdict
 
@@ -51,6 +52,8 @@ Most important remaining edit: regenerate the rendered PDF after fixing figure s
 **Fix type:** Figure/table.
 
 ### Issue 4 — Measurement-section wording overstates “reversal”
+
+**Status:** Addressed in [`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c).
 
 **Severity:** Major  
 **Location:** `paper/main.tex:300-327`, especially line 306; PDF page 7.  
@@ -211,7 +214,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 - [x] Repair appendix float placement with barriers/clear pages; re-render and inspect pages 11-17 ([`c89470d`](https://github.com/SystemicVoid/H-Neurons/commit/c89470d9dbf515eb0e64d4f68409c108b3607c99)).
 - [ ] Move or split the claim-defense ledger so it is readable.
 - [ ] Replace “pre-registered” unless a public preregistration artifact is included.
-- [ ] Replace “reverse the conclusion” with “change the gate/pass-fail verdict.”
+- [x] Replace “reverse the conclusion” with “change the gate/pass-fail verdict” ([`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c)).
 - [ ] Fix Table 5 CI caption and Table 7 MDE definition.
 - [ ] Resolve or remove all supplement links to absent reports/artifacts.
 - [ ] Add an explicit artifact-scope note for omitted raw JSONLs, harmful prompt gold labels, provenance sidecars, bridge IRR summary, and adjudicated labels.
