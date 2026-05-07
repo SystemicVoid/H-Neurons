@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 VERBATIM_RE = re.compile(
-    r"\\begin\{(?P<env>lstlisting|verbatim)\}.*?\\end\{(?P=env)\}",
+    r"\\begin\{(?P<env>lstlisting|verbatim\*?)\}.*?\\end\{(?P=env)\}",
     re.DOTALL,
 )
 
