@@ -16,6 +16,7 @@ Review date: May 7, 2026. Package treated as a frozen snapshot. Reviewed `paper/
 | 8 | Addressed | [`ad90c46`](https://github.com/SystemicVoid/H-Neurons/commit/ad90c46b2afafc23062e5cdc99cce76838ac4495) | Supplement front matter now has an explicit Artifact Scope paragraph covering raw JSONL/gold-label/provenance omissions and included/redacted bridge IRR derivatives; `tests/test_build_icml_supplement_package.py::TestBuildIcmlSupplementPackage::test_repo_manifest_builds_bundle` guards the built README wording. |
 | 9 | Addressed | [`db3f21b`](https://github.com/SystemicVoid/H-Neurons/commit/db3f21b9a9586784ad31e35c92cb71f4ac7059bf) | Table 5 now explicitly presents rates only and points Wilson CIs to provenance/support files, mirrored in the supplement reference copy; `make -C paper/icml`, page-11 text extraction, and rendered-page inspection guard the caption-table match. |
 | 10 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | Table 7 now defines MDE as an approximate paired-rate endpoint effect at 80% power with a two-sided 0.05 test level, mirrored in the supplement reference copy; `rg`, `pdftotext`, and `make -C paper/icml` guard the wording. |
+| 11 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The abstract now foregrounds a single-model Gemma-3-4B-IT case-study scope, mirrored in the supplement reference copy; `make -C paper/icml`, `pdftotext` page-1 extraction, and rendered-page inspection guard the wording. |
 
 ## 1. Verdict
 
@@ -130,6 +131,7 @@ Most important remaining edit: regenerate the rendered PDF after fixing figure s
 
 ### Issue 11 — Abstract should foreground single-model scope
 
+**Status:** Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD); the live abstract and bundled supplement reference copy now explicitly describe the work as a single-model Gemma-3-4B-IT case study.
 **Severity:** Minor  
 **Location:** `paper/main.tex:68-75`; PDF page 1.  
 **Problem:** The abstract names Gemma-3-4B-IT but does not explicitly say this is a single-model case study. The limitations later do, but reviewers form scope expectations from the abstract.  
@@ -216,7 +218,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 | 6 | Replace unsupported “pre-registered” phrasing. | `paper/main.tex:255`; supplement bridge wording. | Uses “pre-specified,” “pre-frozen,” or includes an actual preregistration artifact. |
 | 7 | Fix supplement links and missing-artifact declarations. | `supplement/support/externality_summary.md`, `supplement/failure_coding_manifest.md`, `supplement/artifact_manifest.md`. | Addressed in [`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa): every relative supplement link resolves during package build, and `bridge_irr_summary.json` plus redacted `adjudicated_labels.jsonl` are bundled and declared. |
 | 8 | Correct Table 5 caption and define Table 7 MDE. | `paper/main.tex:505-525`, `582-601`. | Addressed across [`db3f21b`](https://github.com/SystemicVoid/H-Neurons/commit/db3f21b9a9586784ad31e35c92cb71f4ac7059bf) and [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD): captions match displayed columns, and MDE assumptions are stated. |
-| 9 | Add single-model scope to abstract. | `paper/main.tex:68-75`. | Abstract begins with or clearly includes “single-model Gemma-3-4B-IT case study.” |
+| 9 | Add single-model scope to abstract. | `paper/main.tex:68-75`. | Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD): the abstract clearly includes “single-model Gemma-3-4B-IT case study,” and page-1 text extraction confirms the rendered wording. |
 | 10 | Final build and log sweep. | `paper/main.pdf`, `paper/main.log`, rendered pages. | No undefined citations/references, no overfull boxes, no severe underfull layout defects, metadata anonymized. |
 
 ## 8. Final Checklist
@@ -229,6 +231,7 @@ I did not perform an external literature freshness search. Given the user-suppli
 - [x] Replace “reverse the conclusion” with “change the gate/pass-fail verdict” ([`ff5faea`](https://github.com/SystemicVoid/H-Neurons/commit/ff5faea9ff1f9837ebe4a42355e94afe4fcc833c)).
 - [x] Fix Table 5 CI caption ([`db3f21b`](https://github.com/SystemicVoid/H-Neurons/commit/db3f21b9a9586784ad31e35c92cb71f4ac7059bf)).
 - [x] Define Table 7 MDE assumptions ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
+- [x] Add single-model Gemma-3-4B-IT case-study scope to the abstract ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 - [x] Resolve or remove all supplement links to absent reports/artifacts ([`d8c9973`](https://github.com/SystemicVoid/H-Neurons/commit/d8c9973e9cd0ea38dada4075bfa3a5e699c682aa)).
 - [x] Add an explicit artifact-scope note for omitted raw JSONLs, harmful prompt gold labels, provenance sidecars, and bridge IRR derivative status ([`ad90c46`](https://github.com/SystemicVoid/H-Neurons/commit/ad90c46b2afafc23062e5cdc99cce76838ac4495)).
 - [ ] Run final LaTeX checks: no undefined refs/citations, no overfull boxes, acceptable underfull warnings only, anonymous metadata, correct title, and page count within the workshop limit.

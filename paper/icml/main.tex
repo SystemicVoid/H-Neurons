@@ -68,7 +68,7 @@
 % ======================================================================
 \begin{abstract}
 Predictive internal signals are often used as steering targets, although readout quality alone does not establish behavioral control.
-We audit this inference in Gemma-3-4B-IT across contextual faithfulness, multiple-choice answer selection, open-ended QA, and jailbreak evaluation.
+In a single-model Gemma-3-4B-IT case study, we audit this inference across contextual faithfulness, multiple-choice answer selection, open-ended QA, and jailbreak evaluation.
 On FaithEval, H-neurons and sparse autoencoder (SAE) features achieve similar held-out readout quality (AUROC 0.843 vs.\ 0.848), yet only H-neuron scaling produces a reliable behavioral dose-response under the tested operators ($+2.1$ pp/$\alpha$ [1.4, 2.8]).
 Within the same Gemma SAE candidate pool, prompt-end utility and answer-span selectors produce metric-specific margin shifts without recovering the compliance endpoint.
 ITI improves TruthfulQA multiple-choice answer selection while reducing open-ended TriviaQA bridge accuracy, most often through wrong-entity substitution.

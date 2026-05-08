@@ -67,7 +67,7 @@
 % ======================================================================
 \begin{abstract}
 Predictive internal signals are often treated as natural targets for steering language models, but their reliability as intervention handles remains unclear.
-We test this assumption in Gemma-3-4B-IT.
+We test this assumption in a single-model Gemma-3-4B-IT case study.
 In a cross-family FaithEval comparison, sparse autoencoder (SAE) features and magnitude-ranked H-neurons achieve similar held-out detection quality (AUROC 0.848 vs.\ 0.843), yet only H-neurons produce a reliable compliance dose-response ($+2.1$ pp/$\alpha$ [1.4, 2.8]; neuron-minus-SAE gap excludes zero).
 When steering works, it remains surface-local: ITI improves TruthfulQA answer selection but reduces TriviaQA bridge accuracy, most often through wrong-entity substitution.
 Measurement choices also change the conclusion: truncation and scoring granularity alter the apparent jailbreak result, and a held-out evaluator audit reveals rubric-dependent disagreement.
