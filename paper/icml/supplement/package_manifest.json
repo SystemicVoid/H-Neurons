@@ -29,8 +29,8 @@
       "dst": "package_manifest.json"
     },
     {
-      "glob": "paper/icml/supplement/reference/*.tex",
-      "dst_dir": "reference"
+      "src": "paper/icml/main.tex",
+      "dst": "reference/main.tex"
     },
     {
       "glob": "paper/icml/supplement/support/*.md",

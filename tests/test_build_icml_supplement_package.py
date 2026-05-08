@@ -22,6 +22,14 @@ def _write(path: Path, text: str) -> None:
 
 
 class TestBuildIcmlSupplementPackage:
+    def test_source_reference_matches_current_paper(self):
+        paper_main = (REPO_ROOT / "paper/icml/main.tex").read_text(encoding="utf-8")
+        reference_main = (
+            REPO_ROOT / "paper/icml/supplement/reference/main.tex"
+        ).read_text(encoding="utf-8")
+
+        assert reference_main == paper_main
+
     def test_repo_manifest_builds_bundle(self, tmp_path):
         output_dir = tmp_path / "bundle"
         zip_path = tmp_path / "bundle.zip"
@@ -50,6 +58,9 @@ class TestBuildIcmlSupplementPackage:
             output_dir / "data/judge_validation/bridge_irr/adjudicated_labels.jsonl"
         ).exists()
         assert zip_path.exists()
+        assert (output_dir / "reference/main.tex").read_text(encoding="utf-8") == (
+            REPO_ROOT / "paper/icml/main.tex"
+        ).read_text(encoding="utf-8")
 
         readme_text = (output_dir / "README.md").read_text(encoding="utf-8")
         assert "## Artifact Scope" in readme_text
