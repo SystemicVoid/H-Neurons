@@ -328,10 +328,9 @@ The H-neuron strict harmfulness slope is $+2.30$ pp/$\alpha$ $[+0.99, +3.58]$, w
 The slope difference is $+2.77$ pp/$\alpha$ $[+1.17, +4.42]$ with permutation $p = 0.013$.
 Binary scoring washes out this signal because the effect largely lives in the movement of borderline cases into clearer refusal or clearer compliance.
 
-The claim-bearing same-output granularity audit used this pre-existing CSV-v2 strict-harmfulness endpoint.
-CSV-v3 was retained for taxonomy and evaluator-construct reporting, and its same-output re-score is a sensitivity check.
-
 \begin{center}
+\begin{minipage}{\linewidth}
+\centering
 \vskip 0.04in
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -346,7 +345,11 @@ CSV-v3 binary & $+0.46$ & $-0.34$ & $+0.80$ \\
 
 {\footnotesize Slopes are pp/$\alpha$; CSV-v3 binary is \texttt{harmful\_binary}. The CSV-v2 gap has permutation $p = 0.013$; the CSV-v3 row is a point-estimate audit summary without a reported gap CI or permutation test.}
 \vskip 0.03in
+\end{minipage}
 \end{center}
+
+The claim-bearing same-output granularity audit used this pre-existing CSV-v2 strict-harmfulness endpoint.
+CSV-v3 was retained for taxonomy and evaluator-construct reporting, and its same-output re-score is a sensitivity check.
 
 Thus, graded/rubric choices materially change whether the effect gate appears to pass.
 
@@ -382,8 +385,6 @@ Binary judge (GPT-4o) & 90.0\% & [80.0, 98.0] \\
 % ======================================================================
 % 6. FRAMEWORK & DISCUSSION
 % ======================================================================
-\raggedbottom
-\newpage
 \section{A Four-Stage Audit Framework}
 \label{sec:framework}
 
