@@ -67,14 +67,13 @@
 % ABSTRACT
 % ======================================================================
 \begin{abstract}
-Mechanistic interpretability research increasingly uses internal activations both to detect model behaviors and to steer them.
-A strong detector can fail as a control handle, and a successful intervention on one benchmark can still degrade related evaluations.
-We study this gap through a single-model audit of activation interventions in Gemma-3-4B-IT, organized around four claim gates: measurement, localization, control, and externality.
-On FaithEval, probe-selected feed-forward neurons (H-neurons) and sparse autoencoder (SAE) features achieve similar held-out readout quality (AUROC 0.843 vs.\ 0.848), but only H-neuron scaling produces a reliable behavioral dose-response under the tested operators ($+2.1$ pp/$\alpha$, 95\% CI [1.4, 2.8]).
-Within the same Gemma SAE candidate pool, readout, prompt-end utility, and answer-span utility selectors produce metric-specific margin shifts without recovering the behavioral endpoint.
-A TruthfulQA-fitted inference-time intervention improves multiple-choice answer selection, yet reduces open-ended factual accuracy on a locked TriviaQA bridge test, most often through wrong-entity substitution.
-In a jailbreak case study, scoring granularity and evaluator construct change whether the same intervention outputs count as a positive effect.
-Together, these results support a gate-based standard for activation-intervention claims: measurement validity, target localization, behavioral control, and cross-surface externality should be established separately before treating internal detectors as steering targets.
+Mechanistic interpretability often uses internal activations to detect model behaviors and steer them.
+These uses are easily conflated: a signal can predict behavior, fail as a control handle, or appear successful under one evaluation while causing failures elsewhere.
+We audit this readout-to-steering step in Gemma-3-4B-IT with four evidence gates: measurement, localization, control, and externality.
+On FaithEval, probe-selected feed-forward neurons and sparse autoencoder features have comparable held-out readouts, yet only neuron scaling gives reliable behavioral control under the tested operators.
+A TruthfulQA-fitted inference-time intervention improves multiple-choice answer selection but harms locked bridge generation, mainly by substituting wrong entities.
+In a jailbreak case study, changing scoring granularity changes the verdict for the same intervention outputs.
+Together, these results support treating measurement validity, target localization, behavioral control, and cross-surface externality as separate claims before using internal detectors as steering targets.
 \end{abstract}
 
 % ======================================================================
