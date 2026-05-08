@@ -70,7 +70,7 @@
 Mechanistic interpretability often uses internal activations to detect model behaviors and steer them.
 These uses are easily conflated: a signal can predict behavior, fail as a control handle, or appear successful under one evaluation while causing failures elsewhere.
 We audit this readout-to-steering step in Gemma-3-4B-IT with four evidence gates: measurement, localization, control, and externality.
-On FaithEval, comparable readouts split under intervention: neuron scaling gives reliable behavioral control under the tested operators; SAE feature steering remains flat.
+On FaithEval, comparable readouts split under intervention: neuron scaling yields a reliable target-surface dose-response; tested SAE feature interventions remain endpoint-null.
 A TruthfulQA-fitted inference-time intervention improves multiple-choice answer selection and harms locked bridge generation, mainly by substituting wrong entities.
 In a jailbreak case study, changing scoring granularity changes the verdict for the same intervention outputs.
 Together, these results support treating measurement validity, target localization, behavioral control, and cross-surface externality as separate claims before using internal detectors as steering targets.
@@ -121,7 +121,6 @@ Within that scope, the empirical questions are:
 (2)~Do answer-selection gains transfer to open-ended factual generation? (\S\ref{sec:externality})
 (3)~Do plausible measurement choices leave the jailbreak verdict stable? (\S\ref{sec:measurement})
 They do not claim a new steering method or a general failure of detector-based targets.
-Mistral-Small-24B-Instruct-2501 stress tests and SIMID diagnostic artifacts are outside the claim-bearing scope because they are failed or incomplete gates.
 
 % ======================================================================
 % 2. RELATED WORK
@@ -266,7 +265,7 @@ A teacher-forced gold-vs-wrong log-likelihood-margin check (Appendix~\ref{app:br
 
 The 14 wrong-to-right rescues show that the intervention is behaviorally active in both directions; all 14 are themselves coded as wrong-entity substitutions (Wilson 95\% CI $[78.5, 100]$), reinforcing the reweighting reading, and on this surface the damage rate is larger than the rescue rate.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Wrong-entity substitution examples from the TriviaQA bridge test set (E0 $\alpha\!=\!8$). The model swaps correct entities for semantically nearby incorrect ones.}
 \label{tab:substitution}
@@ -294,7 +293,7 @@ Comic whose June 1938 issue introduced Superman? & Action Comics & Detective Com
   \centering
   \includegraphics[width=\textwidth]{figures/fig3_bridge.pdf}
   \caption{Surface-local control and bridge failure modes.
-  (a)~ITI improves TruthfulQA MC1 and harms both generation surfaces (CIs exclude zero).
+  (a)~ITI improves TruthfulQA MC1 and harms the SimpleQA stress prompt and the locked TriviaQA bridge generation surface (CIs exclude zero).
   (b)~Among the 43 right-to-wrong flips on the TriviaQA bridge test set, wrong-entity substitution is the most common adjudicated failure mode ($72\%$; 95\% CI $[57, 83]$), with formal refusal rare.}
   \label{fig:bridge}
 \end{figure*}
@@ -361,7 +360,7 @@ The residual disagreement is informative because it clusters on a recognizable r
 StrongREJECT's formula zeroes the final score when \texttt{refused = 1}, even if later text contains specific harmful substance.
 The evaluator disagreement is therefore reported as construct pluralism \citep{eiras2025judge}.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Holdout evaluator accuracy (contamination-free split, $n = 50$). Prompt-clustered bootstrap 95\% CIs.}
 \label{tab:evaluator}
@@ -383,6 +382,8 @@ Binary judge (GPT-4o) & 90.0\% & [80.0, 98.0] \\
 % ======================================================================
 % 6. FRAMEWORK & DISCUSSION
 % ======================================================================
+\raggedbottom
+\newpage
 \section{A Four-Stage Audit Framework}
 \label{sec:framework}
 
@@ -391,6 +392,10 @@ The audit has four stages: measurement, localization, control, and externality.
 The stages record where intervention claims broke in this case study:
 
 \begin{itemize}
+  \setlength{\itemsep}{0.45em}
+  \setlength{\parsep}{0pt}
+  \setlength{\topsep}{0.45em}
+  \setlength{\partopsep}{0pt}
   \item \textbf{Measurement$\to$Verdict.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In the jailbreak setting, binary-versus-rubric scoring changed whether the effect gate appeared to pass on the same outputs, while output-length checks and the evaluator holdout exposed residual construct mismatch (\S\ref{sec:measurement}).
   \item \textbf{Localization$\to$Control.} A feature that predicts behavior on held-out data can fail to causally control that behavior when perturbed. SAE features matched H-neurons on detection quality, then remained ineffective under the tested intervention (\S\ref{sec:localization}).
   \item \textbf{Control$\to$Externality.} An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA MC1 and reduced open-ended factual accuracy, where wrong-entity substitution was the most common manually coded failure mode (\S\ref{sec:externality}).
@@ -398,9 +403,12 @@ The stages record where intervention claims broke in this case study:
 
 Each stage transition is a distinct empirical claim.
 Each downstream claim needs its own test.
-Table~\ref{tab:checklist} summarizes how each gate bounds the claim.
+The audit separates claims that are often conflated: measurement validity, localization, behavioral control, and cross-surface externality.
+In this case study, omitting any one of these gates would have changed the conclusion: the SAE readouts would look actionably localized, the ITI intervention would look beneficial from TruthfulQA MC alone, or the jailbreak result would look null under binary scoring alone.
+The framework is therefore diagnostic: it records how the tested claim scope changed at each transition.
+For reporting purposes, Table~\ref{tab:checklist} treats these as minimum claim-separation checks rather than universal sufficiency conditions.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Four-gate audit for bounding activation-intervention claims.
 A result that clears only one or two gates remains a monitoring or localization result; a control claim needs the control gate.}
@@ -409,7 +417,7 @@ A result that clears only one or two gates remains a monitoring or localization 
 \small
 \begin{tabular}{@{}L{1.8cm}L{5.0cm}@{}}
 \toprule
-\textbf{Gate} & \textbf{Claim check} \\
+\textbf{Gate} & \textbf{Minimum check} \\
 \midrule
 Measurement & Pre-specified metric; full-generation scoring when output length can alter labels; evaluator agreement check if intervention alters output style \\
 \addlinespace
@@ -422,10 +430,6 @@ Externality & At least one non-target surface; capability check; report harms an
 \end{tabular}
 \vskip -0.1in
 \end{table}
-
-The audit separates claims that are often conflated: measurement validity, localization, behavioral control, and cross-surface externality.
-In this case study, omitting any one of these gates would have changed the conclusion: the SAE readouts would look actionably localized, the ITI intervention would look beneficial from TruthfulQA MC alone, or the jailbreak result would look null under binary scoring alone.
-The framework is therefore diagnostic: it records how the tested claim scope changed at each transition.
 
 \subsection{Limitations}
 
@@ -446,7 +450,7 @@ The distinct contribution is a stricter audit scaffold and a matched cross-repre
 
 In Gemma-3-4B-IT, strong internal readouts supported monitoring and sometimes supported control.
 Their usefulness as steering targets depended on the behavioral surface, the intervention operator, and the measurement procedure used to judge success.
-The four-stage audit framework (measurement, localization, control, and externality) summarizes that bounded lesson: each downstream claim needs its own test.
+The four-stage audit framework summarizes that bounded lesson: audit measurement, localization, control, and externality separately before treating internal detectors as steering targets.
 
 % ======================================================================
 % IMPACT STATEMENT
@@ -455,7 +459,7 @@ The four-stage audit framework (measurement, localization, control, and external
 
 Methodologically, safety-relevant activation interventions need direct control, externality, and measurement evidence beyond predictive readouts or single-surface gains.
 The results show that a signal can monitor behavior without providing a useful control lever, that a control result can fail to transfer to nearby generation settings, and that evaluation choices can change the verdict on the same model outputs.
-The diagnostic scaffold makes the measurement, localization, control, and externality transitions explicit so the scope of a positive result is easier to see.
+The practical contribution is a scoped reporting discipline: validate the measurement surface, test whether the localized component controls behavior, include matched negative controls, and report externality costs next to headline gains.
 
 The scaffold targets overclaiming risk in interpretability-based safety work.
 It may also make activation interventions easier to reproduce or adapt, including for undesirable steering objectives; however, the paper introduces no new steering method and emphasizes failure cases, measurement risks, and scope limits.
