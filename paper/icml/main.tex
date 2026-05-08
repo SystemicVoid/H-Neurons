@@ -121,7 +121,7 @@ Within that scope, the empirical questions are:
 (2)~Do answer-selection gains transfer to open-ended factual generation? (\S\ref{sec:externality})
 (3)~Do plausible measurement choices leave the jailbreak verdict stable? (\S\ref{sec:measurement})
 They do not claim a new steering method or a general failure of detector-based targets.
-Supplement stress tests on \texttt{Mistral-Small-24B-Instruct-2501} and SIMID diagnostic artifacts are used only as failed or incomplete gates.
+Mistral-Small-24B-Instruct-2501 stress tests and SIMID diagnostic artifacts are outside the claim-bearing scope because they are failed or incomplete gates.
 
 % ======================================================================
 % 2. RELATED WORK
@@ -316,7 +316,6 @@ The case study centers on the H-neuron jailbreak scaling experiment (38 probe-se
 Short generation caps (e.g., 256 tokens) can bias intervention evaluations when steering changes response structure.
 In the Gemma jailbreak audit, an archived 256-token run motivated a full-output rerun; that archived view is superseded and carries no claim-bearing effect.
 The live Gemma result below is the same-output scoring-granularity contrast on the canonical full-output run.
-A Mistral 2501 stress test summarized in the supplement shows the scope condition: its 256-token diagnostic tracks full-output binary scoring much more closely, even though most rows are still truncated.
 Output-length exposure is therefore a construct- and model-dependent measurement risk, and full-output scoring remains the safer reporting default.
 
 \textbf{Scoring granularity changes the verdict.}
@@ -430,7 +429,6 @@ The framework is therefore diagnostic: it records how the tested claim scope cha
 \subsection{Limitations}
 
 The primary claim-bearing experiments use a single model, Gemma-3-4B-IT.
-The supplement reports stress tests on \texttt{Mistral-Small-24B-Instruct-2501}, but those results are failed or incomplete gates: FaithEval intervention is null, TruthfulQA MC1 fails its source-surface gate, and JailbreakBench has a large uncontrolled alpha curve.
 The comparable-readout design keeps held-out AUROC close, although feature-family differences in operator form, layer coverage, or feature granularity could explain the steering divergence.
 The within-SAE selector ablations reduce the target-selection concern but do not remove the cross-family operator-form confound.
 The tested Gemma Scope SAE layer coverage \citep{lieberum2024gemmascope} is partial; a different SAE width or layer selection could yield non-null results.
