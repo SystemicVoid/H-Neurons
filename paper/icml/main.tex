@@ -111,7 +111,7 @@ We find repeated dissociations between four stages that are routinely conflated:
 (2)~A within-SAE selector audit: a Gemma candidate-pool ablation showing that readout, prompt-end utility, and answer-span utility selectors produce different margin effects while all miss the compliance endpoint.
 (3)~A control-to-externality audit: an ITI study showing that TruthfulQA MC gains do not license open-generation claims, with a bridge failure taxonomy dominated by wrong-entity substitution.
 (4)~A measurement audit: a jailbreak evaluation showing that scoring granularity changes verdicts, with output-length exposure and evaluator construct choices retained as reporting risks.
-(5)~A claim-discipline framework: a four-gate checklist for reporting activation-steering claims.
+(5)~A four-gate audit scaffold separating measurement, localization, control, and externality claims.
 
 \textbf{Study orientation.}
 This paper is a single-model comparative case study in Gemma-3-4B-IT \citep{gemma2025}.
@@ -386,7 +386,7 @@ Binary judge (GPT-4o) & 90.0\% & [80.0, 98.0] \\
 \section{A Four-Stage Audit Framework}
 \label{sec:framework}
 
-We distill the case study evidence into a practical audit for evaluating mechanistic intervention claims.
+We distill the case study evidence into a bounded audit scaffold for evaluating mechanistic intervention claims.
 The audit has four stages: measurement, localization, control, and externality.
 The stages record where intervention claims broke in this case study:
 
@@ -398,18 +398,18 @@ The stages record where intervention claims broke in this case study:
 
 Each stage transition is a distinct empirical claim.
 Passing one does not license claims about the next.
-Table~\ref{tab:checklist} summarizes the minimum evidence required at each gate.
+Table~\ref{tab:checklist} summarizes how each gate bounds the claim.
 
 \begin{table}[t]
 \centering
-\caption{Minimum audit for a credible steering claim.
+\caption{Four-gate audit for bounding activation-intervention claims.
 A result that clears only one or two gates remains a monitoring or localization result; a control claim needs the control gate.}
 \label{tab:checklist}
 \vskip 0.1in
 \small
 \begin{tabular}{@{}L{1.8cm}L{5.0cm}@{}}
 \toprule
-\textbf{Gate} & \textbf{Evidence required} \\
+\textbf{Gate} & \textbf{Claim check} \\
 \midrule
 Measurement & Pre-specified metric; full-generation scoring when output length can alter labels; evaluator agreement check if intervention alters output style \\
 \addlinespace
@@ -423,31 +423,9 @@ Externality & At least one non-target surface; capability check; report harms an
 \vskip -0.1in
 \end{table}
 
-In our reading of the recent steering literature, target-surface control is reported more often than matched negative controls, cross-surface tests, or evaluator audits.
-In our case study, each omitted gate would have licensed a claim that the full audit rejects: without measurement audits, the jailbreak intervention looks null; without externality checks, the ITI intervention looks beneficial.
-The checklist is an empirical codification of the points where our own conclusions changed.
-
-\subsection{Five Recommendations}
-
-\textbf{R1: Do not treat held-out readout quality as sufficient target-selection evidence.}
-Metrics such as AUROC, accuracy, and probe coefficient magnitude are insufficient on their own for identifying useful steering targets.
-Our comparison in \S\ref{sec:localization} shows that similar held-out AUROC can fail to predict intervention utility.
-
-\textbf{R2: Validate on the behavioral surface you actually care about.}
-Answer-selection benchmarks and open-ended generation benchmarks measure different constructs, and intervention effects do not transfer reliably between them (\S\ref{sec:externality}).
-
-\textbf{R3: Use matched negative controls.}
-When component search is large, post-hoc selection creates a multiple-comparisons problem.
-Multi-seed random controls are necessary to establish that an effect is component-specific instead of a generic perturbation artifact.
-
-\textbf{R4: Treat evaluator disagreement as information.}
-When an intervention changes the surface form of outputs, different evaluators may reach different conclusions.
-This disagreement reflects construct mismatch (\S\ref{sec:measurement}).
-
-\textbf{R5: Report externality costs as first-class outcomes.}
-Interventions that help on one metric can harm others.
-Our bridge results show that the harm can be a specific, interpretable failure mode (\S\ref{sec:externality}).
-Cross-surface effects belong next to the headline result.
+The audit's purpose is to separate claims that are often bundled together: measurement validity, localization, behavioral control, and cross-surface externality.
+In this case study, omitting any one of these gates would have changed the conclusion: the SAE readouts would look actionably localized, the ITI intervention would look beneficial from TruthfulQA MC alone, or the jailbreak result would look null under binary scoring alone.
+The framework is therefore diagnostic: it records where this paper's own claims changed when each transition was tested.
 
 \subsection{Limitations}
 
@@ -478,9 +456,9 @@ The four-stage audit framework (measurement, localization, control, and external
 
 This paper's main impact is methodological: it argues that safety-relevant activation interventions should not be judged from predictive readouts or single-surface gains alone.
 Our results show that a signal can monitor behavior without providing a useful control lever, that a control result can fail to transfer to nearby generation settings, and that evaluation choices can change the verdict on the same model outputs.
-The practical contribution is therefore a reporting discipline for mechanistic steering claims: validate the measurement surface, test whether the localized component actually controls behavior, include matched negative controls, and report externality costs alongside headline gains.
+The practical contribution is therefore a diagnostic scaffold for mechanistic steering claims: it makes the measurement, localization, control, and externality transitions explicit so the scope of a positive result is easier to see.
 
-This discipline is intended to reduce overclaiming in interpretability-based safety work.
+This framing is intended to reduce overclaiming in interpretability-based safety work.
 It may also make activation interventions easier to reproduce or adapt, including for undesirable steering objectives; however, the paper does not introduce a new steering method and emphasizes failure cases, measurement risks, and scope limits.
 The strongest deployment-relevant lesson is cautionary: an intervention that appears beneficial on a constrained benchmark may still corrupt open-ended factual generation or change harmful-compliance judgments under a different evaluator.
 
