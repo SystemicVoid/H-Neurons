@@ -34,9 +34,9 @@ Each listed row resolves in one hop to a bundled reviewer-facing support file or
 | Random-neuron specificity | 8/8 paired neuron-minus-random differences positive | every seed-specific 95% CI excludes zero | `support/localization_summary.md` |
 | SAE H-feature slope | +0.16 pp/α | [-0.51, 0.84] | `support/localization_summary.md` |
 | SAE monotonicity | Spearman ρ = 0.18 | — | `support/localization_summary.md` |
-| Delta-only SAE H-feature slope | +0.12 pp/α | audit summary; no CI reported | `support/localization_summary.md` |
-| Delta-only random-feature slope | -0.09 pp/α | audit summary; no CI reported | `support/localization_summary.md` |
-| Neuron baseline on same three-alpha subset | +2.12 pp/α | audit summary; 3-point OLS on `α ∈ {0.0, 1.0, 3.0}` | `support/localization_summary.md` |
+| Delta-only SAE H-feature slope | +0.12 pp/α | audit summary; no slope CI in package | `support/localization_summary.md` |
+| Delta-only random-feature slope | -0.09 pp/α | audit summary; no slope CI in package | `support/localization_summary.md` |
+| Neuron baseline on same three-alpha subset | +2.12 pp/α | audit summary; 3-point OLS on `α ∈ {0.0, 1.0, 3.0}`; no slope CI in package | `support/localization_summary.md` |
 | SAE random slope | +0.59 pp/α | descriptive seed mean | `support/localization_summary.md` |
 | Neuron-minus-SAE slope difference | +1.93 pp/α | [+0.94, +2.92] | `support/localization_summary.md` |
 | Neuron-minus-SAE directional permutation test | one-sided `p < 0.001` | saved value `9.9998e-05` | `support/localization_summary.md` |

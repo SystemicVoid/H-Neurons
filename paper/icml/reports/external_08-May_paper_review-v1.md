@@ -10,6 +10,7 @@
 | Issue | Status | Commit | Concise state |
 |---:|---|---|---|
 | 1 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | `supplement/reference/main.tex` now matches the live manuscript, and the supplement package manifest builds `reference/main.tex` from `paper/icml/main.tex`; `tests/test_build_icml_supplement_package.py` guards both source and built-package equality. |
+| 2 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | Figure 2, §3.2, Appendix Table 5, the cited SAE audit, and localization/provenance ledgers now separate the full-replacement SAE path movement from the delta-only feature-specific check; `make -C paper/icml`, figure regeneration, rendered-page inspection, and supplement-package tests guard the fix. |
 
 ## 1. Verdict And Scorecard
 
@@ -46,6 +47,8 @@ This is clearer than “Strong Readouts, Local Levers” because it names the ac
 - **Fix type:** Reproducibility; structural; formatting/anonymity.
 
 ### 2. Figure 2 makes the central SAE null look under-explained
+
+**Status:** Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD); Figure 2 now labels the full-replacement SAE path and reports the delta-only near-zero slopes, while §3.2, Appendix Table 5, the cited SAE audit, and the localization/provenance ledgers state that the delta-only slope CI is not bundled.
 
 - **Severity:** Major.
 - **Location:** PDF p. 5, Figure 2; `paper/main.tex:172-178,201-208`; Appendix Table 5 at `paper/main.tex:512-531`; support summary `supplement/support/localization_summary.md:33-55`; provenance `paper/number_provenance.md:24-40`.
@@ -300,7 +303,7 @@ I would not add many more citations before the deadline unless the authors know 
 1. [x] Replace/regenerate `supplement/reference/main.tex` and the built supplement zip so the supplement matches the current paper ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 2. [ ] Change title to “When Detectors Don’t Steer: A Four-Gate Audit of Activation Interventions in Gemma-3-4B-IT.”
 3. [ ] Add the main-body reproducibility paragraph.
-4. [ ] Fix Figure 2 or its caption/text to separate full-replacement SAE path movement from delta-only target-specific nulls.
+4. [x] Fix Figure 2 or its caption/text to separate full-replacement SAE path movement from delta-only target-specific nulls ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 5. [ ] Clarify CSV-v2 versus CSV-v3 roles in §5, ideally with both slopes/gaps reported.
 6. [ ] Change “first author” to “one author” in bridge coding language.
 7. [ ] Align JailbreakBench MDE numbers.

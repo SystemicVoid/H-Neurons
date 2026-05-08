@@ -171,7 +171,8 @@ Across five unconstrained and three layer-matched random-neuron sets, all eight 
 
 The tested SAE intervention did not produce the same behavior.
 The full-replacement H-feature slope was $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$, with no monotonic trend ($\rho = 0.18$).
-A delta-only architecture that cancels reconstruction error confirmed the null: delta-only H-feature slope $+0.12$ pp/$\alpha$, delta-only random-feature slope $-0.09$ pp/$\alpha$, both indistinguishable from zero.
+A delta-only architecture that cancels reconstruction error gave near-zero slopes: H-feature $+0.12$ pp/$\alpha$ and random-feature $-0.09$ pp/$\alpha$ (audit summary; no slope CI in the package).
+The full-replacement SAE curve in Figure~\ref{fig:matched} includes non-monotone path/reconstruction movement shared by target and random SAE sets; the claim-bearing feature-specific check is the delta-only contrast.
 The neuron baseline on the same three-alpha subset remained $+2.12$ pp/$\alpha$.
 
 The paired neuron-minus-SAE slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (permutation $p < 0.001$).
@@ -203,7 +204,8 @@ We discuss this limitation further in~\S\ref{sec:framework}.
   \includegraphics[width=\textwidth]{figures/fig2_matched.pdf}
   \caption{The anchor result: FaithEval comparable readouts, divergent control.
   (a)~H-neurons and SAE features have similar held-out detection AUROC.
-  (b)~Only H-neurons produce a dose-dependent compliance increase; the tested SAE features and random SAE features show no reliable monotonic dose-response.
+  (b)~H-neurons produce a dose-dependent compliance increase.
+  The SAE curves are full-replacement paths with non-monotone movement shared by target and random SAE sets; feature-specific delta-only slopes remain near zero (H $+0.12$, random $-0.09$ pp/$\alpha$; no slope CI in the package).
   The neuron-minus-SAE slope difference ($+1.93$ pp/$\alpha$, 95\% CI excludes zero) confirms the dissociation.}
   \label{fig:matched}
 \end{figure*}
@@ -528,6 +530,10 @@ $\alpha$ & Neurons & SAE H-feat. & SAE rand. \\
 3.0 & 70.5\% & 69.9\% & 74.6\% \\
 \bottomrule
 \end{tabular}
+\vskip 0.06in
+\begin{minipage}{0.86\linewidth}
+\footnotesize\emph{Note.} SAE full-replacement rates include non-monotone path/reconstruction movement shared by target and random SAE sets; slope tests and the delta-only contrast are the target-specific checks. Delta-only slope CIs are not in the package.
+\end{minipage}
 \end{table}
 \FloatBarrier
 

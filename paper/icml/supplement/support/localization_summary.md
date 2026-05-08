@@ -43,15 +43,15 @@ Interpretation: the paper’s anchor comparison is matched on held-out readout q
 | Random-neuron specificity | 8/8 paired neuron-minus-random differences positive | every seed-specific 95% CI excludes zero |
 | SAE H-feature slope | +0.16 pp/α | [-0.51, 0.84] |
 | SAE monotonicity | Spearman ρ = 0.18 | — |
-| Delta-only SAE H-feature slope | +0.12 pp/α | audit summary; no CI reported |
-| Delta-only random-feature slope | -0.09 pp/α | audit summary; no CI reported |
-| Neuron baseline on same three-alpha subset | +2.12 pp/α | audit summary; 3-point OLS on `α ∈ {0.0, 1.0, 3.0}` |
+| Delta-only SAE H-feature slope | +0.12 pp/α | audit summary; no slope CI in package |
+| Delta-only random-feature slope | -0.09 pp/α | audit summary; no slope CI in package |
+| Neuron baseline on same three-alpha subset | +2.12 pp/α | audit summary; 3-point OLS on `α ∈ {0.0, 1.0, 3.0}`; no slope CI in package |
 | SAE random-feature slope | +0.59 pp/α | descriptive seed mean |
 | Neuron-minus-SAE slope difference | +1.93 pp/α | [+0.94, +2.92] |
 | Directional permutation test | one-sided `p < 0.001` | saved value `9.9998e-05` |
 | FaithEval evaluation size | 1,000 items | — |
 
-Interpretation: detector quality is comparable across the neuron and SAE families, but only the neuron intervention produces a robust behavioral dose-response on the same benchmark. The delta-only follow-up remains null, so the SAE failure is not explained by reconstruction error alone.
+Interpretation: detector quality is comparable across the neuron and SAE families, but only the neuron intervention produces a robust behavioral dose-response on the same benchmark. The full-replacement SAE path shows non-monotone movement shared by H-feature and random-feature sets; the feature-specific delta-only follow-up remains near zero, so the SAE failure is not explained by reconstruction error alone.
 
 ## Reviewer Notes
 

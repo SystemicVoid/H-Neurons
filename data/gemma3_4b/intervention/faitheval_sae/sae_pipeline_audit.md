@@ -10,7 +10,7 @@
 > neuron-minus-SAE **+1.93 pp/α [0.94, 2.92]** on matched items, and
 > neuron-minus-random mean **+2.01 pp/α** across 8 paired control seeds.
 > Use that report for the narrow reporting-path claim. This audit still owns the
-> broader SAE closure argument, especially the delta-only result ruling out
+> broader SAE caveat discussion, especially the delta-only audit reducing
 > reconstruction noise as the sole explanation.
 
 ---
@@ -212,13 +212,13 @@ The negative steering result is the primary finding, but four configuration choi
 
 ### Confound 1: Steering architecture — RESOLVED (2026-03-21)
 
-**Status:** Tested. Delta-only steering produces the same null result as full-replacement.
+**Status:** Tested. Delta-only steering gives near-zero H-feature and random-feature slopes on the three-alpha audit; no slope CI is bundled.
 
 **What was tested:** A delta-only hook (`h + decode(f_modified) - decode(f_original)`) that cancels reconstruction error exactly. Quick-mode sweep (α ∈ {0.0, 1.0, 3.0}) for H-features (266) and 1 random seed (266 zero-weight features). Data: `data/gemma3_4b/intervention/faitheval_sae_delta/`.
 
-**Results:** Delta-only H-feature slope: 0.12 pp/α. Delta-only random slope: -0.09 pp/α. Both indistinguishable from zero. α=1.0 identity check passed (660/1,000 = 66.0%, byte-identical). Zero parse failures (vs 1.4–2.3% for full-replacement). Neuron baseline slope on the same 3 alphas: 2.12 pp/α.
+**Results:** Delta-only H-feature slope: 0.12 pp/α. Delta-only random slope: -0.09 pp/α. These are audit-summary slopes with no bundled slope CI. α=1.0 identity check passed (660/1,000 = 66.0%, byte-identical). Zero parse failures (vs 1.4–2.3% for full-replacement). Neuron baseline slope on the same 3 alphas: 2.12 pp/α.
 
-**Interpretation:** The reconstruction error was a nuisance (causing parse failures and the ~8-9pp compliance shift) but was not the cause of the null SAE steering result. The failure is genuinely about feature-space misalignment. This was the highest-priority confound and the cheapest decisive test; its resolution closes the SAE steering line.
+**Interpretation:** The reconstruction error was a nuisance (causing parse failures and the ~8-9pp compliance shift). The delta-only audit reduces the possibility that reconstruction noise alone explains the missing SAE behavioral effect, while leaving width, feature count, and layer coverage as open alternatives.
 
 ### Confound 2: SAE width and reconstruction error
 
@@ -242,11 +242,11 @@ The 10-layer extraction misses 47.4% of CETT H-neurons (31.4% of weight). An all
 
 ## 6. Should We Investigate SAE Steering Further?
 
-**Recommendation: No. The SAE steering line is closed.**
+**Recommendation: No additional SAE steering runs for this paper.**
 
-The delta-only falsification test (Confound 1, §5) was run on 2026-03-21 and confirmed that the steering failure is fundamental feature-space misalignment, not reconstruction noise. Both full-replacement and delta-only architectures produce null H-feature slopes (0.16 and 0.12 pp/α respectively), while the neuron baseline is ~18× stronger (2.12 pp/α on the same alphas).
+The delta-only falsification test (Confound 1, §5) was run on 2026-03-21 and reduces the reconstruction-noise explanation: the delta-only H-feature slope is near zero in the audit summary (0.12 pp/α; no bundled slope CI), while the neuron baseline is ~18× stronger (2.12 pp/α on the same alphas).
 
-Remaining open confounds (SAE width, feature count, layer coverage) are lower priority and unlikely to change the conclusion: delta-only steering eliminates the dominant confound and still produces a null result. The SAE probe detects hallucination (AUROC 0.848) but the detected features do not causally control compliance when manipulated in SAE space.
+Remaining open confounds (SAE width, feature count, layer coverage) are lower priority and unlikely to change the conclusion: delta-only steering addresses the dominant reconstruction-error confound and still gives a near-zero feature-specific slope in the audit summary. The SAE probe detects hallucination (AUROC 0.848) but the detected features do not causally control compliance when manipulated in SAE space under the tested operators.
 
 ---
 

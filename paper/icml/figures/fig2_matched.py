@@ -70,6 +70,9 @@ def load_data() -> dict:
     fe_sae_slope_diff = load_json(
         "data/gemma3_4b/intervention/faitheval_sae/control/slope_difference_summary.json"
     )
+    fe_sae_delta_ctrl = load_json(
+        "data/gemma3_4b/intervention/faitheval_sae_delta/control/comparison_summary.json"
+    )
     alphas = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
     sae_results = fe_sae["results"]
     sae_ci = [sae_results[str(alpha)]["compliance"]["ci"] for alpha in alphas]
@@ -104,6 +107,10 @@ def load_data() -> dict:
         "rand_std": np.array(
             fe_sae_ctrl["random_sae_features"]["std_compliance_rates"]
         ),
+        "delta_h_slope": fe_sae_delta_ctrl["h_sae_features"]["slope_per_alpha"],
+        "delta_rand_slope": fe_sae_delta_ctrl["random_sae_features"][
+            "mean_slope_per_alpha"
+        ],
         "slope_diff": fe_sae_slope_diff["slope_difference_pp_per_alpha"]["estimate"],
         "slope_diff_ci": fe_sae_slope_diff["slope_difference_pp_per_alpha"]["ci"],
     }
@@ -179,7 +186,7 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
         linewidth=1.3,
         marker="s",
         markersize=3.5,
-        label="SAE features",
+        label="SAE H-feat. (full)",
         zorder=4,
     )
     ax.fill_between(
@@ -197,7 +204,7 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
         linestyle="--",
         marker="^",
         markersize=3,
-        label="Random SAE",
+        label="SAE rand. (full)",
         zorder=3,
     )
 
@@ -234,7 +241,7 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
     ax.set_xlim(-0.15, 3.15)
     ax.set_ylim(0.62, 0.79)
     ax.set_xticks(alphas)
-    ax.legend(fontsize=5.5, loc="lower right", framealpha=0.90, edgecolor="#CCCCCC")
+    ax.legend(fontsize=5.2, loc="lower right", framealpha=0.90, edgecolor="#CCCCCC")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.grid(alpha=0.2, zorder=0)
@@ -242,13 +249,29 @@ def draw_panel_b(ax: plt.Axes, data: dict) -> None:
 
 def main() -> None:
     data = load_data()
-    fig = plt.figure(figsize=(6.75, 2.3), dpi=300)
+    fig = plt.figure(figsize=(6.75, 2.6), dpi=300)
     fig.set_facecolor(BG_COLOR)
     grid = fig.add_gridspec(1, 2, width_ratios=[0.85, 1.35], wspace=0.30)
     ax_a = fig.add_subplot(grid[0, 0])
     ax_b = fig.add_subplot(grid[0, 1])
     draw_panel_a(ax_a, data)
     draw_panel_b(ax_b, data)
+    fig.subplots_adjust(bottom=0.24)
+    fig.text(
+        0.54,
+        0.035,
+        "SAE curves show the full-replacement path; non-monotone movement is shared "
+        "by target and random SAE.\n"
+        + r"Feature-specific delta-only slopes: H "
+        + f"{data['delta_h_slope']:+.2f}, random "
+        + f"{data['delta_rand_slope']:+.2f} pp/"
+        + r"$\alpha$ (audit summary; no slope CI in package).",
+        ha="center",
+        va="bottom",
+        fontsize=6,
+        color=SUBTITLE_COLOR,
+        linespacing=1.15,
+    )
     fig.savefig(
         OUTPUT, dpi=300, bbox_inches="tight", facecolor=BG_COLOR, pad_inches=0.08
     )
