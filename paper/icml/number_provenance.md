@@ -106,11 +106,14 @@ Abstract headline numbers are covered by the section-level rows below rather tha
 | Claim | Value | CI / exact test | Canonical source |
 |---|---|---|---|
 | Binary harmful endpoint shift (`α = 0.0 → 3.0`) | 152 / 500 → 167 / 500 | delta +3.0 pp; CI includes zero | `notes/act3-reports/2026-04-12-seed0-jailbreak-control-audit.md` §1.2 |
-| H-neuron graded harmfulness slope | +2.30 pp/α | [+0.99, +3.58] | same file §2 |
+| H-neuron CSV-v2 strict-harmfulness slope | +2.30 pp/α | [+0.99, +3.58] | same file §2 |
 | H-neuron graded endpoint shift (`α = 0.0 → 3.0`) | +7.6 pp | [+2.6, +12.8] | same file §0 / §2 |
-| Random-neuron graded slope (seed-0 control) | -0.47 pp/α | [-1.42, +0.47] | same file §2 |
-| H-minus-random slope difference | +2.77 pp/α | [+1.17, +4.42] | same file §2 |
+| Random-neuron CSV-v2 strict-harmfulness slope (seed-0 control) | -0.47 pp/α | [-1.42, +0.47] | same file §2 |
+| CSV-v2 H-minus-random slope difference | +2.77 pp/α | [+1.17, +4.42] | same file §2 |
 | H-minus-random permutation test | p = 0.013 | one-sided | same file §2 |
+| H-neuron CSV-v3 `harmful_binary` slope | +0.46 pp/α | point-estimate audit summary | `data/gemma3_4b/intervention/jailbreak/control/comparison_csv2_v3_summary.json` (`h_neuron.slope_csv2_yes_pp_per_alpha`) |
+| Random-neuron CSV-v3 `harmful_binary` slope | -0.34 pp/α | point-estimate audit summary | same file (`random_aggregate.csv2_yes_slope_mean`) |
+| CSV-v3 H-minus-random slope difference | +0.80 pp/α | point-estimate audit summary; no packaged gap CI or permutation test | same file (`comparison.gap_h_minus_random_mean_pp`) |
 | Holdout evaluator accuracy: CSV-v3 (GPT-4o) | 96.0% | [90.0, 100.0] | `data/judge_validation/holdout_comparison.json` (`bootstrap_cis.evaluators.csv2v3.accuracy`) |
 | Holdout evaluator accuracy: StrongREJECT (GPT-4o) | 96.0% | [90.0, 100.0] | same file (`bootstrap_cis.evaluators.sr.accuracy`) |
 | Holdout evaluator accuracy: CSV-v2 (GPT-4o) | 92.0% | [84.3, 98.0] | same file (`bootstrap_cis.evaluators.csv2v2.accuracy`) |

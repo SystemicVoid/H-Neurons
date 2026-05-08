@@ -11,6 +11,7 @@
 |---:|---|---|---|
 | 1 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | `supplement/reference/main.tex` now matches the live manuscript, and the supplement package manifest builds `reference/main.tex` from `paper/icml/main.tex`; `tests/test_build_icml_supplement_package.py` guards both source and built-package equality. |
 | 2 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | Figure 2, §3.2, Appendix Table 5, the cited SAE audit, and localization/provenance ledgers now separate the full-replacement SAE path movement from the delta-only feature-specific check; `make -C paper/icml`, figure regeneration, rendered-page inspection, and supplement-package tests guard the fix. |
+| 3 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | §5 now separates the claim-bearing CSV-v2 strict-harmfulness slope from the CSV-v3 same-output sensitivity re-score and reports both slope/gap rows; `make -C paper/icml`, targeted stale-wording greps, and supplement reference equality tests guard the fix. |
 
 ## 1. Verdict And Scorecard
 
@@ -58,6 +59,8 @@ This is clearer than “Strong Readouts, Local Levers” because it names the ac
 - **Fix type:** Figure/table; wording-only if no replot is possible.
 
 ### 3. CSV-v2 versus CSV-v3 is not disciplined enough for the jailbreak measurement claim
+
+**Status:** Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD); §5 now states that CSV-v2 is the claim-bearing same-output strict-harmfulness endpoint, retains CSV-v3 for taxonomy/evaluator-construct reporting, reports the smaller CSV-v3 slope/gap point estimates, and weakens the supported conclusion to rubric sensitivity.
 
 - **Severity:** Major.
 - **Location:** `paper/main.tex:318-338`, Table 2 at `paper/main.tex:340-357`; `supplement/support/measurement_summary.md:11-23,35-53`; `evidence/ground-truth/metric_tables_only.md:156-185`; `paper/number_provenance.md:101-118`.
@@ -304,7 +307,7 @@ I would not add many more citations before the deadline unless the authors know 
 2. [ ] Change title to “When Detectors Don’t Steer: A Four-Gate Audit of Activation Interventions in Gemma-3-4B-IT.”
 3. [ ] Add the main-body reproducibility paragraph.
 4. [x] Fix Figure 2 or its caption/text to separate full-replacement SAE path movement from delta-only target-specific nulls ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
-5. [ ] Clarify CSV-v2 versus CSV-v3 roles in §5, ideally with both slopes/gaps reported.
+5. [x] Clarify CSV-v2 versus CSV-v3 roles in §5, ideally with both slopes/gaps reported ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 6. [ ] Change “first author” to “one author” in bridge coding language.
 7. [ ] Align JailbreakBench MDE numbers.
 8. [ ] Move claim-defense index and full Mistral/SIMID stress ledger to supplement if appendix length must be reduced.

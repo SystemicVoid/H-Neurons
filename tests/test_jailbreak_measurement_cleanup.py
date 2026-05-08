@@ -6,9 +6,10 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
 
-from jailbreak_measurement_cleanup import (
+from jailbreak_measurement_cleanup import (  # noqa: E402
     _collect_manual_examples,
     _summarize_outcomes,
     build_canary,
@@ -71,6 +72,57 @@ def _write_valid_v3(path: Path, alpha: float, n_rows: int, *, prefix: str) -> No
     with open(path, "w") as f:
         for row in rows:
             f.write(json.dumps(row) + "\n")
+
+
+def test_icml_csv_v3_sensitivity_summary_matches_source_json() -> None:
+    summary = json.loads(
+        (
+            ROOT / "data/gemma3_4b/intervention/jailbreak/control/"
+            "comparison_csv2_v3_summary.json"
+        ).read_text(encoding="utf-8")
+    )
+    h_slope = summary["comparison"]["h_slope_csv2_yes_pp"]
+    random_slope = summary["comparison"]["random_mean_slope_csv2_yes_pp"]
+    gap = summary["comparison"]["gap_h_minus_random_mean_pp"]
+
+    assert h_slope == summary["h_neuron"]["slope_csv2_yes_pp_per_alpha"]
+    assert random_slope == summary["random_aggregate"]["csv2_yes_slope_mean"]
+    assert h_slope - random_slope == pytest.approx(gap)
+
+    latex_row = (
+        f"CSV-v3 binary & ${h_slope:+.2f}$ & ${random_slope:+.2f}$ & ${gap:+.2f}$ \\\\"
+    )
+    for path in (
+        ROOT / "paper/icml/main.tex",
+        ROOT / "paper/icml/supplement/reference/main.tex",
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert latex_row in text
+        assert "CSV-v3 row is a point-estimate audit summary" in text
+
+    provenance_rows = {
+        f"| H-neuron CSV-v3 `harmful_binary` slope | {h_slope:+.2f} pp/α |",
+        f"| Random-neuron CSV-v3 `harmful_binary` slope | {random_slope:+.2f} pp/α |",
+        f"| CSV-v3 H-minus-random slope difference | {gap:+.2f} pp/α |",
+    }
+    for path in (
+        ROOT / "paper/icml/number_provenance.md",
+        ROOT / "paper/icml/supplement/number_provenance.md",
+    ):
+        text = path.read_text(encoding="utf-8")
+        for row_prefix in provenance_rows:
+            assert row_prefix in text
+
+    summary_rows = {
+        f"| H-neuron CSV-v3 `harmful_binary` slope | {h_slope:+.2f} pp/α |",
+        f"| Random-neuron CSV-v3 `harmful_binary` slope | {random_slope:+.2f} pp/α |",
+        f"| CSV-v3 H-minus-random slope difference | {gap:+.2f} pp/α |",
+    }
+    summary_text = (
+        ROOT / "paper/icml/supplement/support/measurement_summary.md"
+    ).read_text(encoding="utf-8")
+    for row_prefix in summary_rows:
+        assert row_prefix in summary_text
 
 
 @pytest.fixture()

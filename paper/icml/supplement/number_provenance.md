@@ -98,11 +98,14 @@ Each listed row resolves in one hop to a bundled reviewer-facing support file or
 | Claim | Value | CI / exact test | Bundled source |
 |---|---|---|---|
 | Binary harmful endpoint shift (`α = 0.0 → 3.0`) | 152 / 500 → 167 / 500 | delta +3.0 pp; CI includes zero | `support/measurement_summary.md` |
-| H-neuron graded harmfulness slope | +2.30 pp/α | [+0.99, +3.58] | `support/measurement_summary.md` |
+| H-neuron CSV-v2 strict-harmfulness slope | +2.30 pp/α | [+0.99, +3.58] | `support/measurement_summary.md` |
 | H-neuron graded endpoint shift (`α = 0.0 → 3.0`) | +7.6 pp | [+2.6, +12.8] | `support/measurement_summary.md` |
-| Random-neuron graded slope (seed-0 control) | -0.47 pp/α | [-1.42, +0.47] | `support/measurement_summary.md` |
-| H-minus-random slope difference | +2.77 pp/α | [+1.17, +4.42] | `support/measurement_summary.md` |
+| Random-neuron CSV-v2 strict-harmfulness slope (seed-0 control) | -0.47 pp/α | [-1.42, +0.47] | `support/measurement_summary.md` |
+| CSV-v2 H-minus-random slope difference | +2.77 pp/α | [+1.17, +4.42] | `support/measurement_summary.md` |
 | H-minus-random permutation test | `p = 0.013` | one-sided | `support/measurement_summary.md` |
+| H-neuron CSV-v3 `harmful_binary` slope | +0.46 pp/α | point-estimate audit summary | `support/measurement_summary.md` |
+| Random-neuron CSV-v3 `harmful_binary` slope | -0.34 pp/α | point-estimate audit summary | `support/measurement_summary.md` |
+| CSV-v3 H-minus-random slope difference | +0.80 pp/α | point-estimate audit summary; no packaged gap CI or permutation test | `support/measurement_summary.md` |
 | Holdout evaluator accuracy: CSV-v3 (GPT-4o) | 96.0% | [90.0, 100.0] | `support/measurement_summary.md`; `data/judge_validation/holdout_comparison.json` |
 | Holdout evaluator accuracy: StrongREJECT (GPT-4o) | 96.0% | [90.0, 100.0] | `support/measurement_summary.md`; `data/judge_validation/holdout_comparison.json` |
 | Holdout evaluator accuracy: CSV-v2 (GPT-4o) | 92.0% | [84.3, 98.0] | `support/measurement_summary.md`; `data/judge_validation/holdout_comparison.json` |

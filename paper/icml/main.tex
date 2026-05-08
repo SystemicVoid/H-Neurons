@@ -327,7 +327,27 @@ The H-neuron strict harmfulness slope is $+2.30$ pp/$\alpha$ $[+0.99, +3.58]$, w
 The slope difference is $+2.77$ pp/$\alpha$ $[+1.17, +4.42]$ with permutation $p = 0.013$.
 Binary scoring washes out this signal because the effect largely lives in the movement of borderline cases into clearer refusal or clearer compliance.
 
-This is the section's core granularity result: binary evaluation suggests a weak or null effect; graded evaluation shows a positive dose-response.
+The claim-bearing same-output granularity audit used this pre-existing CSV-v2 strict-harmfulness endpoint.
+CSV-v3 was retained for taxonomy and evaluator-construct reporting, and its same-output re-score is a sensitivity check.
+
+\begin{center}
+\vskip 0.04in
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Endpoint} & \textbf{H} & \textbf{Random} & \textbf{Gap} \\
+\midrule
+CSV-v2 strict & $+2.30$ & $-0.47$ & $+2.77$ \\
+CSV-v3 binary & $+0.46$ & $-0.34$ & $+0.80$ \\
+\bottomrule
+\end{tabular}
+
+{\footnotesize Slopes are pp/$\alpha$; CSV-v3 binary is \texttt{harmful\_binary}. The CSV-v2 gap has permutation $p = 0.013$; the CSV-v3 row is a point-estimate audit summary without a packaged gap CI or permutation test.}
+\vskip 0.03in
+\end{center}
+
+This is the section's core granularity result: graded/rubric choices materially change whether the effect gate appears to pass.
 
 \textbf{Evaluator dependence is part of the result.}
 On a contamination-free 50-record holdout, four GPT-4o-based evaluators yield the accuracies in Table~\ref{tab:evaluator}.
@@ -369,7 +389,7 @@ The audit has four stages: measurement, localization, control, and externality.
 The stages record where intervention claims broke in this case study:
 
 \begin{itemize}
-  \item \textbf{Measurement$\to$Verdict.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In our jailbreak setting, binary-versus-graded scoring altered the conclusion about the same outputs, while output-length checks and the evaluator holdout exposed residual construct mismatch (\S\ref{sec:measurement}).
+  \item \textbf{Measurement$\to$Verdict.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In our jailbreak setting, binary-versus-rubric scoring changed whether the effect gate appeared to pass on the same outputs, while output-length checks and the evaluator holdout exposed residual construct mismatch (\S\ref{sec:measurement}).
   \item \textbf{Localization$\to$Control.} A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality, yet did not translate into useful control (\S\ref{sec:localization}).
   \item \textbf{Control$\to$Externality.} An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA MC1 but reduced open-ended factual accuracy, where wrong-entity substitution was the most common manually coded failure mode (\S\ref{sec:externality}).
 \end{itemize}
