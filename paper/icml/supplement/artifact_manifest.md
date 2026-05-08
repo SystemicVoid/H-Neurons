@@ -1,6 +1,6 @@
 # ICML Supplement Artifact Manifest
 
-This package is a submission-safe, reviewer-facing supplement for the ICML manuscript in [`reference/main.tex`](reference/main.tex). It is centered on the anonymous TeX paper rather than the longer internal markdown draft, and it is assembled as a curated artifact bundle rather than a raw repository snapshot.
+This package is a submission-safe, reviewer-facing supplement for the ICML manuscript in [`reference/main.tex`](reference/main.tex). It is centered on the anonymous TeX paper rather than the longer internal markdown draft, and it is assembled as a curated artifact bundle rather than a raw repository snapshot. Paths below are relative to the built upload package. In source checkouts, the builder materializes the generated `code/` files under `build/icml_supplement_package/code/`.
 
 ## Included Files
 

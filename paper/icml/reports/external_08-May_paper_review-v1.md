@@ -15,6 +15,8 @@
 | 5 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The manuscript title/running title now foreground the four-gate audit, and the cross-family comparison is explicitly limited to a Gemma-local tested-operator result; `make -C paper/icml`, rendered-page inspection, stale-title greps, and supplement-package tests guard the fix. |
 | 6 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The manuscript appendix now keeps only the construct map, FaithEval rates, SAE selector, and bridge margin blocks; claim-defense and Mistral/SIMID stress ledgers live in the supplement, with `make -C paper/icml`, rendered appendix-page inspection, and supplement-package tests guarding the change. |
 | 7 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | Bridge failure coding now uses anonymous one-author plus blinded GPT-4o wording and frames agreement as an LLM-assisted sensitivity check; `make -C paper/icml`, bridge/supplement tests, stale-wording greps, and rendered-page inspection guard the fix. |
+| 8 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The construct map now distinguishes JailbreakBench binary endpoint MDE `${\sim}6$` pp from graded-slope MDE `${\sim}5$` pp; stale-MDE greps and the rebuilt PDF guard the wording. |
+| 9 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The supplement README and artifact manifest now state that `code/` lives in the built upload package and under `build/icml_supplement_package/code/` in source checkouts; the package-builder test guards both the wording and built `code/` entries. |
 
 ## 1. Verdict And Scorecard
 
@@ -120,6 +122,8 @@ IMPORTANT: pull from ground truth data in the repo for this, we graded alot on V
 
 ### 8. MDE inconsistency between construct map and power appendix
 
+**Status:** Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD); the construct map now labels the two JailbreakBench power quantities as binary endpoint MDE `${\sim}6$` pp and graded-slope MDE `${\sim}5$` pp.
+
 - **Severity:** Minor.
 - **Location:** Construct map says JailbreakBench binary evaluation is underpowered with MDE `~6` pp (`paper/main.tex:489-506`, especially line 502). Power summary says JailbreakBench MDE `~5` pp (`paper/main.tex:593-606`).
 - **Problem:** This is small, but it gives a reviewer an easy “sloppy numbers” complaint.
@@ -128,6 +132,8 @@ IMPORTANT: pull from ground truth data in the repo for this, we graded alot on V
 - **Fix type:** Wording-only.
 
 ### 9. Supplement directory/source-vs-built package can confuse reviewers about where code lives
+
+**Status:** Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD); the supplement front matter now tells reviewers to use the built upload package and explicitly distinguishes built-package `code/` paths from source-checkout `build/icml_supplement_package/code/` paths.
 
 - **Severity:** Minor.
 - **Location:** `supplement/README.md:14-17`, `supplement/artifact_manifest.md:45-50`; actual source tree shows code under `supplement/build/icml_supplement_package/code/`, while the top-level `supplement/` source directory does not have a `code/` directory.
@@ -318,7 +324,7 @@ I would not add many more citations before the deadline unless the authors know 
 4. [x] Fix Figure 2 or its caption/text to separate full-replacement SAE path movement from delta-only target-specific nulls ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 5. [x] Clarify CSV-v2 versus CSV-v3 roles in §5, ideally with both slopes/gaps reported ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 6. [x] Change “first author” to “one author” in bridge coding language ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
-7. [ ] Align JailbreakBench MDE numbers.
+7. [x] Align JailbreakBench MDE numbers ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 8. [x] Move claim-defense index and full Mistral/SIMID stress ledger to supplement if appendix length must be reduced ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
-9. [ ] Upload the built supplement package, not the source supplement directory, and verify the `code/` directory is visible in the uploaded artifact.
+9. [x] Document the built supplement package, not the source supplement directory, as the upload artifact and verify the `code/` directory is visible in the built artifact ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 10. [ ] Re-render and re-check `paper/main.pdf`, especially pages 5, 8, and appendix boundaries.

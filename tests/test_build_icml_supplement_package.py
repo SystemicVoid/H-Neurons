@@ -69,6 +69,8 @@ class TestBuildIcmlSupplementPackage:
         assert "harmful prompt gold labels" in readme_text
         assert "raw provenance sidecars" in readme_text
         assert "omitted for safety/anonymization" in readme_text
+        assert "In the built upload package, `code/` contains" in readme_text
+        assert "source directory materializes it under" in readme_text
         assert (
             "`data/judge_validation/bridge_irr/bridge_irr_summary.json` is included"
             in readme_text
@@ -77,6 +79,16 @@ class TestBuildIcmlSupplementPackage:
             "`data/judge_validation/bridge_irr/adjudicated_labels.jsonl` is redacted"
             in readme_text
         )
+        artifact_manifest_text = (output_dir / "artifact_manifest.md").read_text(
+            encoding="utf-8"
+        )
+        assert "Paths below are relative to the built upload package" in (
+            artifact_manifest_text
+        )
+        assert "In source checkouts, the builder materializes" in (
+            artifact_manifest_text
+        )
+        assert "build/icml_supplement_package/code/" in artifact_manifest_text
 
         with ZipFile(zip_path) as archive:
             names = set(archive.namelist())
