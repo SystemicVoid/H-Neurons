@@ -14,6 +14,7 @@
 | 3 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | §5 now separates the claim-bearing CSV-v2 strict-harmfulness slope from the CSV-v3 same-output sensitivity re-score and reports both slope/gap rows; `make -C paper/icml`, targeted stale-wording greps, and supplement reference equality tests guard the fix. |
 | 5 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The manuscript title/running title now foreground the four-gate audit, and the cross-family comparison is explicitly limited to a Gemma-local tested-operator result; `make -C paper/icml`, rendered-page inspection, stale-title greps, and supplement-package tests guard the fix. |
 | 6 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The manuscript appendix now keeps only the construct map, FaithEval rates, SAE selector, and bridge margin blocks; claim-defense and Mistral/SIMID stress ledgers live in the supplement, with `make -C paper/icml`, rendered appendix-page inspection, and supplement-package tests guarding the change. |
+| 7 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | Bridge failure coding now uses anonymous one-author plus blinded GPT-4o wording and frames agreement as an LLM-assisted sensitivity check; `make -C paper/icml`, bridge/supplement tests, stale-wording greps, and rendered-page inspection guard the fix. |
 
 ## 1. Verdict And Scorecard
 
@@ -107,6 +108,8 @@ IMPORTANT: pull from ground truth data in the repo for this, we graded alot on V
 - **Fix type:** Structural.
 
 ### 7. Bridge failure coding is defensible but should avoid “first author” and human-IRR overtones
+
+**Status:** Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD); the manuscript, reference TeX, failure-coding manifest, and externality summary now avoid “first author” and “dual-rated” language while retaining the agreement numbers and LLM-rater limitation.
 
 - **Severity:** Minor to Major depending on reviewer sensitivity.
 - **Location:** `paper/main.tex:253-262`, limitations `paper/main.tex:435-436`, supplement `supplement/failure_coding_manifest.md:40-50,65-69`, support summary `supplement/support/externality_summary.md:71-96`.
@@ -314,7 +317,7 @@ I would not add many more citations before the deadline unless the authors know 
 3. [ ] Add the main-body reproducibility paragraph.
 4. [x] Fix Figure 2 or its caption/text to separate full-replacement SAE path movement from delta-only target-specific nulls ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 5. [x] Clarify CSV-v2 versus CSV-v3 roles in §5, ideally with both slopes/gaps reported ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
-6. [ ] Change “first author” to “one author” in bridge coding language.
+6. [x] Change “first author” to “one author” in bridge coding language ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 7. [ ] Align JailbreakBench MDE numbers.
 8. [x] Move claim-defense index and full Mistral/SIMID stress ledger to supplement if appendix length must be reduced ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 9. [ ] Upload the built supplement package, not the source supplement directory, and verify the `code/` directory is visible in the uploaded artifact.

@@ -250,13 +250,14 @@ Both the primary (adjudicated) and floor (deterministic) accuracy deltas exclude
 
 \textbf{Refusal is a minor part of the observed harm.}
 NOT\_ATTEMPTED counts rise from 2 to 8, a small 1.2~pp effect.
-Formal refusal accounts for 0 of 43 R$\to$W flips under the dual-rated coding.
+Formal refusal accounts for 0 of 43 R$\to$W flips under the author-plus-LLM adjudication.
 The dominant damage is factual corruption.
 
-\textbf{Wrong-entity substitution is the most common dual-rated failure mode.}
+\textbf{Wrong-entity substitution is the most common adjudicated failure mode.}
 Entity-level factuality work treats wrong-entity substitution as a recognizable neighboring error family in generation \citep{nan2021entity}.
 We use that literature only as adjacent taxonomy; it supplies no prior evidence for this exact steering failure mode.
-Each of the 57 discordant test cases (43 R$\to$W + 14 W$\to$R) was coded by the first author and a blinded LLM judge (\texttt{gpt-4o-2024-11-20}, temperature 0, strict JSON schema) against a pre-specified four-category rubric whose adjudication rule was frozen before final label commitment.
+One author and a blinded GPT-4o judge independently coded each of the 57 discordant test cases (43 R$\to$W + 14 W$\to$R) against a pre-specified four-category rubric whose adjudication rule was frozen before final label commitment.
+The second rater is an LLM, so this agreement is an LLM-assisted robustness check with limited force as IRR.
 Raw agreement was 96.5\% (Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96); the two disagreements were resolved under the same frozen rule.
 Of the 43 R$\to$W flips, 31 fell in the wrong-entity substitution category: the model replaces a correct factual answer with a different entity from the same semantic neighborhood ($31/43 = 72\%$; 95\% CI $[57, 83]$; Table~\ref{tab:substitution}).
 The remaining 12 flips split into evasion/factual denial (9/43, 21\%), answer dilution (3/43, 7\%), and formal refusal (0/43).
@@ -294,7 +295,7 @@ Comic whose June 1938 issue introduced Superman? & Action Comics & Detective Com
   \includegraphics[width=\textwidth]{figures/fig3_bridge.pdf}
   \caption{Surface-local control and bridge failure modes.
   (a)~ITI improves TruthfulQA MC1 but harms both generation surfaces (CIs exclude zero).
-  (b)~Among the 43 right-to-wrong flips on the TriviaQA bridge test set, wrong-entity substitution is the most common dual-rated failure mode ($72\%$; 95\% CI $[57, 83]$), with formal refusal rare.}
+  (b)~Among the 43 right-to-wrong flips on the TriviaQA bridge test set, wrong-entity substitution is the most common adjudicated failure mode ($72\%$; 95\% CI $[57, 83]$), with formal refusal rare.}
   \label{fig:bridge}
 \end{figure*}
 
@@ -456,7 +457,7 @@ The comparable-readout design keeps held-out AUROC close, although some other pr
 The within-SAE selector ablations reduce the target-selection concern but do not remove the cross-family operator-form confound.
 SAE layer coverage is partial; a different SAE width or layer selection could yield non-null results.
 The bridge failure-mode second rater is an LLM judge (GPT-4o).
-Because it is not an independent human coder, we present the agreement reported in \S\ref{sec:externality} as a sensitivity check with limited force.
+Because this is LLM-assisted adjudication, we present the agreement reported in \S\ref{sec:externality} as a sensitivity check with limited force.
 Jailbreak H-neuron specificity is single-seed ($p = 0.013$); matched multi-seed controls are needed before a stronger specificity claim.
 SIMID remains diagnostic-only: historical open-label calibration failed the pre-specified kappa gate, and the partial prospective selected-TruthfulQA alpha 8 vs.\ 0 effect missed the primary effect gate while degrading same-scope MC accuracy and attempt rate.
 Concurrent work \citep{wang2026interpretability,arad2025saes,wu2025axbench} already argues for interpretability/utility divergence from SAE-centric and benchmark-driven perspectives; we do not claim discovery of detector/control dissociation in general. Our distinctness lies in a stricter audit scaffold and a matched cross-representational comparison on a real behavioral surface.
@@ -511,7 +512,7 @@ The strongest deployment-relevant lesson is cautionary: an intervention that app
 \midrule
 FaithEval         & Context-resistance under anti-compliance prompting & Compliance rate & Context-faithfulness lever; no factual-QA claim \\
 TruthfulQA MC1/2  & Answer selection under constrained candidates      & MC1 accuracy     & Does not measure open-ended generation \\
-TriviaQA bridge   & Short-form factual generation                      & Adj.\ accuracy   & Dual-rated failure coding ($\kappa = 0.90$) \\
+TriviaQA bridge   & Short-form factual generation                      & Adj.\ accuracy   & LLM second-rater agreement ($\kappa = 0.90$) \\
 JailbreakBench    & Harmful compliance under adversarial prompting      & Graded harm rate & Binary eval.\ underpowered (MDE ${\sim}6$ pp) \\
 BioASQ            & Domain-specific factoid QA (biomedical)             & Accuracy         & Flat despite behavioral perturbation \\
 \bottomrule

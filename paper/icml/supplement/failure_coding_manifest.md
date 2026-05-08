@@ -1,6 +1,6 @@
 # Failure Coding Manifest
 
-This manifest documents the reviewer-facing coding surface for the TriviaQA bridge wrong-entity substitution audit in §4.3 of the paper. It is the bundled derivative for bridge IRR interpretation, alongside [`support/externality_summary.md`](support/externality_summary.md), [`data/judge_validation/bridge_irr/bridge_irr_summary.json`](data/judge_validation/bridge_irr/bridge_irr_summary.json), and the redacted case-label file.
+This manifest documents the reviewer-facing coding surface for the TriviaQA bridge wrong-entity substitution audit in §4.3 of the paper. It is the bundled derivative for bridge agreement interpretation, alongside [`support/externality_summary.md`](support/externality_summary.md), [`data/judge_validation/bridge_irr/bridge_irr_summary.json`](data/judge_validation/bridge_irr/bridge_irr_summary.json), and the redacted case-label file.
 
 ## Unit of Analysis
 
@@ -14,7 +14,7 @@ This manifest documents the reviewer-facing coding surface for the TriviaQA brid
 
 ## Coding Categories
 
-Shares are computed over the 43 right-to-wrong flips from dual-rated adjudicated labels (rubric `bridge_incorrect_response_v1`, adjudication rule committed at `0e965d5`). 95% CIs are Wilson intervals.
+Shares are computed over the 43 right-to-wrong flips from author-plus-LLM adjudicated labels (rubric `bridge_incorrect_response_v1`, adjudication rule committed at `0e965d5`). 95% CIs are Wilson intervals.
 
 | Category | Operational definition | Count | Share | 95% CI |
 |---|---|---:|---:|---|
@@ -35,9 +35,9 @@ The 14 wrong-to-right rescues are all `wrong_entity_substitution` under the same
 | Dickens novel with Merdle and Sparkler | `Little Dorrit` | `Bleak House` | Wrong-entity substitution |
 | “Turandot” completion example | Correct opera-completion answer | “He did not complete a Puccini opera.” | Evasion / factual denial |
 
-## Inter-Rater Reliability
+## Author-Plus-LLM Agreement
 
-All 57 discordant test-split cases (43 right-to-wrong + 14 wrong-to-right) were dual-rated. Rater A is the first author (human); Rater B is an LLM judge (`gpt-4o-2024-11-20`, temperature 0, strict JSON schema). The two disagreements were resolved under the pre-frozen adjudication rule before any test label was committed.
+All 57 discordant test-split cases (43 right-to-wrong + 14 wrong-to-right) were independently coded by one author and a blinded GPT-4o judge (`gpt-4o-2024-11-20`, temperature 0, strict JSON schema). The two disagreements were resolved under the pre-frozen adjudication rule before any test label was committed.
 
 | Metric | Value | 95% CI |
 |---|---|---|
@@ -47,7 +47,7 @@ All 57 discordant test-split cases (43 right-to-wrong + 14 wrong-to-right) were 
 | Disagreements resolved | 2 | — |
 | Rule-gap cases during adjudication | 0/2 | — |
 
-Since the second rater is an LLM judge rather than an independent human, we present this as a sensitivity check on the category shares rather than a strong-form human–human IRR. Raw agreement is the most robust single number; κ and AC1 are reported for completeness under the four-category label set.
+Because this is LLM-assisted adjudication, we present agreement as a sensitivity check on the category shares with limited force as IRR. Raw agreement is the most robust single number; κ and AC1 are reported for completeness under the four-category label set.
 
 ## Provenance
 
@@ -57,13 +57,13 @@ Since the second rater is an LLM judge rather than an independent human, we pres
 | Bundled reviewer-facing derivative | [`support/externality_summary.md`](support/externality_summary.md) |
 | Bridge grading stack | `code/scripts/evaluate_intervention.py` |
 | Bundled manifest builder | `code/scripts/build_triviaqa_bridge_manifest.py` |
-| Dual-rater workflow implementation | `code/scripts/prepare_bridge_irr_queue.py`, `code/scripts/bridge_irr_rater_b.py`, `code/scripts/bridge_irr_label.py`, `code/scripts/finalize_bridge_irr.py` |
+| Author-plus-LLM workflow implementation | `code/scripts/prepare_bridge_irr_queue.py`, `code/scripts/bridge_irr_rater_b.py`, `code/scripts/bridge_irr_label.py`, `code/scripts/finalize_bridge_irr.py` |
 | Rubric + adjudication rule | [`data/judge_validation/bridge_irr/adjudication_rule.md`](data/judge_validation/bridge_irr/adjudication_rule.md) (git `0e965d5`) |
-| Machine-readable IRR summary | [`data/judge_validation/bridge_irr/bridge_irr_summary.json`](data/judge_validation/bridge_irr/bridge_irr_summary.json) |
+| Machine-readable agreement summary | [`data/judge_validation/bridge_irr/bridge_irr_summary.json`](data/judge_validation/bridge_irr/bridge_irr_summary.json) |
 | Redacted adjudicated labels | [`data/judge_validation/bridge_irr/adjudicated_labels.jsonl`](data/judge_validation/bridge_irr/adjudicated_labels.jsonl) |
 
 ## Caveats
 
 - This coding surface is a behavioral diagnosis, not a claim about the exact internal circuit mechanism.
-- Rater B is an LLM judge; these numbers are a sensitivity check on category shares, not a strong-form human–human IRR.
+- Rater B is an LLM judge; these numbers are a sensitivity check on category shares with limited force as IRR.
 - Raw bridge response JSONLs, blinded queues, and raw rater progress files are omitted for safety/anonymization. The bundled reviewer-facing derivatives are the frozen rule, machine-readable summary, and redacted adjudicated labels.
