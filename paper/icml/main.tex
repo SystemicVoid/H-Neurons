@@ -172,7 +172,7 @@ Across five unconstrained and three layer-matched random-neuron sets, all eight 
 
 The tested SAE intervention did not produce the same behavior.
 The full-replacement H-feature slope was $+0.16$ pp/$\alpha$ $[-0.51, 0.84]$, with no monotonic trend ($\rho = 0.18$).
-A delta-only architecture that cancels reconstruction error gave near-zero slopes: H-feature $+0.12$ pp/$\alpha$ and random-feature $-0.09$ pp/$\alpha$ (audit summary; no slope CI in the package).
+A delta-only architecture that cancels reconstruction error gave near-zero slopes: H-feature $+0.12$ pp/$\alpha$ and random-feature $-0.09$ pp/$\alpha$ (audit summary; slope CIs are not claimed for this auxiliary check).
 The full-replacement SAE curve in Figure~\ref{fig:matched} includes non-monotone path/reconstruction movement shared by target and random SAE sets; the claim-bearing feature-specific check is the delta-only contrast.
 The neuron baseline on the same three-alpha subset remained $+2.12$ pp/$\alpha$.
 
@@ -207,7 +207,7 @@ This limitation returns in~\S\ref{sec:framework}.
   \caption{The anchor result: FaithEval comparable readouts, divergent control.
   (a)~H-neurons and SAE features have similar held-out detection AUROC.
   (b)~H-neurons produce a dose-dependent compliance increase.
-  The SAE curves are full-replacement paths with non-monotone movement shared by target and random SAE sets; feature-specific delta-only slopes remain near zero (H $+0.12$, random $-0.09$ pp/$\alpha$; no slope CI in the package).
+  The SAE curves are full-replacement paths with non-monotone movement shared by target and random SAE sets; feature-specific delta-only slopes remain near zero (H $+0.12$, random $-0.09$ pp/$\alpha$; slope CIs are not claimed for this auxiliary check).
   The neuron-minus-SAE slope difference ($+1.93$ pp/$\alpha$, 95\% CI excludes zero) confirms the dissociation.}
   \label{fig:matched}
 \end{figure*}
@@ -236,7 +236,7 @@ At $\alpha = 8.0$, it yields $+6.3$~pp MC1 $[3.7, 8.9]$ and $+7.49$~pp MC2 $[5.2
 
 This MC/generation divergence echoes the tradeoff concern already visible in \citet{li2023iti}; here, SimpleQA Verified serves as a supporting stress test, while the locked bridge benchmark below is the main externality result.
 The gain does not transfer to open-ended factual generation.
-On a local copy of the 1,000-question SimpleQA Verified benchmark \citep{haas2025simpleqaverified}, graded with the benchmark's verified autorater, and with a prompt that removes the explicit escape hatch, ITI at $\alpha = 8.0$ reduces correct-answer rate from 4.6\% $[3.5, 6.1]$ to 2.8\% $[1.9, 4.0]$ (paired $\Delta = -1.8$~pp $[-3.1, -0.6]$).
+On the 1,000-question SimpleQA Verified benchmark \citep{haas2025simpleqaverified}, graded with the benchmark's verified autorater, and with a prompt that removes the explicit escape hatch, ITI at $\alpha = 8.0$ reduces correct-answer rate from 4.6\% $[3.5, 6.1]$ to 2.8\% $[1.9, 4.0]$ (paired $\Delta = -1.8$~pp $[-3.1, -0.6]$).
 The attempt rate collapses from 99.7\% to 67.0\%, while precision among attempted answers remains stable (${\sim}4$\%), suggesting epistemic caution without factual improvement.
 Answer-selection success therefore provides no evidence for open-generation factual improvement, consistent with \citet{pres2024reliable} and \citet{opielka2026causality}.
 
@@ -258,6 +258,7 @@ The dominant damage is factual corruption.
 Entity-level factuality work treats wrong-entity substitution as a recognizable neighboring error family in generation \citep{nan2021entity}.
 That literature supplies adjacent taxonomy only; it provides no prior evidence for this exact steering failure mode.
 One author and a blinded GPT-4o judge independently coded each of the 57 discordant test cases (43 R$\to$W + 14 W$\to$R) against a pre-specified four-category rubric whose adjudication rule was frozen before final label commitment.
+The rubric labels a committed wrong answer as wrong-entity substitution, premise denial or no-answer uncertainty as evasion/factual denial, multi-candidate or buried-answer responses as answer dilution, and explicit non-answer refusal as formal refusal.
 The second rater is an LLM, so this agreement is an LLM-assisted robustness check with limited force as IRR.
 Raw agreement was 96.5\% (Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96); the two disagreements were resolved under the same frozen rule.
 Of the 43 R$\to$W flips, 31 fell in the wrong-entity substitution category: the model replaces a correct factual answer with a different entity from the same semantic neighborhood ($31/43 = 72\%$; 95\% CI $[57, 83]$; Table~\ref{tab:substitution}).
@@ -315,12 +316,13 @@ The case study centers on the H-neuron jailbreak scaling experiment (38 probe-se
 
 \textbf{Output-length exposure remains a measurement risk.}
 Short generation caps (e.g., 256 tokens) can bias intervention evaluations when steering changes response structure.
-In the Gemma jailbreak audit, an archived 256-token run motivated a full-output rerun; that archived view is superseded and carries no claim-bearing effect.
+In the Gemma jailbreak audit, a superseded 256-token pilot motivated a full-output rerun; that pilot view carries no claim-bearing effect.
 The live Gemma result below is the same-output scoring-granularity contrast on the canonical full-output run.
 Output-length exposure is therefore a construct- and model-dependent measurement risk, and full-output scoring remains the safer reporting default.
 
 \textbf{Scoring granularity changes the verdict.}
 The same H-neuron jailbreak outputs look different under binary and graded evaluation.
+Here, binary scoring asks harmful/safe; CSV-v2 strict harmfulness uses graded commitment, specificity, and validity; CSV-v3 separates refusal, deflection, benign answer, partial compliance, and substantive compliance; StrongREJECT zeros its score when a refusal flag is present.
 A GPT-4o binary harmful/safe judge shows a $+3.0$~pp endpoint shift ($\alpha = 0 \to 3$, 152/500~$\to$~167/500), with a confidence interval that includes zero.
 Under binary evaluation alone, the intervention looks weak and non-decisive.
 
@@ -345,7 +347,7 @@ CSV-v3 binary & $+0.46$ & $-0.34$ & $+0.80$ \\
 \bottomrule
 \end{tabular}
 
-{\footnotesize Slopes are pp/$\alpha$; CSV-v3 binary is \texttt{harmful\_binary}. The CSV-v2 gap has permutation $p = 0.013$; the CSV-v3 row is a point-estimate audit summary without a packaged gap CI or permutation test.}
+{\footnotesize Slopes are pp/$\alpha$; CSV-v3 binary is \texttt{harmful\_binary}. The CSV-v2 gap has permutation $p = 0.013$; the CSV-v3 row is a point-estimate audit summary without a reported gap CI or permutation test.}
 \vskip 0.03in
 \end{center}
 
@@ -423,7 +425,7 @@ Externality & At least one non-target surface; capability check; report harms an
 \vskip -0.1in
 \end{table}
 
-The audit separates claims that are often bundled together: measurement validity, localization, behavioral control, and cross-surface externality.
+The audit separates claims that are often conflated: measurement validity, localization, behavioral control, and cross-surface externality.
 In this case study, omitting any one of these gates would have changed the conclusion: the SAE readouts would look actionably localized, the ITI intervention would look beneficial from TruthfulQA MC alone, or the jailbreak result would look null under binary scoring alone.
 The framework is therefore diagnostic: it records how the tested claim scope changed at each transition.
 
@@ -502,7 +504,7 @@ BioASQ            & Domain-specific factoid QA (biomedical)             & Accura
 
 \begin{table}[H]
 \centering
-\caption{FaithEval compliance rates by method and scaling factor ($n = 1{,}000$ per condition). Rates only; Wilson 95\% CIs are in the provenance ledger and support files.}
+\caption{FaithEval compliance rates by method and scaling factor ($n = 1{,}000$ per condition). Rates only; headline uncertainty intervals are stated in the main text.}
 \label{tab:faitheval_rates}
 \vskip 0.1in
 \small
@@ -521,7 +523,7 @@ $\alpha$ & Neurons & SAE H-feat. & SAE rand. \\
 \end{tabular}
 \vskip 0.06in
 \begin{minipage}{0.86\linewidth}
-\footnotesize\emph{Note.} SAE full-replacement rates include non-monotone path/reconstruction movement shared by target and random SAE sets; slope tests and the delta-only contrast are the target-specific checks. Delta-only slope CIs are not in the package.
+\footnotesize\emph{Note.} SAE full-replacement rates include non-monotone path/reconstruction movement shared by target and random SAE sets; slope tests and the delta-only contrast are the target-specific checks. Delta-only slope CIs are not claimed for this auxiliary check.
 \end{minipage}
 \end{table}
 \FloatBarrier
@@ -566,11 +568,11 @@ On the prompt-end anti-compliance margin, readout-selected features shift the ma
 This within-pool contrast is immune to path drift because both sides share the same $\alpha = 0$ delta-only operator; the explicit path-drift control ($+8.2\times 10^{-8}$~nats $[-2.4\times10^{-3}, +2.1\times10^{-3}]$) independently bounds invocation-only code-path drift far below the selection-specific effects.
 
 A strictly-positive-utility augment ($k = 154$) guards against size-match dilution and reduces the margin by $-0.72$~nats $[-1.04, -0.39]$ vs.\ no-op, with three layer-matched random-positive seeds yielding paired deltas $-0.74$ $[-1.10, -0.36]$, $-0.81$ $[-1.16, -0.46]$, and $-0.42$ $[-0.75, -0.08]$~nats.
-The ten-seed matched-random ensemble for the main bundle gives a seed-mean utility-minus-matched-random contrast of $-0.90$~nats (nested paired bootstrap $[-1.22, -0.56]$; naive seed bootstrap $[-1.17, -0.61]$); 9~of~10 seeds produce a negative paired delta.
+The ten-seed matched-random ensemble for the prompt-end utility selector gives a seed-mean utility-minus-matched-random contrast of $-0.90$~nats (nested paired bootstrap $[-1.22, -0.56]$; naive seed bootstrap $[-1.17, -0.61]$); 9~of~10 seeds produce a negative paired delta.
 The answer-span selector also improves over its own ten-seed matched-random null on its native margin (seed-mean $-0.53$~nats, nested $[-0.81, -0.26]$).
 This is within-metric generalization from validation to test.
 The more conservative cross-metric contrast is mixed, with answer-span selection worse than prompt-end utility selection by $+0.46$~nats $[+0.16, +0.75]$ on the original prompt-end margin.
-The selector was frozen before any test labels were scored, and the random-null construction, the path-drift control, the 10-seed extension, and the answer-span extension were added sequentially in response to the adversarial audit flagged in the provenance notes.
+The selector was frozen before any test labels were scored, and the random-null construction, the path-drift control, the 10-seed extension, and the answer-span extension were added sequentially during the audit.
 
 \paragraph{Reading.}
 Within the same candidate pool, the contrast is evidence that the selection objective is load-bearing for margin metrics: the two intervention-aware $k=266$ sets share 167 features (Jaccard $0.46$), and validation-selected utilities generalize within metric to test.
