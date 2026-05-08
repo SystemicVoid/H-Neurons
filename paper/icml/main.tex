@@ -68,12 +68,12 @@
 % ======================================================================
 \begin{abstract}
 Predictive internal signals are often used as steering targets, although readout quality alone does not establish behavioral control.
-In a single-model Gemma-3-4B-IT case study, we audit this inference across contextual faithfulness, multiple-choice answer selection, open-ended QA, and jailbreak evaluation.
+A single-model Gemma-3-4B-IT case study audits this inference across contextual faithfulness, multiple-choice answer selection, open-ended QA, and jailbreak evaluation.
 On FaithEval, H-neurons and sparse autoencoder (SAE) features achieve similar held-out readout quality (AUROC 0.843 vs.\ 0.848), yet only H-neuron scaling produces a reliable behavioral dose-response under the tested operators ($+2.1$ pp/$\alpha$ [1.4, 2.8]).
 Within the same Gemma SAE candidate pool, prompt-end utility and answer-span selectors produce metric-specific margin shifts without recovering the compliance endpoint.
 ITI improves TruthfulQA multiple-choice answer selection while reducing open-ended TriviaQA bridge accuracy, most often through wrong-entity substitution.
 Jailbreak conclusions depend on scoring granularity and evaluator construct.
-We synthesize these results as a gate-based audit separating measurement, localization, control, and externality.
+These results support a gate-based audit that separates measurement, localization, control, and externality.
 \end{abstract}
 
 % ======================================================================
@@ -89,11 +89,10 @@ The heuristic sometimes works.
 Refusal-mediating directions produce reliable refusal modulation \citep{arditi2024refusal}, and hallucination-associated neurons can shift over-compliance \citep{gao2025hneurons}.
 The heuristic also sometimes fails, and the failure modes have received less systematic attention than the successes.
 
-This paper tests the readout-to-steering heuristic empirically in Gemma-3-4B-IT \citep{gemma2025}.
-We find repeated dissociations between four stages that are routinely conflated:
+In Gemma-3-4B-IT \citep{gemma2025}, the readout-to-steering heuristic shows repeated dissociations between four stages that are routinely conflated:
 
 \begin{enumerate}
-  \item \textbf{Measurement.} Can we trust the evaluation? Scoring granularity changed the scientific conclusion, while output-length checks and the evaluator audit exposed residual measurement risk and rubric dependence (\S\ref{sec:measurement}).
+  \item \textbf{Measurement.} Is the evaluation trustworthy? Scoring granularity changed the scientific conclusion, while output-length checks and the evaluator audit exposed residual measurement risk and rubric dependence (\S\ref{sec:measurement}).
   \item \textbf{Localization.} Does the readout identify causally relevant components? SAE features matched H-neurons on detection quality but did not translate into useful control (\S\ref{sec:localization}).
   \item \textbf{Control.} Does intervention produce the intended behavioral change? Effects were narrow and task-local (\S\ref{sec:externality}).
   \item \textbf{Externality.} Does the effect transfer without causing harm? Wrong-entity substitution was the most common manually coded failure mode on a held-out bridge benchmark (\S\ref{sec:externality}).
@@ -102,26 +101,26 @@ We find repeated dissociations between four stages that are routinely conflated:
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/fig1_scaffold.pdf}
-  \caption{The Four-Stage Interpretability Scaffold and three empirical gates. Stages run left to right; each transition is a question the next stage assumes has been answered. Three gates mark where the readout-to-steering heuristic broke in our case study: one \emph{within-stage} (Measurement$\to$Verdict, \S\ref{sec:measurement}: grading shifted the verdict, while output-length checks and the evaluator audit exposed residual measurement risk and rubric dependence) and two \emph{inter-stage} (Localization$\to$Control, \S\ref{sec:localization}; Control$\to$Externality, \S\ref{sec:externality}). Within-stage gates tether to a stage box; inter-stage gates tether to the transition arrow.}
+  \caption{Four-stage scaffold for activation-intervention claims. Measurement, localization, control, and externality are distinct stages, and each transition requires separate evidence. In this case study, measurement choices changed the jailbreak verdict (\S\ref{sec:measurement}), matched readouts diverged under control (\S\ref{sec:localization}), and successful TruthfulQA MC control failed on open-ended generation (\S\ref{sec:externality}).}
   \label{fig:scaffold}
 \end{figure*}
 
 \textbf{Contributions.}
-(1)~A readout-to-control audit: a Gemma FaithEval comparison showing that similar held-out readout quality for H-neurons and SAE features can yield sharply different behavioral outcomes under matched surface evaluation.
-(2)~A within-SAE selector audit: a Gemma candidate-pool ablation showing that readout, prompt-end utility, and answer-span utility selectors produce different margin effects while all miss the compliance endpoint.
-(3)~A control-to-externality audit: an ITI study showing that TruthfulQA MC gains do not license open-generation claims, with a bridge failure taxonomy dominated by wrong-entity substitution.
-(4)~A measurement audit: a jailbreak evaluation showing that scoring granularity changes verdicts, with output-length exposure and evaluator construct choices retained as reporting risks.
-(5)~A four-gate audit scaffold separating measurement, localization, control, and externality claims.
+(1)~On Gemma FaithEval, H-neurons and SAE features reach similar held-out readout quality, but only H-neuron scaling produces reliable control under matched surface evaluation.
+(2)~Within the tested Gemma SAE candidate pool, readout, prompt-end utility, and answer-span utility selectors produce metric-specific margin effects, and all miss the compliance endpoint.
+(3)~TruthfulQA-fitted ITI improves MC answer selection but reduces TriviaQA bridge accuracy, with wrong-entity substitution dominating the manually coded failures.
+(4)~In the jailbreak evaluator setting, scoring granularity changes verdicts, while output-length exposure and evaluator construct choices remain reporting risks.
+(5)~The four-gate scaffold separates measurement, localization, control, and externality claims.
 
 \textbf{Study orientation.}
-This paper is a single-model comparative case study in Gemma-3-4B-IT \citep{gemma2025}.
-We compare multiple intervention families (neuron scaling, SAE feature steering, and inference-time intervention via attention heads) across contextual faithfulness (FaithEval \citep{ming2025faitheval}), answer selection (TruthfulQA \citep{lin2022truthfulqa}), open-ended factual generation (TriviaQA \citep{joshi2017triviaqa}, SimpleQA Verified \citep{haas2025simpleqaverified}), domain QA (BioASQ \citep{tsatsaronis2015bioasq}), and jailbreak settings (JailbreakBench \citep{chao2024jailbreakbench}).
+The study is a single-model comparative case study in Gemma-3-4B-IT \citep{gemma2025}.
+The comparison covers multiple intervention families (neuron scaling, SAE feature steering, and inference-time intervention via attention heads) across contextual faithfulness (FaithEval \citep{ming2025faitheval}), answer selection (TruthfulQA \citep{lin2022truthfulqa}), open-ended factual generation (TriviaQA \citep{joshi2017triviaqa}, SimpleQA Verified \citep{haas2025simpleqaverified}), domain QA (BioASQ \citep{tsatsaronis2015bioasq}), and jailbreak settings (JailbreakBench \citep{chao2024jailbreakbench}).
 All claims are surface-specific: FaithEval is a context-faithfulness / anti-compliance surface, TruthfulQA MC constrained answer selection, TriviaQA bridge and SimpleQA Verified open-ended factual generation, and JailbreakBench a harmfulness-evaluation surface.
-Within that scope, the paper asks three bounded empirical questions:
+Within that scope, the empirical questions are:
 (1)~Is held-out readout quality enough to select steering targets? (\S\ref{sec:localization})
 (2)~Do answer-selection gains transfer to open-ended factual generation? (\S\ref{sec:externality})
 (3)~Do plausible measurement choices leave the jailbreak verdict stable? (\S\ref{sec:measurement})
-These surface-specific questions do not claim a new steering method or a general failure of detector-based targets.
+They do not claim a new steering method or a general failure of detector-based targets.
 Supplement stress tests on \texttt{Mistral-Small-24B-Instruct-2501} and SIMID diagnostic artifacts are used only as failed or incomplete gates.
 
 % ======================================================================
@@ -130,22 +129,22 @@ Supplement stress tests on \texttt{Mistral-Small-24B-Instruct-2501} and SIMID di
 \section{Related Work}
 \label{sec:related}
 
-Foundational probe critiques establish that high readout accuracy can arise for reasons the model does not functionally rely on \citep{hewitt2019control,elazar2021amnesic,kumar2022probes}. The linear representation hypothesis \citep{park2024linear} makes the complementary positive prediction that concepts encoded as linear directions should support both detection and control, which the present paper probes empirically. \citet{hase2023localization} provide a close editing precedent: better localization need not predict better control.
+Foundational probe critiques establish that high readout accuracy can reflect nonfunctional correlates \citep{hewitt2019control,elazar2021amnesic,kumar2022probes}. The linear representation hypothesis \citep{park2024linear} makes the complementary positive prediction that concepts encoded as linear directions should support both detection and control, which the Gemma experiments probe empirically. \citet{hase2023localization} provide a close editing precedent: better localization can fail to predict better control.
 
-The steering lineage motivating this audit runs from representation engineering and activation addition \citep{zou2023repe,turner2024steering} through ITI \citep{li2023iti}. Within SAE-based interventions, foundational feature work \citep{cunningham2023saes} and the Gemma Scope release \citep{lieberum2024gemmascope} make sparse features available at scale, while target-selection studies show that not all salient features steer well: high-scoring SAE features need not control behavior \citep{arad2025saes}, detection and steering need not be jointly optimized \citep{wu2025axbench}, \citet{wang2026interpretability} report only a weak positive association between SAE interpretability and steering utility across 90 SAEs (Kendall's $\tau_b \approx 0.298$), and \citet{bhalla2024unifying} describe a predict/control discrepancy for interpretability-based interventions.
+The steering lineage runs from representation engineering and activation addition \citep{zou2023repe,turner2024steering} through ITI \citep{li2023iti}. Within SAE-based interventions, foundational feature work \citep{cunningham2023saes} and the Gemma Scope release \citep{lieberum2024gemmascope} make sparse features available at scale, while target-selection studies show limits of salience as a steering criterion: high-scoring SAE features can fail to control behavior \citep{arad2025saes}, detection and steering can require different objectives \citep{wu2025axbench}, \citet{wang2026interpretability} report only a weak positive association between SAE interpretability and steering utility across 90 SAEs (Kendall's $\tau_b \approx 0.298$), and \citet{bhalla2024unifying} describe a predict/control discrepancy for interpretability-based interventions.
 
 Transfer and reliability work narrows the claim space further. \citet{li2023iti} already showed that ITI's multiple-choice gains can diverge from generative gains; \citet{tan2024steering} study the brittleness and input sensitivity of steering vectors; \citet{pres2024reliable} show that behavior-steering evaluations can be format-dependent; and \citet{opielka2026causality} show that causally effective vectors can still be surface-specific. Positive counterexamples remain important: refusal directions and targeted multi-attribute steering can work when the behavioral target is better matched to the intervention \citep{arditi2024refusal,nguyen2025matsteer}.
 
 Measurement fragility is a parallel reviewer concern. JailbreakBench \citep{chao2024jailbreakbench} provides the benchmark surface used here; StrongREJECT \citep{souly2024strongreject} showed that binary scoring can overestimate jailbreak effectiveness; \citet{chen2025safer} and \citet{eiras2025judge} show that evaluator artifacts and rubric choices matter; and \citet{huang2025guidedbench} argue that guideline-conditioned judging can materially change jailbreak conclusions.
-For factuality more directly, \citet{yona2026metacognition} argue that hallucination mitigation should report utility-error tradeoffs and spillover costs alongside calibration or single operating points; our SimpleQA and bridge analyses instantiate those cautions for activation interventions.
+For factuality more directly, \citet{yona2026metacognition} argue that hallucination mitigation should report utility-error tradeoffs and spillover costs alongside calibration or single operating points; the SimpleQA and bridge analyses instantiate those cautions for activation interventions.
 
 Concurrent SAE-centric analyses \citep{arad2025saes,wang2026interpretability} and synthetic-benchmark evaluations \citep{wu2025axbench} make detection/control divergence increasingly clear within single-family settings.
-The core contribution here is a cross-representational FaithEval comparison: neurons and SAE features are evaluated on the same real behavioral surface with closely matched held-out readout quality.
-This comparison should be read as a Gemma-local audit of the tested operators; basis, layer-coverage, and operator-form differences remain open, so it is not an operator-matched proof that neurons are better causal bases than SAE features.
+The cross-representational FaithEval comparison evaluates neurons and SAE features on the same real behavioral surface with closely matched held-out readout quality.
+Its scope is Gemma-local and limited to the tested operators; basis, layer-coverage, and operator-form differences remain open, so it is not an operator-matched proof that neurons are better causal bases than SAE features.
 Two supporting additions broaden that case study.
-First, on TriviaQA bridge generation we provide a frozen-protocol behavioral diagnosis of the transfer failure, where wrong-entity substitution is the most common manually coded right-to-wrong pattern and formal refusal is rare.
-Second, we show that scoring granularity can change the verdict for the same representation-engineering intervention outputs, while output-length checks and a held-out evaluator audit reveal residual measurement risk.
-We synthesize these observations in a four-stage audit framework (measurement, localization, control, externality).
+First, TriviaQA bridge generation provides a frozen-protocol behavioral diagnosis of the transfer failure, where wrong-entity substitution is the most common manually coded right-to-wrong pattern and formal refusal is rare.
+Second, scoring granularity can change the verdict for the same representation-engineering intervention outputs, while output-length checks and a held-out evaluator audit reveal residual measurement risk.
+Together these observations support a four-stage audit framework (measurement, localization, control, externality).
 
 % ======================================================================
 % 3. LOCALIZATION -> CONTROL
@@ -162,7 +161,7 @@ These are real held-out signals, though individual-weight interpretation remains
 
 \subsection{Comparable Readouts, Divergent Control}
 
-Both methods achieve similar held-out detection quality, and we evaluate both interventions on the same 1,000 FaithEval items \citep{ming2025faitheval}.
+Both methods achieve similar held-out detection quality, and both interventions are evaluated on the same 1,000 FaithEval items \citep{ming2025faitheval}.
 The 38 probe-selected neurons were scaled multiplicatively across $\alpha \in \{0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0\}$, with $\alpha = 1.0$ as the no-op baseline.
 The 266 tested Gemma Scope SAE features were scaled through an encode-modify-decode intervention on the same grid.
 
@@ -177,10 +176,10 @@ The full-replacement SAE curve in Figure~\ref{fig:matched} includes non-monotone
 The neuron baseline on the same three-alpha subset remained $+2.12$ pp/$\alpha$.
 
 The paired neuron-minus-SAE slope difference was $+1.93$ pp/$\alpha$ $[+0.94, +2.92]$ (permutation $p < 0.001$).
-On the same 1,000 FaithEval items, similar held-out readout quality did not predict intervention utility: H-neurons and SAE features showed comparable detector performance, yet only the neuron intervention produced a robust behavioral dose-response.
+On the same 1,000 FaithEval items, similar held-out readout quality failed to predict intervention utility: H-neurons and SAE features showed comparable detector performance; only the neuron intervention produced a robust behavioral dose-response.
 
 \paragraph{Within-SAE target-selection ablation.}
-We next tested whether the SAE null could be explained by a poor target-selection rule.
+A follow-up ablation tested whether the SAE null could be explained by a poor target-selection rule.
 The ablation used the same 509-feature Gemma SAE candidate set, the same extraction layers, and a single $\alpha = 0$ delta-only operator (feature zeroing) on a frozen $160/840$ validation/test FaithEval split.
 The first ablation compared top-266 readout features, top-266 prompt-end validation-utility features, and ten layer-matched activation-weighted random zero-weight controls; all produced null compliance deltas on the $n = 840$ test split (all paired $95\%$ CIs include zero; point estimates $\le 0.72$~pp).
 On the anti-compliance logprob margin, readout-selected features shifted the margin in the \emph{wrong} direction (+$0.92$~nats $[+0.61, +1.23]$ vs.\ no-op), while prompt-end utility-selected features reduced it by $-0.76$~nats $[-1.08, -0.42]$; the paired utility-minus-readout delta was $-1.68$~nats $[-2.17, -1.19]$.
@@ -195,10 +194,11 @@ The refusal-direction literature \citep{arditi2024refusal} and targeted multi-at
 The narrower claim is that readout quality alone is an unreliable heuristic for predicting \emph{when} detection-based targets will steer behavior.
 The tested SAE features matched H-neurons on the quantity most commonly used to justify steering (held-out AUROC) and missed the downstream behavioral endpoint.
 
-A natural objection is that this comparable-readout design confounds representational basis with readout quality: SAE features and neurons differ in operator form, layer coverage, and feature granularity.
-The within-SAE ablation above partly closes that gap: with operator form and the available extraction layers held fixed, readout-, prompt-end-utility-, and answer-span-utility selectors produce metric-specific margin effects, and none reaches the accuracy endpoint.
-The remaining basis confound narrows the across-family inference, but readout quality alone did not suffice to predict steering utility in either the cross-representational comparison or within the SAE pool.
-We discuss this limitation further in~\S\ref{sec:framework}.
+This comparable-readout design still confounds representational basis with readout quality: SAE features and neurons differ in operator form, layer coverage, and feature granularity.
+The within-SAE ablation reduces the target-selection concern by holding operator form and available extraction layers fixed; readout-, prompt-end-utility-, and answer-span-utility selectors produce metric-specific margin effects, and none reaches the accuracy endpoint.
+The cross-family basis confound remains, so the result does not establish that neurons are better causal bases than SAE features.
+It shows that readout quality alone did not predict steering utility in either the cross-representational comparison or within the tested SAE pool.
+This limitation returns in~\S\ref{sec:framework}.
 
 \begin{figure*}[t]
   \centering
@@ -219,7 +219,7 @@ We discuss this limitation further in~\S\ref{sec:framework}.
 
 \subsection{Positive Results Are Task-Local}
 
-Before testing transfer, we establish that detector-selected interventions can steer behavior on their primary surfaces.
+In these experiments, detector-selected interventions can steer behavior on their primary surfaces.
 H-neuron scaling (38 magnitude-ranked neurons) produces clear, dose-dependent effects on compliance-adjacent surfaces.
 On FaithEval, compliance increases by $+4.5$~pp $[2.9, 6.1]$ above the no-op baseline at $\alpha = 3.0$ (slope $+2.09$ pp/$\alpha$), confirmed by 8-seed negative controls showing flat random-neuron baselines (mean slope $+0.02$ pp/$\alpha$).
 On FalseQA \citep{hu2023falseqa} ($n = 687$), the same neurons show a dose-response slope of $+1.62$ pp/$\alpha$ $[0.52, 2.74]$.
@@ -241,7 +241,7 @@ Answer-selection success therefore provides no evidence for open-generation fact
 
 \subsection{Bridge: Wrong-Entity Substitution}
 
-The TriviaQA bridge benchmark \citep{joshi2017triviaqa} (held-out test set, $n = 500$, baseline adjudicated accuracy 45.0\%) provides the most informative externality result because it reveals a specific behavioral failure mode beyond the score drop.
+The TriviaQA bridge benchmark \citep{joshi2017triviaqa} (held-out test set, $n = 500$, baseline adjudicated accuracy 45.0\%) provides the main externality result: a specific behavioral failure mode beyond the score drop.
 The test set was evaluated under a one-shot frozen protocol: all parameters were locked from Phase~2 dev results, and no parameters were tuned on test data.
 
 \textbf{The intervention changes outputs beyond suppression.}
@@ -255,13 +255,13 @@ The dominant damage is factual corruption.
 
 \textbf{Wrong-entity substitution is the most common adjudicated failure mode.}
 Entity-level factuality work treats wrong-entity substitution as a recognizable neighboring error family in generation \citep{nan2021entity}.
-We use that literature only as adjacent taxonomy; it supplies no prior evidence for this exact steering failure mode.
+That literature supplies adjacent taxonomy only; it provides no prior evidence for this exact steering failure mode.
 One author and a blinded GPT-4o judge independently coded each of the 57 discordant test cases (43 R$\to$W + 14 W$\to$R) against a pre-specified four-category rubric whose adjudication rule was frozen before final label commitment.
 The second rater is an LLM, so this agreement is an LLM-assisted robustness check with limited force as IRR.
 Raw agreement was 96.5\% (Cohen's $\kappa = 0.90$, Gwet's AC1 = 0.96); the two disagreements were resolved under the same frozen rule.
 Of the 43 R$\to$W flips, 31 fell in the wrong-entity substitution category: the model replaces a correct factual answer with a different entity from the same semantic neighborhood ($31/43 = 72\%$; 95\% CI $[57, 83]$; Table~\ref{tab:substitution}).
 The remaining 12 flips split into evasion/factual denial (9/43, 21\%), answer dilution (3/43, 7\%), and formal refusal (0/43).
-This profile is consistent with a coarse behavior-level reweighting toward nearby wrong candidates; we treat it as a behavioral diagnosis without claiming an internal substitution circuit.
+This profile is consistent with a coarse behavior-level reweighting toward nearby wrong candidates; it is a behavioral diagnosis and provides no evidence for an internal substitution circuit.
 A teacher-forced gold-vs-wrong log-likelihood-margin check (Appendix~\ref{app:bridge_margin}) has the same directional R$\to$W/W$\to$R sign and no substitution-specific signature: non-substitution flips show larger compression than substitution flips.
 
 The 14 wrong-to-right rescues show that the intervention is behaviorally active in both directions; all 14 are themselves coded as wrong-entity substitutions (Wilson 95\% CI $[78.5, 100]$), reinforcing the reweighting reading, and on this surface the damage rate is larger than the rescue rate.
@@ -306,15 +306,15 @@ Comic whose June 1938 issue introduced Superman? & Action Comics & Detective Com
 \label{sec:measurement}
 
 The preceding sections established that detection quality does not predict steerability (\S\ref{sec:localization}) and that successful steering is narrow in scope (\S\ref{sec:externality}).
-Both conclusions rest on behavioral measurements (jailbreak harmfulness rates, severity scores, and generation-surface accuracy) that are themselves products of evaluation choices.
-In this section we show that those choices are part of the scientific result: scoring granularity shifted what we would have concluded about whether a given intervention worked on the same outputs, while output-length checks and the evaluator audit expose residual measurement risk on a held-out set.
-The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that same-output measurement choices can change whether a representation-engineering intervention clears the claimed effect gate, even when two held-out evaluators tie in aggregate accuracy.
+Both conclusions rest on behavioral measurements: jailbreak harmfulness rates, severity scores, and generation-surface accuracy.
+In the jailbreak case study, scoring granularity changed whether the same intervention outputs cleared the effect gate, while output-length checks and the evaluator audit exposed residual measurement risk on a held-out set.
+The general point that evaluator choices matter is established (\S\ref{sec:related}); the specific finding here is that same-output measurement choices can change a representation-engineering intervention verdict, even when two held-out evaluators tie in aggregate accuracy.
 
-We organize the case study around the H-neuron jailbreak scaling experiment (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n = 500$ per condition), because its moderate effect size makes it sensitive to every measurement decision we examine.
+The case study centers on the H-neuron jailbreak scaling experiment (38 probe-selected neurons, $\alpha \in \{0, 1, 1.5, 3\}$, $n = 500$ per condition), because its moderate effect size makes it sensitive to every measurement decision examined here.
 
 \textbf{Output-length exposure remains a measurement risk.}
 Short generation caps (e.g., 256 tokens) can bias intervention evaluations when steering changes response structure.
-In our Gemma jailbreak audit, an archived 256-token run motivated a full-output rerun; that archived view is superseded and carries no claim-bearing effect.
+In the Gemma jailbreak audit, an archived 256-token run motivated a full-output rerun; that archived view is superseded and carries no claim-bearing effect.
 The live Gemma result below is the same-output scoring-granularity contrast on the canonical full-output run.
 A Mistral 2501 stress test summarized in the supplement shows the scope condition: its 256-token diagnostic tracks full-output binary scoring much more closely, even though most rows are still truncated.
 Output-length exposure is therefore a construct- and model-dependent measurement risk, and full-output scoring remains the safer reporting default.
@@ -349,17 +349,17 @@ CSV-v3 binary & $+0.46$ & $-0.34$ & $+0.80$ \\
 \vskip 0.03in
 \end{center}
 
-This is the section's core granularity result: graded/rubric choices materially change whether the effect gate appears to pass.
+Thus, graded/rubric choices materially change whether the effect gate appears to pass.
 
 \textbf{Evaluator dependence is part of the result.}
 On a contamination-free 50-record holdout, four GPT-4o-based evaluators yield the accuracies in Table~\ref{tab:evaluator}.
 No pairwise difference reaches statistical significance at $n = 50$.
 CSV-v3 and StrongREJECT-GPT-4o both reach 96.0\% holdout accuracy with identical error sets.
-We retain CSV-v3 for its richer outcome taxonomy without claiming accuracy superiority.
+CSV-v3 is retained for its richer outcome taxonomy without claiming accuracy superiority.
 
 The residual disagreement is informative because it clusters on a recognizable response type: refuse-then-comply outputs.
 StrongREJECT's formula zeroes the final score when \texttt{refused = 1}, even if later text contains specific harmful substance.
-We therefore treat evaluator disagreement as construct pluralism \citep{eiras2025judge}.
+The evaluator disagreement is therefore reported as construct pluralism \citep{eiras2025judge}.
 
 \begin{table}[t]
 \centering
@@ -386,13 +386,13 @@ Binary judge (GPT-4o) & 90.0\% & [80.0, 98.0] \\
 \section{A Four-Stage Audit Framework}
 \label{sec:framework}
 
-We distill the case study evidence into a bounded audit scaffold for evaluating mechanistic intervention claims.
+The case study evidence yields a bounded audit scaffold for evaluating mechanistic intervention claims.
 The audit has four stages: measurement, localization, control, and externality.
 The stages record where intervention claims broke in this case study:
 
 \begin{itemize}
-  \item \textbf{Measurement$\to$Verdict.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In our jailbreak setting, binary-versus-rubric scoring changed whether the effect gate appeared to pass on the same outputs, while output-length checks and the evaluator holdout exposed residual construct mismatch (\S\ref{sec:measurement}).
-  \item \textbf{Localization$\to$Control.} A feature that predicts behavior on held-out data need not causally control that behavior when perturbed. SAE features matched H-neurons on detection quality, yet did not translate into useful control (\S\ref{sec:localization}).
+  \item \textbf{Measurement$\to$Verdict.} Before deciding whether an intervention worked, one must trust the evaluation that defines the behavioral surface. In the jailbreak setting, binary-versus-rubric scoring changed whether the effect gate appeared to pass on the same outputs, while output-length checks and the evaluator holdout exposed residual construct mismatch (\S\ref{sec:measurement}).
+  \item \textbf{Localization$\to$Control.} A feature that predicts behavior on held-out data can fail to causally control that behavior when perturbed. SAE features matched H-neurons on detection quality, yet failed to translate into useful control (\S\ref{sec:localization}).
   \item \textbf{Control$\to$Externality.} An intervention that succeeds on one surface may fail or cause harm on a nearby surface. ITI improved TruthfulQA MC1 but reduced open-ended factual accuracy, where wrong-entity substitution was the most common manually coded failure mode (\S\ref{sec:externality}).
 \end{itemize}
 
@@ -423,22 +423,22 @@ Externality & At least one non-target surface; capability check; report harms an
 \vskip -0.1in
 \end{table}
 
-The audit's purpose is to separate claims that are often bundled together: measurement validity, localization, behavioral control, and cross-surface externality.
+The audit separates claims that are often bundled together: measurement validity, localization, behavioral control, and cross-surface externality.
 In this case study, omitting any one of these gates would have changed the conclusion: the SAE readouts would look actionably localized, the ITI intervention would look beneficial from TruthfulQA MC alone, or the jailbreak result would look null under binary scoring alone.
-The framework is therefore diagnostic: it records where this paper's own claims changed when each transition was tested.
+The framework is therefore diagnostic: it records how the tested claim scope changed at each transition.
 
 \subsection{Limitations}
 
 The primary claim-bearing experiments use a single model, Gemma-3-4B-IT.
 The supplement reports stress tests on \texttt{Mistral-Small-24B-Instruct-2501}, but those results are failed or incomplete gates: FaithEval intervention is null, TruthfulQA MC1 fails its source-surface gate, and JailbreakBench has a large uncontrolled alpha curve.
-The comparable-readout design keeps held-out AUROC close, although some other property of the feature family (operator form, layer coverage) could explain the steering divergence.
+The comparable-readout design keeps held-out AUROC close, although feature-family differences in operator form, layer coverage, or feature granularity could explain the steering divergence.
 The within-SAE selector ablations reduce the target-selection concern but do not remove the cross-family operator-form confound.
 SAE layer coverage is partial; a different SAE width or layer selection could yield non-null results.
-The bridge failure-mode second rater is an LLM judge (GPT-4o).
-Because this is LLM-assisted adjudication, we present the agreement reported in \S\ref{sec:externality} as a sensitivity check with limited force.
+The bridge failure-mode second rater is an LLM judge (GPT-4o), so the agreement reported in \S\ref{sec:externality} is an LLM-assisted sensitivity check with limited force.
 Jailbreak H-neuron specificity is single-seed ($p = 0.013$); matched multi-seed controls are needed before a stronger specificity claim.
 SIMID remains diagnostic-only: historical open-label calibration failed the pre-specified kappa gate, and the partial prospective selected-TruthfulQA alpha 8 vs.\ 0 effect missed the primary effect gate while degrading same-scope MC accuracy and attempt rate.
-Concurrent work \citep{wang2026interpretability,arad2025saes,wu2025axbench} already argues for interpretability/utility divergence from SAE-centric and benchmark-driven perspectives; we do not claim discovery of detector/control dissociation in general. Our distinctness lies in a stricter audit scaffold and a matched cross-representational comparison on a real behavioral surface.
+Concurrent work \citep{wang2026interpretability,arad2025saes,wu2025axbench} already argues for interpretability/utility divergence from SAE-centric and benchmark-driven perspectives; this is not a discovery claim for detector/control dissociation in general.
+The distinct contribution is a stricter audit scaffold and a matched cross-representational comparison on a real behavioral surface.
 
 % ======================================================================
 % 7. CONCLUSION
@@ -454,13 +454,13 @@ The four-stage audit framework (measurement, localization, control, and external
 % ======================================================================
 \section*{Impact Statement}
 
-This paper's main impact is methodological: it argues that safety-relevant activation interventions should not be judged from predictive readouts or single-surface gains alone.
-Our results show that a signal can monitor behavior without providing a useful control lever, that a control result can fail to transfer to nearby generation settings, and that evaluation choices can change the verdict on the same model outputs.
-The practical contribution is therefore a diagnostic scaffold for mechanistic steering claims: it makes the measurement, localization, control, and externality transitions explicit so the scope of a positive result is easier to see.
+Methodologically, safety-relevant activation interventions should not be judged from predictive readouts or single-surface gains alone.
+The results show that a signal can monitor behavior without providing a useful control lever, that a control result can fail to transfer to nearby generation settings, and that evaluation choices can change the verdict on the same model outputs.
+The diagnostic scaffold makes the measurement, localization, control, and externality transitions explicit so the scope of a positive result is easier to see.
 
-This framing is intended to reduce overclaiming in interpretability-based safety work.
-It may also make activation interventions easier to reproduce or adapt, including for undesirable steering objectives; however, the paper does not introduce a new steering method and emphasizes failure cases, measurement risks, and scope limits.
-The strongest deployment-relevant lesson is cautionary: an intervention that appears beneficial on a constrained benchmark may still corrupt open-ended factual generation or change harmful-compliance judgments under a different evaluator.
+The scaffold targets overclaiming risk in interpretability-based safety work.
+It may also make activation interventions easier to reproduce or adapt, including for undesirable steering objectives; however, the paper introduces no new steering method and emphasizes failure cases, measurement risks, and scope limits.
+For deployment, an intervention that appears beneficial on a constrained benchmark may still corrupt open-ended factual generation or change harmful-compliance judgments under a different evaluator.
 
 % ======================================================================
 % REFERENCES
@@ -530,7 +530,7 @@ $\alpha$ & Neurons & SAE H-feat. & SAE rand. \\
 \section{SAE Target-Selection Ablation on FaithEval}
 \label{app:saeselector}
 
-Section~\ref{sec:localization} briefly reported a within-SAE target-selection ablation; this appendix provides the numerical detail.
+This appendix gives the numerical detail for the within-SAE target-selection ablation summarized in \S\ref{sec:localization}.
 
 \paragraph{Design.}
 Candidate pool: 509 SAE features with non-zero weight in the frozen FaithEval SAE classifier, drawn from the existing extraction layers $\{0, 5, 6, 7, 13, 14, 15, 16, 17, 20\}$ at $d_{\text{SAE}} = 16\,384$.
@@ -571,14 +571,12 @@ The ten-seed matched-random ensemble for the main bundle gives a seed-mean utili
 The answer-span selector also improves over its own ten-seed matched-random null on its native margin (seed-mean $-0.53$~nats, nested $[-0.81, -0.26]$).
 This is within-metric generalization from validation to test.
 The more conservative cross-metric contrast is mixed, with answer-span selection worse than prompt-end utility selection by $+0.46$~nats $[+0.16, +0.75]$ on the original prompt-end margin.
-The selector was frozen before any test labels were scored, and the random-null construction, the path-drift control, the 10-seed extension, and the answer-span extension were added sequentially in response to the adversarial audit flagged in our provenance notes.
+The selector was frozen before any test labels were scored, and the random-null construction, the path-drift control, the 10-seed extension, and the answer-span extension were added sequentially in response to the adversarial audit flagged in the provenance notes.
 
 \paragraph{Reading.}
-Within the same candidate pool, readout-, prompt-end-utility-, and answer-span-utility criteria pick feature sets with metric-specific margin effects, and no rule reaches the accuracy endpoint.
-The two intervention-aware $k=266$ sets share 167 features (Jaccard $0.46$), so the contrast is best read as evidence that the intervention objective is load-bearing within this pool.
-It does not show that either objective discovers a behavioral steering handle.
-The FaithEval SAE null is therefore robust to the tested readout-, utility-, and answer-span-selection rules within the available SAE extraction layers, while broader layer-coverage limits remain.
-Neither contrast elevates the SAE intervention to a successful steering handle; the margin-level separation between selection rules does not transfer to the behavioral endpoint.
+Within the same candidate pool, the contrast is evidence that the selection objective is load-bearing for margin metrics: the two intervention-aware $k=266$ sets share 167 features (Jaccard $0.46$), and validation-selected utilities generalize within metric to test.
+No tested readout-, utility-, or answer-span-selection rule reaches the accuracy endpoint, so the margin effects do not identify a successful behavioral steering handle.
+The FaithEval SAE null remains under the tested selection rules within the available SAE extraction layers, while broader layer-coverage limits remain.
 \FloatBarrier
 
 \section{Bridge Margin-Shift Analysis}
@@ -588,7 +586,7 @@ Section~\ref{sec:externality} reported the bridge wrong-entity-substitution taxo
 This appendix quantifies the corresponding teacher-forced log-likelihood-margin shifts at the same intervention ($\alpha = 8$, $K = 12$, \texttt{first\_3\_tokens} decode scope) and states the supported and unsupported readings.
 
 \paragraph{Design.}
-For each case we sum per-token gold and wrong-entity logprobs over the first three continuation positions under baseline and ITI conditions, and report the per-case shift $\Delta_\text{margin} = \Delta_\text{ITI} - \Delta_\text{base}$, where $\Delta = \log p(\text{gold}) - \log p(\text{wrong})$.
+For each case, per-token gold and wrong-entity logprobs are summed over the first three continuation positions under baseline and ITI conditions; the per-case shift is $\Delta_\text{margin} = \Delta_\text{ITI} - \Delta_\text{base}$, where $\Delta = \log p(\text{gold}) - \log p(\text{wrong})$.
 Four cohorts: (A) $n = 31$ right-to-wrong (R$\to$W) wrong-entity substitutions; (B) $n = 12$ R$\to$W non-substitution flips (evasion/denial, dilution); (C) $n = 14$ wrong-to-right (W$\to$R) rescues; (D) $n = 200$ length-matched random wrong-entity controls drawn from unrelated bridge questions.
 The pre-specified analysis plan (endpoints, cohort partition, one-sided permutation direction) was frozen before the full 257-case run executed; results are reported against that locked tree.
 
@@ -611,14 +609,14 @@ D: random control           & 200 & $-5.05$ & $[-6.55, -3.60]$ \\
 \vskip -0.1in
 \end{table}
 
-\paragraph{What holds.}
+\paragraph{Supported reading.}
 ITI causally compresses the gold-vs-wrong margin on R$\to$W cases and expands it on W$\to$R rescues, in the direction behavioral outcomes demand.
 Substitution cases are significantly more compressed than length-matched random wrong-entity controls (A~$-$~D $= -5.10$~nats $[-8.22, -2.16]$, one-sided permutation $p = 0.0081$).
 
 \paragraph{Unsupported reading.}
-Non-substitution R$\to$W flips show \emph{larger} margin compression than substitution flips ($A - B = +29.90$~nats $[+19.91, +40.54]$; the substitution-specific prediction is formally reversed), concentrated but not exclusively at the first-token answer frame (position~0: $B = -21.74$~nats $[-29.48, -14.85]$ vs.\ $A = -3.49$~nats $[-5.14, -1.97]$).
-The behavioral wrong-entity-substitution taxonomy ($\kappa = 0.90$) is therefore a reliable description of \emph{what} the model emits, while the log-likelihood analysis gives no distinct margin-shift signature for that taxonomy.
-This refines the \S\ref{sec:externality} externality claim: the dominant-failure-mode statement is behavioral and interrater-defensible, and the margin analysis confirms ITI shifts probability mass in the predicted direction while changing the margin-level reading from substitution-specific entity suppression to answer-commitment margin compression on R$\to$W flips in general.
+Non-substitution R$\to$W flips show \emph{larger} margin compression than substitution flips ($A - B = +29.90$~nats $[+19.91, +40.54]$; the substitution-specific prediction is formally reversed), concentrated at the first-token answer frame and extending beyond it (position~0: $B = -21.74$~nats $[-29.48, -14.85]$ vs.\ $A = -3.49$~nats $[-5.14, -1.97]$).
+The behavioral wrong-entity-substitution taxonomy ($\kappa = 0.90$) remains a reliable description of \emph{what} the model emits.
+The margin analysis supports general R$\to$W answer-commitment compression and does not support a substitution-specific entity-suppression signature.
 \FloatBarrier
 
 \end{document}
