@@ -12,6 +12,7 @@
 | 1 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | `supplement/reference/main.tex` now matches the live manuscript, and the supplement package manifest builds `reference/main.tex` from `paper/icml/main.tex`; `tests/test_build_icml_supplement_package.py` guards both source and built-package equality. |
 | 2 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | Figure 2, §3.2, Appendix Table 5, the cited SAE audit, and localization/provenance ledgers now separate the full-replacement SAE path movement from the delta-only feature-specific check; `make -C paper/icml`, figure regeneration, rendered-page inspection, and supplement-package tests guard the fix. |
 | 3 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | §5 now separates the claim-bearing CSV-v2 strict-harmfulness slope from the CSV-v3 same-output sensitivity re-score and reports both slope/gap rows; `make -C paper/icml`, targeted stale-wording greps, and supplement reference equality tests guard the fix. |
+| 5 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The manuscript title/running title now foreground the four-gate audit, and the cross-family comparison is explicitly limited to a Gemma-local tested-operator result; `make -C paper/icml`, rendered-page inspection, stale-title greps, and supplement-package tests guard the fix. |
 
 ## 1. Verdict And Scorecard
 
@@ -83,6 +84,8 @@ IMPORTANT: pull from ground truth data in the repo for this, we graded alot on V
 - **Fix type:** Reproducibility; wording-only.
 
 ### 5. Title and framing still imply a narrower/readout-centric contribution than the paper actually makes
+
+**Status:** Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD); the title/running title now use “When Detectors Don’t Steer,” and the related-work framing states that the cross-family comparison is Gemma-local and operator-specific, with no operator-matched causal-basis proof.
 
 - **Severity:** Major for reviewer first impression; Minor for scientific validity.
 - **Location:** Title/running title at `paper/main.tex:47-53`; abstract at `paper/main.tex:69-76`; framework at `paper/main.tex:362-426`; limitations at `paper/main.tex:430-439`.
@@ -304,7 +307,7 @@ I would not add many more citations before the deadline unless the authors know 
 ## Final pre-submission checklist
 
 1. [x] Replace/regenerate `supplement/reference/main.tex` and the built supplement zip so the supplement matches the current paper ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
-2. [ ] Change title to “When Detectors Don’t Steer: A Four-Gate Audit of Activation Interventions in Gemma-3-4B-IT.”
+2. [x] Change title to “When Detectors Don’t Steer: A Four-Gate Audit of Activation Interventions in Gemma-3-4B-IT.” ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD))
 3. [ ] Add the main-body reproducibility paragraph.
 4. [x] Fix Figure 2 or its caption/text to separate full-replacement SAE path movement from delta-only target-specific nulls ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 5. [x] Clarify CSV-v2 versus CSV-v3 roles in §5, ideally with both slopes/gaps reported ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).

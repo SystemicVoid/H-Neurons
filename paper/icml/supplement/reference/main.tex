@@ -1,4 +1,4 @@
-%%%%%%%% ICML 2026 MI Workshop - Strong Readouts, Local Levers %%%%%%%%%
+%%%%%%%% ICML 2026 MI Workshop - When Detectors Don't Steer %%%%%%%%%
 \documentclass{article}
 
 \usepackage{microtype}
@@ -44,13 +44,13 @@
 }
 \makeatother
 
-\icmltitlerunning{Strong Readouts, Local Levers}
+\icmltitlerunning{When Detectors Don't Steer}
 
 \begin{document}
 
 \twocolumn[
-  \icmltitle{\texorpdfstring{Strong Readouts, Local Levers:\\
-    A Gate-Based Steering Audit of Gemma-3-4B-IT}{Strong Readouts, Local Levers: A Gate-Based Steering Audit of Gemma-3-4B-IT}}
+  \icmltitle{\texorpdfstring{When Detectors Don't Steer:\\
+    A Four-Gate Audit of Activation Interventions in Gemma-3-4B-IT}{When Detectors Don't Steer: A Four-Gate Audit of Activation Interventions in Gemma-3-4B-IT}}
 
   \begin{icmlauthorlist}
     \icmlauthor{Anonymous Authors}{anon}
@@ -141,6 +141,7 @@ For factuality more directly, \citet{yona2026metacognition} argue that hallucina
 
 Concurrent SAE-centric analyses \citep{arad2025saes,wang2026interpretability} and synthetic-benchmark evaluations \citep{wu2025axbench} make detection/control divergence increasingly clear within single-family settings.
 The core contribution here is a cross-representational FaithEval comparison: neurons and SAE features are evaluated on the same real behavioral surface with closely matched held-out readout quality.
+This comparison should be read as a Gemma-local audit of the tested operators; basis, layer-coverage, and operator-form differences remain open, so it is not an operator-matched proof that neurons are better causal bases than SAE features.
 Two supporting additions broaden that case study.
 First, on TriviaQA bridge generation we provide a frozen-protocol behavioral diagnosis of the transfer failure, where wrong-entity substitution is the most common manually coded right-to-wrong pattern and formal refusal is rare.
 Second, we show that scoring granularity can change the verdict for the same representation-engineering intervention outputs, while output-length checks and a held-out evaluator audit reveal residual measurement risk.
