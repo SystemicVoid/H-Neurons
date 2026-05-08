@@ -57,3 +57,4 @@ Interpretation: detector quality is comparable across the neuron and SAE familie
 
 - The neuron-vs-SAE comparison is the paper’s cleanest localization-to-control dissociation because both families are evaluated on the same model and benchmark.
 - The random-neuron results are included here as a specificity check for the H-neuron intervention, not as a separate headline claim.
+- Auxiliary detector audits support the manuscript's narrow interpretation language. The top-weight CETT neuron (L20:N4288) is unstable across regularization settings: absent at `C <= 0.3`, present at `C = 1.0`, and rank 5 at `C = 3.0`. Full-response readouts are also length-confounded, with response length dominating TruthfulQA-style signal by roughly `3.7x` under mean aggregation. FaithEval uses single-letter extraction, so these audits constrain interpretation without changing the FaithEval intervention claims.

@@ -13,6 +13,7 @@
 | 2 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | Figure 2, §3.2, Appendix Table 5, the cited SAE audit, and localization/provenance ledgers now separate the full-replacement SAE path movement from the delta-only feature-specific check; `make -C paper/icml`, figure regeneration, rendered-page inspection, and supplement-package tests guard the fix. |
 | 3 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | §5 now separates the claim-bearing CSV-v2 strict-harmfulness slope from the CSV-v3 same-output sensitivity re-score and reports both slope/gap rows; `make -C paper/icml`, targeted stale-wording greps, and supplement reference equality tests guard the fix. |
 | 5 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The manuscript title/running title now foreground the four-gate audit, and the cross-family comparison is explicitly limited to a Gemma-local tested-operator result; `make -C paper/icml`, rendered-page inspection, stale-title greps, and supplement-package tests guard the fix. |
+| 6 | Addressed | [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD) | The manuscript appendix now keeps only the construct map, FaithEval rates, SAE selector, and bridge margin blocks; claim-defense and Mistral/SIMID stress ledgers live in the supplement, with `make -C paper/icml`, rendered appendix-page inspection, and supplement-package tests guarding the change. |
 
 ## 1. Verdict And Scorecard
 
@@ -95,6 +96,8 @@ IMPORTANT: pull from ground truth data in the repo for this, we graded alot on V
 - **Fix type:** Wording-only; structural framing.
 
 ### 6. Appendix is too long and inefficient for a workshop submission even if the formal page limit is met
+
+**Status:** Addressed in [`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD); the rebuilt manuscript has a three-page appendix containing only the four claim-protecting evidence blocks, while the claim-defense and full Mistral/SIMID stress ledgers are reviewer-facing supplement material.
 
 - **Severity:** Major for reviewer legibility; Minor for formal compliance.
 - **Location:** Appendix begins at `paper/main.tex:473-475`; rendered pages `rendered-pages/page-11.png` through `rendered-pages/page-16.png`; claim-defense index `paper/main.tex:653-708`; Mistral/SIMID stress table `paper/main.tex:711-764`; limitation inventory `paper/main.tex:767-789`.
@@ -313,6 +316,6 @@ I would not add many more citations before the deadline unless the authors know 
 5. [x] Clarify CSV-v2 versus CSV-v3 roles in §5, ideally with both slopes/gaps reported ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 6. [ ] Change “first author” to “one author” in bridge coding language.
 7. [ ] Align JailbreakBench MDE numbers.
-8. [ ] Move claim-defense index and full Mistral/SIMID stress ledger to supplement if appendix length must be reduced.
+8. [x] Move claim-defense index and full Mistral/SIMID stress ledger to supplement if appendix length must be reduced ([`this commit`](https://github.com/SystemicVoid/H-Neurons/commit/HEAD)).
 9. [ ] Upload the built supplement package, not the source supplement directory, and verify the `code/` directory is visible in the uploaded artifact.
 10. [ ] Re-render and re-check `paper/main.pdf`, especially pages 5, 8, and appendix boundaries.

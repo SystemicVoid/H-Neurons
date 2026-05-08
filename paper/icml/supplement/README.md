@@ -6,7 +6,7 @@ It is a reviewer-facing reproducibility bundle, not a full repository snapshot.
 ## Open First
 
 1. [`artifact_manifest.md`](artifact_manifest.md) for the package map
-2. [`number_provenance.md`](number_provenance.md) for headline-number traceability
+2. [`number_provenance.md`](number_provenance.md) for headline-number traceability and moved appendix ledgers
 3. [`reproduction_manifest.md`](reproduction_manifest.md) for the minimal rerun map
 
 ## Package Structure

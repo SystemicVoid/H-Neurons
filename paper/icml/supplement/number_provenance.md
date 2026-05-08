@@ -228,6 +228,18 @@ This is the full claim-defense ledger moved out of the manuscript appendix for r
 | Caveat | `n = 50` holdout. |
 | Bundled support | `support/measurement_summary.md`; `data/judge_validation/holdout_comparison.json` |
 
+## Moved Stress-Test Ledger
+
+This table was moved out of the manuscript appendix to keep the paper appendix focused on claim-protecting evidence. These artifacts constrain scope and generalization. They do not upgrade the Gemma-local claims. All Mistral rows use checkpoint `Mistral-Small-24B-Instruct-2501`.
+
+| Artifact | Model / surface | Evidence | Gate status | Caveat |
+|---|---|---|---|---|
+| Mistral sparse readout | Mistral 2501 / TriviaQA-derived answer-token readout | 10 positive FFN targets; held-out accuracy `0.775` `[0.715, 0.830]` and AUROC `0.8711` `[0.8185, 0.9172]`; source report ID `2026-04-29-mistral24b-cp23-pipeline-review.md`. | Readout gate passed. | Same-family 2501 checkpoint; no behavioral-control claim. |
+| Mistral FaithEval intervention | Mistral 2501 / FaithEval, H-neuron scaling | CP5 endpoint `alpha = 0 -> 3` is `0.0` pp `[-4.01, +4.00]` with 9/9 paired flips; H1 `C = 0.75` endpoint is `+0.5` pp `[-3.0, +4.0]`; source report IDs `2026-04-30-mistral24b-cp5-faitheval-review.md` and `2026-04-30-mistral24b-h1-c-sweep-review.md`. | Control gate failed. | Stress test supports gate discipline; FaithEval control gate remains failed. |
+| Mistral TruthfulQA MC | Mistral 2501 / TruthfulQA MC, ITI | MC1 moves 58/163 to 60/163, `+1.23` pp `[-1.84, +4.29]`, McNemar `p = 0.6875`; MC2 truthful mass moves `+1.91` pp `[+0.50, +3.40]`; source report ID `2026-05-07-mistral24b-anchor2-truthfulqa-mc-review.md`. | MC1 source gate failed. | Wrapper stopped before bridge; no Mistral bridge externality claim. |
+| Mistral JailbreakBench curve | Mistral 2501 / JailbreakBench, H-neuron scaling | All judges have 2000/2000 valid rows. Endpoint `alpha = 0 -> 3`: binary-256 `+32.8` pp, binary-full `+32.6` pp, CSV-v3 `+32.4` pp, StrongREJECT `+31.4` pp. CSV-v3 and StrongREJECT agree on 91.8% of rows (`kappa = 0.836`); source report ID `2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md`. | Measurement curve present; specificity gate incomplete. | No matched random or layer controls; 256-token diagnostic tracks full-output scoring in this run. |
+| SIMID diagnostic | Gemma-3-4B-IT / SIMID selected TruthfulQA, ITI | Historical calibration: 402 cases, raw agreement 91.5%, Cohen's `kappa = 0.7594 < 0.8`. Partial prospective selected TruthfulQA `alpha = 8` vs. `0` open correctness is `+3.96` pp `[-1.98, +9.91]`; MC letter accuracy is `-3.08` pp `[-5.95, -0.66]`; attempt rate is `-8.59` pp `[-13.44, -3.74]`. | Calibration and effect gates failed. | Diagnostic-only; no SIMID open-correctness or factuality-improvement claim. |
+
 ## Scope Note
 
-This supplement ledger is intentionally limited to main-body paper claims. Historical-only and appendix-only quantitative rows from the broader repository are omitted here unless they are needed to support a main-body statement.
+This supplement ledger covers main-body paper claims plus the claim-defense and stress-test ledgers moved out of the manuscript appendix. Historical-only quantitative rows from the broader repository are omitted unless they support the reviewer-facing manuscript or a stated scope limitation.

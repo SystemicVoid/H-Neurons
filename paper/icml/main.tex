@@ -122,7 +122,7 @@ Within that scope, the paper asks three bounded empirical questions:
 (2)~Do answer-selection gains transfer to open-ended factual generation? (\S\ref{sec:externality})
 (3)~Do plausible measurement choices leave the jailbreak verdict stable? (\S\ref{sec:measurement})
 These surface-specific questions do not claim a new steering method or a general failure of detector-based targets.
-Appendix stress tests on \texttt{Mistral-Small-24B-Instruct-2501} and SIMID diagnostic artifacts are used only as failed or incomplete gates.
+Supplement stress tests on \texttt{Mistral-Small-24B-Instruct-2501} and SIMID diagnostic artifacts are used only as failed or incomplete gates.
 
 % ======================================================================
 % 2. RELATED WORK
@@ -158,7 +158,7 @@ We synthesize these observations in a four-stage audit framework (measurement, l
 The intervention targets were selected through held-out predictive readouts.
 A sparse H-neuron probe following \citet{gao2025hneurons} identified 38 positive-weight neurons out of 348,160 feed-forward neurons and achieved AUROC~$0.843$ (accuracy 76.5\%, $n_{\text{test}} = 780$).
 A parallel L1 probe on Gemma Scope~2 SAE activations \citep{lieberum2024gemmascope} selected 266 positive-weight features across 10 layers and achieved AUROC~$0.848$ (accuracy 77.2\%, $n_{\text{test}} = 782$).
-These are real held-out signals, though individual-weight interpretation remains fragile (Appendix~\ref{app:detector}).
+These are real held-out signals, though individual-weight interpretation remains fragile.
 
 \subsection{Comparable Readouts, Divergent Control}
 
@@ -315,7 +315,7 @@ We organize the case study around the H-neuron jailbreak scaling experiment (38 
 Short generation caps (e.g., 256 tokens) can bias intervention evaluations when steering changes response structure.
 In our Gemma jailbreak audit, an archived 256-token run motivated a full-output rerun; that archived view is superseded and carries no claim-bearing effect.
 The live Gemma result below is the same-output scoring-granularity contrast on the canonical full-output run.
-The Mistral 2501 stress test in Appendix~\ref{app:mistral_stress} shows the scope condition: its 256-token diagnostic tracks full-output binary scoring much more closely, even though most rows are still truncated.
+A Mistral 2501 stress test summarized in the supplement shows the scope condition: its 256-token diagnostic tracks full-output binary scoring much more closely, even though most rows are still truncated.
 Output-length exposure is therefore a construct- and model-dependent measurement risk, and full-output scoring remains the safer reporting default.
 
 \textbf{Scoring granularity changes the verdict.}
@@ -451,7 +451,7 @@ Cross-surface effects belong next to the headline result.
 \subsection{Limitations}
 
 The primary claim-bearing experiments use a single model, Gemma-3-4B-IT.
-Appendix~\ref{app:mistral_stress} reports stress tests on \texttt{Mistral-Small-24B-Instruct-2501}, but those results are failed or incomplete gates: FaithEval intervention is null, TruthfulQA MC1 fails its source-surface gate, and JailbreakBench has a large uncontrolled alpha curve.
+The supplement reports stress tests on \texttt{Mistral-Small-24B-Instruct-2501}, but those results are failed or incomplete gates: FaithEval intervention is null, TruthfulQA MC1 fails its source-surface gate, and JailbreakBench has a large uncontrolled alpha curve.
 The comparable-readout design keeps held-out AUROC close, although some other property of the feature family (operator form, layer coverage) could explain the steering divergence.
 The within-SAE selector ablations reduce the target-selection concern but do not remove the cross-family operator-form confound.
 SAE layer coverage is partial; a different SAE width or layer selection could yield non-null results.
@@ -460,7 +460,6 @@ Because it is not an independent human coder, we present the agreement reported 
 Jailbreak H-neuron specificity is single-seed ($p = 0.013$); matched multi-seed controls are needed before a stronger specificity claim.
 SIMID remains diagnostic-only: historical open-label calibration failed the pre-specified kappa gate, and the partial prospective selected-TruthfulQA alpha 8 vs.\ 0 effect missed the primary effect gate while degrading same-scope MC accuracy and attempt rate.
 Concurrent work \citep{wang2026interpretability,arad2025saes,wu2025axbench} already argues for interpretability/utility divergence from SAE-centric and benchmark-driven perspectives; we do not claim discovery of detector/control dissociation in general. Our distinctness lies in a stricter audit scaffold and a matched cross-representational comparison on a real behavioral surface.
-The full limitation inventory is in Appendix~\ref{app:limitations}.
 
 % ======================================================================
 % 7. CONCLUSION
@@ -497,19 +496,10 @@ The strongest deployment-relevant lesson is cautionary: an intervention that app
 \onecolumn
 \appendix
 
-\section{Detector Interpretation Audits}
-\label{app:detector}
-
-The top-weight CETT neuron (L20:N4288) is not stable across regularization settings: it is absent at $C \le 0.3$, appears at $C = 1.0$, and drops to rank~5 at $C = 3.0$.
-The extreme weight is better explained by L1 concentration among correlated features than by unique causal importance.
-Additionally, full-response readouts are strongly length-confounded: response length dominates TruthfulQA-style signal by ${\sim}3.7\times$ under mean aggregation.
-FaithEval uses single-letter extraction, so these audits leave the intervention claims intact while justifying the narrower wording in the main text.
-\FloatBarrier
-
 \section{Construct Map}
 \label{app:constructs}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 \centering
 \caption{Benchmark construct map. Each evaluation surface measures a specific behavioral construct.}
 \label{tab:constructs}
@@ -532,7 +522,7 @@ BioASQ            & Domain-specific factoid QA (biomedical)             & Accura
 \section{FaithEval Detailed Rates}
 \label{app:faitheval}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 \centering
 \caption{FaithEval compliance rates by method and scaling factor ($n = 1{,}000$ per condition). Rates only; Wilson 95\% CIs are in the provenance ledger and support files.}
 \label{tab:faitheval_rates}
@@ -573,7 +563,7 @@ A single-feature \emph{path-drift control} ($\alpha = 0$ on a layer-20 feature w
 
 \paragraph{Results.} Table~\ref{tab:sae_selector} reports compliance and the two margin endpoints on the frozen $n = 840$ test split.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 \centering
 \caption{SAE target-selection ablation on FaithEval ($n = 840$). Margin contrasts are vs.\ no-op; lower margins are better because they reduce the misleading-vs-preferred logprob gap. CIs are 10\,000-sample paired bootstrap ($95\%$).}
 \label{tab:sae_selector}
@@ -608,32 +598,8 @@ The selector was frozen before any test labels were scored, and the random-null 
 Within the same candidate pool, readout-, prompt-end-utility-, and answer-span-utility criteria pick feature sets with metric-specific margin effects, and no rule reaches the accuracy endpoint.
 The two intervention-aware $k=266$ sets share 167 features (Jaccard $0.46$), so the contrast is best read as evidence that the intervention objective is load-bearing within this pool.
 It does not show that either objective discovers a behavioral steering handle.
-The FaithEval SAE null is therefore robust to the tested readout-, utility-, and answer-span-selection rules within the available SAE extraction layers (L2 in Table~\ref{tab:limitations}).
+The FaithEval SAE null is therefore robust to the tested readout-, utility-, and answer-span-selection rules within the available SAE extraction layers, while broader layer-coverage limits remain.
 Neither contrast elevates the SAE intervention to a successful steering handle; the margin-level separation between selection rules does not transfer to the behavioral endpoint.
-\FloatBarrier
-
-\section{Benchmark Power Summary}
-\label{app:power}
-
-MDE denotes the approximate paired-rate endpoint effect detectable at 80\% power with a two-sided 0.05 test level, estimated from existing paired-bootstrap data under the observed baseline rates and item-pair dependence.
-
-\begin{table}[!htbp]
-\centering
-\caption{Benchmark power and minimum detectable effect (MDE) summary.}
-\label{tab:power}
-\vskip 0.1in
-\small
-\begin{tabular}{@{}lccc@{}}
-\toprule
-\textbf{Benchmark} & $n$ & \textbf{Slope} & \textbf{MDE} \\
-\midrule
-FaithEval      & 1,000 & $+2.09$ pp/$\alpha$ & ${\sim}3$ pp \\
-FalseQA        & 687   & $+1.62$ pp/$\alpha$ & ${\sim}4$ pp \\
-JailbreakBench & 500   & $+2.30$ pp/$\alpha$ & ${\sim}5$ pp \\
-BioASQ         & 1,600 & flat                & ${\sim}2$ pp \\
-\bottomrule
-\end{tabular}
-\end{table}
 \FloatBarrier
 
 \section{Bridge Margin-Shift Analysis}
@@ -647,7 +613,7 @@ For each case we sum per-token gold and wrong-entity logprobs over the first thr
 Four cohorts: (A) $n = 31$ right-to-wrong (R$\to$W) wrong-entity substitutions; (B) $n = 12$ R$\to$W non-substitution flips (evasion/denial, dilution); (C) $n = 14$ wrong-to-right (W$\to$R) rescues; (D) $n = 200$ length-matched random wrong-entity controls drawn from unrelated bridge questions.
 The pre-specified analysis plan (endpoints, cohort partition, one-sided permutation direction) was frozen before the full 257-case run executed; results are reported against that locked tree.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 \centering
 \caption{Teacher-forced gold-vs-wrong log-likelihood-margin shift on the TriviaQA-bridge discordant set (first-$3$ tokens, ITI $\alpha = 8$ vs.\ baseline). Bootstrap $95\%$ CIs, 10\,000 resamples, seed~42.}
 \label{tab:bridge_margin}
@@ -674,146 +640,6 @@ Substitution cases are significantly more compressed than length-matched random 
 Non-substitution R$\to$W flips show \emph{larger} margin compression than substitution flips ($A - B = +29.90$~nats $[+19.91, +40.54]$; the substitution-specific prediction is formally reversed), concentrated but not exclusively at the first-token answer frame (position~0: $B = -21.74$~nats $[-29.48, -14.85]$ vs.\ $A = -3.49$~nats $[-5.14, -1.97]$).
 The behavioral wrong-entity-substitution taxonomy ($\kappa = 0.90$) is therefore a reliable description of \emph{what} the model emits, while the log-likelihood analysis gives no distinct margin-shift signature for that taxonomy.
 This refines the \S\ref{sec:externality} externality claim: the dominant-failure-mode statement is behavioral and interrater-defensible, and the margin analysis confirms ITI shifts probability mass in the predicted direction while changing the margin-level reading from substitution-specific entity suppression to answer-commitment margin compression on R$\to$W flips in general.
-\FloatBarrier
-\clearpage
-
-\section{Claim-Defense Index}
-\label{app:claim_defense}
-
-Table~\ref{tab:claim_defense} maps the main claim families to compact metric groups and one-hop support files.
-Support files are under \texttt{supplement/support/}; the full metric-ID ledger is in the supplement's \texttt{number\_provenance.md}.
-
-\begin{table}[!htbp]
-\centering
-\caption{Readable claim-defense index. Metric groups point to the full supplement ledger; support files are bundled reviewer-facing derivatives.}
-\label{tab:claim_defense}
-\vskip 0.05in
-\small
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{@{}L{3.0cm}L{4.0cm}L{4.0cm}L{4.0cm}@{}}
-\toprule
-\textbf{Claim family} & \textbf{Short metric group} & \textbf{One-hop support} & \textbf{Gate / scope} \\
-\midrule
-Comparable readouts &
-H/SAE readout AUROC, accuracy &
-\path|localization_summary.md| &
-Localization/monitoring passed; detector interpretation caveats remain. \\
-
-FaithEval control &
-H slope/deltas; random controls &
-\path|localization_summary.md| &
-H-neuron FaithEval control and specificity passed under the tested operator. \\
-
-SAE control and selector checks &
-SAE slope/gap/p; selector margins &
-\path|localization_summary.md| &
-SAE control gate did not pass; selector effects remain metric-level. \\
-
-Surface-local H-neuron behavior &
-FalseQA slope/delta; BioASQ delta/changed &
-\path|externality_summary.md| &
-FalseQA passes; BioASQ factual-accuracy endpoint is null. \\
-
-Answer-selection transfer &
-TruthfulQA MC1/MC2; SimpleQA accuracy/attempt &
-\path|externality_summary.md| &
-MC answer-selection passes; open-generation check is negative. \\
-
-Bridge externality and margins &
-Bridge accuracy/flips/taxonomy/margins &
-\path|externality_summary.md|; supplement ledger &
-Externality failed; margin analysis supports only the broader probability-shift reading. \\
-
-Jailbreak measurement and holdout &
-JBB binary/graded/holdout &
-\path|measurement_summary.md| &
-Graded measurement detects a signal; binary endpoint is inconclusive; evaluator-superiority claim withheld. \\
-\bottomrule
-\end{tabular}
-\end{table}
-\FloatBarrier
-\clearpage
-
-\section{Second-Checkpoint and Diagnostic Stress Tests}
-\label{app:mistral_stress}
-
-Table~\ref{tab:mistral_simid_stress} records stress-test evidence that constrains the scope of the main Gemma claims.
-These rows are excluded from the main story because each fails or lacks a required gate.
-All Mistral rows use checkpoint \path|Mistral-Small-24B-Instruct-2501|.
-
-\begin{table}[!htbp]
-\centering
-\caption{Mistral and SIMID stress-test ledger. These artifacts constrain generalization; they do not upgrade the Gemma-local claims.}
-\label{tab:mistral_simid_stress}
-\vskip 0.05in
-\footnotesize
-\setlength{\tabcolsep}{2pt}
-\renewcommand{\arraystretch}{0.88}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}L{2.7cm}L{3.3cm}L{5.2cm}L{2.5cm}L{3.4cm}@{}}
-\toprule
-\textbf{Artifact} & \textbf{Model / surface} & \textbf{Evidence} & \textbf{Gate status} & \textbf{Caveat} \\
-\midrule
-Mistral sparse readout &
-Mistral 2501 / TriviaQA-derived answer-token readout &
-10 positive FFN targets; held-out accuracy $0.775$ $[0.715, 0.830]$ and AUROC $0.8711$ $[0.8185, 0.9172]$; source artifact \path|2026-04-29-mistral24b-cp23-pipeline-review.md|. &
-Readout gate passed. &
-Same-family 2501 checkpoint; no behavioral-control claim. \\
-\addlinespace
-Mistral FaithEval intervention &
-Mistral 2501 / FaithEval, H-neuron scaling &
-CP5 endpoint $\alpha=0 \to 3$ is $0.0$~pp $[-4.01, +4.00]$ with 9/9 paired flips; H1 C=0.75 endpoint is $+0.5$~pp $[-3.0, +4.0]$; source artifacts \path|2026-04-30-mistral24b-cp5-faitheval-review.md| and \path|2026-04-30-mistral24b-h1-c-sweep-review.md|. &
-Control gate failed. &
-Stress test supports gate discipline; FaithEval control gate remains failed. \\
-\addlinespace
-Mistral TruthfulQA MC &
-Mistral 2501 / TruthfulQA MC, ITI &
-MC1 moves 58/163 to 60/163, $+1.23$~pp $[-1.84, +4.29]$, McNemar $p=0.6875$; MC2 truthful mass moves $+1.91$~pp $[+0.50, +3.40]$; source artifact \path|2026-05-07-mistral24b-anchor2-truthfulqa-mc-review.md|. &
-MC1 source gate failed. &
-Wrapper stopped before bridge; no Mistral bridge externality claim. \\
-\addlinespace
-Mistral JailbreakBench curve &
-Mistral 2501 / JailbreakBench, H-neuron scaling &
-All judges have 2000/2000 valid rows. Endpoint $\alpha=0 \to 3$: binary-256 $+32.8$~pp, binary-full $+32.6$~pp, CSV-v3 $+32.4$~pp, StrongREJECT $+31.4$~pp. CSV-v3 and StrongREJECT agree on 91.8\% of rows ($\kappa=0.836$); source artifact \path|2026-05-06-mistral24b-anchor3-jailbreak-measurement-review.md|. &
-Measurement curve present; specificity gate incomplete. &
-No matched random or layer controls; 256-token diagnostic tracks full-output scoring in this run. \\
-\addlinespace
-SIMID diagnostic &
-Gemma-3-4B-IT / SIMID selected TruthfulQA, ITI &
-Historical calibration: 402 cases, raw agreement 91.5\%, Cohen's $\kappa=0.7594<0.8$. Partial prospective selected TruthfulQA alpha 8 vs.\ 0 open correctness is $+3.96$~pp $[-1.98, +9.91]$; MC letter accuracy is $-3.08$~pp $[-5.95, -0.66]$; attempt rate is $-8.59$~pp $[-13.44, -3.74]$. &
-Calibration and effect gates failed. &
-Diagnostic-only; no SIMID open-correctness or factuality-improvement claim. \\
-\bottomrule
-\end{tabular}
-}%
-\end{table}
-\FloatBarrier
-\clearpage
-
-\section{Limitation Inventory}
-\label{app:limitations}
-
-\begin{table}[!htbp]
-\centering
-\caption{Key limitations and which claims they constrain.}
-\label{tab:limitations}
-\vskip 0.1in
-\small
-\begin{tabular}{@{}L{0.8cm}L{6.0cm}@{}}
-\toprule
-\textbf{\#} & \textbf{Limitation} \\
-\midrule
-L1 & Primary claim-bearing model is Gemma-3-4B-IT; Mistral stress tests exist but are failed or incomplete gates. \\
-L2 & Matched-readout confound: the target-selection artifact form is addressed within the SAE pool (readout-, prompt-end-utility-, and answer-span-utility selectors give metric-specific margin effects with a null accuracy endpoint; Appendix~\ref{app:saeselector}); operator-form differences across families remain untested. \\
-L3 & SAE layer coverage is partially addressed (selector searched all probe-nonzero features in the existing extraction layers); a different width or layer family could yield non-null results. \\
-L4 & Bridge failure-mode second rater is an LLM judge (GPT-4o), with raw agreement 96.5\% ($\kappa = 0.90$, AC1 = 0.96) and limited force as an IRR check. \\
-L5 & Gemma JailbreakBench H-neuron specificity is single-seed ($p = 0.013$); stronger specificity requires matched multi-seed controls. \\
-L6 & Mistral Anchor 3 shows a large JailbreakBench alpha curve across judges, but it lacks matched random and layer controls. \\
-L7 & SIMID historical and partial prospective artifacts failed the relevant calibration and effect gates, so they remain diagnostic-only. \\
-\bottomrule
-\end{tabular}
-\end{table}
 \FloatBarrier
 
 \end{document}
