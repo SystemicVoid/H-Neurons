@@ -14,7 +14,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from finalize_simid_open_calibration import grade_from_row, load_jsonl
+from simid_open_calibration import grade_from_row, load_jsonl
 from utils import (
     finish_run_provenance,
     format_path_for_metadata,

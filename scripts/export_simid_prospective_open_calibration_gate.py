@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 from analyze_simid import (
-    SIMID_OPEN_FINAL_GRADE_LABELS,
     attach_open_adjudications,
     effective_open_grade,
     eligible_for_open_adjudication,
@@ -26,6 +25,7 @@ from analyze_simid import (
     row_mc_endpoint,
 )
 from build_simid_boundary_correction_evidence import normalize_text
+from simid_open_calibration import SIMID_OPEN_FINAL_GRADE_LABELS
 from utils import (
     finish_run_provenance,
     format_path_for_metadata,

@@ -16,7 +16,6 @@ from typing import Any
 
 from sklearn.metrics import cohen_kappa_score
 
-from analyze_simid import SIMID_OPEN_FINAL_GRADE_LABELS, gwet_ac1_for_labels
 from export_simid_prospective_open_calibration_gate import (
     LABEL_SCHEMA_VERSION,
     PACKAGE_SCHEMA_VERSION,
@@ -25,6 +24,7 @@ from export_simid_prospective_open_calibration_gate import (
     VALID_FLAGS,
     file_sha256,
 )
+from simid_open_calibration import SIMID_OPEN_FINAL_GRADE_LABELS, gwet_ac1_for_labels
 from uncertainty import build_rate_summary
 from utils import (
     finish_run_provenance,
