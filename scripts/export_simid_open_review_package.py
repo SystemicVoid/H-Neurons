@@ -5,15 +5,35 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
-from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import hashlib
 import json
 from pathlib import Path
 import sys
 from typing import Any
 
+from review_package import (
+    BLIND_CASE_SCHEMA_VERSION,
+    HUMAN_LABEL_SCHEMA_VERSION,
+    LLM_BATCH_CASE_SCHEMA_VERSION,
+    LLM_BATCH_LABEL_SCHEMA_VERSION,
+    LLM_BATCH_ROOT_DIR,
+    REVIEW_PACKAGE_SCHEMA_VERSION,
+    VALID_FLAGS,
+    build_label_schema,
+    build_llm_batch_label_schema,
+    byte_sha256_for_rows,
+    file_sha256,
+    human_label_schema_summary,
+    jsonl_sha256,
+    llm_batch_records,
+    llm_blind_case_map_row,
+    llm_blind_case_row,
+    stable_hash,
+    ui_manifest_binding,
+    write_json,
+    write_jsonl,
+)
 from simid_open_calibration import grade_from_row, load_jsonl
 from utils import (
     finish_run_provenance,
@@ -34,29 +54,12 @@ DEFAULT_RUN_DIR = (
 )
 DEFAULT_OUTPUT_DIR = DEFAULT_RUN_DIR / "human_review_package"
 PROMPT_VERSION = "simid_open_independent_rater/v1"
-REVIEW_PACKAGE_SCHEMA_VERSION = "simid_open_independent_review_package/v1"
-BLIND_CASE_SCHEMA_VERSION = "simid_open_blind_review_case/v1"
-HUMAN_LABEL_SCHEMA_VERSION = "simid_open_independent_rater_label/v1"
 DEFAULT_AGREEMENT_SAMPLE_SIZE = 66
 DEFAULT_REVIEW_SEED = "simid_open_review_package_20260428_v1"
 DEFAULT_LLM_BATCH_SIZE = 10
 PRIMARY_SECONDARY_DISAGREEMENT = "primary_secondary_disagreement"
 STRATIFIED_AGREEMENT_SAMPLE = "stratified_agreement_sample"
 LEGACY_LEAKING_OUTPUTS = ("review_audit_context.jsonl",)
-LLM_BATCH_ROOT_DIR = "llm_blind_batches"
-LLM_BATCH_CASE_SCHEMA_VERSION = "simid_open_llm_blind_review_case/v1"
-LLM_BATCH_LABEL_SCHEMA_VERSION = "simid_open_llm_blind_rater_label/v1"
-VALID_LABELS = ("CORRECT", "INCORRECT", "NOT_ATTEMPTED")
-VALID_FLAGS = (
-    "bridge_partial_entity_or_modifier",
-    "truthfulqa_non_answer_boundary",
-    "truthfulqa_qualified_answer_boundary",
-    "wrong_extra_answer",
-    "multiple_candidates_no_commitment",
-    "alias_too_broad_or_too_narrow",
-    "malformed_case",
-    "other_boundary",
-)
 QUALIFIED_ANSWER_TERMS = (
     "possible",
     "possibly",
@@ -158,146 +161,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Allow replacing files in an existing review package directory.",
     )
     return parser.parse_args(argv)
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def stable_hash(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def jsonl_sha256(rows: Iterable[dict[str, Any]]) -> str:
-    digest = hashlib.sha256()
-    for row in rows:
-        payload = json.dumps(
-            row,
-            ensure_ascii=True,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        digest.update(payload.encode("utf-8"))
-        digest.update(b"\n")
-    return digest.hexdigest()
-
-
-def byte_sha256_for_rows(rows: Iterable[dict[str, Any]]) -> str:
-    digest = hashlib.sha256()
-    for row in rows:
-        digest.update(json.dumps(row, ensure_ascii=False).encode("utf-8"))
-        digest.update(b"\n")
-    return digest.hexdigest()
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
-
-
-def write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
-    with path.open("w", encoding="utf-8") as handle:
-        for row in rows:
-            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
-
-
-def blind_case_id_for(calibration_case_id: str, *, seed: str) -> str:
-    return f"simid_open_blind_{stable_hash(f'{seed}:llm_blind:{calibration_case_id}')[:16]}"
-
-
-def llm_blind_case_row(
-    blind_row: dict[str, Any],
-    *,
-    seed: str,
-) -> dict[str, Any]:
-    return {
-        "schema_version": LLM_BATCH_CASE_SCHEMA_VERSION,
-        "review_order": blind_row["review_order"],
-        "blind_case_id": blind_case_id_for(
-            str(blind_row["calibration_case_id"]),
-            seed=seed,
-        ),
-        "question": blind_row["question"],
-        "gold_aliases": blind_row["gold_aliases"],
-        "predicted_answer": blind_row["predicted_answer"],
-    }
-
-
-def llm_blind_case_map_row(
-    blind_row: dict[str, Any],
-    *,
-    seed: str,
-) -> dict[str, Any]:
-    return {
-        "schema_version": "simid_open_llm_blind_case_map/v1",
-        "review_order": blind_row["review_order"],
-        "blind_case_id": blind_case_id_for(
-            str(blind_row["calibration_case_id"]),
-            seed=seed,
-        ),
-        "calibration_case_id": blind_row["calibration_case_id"],
-    }
-
-
-def batch_dir_name(batch_index: int) -> str:
-    return f"batch_{batch_index:03d}"
-
-
-def batched_review_rows(
-    rows: list[dict[str, Any]], *, batch_size: int
-) -> list[list[dict[str, Any]]]:
-    if batch_size <= 0:
-        raise ValueError("--llm-batch-size must be positive")
-    return [
-        rows[index : index + batch_size] for index in range(0, len(rows), batch_size)
-    ]
-
-
-def llm_batch_records(
-    *,
-    output_dir: Path,
-    llm_blind_rows: list[dict[str, Any]],
-    batch_size: int,
-) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
-    for batch_index, rows in enumerate(
-        batched_review_rows(llm_blind_rows, batch_size=batch_size),
-        start=1,
-    ):
-        if not rows:
-            continue
-        start = int(rows[0]["review_order"])
-        end = int(rows[-1]["review_order"])
-        batch_id = batch_dir_name(batch_index)
-        batch_dir = f"{LLM_BATCH_ROOT_DIR}/{batch_id}"
-        case_file = f"{batch_dir}/review_cases_blind.jsonl"
-        prompt_file = f"{batch_dir}/prompt.md"
-        label_part_file = f"{batch_dir}/opus_4_7_labels.jsonl"
-        records.append(
-            {
-                "batch_id": batch_id,
-                "review_order_start": start,
-                "review_order_end": end,
-                "n_cases": len(rows),
-                "case_file": format_path_for_metadata(
-                    output_dir / case_file,
-                    root=ROOT,
-                ),
-                "case_file_sha256": byte_sha256_for_rows(rows),
-                "prompt_file": format_path_for_metadata(
-                    output_dir / prompt_file,
-                    root=ROOT,
-                ),
-                "label_part_file": format_path_for_metadata(
-                    output_dir / label_part_file,
-                    root=ROOT,
-                ),
-            }
-        )
-    return records
 
 
 def load_required_json(path: Path) -> dict[str, Any]:
@@ -756,135 +619,7 @@ def build_manifest(
             "label_schema_version": LLM_BATCH_LABEL_SCHEMA_VERSION,
             "batches": llm_batches,
         },
-        "label_schema": {
-            "schema_version": HUMAN_LABEL_SCHEMA_VERSION,
-            "required_fields": [
-                "schema_version",
-                "calibration_case_id",
-                "review_order",
-                "label",
-                "confidence",
-                "rule_gap",
-                "flags",
-                "notes",
-                "rater",
-                "blind_cases_file_sha256",
-            ],
-            "valid_labels": list(VALID_LABELS),
-            "valid_flags": list(VALID_FLAGS),
-        },
-    }
-
-
-def build_label_schema(manifest: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "simid_open_independent_rater_label.schema.json",
-        "title": "SIMID Open Independent Rater Label",
-        "type": "object",
-        "additionalProperties": False,
-        "required": manifest["label_schema"]["required_fields"],
-        "properties": {
-            "schema_version": {"const": HUMAN_LABEL_SCHEMA_VERSION},
-            "calibration_case_id": {
-                "type": "string",
-                "pattern": "^simid_open_cal_[0-9a-f]+$",
-            },
-            "review_order": {"type": "integer", "minimum": 1},
-            "label": {
-                "type": "string",
-                "enum": list(VALID_LABELS),
-            },
-            "confidence": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 5,
-            },
-            "rule_gap": {"type": "boolean"},
-            "flags": {
-                "type": "array",
-                "items": {"type": "string", "enum": list(VALID_FLAGS)},
-                "uniqueItems": True,
-            },
-            "notes": {"type": "string"},
-            "rater": {
-                "type": "object",
-                "additionalProperties": True,
-                "required": ["type"],
-                "properties": {
-                    "type": {"type": "string"},
-                    "id": {"type": "string"},
-                    "model": {"type": "string"},
-                    "prompt_version": {"type": "string"},
-                },
-            },
-            "labeled_at_local": {"type": "string"},
-            "blind_cases_file_sha256": {
-                "type": "string",
-                "const": manifest["blind_cases_file_sha256"],
-            },
-            "label_schema_version": {"const": HUMAN_LABEL_SCHEMA_VERSION},
-        },
-    }
-
-
-def build_llm_batch_label_schema(
-    *,
-    batch_cases_file_sha256: str,
-) -> dict[str, Any]:
-    return {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "simid_open_llm_blind_rater_label.schema.json",
-        "title": "SIMID Open LLM Blind Batch Rater Label",
-        "type": "object",
-        "additionalProperties": False,
-        "required": [
-            "schema_version",
-            "blind_case_id",
-            "review_order",
-            "label",
-            "confidence",
-            "rule_gap",
-            "flags",
-            "notes",
-            "rater",
-            "blind_cases_file_sha256",
-        ],
-        "properties": {
-            "schema_version": {"const": LLM_BATCH_LABEL_SCHEMA_VERSION},
-            "blind_case_id": {
-                "type": "string",
-                "pattern": "^simid_open_blind_[0-9a-f]+$",
-            },
-            "review_order": {"type": "integer", "minimum": 1},
-            "label": {
-                "type": "string",
-                "enum": list(VALID_LABELS),
-            },
-            "confidence": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 5,
-            },
-            "rule_gap": {"type": "boolean"},
-            "flags": {
-                "type": "array",
-                "items": {"type": "string", "enum": list(VALID_FLAGS)},
-                "uniqueItems": True,
-            },
-            "notes": {"type": "string"},
-            "rater": {
-                "type": "object",
-                "additionalProperties": True,
-                "required": ["type", "model", "prompt_version"],
-                "properties": {
-                    "type": {"type": "string"},
-                    "model": {"type": "string"},
-                    "prompt_version": {"type": "string"},
-                },
-            },
-            "blind_cases_file_sha256": {"const": batch_cases_file_sha256},
-        },
+        "label_schema": human_label_schema_summary(),
     }
 
 
@@ -906,12 +641,7 @@ def build_index_html(
     rule_text: str,
 ) -> str:
     cases_json = html_json(blind_rows)
-    ui_manifest = {
-        "schema_version": manifest["schema_version"],
-        "blind_cases_file_sha256": manifest["blind_cases_file_sha256"],
-        "label_schema": manifest["label_schema"],
-    }
-    manifest_json = html_json(ui_manifest)
+    manifest_json = html_json(ui_manifest_binding(manifest))
     rule_json = html_json(rule_text)
     return f"""<!doctype html>
 <html lang="en">
