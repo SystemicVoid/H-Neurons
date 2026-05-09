@@ -62,6 +62,14 @@ from model_registry import (
     model_path_for,
     tokenizer_kwargs_for,
 )
+from run_contract import (
+    INTERVENTION_RUN_CONFIG_FILENAME,
+    INTERVENTION_RUN_CONFIG_SCHEMA_VERSION,
+    assert_or_write_intervention_run_contract,
+    build_run_contract,
+    describe_sample_manifest,
+    optional_file_sha256,
+)
 
 
 DEFAULT_MODEL_KEY = os.environ.get("HNEURONS_MODEL_KEY", REGISTRY_DEFAULT_MODEL_KEY)
@@ -86,7 +94,6 @@ NOOP_ALPHA_BY_INTERVENTION_MODE = {
     "direction": 0.0,
     "iti_head": 0.0,
 }
-INTERVENTION_RUN_CONFIG_FILENAME = "intervention_run_config.json"
 RUN_PROFILES = ("canonical", "fast")
 COMPARABILITY_CLASS_BY_PROFILE = {
     "canonical": "claimable",
@@ -338,76 +345,6 @@ def load_sample_manifest_ids(path: str) -> set[str]:
     )
 
 
-def file_sha256(path: str | Path) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def optional_file_sha256(path: str | Path | None) -> str | None:
-    if path is None:
-        return None
-    expanded = Path(path).expanduser()
-    if not expanded.is_file():
-        return None
-    return file_sha256(expanded)
-
-
-def describe_sample_manifest(path: str) -> dict[str, Any]:
-    """Return content identity for a sample manifest, validating declared fields."""
-    with open(path, encoding="utf-8") as handle:
-        payload = json.load(handle)
-
-    if isinstance(payload, list):
-        ids = [str(item) for item in payload]
-        metadata: dict[str, Any] = {}
-    elif isinstance(payload, dict):
-        metadata = {}
-        for key in ("ids", "sample_ids"):
-            manifest_ids = payload.get(key)
-            if isinstance(manifest_ids, list):
-                ids = [str(item) for item in manifest_ids]
-                break
-        else:
-            raise ValueError(
-                "sample manifest must be a JSON list or an object with an 'ids' list"
-            )
-        if "schema_version" in payload:
-            metadata["schema_version"] = payload["schema_version"]
-        if "source_path" in payload:
-            metadata["source_path"] = payload["source_path"]
-        if "source_sha256" in payload:
-            metadata["source_sha256"] = payload["source_sha256"]
-        if "lock_context" in payload:
-            metadata["lock_context"] = payload["lock_context"]
-    else:
-        raise ValueError(
-            "sample manifest must be a JSON list or an object with an 'ids' list"
-        )
-
-    computed_fingerprint = fingerprint_ids(ids)
-    if isinstance(payload, dict):
-        declared_n_ids = payload.get("n_ids")
-        if declared_n_ids is not None and declared_n_ids != len(ids):
-            raise ValueError("sample manifest n_ids does not match the number of ids")
-        declared_fingerprint = payload.get("fingerprint")
-        if (
-            declared_fingerprint is not None
-            and str(declared_fingerprint) != computed_fingerprint
-        ):
-            raise ValueError("sample manifest fingerprint does not match ids")
-
-    return {
-        "path": path,
-        "content_sha256": file_sha256(path),
-        "n_ids": len(ids),
-        "fingerprint": computed_fingerprint,
-        **metadata,
-    }
-
-
 def build_intervention_run_contract(
     args: argparse.Namespace,
     *,
@@ -490,121 +427,23 @@ def build_intervention_run_contract(
             }
         )
 
-    return {
-        "schema_version": "intervention_run_config/v1",
-        "benchmark": args.benchmark,
-        "model": {
-            "key": args.model_key,
-            "path": args.model_path,
+    return build_run_contract(
+        schema_version=INTERVENTION_RUN_CONFIG_SCHEMA_VERSION,
+        benchmark=args.benchmark,
+        model_key=args.model_key,
+        model_path=args.model_path,
+        classifier_path=args.classifier_path,
+        max_samples=args.max_samples,
+        sample_manifest=sample_manifest,
+        alphas=args.alphas,
+        benchmark_config=benchmark_config,
+        tail_fields={
+            "intervention": intervention_config,
+            "run_profile": run_profile,
+            "comparability_class": comparability_class,
+            "generation_fingerprint": generation_fingerprint,
         },
-        "classifier": {
-            "path": args.classifier_path,
-            "content_sha256": optional_file_sha256(args.classifier_path),
-        },
-        "sample_selection": {
-            "max_samples": args.max_samples,
-            "sample_manifest": sample_manifest,
-        },
-        "schedule": {
-            "alphas": [float(alpha) for alpha in args.alphas],
-        },
-        "benchmark_config": benchmark_config,
-        "intervention": intervention_config,
-        "run_profile": run_profile,
-        "comparability_class": comparability_class,
-        "generation_fingerprint": generation_fingerprint,
-    }
-
-
-def _contract_mismatch_paths(
-    expected: Any,
-    observed: Any,
-    *,
-    prefix: str = "",
-) -> list[str]:
-    if isinstance(expected, dict) and isinstance(observed, dict):
-        mismatches: list[str] = []
-        for key in sorted(set(expected) | set(observed)):
-            key_path = f"{prefix}.{key}" if prefix else str(key)
-            if key not in expected:
-                mismatches.append(f"{key_path} (unexpected stored value)")
-            elif key not in observed:
-                mismatches.append(f"{key_path} (missing stored value)")
-            else:
-                mismatches.extend(
-                    _contract_mismatch_paths(
-                        expected[key],
-                        observed[key],
-                        prefix=key_path,
-                    )
-                )
-        return mismatches
-    if expected != observed:
-        return [prefix or "<root>"]
-    return []
-
-
-def _existing_intervention_output_paths(
-    output_dir: str,
-    alphas: list[float],
-) -> list[str]:
-    paths: list[str] = []
-    for alpha in alphas:
-        alpha_path = os.path.join(
-            output_dir, f"alpha_{format_alpha_label(alpha)}.jsonl"
-        )
-        if os.path.exists(alpha_path):
-            paths.append(alpha_path)
-    return sorted(paths)
-
-
-def assert_or_write_intervention_run_contract(
-    output_dir: str,
-    contract: dict[str, Any],
-    alphas: list[float],
-    *,
-    write_if_missing: bool,
-) -> str:
-    contract_path = os.path.join(output_dir, INTERVENTION_RUN_CONFIG_FILENAME)
-    if os.path.exists(contract_path):
-        with open(contract_path, encoding="utf-8") as f:
-            try:
-                stored_contract = json.load(f)
-            except json.JSONDecodeError as exc:
-                raise RuntimeError(
-                    f"Invalid intervention run contract at {contract_path}: {exc}"
-                ) from exc
-        mismatches = _contract_mismatch_paths(contract, stored_contract)
-        if mismatches:
-            mismatch_preview = ", ".join(mismatches[:8])
-            if len(mismatches) > 8:
-                mismatch_preview += f", ... ({len(mismatches)} total)"
-            raise RuntimeError(
-                "Refusing to reuse intervention outputs with an incompatible "
-                f"run contract at {contract_path}. Mismatched fields: "
-                f"{mismatch_preview}. Use a fresh --output_dir or archive the "
-                "existing directory."
-            )
-        return contract_path
-
-    existing_paths = _existing_intervention_output_paths(output_dir, alphas)
-    if existing_paths:
-        examples = [os.path.relpath(path, output_dir) for path in existing_paths[:5]]
-        example_text = ", ".join(examples)
-        if len(existing_paths) > len(examples):
-            example_text += f", ... ({len(existing_paths)} total)"
-        raise RuntimeError(
-            "Refusing to reuse intervention outputs without "
-            f"{INTERVENTION_RUN_CONFIG_FILENAME}. Existing files may come from an "
-            f"incompatible pre-guard run: {example_text}. Use a fresh --output_dir "
-            "or archive the existing directory."
-        )
-
-    if write_if_missing:
-        with open(contract_path, "w", encoding="utf-8") as f:
-            json.dump(contract, f, indent=2, sort_keys=True)
-            f.write("\n")
-    return contract_path
+    )
 
 
 def resolve_sae_target_features(
@@ -1675,7 +1514,6 @@ from utils import (  # noqa: E402
     define_wandb_metrics,
     extract_mc_answer,
     finish_run_provenance,
-    fingerprint_ids,
     format_alpha_label,
     get_git_sha,
     normalize_answer,

@@ -19,7 +19,6 @@ Usage:
 import argparse
 from collections import Counter
 from dataclasses import dataclass
-import hashlib
 import json
 import os
 import sys
@@ -39,10 +38,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from run_intervention import (
     CANONICAL_JAILBREAK_GENERATION,
     HNeuronScaler,
-    INTERVENTION_RUN_CONFIG_FILENAME,
     _bioasq_prompt,
     _faitheval_prompt,
-    describe_sample_manifest,
     extract_mc_answer,
     generate_response,
     load_bioasq,
@@ -55,6 +52,16 @@ from run_intervention import (
     normalize_answer,
     run_jailbreak,
     tokenize_chat,
+)
+from run_contract import (
+    CONTROL_RUN_CONFIG_FILENAME,
+    NEGATIVE_CONTROL_RUN_CONFIG_SCHEMA_VERSION,
+    assert_h_neuron_baseline_matches_control_contract,
+    assert_or_write_negative_control_run_contract,
+    build_run_contract,
+    describe_sample_manifest,
+    load_h_neuron_baseline_binding,
+    resolve_results_json,
 )
 from model_registry import (
     assert_causal_lm_supported,
@@ -79,7 +86,6 @@ ALL_ALPHAS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 QUICK_ALPHAS = [0.0, 1.0, 3.0]
 JAILBREAK_ALPHAS = [0.0, 1.0, 1.5, 3.0]
 ControlConfig = tuple[str, str, int]
-CONTROL_RUN_CONFIG_FILENAME = "control_run_config.json"
 
 MODEL_PATH = None
 CLASSIFIER_PATH = os.environ.get("HNEURONS_CLASSIFIER_PATH")
@@ -133,171 +139,6 @@ def _jailbreak_csv2_eval_dir(
         return "<experiment_dir — pass --h_neuron_baseline>"
 
 
-def resolve_results_json(path: str) -> str:
-    candidate = os.path.expanduser(path)
-    if os.path.isfile(candidate):
-        return candidate
-    if not os.path.isdir(candidate):
-        return candidate
-
-    stable_path = os.path.join(candidate, "results.json")
-    if os.path.isfile(stable_path):
-        return stable_path
-
-    timestamped = [
-        os.path.join(candidate, name)
-        for name in os.listdir(candidate)
-        if name.startswith("results.") and name.endswith(".json")
-    ]
-    if not timestamped:
-        return stable_path
-    return str(max(timestamped, key=lambda item: os.path.getmtime(item)))
-
-
-def _file_sha256(path: str | None) -> str | None:
-    if not path:
-        return None
-    expanded = os.path.expanduser(path)
-    if not os.path.isfile(expanded):
-        return None
-    digest = hashlib.sha256()
-    with open(expanded, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def load_h_neuron_baseline_binding(
-    baseline_path: str,
-    alphas: list[float],
-) -> dict[str, Any]:
-    resolved_results_path = resolve_results_json(baseline_path)
-    if not os.path.isfile(resolved_results_path):
-        raise RuntimeError(
-            f"H-neuron baseline not found at {resolved_results_path}. Run the "
-            "H-neuron intervention first."
-        )
-
-    with open(resolved_results_path, encoding="utf-8") as f:
-        try:
-            baseline_summary = json.load(f)
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(
-                f"Invalid H-neuron baseline summary at {resolved_results_path}: {exc}"
-            ) from exc
-
-    results = baseline_summary.get("results")
-    if not isinstance(results, dict):
-        raise RuntimeError(
-            f"H-neuron baseline summary at {resolved_results_path} has no results object"
-        )
-    missing_alphas = [
-        str(float(alpha)) for alpha in alphas if str(float(alpha)) not in results
-    ]
-    if missing_alphas:
-        raise RuntimeError(
-            "H-neuron baseline summary is missing required alpha results: "
-            f"{missing_alphas}"
-        )
-
-    contract_path = os.path.join(
-        os.path.dirname(resolved_results_path),
-        INTERVENTION_RUN_CONFIG_FILENAME,
-    )
-    if not os.path.isfile(contract_path):
-        raise RuntimeError(
-            f"H-neuron baseline is missing {INTERVENTION_RUN_CONFIG_FILENAME} at "
-            f"{contract_path}. Use a fresh baseline produced by the guarded "
-            "run_intervention.py contract path."
-        )
-    with open(contract_path, encoding="utf-8") as f:
-        try:
-            baseline_contract = json.load(f)
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(
-                f"Invalid H-neuron baseline contract at {contract_path}: {exc}"
-            ) from exc
-
-    return {
-        "schema_version": "h_neuron_baseline_binding/v1",
-        "results_path": resolved_results_path,
-        "results_content_sha256": _file_sha256(resolved_results_path),
-        "contract_path": contract_path,
-        "contract_content_sha256": _file_sha256(contract_path),
-        "summary_identity": {
-            "benchmark": baseline_summary.get("benchmark"),
-            "model_key": baseline_summary.get("model_key"),
-            "model_path": baseline_summary.get("model"),
-            "classifier_path": baseline_summary.get("classifier"),
-            "sample_manifest": baseline_summary.get("sample_manifest"),
-            "prompt_style": baseline_summary.get("prompt_style"),
-            "alphas": [float(alpha) for alpha in alphas],
-        },
-        "run_contract": baseline_contract,
-    }
-
-
-def _baseline_comparison_subset(contract: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "benchmark": contract.get("benchmark"),
-        "model": contract.get("model"),
-        "classifier": contract.get("classifier"),
-        "sample_selection": contract.get("sample_selection"),
-        "schedule": {
-            "alphas": contract.get("schedule", {}).get("alphas"),
-        },
-        "benchmark_config": contract.get("benchmark_config"),
-    }
-
-
-def assert_h_neuron_baseline_matches_control_contract(
-    contract: dict[str, Any],
-) -> None:
-    baseline_binding = contract.get("h_neuron_baseline")
-    if not isinstance(baseline_binding, dict):
-        raise RuntimeError("Negative-control contract is missing h_neuron_baseline")
-    baseline_contract = baseline_binding.get("run_contract")
-    if not isinstance(baseline_contract, dict):
-        raise RuntimeError("H-neuron baseline binding is missing run_contract")
-
-    expected = _baseline_comparison_subset(contract)
-    observed = _baseline_comparison_subset(baseline_contract)
-    expected_benchmark_config = expected.get("benchmark_config") or {}
-    observed_benchmark_config = observed.get("benchmark_config") or {}
-    observed["benchmark_config"] = {
-        key: observed_benchmark_config.get(key) for key in expected_benchmark_config
-    }
-    mismatches = _contract_mismatch_paths(expected, observed)
-    if mismatches:
-        mismatch_preview = ", ".join(mismatches[:8])
-        if len(mismatches) > 8:
-            mismatch_preview += f", ... ({len(mismatches)} total)"
-        raise RuntimeError(
-            "H-neuron baseline contract does not match negative-control contract. "
-            f"Mismatched fields: {mismatch_preview}."
-        )
-
-    summary_identity = baseline_binding.get("summary_identity", {})
-    expected_summary = {
-        "benchmark": contract.get("benchmark"),
-        "model_key": contract.get("model", {}).get("key"),
-        "model_path": contract.get("model", {}).get("path"),
-        "classifier_path": contract.get("classifier", {}).get("path"),
-        "sample_manifest": contract.get("sample_selection", {}).get("sample_manifest"),
-        "prompt_style": contract.get("benchmark_config", {}).get("prompt_style"),
-        "alphas": contract.get("schedule", {}).get("alphas"),
-    }
-    summary_mismatches = _contract_mismatch_paths(expected_summary, summary_identity)
-    if summary_mismatches:
-        mismatch_preview = ", ".join(summary_mismatches[:8])
-        if len(summary_mismatches) > 8:
-            mismatch_preview += f", ... ({len(summary_mismatches)} total)"
-        raise RuntimeError(
-            "H-neuron baseline summary does not match negative-control contract. "
-            f"Mismatched fields: {mismatch_preview}."
-        )
-
-
 def build_negative_control_run_contract(
     args: argparse.Namespace,
     alphas: list[float],
@@ -318,128 +159,25 @@ def build_negative_control_run_contract(
     elif args.benchmark == "jailbreak":
         benchmark_config["jailbreak_batch_size"] = args.jailbreak_batch_size
 
-    return {
-        "schema_version": "negative_control_run_config/v1",
-        "benchmark": args.benchmark,
-        "quick": bool(args.quick),
-        "model": {
-            "key": args.model_key,
-            "path": args.model_path,
-        },
-        "classifier": {
-            "path": args.classifier_path,
-            "content_sha256": _file_sha256(args.classifier_path),
-        },
-        "sample_selection": {
-            "max_samples": args.max_samples,
-            "sample_manifest": sample_manifest,
-        },
-        "schedule": {
-            "alphas": [float(alpha) for alpha in alphas],
+    return build_run_contract(
+        schema_version=NEGATIVE_CONTROL_RUN_CONFIG_SCHEMA_VERSION,
+        benchmark=args.benchmark,
+        after_benchmark_fields={"quick": bool(args.quick)},
+        model_key=args.model_key,
+        model_path=args.model_path,
+        classifier_path=args.classifier_path,
+        max_samples=args.max_samples,
+        sample_manifest=sample_manifest,
+        alphas=alphas,
+        schedule_fields={
             "configs": [
                 {"name": name, "strategy": strategy, "seed": int(seed)}
                 for name, strategy, seed in configs
             ],
         },
-        "benchmark_config": benchmark_config,
-        "h_neuron_baseline": baseline_binding,
-    }
-
-
-def _existing_control_output_paths(
-    output_base: str,
-    alphas: list[float],
-    configs: list[ControlConfig],
-) -> list[str]:
-    paths: list[str] = []
-    for name, _, _ in configs:
-        seed_dir = os.path.join(output_base, name)
-        results_path = os.path.join(seed_dir, "results.json")
-        if os.path.exists(results_path):
-            paths.append(results_path)
-        for alpha in alphas:
-            alpha_path = os.path.join(seed_dir, f"alpha_{alpha:.1f}.jsonl")
-            if os.path.exists(alpha_path):
-                paths.append(alpha_path)
-    return sorted(paths)
-
-
-def _contract_mismatch_paths(
-    expected: Any,
-    observed: Any,
-    *,
-    prefix: str = "",
-) -> list[str]:
-    if isinstance(expected, dict) and isinstance(observed, dict):
-        mismatches: list[str] = []
-        for key in sorted(set(expected) | set(observed)):
-            key_path = f"{prefix}.{key}" if prefix else str(key)
-            if key not in expected:
-                mismatches.append(f"{key_path} (unexpected stored value)")
-            elif key not in observed:
-                mismatches.append(f"{key_path} (missing stored value)")
-            else:
-                mismatches.extend(
-                    _contract_mismatch_paths(
-                        expected[key],
-                        observed[key],
-                        prefix=key_path,
-                    )
-                )
-        return mismatches
-    if expected != observed:
-        return [prefix or "<root>"]
-    return []
-
-
-def assert_or_write_negative_control_run_contract(
-    output_base: str,
-    contract: dict[str, Any],
-    alphas: list[float],
-    configs: list[ControlConfig],
-    *,
-    write_if_missing: bool,
-) -> str:
-    contract_path = os.path.join(output_base, CONTROL_RUN_CONFIG_FILENAME)
-    if os.path.exists(contract_path):
-        with open(contract_path, encoding="utf-8") as f:
-            try:
-                stored_contract = json.load(f)
-            except json.JSONDecodeError as exc:
-                raise RuntimeError(
-                    f"Invalid negative-control run contract at {contract_path}: {exc}"
-                ) from exc
-        mismatches = _contract_mismatch_paths(contract, stored_contract)
-        if mismatches:
-            mismatch_preview = ", ".join(mismatches[:8])
-            if len(mismatches) > 8:
-                mismatch_preview += f", ... ({len(mismatches)} total)"
-            raise RuntimeError(
-                "Refusing to reuse negative-control outputs with an incompatible "
-                f"run contract at {contract_path}. Mismatched fields: "
-                f"{mismatch_preview}. Use a fresh --output_base or archive the "
-                "existing directory."
-            )
-        return contract_path
-
-    existing_paths = _existing_control_output_paths(output_base, alphas, configs)
-    if existing_paths:
-        examples = [os.path.relpath(path, output_base) for path in existing_paths[:5]]
-        example_text = ", ".join(examples)
-        if len(existing_paths) > len(examples):
-            example_text += f", ... ({len(existing_paths)} total)"
-        raise RuntimeError(
-            "Refusing to reuse negative-control outputs without "
-            f"{CONTROL_RUN_CONFIG_FILENAME}. Existing files may come from an "
-            f"incompatible pre-guard run: {example_text}. Use a fresh "
-            "--output_base or archive the existing directory."
-        )
-
-    if write_if_missing:
-        with open(contract_path, "w", encoding="utf-8") as f:
-            json.dump(contract, f, indent=2, sort_keys=True)
-            f.write("\n")
-    return contract_path
+        benchmark_config=benchmark_config,
+        tail_fields={"h_neuron_baseline": baseline_binding},
+    )
 
 
 @dataclass(frozen=True)
