@@ -165,6 +165,11 @@ def build_negative_control_run_contract(
         benchmark_config["bioasq_path"] = args.bioasq_path
     elif args.benchmark == "jailbreak":
         benchmark_config["jailbreak_batch_size"] = args.jailbreak_batch_size
+        # Keep negative_control_run_config/v1, but require jailbreak controls to
+        # bind the canonical decode semantics they use. Legacy jailbreak control
+        # configs without this field are incompatible and should be archived or
+        # rerun into a fresh output base.
+        benchmark_config["jailbreak_generation"] = dict(CANONICAL_JAILBREAK_GENERATION)
 
     return build_run_contract(
         schema_version=NEGATIVE_CONTROL_RUN_CONFIG_SCHEMA_VERSION,
