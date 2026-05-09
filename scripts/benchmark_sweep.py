@@ -11,6 +11,7 @@ from typing import Any
 
 from tqdm import tqdm
 
+from artifact_io import alpha_jsonl_path, append_jsonl_row
 from uncertainty import build_rate_summary
 from utils import format_alpha_label
 
@@ -47,7 +48,7 @@ PrintAlphaSummaryFn = Callable[[AlphaSweepContext, dict[str, Any]], None]
 
 
 def alpha_output_path(output_dir: str, alpha: float) -> str:
-    return os.path.join(output_dir, f"alpha_{format_alpha_label(alpha)}.jsonl")
+    return str(alpha_jsonl_path(output_dir, alpha))
 
 
 def load_existing_row_ids(path: str) -> set[str]:
@@ -72,8 +73,7 @@ def append_jsonl_sweep_record(
     sweep_record: SweepRecord,
     _context: AlphaSweepContext,
 ) -> None:
-    with open(output_path, "a", encoding="utf-8") as handle:
-        handle.write(json.dumps(sweep_record.payload, ensure_ascii=False) + "\n")
+    append_jsonl_row(output_path, sweep_record.payload, sort_keys=False)
 
 
 def _default_sample_id(sample: Mapping[str, Any]) -> str:
