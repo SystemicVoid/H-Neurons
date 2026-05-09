@@ -14,6 +14,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 
+from evaluator_execution import (
+    EvaluatorAdapter,
+    EvaluatorTask,
+    execute_batch_evaluator,
+)
 from uncertainty import wilson_interval
 from utils import (
     finish_run_provenance,
@@ -128,6 +133,30 @@ def evaluate_alpha_file(
     return updated
 
 
+def _benign_request_kwargs(prompt_cache_retention: str | None) -> dict[str, Any]:
+    kwargs: dict[str, Any] = dict(BENIGN_JUDGE_KWARGS)
+    if prompt_cache_retention:
+        kwargs["prompt_cache_retention"] = prompt_cache_retention
+    return kwargs
+
+
+def _benign_execution_adapter() -> EvaluatorAdapter:
+    def write_success(record: dict[str, Any], verdict: Any) -> None:
+        _apply_verdict(record, str(verdict))
+
+    def write_error(
+        record: dict[str, Any], _error_code: str, _raw_response: str | None
+    ) -> None:
+        _apply_verdict(record, "UNKNOWN")
+
+    return EvaluatorAdapter(
+        name="benign",
+        parse_response=parse_benign_verdict,
+        write_success=write_success,
+        write_error=write_error,
+    )
+
+
 def evaluate_all_batch(
     input_dir: str,
     alphas: list[float],
@@ -137,11 +166,9 @@ def evaluate_all_batch(
     prompt_cache_retention: str | None = None,
     batch_max_enqueued_tokens: int | None = None,
 ) -> dict[float, tuple[str, list[dict[str, Any]]]]:
-    from openai_batch import build_chat_request, parse_chat_content, resume_or_submit
-
     alpha_data: dict[float, tuple[str, list[dict[str, Any]]]] = {}
-    batch_requests = []
-    request_map: dict[str, tuple[float, int]] = {}
+    pending_records: list[dict[str, Any]] = []
+    tasks: list[EvaluatorTask] = []
 
     for alpha in alphas:
         path = build_alpha_file_path(input_dir, alpha)
@@ -155,53 +182,37 @@ def evaluate_all_batch(
                 continue
             goal = str(rec.get("goal", rec.get("question", "")))
             custom_id = build_alpha_batch_custom_id(alpha, idx)
-            kwargs: dict[str, Any] = dict(BENIGN_JUDGE_KWARGS)
-            if prompt_cache_retention:
-                kwargs["prompt_cache_retention"] = prompt_cache_retention
-            batch_requests.append(
-                build_chat_request(
+            pending_records.append(rec)
+            tasks.append(
+                EvaluatorTask(
                     custom_id=custom_id,
-                    model=judge_model,
+                    record_index=len(pending_records) - 1,
                     messages=build_benign_judge_messages(
                         goal, str(rec.get("response", ""))
                     ),
-                    **kwargs,
                 )
             )
-            request_map[custom_id] = (alpha, idx)
 
-    if not batch_requests:
+    if not tasks:
         print("  All records already benign-judged across all alphas")
         return alpha_data
 
-    print(f"  Submitting {len(batch_requests)} benign judge requests via Batch API...")
+    print(f"  Submitting {len(tasks)} benign judge requests via Batch API...")
     state_path = Path(input_dir) / ".benign_eval_batch_state.json"
-    results = resume_or_submit(
-        client,
-        batch_requests,
-        state_path,
+    result = execute_batch_evaluator(
+        records=pending_records,
+        tasks=tasks,
+        adapter=_benign_execution_adapter(),
+        client=client,
+        model=judge_model,
+        state_path=state_path,
         metadata={"script": "evaluate_jailbreak_benign"},
+        common_request_kwargs=_benign_request_kwargs(prompt_cache_retention),
         max_enqueued_tokens=batch_max_enqueued_tokens,
     )
 
-    errors = 0
-    for custom_id, (alpha, idx) in request_map.items():
-        _, records = alpha_data[alpha]
-        entry = results.get(custom_id)
-        if entry is None:
-            verdict = "UNKNOWN"
-            errors += 1
-        else:
-            content = parse_chat_content(entry)
-            if content is None:
-                verdict = "UNKNOWN"
-                errors += 1
-            else:
-                verdict = parse_benign_verdict(content)
-        _apply_verdict(records[idx], verdict)
-
-    if errors:
-        print(f"  Warning: {errors} benign judge requests failed in batch")
+    if result.errors:
+        print(f"  Warning: {result.errors} benign judge requests failed in batch")
 
     for alpha, (path, records) in alpha_data.items():
         _write_alpha_records(path, records)

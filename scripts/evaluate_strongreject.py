@@ -34,7 +34,6 @@ import json
 import os
 import re
 import shutil
-import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -42,8 +41,13 @@ from typing import Any
 from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
-from tqdm import tqdm
 
+from evaluator_execution import (
+    EvaluatorAdapter,
+    EvaluatorTask,
+    execute_batch_evaluator,
+    execute_sync_evaluator,
+)
 from uncertainty import build_rate_summary
 from utils import (
     finish_run_provenance,
@@ -531,6 +535,54 @@ def _load_or_copy_alpha(
 # ---------------------------------------------------------------------------
 
 
+def _strongreject_request_kwargs(
+    prompt_cache_retention: str | None,
+) -> dict[str, Any]:
+    req_kwargs: dict[str, Any] = {**STRONGREJECT_JUDGE_KWARGS}
+    if prompt_cache_retention:
+        req_kwargs["prompt_cache_retention"] = prompt_cache_retention
+    return req_kwargs
+
+
+def _strongreject_execution_adapter(judge_model: str) -> EvaluatorAdapter:
+    def write_success(record: dict[str, Any], verdict: Any) -> None:
+        if not isinstance(verdict, dict):
+            raise TypeError(f"StrongREJECT parser returned {type(verdict).__name__}")
+        record["strongreject"] = _with_strongreject_metadata(
+            record, verdict, judge_model
+        )
+
+    def write_error(
+        record: dict[str, Any], error_code: str, raw_response: str | None
+    ) -> None:
+        payload: dict[str, Any] = {"error": error_code}
+        if error_code == "parse_failed" and raw_response is not None:
+            payload["raw_response"] = raw_response[:2000]
+        record["strongreject"] = _with_strongreject_metadata(
+            record, payload, judge_model
+        )
+
+    return EvaluatorAdapter(
+        name="StrongREJECT",
+        parse_response=parse_strongreject_verdict,
+        write_success=write_success,
+        write_error=write_error,
+    )
+
+
+def _strongreject_task_for_record(
+    idx: int,
+    record: dict[str, Any],
+) -> EvaluatorTask:
+    return EvaluatorTask(
+        custom_id=_strongreject_custom_id(record),
+        record_index=idx,
+        messages=build_strongreject_messages(
+            _record_forbidden_prompt(record), record.get("response", "")
+        ),
+    )
+
+
 def evaluate_batch(
     gold_records: list[dict[str, Any]],
     output_dir: Path,
@@ -543,93 +595,43 @@ def evaluate_batch(
     metadata_benchmark: str = "strongreject_gold",
 ) -> list[dict[str, Any]]:
     """Evaluate records via the OpenAI Batch API."""
-    from openai_batch import build_chat_request, parse_chat_content, resume_or_submit
-
-    batch_requests: list[dict[str, Any]] = []
+    tasks: list[EvaluatorTask] = []
     request_map: dict[str, int] = {}
 
     for idx, rec in enumerate(gold_records):
         if _strongreject_annotation_is_current(rec, judge_model):
             continue
         rec.pop("strongreject", None)
-        custom_id = _strongreject_custom_id(rec)
-        if custom_id in request_map:
+        task = _strongreject_task_for_record(idx, rec)
+        if task.custom_id in request_map:
             raise ValueError(
                 "Duplicate StrongREJECT batch custom_id detected for record key "
                 f"{_stable_record_key(rec)!r}; check fixture IDs and alpha values"
             )
-        messages = build_strongreject_messages(
-            _record_forbidden_prompt(rec), rec.get("response", "")
-        )
+        tasks.append(task)
+        request_map[task.custom_id] = idx
 
-        req_kwargs: dict[str, Any] = {**STRONGREJECT_JUDGE_KWARGS}
-        if prompt_cache_retention:
-            req_kwargs["prompt_cache_retention"] = prompt_cache_retention
-
-        batch_requests.append(
-            build_chat_request(
-                custom_id=custom_id,
-                model=judge_model,
-                messages=messages,
-                **req_kwargs,
-            )
-        )
-        request_map[custom_id] = idx
-
-    if not batch_requests:
+    if not tasks:
         print("  All records already annotated")
         return gold_records
 
-    print(
-        f"  Submitting {len(batch_requests)} StrongREJECT judge requests "
-        f"via Batch API..."
-    )
+    print(f"  Submitting {len(tasks)} StrongREJECT judge requests via Batch API...")
     if state_path is None:
         state_path = _strongreject_batch_state_path(output_dir, gold_path, judge_model)
-    results = resume_or_submit(
-        client,
-        batch_requests,
-        state_path,
+    result = execute_batch_evaluator(
+        records=gold_records,
+        tasks=tasks,
+        adapter=_strongreject_execution_adapter(judge_model),
+        client=client,
+        model=judge_model,
+        state_path=state_path,
         metadata={"benchmark": metadata_benchmark, "script": "evaluate_strongreject"},
+        common_request_kwargs=_strongreject_request_kwargs(prompt_cache_retention),
         max_enqueued_tokens=batch_max_enqueued_tokens,
     )
 
-    errors = 0
-    for custom_id, idx in request_map.items():
-        entry = results.get(custom_id)
-        if entry is None:
-            gold_records[idx]["strongreject"] = _with_strongreject_metadata(
-                gold_records[idx], {"error": "missing_from_batch"}, judge_model
-            )
-            errors += 1
-            continue
-
-        content = parse_chat_content(entry)
-        if content is None:
-            gold_records[idx]["strongreject"] = _with_strongreject_metadata(
-                gold_records[idx], {"error": "batch_request_failed"}, judge_model
-            )
-            errors += 1
-            continue
-
-        verdict = parse_strongreject_verdict(content)
-        if verdict is None:
-            gold_records[idx]["strongreject"] = _with_strongreject_metadata(
-                gold_records[idx],
-                {
-                    "error": "parse_failed",
-                    "raw_response": content[:2000],
-                },
-                judge_model,
-            )
-            errors += 1
-        else:
-            gold_records[idx]["strongreject"] = _with_strongreject_metadata(
-                gold_records[idx], verdict, judge_model
-            )
-
-    if errors:
-        print(f"  Warning: {errors} requests failed or could not be parsed")
+    if result.errors:
+        print(f"  Warning: {result.errors} requests failed or could not be parsed")
 
     return gold_records
 
@@ -646,71 +648,29 @@ def evaluate_sync(
     prompt_cache_retention: str | None = None,
 ) -> list[dict[str, Any]]:
     """Evaluate gold records synchronously."""
-    from openai_batch import CacheStats
-
-    cache_stats = CacheStats()
-    extra_kwargs: dict[str, Any] = {}
-    if prompt_cache_retention:
-        extra_kwargs["prompt_cache_retention"] = prompt_cache_retention
-
-    needs = sum(
-        1
-        for record in gold_records
-        if not _strongreject_annotation_is_current(record, judge_model)
-    )
-    if needs == 0:
-        print("  All records already annotated")
-        return gold_records
-
-    print(f"  Judging {needs} records synchronously...")
-    for rec in tqdm(gold_records, desc="StrongREJECT"):
+    tasks: list[EvaluatorTask] = []
+    for idx, rec in enumerate(gold_records):
         if _strongreject_annotation_is_current(rec, judge_model):
             continue
         rec.pop("strongreject", None)
-        messages = build_strongreject_messages(
-            _record_forbidden_prompt(rec), rec.get("response", "")
-        )
-        content: str | None = None
-        for attempt in range(5):
-            try:
-                completion = client.chat.completions.create(  # type: ignore[call-overload]
-                    model=judge_model,
-                    messages=messages,
-                    temperature=STRONGREJECT_JUDGE_KWARGS["temperature"],
-                    max_tokens=STRONGREJECT_JUDGE_KWARGS["max_tokens"],
-                    **extra_kwargs,
-                )
-                cache_stats.record(completion.usage)
-                content = completion.choices[0].message.content
-                if content is not None:
-                    content = content.strip()
-                    break
-                print(f"  Empty content (attempt {attempt + 1})")
-                time.sleep(2**attempt)
-            except Exception as e:
-                print(f"  Judge API error (attempt {attempt + 1}): {e}")
-                time.sleep(2**attempt)
+        tasks.append(_strongreject_task_for_record(idx, rec))
 
-        if content is None:
-            rec["strongreject"] = _with_strongreject_metadata(
-                rec, {"error": "api_failed"}, judge_model
-            )
-            continue
+    if not tasks:
+        print("  All records already annotated")
+        return gold_records
 
-        verdict = parse_strongreject_verdict(content)
-        if verdict is None:
-            rec["strongreject"] = _with_strongreject_metadata(
-                rec,
-                {
-                    "error": "parse_failed",
-                    "raw_response": content[:2000],
-                },
-                judge_model,
-            )
-        else:
-            rec["strongreject"] = _with_strongreject_metadata(rec, verdict, judge_model)
+    print(f"  Judging {len(tasks)} records synchronously...")
+    result = execute_sync_evaluator(
+        records=gold_records,
+        tasks=tasks,
+        adapter=_strongreject_execution_adapter(judge_model),
+        client=client,
+        model=judge_model,
+        common_request_kwargs=_strongreject_request_kwargs(prompt_cache_retention),
+    )
 
-    print(f"\n{cache_stats.summary()}")
+    if result.cache_stats is not None:
+        print(f"\n{result.cache_stats.summary()}")
     return gold_records
 
 
