@@ -21,6 +21,7 @@ from run_intervention import (  # noqa: E402
     parse_args as parse_intervention_args,
 )
 from run_negative_control import (  # noqa: E402
+    CANONICAL_JAILBREAK_GENERATION,
     _jailbreak_csv2_eval_dir,
     _run_faitheval_alphas,
     assert_h_neuron_baseline_matches_control_contract,
@@ -800,6 +801,173 @@ def test_negative_control_contract_rejects_prompt_style_drift(
             configs,
             write_if_missing=True,
         )
+
+
+def test_negative_control_jailbreak_contract_binds_decode_semantics(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    output_base = tmp_path / "control"
+
+    _set_argv(
+        monkeypatch,
+        "--benchmark",
+        "jailbreak",
+        "--classifier_path",
+        str(classifier_path),
+        "--output_base",
+        str(output_base),
+        "--jailbreak_batch_size",
+        "1",
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    contract = build_negative_control_run_contract(args, alphas, configs)
+
+    assert contract["benchmark_config"]["jailbreak_batch_size"] == 1
+    assert contract["benchmark_config"]["jailbreak_generation"] == dict(
+        CANONICAL_JAILBREAK_GENERATION
+    )
+
+
+def test_negative_control_jailbreak_contract_rejects_decode_drift(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    output_base = tmp_path / "control"
+
+    _set_argv(
+        monkeypatch,
+        "--benchmark",
+        "jailbreak",
+        "--classifier_path",
+        str(classifier_path),
+        "--output_base",
+        str(output_base),
+        "--jailbreak_batch_size",
+        "1",
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    contract = build_negative_control_run_contract(args, alphas, configs)
+    output_base.mkdir(parents=True)
+    assert_or_write_negative_control_run_contract(
+        str(output_base),
+        contract,
+        alphas,
+        configs,
+        write_if_missing=True,
+    )
+    seed_dir = output_base / "seed_0_unconstrained"
+    seed_dir.mkdir()
+    (seed_dir / "alpha_0.0.jsonl").write_text('{"id": "old"}\n')
+
+    monkeypatch.setitem(CANONICAL_JAILBREAK_GENERATION, "top_p", 0.9)
+    drifted_contract = build_negative_control_run_contract(args, alphas, configs)
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"benchmark_config\.jailbreak_generation\.top_p",
+    ):
+        assert_or_write_negative_control_run_contract(
+            str(output_base),
+            drifted_contract,
+            alphas,
+            configs,
+            write_if_missing=True,
+        )
+
+
+def test_negative_control_jailbreak_contract_rejects_legacy_missing_decode_binding(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    output_base = tmp_path / "control"
+
+    _set_argv(
+        monkeypatch,
+        "--benchmark",
+        "jailbreak",
+        "--classifier_path",
+        str(classifier_path),
+        "--output_base",
+        str(output_base),
+        "--jailbreak_batch_size",
+        "1",
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    contract = build_negative_control_run_contract(args, alphas, configs)
+    legacy_contract = json.loads(json.dumps(contract))
+    del legacy_contract["benchmark_config"]["jailbreak_generation"]
+
+    output_base.mkdir(parents=True)
+    (output_base / "control_run_config.json").write_text(
+        json.dumps(legacy_contract),
+        encoding="utf-8",
+    )
+    seed_dir = output_base / "seed_0_unconstrained"
+    seed_dir.mkdir()
+    (seed_dir / "alpha_0.0.jsonl").write_text('{"id": "old"}\n')
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"benchmark_config\.jailbreak_generation",
+    ):
+        assert_or_write_negative_control_run_contract(
+            str(output_base),
+            contract,
+            alphas,
+            configs,
+            write_if_missing=True,
+        )
+
+
+def test_negative_control_non_jailbreak_contract_shape_remains_compatible(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    output_base = tmp_path / "control"
+
+    _set_argv(
+        monkeypatch,
+        "--classifier_path",
+        str(classifier_path),
+        "--output_base",
+        str(output_base),
+        "--prompt_style",
+        "standard",
+        "--max_samples",
+        "100",
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    contract = build_negative_control_run_contract(args, alphas, configs)
+    output_base.mkdir(parents=True)
+
+    assert "jailbreak_generation" not in contract["benchmark_config"]
+    assert_or_write_negative_control_run_contract(
+        str(output_base),
+        contract,
+        alphas,
+        configs,
+        write_if_missing=True,
+    )
+    assert_or_write_negative_control_run_contract(
+        str(output_base),
+        contract,
+        alphas,
+        configs,
+        write_if_missing=True,
+    )
 
 
 def test_parse_args_max_samples_accepts_int(
