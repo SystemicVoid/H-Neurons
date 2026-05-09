@@ -22,7 +22,7 @@ from dataclasses import dataclass
 import json
 import os
 import sys
-from typing import Any, cast
+from typing import Any, Mapping, cast
 
 import joblib
 import matplotlib
@@ -52,6 +52,13 @@ from run_intervention import (
     normalize_answer,
     run_jailbreak,
     tokenize_chat,
+)
+from benchmark_sweep import (
+    AlphaSweepContext,
+    SweepRecord,
+    print_faitheval_alpha_summary,
+    run_alpha_sweep,
+    summarize_faitheval_alpha_file,
 )
 from run_contract import (
     CONTROL_RUN_CONFIG_FILENAME,
@@ -385,35 +392,29 @@ def _run_faitheval_alphas(
     prompt_style: str = "anti_compliance",
 ):
     """FaithEval inline MC evaluation under the chosen prompt style."""
-    from tqdm import tqdm
 
-    results = {}
-    for alpha in alphas:
-        out_path = os.path.join(output_dir, f"alpha_{alpha:.1f}.jsonl")
-        existing_ids = load_existing_ids(out_path)
+    def _set_alpha(alpha: float) -> None:
         scaler.alpha = alpha
-        total = 0
 
-        for sample in tqdm(samples, desc=f"[{config_name}] α={alpha:.1f}"):
-            if sample["id"] in existing_ids:
-                total += 1
-                continue
+    def _generate_record(
+        sample: Mapping[str, Any],
+        context: AlphaSweepContext,
+    ) -> SweepRecord:
+        prompt = _faitheval_prompt(sample, prompt_style)
+        messages = [{"role": "user", "content": prompt}]
+        response, _ = generate_response(
+            model,
+            tokenizer,
+            messages,
+            do_sample=False,
+            max_new_tokens=256,
+        )
 
-            prompt = _faitheval_prompt(sample, prompt_style)
-            messages = [{"role": "user", "content": prompt}]
-            response, _ = generate_response(
-                model,
-                tokenizer,
-                messages,
-                do_sample=False,
-                max_new_tokens=256,
-            )
-
-            chosen = extract_mc_answer(response, sample["valid_letters"])
-            total += 1
-            record = {
+        chosen = extract_mc_answer(response, sample["valid_letters"])
+        return SweepRecord(
+            {
                 "id": sample["id"],
-                "alpha": alpha,
+                "alpha": context.alpha,
                 "question": sample["question"],
                 "counterfactual_key": sample["counterfactual_key"],
                 "chosen": chosen,
@@ -421,33 +422,20 @@ def _run_faitheval_alphas(
                 "compliance": chosen == sample["counterfactual_key"],
                 "parse_failure": chosen is None,
             }
-            with open(out_path, "a") as f:
-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
-
-        comp_total, n_total, pf_total = _count_compliance_and_pf(out_path)
-        results[str(alpha)] = {
-            "compliance_rate": round(comp_total / n_total, 4) if n_total else 0,
-            "n_compliant": comp_total,
-            "n_total": n_total,
-            "parse_failures": pf_total,
-            "compliance": build_rate_summary(
-                comp_total,
-                n_total,
-                count_key="n_compliant",
-                total_key="n_total",
-            ),
-            "parse_failure": build_rate_summary(
-                pf_total,
-                n_total,
-                count_key="count",
-                total_key="n_total",
-            ),
-        }
-        print(
-            f"  α={alpha:.1f}: {comp_total / n_total:.1%} compliance "
-            f"({comp_total}/{n_total}), {pf_total} parse failures"
         )
-    return results
+
+    sweep_result = run_alpha_sweep(
+        benchmark="faitheval",
+        samples=samples,
+        alphas=alphas,
+        output_dir=output_dir,
+        config_name=config_name,
+        set_alpha=_set_alpha,
+        generate_record=_generate_record,
+        summarize_alpha=summarize_faitheval_alpha_file,
+        print_alpha_summary=print_faitheval_alpha_summary,
+    )
+    return sweep_result.results
 
 
 def _run_falseqa_alphas(
