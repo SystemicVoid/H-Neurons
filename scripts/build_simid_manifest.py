@@ -19,6 +19,15 @@ import random
 from typing import Any
 
 from build_truthfulqa_splits import stable_question_id
+from simid_run_contract import (
+    DEFAULT_TRUTHFULQA_LEAKAGE_POLICY,
+    REQUIRED_ROW_FIELDS as CONTRACT_REQUIRED_ROW_FIELDS,
+    SIMID_MANIFEST_SCHEMA_VERSION,
+    file_sha256,
+    load_simid_manifest as contract_load_simid_manifest,
+    validate_manifest,
+    validate_manifest_row,
+)
 from utils import (
     finish_run_provenance,
     format_path_for_metadata,
@@ -31,35 +40,20 @@ from utils import (
 
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMA_VERSION = "simid_manifest/v1"
+SCHEMA_VERSION = SIMID_MANIFEST_SCHEMA_VERSION
+REQUIRED_ROW_FIELDS = CONTRACT_REQUIRED_ROW_FIELDS
+load_simid_manifest = contract_load_simid_manifest
 BUILDER_VERSION = "2026-04-24"
 DEFAULT_MODEL_PATH = "google/gemma-3-4b-it"
 DEFAULT_ITI_ARTIFACT = (
     "data/contrastive/truthfulness/iti_truthfulqa_paperfaithful_production/iti_heads.pt"
 )
-DEFAULT_TRUTHFULQA_LEAKAGE_POLICY = "heldout_only"
 DEFAULT_TRUTHFULQA_CSV = "data/benchmarks/TruthfulQA.csv"
 DEFAULT_BRIDGE_MANIFEST = "data/manifests/triviaqa_bridge_test500_seed42.json"
 DEFAULT_BRIDGE_PARQUET = "data/TriviaQA/rc.nocontext/validation-00000-of-00001.parquet"
 DEFAULT_BRIDGE_BASELINE = (
     "data/gemma3_4b/intervention/triviaqa_bridge/test_experiment/alpha_1.0.jsonl"
 )
-REQUIRED_ROW_FIELDS = {
-    "sample_id",
-    "dataset",
-    "question",
-    "open_prompt",
-    "mc_options",
-    "gold_option_indices",
-    "gold_aliases",
-    "distractor_provenance",
-    "option_order_seed",
-    "option_order_replicate",
-    "model_path",
-    "tokenizer_path",
-    "iti_artifact_path",
-    "iti_artifact_sha256",
-}
 ABSTENTION_NORMALIZED = {
     "i do not know",
     "i don t know",
@@ -87,17 +81,6 @@ class BridgeItem:
 def stable_int_hash(*parts: object, modulo: int = 2**31 - 1) -> int:
     text = "\n".join(str(part) for part in parts)
     return int(hashlib.sha256(text.encode("utf-8")).hexdigest()[:16], 16) % modulo
-
-
-def file_sha256(path: str | Path) -> str | None:
-    resolved = Path(path)
-    if not resolved.exists() or not resolved.is_file():
-        return None
-    h = hashlib.sha256()
-    with resolved.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def dedupe_preserve_order(values: Iterable[str]) -> list[str]:
@@ -706,76 +689,6 @@ def build_bridge_rows(
         if n_rows is not None and base_rows_built >= n_rows:
             break
     return rows
-
-
-def validate_manifest_row(row: dict[str, Any]) -> None:
-    missing = sorted(REQUIRED_ROW_FIELDS - set(row))
-    if missing:
-        raise ValueError(f"SIMID manifest row missing fields: {missing}")
-    if not row["sample_id"]:
-        raise ValueError("SIMID manifest row has empty sample_id")
-    mc_options = row["mc_options"]
-    if not isinstance(mc_options, list) or len(mc_options) < 2:
-        raise ValueError(f"{row['sample_id']}: mc_options must contain >=2 options")
-    if len({normalize_answer(option) for option in mc_options}) != len(mc_options):
-        raise ValueError(
-            f"{row['sample_id']}: mc_options contain normalized duplicates"
-        )
-    gold_indices = row["gold_option_indices"]
-    if not isinstance(gold_indices, list) or not gold_indices:
-        raise ValueError(f"{row['sample_id']}: gold_option_indices cannot be empty")
-    if any(int(idx) < 0 or int(idx) >= len(mc_options) for idx in gold_indices):
-        raise ValueError(f"{row['sample_id']}: gold option index out of range")
-    provenance = row["distractor_provenance"]
-    if not isinstance(provenance, list) or len(provenance) != len(mc_options):
-        raise ValueError(
-            f"{row['sample_id']}: distractor_provenance must align with mc_options"
-        )
-    replicate = row["option_order_replicate"]
-    if not isinstance(replicate, int) or isinstance(replicate, bool):
-        raise ValueError(
-            f"{row['sample_id']}: option_order_replicate must be an integer"
-        )
-    if replicate < 0:
-        raise ValueError(
-            f"{row['sample_id']}: option_order_replicate must be non-negative"
-        )
-    if not isinstance(row["gold_aliases"], list) or not row["gold_aliases"]:
-        raise ValueError(f"{row['sample_id']}: gold_aliases cannot be empty")
-
-
-def validate_manifest(payload: dict[str, Any]) -> None:
-    if payload.get("schema_version") != SCHEMA_VERSION:
-        raise ValueError(
-            f"Expected schema_version={SCHEMA_VERSION!r}, "
-            f"got {payload.get('schema_version')!r}"
-        )
-    rows = payload.get("rows")
-    if not isinstance(rows, list) or not rows:
-        raise ValueError("SIMID manifest must contain a non-empty rows list")
-    seen: set[str] = set()
-    for row in rows:
-        if not isinstance(row, dict):
-            raise ValueError("SIMID manifest rows must be objects")
-        validate_manifest_row(row)
-        sample_id = str(row["sample_id"])
-        if sample_id in seen:
-            raise ValueError(f"Duplicate SIMID sample_id: {sample_id}")
-        seen.add(sample_id)
-
-
-def load_simid_manifest(path: str | Path) -> list[dict[str, Any]]:
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    if isinstance(payload, list):
-        rows = payload
-        payload = {"schema_version": SCHEMA_VERSION, "rows": rows}
-    if not isinstance(payload, dict):
-        raise ValueError("SIMID manifest must be a JSON object or row list")
-    validate_manifest(payload)
-    rows = payload["rows"]
-    if not isinstance(rows, list):
-        raise ValueError("SIMID manifest rows must be a list")
-    return [dict(row) for row in rows]
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

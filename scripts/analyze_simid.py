@@ -21,8 +21,22 @@ from evaluate_intervention import (
     build_triviaqa_bridge_judge_messages,
     parse_simpleqa_verdict,
 )
-from build_simid_manifest import load_simid_manifest
-from run_simid import OPEN_GRADING_METHOD, assert_noop_equivalence, load_jsonl
+from run_simid import OPEN_GRADING_METHOD, assert_noop_equivalence
+from simid_run_contract import (
+    TRUTHFULQA_LEAKAGE_METADATA_FIELDS,
+    file_sha256,
+    load_jsonl,
+    load_locked_manifest as contract_load_locked_manifest,
+    load_locked_manifest_metadata,
+    resolve_repo_metadata_path as _resolve_repo_metadata_path,
+    stable_payload_sha256 as contract_stable_payload_sha256,
+    validate_complete_run_outputs,
+    validate_content_bound_path,
+    validate_exclusion_provenance,
+    validate_locked_manifest_heldout_only,
+    validate_locked_manifest_source_binding,
+    validate_run_manifest_excludes_ids,
+)
 from simid_open_calibration import (
     OPEN_CORRECTNESS_CALIBRATED_CLAIM_CONTRACT,
     OPEN_CORRECTNESS_CALIBRATION_INVALID_BLOCKER,
@@ -60,6 +74,7 @@ from utils import (
 
 
 ROOT = Path(__file__).resolve().parent.parent
+load_locked_manifest_rows = contract_load_locked_manifest
 
 MetricFn = Callable[[dict[str, Any]], float | bool]
 RowGroup = list[dict[str, Any]]
@@ -67,18 +82,6 @@ Panel = dict[float, dict[str, RowGroup]]
 StratumKey = tuple[str, str, tuple[tuple[str, str], ...]]
 PRIMARY_MC_RATE_METRIC = "mc_letter_likelihood_correct"
 PRIMARY_MC_MARGIN_METRIC = "mc_full_margin"
-TRUTHFULQA_LEAKAGE_METADATA_FIELDS = (
-    "truthfulqa_artifact_split",
-    "truthfulqa_seen_in_iti_fit",
-    "truthfulqa_leakage_policy",
-)
-LOCKED_MANIFEST_METADATA_FIELDS = (
-    "base_sample_id",
-    "dataset",
-    "mc_endpoint",
-    "option_order_replicate",
-    *TRUTHFULQA_LEAKAGE_METADATA_FIELDS,
-)
 OPTION_ORDER_STABILITY_THRESHOLD = 0.25
 DEFAULT_SIMID_OPEN_JUDGE_MODEL = "gpt-4o"
 SIMID_OPEN_ADJUDICATION_SCHEMA_VERSION = "simid_open_adjudication/v1"
@@ -215,127 +218,6 @@ def parse_alpha_label(path: Path) -> float:
     if not stem.startswith("alpha_"):
         raise ValueError(f"Expected alpha_*.jsonl file, got {path}")
     return float(stem.removeprefix("alpha_"))
-
-
-def load_locked_manifest_metadata(run_dir: Path) -> dict[str, dict[str, Any]]:
-    path = run_dir / "manifest.locked.json"
-    if not path.exists():
-        return {}
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    rows = payload.get("rows", []) if isinstance(payload, dict) else []
-    metadata: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        if not isinstance(row, dict) or "sample_id" not in row:
-            continue
-        metadata[str(row["sample_id"])] = {
-            field: row.get(field) for field in LOCKED_MANIFEST_METADATA_FIELDS
-        }
-    return metadata
-
-
-def load_locked_manifest_rows(run_dir: Path) -> list[dict[str, Any]]:
-    path = run_dir / "manifest.locked.json"
-    if not path.exists():
-        raise FileNotFoundError(f"Missing SIMID locked manifest: {path}")
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    rows = payload.get("rows") if isinstance(payload, dict) else None
-    if not isinstance(rows, list) or not rows:
-        raise ValueError(f"Missing non-empty rows in SIMID locked manifest: {path}")
-    return [row for row in rows if isinstance(row, dict)]
-
-
-def load_locked_manifest_payload(run_dir: Path) -> dict[str, Any]:
-    path = run_dir / "manifest.locked.json"
-    if not path.exists():
-        raise FileNotFoundError(f"Missing SIMID locked manifest: {path}")
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"Expected SIMID locked manifest object in {path}")
-    rows = payload.get("rows")
-    if not isinstance(rows, list) or not rows:
-        raise ValueError(f"Missing non-empty rows in SIMID locked manifest: {path}")
-    return payload
-
-
-def load_run_config(run_dir: Path) -> dict[str, Any]:
-    path = run_dir / "run_config.json"
-    if not path.exists():
-        raise FileNotFoundError(f"Missing SIMID run_config.json: {path}")
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"Expected SIMID run_config.json object in {path}")
-    return payload
-
-
-def run_config_condition_names(run_config: dict[str, Any]) -> list[str]:
-    conditions = run_config.get("conditions")
-    if not isinstance(conditions, list) or not conditions:
-        raise ValueError("SIMID run_config.json has no conditions")
-    names: list[str] = []
-    for condition in conditions:
-        if isinstance(condition, dict):
-            name = condition.get("name")
-        else:
-            name = condition
-        if not isinstance(name, str) or not name:
-            raise ValueError(f"Invalid SIMID run_config condition: {condition!r}")
-        names.append(name)
-    return names
-
-
-def run_config_alphas(run_config: dict[str, Any]) -> list[float]:
-    alphas = run_config.get("alphas")
-    if not isinstance(alphas, list) or not alphas:
-        raise ValueError("SIMID run_config.json has no alphas")
-    return [float(alpha) for alpha in alphas]
-
-
-def validate_complete_run_outputs(run_dir: Path) -> None:
-    """Refuse to analyze partial SIMID runs by default."""
-    run_config = load_run_config(run_dir)
-    manifest_rows = load_locked_manifest_rows(run_dir)
-    expected_ids: set[str] = set()
-    for row in manifest_rows:
-        sample_id = row.get("sample_id")
-        if not isinstance(sample_id, str) or not sample_id:
-            raise ValueError("SIMID locked manifest contains a row without sample_id")
-        expected_ids.add(sample_id)
-    expected_n = int(run_config.get("n_rows") or len(expected_ids))
-    if len(expected_ids) != expected_n:
-        raise ValueError(
-            "SIMID locked manifest sample_id count does not match run_config "
-            f"n_rows: {len(expected_ids)} vs {expected_n}"
-        )
-
-    problems: list[str] = []
-    for condition in run_config_condition_names(run_config):
-        for alpha in run_config_alphas(run_config):
-            path = run_dir / condition / f"alpha_{format_alpha_label(alpha)}.jsonl"
-            if not path.exists():
-                problems.append(f"missing {path}")
-                continue
-            rows = load_jsonl(path)
-            ids = [str(row.get("sample_id")) for row in rows]
-            id_set = set(ids)
-            if len(rows) != expected_n:
-                problems.append(f"{path} has {len(rows)} rows, expected {expected_n}")
-            if len(ids) != len(id_set):
-                problems.append(f"{path} contains duplicate sample_id values")
-            if id_set != expected_ids:
-                missing = sorted(expected_ids - id_set)[:5]
-                extra = sorted(id_set - expected_ids)[:5]
-                problems.append(
-                    f"{path} sample_id set does not match locked manifest "
-                    f"(missing={missing}, extra={extra})"
-                )
-    if problems:
-        preview = "; ".join(problems[:8])
-        extra = "" if len(problems) <= 8 else f"; ... {len(problems) - 8} more"
-        raise ValueError(
-            "SIMID run outputs are incomplete or inconsistent; refusing analysis. "
-            f"{preview}{extra}. Pass --allow-incomplete-run only for a clearly "
-            "diagnostic partial analysis."
-        )
 
 
 def load_run_rows(run_dir: Path) -> list[dict[str, Any]]:
@@ -951,22 +833,8 @@ def adjudicate_open_responses_batch(
     }
 
 
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def stable_payload_sha256(payload: Any) -> str:
-    encoded = json.dumps(
-        payload,
-        ensure_ascii=True,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return contract_stable_payload_sha256(payload, ensure_ascii=True)
 
 
 def prospective_effect_run_row_sha256(row: dict[str, Any]) -> str:
@@ -975,60 +843,10 @@ def prospective_effect_run_row_sha256(row: dict[str, Any]) -> str:
         "open_adjudication",
         "prospective_open_label",
     }
-    return stable_payload_sha256(
-        {key: value for key, value in row.items() if key not in excluded}
+    return contract_stable_payload_sha256(
+        {key: value for key, value in row.items() if key not in excluded},
+        ensure_ascii=True,
     )
-
-
-def _resolve_repo_metadata_path(path_value: Any) -> Path:
-    if not isinstance(path_value, str) or not path_value:
-        raise ValueError("metadata path is missing")
-    path = Path(path_value)
-    return path if path.is_absolute() else ROOT / path
-
-
-def validate_content_bound_path(entry: dict[str, Any], *, row_name: str) -> Path:
-    path = _resolve_repo_metadata_path(entry.get("path"))
-    expected_hash = entry.get("content_sha256")
-    if not isinstance(expected_hash, str) or not expected_hash:
-        raise ValueError(f"{row_name}: missing content_sha256")
-    observed_hash = file_sha256(path)
-    if observed_hash != expected_hash:
-        raise ValueError(
-            f"{row_name}: content_sha256 mismatch for {path} "
-            f"(expected {expected_hash}, observed {observed_hash})"
-        )
-    return path
-
-
-def load_exclusion_ids(path: Path) -> set[str]:
-    ids: set[str] = set()
-    for row in load_jsonl(path):
-        if not isinstance(row, dict):
-            continue
-        for key in ("sample_id", "base_sample_id"):
-            value = row.get(key)
-            if isinstance(value, str) and value:
-                ids.add(value)
-    return ids
-
-
-def validate_run_manifest_excludes_ids(*, run_dir: Path, exclusion_file: Path) -> None:
-    excluded = load_exclusion_ids(exclusion_file)
-    if not excluded:
-        raise ValueError("prospective open authority exclusion file is empty")
-    overlapping: set[str] = set()
-    for row in load_locked_manifest_rows(run_dir):
-        for key in ("sample_id", "base_sample_id"):
-            value = row.get(key)
-            if isinstance(value, str) and value in excluded:
-                overlapping.add(value)
-    if overlapping:
-        preview = sorted(overlapping)[:10]
-        raise ValueError(
-            "Prospective SIMID effect manifest reuses excluded historical MVP "
-            f"or calibration sample IDs: {preview}"
-        )
 
 
 def _metric_float(metrics: dict[str, Any], key: str, *, path: Path) -> float:
@@ -1117,148 +935,6 @@ def validate_prospective_open_analysis(
     if file_sha256(label_path) != payload.get("label_file_sha256"):
         raise ValueError(f"{path}: label_file_sha256 mismatch")
     return payload
-
-
-def _resolved_paths_match(left: str, right: str) -> bool:
-    return (
-        _resolve_repo_metadata_path(left).resolve()
-        == _resolve_repo_metadata_path(right).resolve()
-    )
-
-
-def _manifest_sample_ids(rows: list[Any], *, row_source: str) -> list[str]:
-    sample_ids: list[str] = []
-    seen: set[str] = set()
-    for row in rows:
-        sample_id = row.get("sample_id") if isinstance(row, dict) else None
-        if not isinstance(sample_id, str) or not sample_id:
-            raise ValueError(f"{row_source} contains a row without sample_id")
-        if sample_id in seen:
-            raise ValueError(f"{row_source} contains duplicate sample_id: {sample_id}")
-        sample_ids.append(sample_id)
-        seen.add(sample_id)
-    return sample_ids
-
-
-def validate_locked_manifest_source_binding(
-    *,
-    run_dir: Path,
-    authority_manifest: dict[str, Any],
-    authority_path: Path,
-) -> None:
-    planned = authority_manifest.get("planned_run")
-    if not isinstance(planned, dict):
-        raise ValueError(f"{authority_path}: missing planned_run")
-    sample_design = planned.get("sample_design")
-    if not isinstance(sample_design, dict):
-        raise ValueError(f"{authority_path}: missing planned_run.sample_design")
-    planned_manifest = sample_design.get("manifest_path")
-    if not isinstance(planned_manifest, str) or not planned_manifest:
-        raise ValueError(f"{authority_path}: missing planned manifest path")
-    expected_manifest_hash = sample_design.get("manifest_sha256")
-    if not isinstance(expected_manifest_hash, str) or not expected_manifest_hash:
-        raise ValueError(f"{authority_path}: missing planned manifest hash")
-    locked_payload = load_locked_manifest_payload(run_dir)
-    source_manifest = locked_payload.get("source_manifest")
-    source_manifest_sha256 = locked_payload.get("source_manifest_sha256")
-    if not isinstance(source_manifest, str) or not source_manifest:
-        raise ValueError("locked manifest source_manifest is not recorded")
-    if not isinstance(source_manifest_sha256, str) or not source_manifest_sha256:
-        raise ValueError("locked manifest source_manifest_sha256 is not recorded")
-    if "max_items" not in locked_payload:
-        raise ValueError("locked manifest max_items is not recorded")
-    if locked_payload["max_items"] is not None:
-        raise ValueError(
-            "locked manifest was created with max_items; prospective open authority "
-            "requires the full planned manifest"
-        )
-    if not _resolved_paths_match(source_manifest, planned_manifest):
-        raise ValueError(
-            "locked manifest was not built from the planned manifest path "
-            f"{planned_manifest}"
-        )
-    source_manifest_path = _resolve_repo_metadata_path(source_manifest)
-    observed_hash = file_sha256(source_manifest_path)
-    if observed_hash != source_manifest_sha256:
-        raise ValueError(
-            "locked manifest source_manifest_sha256 does not match the planned "
-            f"manifest file {source_manifest_path}"
-        )
-    if expected_manifest_hash != source_manifest_sha256:
-        raise ValueError(
-            "locked manifest source_manifest_sha256 does not match authority "
-            "planned_run.sample_design.manifest_sha256"
-        )
-    planned_rows = load_simid_manifest(source_manifest_path)
-    locked_rows = locked_payload.get("rows")
-    if not isinstance(locked_rows, list) or not locked_rows:
-        raise ValueError("locked manifest rows are not recorded")
-    planned_sample_ids = _manifest_sample_ids(
-        planned_rows,
-        row_source=f"planned manifest {source_manifest_path}",
-    )
-    locked_sample_ids = _manifest_sample_ids(
-        locked_rows,
-        row_source="locked manifest",
-    )
-    if locked_sample_ids != planned_sample_ids:
-        missing = sorted(set(planned_sample_ids) - set(locked_sample_ids))[:5]
-        extra = sorted(set(locked_sample_ids) - set(planned_sample_ids))[:5]
-        raise ValueError(
-            "locked manifest sample_ids do not match the full planned manifest "
-            f"(locked={len(locked_sample_ids)}, planned={len(planned_sample_ids)}, "
-            f"missing={missing}, extra={extra})"
-        )
-
-
-def validate_locked_manifest_heldout_only(*, run_dir: Path) -> None:
-    for row in load_locked_manifest_rows(run_dir):
-        if row.get("dataset") != "truthfulqa":
-            continue
-        if row.get("truthfulqa_leakage_policy") != "heldout_only":
-            raise ValueError("TruthfulQA locked manifest row is not heldout_only")
-        if row.get("truthfulqa_seen_in_iti_fit") is not False:
-            raise ValueError("TruthfulQA locked manifest row was seen in ITI fit")
-
-
-def validate_exclusion_provenance(
-    *,
-    authority_manifest: dict[str, Any],
-    authority_path: Path,
-    exclusion_path: Path,
-) -> None:
-    planned = authority_manifest.get("planned_run")
-    sample_design = planned.get("sample_design") if isinstance(planned, dict) else None
-    if not isinstance(sample_design, dict):
-        raise ValueError(f"{authority_path}: missing planned_run.sample_design")
-    exclusion_file = sample_design.get("exclusion_file")
-    if not isinstance(exclusion_file, str) or not exclusion_file:
-        raise ValueError(f"{authority_path}: missing sample_design.exclusion_file")
-    if not _resolved_paths_match(exclusion_file, str(exclusion_path)):
-        raise ValueError(
-            f"{authority_path}: sample_design.exclusion_file does not match "
-            "exclusions.path"
-        )
-    rows = load_jsonl(exclusion_path)
-    sources: set[str] = set()
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        source = row.get("source")
-        if isinstance(source, str) and source:
-            sources.add(source)
-        if row.get("also_in_prospective_open_calibration_sample") is True:
-            sources.add("prospective_open_calibration_private_case_map")
-    required_sources = {
-        "historical_mvp_locked_manifest",
-        "prospective_open_calibration_private_case_map",
-    }
-    missing = required_sources - sources
-    if missing:
-        raise ValueError(
-            f"{authority_path}: exclusions missing expected provenance sources "
-            f"{sorted(missing)}"
-        )
 
 
 def validate_authority_manifest_path_binding(

@@ -12,6 +12,7 @@ from pathlib import Path
 import shlex
 from typing import Any
 
+from simid_run_contract import build_planned_sample_design, file_sha256
 from utils import (
     finish_run_provenance,
     format_path_for_metadata,
@@ -119,14 +120,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Allow replacing files in an existing prospective effect gate directory.",
     )
     return parser.parse_args(argv)
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def text_sha256(text: str) -> str:
@@ -755,30 +748,25 @@ def build_planned_run(
                 )
             ],
         ],
-        "sample_design": {
-            "manifest_path": relpath(args.planned_manifest),
-            "manifest_sha256": file_sha256(args.planned_manifest),
-            "manifest_builder": "scripts/build_simid_manifest.py",
-            "seed": int(args.seed),
-            "truthfulqa": {
-                "n": args.planned_truthfulqa_n,
-                "leakage_policy": "heldout_only",
-                "minimum_rows": int(args.min_truthfulqa_rows),
-            },
-            "triviaqa_bridge": {
-                "n": int(args.planned_bridge_n),
-                "minimum_rows": int(args.min_bridge_rows),
-            },
-            "option_order_replicates": int(args.option_order_replicates),
-            "exclusion_file": relpath(
+        "sample_design": build_planned_sample_design(
+            manifest_path=relpath(args.planned_manifest),
+            manifest_sha256=file_sha256(args.planned_manifest),
+            manifest_builder="scripts/build_simid_manifest.py",
+            seed=int(args.seed),
+            truthfulqa_n=args.planned_truthfulqa_n,
+            min_truthfulqa_rows=int(args.min_truthfulqa_rows),
+            bridge_n=int(args.planned_bridge_n),
+            min_bridge_rows=int(args.min_bridge_rows),
+            option_order_replicates=int(args.option_order_replicates),
+            exclusion_file=relpath(
                 args.output_dir / "excluded_effect_sample_ids.jsonl"
             ),
-            "freshness_policy": (
+            freshness_policy=(
                 "Exclude historical MVP locked-manifest sample/base IDs and "
                 "all private prospective-open-calibration sample/base IDs before "
                 "applying dataset caps."
             ),
-        },
+        ),
         "alpha_grid": {
             "values": ALPHA_GRID,
             "baseline_alpha": BASELINE_ALPHA,

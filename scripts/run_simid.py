@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-import hashlib
 import json
 import math
 from pathlib import Path
@@ -28,13 +27,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from build_simid_manifest import (
-    DEFAULT_ITI_ARTIFACT,
-    SCHEMA_VERSION,
-    file_sha256,
-    load_simid_manifest,
-    validate_manifest,
-)
+from build_simid_manifest import DEFAULT_ITI_ARTIFACT
 from intervene_iti import ITIHeadScaler, load_iti_artifact
 from run_intervention import (
     assistant_content_continuation_ids_from_chat_messages,
@@ -54,6 +47,14 @@ from utils import (
     provenance_status_for_exception,
     sanitize_run_config,
     start_run_provenance,
+)
+from simid_run_contract import (
+    SIMID_RESUME_CONTRACT_SCHEMA_VERSION,
+    SIMID_RUN_CONFIG_SCHEMA_VERSION,
+    file_sha256,
+    load_jsonl,
+    load_or_create_locked_manifest,
+    stable_payload_sha256,
 )
 
 
@@ -182,16 +183,6 @@ def build_iti_config(
     }
 
 
-def stable_payload_sha256(payload: Any) -> str:
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
-
-
 def alpha_output_has_rows(path: Path) -> bool:
     if not path.exists():
         return False
@@ -231,7 +222,7 @@ def build_resume_contract(
     iti_config: dict[str, Any],
 ) -> dict[str, Any]:
     return {
-        "schema_version": "simid_resume_contract/v1",
+        "schema_version": SIMID_RESUME_CONTRACT_SCHEMA_VERSION,
         "manifest_rows_sha256": stable_payload_sha256(rows),
         "iti_config": iti_config,
         "conditions": [asdict(condition) for condition in conditions],
@@ -265,7 +256,7 @@ def build_run_config(
         iti_config=iti_config,
     )
     return {
-        "schema_version": "simid_run_config/v1",
+        "schema_version": SIMID_RUN_CONFIG_SCHEMA_VERSION,
         "args": sanitize_run_config(vars(args)),
         "manifest": args.manifest,
         "locked_manifest": str(locked_manifest_path),
@@ -339,67 +330,11 @@ def write_or_validate_run_config(
         )
 
 
-def load_locked_manifest(path: Path) -> list[dict[str, Any]]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"{path} must be a JSON object")
-    rows = payload.get("rows")
-    if not isinstance(rows, list):
-        raise ValueError(f"{path} must contain a rows list")
-    validate_manifest({"schema_version": SCHEMA_VERSION, "rows": rows})
-    return [dict(row) for row in rows]
-
-
-def load_or_create_locked_manifest(
-    *,
-    source_manifest: str,
-    output_dir: Path,
-    max_items: int | None,
-) -> list[dict[str, Any]]:
-    locked_manifest_path = output_dir / "manifest.locked.json"
-    if locked_manifest_path.exists():
-        return load_locked_manifest(locked_manifest_path)
-
-    rows = load_simid_manifest(source_manifest)
-    if max_items is not None:
-        rows = rows[:max_items]
-    if not rows:
-        raise ValueError("No SIMID rows selected")
-    locked_manifest_path.write_text(
-        json.dumps(
-            {
-                "schema_version": "simid_locked_manifest/v1",
-                "source_manifest": source_manifest,
-                "source_manifest_sha256": file_sha256(Path(source_manifest)),
-                "max_items": max_items,
-                "rows": rows,
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    return rows
-
-
 def append_jsonl(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=False) + "\n")
         handle.flush()
-
-
-def load_jsonl(path: Path) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    if not path.exists():
-        return rows
-    with path.open(encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
 
 
 def option_letters(n_options: int) -> list[str]:

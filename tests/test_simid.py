@@ -294,6 +294,26 @@ def test_manifest_validation_requires_option_order_replicate() -> None:
         validate_manifest({"schema_version": "simid_manifest/v1", "rows": [row]})
 
 
+def test_manifest_validation_rejects_duplicate_base_replicate() -> None:
+    row_a = _manifest_row("simid_test_1", "Question A?")
+    row_b = _manifest_row("simid_test_1_alt", "Question B?")
+    row_b["base_sample_id"] = row_a["base_sample_id"]
+    row_b["option_order_replicate"] = row_a["option_order_replicate"]
+
+    with pytest.raises(ValueError, match="base_sample_id/option_order_replicate"):
+        validate_manifest(
+            {"schema_version": "simid_manifest/v1", "rows": [row_a, row_b]}
+        )
+
+
+def test_manifest_validation_rejects_non_integer_gold_indices() -> None:
+    row = _manifest_row("simid_test_1", "Question?")
+    row["gold_option_indices"] = [0.0]
+
+    with pytest.raises(ValueError, match="gold_option_indices"):
+        validate_manifest({"schema_version": "simid_manifest/v1", "rows": [row]})
+
+
 def test_bridge_distractor_selection_excludes_own_gold_aliases() -> None:
     item = BridgeItem("q1", "Question?", ["Paris", "City of Paris"])
     candidates = [
@@ -735,6 +755,24 @@ def test_prospective_open_authority_rejects_truncated_locked_manifest(
     )
 
     with pytest.raises(ValueError, match="full planned manifest"):
+        load_prospective_open_authority_manifest(authority, run_dir=run_dir)
+
+
+def test_prospective_open_authority_rejects_locked_manifest_content_mismatch(
+    tmp_path: Path,
+) -> None:
+    locked_row = {
+        **_manifest_row("simid_new", "Tampered?"),
+        "dataset": "truthfulqa",
+        "truthfulqa_leakage_policy": "heldout_only",
+        "truthfulqa_seen_in_iti_fit": False,
+    }
+    run_dir, authority, _manifest_row_payload = _prospective_authority_fixture(
+        tmp_path,
+        locked_manifest_rows=[locked_row],
+    )
+
+    with pytest.raises(ValueError, match="content does not match"):
         load_prospective_open_authority_manifest(authority, run_dir=run_dir)
 
 
@@ -1551,6 +1589,70 @@ def test_validate_complete_run_outputs_rejects_partial_alpha_file(
     )
 
     with pytest.raises(ValueError, match="incomplete or inconsistent"):
+        validate_complete_run_outputs(run_dir)
+
+
+def test_validate_complete_run_outputs_reports_run_config_alpha_field(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    manifest_rows = [_manifest_row("simid_a", "Question A?")]
+    (run_dir / "manifest.locked.json").write_text(
+        json.dumps(
+            {"schema_version": "simid_locked_manifest/v1", "rows": manifest_rows}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "run_config.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "simid_run_config/v1",
+                "n_rows": 1,
+                "conditions": [{"name": "selected"}],
+                "alphas": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="run_config.json.alphas"):
+        validate_complete_run_outputs(run_dir)
+
+
+def test_validate_complete_run_outputs_rejects_missing_sample_id(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    (run_dir / "selected").mkdir(parents=True)
+    manifest_rows = [_manifest_row("simid_a", "Question A?")]
+    (run_dir / "manifest.locked.json").write_text(
+        json.dumps(
+            {"schema_version": "simid_locked_manifest/v1", "rows": manifest_rows}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "run_config.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "simid_run_config/v1",
+                "n_rows": 1,
+                "conditions": [{"name": "selected"}],
+                "alphas": [0.0],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "selected" / "alpha_0.0.jsonl").write_text(
+        json.dumps({"id": "simid_a"}) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="invalid sample_id"):
         validate_complete_run_outputs(run_dir)
 
 
