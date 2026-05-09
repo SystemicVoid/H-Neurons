@@ -6,13 +6,18 @@ from __future__ import annotations
 import argparse
 import ast
 from collections import Counter, defaultdict
-from collections.abc import Iterable
 from datetime import datetime, timezone
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
+from artifact_io import (
+    file_sha256,
+    read_jsonl_strict as load_jsonl,
+    text_sha256 as stable_hash,
+    write_canonical_json as write_json,
+    write_jsonl_rows as write_jsonl,
+)
 from utils import (
     finish_run_provenance,
     format_alpha_label,
@@ -82,44 +87,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def stable_hash(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def json_dumps(payload: Any, *, pretty: bool = False) -> str:
-    if pretty:
-        return json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n"
-
-
 def json_for_script(payload: Any) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True).replace("</", "<\\/")
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.write_text(json_dumps(payload, pretty=True), encoding="utf-8")
-
-
-def write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
-    with path.open("w", encoding="utf-8") as handle:
-        for row in rows:
-            handle.write(json_dumps(row))
-
-
-def load_jsonl(path: Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
 
 
 def row_alpha_label(row: dict[str, Any]) -> str:
