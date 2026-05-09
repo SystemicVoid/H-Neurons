@@ -38,6 +38,7 @@ load_truthfulqa_mc = run_intervention.load_truthfulqa_mc
 load_triviaqa_bridge = run_intervention.load_triviaqa_bridge
 run_truthfulqa_mc = run_intervention.run_truthfulqa_mc
 triviaqa_bridge_attempted = run_intervention.triviaqa_bridge_attempted
+run_faitheval_sweep = run_intervention.run_faitheval_sweep
 run_faitheval_anti_compliance_margin = (
     run_intervention.run_faitheval_anti_compliance_margin
 )
@@ -1558,6 +1559,90 @@ class TestDirectionSanityGate:
 # ---------------------------------------------------------------------------
 # FaithEval MC log-prob scoring
 # ---------------------------------------------------------------------------
+
+
+def test_faitheval_intervention_adapter_uses_shared_sweep(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class DummyScaler:
+        alpha = -1.0
+
+    responses = iter(["B", "A"])
+    observed: list[tuple[None | list[dict[str, str]], list[int], float]] = []
+
+    def fake_generate_response(
+        _model,
+        _tokenizer,
+        messages,
+        *,
+        do_sample,
+        max_new_tokens,
+        cached_input_ids=None,
+        scaler=None,
+        **_kwargs,
+    ):
+        del do_sample, max_new_tokens
+        assert cached_input_ids is not None
+        assert scaler is not None
+        observed.append((messages, cached_input_ids.tolist(), scaler.alpha))
+        return (
+            next(responses),
+            {"generate_s": 0.01, "prompt_tokens": 3, "generated_tokens": 1},
+        )
+
+    monkeypatch.setattr(
+        "run_intervention.generate_response",
+        fake_generate_response,
+    )
+
+    results, alpha_throughput = run_faitheval_sweep(
+        model=object(),
+        tokenizer=object(),
+        scaler=DummyScaler(),
+        samples=[
+            {
+                "id": "faith_1",
+                "context": "Context",
+                "question": "Question?",
+                "choices_text": "A) One\nB) Two",
+                "valid_letters": ["A", "B"],
+                "counterfactual_key": "B",
+            },
+            {
+                "id": "faith_2",
+                "context": "Context",
+                "question": "Question?",
+                "choices_text": "A) One\nB) Two",
+                "valid_letters": ["A", "B"],
+                "counterfactual_key": "B",
+            },
+        ],
+        alphas=[0.0],
+        output_dir=str(tmp_path),
+        prompt_style="standard",
+        prompt_cache={
+            "faith_1": torch.tensor([1, 2, 3], dtype=torch.long),
+            "faith_2": torch.tensor([4, 5, 6], dtype=torch.long),
+        },
+        benchmark_name="faitheval",
+        throughput_session_id="test-session",
+    )
+
+    assert results["0.0"]["n_total"] == 2
+    assert results["0.0"]["n_compliant"] == 1
+    assert alpha_throughput["0.0"]["samples_completed"] == 2
+    assert alpha_throughput["0.0"]["generated_tokens_total"] == 2
+    assert observed == [(None, [1, 2, 3], 0.0), (None, [4, 5, 6], 0.0)]
+    records = [
+        json.loads(line)
+        for line in (tmp_path / "alpha_0.0.jsonl").read_text().splitlines()
+    ]
+    assert [record["compliance"] for record in records] == [True, False]
+    assert all(
+        record["timings"]["throughput_session_id"] == "test-session"
+        for record in records
+    )
 
 
 class TestFaithEvalAntiComplianceMargin:

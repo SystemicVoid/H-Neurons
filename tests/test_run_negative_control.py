@@ -22,6 +22,7 @@ from run_intervention import (  # noqa: E402
 )
 from run_negative_control import (  # noqa: E402
     _jailbreak_csv2_eval_dir,
+    _run_faitheval_alphas,
     assert_h_neuron_baseline_matches_control_contract,
     assert_or_write_negative_control_run_contract,
     build_comparison_summary,
@@ -159,6 +160,59 @@ def test_faitheval_prompt_standard_differs_from_anti_compliance() -> None:
     assert standard != anti
     assert "expert in retrieval question answering" in standard
     assert "answer based on your own knowledge" in anti
+
+
+def test_faitheval_negative_control_adapter_uses_shared_sweep(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class DummyScaler:
+        alpha = -1.0
+
+    responses = iter(["B", "unparseable"])
+    monkeypatch.setattr(
+        "run_negative_control.generate_response",
+        lambda *_args, **_kwargs: (next(responses), {}),
+    )
+
+    results = _run_faitheval_alphas(
+        model=object(),
+        tokenizer=object(),
+        samples=[
+            {
+                "id": "faith_1",
+                "context": "Context",
+                "question": "Question?",
+                "choices_text": "A) One\nB) Two",
+                "valid_letters": ["A", "B"],
+                "counterfactual_key": "B",
+            },
+            {
+                "id": "faith_2",
+                "context": "Context",
+                "question": "Question?",
+                "choices_text": "A) One\nB) Two",
+                "valid_letters": ["A", "B"],
+                "counterfactual_key": "B",
+            },
+        ],
+        scaler=DummyScaler(),
+        alphas=[0.0],
+        output_dir=str(tmp_path),
+        config_name="seed_0_unconstrained",
+        prompt_style="standard",
+    )
+
+    assert results["0.0"]["n_total"] == 2
+    assert results["0.0"]["n_compliant"] == 1
+    assert results["0.0"]["parse_failures"] == 1
+    assert results["0.0"]["parse_failure"]["count"] == 1
+    records = [
+        json.loads(line)
+        for line in (tmp_path / "alpha_0.0.jsonl").read_text().splitlines()
+    ]
+    assert [record["alpha"] for record in records] == [0.0, 0.0]
+    assert [record["compliance"] for record in records] == [True, False]
 
 
 def test_mistral_wrapper_controls_reuse_baseline_prompt_and_sample_selection() -> None:

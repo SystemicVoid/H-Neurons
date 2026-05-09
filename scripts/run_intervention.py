@@ -30,7 +30,7 @@ import re
 import sys
 import time
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Mapping
 
 import torch
 import joblib
@@ -69,6 +69,12 @@ from run_contract import (
     build_run_contract,
     describe_sample_manifest,
     optional_file_sha256,
+)
+from benchmark_sweep import (
+    AlphaSweepContext,
+    SweepRecord,
+    run_alpha_sweep,
+    summarize_faitheval_alpha_file,
 )
 
 
@@ -1973,40 +1979,32 @@ def build_faitheval_answer_text_target_token_cache(
     return cache
 
 
-def run_faitheval(
+def run_faitheval_sweep(
     model,
     tokenizer,
     scaler,
     samples,
-    alpha,
+    alphas,
     output_dir,
     max_samples=None,
     prompt_style="anti_compliance",
     prompt_cache=None,
     wandb_module=None,
-    alpha_idx=0,
+    alpha_index_start: int = 1,
     throughput_state=None,
     benchmark_name="faitheval",
     throughput_session_id: str | None = None,
 ):
-    """Run FaithEval for a single alpha value. Returns compliance count."""
-    alpha_label = format_alpha_label(alpha)
-    out_path = os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
-    existing_ids = load_existing_ids(out_path)
+    """Run the FaithEval alpha sweep through the shared Benchmark Sweep module."""
+    alpha_throughput: dict[str, dict[str, Any]] = {}
 
-    if max_samples:
-        samples = samples[:max_samples]
+    def _set_alpha(alpha: float) -> None:
+        scaler.alpha = alpha
 
-    scaler.alpha = alpha
-    compliant = 0
-    total = 0
-
-    for sample in tqdm(samples, desc=f"FaithEval α={alpha_label}"):
-        if sample["id"] in existing_ids:
-            # Count existing results for accurate totals
-            total += 1
-            continue
-
+    def _generate_record(
+        sample: Mapping[str, Any],
+        context: AlphaSweepContext,
+    ) -> SweepRecord:
         wall_start_ts = time.time()
         _reset_scaler_sample_stats(scaler)
         cached_ids = prompt_cache.get(sample["id"]) if prompt_cache else None
@@ -2027,36 +2025,121 @@ def run_faitheval(
 
         chosen = extract_mc_answer(response, sample["valid_letters"])
         is_compliant = chosen == sample["counterfactual_key"]
-        if is_compliant:
-            compliant += 1
-        total += 1
 
         record = {
             "id": sample["id"],
-            "alpha": alpha,
+            "alpha": context.alpha,
             "question": sample["question"],
             "counterfactual_key": sample["counterfactual_key"],
             "chosen": chosen,
             "response": response,
             "compliance": is_compliant,
         }
+        return SweepRecord(
+            payload=record,
+            metadata={"timings": timings, "wall_start_ts": wall_start_ts},
+        )
+
+    def _write_record(
+        out_path: str,
+        sweep_record: SweepRecord,
+        context: AlphaSweepContext,
+    ) -> None:
+        metadata = sweep_record.metadata or {}
         finalize_record(
             out_path,
-            record,
-            timings,
+            sweep_record.payload,
+            dict(metadata["timings"]),
             scaler=scaler,
-            wall_start_ts=wall_start_ts,
+            wall_start_ts=float(metadata["wall_start_ts"]),
             benchmark=benchmark_name,
-            alpha=alpha,
-            alpha_idx=alpha_idx,
+            alpha=context.alpha,
+            alpha_idx=context.alpha_idx,
             wandb_module=wandb_module,
             throughput_state=throughput_state,
             throughput_session_id=throughput_session_id,
         )
 
-    # Recount from file for accuracy (includes resumed records)
-    compliant_total, n_total = _count_compliance(out_path)
-    return {"compliant_total": compliant_total, "n_total": n_total}
+    def _on_alpha_complete(
+        context: AlphaSweepContext,
+        _alpha_result: dict[str, Any],
+        alpha_wall_total_s: float,
+    ) -> None:
+        alpha_records = _load_records(context.output_path)
+        alpha_summary = build_alpha_throughput_summary(
+            alpha_records,
+            alpha_wall_total_s=_build_alpha_wall_total_override(
+                alpha_records,
+                current_session_id=throughput_session_id or "",
+                current_session_wall_total_s=alpha_wall_total_s,
+            )
+            if throughput_session_id is not None
+            else None,
+        )
+        alpha_throughput[str(context.alpha)] = alpha_summary
+        if wandb_module is not None:
+            wandb_module.log(
+                build_alpha_throughput_payload(
+                    alpha=context.alpha,
+                    alpha_idx=context.alpha_idx,
+                    throughput_summary=alpha_summary,
+                )
+            )
+
+    sweep_result = run_alpha_sweep(
+        benchmark=benchmark_name,
+        samples=samples,
+        alphas=alphas,
+        output_dir=output_dir,
+        max_samples=max_samples,
+        set_alpha=_set_alpha,
+        generate_record=_generate_record,
+        write_record=_write_record,
+        summarize_alpha=summarize_faitheval_alpha_file,
+        on_alpha_complete=_on_alpha_complete,
+        alpha_index_start=alpha_index_start,
+    )
+    return sweep_result.results, alpha_throughput
+
+
+def run_faitheval(
+    model,
+    tokenizer,
+    scaler,
+    samples,
+    alpha,
+    output_dir,
+    max_samples=None,
+    prompt_style="anti_compliance",
+    prompt_cache=None,
+    wandb_module=None,
+    alpha_idx=0,
+    throughput_state=None,
+    benchmark_name="faitheval",
+    throughput_session_id: str | None = None,
+):
+    """Run FaithEval for a single alpha value. Returns compliance count."""
+    results, _ = run_faitheval_sweep(
+        model,
+        tokenizer,
+        scaler,
+        samples,
+        [alpha],
+        output_dir,
+        max_samples=max_samples,
+        prompt_style=prompt_style,
+        prompt_cache=prompt_cache,
+        wandb_module=wandb_module,
+        alpha_index_start=alpha_idx,
+        throughput_state=throughput_state,
+        benchmark_name=benchmark_name,
+        throughput_session_id=throughput_session_id,
+    )
+    alpha_result = results[str(alpha)]
+    return {
+        "compliant_total": alpha_result["n_compliant"],
+        "n_total": alpha_result["n_total"],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -4986,48 +5069,66 @@ def main():
         print(f"Pre-tokenized {len(prompt_cache)} prompts for alpha sweep")
         extra_kwargs["prompt_cache"] = prompt_cache
 
-        for alpha_idx, alpha in enumerate(args.alphas, start=1):
-            alpha_label = format_alpha_label(alpha)
-            print(f"\n{'=' * 60}")
-            print(f"Running α = {alpha_label}")
-            print(f"{'=' * 60}")
-            alpha_wall_t0 = time.perf_counter()
-            run_fn(
+        if args.benchmark == "faitheval":
+            _, faith_alpha_throughput = run_faitheval_sweep(
                 model,
                 tokenizer,
                 scaler,
                 samples,
-                alpha,
+                args.alphas,
                 output_dir,
-                args.max_samples,
+                max_samples=args.max_samples,
+                prompt_style=args.prompt_style,
+                prompt_cache=prompt_cache,
                 wandb_module=wandb_module,
-                alpha_idx=alpha_idx,
                 throughput_state=throughput_state,
                 benchmark_name=args.benchmark,
                 throughput_session_id=throughput_session_id,
-                **extra_kwargs,
             )
-            alpha_wall_total_s = round(time.perf_counter() - alpha_wall_t0, 4)
-            alpha_records = _load_records(
-                os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
-            )
-            alpha_summary = build_alpha_throughput_summary(
-                alpha_records,
-                alpha_wall_total_s=_build_alpha_wall_total_override(
-                    alpha_records,
-                    current_session_id=throughput_session_id,
-                    current_session_wall_total_s=alpha_wall_total_s,
-                ),
-            )
-            alpha_throughput[str(alpha)] = alpha_summary
-            if wb_run is not None and wandb_module is not None:
-                wandb_module.log(
-                    build_alpha_throughput_payload(
-                        alpha=alpha,
-                        alpha_idx=alpha_idx,
-                        throughput_summary=alpha_summary,
-                    )
+            alpha_throughput.update(faith_alpha_throughput)
+        else:
+            for alpha_idx, alpha in enumerate(args.alphas, start=1):
+                alpha_label = format_alpha_label(alpha)
+                print(f"\n{'=' * 60}")
+                print(f"Running α = {alpha_label}")
+                print(f"{'=' * 60}")
+                alpha_wall_t0 = time.perf_counter()
+                run_fn(
+                    model,
+                    tokenizer,
+                    scaler,
+                    samples,
+                    alpha,
+                    output_dir,
+                    args.max_samples,
+                    wandb_module=wandb_module,
+                    alpha_idx=alpha_idx,
+                    throughput_state=throughput_state,
+                    benchmark_name=args.benchmark,
+                    throughput_session_id=throughput_session_id,
+                    **extra_kwargs,
                 )
+                alpha_wall_total_s = round(time.perf_counter() - alpha_wall_t0, 4)
+                alpha_records = _load_records(
+                    os.path.join(output_dir, f"alpha_{alpha_label}.jsonl")
+                )
+                alpha_summary = build_alpha_throughput_summary(
+                    alpha_records,
+                    alpha_wall_total_s=_build_alpha_wall_total_override(
+                        alpha_records,
+                        current_session_id=throughput_session_id,
+                        current_session_wall_total_s=alpha_wall_total_s,
+                    ),
+                )
+                alpha_throughput[str(alpha)] = alpha_summary
+                if wb_run is not None and wandb_module is not None:
+                    wandb_module.log(
+                        build_alpha_throughput_payload(
+                            alpha=alpha,
+                            alpha_idx=alpha_idx,
+                            throughput_summary=alpha_summary,
+                        )
+                    )
 
         # Aggregate results
         print(f"\n{'=' * 60}")
