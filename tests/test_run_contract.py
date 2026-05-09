@@ -55,6 +55,7 @@ def _intervention_contract() -> dict[str, Any]:
     return {
         "schema_version": INTERVENTION_RUN_CONFIG_SCHEMA_VERSION,
         **_shared_contract_fields(),
+        "intervention": {"mode": "neuron"},
     }
 
 
@@ -77,6 +78,45 @@ def _negative_control_contract(
         },
         "h_neuron_baseline": baseline_binding,
     }
+
+
+def _write_h_neuron_baseline_artifacts(
+    tmp_path: Path,
+    *,
+    contract_alphas: list[float],
+    result_alphas: list[float] | None = None,
+    intervention_mode: str = "neuron",
+) -> tuple[Path, Path, Path]:
+    result_alphas = contract_alphas if result_alphas is None else result_alphas
+    baseline_dir = tmp_path / "baseline"
+    baseline_dir.mkdir()
+    results_path = baseline_dir / "results.20260509_000000.json"
+    results_path.write_text(
+        json.dumps(
+            {
+                "benchmark": "faitheval",
+                "model_key": "mistral24b",
+                "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+                "classifier": "classifier.pkl",
+                "intervention_mode": intervention_mode,
+                "sample_manifest": {
+                    "path": "manifest.json",
+                    "content_sha256": "manifest-sha",
+                },
+                "prompt_style": "standard",
+                "results": {str(float(alpha)): {} for alpha in result_alphas},
+            },
+            indent=2,
+        )
+    )
+    intervention_contract = _intervention_contract()
+    intervention_contract["intervention"] = {"mode": intervention_mode}
+    intervention_contract["schedule"] = {
+        "alphas": [float(alpha) for alpha in contract_alphas]
+    }
+    contract_path = baseline_dir / INTERVENTION_RUN_CONFIG_FILENAME
+    contract_path.write_text(json.dumps(intervention_contract, indent=2))
+    return baseline_dir, results_path, contract_path
 
 
 def test_build_run_contract_preserves_shared_shape_and_classifier_hash(
@@ -235,28 +275,10 @@ def test_negative_control_guard_rejects_configless_output_files(
 def test_h_neuron_baseline_binding_hashes_and_checks_contract(
     tmp_path: Path,
 ) -> None:
-    baseline_dir = tmp_path / "baseline"
-    baseline_dir.mkdir()
-    results_path = baseline_dir / "results.20260509_000000.json"
-    results_path.write_text(
-        json.dumps(
-            {
-                "benchmark": "faitheval",
-                "model_key": "mistral24b",
-                "model": "mistralai/Mistral-Small-24B-Instruct-2501",
-                "classifier": "classifier.pkl",
-                "sample_manifest": {
-                    "path": "manifest.json",
-                    "content_sha256": "manifest-sha",
-                },
-                "prompt_style": "standard",
-                "results": {"0.0": {}, "1.0": {}, "3.0": {}},
-            },
-            indent=2,
-        )
+    baseline_dir, results_path, contract_path = _write_h_neuron_baseline_artifacts(
+        tmp_path,
+        contract_alphas=[0.0, 1.0, 3.0],
     )
-    contract_path = baseline_dir / INTERVENTION_RUN_CONFIG_FILENAME
-    contract_path.write_text(json.dumps(_intervention_contract(), indent=2))
 
     binding = load_h_neuron_baseline_binding(str(baseline_dir), [0.0, 1.0, 3.0])
 
@@ -278,3 +300,75 @@ def test_h_neuron_baseline_binding_hashes_and_checks_contract(
     contract_path.unlink()
     with pytest.raises(RuntimeError, match=r"missing intervention_run_config\.json"):
         load_h_neuron_baseline_binding(str(baseline_dir), [0.0, 1.0, 3.0])
+
+
+def test_h_neuron_baseline_alpha_superset_is_reusable(
+    tmp_path: Path,
+) -> None:
+    baseline_dir, _, _ = _write_h_neuron_baseline_artifacts(
+        tmp_path,
+        contract_alphas=[0.0, 0.5, 1.0, 3.0],
+    )
+
+    binding = load_h_neuron_baseline_binding(str(baseline_dir), [0.0, 1.0, 3.0])
+    contract = _negative_control_contract(binding)
+
+    assert binding["summary_identity"]["alphas"] == [0.0, 0.5, 1.0, 3.0]
+    assert_h_neuron_baseline_matches_control_contract(contract)
+
+
+def test_h_neuron_baseline_missing_contract_alpha_names_schedule_path(
+    tmp_path: Path,
+) -> None:
+    baseline_dir, _, _ = _write_h_neuron_baseline_artifacts(
+        tmp_path,
+        contract_alphas=[0.0, 1.0],
+        result_alphas=[0.0, 1.0, 3.0],
+    )
+    binding = load_h_neuron_baseline_binding(str(baseline_dir), [0.0, 1.0, 3.0])
+    contract = _negative_control_contract(binding)
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            r"schedule\.alphas .*missing required alphas \[3\.0\].*"
+            r"expected required alphas \[0\.0, 1\.0, 3\.0\].*"
+            r"observed alphas \[0\.0, 1\.0\]"
+        ),
+    ):
+        assert_h_neuron_baseline_matches_control_contract(contract)
+
+
+def test_h_neuron_baseline_missing_summary_alpha_names_summary_path(
+    tmp_path: Path,
+) -> None:
+    baseline_dir, _, _ = _write_h_neuron_baseline_artifacts(
+        tmp_path,
+        contract_alphas=[0.0, 1.0, 3.0],
+        result_alphas=[0.0, 1.0],
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            r"alphas .*missing required alphas \[3\.0\].*"
+            r"expected required alphas \[0\.0, 1\.0, 3\.0\].*"
+            r"observed alphas \[0\.0, 1\.0\]"
+        ),
+    ):
+        load_h_neuron_baseline_binding(str(baseline_dir), [0.0, 1.0, 3.0])
+
+
+def test_h_neuron_baseline_alpha_superset_keeps_intervention_mode_strict(
+    tmp_path: Path,
+) -> None:
+    baseline_dir, _, _ = _write_h_neuron_baseline_artifacts(
+        tmp_path,
+        contract_alphas=[0.0, 0.5, 1.0, 3.0],
+        intervention_mode="sae",
+    )
+    binding = load_h_neuron_baseline_binding(str(baseline_dir), [0.0, 1.0, 3.0])
+    contract = _negative_control_contract(binding)
+
+    with pytest.raises(RuntimeError, match=r"intervention\.mode"):
+        assert_h_neuron_baseline_matches_control_contract(contract)

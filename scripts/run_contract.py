@@ -16,6 +16,7 @@ CONTROL_RUN_CONFIG_FILENAME = "control_run_config.json"
 INTERVENTION_RUN_CONFIG_SCHEMA_VERSION = "intervention_run_config/v1"
 NEGATIVE_CONTROL_RUN_CONFIG_SCHEMA_VERSION = "negative_control_run_config/v1"
 H_NEURON_BASELINE_BINDING_SCHEMA_VERSION = "h_neuron_baseline_binding/v1"
+H_NEURON_BASELINE_INTERVENTION_MODE = "neuron"
 MISMATCH_PREVIEW_LIMIT = 8
 
 
@@ -164,6 +165,77 @@ def contract_mismatch_paths(
     if expected != observed:
         return [prefix or "<root>"]
     return []
+
+
+def _coerce_alpha_sequence(value: Any) -> list[float] | None:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        return None
+    try:
+        return [float(alpha) for alpha in value]
+    except (TypeError, ValueError):
+        return None
+
+
+def _summary_result_alphas(results: Mapping[str, Any]) -> list[float]:
+    observed_alphas: list[float] = []
+    for key in results:
+        try:
+            observed_alphas.append(float(key))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"H-neuron baseline summary has a non-numeric alpha result key: {key!r}"
+            ) from exc
+    return observed_alphas
+
+
+def _alpha_subset_mismatch(
+    *,
+    path: str,
+    expected: Any,
+    observed: Any,
+) -> str | None:
+    """Allow H-baseline reuse only when observed alphas cover required alphas.
+
+    Extra observed alpha points are reusable evidence for a subset control
+    comparison, but a missing required alpha means the control curve has no
+    matching H-neuron measurement. Keep this exception local so every non-alpha
+    binding field still flows through strict contract equality.
+    """
+    expected_alphas = _coerce_alpha_sequence(expected)
+    observed_alphas = _coerce_alpha_sequence(observed)
+    if expected_alphas is None or observed_alphas is None:
+        return (
+            f"{path} (expected required alphas {expected!r}; "
+            f"observed alphas {observed!r})"
+        )
+
+    observed_alpha_set = set(observed_alphas)
+    missing_alphas = [
+        alpha for alpha in expected_alphas if alpha not in observed_alpha_set
+    ]
+    if not missing_alphas:
+        return None
+    return (
+        f"{path} (missing required alphas {missing_alphas}; "
+        f"expected required alphas {expected_alphas}; "
+        f"observed alphas {observed_alphas})"
+    )
+
+
+def _without_schedule_alphas(contract_subset: Mapping[str, Any]) -> dict[str, Any]:
+    stripped = dict(contract_subset)
+    schedule = stripped.get("schedule")
+    if isinstance(schedule, dict):
+        stripped_schedule = dict(schedule)
+        stripped_schedule.pop("alphas", None)
+        stripped["schedule"] = stripped_schedule
+    return stripped
+
+
+def _without_summary_alphas(summary_identity: Mapping[str, Any]) -> dict[str, Any]:
+    stripped = dict(summary_identity)
+    stripped.pop("alphas", None)
+    return stripped
 
 
 def format_mismatch_preview(
@@ -346,13 +418,16 @@ def load_h_neuron_baseline_binding(
         raise RuntimeError(
             f"H-neuron baseline summary at {resolved_results_path} has no results object"
         )
-    missing_alphas = [
-        str(float(alpha)) for alpha in alphas if str(float(alpha)) not in results
-    ]
-    if missing_alphas:
+    observed_summary_alphas = _summary_result_alphas(results)
+    missing_summary_alpha_mismatch = _alpha_subset_mismatch(
+        path="alphas",
+        expected=alphas,
+        observed=observed_summary_alphas,
+    )
+    if missing_summary_alpha_mismatch is not None:
         raise RuntimeError(
-            "H-neuron baseline summary is missing required alpha results: "
-            f"{missing_alphas}"
+            "H-neuron baseline summary is missing required alpha results. "
+            f"Mismatched fields: {missing_summary_alpha_mismatch}."
         )
 
     contract_path = os.path.join(
@@ -384,16 +459,26 @@ def load_h_neuron_baseline_binding(
             "model_key": baseline_summary.get("model_key"),
             "model_path": baseline_summary.get("model"),
             "classifier_path": baseline_summary.get("classifier"),
+            "intervention_mode": baseline_summary.get("intervention_mode"),
             "sample_manifest": baseline_summary.get("sample_manifest"),
             "prompt_style": baseline_summary.get("prompt_style"),
-            "alphas": [float(alpha) for alpha in alphas],
+            "alphas": observed_summary_alphas,
         },
         "run_contract": baseline_contract,
     }
 
 
-def _baseline_comparison_subset(contract: dict[str, Any]) -> dict[str, Any]:
+def _baseline_comparison_subset(
+    contract: dict[str, Any],
+    *,
+    expect_h_neuron_intervention: bool,
+) -> dict[str, Any]:
     return {
+        "schema_version": (
+            INTERVENTION_RUN_CONFIG_SCHEMA_VERSION
+            if expect_h_neuron_intervention
+            else contract.get("schema_version")
+        ),
         "benchmark": contract.get("benchmark"),
         "model": contract.get("model"),
         "classifier": contract.get("classifier"),
@@ -402,6 +487,11 @@ def _baseline_comparison_subset(contract: dict[str, Any]) -> dict[str, Any]:
             "alphas": contract.get("schedule", {}).get("alphas"),
         },
         "benchmark_config": contract.get("benchmark_config"),
+        "intervention": (
+            {"mode": H_NEURON_BASELINE_INTERVENTION_MODE}
+            if expect_h_neuron_intervention
+            else contract.get("intervention")
+        ),
     }
 
 
@@ -415,14 +505,30 @@ def assert_h_neuron_baseline_matches_control_contract(
     if not isinstance(baseline_contract, dict):
         raise RuntimeError("H-neuron baseline binding is missing run_contract")
 
-    expected = _baseline_comparison_subset(contract)
-    observed = _baseline_comparison_subset(baseline_contract)
+    expected = _baseline_comparison_subset(
+        contract,
+        expect_h_neuron_intervention=True,
+    )
+    observed = _baseline_comparison_subset(
+        baseline_contract,
+        expect_h_neuron_intervention=False,
+    )
     expected_benchmark_config = expected.get("benchmark_config") or {}
     observed_benchmark_config = observed.get("benchmark_config") or {}
     observed["benchmark_config"] = {
         key: observed_benchmark_config.get(key) for key in expected_benchmark_config
     }
-    mismatches = contract_mismatch_paths(expected, observed)
+    mismatches = contract_mismatch_paths(
+        _without_schedule_alphas(expected),
+        _without_schedule_alphas(observed),
+    )
+    schedule_alpha_mismatch = _alpha_subset_mismatch(
+        path="schedule.alphas",
+        expected=expected.get("schedule", {}).get("alphas"),
+        observed=observed.get("schedule", {}).get("alphas"),
+    )
+    if schedule_alpha_mismatch is not None:
+        mismatches.append(schedule_alpha_mismatch)
     if mismatches:
         raise RuntimeError(
             "H-neuron baseline contract does not match negative-control contract. "
@@ -435,11 +541,27 @@ def assert_h_neuron_baseline_matches_control_contract(
         "model_key": contract.get("model", {}).get("key"),
         "model_path": contract.get("model", {}).get("path"),
         "classifier_path": contract.get("classifier", {}).get("path"),
+        "intervention_mode": H_NEURON_BASELINE_INTERVENTION_MODE,
         "sample_manifest": contract.get("sample_selection", {}).get("sample_manifest"),
         "prompt_style": contract.get("benchmark_config", {}).get("prompt_style"),
         "alphas": contract.get("schedule", {}).get("alphas"),
     }
-    summary_mismatches = contract_mismatch_paths(expected_summary, summary_identity)
+    if isinstance(summary_identity, Mapping):
+        summary_mismatches = contract_mismatch_paths(
+            _without_summary_alphas(expected_summary),
+            _without_summary_alphas(summary_identity),
+        )
+        observed_summary_alphas = summary_identity.get("alphas")
+    else:
+        summary_mismatches = contract_mismatch_paths(expected_summary, summary_identity)
+        observed_summary_alphas = None
+    summary_alpha_mismatch = _alpha_subset_mismatch(
+        path="alphas",
+        expected=expected_summary.get("alphas"),
+        observed=observed_summary_alphas,
+    )
+    if summary_alpha_mismatch is not None:
+        summary_mismatches.append(summary_alpha_mismatch)
     if summary_mismatches:
         raise RuntimeError(
             "H-neuron baseline summary does not match negative-control contract. "
