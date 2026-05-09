@@ -246,8 +246,14 @@ class TestD7PairedReport:
         assert paired["csv2_yes"]["estimate_pp"] < 0.0
         assert paired["substantive_compliance"]["estimate_pp"] < 0.0
         assert paired["intent_match"]["estimate"] == pytest.approx(-1.0)
+        assert "measurement" not in paired["intent_match"]
+        assert "confidence" not in paired["intent_match"]["bootstrap"]
         assert paired["C"]["estimate"] == pytest.approx(-1.0)
         assert paired["harmful_payload_share"]["estimate"] == pytest.approx(-0.125)
+        assert "measurement" not in candidate_summary["harmful_payload_share"]
+        assert (
+            "confidence" not in candidate_summary["harmful_payload_share"]["bootstrap"]
+        )
         assert candidate_summary["pivot_position"]["estimate"] is None
         assert candidate_summary["pivot_position"]["n_defined"] == 0
         assert candidate_summary["pivot_position"]["pivot_null_count"] == 2
