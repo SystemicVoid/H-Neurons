@@ -34,6 +34,82 @@ class Interval:
         }
 
 
+@dataclass(frozen=True)
+class MeasurementEstimate:
+    estimate: float | None
+    interval: Interval | None
+    confidence: float
+    resampling_unit: str
+    scale: str
+    missing_data_policy: str
+    bootstrap: dict[str, Any] | None = None
+    n: int | None = None
+    n_defined: int | None = None
+    n_paired: int | None = None
+
+    def measurement_metadata(self) -> dict[str, Any]:
+        return {
+            "confidence": float(self.confidence),
+            "resampling_unit": self.resampling_unit,
+            "scale": self.scale,
+            "missing_data_policy": self.missing_data_policy,
+        }
+
+    def to_dict(
+        self,
+        *,
+        estimate_key: str = "estimate",
+        interval_key: str = "ci",
+        include_measurement: bool = True,
+        include_bootstrap: bool = True,
+        include_bootstrap_confidence: bool = True,
+    ) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            estimate_key: None if self.estimate is None else float(self.estimate),
+            interval_key: None if self.interval is None else self.interval.to_dict(),
+        }
+        if self.n is not None:
+            out["n"] = int(self.n)
+        if self.n_defined is not None:
+            out["n_defined"] = int(self.n_defined)
+        if self.n_paired is not None:
+            out["n_paired"] = int(self.n_paired)
+        if self.bootstrap is not None and include_bootstrap:
+            bootstrap = dict(self.bootstrap)
+            if not include_bootstrap_confidence:
+                bootstrap.pop("confidence", None)
+            out["bootstrap"] = bootstrap
+        if include_measurement:
+            out["measurement"] = self.measurement_metadata()
+        return out
+
+
+def _bootstrap_metadata(
+    *,
+    confidence: float,
+    n_resamples: int,
+    seed: int,
+    resampling_unit: str,
+    interval: str = "percentile",
+) -> dict[str, Any]:
+    return {
+        "n_resamples": int(n_resamples),
+        "seed": int(seed),
+        "confidence": float(confidence),
+        "resampling": resampling_unit,
+        "interval": interval,
+    }
+
+
+def _interval_from_dict(raw: dict[str, Any]) -> Interval:
+    return Interval(
+        lower=float(raw["lower"]),
+        upper=float(raw["upper"]),
+        level=float(raw["level"]),
+        method=str(raw["method"]),
+    )
+
+
 def percentile_interval(
     samples: np.ndarray,
     confidence: float = DEFAULT_CONFIDENCE,
@@ -44,6 +120,296 @@ def percentile_interval(
     lower, upper = np.quantile(samples, [alpha / 2.0, 1.0 - alpha / 2.0])
     return Interval(
         lower=float(lower), upper=float(upper), level=confidence, method=method
+    )
+
+
+def bootstrap_mean_estimate(
+    values: np.ndarray,
+    *,
+    confidence: float = DEFAULT_CONFIDENCE,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    resampling_unit: str = "iid_rows",
+    scale: str = "raw",
+    missing_data_policy: str = "not_applicable",
+) -> MeasurementEstimate:
+    arr = np.asarray(values, dtype=float)
+    if arr.ndim != 1:
+        raise ValueError("Mean estimate expects a one-dimensional array")
+    n = len(arr)
+    if n == 0:
+        return MeasurementEstimate(
+            estimate=0.0,
+            interval=percentile_interval(
+                np.array([0.0]),
+                confidence,
+                method="bootstrap_percentile_mean",
+            ),
+            confidence=confidence,
+            resampling_unit=resampling_unit,
+            scale=scale,
+            missing_data_policy=missing_data_policy,
+        )
+
+    rng = np.random.default_rng(seed)
+    samples = np.empty(n_resamples, dtype=float)
+    for sample_idx in range(n_resamples):
+        indices = rng.choice(n, size=n, replace=True)
+        samples[sample_idx] = float(arr[indices].mean())
+
+    return MeasurementEstimate(
+        estimate=float(arr.mean()),
+        interval=percentile_interval(
+            samples,
+            confidence,
+            method="bootstrap_percentile_mean",
+        ),
+        confidence=confidence,
+        resampling_unit=resampling_unit,
+        scale=scale,
+        missing_data_policy=missing_data_policy,
+        bootstrap=_bootstrap_metadata(
+            confidence=confidence,
+            n_resamples=n_resamples,
+            seed=seed,
+            resampling_unit=resampling_unit,
+        ),
+    )
+
+
+def bootstrap_mean_estimate_nullable(
+    values: np.ndarray,
+    *,
+    confidence: float = DEFAULT_CONFIDENCE,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    resampling_unit: str = "iid_rows",
+    scale: str = "raw",
+    missing_data_policy: str = "drop_nan",
+) -> MeasurementEstimate:
+    arr = np.asarray(values, dtype=float)
+    if arr.ndim != 1:
+        raise ValueError("Mean estimate expects a one-dimensional array")
+    defined = arr[~np.isnan(arr)]
+    if len(defined) == 0:
+        return MeasurementEstimate(
+            estimate=None,
+            interval=None,
+            confidence=confidence,
+            resampling_unit=resampling_unit,
+            scale=scale,
+            missing_data_policy=missing_data_policy,
+            n_defined=0,
+        )
+    estimate = bootstrap_mean_estimate(
+        defined,
+        confidence=confidence,
+        n_resamples=n_resamples,
+        seed=seed,
+        resampling_unit=resampling_unit,
+        scale=scale,
+        missing_data_policy=missing_data_policy,
+    )
+    return MeasurementEstimate(
+        estimate=estimate.estimate,
+        interval=estimate.interval,
+        confidence=estimate.confidence,
+        resampling_unit=estimate.resampling_unit,
+        scale=estimate.scale,
+        missing_data_policy=estimate.missing_data_policy,
+        bootstrap=estimate.bootstrap,
+        n_defined=int(len(defined)),
+    )
+
+
+def paired_mean_delta_estimate(
+    baseline: np.ndarray,
+    comparison: np.ndarray,
+    *,
+    confidence: float = DEFAULT_CONFIDENCE,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    resampling_unit: str = "paired_by_sample_id",
+    scale: str = "raw_delta",
+    missing_data_policy: str = "not_applicable",
+) -> MeasurementEstimate:
+    baseline_arr = np.asarray(baseline, dtype=float)
+    comparison_arr = np.asarray(comparison, dtype=float)
+    if baseline_arr.shape != comparison_arr.shape:
+        raise ValueError("Paired mean-delta inputs must have matching shapes")
+    if baseline_arr.ndim != 1:
+        raise ValueError("Paired mean-delta inputs must be one-dimensional")
+
+    n_items = len(baseline_arr)
+    if n_items == 0:
+        return MeasurementEstimate(
+            estimate=None,
+            interval=None,
+            confidence=confidence,
+            resampling_unit=resampling_unit,
+            scale=scale,
+            missing_data_policy=missing_data_policy,
+        )
+
+    rng = np.random.default_rng(seed)
+    samples = np.empty(n_resamples, dtype=float)
+    for sample_idx in range(n_resamples):
+        indices = rng.choice(n_items, size=n_items, replace=True)
+        samples[sample_idx] = float(
+            comparison_arr[indices].mean() - baseline_arr[indices].mean()
+        )
+
+    return MeasurementEstimate(
+        estimate=float(comparison_arr.mean() - baseline_arr.mean()),
+        interval=percentile_interval(
+            samples,
+            confidence,
+            method="bootstrap_percentile_paired_mean",
+        ),
+        confidence=confidence,
+        resampling_unit=resampling_unit,
+        scale=scale,
+        missing_data_policy=missing_data_policy,
+        bootstrap=_bootstrap_metadata(
+            confidence=confidence,
+            n_resamples=n_resamples,
+            seed=seed,
+            resampling_unit=resampling_unit,
+        ),
+    )
+
+
+def paired_mean_delta_estimate_nullable(
+    baseline: np.ndarray,
+    comparison: np.ndarray,
+    *,
+    confidence: float = DEFAULT_CONFIDENCE,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    resampling_unit: str = "paired_by_sample_id",
+    scale: str = "raw_delta",
+    missing_data_policy: str = "drop_nan_pairs",
+) -> MeasurementEstimate:
+    baseline_arr = np.asarray(baseline, dtype=float)
+    comparison_arr = np.asarray(comparison, dtype=float)
+    if baseline_arr.shape != comparison_arr.shape:
+        raise ValueError("Paired mean-delta inputs must have matching shapes")
+    if baseline_arr.ndim != 1:
+        raise ValueError("Paired mean-delta inputs must be one-dimensional")
+
+    defined_mask = ~np.isnan(baseline_arr) & ~np.isnan(comparison_arr)
+    paired_n = int(defined_mask.sum())
+    if paired_n == 0:
+        return MeasurementEstimate(
+            estimate=None,
+            interval=None,
+            confidence=confidence,
+            resampling_unit=resampling_unit,
+            scale=scale,
+            missing_data_policy=missing_data_policy,
+            n_paired=0,
+        )
+    estimate = paired_mean_delta_estimate(
+        baseline_arr[defined_mask],
+        comparison_arr[defined_mask],
+        confidence=confidence,
+        n_resamples=n_resamples,
+        seed=seed,
+        resampling_unit=resampling_unit,
+        scale=scale,
+        missing_data_policy=missing_data_policy,
+    )
+    return MeasurementEstimate(
+        estimate=estimate.estimate,
+        interval=estimate.interval,
+        confidence=estimate.confidence,
+        resampling_unit=estimate.resampling_unit,
+        scale=estimate.scale,
+        missing_data_policy=estimate.missing_data_policy,
+        bootstrap=estimate.bootstrap,
+        n_paired=paired_n,
+    )
+
+
+def paired_binary_rate_difference_estimate(
+    baseline: np.ndarray,
+    comparison: np.ndarray,
+    *,
+    confidence: float = DEFAULT_CONFIDENCE,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    resampling_unit: str = "paired_by_sample_id",
+    scale: str = "percentage_points",
+    missing_data_policy: str = "not_applicable",
+) -> MeasurementEstimate:
+    baseline_arr = np.asarray(baseline, dtype=bool)
+    comparison_arr = np.asarray(comparison, dtype=bool)
+    if baseline_arr.shape != comparison_arr.shape:
+        raise ValueError("baseline and comparison must have matching shapes")
+    if baseline_arr.ndim != 1:
+        raise ValueError("baseline and comparison must be one-dimensional")
+    if len(baseline_arr) == 0:
+        return MeasurementEstimate(
+            estimate=None,
+            interval=None,
+            confidence=confidence,
+            resampling_unit=resampling_unit,
+            scale=scale,
+            missing_data_policy=missing_data_policy,
+            n_paired=0,
+        )
+
+    summary = paired_bootstrap_binary_rate_difference(
+        baseline_arr,
+        comparison_arr,
+        confidence=confidence,
+        n_resamples=n_resamples,
+        seed=seed,
+    )
+    return MeasurementEstimate(
+        estimate=float(summary["estimate_pp"]),
+        interval=_interval_from_dict(summary["ci_pp"]),
+        confidence=confidence,
+        resampling_unit=resampling_unit,
+        scale=scale,
+        missing_data_policy=missing_data_policy,
+        bootstrap=dict(summary["bootstrap"]),
+        n_paired=int(len(baseline_arr)),
+    )
+
+
+def slope_difference_estimate(
+    trajectories_a: np.ndarray,
+    trajectories_b: np.ndarray,
+    alphas: np.ndarray,
+    *,
+    confidence: float = DEFAULT_CONFIDENCE,
+    n_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    permutation_resamples: int = 0,
+    resampling_unit: str = "paired_by_sample_id",
+    scale: str = "percentage_points_per_alpha",
+    missing_data_policy: str = "not_applicable",
+) -> MeasurementEstimate:
+    result = paired_bootstrap_slope_difference(
+        trajectories_a,
+        trajectories_b,
+        alphas,
+        confidence=confidence,
+        n_resamples=n_resamples,
+        seed=seed,
+        permutation_resamples=permutation_resamples,
+    )
+    diff = result["slope_difference_pp_per_alpha"]
+    return MeasurementEstimate(
+        estimate=float(diff["estimate"]),
+        interval=_interval_from_dict(diff["ci"]),
+        confidence=confidence,
+        resampling_unit=resampling_unit,
+        scale=scale,
+        missing_data_policy=missing_data_policy,
+        bootstrap=dict(result["bootstrap"]),
+        n=int(np.asarray(trajectories_a).shape[0]),
     )
 
 

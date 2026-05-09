@@ -2,10 +2,16 @@ import numpy as np
 import pytest
 
 from scripts.uncertainty import (
+    bootstrap_mean_estimate,
+    bootstrap_mean_estimate_nullable,
+    paired_binary_rate_difference_estimate,
     paired_bootstrap_binary_rate_difference,
     paired_bootstrap_continuous_mean_difference_raw,
     paired_bootstrap_curve_effects,
     paired_bootstrap_slope_difference,
+    paired_mean_delta_estimate,
+    paired_mean_delta_estimate_nullable,
+    slope_difference_estimate,
     stratified_bootstrap_classifier_metrics,
     wilson_interval,
 )
@@ -38,6 +44,161 @@ def test_stratified_bootstrap_classifier_metrics_is_reproducible():
     assert first == second
     assert first["metrics"]["accuracy"]["estimate"] == 5 / 6
     assert first["metrics"]["balanced_accuracy"]["estimate"] == pytest.approx(5 / 6)
+
+
+def test_bootstrap_mean_estimate_empty_records_measurement_policy():
+    estimate = bootstrap_mean_estimate(
+        np.array([], dtype=float),
+        n_resamples=50,
+        seed=7,
+    )
+
+    summary = estimate.to_dict()
+
+    assert summary["estimate"] == 0.0
+    assert summary["ci"] == {
+        "lower": 0.0,
+        "upper": 0.0,
+        "level": 0.95,
+        "method": "bootstrap_percentile_mean",
+    }
+    assert "bootstrap" not in summary
+    assert summary["measurement"] == {
+        "confidence": 0.95,
+        "resampling_unit": "iid_rows",
+        "scale": "raw",
+        "missing_data_policy": "not_applicable",
+    }
+    legacy = estimate.to_dict(include_measurement=False)
+    assert "measurement" not in legacy
+
+
+def test_nullable_mean_estimate_reports_defined_count_and_missing_policy():
+    estimate = bootstrap_mean_estimate_nullable(
+        np.array([1.0, np.nan, 3.0]),
+        n_resamples=200,
+        seed=11,
+    )
+
+    summary = estimate.to_dict()
+
+    assert summary["estimate"] == pytest.approx(2.0)
+    assert summary["n_defined"] == 2
+    assert summary["measurement"]["missing_data_policy"] == "drop_nan"
+    assert summary["measurement"]["scale"] == "raw"
+    assert summary["bootstrap"]["resampling"] == "iid_rows"
+
+
+def test_nullable_mean_estimate_all_missing_reports_null_interval():
+    estimate = bootstrap_mean_estimate_nullable(
+        np.array([np.nan, np.nan]),
+        n_resamples=50,
+        seed=11,
+    )
+
+    summary = estimate.to_dict()
+
+    assert summary["estimate"] is None
+    assert summary["ci"] is None
+    assert summary["n_defined"] == 0
+    assert "bootstrap" not in summary
+    assert summary["measurement"]["missing_data_policy"] == "drop_nan"
+
+
+def test_paired_binary_rate_difference_estimate_records_pp_scale():
+    baseline = np.array([0, 0, 1, 1], dtype=bool)
+    comparison = np.array([0, 1, 1, 1], dtype=bool)
+
+    estimate = paired_binary_rate_difference_estimate(
+        baseline,
+        comparison,
+        n_resamples=500,
+        seed=11,
+    )
+    summary = estimate.to_dict(estimate_key="estimate_pp", interval_key="ci_pp")
+
+    assert summary["estimate_pp"] == 25.0
+    assert (
+        summary["ci_pp"]["lower"] <= summary["estimate_pp"] <= summary["ci_pp"]["upper"]
+    )
+    assert summary["n_paired"] == 4
+    assert summary["measurement"] == {
+        "confidence": 0.95,
+        "resampling_unit": "paired_by_sample_id",
+        "scale": "percentage_points",
+        "missing_data_policy": "not_applicable",
+    }
+
+
+def test_paired_continuous_delta_estimate_records_raw_delta_scale():
+    baseline = np.array([0.0, 0.5, 1.0, 1.5], dtype=float)
+    comparison = np.array([0.5, 0.5, 1.0, 2.0], dtype=float)
+
+    estimate = paired_mean_delta_estimate(
+        baseline,
+        comparison,
+        n_resamples=500,
+        seed=11,
+    )
+    summary = estimate.to_dict()
+
+    assert summary["estimate"] == pytest.approx(0.25)
+    assert summary["ci"]["lower"] <= summary["estimate"] <= summary["ci"]["upper"]
+    assert summary["measurement"]["resampling_unit"] == "paired_by_sample_id"
+    assert summary["measurement"]["scale"] == "raw_delta"
+
+
+def test_nullable_paired_continuous_delta_estimate_counts_defined_pairs():
+    baseline = np.array([1.0, np.nan, 2.0, 4.0], dtype=float)
+    comparison = np.array([2.0, 3.0, np.nan, 7.0], dtype=float)
+
+    estimate = paired_mean_delta_estimate_nullable(
+        baseline,
+        comparison,
+        n_resamples=200,
+        seed=11,
+    )
+    summary = estimate.to_dict()
+
+    assert summary["estimate"] == pytest.approx(2.0)
+    assert summary["n_paired"] == 2
+    assert summary["measurement"]["missing_data_policy"] == "drop_nan_pairs"
+
+
+def test_slope_difference_estimate_records_slope_scale():
+    trajectories_a = np.array(
+        [
+            [0, 0, 1],
+            [0, 1, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+        ],
+        dtype=bool,
+    )
+    trajectories_b = np.array(
+        [
+            [0, 0, 0],
+            [0, 0, 1],
+            [0, 0, 1],
+            [1, 1, 1],
+        ],
+        dtype=bool,
+    )
+    alphas = np.array([0.0, 1.0, 2.0])
+
+    estimate = slope_difference_estimate(
+        trajectories_a,
+        trajectories_b,
+        alphas,
+        n_resamples=200,
+        seed=7,
+    )
+    summary = estimate.to_dict()
+
+    assert summary["estimate"] > 0
+    assert summary["n"] == 4
+    assert summary["measurement"]["scale"] == "percentage_points_per_alpha"
+    assert summary["bootstrap"]["resampling"] == "paired_by_sample_id"
 
 
 def test_paired_bootstrap_curve_effects_reports_positive_delta_for_increasing_curve():
