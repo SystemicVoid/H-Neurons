@@ -72,6 +72,41 @@ def test_builds_coderabbit_command_with_agent_and_passthrough() -> None:
     ]
 
 
+def test_run_quick_command_records_exec_error(tmp_path: Path) -> None:
+    output_path = tmp_path / "quick.log"
+
+    result = watch.run_quick_command(
+        [str(tmp_path / "missing-tool")],
+        cwd=tmp_path,
+        env=os.environ,
+        output_path=output_path,
+    )
+
+    assert result.exit_code is None
+    assert result.reason == "exec_error"
+    assert "Execution failed: FileNotFoundError:" in output_path.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_stream_command_records_exec_error(tmp_path: Path) -> None:
+    output_path = tmp_path / "stream.log"
+
+    result = watch.stream_command(
+        [str(tmp_path / "missing-tool")],
+        cwd=tmp_path,
+        env=os.environ,
+        output_path=output_path,
+        timeout_seconds=30,
+    )
+
+    assert result.exit_code is None
+    assert result.reason == "exec_error"
+    assert "Execution failed: FileNotFoundError:" in output_path.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_coderabbit_success_writes_status(tmp_path: Path) -> None:
     bin_dir = tmp_path / "bin"
     args_file = tmp_path / "coderabbit-args.txt"

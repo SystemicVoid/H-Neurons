@@ -80,6 +80,10 @@ def command_display(command: Sequence[str]) -> str:
     return shlex.join(command)
 
 
+def exec_error_output(exc: OSError) -> str:
+    return f"Execution failed: {exc.__class__.__name__}: {exc}\n"
+
+
 def resolve_tool(name: str, env: Mapping[str, str]) -> str | None:
     path = shutil.which(name, path=env.get("PATH"))
     if path is not None:
@@ -170,6 +174,15 @@ def run_quick_command(
             output_path=output_path,
             elapsed_seconds=time.monotonic() - started,
         )
+    except OSError as exc:
+        output_path.write_text(exec_error_output(exc), encoding="utf-8")
+        return CommandResult(
+            command=list(command),
+            exit_code=None,
+            reason="exec_error",
+            output_path=output_path,
+            elapsed_seconds=time.monotonic() - started,
+        )
 
 
 def _reader(pipe: TextIO, output_queue: queue.Queue[str]) -> None:
@@ -201,15 +214,25 @@ def stream_command(
     stop_on_rate_limit: bool = False,
 ) -> CommandResult:
     started = time.monotonic()
-    process = subprocess.Popen(
-        list(command),
-        cwd=cwd,
-        env=dict(env),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
+    try:
+        process = subprocess.Popen(
+            list(command),
+            cwd=cwd,
+            env=dict(env),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+    except OSError as exc:
+        output_path.write_text(exec_error_output(exc), encoding="utf-8")
+        return CommandResult(
+            command=list(command),
+            exit_code=None,
+            reason="exec_error",
+            output_path=output_path,
+            elapsed_seconds=time.monotonic() - started,
+        )
     assert process.stdout is not None
 
     output_queue: queue.Queue[str] = queue.Queue()

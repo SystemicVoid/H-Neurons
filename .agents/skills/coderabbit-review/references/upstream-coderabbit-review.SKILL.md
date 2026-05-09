@@ -82,7 +82,7 @@ Do not treat raw review output as a to-do list. Bucket every finding:
 
 To dedupe findings across re-reviews, identify each by:
 
-```
+```text
 <severity>|<file>|<nearest changed hunk>|<category/rule>|<normalized message>
 ```
 
@@ -92,7 +92,7 @@ Do **not** rely on raw line numbers — fixes move lines. Prefer hunk + message 
 
 For each DEFER/IGNORE, record one line:
 
-```
+```text
 fingerprint | status | reason | pass
 ```
 
