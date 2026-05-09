@@ -9,6 +9,17 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
+try:
+    from evidence_pack import (
+        NEUTRAL_STRATUM_BANNED_TOKENS as EVIDENCE_PACK_NEUTRAL_STRATUM_BANNED_TOKENS,
+        build_measurement_examples as build_evidence_pack_measurement_examples,
+    )
+except ModuleNotFoundError:
+    from scripts.evidence_pack import (
+        NEUTRAL_STRATUM_BANNED_TOKENS as EVIDENCE_PACK_NEUTRAL_STRATUM_BANNED_TOKENS,
+        build_measurement_examples as build_evidence_pack_measurement_examples,
+    )
+
 
 JsonDict = dict[str, Any]
 
@@ -17,15 +28,7 @@ GROUND_TRUTH_DIR = ROOT / "notes" / "ground-truth"
 SOURCES_PATH = GROUND_TRUTH_DIR / "_sources.json"
 BOOTSTRAP_RESAMPLES = 10_000
 BOOTSTRAP_SEED = 42
-NEUTRAL_STRATUM_BANNED_TOKENS = {
-    "blind",
-    "older",
-    "universal",
-    "solo",
-    "extra",
-    "recovered",
-    "spot",
-}
+NEUTRAL_STRATUM_BANNED_TOKENS = EVIDENCE_PACK_NEUTRAL_STRATUM_BANNED_TOKENS
 MARKDOWN_FALLBACK_CLAIMS = {
     "probe-selector-pilot-best-effect",
     "gradient-ranked-pilot-effect",
@@ -4313,143 +4316,8 @@ class Builder:
         )
 
     def build_measurement_examples(self) -> None:
-        gold_rows = load_jsonl(
-            self.path("tests/gold_labels/jailbreak_cross_alpha_gold.jsonl")
-        )
-        gold_by_key = {(row["id"], row["alpha"]): row for row in gold_rows}
-        binary_files = {
-            0.0: self.path(
-                "data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl"
-            ),
-            1.5: self.path(
-                "data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.5.jsonl"
-            ),
-            3.0: self.path(
-                "data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl"
-            ),
-        }
-        csv2_v2_files = {
-            0.0: self.path(
-                "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_0.0.jsonl"
-            ),
-            1.5: self.path(
-                "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_1.5.jsonl"
-            ),
-            3.0: self.path(
-                "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_3.0.jsonl"
-            ),
-        }
-        csv2_v3_files = {
-            0.0: self.path("data/judge_validation/csv2_v3/alpha_0.0.jsonl"),
-            1.5: self.path("data/judge_validation/csv2_v3/alpha_1.5.jsonl"),
-            3.0: self.path("data/judge_validation/csv2_v3/alpha_3.0.jsonl"),
-        }
-        strongreject_files = {
-            0.0: self.path("data/judge_validation/strongreject/alpha_0.0.jsonl"),
-            1.5: self.path("data/judge_validation/strongreject/alpha_1.5.jsonl"),
-            3.0: self.path("data/judge_validation/strongreject/alpha_3.0.jsonl"),
-        }
-        binary_by_key = self._merge_alpha_files(binary_files)
-        csv2_v2_by_key = self._merge_alpha_files(csv2_v2_files)
-        csv2_v3_by_key = self._merge_alpha_files(csv2_v3_files)
-        strongreject_by_key = self._merge_alpha_files(strongreject_files)
-        candidates: dict[str, list[JsonDict]] = defaultdict(list)
-        for key, gold_row in gold_by_key.items():
-            if (
-                key not in binary_by_key
-                or key not in csv2_v2_by_key
-                or key not in csv2_v3_by_key
-                or key not in strongreject_by_key
-            ):
-                continue
-            sample_id, alpha = key
-            phenotype = (
-                f"human_{normalize_token(gold_row['human_label'])}"
-                f"__binary_{normalize_token(binary_by_key[key].get('judge'))}"
-                f"__csv2v2_{normalize_token(csv2_v2_by_key[key].get('csv2', {}).get('harmful_binary'))}"
-                f"__csv2v3_{normalize_token(csv2_v3_by_key[key].get('csv2', {}).get('harmful_binary'))}"
-                f"__sr_{normalize_token(strongreject_by_key[key].get('strongreject', {}).get('harmful_binary'))}"
-                f"__{alpha_code(alpha)}"
-            )
-            primary = csv2_v3_by_key[key]
-            candidates[phenotype].append(
-                {
-                    "key": key,
-                    "primary": primary,
-                    "selection_score": len(primary["response"]),
-                    "selection_tiebreak": sample_id,
-                }
-            )
-        target_strata = [
-            "human_harmful__binary_safe__csv2v2_borderline__csv2v3_yes__sr_no__alpha_0_0",
-            "human_harmful__binary_harmful__csv2v2_borderline__csv2v3_yes__sr_no__alpha_0_0",
-            "human_harmful__binary_safe__csv2v2_borderline__csv2v3_no__sr_no__alpha_0_0",
-            "human_safe__binary_harmful__csv2v2_no__csv2v3_no__sr_no__alpha_3_0",
-            "human_harmful__binary_harmful__csv2v2_borderline__csv2v3_yes__sr_yes__alpha_0_0",
-            "human_harmful__binary_safe__csv2v2_no__csv2v3_no__sr_no__alpha_1_5",
-            "human_harmful__binary_safe__csv2v2_no__csv2v3_no__sr_no__alpha_0_0",
-            "human_safe__binary_safe__csv2v2_no__csv2v3_no__sr_no__alpha_0_0",
-            "human_harmful__binary_harmful__csv2v2_yes__csv2v3_yes__sr_yes__alpha_1_5",
-        ]
-        for rank, stratum in enumerate(target_strata, start=1):
-            selected = self._select_quantile_candidates(
-                candidates[stratum],
-                score_key="selection_score",
-                tiebreak_key="selection_tiebreak",
-                fractions=[0.5],
-            )[0]
-            sample_id, alpha = selected["key"]
-            key = (sample_id, alpha)
-            primary = selected["primary"]
-            self.add_example(
-                example_row(
-                    example_id=f"example.measurement.{stratum}.{rank}",
-                    family="measurement_surfaces",
-                    act_tags=["act3"],
-                    benchmark="jailbreak_gold",
-                    source_artifact_id="csv2_v3_results",
-                    source_artifact_ids=[
-                        "jailbreak_gold_labels",
-                        f"jailbreak_binary_{alpha_code(alpha)}_rows",
-                        f"jailbreak_csv2_v2_{alpha_code(alpha)}_rows",
-                        f"jailbreak_csv2_v3_{alpha_code(alpha)}_rows",
-                        f"jailbreak_strongreject_{alpha_code(alpha)}_rows",
-                    ],
-                    sample_id=f"{sample_id}@{alpha}",
-                    selection_stratum=stratum,
-                    selection_rank=rank,
-                    condition_metadata={
-                        "alpha": alpha,
-                        "selection_rule": "median_response_length_with_complete_evaluator_join_and_sample_id_tiebreak",
-                        "selection_score": selected["selection_score"],
-                        "selection_tiebreak": sample_id,
-                    },
-                    prompt_or_question=primary["question"],
-                    response_text=primary["response"],
-                    raw_label_fields={
-                        "human_label": gold_by_key[key]["human_label"],
-                        "binary_judge": binary_by_key[key].get("judge"),
-                        "csv2_v2": csv2_v2_by_key[key]
-                        .get("csv2", {})
-                        .get("harmful_binary"),
-                        "csv2_v3": csv2_v3_by_key[key]
-                        .get("csv2", {})
-                        .get("harmful_binary"),
-                        "strongreject": strongreject_by_key[key]
-                        .get("strongreject", {})
-                        .get("harmful_binary"),
-                    },
-                    judge_fields={
-                        "judge_label_at_creation": gold_by_key[key].get(
-                            "judge_label_at_creation"
-                        ),
-                        "strongreject_score": strongreject_by_key[key]
-                        .get("strongreject", {})
-                        .get("score"),
-                    },
-                    paired_example_ids=[],
-                )
-            )
+        for row in build_evidence_pack_measurement_examples(ROOT):
+            self.add_example(row)
 
     def build_transfer_examples(self) -> None:
         self._paired_examples_from_rows(
@@ -4631,15 +4499,6 @@ class Builder:
                 else "stayed_right"
             ),
         )
-
-    def _merge_alpha_files(
-        self, mapping: dict[float, Path]
-    ) -> dict[tuple[str, float], JsonDict]:
-        merged: dict[tuple[str, float], JsonDict] = {}
-        for alpha, path in mapping.items():
-            for row in load_jsonl(path):
-                merged[(str(row["id"]), float(alpha))] = row
-        return merged
 
     def build_crosswalk(self) -> None:
         metric_ids_by_artifact: dict[str, list[str]] = defaultdict(list)

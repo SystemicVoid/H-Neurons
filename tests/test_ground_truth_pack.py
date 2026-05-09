@@ -12,6 +12,10 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import evidence_pack  # noqa: E402
+
 PACK_DIR = ROOT / "notes" / "ground-truth"
 MANIFEST_PATH = PACK_DIR / "_sources.json"
 BUILD_SCRIPT = ROOT / "scripts" / "build_ground_truth_pack.py"
@@ -192,6 +196,23 @@ def test_multiline_jsonl_recovery_handles_split_records() -> None:
         assert "tc_1" in ids
     finally:
         tmp.unlink(missing_ok=True)
+
+
+def test_evidence_pack_interface_rejects_duplicate_alpha_keys(tmp_path: Path) -> None:
+    duplicate_rows = [
+        {"id": "dup", "alpha": 0.0, "response": "first"},
+        {"id": "dup", "alpha": 0.0, "response": "second"},
+    ]
+    with pytest.raises(ValueError, match=r"duplicate \(id, alpha\).*dup@0"):
+        evidence_pack.key_rows_by_id_alpha(duplicate_rows, context="gold labels")
+
+    alpha_path = tmp_path / "alpha_0.0.jsonl"
+    alpha_path.write_text(
+        "\n".join(json.dumps(row) for row in duplicate_rows) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match=r"alpha 0.*dup@0"):
+        evidence_pack.merge_alpha_files({0.0: alpha_path})
 
 
 def test_artifact_metric_and_example_ledgers_have_new_schema_and_declared_sources() -> (
@@ -767,54 +788,76 @@ def test_readout_examples_recompute_from_probability_quantiles_with_full_support
         assert [row["sample_id"] for row in rows] == expected[stratum]
 
 
-def test_measurement_examples_recompute_from_complete_join_and_use_neutral_phenotypes() -> (
+def test_measurement_examples_use_evidence_pack_interface_and_preserve_bindings() -> (
     None
 ):
+    bundle = evidence_pack.build_measurement_example_bundle(ROOT)
+    manifest = load_json(MANIFEST_PATH)
+    manifest_by_artifact = {
+        artifact["artifact_id"]: artifact for artifact in manifest["artifacts"]
+    }
+    examples = [
+        row
+        for row in load_jsonl(PACK_DIR / "example_ledger.jsonl")
+        if row["example_id"].startswith("example.measurement.")
+    ]
+    assert examples == sorted(bundle.example_rows, key=lambda row: row["example_id"])
+    assert len(examples) == 9
+    assert [row["selection_stratum"] for row in bundle.example_rows] == list(
+        evidence_pack.TARGET_MEASUREMENT_STRATA
+    )
+
+    semantics = bundle.metric_semantics
+    assert semantics["family"] == "measurement_surfaces"
+    assert semantics["benchmark"] == "jailbreak_gold"
+    assert semantics["join_key"] == ["id", "alpha"]
+    assert (
+        semantics["selection_rule"] == evidence_pack.MEASUREMENT_EXAMPLE_SELECTION_RULE
+    )
+    assert semantics["selection_quantile"] == 0.5
+
+    referenced_source_ids = {"csv2_v3_results"}
+    for row in examples:
+        assert row["selection_stratum"].startswith("human_")
+        assert (
+            row["condition_metadata"]["selection_rule"] == semantics["selection_rule"]
+        )
+        referenced_source_ids.update(row["source_artifact_ids"])
+        for token in evidence_pack.NEUTRAL_STRATUM_BANNED_TOKENS:
+            assert token not in row["selection_stratum"]
+
+    assert referenced_source_ids <= set(bundle.source_registry)
+    for artifact_id in referenced_source_ids:
+        source = bundle.source_registry[artifact_id]
+        manifest_source = manifest_by_artifact[artifact_id]
+        source_path = ROOT / source.source_path
+        assert source.artifact_id == artifact_id
+        assert source.source_path == manifest_source["source_path"]
+        assert source.content_sha256 == evidence_pack.file_sha256(source_path)
+        if manifest_source["content_type"] == "jsonl":
+            assert source.row_count == len(evidence_pack.load_jsonl(source_path))
+        else:
+            assert source.row_count is None
+
+    measurement_doc = (PACK_DIR / "03_measurement_surfaces.md").read_text(
+        encoding="utf-8"
+    )
+    for fragments in bundle.generated_doc_fragments.values():
+        for fragment in fragments:
+            assert fragment in measurement_doc
+
     gold_by_key = {
         (row["id"], float(row["alpha"])): row
         for row in load_jsonl(
             ROOT / "tests/gold_labels/jailbreak_cross_alpha_gold.jsonl"
         )
     }
+    alpha_files = evidence_pack.measurement_alpha_files(ROOT)
     merged = {
-        "binary": PACK.Builder._merge_alpha_files(  # type: ignore[misc]
-            PACK.Builder.__new__(PACK.Builder),  # type: ignore[misc]
-            {
-                0.0: ROOT
-                / "data/gemma3_4b/intervention/jailbreak/experiment/alpha_0.0.jsonl",
-                1.5: ROOT
-                / "data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.5.jsonl",
-                3.0: ROOT
-                / "data/gemma3_4b/intervention/jailbreak/experiment/alpha_3.0.jsonl",
-            },
-        ),
-        "csv2v2": PACK.Builder._merge_alpha_files(  # type: ignore[misc]
-            PACK.Builder.__new__(PACK.Builder),  # type: ignore[misc]
-            {
-                0.0: ROOT
-                / "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_0.0.jsonl",
-                1.5: ROOT
-                / "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_1.5.jsonl",
-                3.0: ROOT
-                / "data/gemma3_4b/intervention/jailbreak/csv2_evaluation/alpha_3.0.jsonl",
-            },
-        ),
-        "csv2v3": PACK.Builder._merge_alpha_files(  # type: ignore[misc]
-            PACK.Builder.__new__(PACK.Builder),  # type: ignore[misc]
-            {
-                0.0: ROOT / "data/judge_validation/csv2_v3/alpha_0.0.jsonl",
-                1.5: ROOT / "data/judge_validation/csv2_v3/alpha_1.5.jsonl",
-                3.0: ROOT / "data/judge_validation/csv2_v3/alpha_3.0.jsonl",
-            },
-        ),
-        "sr": PACK.Builder._merge_alpha_files(  # type: ignore[misc]
-            PACK.Builder.__new__(PACK.Builder),  # type: ignore[misc]
-            {
-                0.0: ROOT / "data/judge_validation/strongreject/alpha_0.0.jsonl",
-                1.5: ROOT / "data/judge_validation/strongreject/alpha_1.5.jsonl",
-                3.0: ROOT / "data/judge_validation/strongreject/alpha_3.0.jsonl",
-            },
-        ),
+        "binary": evidence_pack.merge_alpha_files(alpha_files["binary"]),
+        "csv2v2": evidence_pack.merge_alpha_files(alpha_files["csv2v2"]),
+        "csv2v3": evidence_pack.merge_alpha_files(alpha_files["csv2v3"]),
+        "sr": evidence_pack.merge_alpha_files(alpha_files["sr"]),
     }
     candidates: dict[str, list[dict]] = defaultdict(list)
     for key, gold_row in gold_by_key.items():
@@ -822,26 +865,18 @@ def test_measurement_examples_recompute_from_complete_join_and_use_neutral_pheno
             continue
         sample_id, alpha = key
         phenotype = (
-            f"human_{PACK.normalize_token(gold_row['human_label'])}"
-            f"__binary_{PACK.normalize_token(merged['binary'][key].get('judge'))}"
-            f"__csv2v2_{PACK.normalize_token(merged['csv2v2'][key].get('csv2', {}).get('harmful_binary'))}"
-            f"__csv2v3_{PACK.normalize_token(merged['csv2v3'][key].get('csv2', {}).get('harmful_binary'))}"
-            f"__sr_{PACK.normalize_token(merged['sr'][key].get('strongreject', {}).get('harmful_binary'))}"
-            f"__{PACK.alpha_code(alpha)}"
+            f"human_{evidence_pack.normalize_token(gold_row['human_label'])}"
+            f"__binary_{evidence_pack.normalize_token(merged['binary'][key].get('judge'))}"
+            f"__csv2v2_{evidence_pack.normalize_token(merged['csv2v2'][key].get('csv2', {}).get('harmful_binary'))}"
+            f"__csv2v3_{evidence_pack.normalize_token(merged['csv2v3'][key].get('csv2', {}).get('harmful_binary'))}"
+            f"__sr_{evidence_pack.normalize_token(merged['sr'][key].get('strongreject', {}).get('harmful_binary'))}"
+            f"__{evidence_pack.alpha_code(alpha)}"
         )
         candidates[phenotype].append(
             {"sample_id": sample_id, "score": len(merged["csv2v3"][key]["response"])}
         )
-    examples = [
-        row
-        for row in load_jsonl(PACK_DIR / "example_ledger.jsonl")
-        if row["example_id"].startswith("example.measurement.")
-    ]
-    assert len(examples) == 9
+
     for row in examples:
-        assert row["selection_stratum"].startswith("human_")
-        for token in PACK.NEUTRAL_STRATUM_BANNED_TOKENS:
-            assert token not in row["selection_stratum"]
         stratum = row["selection_stratum"]
         expected_id = select_quantile_ids(
             [
