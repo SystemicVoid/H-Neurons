@@ -39,12 +39,18 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from intervene_model import get_h_neuron_indices
-from intervene_direction import DirectionScaler
-from intervene_iti import ITI_DECODE_SCOPES, ITIHeadScaler, load_iti_artifact
+from intervene_iti import ITI_DECODE_SCOPES
 from intervene_sae import (
     SAEFeatureScaler,
     load_sae_feature_manifest,
     load_target_features_from_classifier,
+)
+from intervention_adapters import (
+    BuiltIntervention,
+    NOOP_ALPHA_BY_INTERVENTION_MODE,
+    build_direction_output_suffix,
+    build_iti_output_suffix,
+    get_intervention_adapter,
 )
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
@@ -94,12 +100,6 @@ DEFAULT_SIMPLEQA_DATASET = os.environ.get(
     "HNEURONS_SIMPLEQA_DATASET",
     "basicv8vc/SimpleQA",
 )
-NOOP_ALPHA_BY_INTERVENTION_MODE = {
-    "neuron": 1.0,
-    "sae": 1.0,
-    "direction": 0.0,
-    "iti_head": 0.0,
-}
 RUN_PROFILES = ("canonical", "fast")
 COMPARABILITY_CLASS_BY_PROFILE = {
     "canonical": "claimable",
@@ -117,71 +117,6 @@ FAITHEVAL_ANSWER_SPAN_PRIMARY_WINDOW_TOKENS = 3
 FAITHEVAL_ANSWER_SPAN_MARGIN_METRIC_NAME = (
     "counterfactual_minus_preferred_answer_text_logprob_margin_first3"
 )
-
-
-def _slugify_path_component(value: str, *, max_length: int = 48) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-    if not slug:
-        return "unnamed"
-    return slug[:max_length].rstrip("-") or "unnamed"
-
-
-def build_direction_output_suffix(
-    direction_path: str,
-    direction_mode: str,
-    direction_layers: str | None,
-) -> str:
-    """Build a stable semantic suffix for default direction experiment dirs."""
-    resolved_path = Path(direction_path).expanduser().resolve(strict=False)
-    direction_name = _slugify_path_component(resolved_path.stem)
-    layers_label = (
-        "all-layers"
-        if direction_layers is None
-        else f"layers-{_slugify_path_component(direction_layers, max_length=32)}"
-    )
-    config_hash = hashlib.sha256(
-        f"{resolved_path}|{direction_mode}|{direction_layers or 'all'}".encode("utf-8")
-    ).hexdigest()[:10]
-    return f"direction_{direction_mode}_{layers_label}_{direction_name}_{config_hash}"
-
-
-def build_iti_output_suffix(
-    iti_head_path: str,
-    iti_family: str,
-    iti_k: int,
-    iti_selection_strategy: str,
-    iti_random_seed: int,
-    direction_mode: str = "artifact",
-    direction_random_seed: int | None = None,
-    iti_decode_scope: str = "full_decode",
-) -> str:
-    """Build a stable semantic suffix for default ITI experiment dirs."""
-    resolved_path = Path(iti_head_path).expanduser().resolve(strict=False)
-    artifact_name = _slugify_path_component(
-        resolved_path.parent.name + "-" + resolved_path.stem
-    )
-    config_hash = hashlib.sha256(
-        (
-            f"{resolved_path}|{iti_family}|{iti_k}|"
-            f"{iti_selection_strategy}|{iti_random_seed}|"
-            f"{direction_mode}|{direction_random_seed}|{iti_decode_scope}"
-        ).encode("utf-8")
-    ).hexdigest()[:10]
-    steering_label = (
-        f"k-{iti_k}_{_slugify_path_component(iti_selection_strategy)}"
-        f"_seed-{iti_random_seed}"
-    )
-    if direction_mode != "artifact":
-        steering_label += (
-            f"_dir-{_slugify_path_component(direction_mode)}"
-            f"_dirseed-{direction_random_seed}"
-        )
-    steering_label += f"_scope-{_slugify_path_component(iti_decode_scope)}"
-    return (
-        "iti-head_"
-        f"{_slugify_path_component(iti_family)}_{steering_label}_"
-        f"{artifact_name}_{config_hash}"
-    )
 
 
 def resolve_benchmark_name(args: argparse.Namespace) -> str:
@@ -4753,6 +4688,7 @@ def main():
     if jailbreak_generation is not None:
         provenance_extra["jailbreak_generation"] = jailbreak_generation
     scaler = None
+    built_intervention: BuiltIntervention | None = None
     wb_run = None
     wandb_module = None
     throughput_state = {"sample_idx": 0}
@@ -4822,58 +4758,12 @@ def main():
                 f" (mode={args.sae_steering_mode})"
             )
             total_neurons = total_features  # for summary metadata
-        elif args.intervention_mode == "direction":
-            if not args.direction_path:
-                raise ValueError(
-                    "--intervention_mode direction requires --direction_path"
-                )
-            print(f"Loading directions: {args.direction_path}")
-            directions = torch.load(
-                args.direction_path, map_location="cpu", weights_only=True
-            )
-            direction_layers = None
-            if args.direction_layers:
-                direction_layers = [int(x) for x in args.direction_layers.split(",")]
-            scaler = DirectionScaler(
-                model,
-                directions,
-                device,
-                mode=args.direction_mode,
-                layers=direction_layers,
-            )
-            total_neurons = scaler.n_hooks  # for summary metadata
-            print(
-                f"Installed {scaler.n_hooks} direction hooks "
-                f"(mode={args.direction_mode})"
-            )
-        elif args.intervention_mode == "iti_head":
-            if not args.iti_head_path:
-                raise ValueError(
-                    "--intervention_mode iti_head requires --iti_head_path"
-                )
-            artifact = load_iti_artifact(args.iti_head_path)
-            scaler = ITIHeadScaler(
-                model,
-                artifact,
-                device,
-                family=f"iti_{args.iti_family}"
-                if not args.iti_family.startswith("iti_")
-                else args.iti_family,
-                k=args.iti_k,
-                selection_strategy=args.iti_selection_strategy,
-                random_seed=args.iti_random_seed,
-                direction_mode=args.iti_direction_mode,
-                direction_random_seed=args.iti_direction_random_seed,
-                decode_scope=args.iti_decode_scope,
-                collect_debug_stats=args.iti_collect_debug_stats,
-            )
-            total_neurons = scaler.n_heads_selected
-            print(
-                f"Installed {scaler.n_hooks} ITI hooks on {scaler.n_heads_selected} heads "
-                f"(selection={args.iti_selection_strategy}, "
-                f"scope={args.iti_decode_scope}, "
-                f"debug_stats={'on' if args.iti_collect_debug_stats else 'off'})"
-            )
+        elif args.intervention_mode in {"direction", "iti_head"}:
+            adapter = get_intervention_adapter(args.intervention_mode)
+            built_intervention = adapter.build(args=args, model=model, device=device)
+            scaler = built_intervention.scaler
+            total_neurons = built_intervention.total_units
+            print(built_intervention.install_message)
         else:
             print(f"Loading classifier: {args.classifier_path}")
             classifier = joblib.load(args.classifier_path)
@@ -5181,23 +5071,8 @@ def main():
                 summary["sae_feature_manifest"] = args.sae_feature_manifest
             summary["sae_steering_mode"] = args.sae_steering_mode
             summary["n_sae_features"] = total_neurons
-        elif args.intervention_mode == "direction":
-            summary["direction_path"] = args.direction_path
-            summary["direction_mode"] = args.direction_mode
-            summary["direction_layers"] = args.direction_layers
-            summary["direction_config_key"] = build_direction_output_suffix(
-                args.direction_path,
-                args.direction_mode,
-                args.direction_layers,
-            )
-        elif args.intervention_mode == "iti_head":
-            summary["iti_head_path"] = args.iti_head_path
-            summary["iti_k"] = args.iti_k
-            summary["iti_selection_strategy"] = args.iti_selection_strategy
-            summary["iti_random_seed"] = args.iti_random_seed
-            summary["iti_family"] = args.iti_family
-            summary["iti_decode_scope"] = args.iti_decode_scope
-            summary["iti_collect_debug_stats"] = args.iti_collect_debug_stats
+        elif built_intervention is not None:
+            summary.update(built_intervention.summary_fields)
         else:
             summary["classifier"] = args.classifier_path
         if args.benchmark == "faitheval":
@@ -5277,7 +5152,9 @@ def main():
     finally:
         if wb_run is not None and wandb_module is not None:
             wandb_module.finish()
-        if scaler is not None:
+        if built_intervention is not None:
+            built_intervention.remove()
+        elif scaler is not None:
             scaler.remove()
         finish_run_provenance(provenance_handle, provenance_status, provenance_extra)
 
