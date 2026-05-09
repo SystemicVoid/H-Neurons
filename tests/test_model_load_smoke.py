@@ -102,6 +102,7 @@ def test_smoke_summary_is_non_claim_bearing_and_uses_registry_metadata(
         quantization={"status": "ok"},
         cuda_memory={"available": False},
         generation={"attempted": True, "succeeded": True},
+        chat_template={"available": True},
     )
 
     assert summary["schema_version"] == "model_load_smoke/v1"
@@ -110,6 +111,7 @@ def test_smoke_summary_is_non_claim_bearing_and_uses_registry_metadata(
     assert summary["gpu_required"] is True
     assert summary["api_required"] is False
     assert summary["tokenizer_kwargs"] == {"fix_mistral_regex": True}
+    assert summary["chat_template"] == {"available": True}
     assert summary["registered_model"]["dimensions"]["total_ffn_neurons"] == 1310720
 
 
