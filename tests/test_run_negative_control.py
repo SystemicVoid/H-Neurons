@@ -104,6 +104,7 @@ def _write_h_baseline_artifacts(
         },
         "schedule": {"alphas": alphas},
         "benchmark_config": {"prompt_style": prompt_style},
+        "intervention": {"mode": "neuron"},
     }
     (baseline_dir / INTERVENTION_RUN_CONFIG_FILENAME).write_text(
         json.dumps(run_contract, indent=2)
@@ -113,6 +114,7 @@ def _write_h_baseline_artifacts(
         "model_key": "mistral24b",
         "model": "mistralai/Mistral-Small-24B-Instruct-2501",
         "classifier": str(classifier_path),
+        "intervention_mode": "neuron",
         "sample_manifest": sample_manifest,
         "prompt_style": prompt_style,
         "results": {
