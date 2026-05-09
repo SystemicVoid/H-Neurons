@@ -94,6 +94,8 @@ docs/good-practices
 .agents/skills/*
 !.agents/skills/exec-review/
 !.agents/skills/exec-review/**
+!.agents/skills/coderabbit-review/
+!.agents/skills/coderabbit-review/**
 
 # Claude Code local config
 .claude/
@@ -125,3 +127,5 @@ nextsteps.md
 hallucination-neurons.mdx
 multi-agent-coordination-patterns-five-approaches-.md
 agent-methodology-piece.md
+paper/AGENTS.md
+paper/icml/openreview_submission_instructions.md

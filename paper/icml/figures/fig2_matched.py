@@ -265,7 +265,7 @@ def main() -> None:
         + r"Feature-specific delta-only slopes: H "
         + f"{data['delta_h_slope']:+.2f}, random "
         + f"{data['delta_rand_slope']:+.2f} pp/"
-        + r"$\alpha$ (audit summary; no slope CI in package).",
+        + r"$\alpha$ (audit summary; slope CIs not claimed).",
         ha="center",
         va="bottom",
         fontsize=6,

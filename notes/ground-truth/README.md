@@ -20,11 +20,11 @@ This pack keeps the JSONL ledgers exact and turns the Markdown into deterministi
 
 ## Coverage Summary
 
-- Crosswalk rows: 12253 total.
+- Crosswalk rows: 12259 total.
 - `exact_metric`: 336.
 - `exact_example`: 27.
 - `structured_surface_only`: 11881.
-- `markdown_fallback_only`: 8.
+- `markdown_fallback_only`: 14.
 - `historical_only`: 1.
 - `unresolved`: 0.
 - Fallback-only sources:
