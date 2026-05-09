@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from export_simid_open_review_package import (
@@ -24,6 +26,10 @@ from export_simid_open_review_package import (
     priority_tags,
     selected_review_cases,
 )
+from review_package import (
+    LLM_BLIND_MAP_SCHEMA_VERSION,
+    SIMID_OPEN_REVIEW_SCHEMAS,
+)
 from validate_simid_open_review_labels import main as validate_labels_main
 
 
@@ -33,6 +39,54 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+
+def synthetic_llm_label_rows(
+    batch_dir: Path,
+    *,
+    blind_cases_file_sha256: str | None = None,
+) -> list[dict[str, Any]]:
+    batch_hash = blind_cases_file_sha256 or file_sha256(
+        batch_dir / "review_cases_blind.jsonl"
+    )
+    label_rows = []
+    for row in load_jsonl(batch_dir / "review_cases_blind.jsonl"):
+        label_rows.append(
+            {
+                "schema_version": LLM_BATCH_LABEL_SCHEMA_VERSION,
+                "blind_case_id": row["blind_case_id"],
+                "review_order": row["review_order"],
+                "label": "INCORRECT",
+                "confidence": 3,
+                "rule_gap": False,
+                "flags": [],
+                "notes": "Synthetic validator fixture.",
+                "rater": {
+                    "type": "llm",
+                    "model": "claude-opus-4.7",
+                    "prompt_version": "simid_open_independent_rater/v1",
+                },
+                "blind_cases_file_sha256": batch_hash,
+            }
+        )
+    return label_rows
+
+
+def write_synthetic_llm_labels(output_dir: Path) -> None:
+    for batch_dir in sorted((output_dir / LLM_BATCH_ROOT_DIR).iterdir()):
+        if not batch_dir.is_dir():
+            continue
+        write_jsonl(
+            batch_dir / "opus_4_7_labels.jsonl",
+            synthetic_llm_label_rows(batch_dir),
+        )
 
 
 def test_review_package_selection_includes_all_disagreements() -> None:
@@ -212,6 +266,51 @@ def test_exported_llm_batches_are_small_complete_and_blind(tmp_path: Path) -> No
     assert all("calibration_case_id" in row for row in private_map)
 
 
+def test_review_package_schema_constants_bind_outputs(tmp_path: Path) -> None:
+    output_dir = tmp_path / "review_package"
+    manifest = export_package(
+        parse_args(
+            [
+                "--run-dir",
+                str(DEFAULT_RUN_DIR),
+                "--output-dir",
+                str(output_dir),
+            ]
+        )
+    )
+
+    assert manifest["schema_version"] == SIMID_OPEN_REVIEW_SCHEMAS.package
+    assert (
+        manifest["label_schema"]["schema_version"]
+        == SIMID_OPEN_REVIEW_SCHEMAS.human_label
+    )
+
+    blind_rows = load_jsonl(output_dir / "review_cases_blind.jsonl")
+    assert {row["schema_version"] for row in blind_rows} == {
+        SIMID_OPEN_REVIEW_SCHEMAS.blind_case
+    }
+
+    map_rows = load_jsonl(output_dir / "llm_blind_case_map.jsonl")
+    assert {row["schema_version"] for row in map_rows} == {LLM_BLIND_MAP_SCHEMA_VERSION}
+
+    first_batch = output_dir / LLM_BATCH_ROOT_DIR / "batch_001"
+    batch_rows = load_jsonl(first_batch / "review_cases_blind.jsonl")
+    assert {row["schema_version"] for row in batch_rows} == {
+        SIMID_OPEN_REVIEW_SCHEMAS.llm_batch_case
+    }
+
+    label_schema = json.loads((output_dir / "label_schema.json").read_text())
+    assert (
+        label_schema["properties"]["schema_version"]["const"]
+        == SIMID_OPEN_REVIEW_SCHEMAS.human_label
+    )
+    batch_schema = json.loads((first_batch / "label_schema.json").read_text())
+    assert (
+        batch_schema["properties"]["schema_version"]["const"]
+        == SIMID_OPEN_REVIEW_SCHEMAS.llm_batch_label
+    )
+
+
 def test_llm_batch_tree_does_not_expose_calibration_metadata(tmp_path: Path) -> None:
     output_dir = tmp_path / "review_package"
     export_package(
@@ -295,34 +394,7 @@ def test_llm_batch_labels_validate_and_merge(tmp_path: Path) -> None:
         )
     )
 
-    for batch_dir in sorted((output_dir / LLM_BATCH_ROOT_DIR).iterdir()):
-        if not batch_dir.is_dir():
-            continue
-        batch_hash = file_sha256(batch_dir / "review_cases_blind.jsonl")
-        label_rows = []
-        for row in load_jsonl(batch_dir / "review_cases_blind.jsonl"):
-            label_rows.append(
-                {
-                    "schema_version": LLM_BATCH_LABEL_SCHEMA_VERSION,
-                    "blind_case_id": row["blind_case_id"],
-                    "review_order": row["review_order"],
-                    "label": "INCORRECT",
-                    "confidence": 3,
-                    "rule_gap": False,
-                    "flags": [],
-                    "notes": "Synthetic validator fixture.",
-                    "rater": {
-                        "type": "llm",
-                        "model": "claude-opus-4.7",
-                        "prompt_version": "simid_open_independent_rater/v1",
-                    },
-                    "blind_cases_file_sha256": batch_hash,
-                }
-            )
-        (batch_dir / "opus_4_7_labels.jsonl").write_text(
-            "".join(json.dumps(row) + "\n" for row in label_rows),
-            encoding="utf-8",
-        )
+    write_synthetic_llm_labels(output_dir)
 
     output_file = output_dir / "opus_4_7_labels.jsonl"
     assert (
@@ -343,3 +415,94 @@ def test_llm_batch_labels_validate_and_merge(tmp_path: Path) -> None:
     assert {row["blind_cases_file_sha256"] for row in merged} == {
         manifest["blind_cases_file_sha256"]
     }
+
+
+def test_llm_batch_validator_rejects_duplicate_blind_case_ids(tmp_path: Path) -> None:
+    output_dir = tmp_path / "review_package"
+    export_package(
+        parse_args(
+            [
+                "--run-dir",
+                str(DEFAULT_RUN_DIR),
+                "--output-dir",
+                str(output_dir),
+            ]
+        )
+    )
+
+    first_batch = output_dir / LLM_BATCH_ROOT_DIR / "batch_001"
+    rows = load_jsonl(first_batch / "review_cases_blind.jsonl")
+    rows[1]["blind_case_id"] = rows[0]["blind_case_id"]
+    write_jsonl(first_batch / "review_cases_blind.jsonl", rows)
+    label_file = first_batch / "opus_4_7_labels.jsonl"
+    write_jsonl(label_file, synthetic_llm_label_rows(first_batch))
+
+    with pytest.raises(ValueError, match="duplicate blind_case_id"):
+        validate_labels_main(
+            [
+                "--label-file",
+                str(label_file),
+            ]
+        )
+
+
+def test_llm_batch_validator_rejects_label_package_hash_mismatch(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "review_package"
+    export_package(
+        parse_args(
+            [
+                "--run-dir",
+                str(DEFAULT_RUN_DIR),
+                "--output-dir",
+                str(output_dir),
+            ]
+        )
+    )
+
+    first_batch = output_dir / LLM_BATCH_ROOT_DIR / "batch_001"
+    label_file = first_batch / "opus_4_7_labels.jsonl"
+    write_jsonl(
+        label_file,
+        synthetic_llm_label_rows(first_batch, blind_cases_file_sha256="0" * 64),
+    )
+
+    with pytest.raises(ValueError, match="blind_cases_file_sha256 mismatch"):
+        validate_labels_main(
+            [
+                "--label-file",
+                str(label_file),
+                "--batch-dir",
+                str(first_batch),
+            ]
+        )
+
+
+def test_llm_label_merge_requires_private_map_binding(tmp_path: Path) -> None:
+    output_dir = tmp_path / "review_package"
+    export_package(
+        parse_args(
+            [
+                "--run-dir",
+                str(DEFAULT_RUN_DIR),
+                "--output-dir",
+                str(output_dir),
+            ]
+        )
+    )
+    write_synthetic_llm_labels(output_dir)
+
+    map_file = output_dir / "llm_blind_case_map.jsonl"
+    map_rows = load_jsonl(map_file)
+    write_jsonl(map_file, map_rows[:-1])
+
+    with pytest.raises(ValueError, match="missing map row"):
+        validate_labels_main(
+            [
+                "--package-dir",
+                str(output_dir),
+                "--output",
+                str(output_dir / "opus_4_7_labels.jsonl"),
+            ]
+        )
