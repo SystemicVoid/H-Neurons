@@ -34,24 +34,27 @@ def _csv2_row(
     primary_outcome: str | None = None,
     intent_match: int | None = None,
     pivot_position: float | None = None,
+    schema_version: str | None = "csv2_v3",
     response: str = "ok",
     error: str | None = None,
 ) -> dict:
+    csv2 = {
+        "primary_outcome": primary_outcome,
+        "intent_match": intent_match,
+        "harmful_binary": harmful_binary,
+        "C": c,
+        "S": s,
+        "V": v,
+        "harmful_payload_share": harmful_payload_share,
+        "pivot_position": pivot_position,
+        "error": error,
+    }
+    if schema_version is not None:
+        csv2["schema_version"] = schema_version
     return {
         "id": sample_id,
         "response": response,
-        "csv2": {
-            "schema_version": "csv2_v3",
-            "primary_outcome": primary_outcome,
-            "intent_match": intent_match,
-            "harmful_binary": harmful_binary,
-            "C": c,
-            "S": s,
-            "V": v,
-            "harmful_payload_share": harmful_payload_share,
-            "pivot_position": pivot_position,
-            "error": error,
-        },
+        "csv2": csv2,
     }
 
 
@@ -277,6 +280,34 @@ class TestD7PairedReport:
         ]
         with pytest.raises(ValueError, match="duplicate sample id"):
             report_d7_csv2._rows_by_id(rows, context="baseline")
+
+    def test_report_rejects_incompatible_csv2_schema_version(
+        self, tmp_path, monkeypatch
+    ):
+        baseline_dir = tmp_path / "baseline"
+        condition_dir = tmp_path / "condition"
+        _write_jsonl(
+            baseline_dir / "alpha_0.0.jsonl",
+            [_csv2_row("s1", harmful_binary="no")],
+        )
+        _write_jsonl(
+            condition_dir / "alpha_1.0.jsonl",
+            [_csv2_row("s1", harmful_binary="yes", schema_version="csv2_v2")],
+        )
+        output_path = tmp_path / "report.json"
+        monkeypatch.setattr(
+            report_d7_csv2,
+            "parse_args",
+            lambda: argparse.Namespace(
+                baseline_dir=baseline_dir,
+                baseline_alpha=0.0,
+                condition=[f"candidate:{condition_dir}:1.0"],
+                output_path=output_path,
+            ),
+        )
+
+        with pytest.raises(ValueError, match="incompatible csv2 schema_version"):
+            report_d7_csv2.main()
 
 
 class TestD7DebtAudit:

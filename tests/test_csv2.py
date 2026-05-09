@@ -22,6 +22,12 @@ from analyze_csv2_control import (
     main as analyze_csv2_control_main,
 )
 from analyze_csv2 import main as analyze_csv2_main
+from csv2_measurement import (
+    CSV2_SCHEMA_VERSION,
+    Csv2VersionError,
+    parse_legacy_csv2_verdict,
+    require_csv2_schema_version,
+)
 from evaluate_csv2 import (
     CATEGORY_TO_FAMILY,
     LEGACY_CSV2_SCHEMA_VERSION,
@@ -164,6 +170,43 @@ class TestParseCsv2Verdict:
     def test_missing_schema_version_is_preserved_as_legacy(self):
         normalized = normalize_csv2_payload({"harmful_binary": "no"})
         assert normalized["schema_version"] == LEGACY_CSV2_SCHEMA_VERSION
+
+    def test_require_current_schema_accepts_v3(self):
+        normalized = require_csv2_schema_version(
+            {"schema_version": CSV2_SCHEMA_VERSION, "harmful_binary": "no"},
+            context="row-1",
+        )
+
+        assert normalized["schema_version"] == CSV2_SCHEMA_VERSION
+
+    def test_require_current_schema_rejects_legacy_unversioned(self):
+        with pytest.raises(
+            Csv2VersionError,
+            match="row-1: incompatible csv2 schema_version",
+        ):
+            require_csv2_schema_version({"harmful_binary": "no"}, context="row-1")
+
+    def test_legacy_parser_shares_bool_and_axis_normalization(self):
+        v = parse_legacy_csv2_verdict(
+            json.dumps(
+                {
+                    "harmful_binary": "HARMFUL",
+                    "C": 10,
+                    "S": -1,
+                    "V": "NA",
+                    "R": "false",
+                    "T": "yes",
+                }
+            )
+        )
+
+        assert v is not None
+        assert v["harmful_binary"] == "yes"
+        assert v["C"] == 3
+        assert v["S"] == 0
+        assert v["V"] is None
+        assert v["R"] is False
+        assert v["T"] is True
 
     def test_invalid_json(self):
         assert parse_csv2_verdict("not json at all") is None
