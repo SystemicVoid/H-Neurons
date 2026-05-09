@@ -14,8 +14,12 @@ from evaluate_csv2 import normalize_csv2_payload
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
+    MeasurementEstimate,
+    bootstrap_mean_estimate,
+    bootstrap_mean_estimate_nullable,
     paired_bootstrap_binary_rate_difference,
-    percentile_interval,
+    paired_mean_delta_estimate,
+    paired_mean_delta_estimate_nullable,
     wilson_interval,
 )
 from utils import format_alpha_label
@@ -154,119 +158,59 @@ def _condition_arrays(
     }
 
 
+def _legacy_measurement_dict(estimate: MeasurementEstimate) -> dict[str, Any]:
+    return estimate.to_dict(
+        include_measurement=False,
+        include_bootstrap_confidence=False,
+    )
+
+
 def _bootstrap_mean_summary(values: np.ndarray) -> dict[str, Any]:
-    arr = np.asarray(values, dtype=np.float64)
-    if arr.ndim != 1:
-        raise ValueError("Mean summary expects a one-dimensional array")
-    n = len(arr)
-    if n == 0:
-        return {
-            "estimate": 0.0,
-            "ci": percentile_interval(
-                np.array([0.0]),
-                method="bootstrap_percentile_mean",
-            ).to_dict(),
-        }
-
-    rng = np.random.default_rng(DEFAULT_BOOTSTRAP_SEED)
-    samples = np.empty(DEFAULT_BOOTSTRAP_RESAMPLES, dtype=np.float64)
-    for sample_idx in range(DEFAULT_BOOTSTRAP_RESAMPLES):
-        indices = rng.choice(n, size=n, replace=True)
-        samples[sample_idx] = float(arr[indices].mean())
-
-    return {
-        "estimate": float(arr.mean()),
-        "ci": percentile_interval(
-            samples,
-            method="bootstrap_percentile_mean",
-        ).to_dict(),
-        "bootstrap": {
-            "n_resamples": int(DEFAULT_BOOTSTRAP_RESAMPLES),
-            "seed": int(DEFAULT_BOOTSTRAP_SEED),
-            "resampling": "iid_rows",
-            "interval": "percentile",
-        },
-    }
+    return _legacy_measurement_dict(
+        bootstrap_mean_estimate(
+            values,
+            seed=DEFAULT_BOOTSTRAP_SEED,
+            n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+        )
+    )
 
 
 def _bootstrap_mean_summary_nullable(values: np.ndarray) -> dict[str, Any]:
-    arr = np.asarray(values, dtype=np.float64)
-    if arr.ndim != 1:
-        raise ValueError("Mean summary expects a one-dimensional array")
-    defined = arr[~np.isnan(arr)]
-    if len(defined) == 0:
-        return {
-            "estimate": None,
-            "ci": None,
-            "n_defined": 0,
-        }
-    return {
-        **_bootstrap_mean_summary(defined),
-        "n_defined": int(len(defined)),
-    }
+    return _legacy_measurement_dict(
+        bootstrap_mean_estimate_nullable(
+            values,
+            seed=DEFAULT_BOOTSTRAP_SEED,
+            n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+        )
+    )
 
 
 def _paired_bootstrap_mean_delta(
     baseline: np.ndarray,
     candidate: np.ndarray,
 ) -> dict[str, Any]:
-    baseline_arr = np.asarray(baseline, dtype=np.float64)
-    candidate_arr = np.asarray(candidate, dtype=np.float64)
-    if baseline_arr.shape != candidate_arr.shape:
-        raise ValueError("Paired mean-delta inputs must have matching shapes")
-    if baseline_arr.ndim != 1:
-        raise ValueError("Paired mean-delta inputs must be one-dimensional")
-
-    n = len(baseline_arr)
-    rng = np.random.default_rng(DEFAULT_BOOTSTRAP_SEED)
-    samples = np.empty(DEFAULT_BOOTSTRAP_RESAMPLES, dtype=np.float64)
-    for sample_idx in range(DEFAULT_BOOTSTRAP_RESAMPLES):
-        indices = rng.choice(n, size=n, replace=True)
-        samples[sample_idx] = float(
-            candidate_arr[indices].mean() - baseline_arr[indices].mean()
+    return _legacy_measurement_dict(
+        paired_mean_delta_estimate(
+            baseline,
+            candidate,
+            seed=DEFAULT_BOOTSTRAP_SEED,
+            n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
         )
-
-    return {
-        "estimate": float(candidate_arr.mean() - baseline_arr.mean()),
-        "ci": percentile_interval(
-            samples,
-            method="bootstrap_percentile_paired_mean",
-        ).to_dict(),
-        "bootstrap": {
-            "n_resamples": int(DEFAULT_BOOTSTRAP_RESAMPLES),
-            "seed": int(DEFAULT_BOOTSTRAP_SEED),
-            "resampling": "paired_by_sample_id",
-            "interval": "percentile",
-        },
-    }
+    )
 
 
 def _paired_bootstrap_mean_delta_nullable(
     baseline: np.ndarray,
     candidate: np.ndarray,
 ) -> dict[str, Any]:
-    baseline_arr = np.asarray(baseline, dtype=np.float64)
-    candidate_arr = np.asarray(candidate, dtype=np.float64)
-    if baseline_arr.shape != candidate_arr.shape:
-        raise ValueError("Paired mean-delta inputs must have matching shapes")
-    if baseline_arr.ndim != 1:
-        raise ValueError("Paired mean-delta inputs must be one-dimensional")
-
-    defined_mask = ~np.isnan(baseline_arr) & ~np.isnan(candidate_arr)
-    paired_n = int(defined_mask.sum())
-    if paired_n == 0:
-        return {
-            "estimate": None,
-            "ci": None,
-            "n_paired": 0,
-        }
-    return {
-        **_paired_bootstrap_mean_delta(
-            baseline_arr[defined_mask],
-            candidate_arr[defined_mask],
-        ),
-        "n_paired": paired_n,
-    }
+    return _legacy_measurement_dict(
+        paired_mean_delta_estimate_nullable(
+            baseline,
+            candidate,
+            seed=DEFAULT_BOOTSTRAP_SEED,
+            n_resamples=DEFAULT_BOOTSTRAP_RESAMPLES,
+        )
+    )
 
 
 def _summarize_condition(name: str, arrays: dict[str, np.ndarray]) -> dict[str, Any]:
