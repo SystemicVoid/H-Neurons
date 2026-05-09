@@ -10,7 +10,7 @@ from typing import Any
 
 import numpy as np
 
-from evaluate_csv2 import normalize_csv2_payload
+from csv2_measurement import CSV2_SCHEMA_VERSION, require_csv2_schema_version
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
     DEFAULT_BOOTSTRAP_SEED,
@@ -113,7 +113,11 @@ def _condition_arrays(
         raw_csv2 = rec.get("csv2", {})
         if not isinstance(raw_csv2, dict):
             raise ValueError(f"Record {sample_id} has invalid csv2 payload")
-        csv2 = normalize_csv2_payload(raw_csv2)
+        csv2 = require_csv2_schema_version(
+            raw_csv2,
+            context=f"Record {sample_id}",
+            allowed_schema_versions={CSV2_SCHEMA_VERSION},
+        )
         if csv2.get("error"):
             raise ValueError(
                 f"Record {sample_id} has csv2 error={csv2.get('error')!r}; "
