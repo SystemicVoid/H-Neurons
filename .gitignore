@@ -94,6 +94,7 @@ docs/good-practices
 .agents/skills/*
 !.agents/skills/exec-review/
 !.agents/skills/exec-review/**
+!.agents/skills/coderabbit-review
 !.agents/skills/coderabbit-review/
 !.agents/skills/coderabbit-review/**
 

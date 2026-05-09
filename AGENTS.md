@@ -5,7 +5,7 @@
 - Use the literature when building experiments based on related work; start with `papers/INDEX.md`.
 - When the user asks for a handoff prompt for another agent, output only the prompt body. Do not prepend framing or wrap it in explanatory prose.
 - Follow existing conventional commits pattern.
-- For independent code review, use the repo-local `coderabbit-review` skill and `uv run python scripts/infra/coderabbit_review_watch.py -- <coderabbit review args>`; let it wait up to 30 minutes and use its Codex fallback only on CodeRabbit timeout, rate limit, or error.
+- For independent code review, use the repo-local `coderabbit-review` skill and `python .agents/skills/coderabbit-review/scripts/coderabbit_review_watch.py -- <coderabbit review args>`; let it wait up to 30 minutes and use its Codex fallback only on CodeRabbit timeout, rate limit, or error.
 - For run-output commit safety, check `.pre-commit-config.yaml`'s `active-run-git-guard`; run `uv run python -m scripts.lib.pipeline active-run-status` before staging data or output paths.
 
 ## Scoped Guidance

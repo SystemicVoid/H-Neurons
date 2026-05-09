@@ -1,11 +1,35 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 from pathlib import Path
 import shlex
+import sys
 
-from scripts.infra import coderabbit_review_watch as watch
+
+def _load_watch_module():
+    helper_path = (
+        Path(__file__).resolve().parents[1]
+        / ".agents"
+        / "skills"
+        / "coderabbit-review"
+        / "scripts"
+        / "coderabbit_review_watch.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "coderabbit_review_watch",
+        helper_path,
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+watch = _load_watch_module()
 
 
 def _write_executable(path: Path, body: str) -> Path:
@@ -70,6 +94,55 @@ def test_builds_coderabbit_command_with_agent_and_passthrough() -> None:
         "--type",
         "uncommitted",
     ]
+
+
+def test_builds_codex_fallback_command_with_configured_scope(tmp_path: Path) -> None:
+    report_path = tmp_path / "report.md"
+
+    assert watch.build_codex_review_command(
+        "/bin/codex",
+        report_path,
+        ["--base", "main"],
+    )[:6] == [
+        "/bin/codex",
+        "exec",
+        "review",
+        "--base",
+        "main",
+        "--output-last-message",
+    ]
+
+
+def test_fallback_codex_review_args_can_come_from_env() -> None:
+    env = {"CODERABBIT_WATCH_CODEX_REVIEW_ARGS": "--base main"}
+
+    assert watch.fallback_codex_review_args(None, env) == ["--base", "main"]
+    assert watch.fallback_codex_review_args("", env) == []
+
+
+def test_redacts_api_key_from_status_and_commands(tmp_path: Path) -> None:
+    log_dir = tmp_path / "logs"
+    status = watch.initial_status(
+        log_dir,
+        tmp_path,
+        ["--api-key", "secret", "--type", "uncommitted"],
+        ["--uncommitted"],
+    )
+    result = watch.CommandResult(
+        command=["coderabbit", "review", "--api-key=secret"],
+        exit_code=0,
+        reason="completed",
+        output_path=tmp_path / "review.log",
+        elapsed_seconds=0.01,
+    )
+
+    assert status["review_args"] == [
+        "--api-key",
+        "<redacted>",
+        "--type",
+        "uncommitted",
+    ]
+    assert "--api-key=<redacted>" in watch.result_payload(result)["command"]
 
 
 def test_run_quick_command_records_exec_error(tmp_path: Path) -> None:
