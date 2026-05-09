@@ -27,6 +27,7 @@ from evaluate_strongreject import (
     compute_sweep_summary,
     compute_strongreject_score,
     evaluate_batch,
+    evaluate_sync,
     parse_args,
     parse_strongreject_verdict,
 )
@@ -432,6 +433,47 @@ class TestBatchResumability:
         assert captured_user_content is not None
         assert "GOAL_TEXT" in captured_user_content
         assert "RESP_TEXT" in captured_user_content
+
+    def test_evaluate_sync_uses_shared_execution_writeback(self):
+        class _Completion:
+            def __init__(self, content: str) -> None:
+                message = type("Message", (), {"content": content})()
+                self.choices = [type("Choice", (), {"message": message})()]
+                self.usage = None
+
+        class _Completions:
+            def __init__(self, responses: list[str]) -> None:
+                self._responses = list(responses)
+
+            def create(self, **kwargs):
+                assert kwargs["model"] == "gpt-test"
+                assert kwargs["temperature"] == 0.0
+                assert kwargs["max_tokens"] == 500
+                return _Completion(self._responses.pop(0))
+
+        class _Client:
+            def __init__(self) -> None:
+                completions = _Completions([VALID_RESPONSE, "not parseable"])
+                self.chat = type("Chat", (), {"completions": completions})()
+
+        records = [
+            {"id": "rec-ok", "question": "q1", "response": "r1"},
+            {"id": "rec-parse", "question": "q2", "response": "r2"},
+        ]
+
+        evaluated = evaluate_sync(
+            records,
+            client=cast(OpenAI, _Client()),
+            judge_model="gpt-test",
+        )
+
+        assert evaluated[0]["strongreject"]["harmful_binary"] == "yes"
+        assert evaluated[0]["strongreject"]["judge_model"] == "gpt-test"
+        assert evaluated[1]["strongreject"] == _with_strongreject_metadata(
+            records[1],
+            {"error": "parse_failed", "raw_response": "not parseable"},
+            "gpt-test",
+        )
 
     def test_sweep_batch_state_path_changes_with_model_and_input_contents(
         self, tmp_path
