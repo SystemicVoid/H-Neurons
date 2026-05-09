@@ -36,7 +36,6 @@ import torch
 import joblib
 import numpy as np
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from intervene_model import get_h_neuron_indices
 from intervene_iti import ITI_DECODE_SCOPES
@@ -66,7 +65,11 @@ from model_registry import (
     default_classifier_path_for,
     model_output_root,
     model_path_for,
-    tokenizer_kwargs_for,
+)
+from model_runtime import (
+    assistant_content_continuation_ids_from_chat_messages,
+    load_model_and_tokenizer,
+    tokenize_chat,
 )
 from run_contract import (
     INTERVENTION_RUN_CONFIG_FILENAME,
@@ -516,145 +519,8 @@ class HNeuronScaler:
 
 
 # ---------------------------------------------------------------------------
-# Model loading
-# ---------------------------------------------------------------------------
-
-
-def load_model_and_tokenizer(model_path, device_map="auto", model_key=None):
-    assert_causal_lm_supported(model_key, model_path)
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_path,
-        **tokenizer_kwargs_for(model_key, model_path),
-    )
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path, dtype=torch.bfloat16, device_map=device_map
-    )
-    model.eval()
-    return model, tokenizer
-
-
-def unwrap_chat_template_output(out):
-    """Handle transformers returning either a tensor or a BatchEncoding."""
-    if hasattr(out, "input_ids"):
-        return out["input_ids"]
-    return out
-
-
-# ---------------------------------------------------------------------------
 # Generation helpers
 # ---------------------------------------------------------------------------
-
-
-def tokenize_chat(tokenizer, messages):
-    """Tokenize a chat message list once, returning a CPU tensor.
-
-    Use this to cache tokenization across alpha sweeps: tokenize each
-    sample's prompt once, then pass the cached ``input_ids`` to
-    :func:`generate_response` via ``cached_input_ids``.
-    """
-    inputs = tokenizer.apply_chat_template(
-        messages, return_tensors="pt", add_generation_prompt=True
-    )
-    return unwrap_chat_template_output(inputs)
-
-
-def _chat_template_token_ids(
-    tokenizer,
-    messages,
-    *,
-    add_generation_prompt: bool,
-) -> list[int]:
-    rendered = tokenizer.apply_chat_template(
-        messages,
-        tokenize=True,
-        add_generation_prompt=add_generation_prompt,
-    )
-    rendered = unwrap_chat_template_output(rendered)
-    if isinstance(rendered, torch.Tensor):
-        ids = rendered.squeeze(0).tolist()
-    else:
-        ids = rendered
-        if isinstance(ids, list) and ids and isinstance(ids[0], list):
-            if len(ids) != 1:
-                raise ValueError(
-                    "Expected a single chat-template sequence when extracting "
-                    "assistant continuation token IDs"
-                )
-            ids = ids[0]
-    return [int(token_id) for token_id in ids]
-
-
-def _longest_common_prefix_len(a: list[int], b: list[int]) -> int:
-    n = 0
-    for left, right in zip(a, b, strict=False):
-        if left != right:
-            break
-        n += 1
-    return n
-
-
-def assistant_content_continuation_ids_from_chat_messages(
-    tokenizer,
-    prompt_messages: list[dict[str, str]],
-    assistant_content: str,
-    *,
-    prompt_input_ids: torch.Tensor | None = None,
-) -> torch.Tensor:
-    """Extract assistant-content continuation IDs under the active chat template."""
-    if prompt_input_ids is None:
-        prompt_ids = _chat_template_token_ids(
-            tokenizer,
-            prompt_messages,
-            add_generation_prompt=True,
-        )
-    else:
-        prompt_ids = [
-            int(token_id) for token_id in prompt_input_ids.squeeze(0).tolist()
-        ]
-
-    full_messages = [
-        *prompt_messages,
-        {"role": "assistant", "content": assistant_content},
-    ]
-    empty_assistant_messages = [
-        *prompt_messages,
-        {"role": "assistant", "content": ""},
-    ]
-    full_ids = _chat_template_token_ids(
-        tokenizer,
-        full_messages,
-        add_generation_prompt=False,
-    )
-    empty_ids = _chat_template_token_ids(
-        tokenizer,
-        empty_assistant_messages,
-        add_generation_prompt=False,
-    )
-
-    prefix_len = _longest_common_prefix_len(prompt_ids, full_ids)
-    if prefix_len != len(prompt_ids):
-        raise ValueError(
-            "Chat-template mismatch: generation prompt is not a full prefix of the "
-            "assistant-completed sequence"
-        )
-
-    suffix_ids = empty_ids[prefix_len:]
-    tail_ids = full_ids[prefix_len:]
-    if (
-        suffix_ids
-        and len(tail_ids) >= len(suffix_ids)
-        and tail_ids[-len(suffix_ids) :] == suffix_ids
-    ):
-        content_tail = tail_ids[: -len(suffix_ids)]
-    else:
-        content_tail = tail_ids
-
-    if not content_tail:
-        raise ValueError(
-            "Assistant-content continuation extraction produced no content tokens "
-            f"for assistant_content={assistant_content!r}"
-        )
-    return torch.tensor(content_tail, dtype=torch.long, device="cpu")
 
 
 def generate_response(
