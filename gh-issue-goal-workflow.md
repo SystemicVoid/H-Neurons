@@ -125,22 +125,31 @@ Do not invent unrelated cleanup just to stay busy.
 
 ## Independent Review
 
-After local validation passes for the changed surface, run the `$coderabbit-review`
-workflow. Discover CLI behavior first:
+After local validation passes for the changed surface, run the
+`$coderabbit-review` workflow. The `$` denotes the repo helper wrapper described
+in `.agents/skills/coderabbit-review/SKILL.md`; prefer that wrapper over direct
+`coderabbit` invocation. Use the direct CLI only to discover or debug the
+underlying binary:
 
 - `coderabbit --version`
 - `coderabbit review --help`
 
+Then invoke the wrapper with the selected review flags:
+
+```bash
+uv run python scripts/infra/coderabbit_review_watch.py -- --type uncommitted [other-flags]
+```
+
 Run a bounded review over the changed code. Triage findings as:
 
-- MUST_FIX: Critical findings and high-confidence in-scope warnings
-- DEFER: low-confidence, stylistic, out-of-scope, risky, or decision-requiring
-  findings
+- MUST_FIX: Critical findings and high-confidence in-scope Major findings
+- DEFER: Minor, Trivial, Info, low-confidence Major, stylistic, out-of-scope,
+  risky, or decision-requiring findings
 - IGNORE: duplicates or clear false positives
 
 Fix MUST_FIX items, rerun relevant validation, and re-review within a bounded
 loop. Do not chase purely stylistic or out-of-scope comments. Do not claim
-completion while any unresolved Critical or in-scope high-confidence Warning
+completion while any unresolved Critical or in-scope high-confidence Major
 remains.
 
 Also perform a local self-review of the final diff: search for stale duplicate
