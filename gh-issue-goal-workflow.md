@@ -1,1 +1,0 @@
-/home/hugo/.config/forge/agents/workflows/gh-issue-goal-workflow.md
