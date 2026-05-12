@@ -67,7 +67,10 @@ wandb/
 # Costs log for grant reporting
 costs/
 
-# Related work - papers (commit markdown conversions, not PDFs)
+# Related work paper payloads live in /home/hugo/Documents/Research/papers.
+# Commit project-owned indexes/guidance here, not local symlinked payload views.
+papers/*.md
+!papers/INDEX.md
 papers/*.pdf
 
 # Good practices notes

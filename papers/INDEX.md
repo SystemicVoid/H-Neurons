@@ -1,5 +1,9 @@
 # Papers Index
 
+PDF and markdown payloads in this directory are symlinks into the canonical
+library at `/home/hugo/Documents/Research/papers/h-neurons`. Keep this index
+project-owned, but add new paper files to the central library first.
+
 Scan the quick map, only open the linked markdown for the papers that are relevant. Extend the entries here with line number references for any useful information you encounter and may need soon again so next agetn avoid reading the entire paper.
 
 ## Quick Map
