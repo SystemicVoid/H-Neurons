@@ -126,6 +126,7 @@ notes/research-directions/
 # Archived docs (completed/closed investigation plans)
 docs/archive/
 nextsteps.md
+paper-draft-archive/
 
 # Blog article (symlink to hugo-blog)
 hallucination-neurons.mdx
