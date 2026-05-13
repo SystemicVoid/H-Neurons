@@ -50,6 +50,7 @@ from intervention_adapters import (
     build_direction_output_suffix,
     build_iti_output_suffix,
     get_intervention_adapter,
+    normalize_iti_family,
 )
 from uncertainty import (
     DEFAULT_BOOTSTRAP_RESAMPLES,
@@ -102,6 +103,19 @@ DEFAULT_BIOASQ_DATA = os.environ.get(
 DEFAULT_SIMPLEQA_DATASET = os.environ.get(
     "HNEURONS_SIMPLEQA_DATASET",
     "basicv8vc/SimpleQA",
+)
+ITI_FAMILY_CHOICES = (
+    "triviaqa_transfer",
+    "context_grounded",
+    "truthfulqa_paperfaithful",
+    "truthfulqa_exploratory",
+    "truthfulqa_modernized",
+    "refusal_probe",
+    "refusal_causal",
+)
+ITI_FAMILY_ARG_CHOICES = (
+    *ITI_FAMILY_CHOICES,
+    *(normalize_iti_family(family) for family in ITI_FAMILY_CHOICES),
 )
 RUN_PROFILES = ("canonical", "fast")
 COMPARABILITY_CLASS_BY_PROFILE = {
@@ -361,7 +375,7 @@ def build_intervention_run_contract(
                 "iti_head_path": args.iti_head_path,
                 "iti_head_sha256": optional_file_sha256(args.iti_head_path),
                 "iti_k": args.iti_k,
-                "iti_family": args.iti_family,
+                "iti_family": normalize_iti_family(args.iti_family),
                 "iti_selection_strategy": args.iti_selection_strategy,
                 "iti_random_seed": args.iti_random_seed,
                 "iti_direction_mode": args.iti_direction_mode,
@@ -4389,15 +4403,7 @@ def parse_args(argv: list[str] | None = None):
         "--iti_family",
         type=str,
         default="triviaqa_transfer",
-        choices=[
-            "triviaqa_transfer",
-            "context_grounded",
-            "truthfulqa_paperfaithful",
-            "truthfulqa_exploratory",
-            "truthfulqa_modernized",
-            "refusal_probe",
-            "refusal_causal",
-        ],
+        choices=ITI_FAMILY_ARG_CHOICES,
         help="Expected family label for the ITI artifact.",
     )
     p.add_argument(

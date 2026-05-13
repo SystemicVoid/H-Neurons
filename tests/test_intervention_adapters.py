@@ -15,6 +15,7 @@ import intervention_adapters
 from intervention_adapters import (
     NOOP_ALPHA_BY_INTERVENTION_MODE,
     build_direction_output_suffix,
+    build_iti_output_suffix,
     get_intervention_adapter,
 )
 
@@ -71,7 +72,7 @@ def test_direction_adapter_builds_metadata_and_lifecycle(
     args = argparse.Namespace(
         direction_path=str(direction_path),
         direction_mode="add",
-        direction_layers="1,3",
+        direction_layers="1, 3",
     )
 
     built = get_intervention_adapter("direction").build(
@@ -98,9 +99,9 @@ def test_direction_adapter_builds_metadata_and_lifecycle(
     assert built.summary_fields == {
         "direction_path": str(direction_path),
         "direction_mode": "add",
-        "direction_layers": "1,3",
+        "direction_layers": "1, 3",
         "direction_config_key": build_direction_output_suffix(
-            str(direction_path), "add", "1,3"
+            str(direction_path), "add", "1, 3"
         ),
     }
 
@@ -108,6 +109,93 @@ def test_direction_adapter_builds_metadata_and_lifecycle(
     assert built.scaler.alpha == 0.0
     built.remove()
     assert built.scaler.removed is True
+
+
+def test_direction_adapter_ignores_empty_direction_layer_segments(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, Any] = {}
+
+    class _DirectionScaler(_LifecycleScaler):
+        n_hooks = 3
+
+        def __init__(
+            self,
+            model: Any,
+            directions: Any,
+            device: Any,
+            *,
+            mode: str,
+            layers: list[int] | None,
+        ) -> None:
+            super().__init__()
+            captured["layers"] = layers
+
+    monkeypatch.setattr(
+        intervention_adapters.torch,
+        "load",
+        lambda path, map_location, weights_only: {},
+    )
+    monkeypatch.setattr(intervention_adapters, "DirectionScaler", _DirectionScaler)
+
+    args = argparse.Namespace(
+        direction_path=str(tmp_path / "refusal_directions.pt"),
+        direction_mode="add",
+        direction_layers="1,3,",
+    )
+
+    get_intervention_adapter("direction").build(
+        args=args,
+        model="model",
+        device="cuda:0",
+    )
+
+    assert captured["layers"] == [1, 3]
+
+
+def test_direction_adapter_rejects_non_numeric_direction_layers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        intervention_adapters.torch,
+        "load",
+        lambda path, map_location, weights_only: {},
+    )
+
+    args = argparse.Namespace(
+        direction_path=str(tmp_path / "refusal_directions.pt"),
+        direction_mode="add",
+        direction_layers="1,nope,",
+    )
+
+    with pytest.raises(ValueError, match="invalid literal"):
+        get_intervention_adapter("direction").build(
+            args=args,
+            model="model",
+            device="cuda:0",
+        )
+
+
+def test_iti_output_suffix_canonicalizes_family(tmp_path: Path) -> None:
+    head_path = tmp_path / "heads.pt"
+
+    unprefixed = build_iti_output_suffix(
+        str(head_path),
+        "truthfulqa",
+        2,
+        "ranked",
+        42,
+    )
+    prefixed = build_iti_output_suffix(
+        str(head_path),
+        "iti_truthfulqa",
+        2,
+        "ranked",
+        42,
+    )
+
+    assert unprefixed == prefixed
+    assert "iti-head_iti-truthfulqa_k-2_ranked_seed-42" in unprefixed
 
 
 def test_iti_adapter_passes_debug_stats_and_lifecycle(
@@ -199,7 +287,7 @@ def test_iti_adapter_passes_debug_stats_and_lifecycle(
         "iti_k": 2,
         "iti_selection_strategy": "ranked",
         "iti_random_seed": 42,
-        "iti_family": "truthfulqa",
+        "iti_family": "iti_truthfulqa",
         "iti_decode_scope": "generated_only",
         "iti_collect_debug_stats": True,
     }
