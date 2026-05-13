@@ -24,6 +24,9 @@ DEFAULT_MODEL_DTYPE = torch.bfloat16
 DEFAULT_GENERATION_SMOKE_PROMPT = "Reply with exactly one token: OK"
 TARGET_GPU_NAME_RE = re.compile(r"H100|A100", re.IGNORECASE)
 TARGET_MIN_MEMORY_BYTES = 75 * 1024**3
+MISSING_CHAT_TEMPLATE_MESSAGE = (
+    "tokenizer.chat_template is not set and no template argument was passed"
+)
 
 
 @dataclass(frozen=True)
@@ -66,6 +69,7 @@ def load_model_runtime(
     tokenizer = AutoTokenizer.from_pretrained(resolved_model_path, **tokenizer_kwargs)
     model = AutoModelForCausalLM.from_pretrained(
         resolved_model_path,
+        # Transformers 4.57.6 prefers dtype; torch_dtype is a deprecated alias.
         dtype=dtype,
         device_map=device_map,
     )
@@ -518,15 +522,27 @@ def _move_inputs_to_device(
     }
 
 
+def _plain_prompt_generation_inputs(tokenizer: Any) -> dict[str, Any]:
+    encoded = tokenizer(DEFAULT_GENERATION_SMOKE_PROMPT, return_tensors="pt")
+    return {
+        str(key): value for key, value in encoded.items() if hasattr(value, "shape")
+    }
+
+
 def _generation_inputs(tokenizer: Any) -> dict[str, Any]:
     messages = [{"role": "user", "content": DEFAULT_GENERATION_SMOKE_PROMPT}]
     if hasattr(tokenizer, "apply_chat_template"):
-        rendered = tokenizer.apply_chat_template(
-            messages,
-            tokenize=True,
-            add_generation_prompt=True,
-            return_tensors="pt",
-        )
+        try:
+            rendered = tokenizer.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_tensors="pt",
+            )
+        except ValueError as exc:
+            if MISSING_CHAT_TEMPLATE_MESSAGE not in str(exc):
+                raise
+            return _plain_prompt_generation_inputs(tokenizer)
         if hasattr(rendered, "items"):
             return {
                 str(key): value
@@ -536,10 +552,7 @@ def _generation_inputs(tokenizer: Any) -> dict[str, Any]:
         if hasattr(rendered, "input_ids"):
             return {"input_ids": rendered["input_ids"]}
         return {"input_ids": rendered}
-    encoded = tokenizer(DEFAULT_GENERATION_SMOKE_PROMPT, return_tensors="pt")
-    return {
-        str(key): value for key, value in encoded.items() if hasattr(value, "shape")
-    }
+    return _plain_prompt_generation_inputs(tokenizer)
 
 
 def _decode_tokens(tokenizer: Any, token_ids: Any) -> str:

@@ -45,6 +45,44 @@ class FakeTokenizer:
         return "OK" if list(token_ids) == [42] else str(list(token_ids))
 
 
+class MissingTemplateTokenizer:
+    pad_token_id = 0
+    eos_token_id = 9
+
+    def __init__(self) -> None:
+        self.plain_prompts: list[str] = []
+
+    def apply_chat_template(self, *_args: Any, **_kwargs: Any) -> Any:
+        raise ValueError(
+            "Cannot use chat template functions because tokenizer.chat_template "
+            "is not set and no template argument was passed!"
+        )
+
+    def __call__(self, prompt: str, *, return_tensors: str) -> dict[str, torch.Tensor]:
+        self.plain_prompts.append(prompt)
+        assert return_tensors == "pt"
+        return {
+            "input_ids": torch.tensor([[20, 21]], dtype=torch.long),
+            "attention_mask": torch.tensor([[1, 1]], dtype=torch.long),
+        }
+
+    def decode(self, token_ids: Any, *, skip_special_tokens: bool = True) -> str:
+        return "OK" if list(token_ids) == [42] else str(list(token_ids))
+
+
+class BrokenTemplateTokenizer(MissingTemplateTokenizer):
+    def __init__(self) -> None:
+        super().__init__()
+        self.plain_prompt_called = False
+
+    def apply_chat_template(self, *_args: Any, **_kwargs: Any) -> Any:
+        raise ValueError("chat template rendering exploded")
+
+    def __call__(self, prompt: str, *, return_tensors: str) -> dict[str, torch.Tensor]:
+        self.plain_prompt_called = True
+        return super().__call__(prompt, return_tensors=return_tensors)
+
+
 class FakeModel:
     def __init__(self) -> None:
         self.config = SimpleNamespace(
@@ -120,6 +158,10 @@ def test_load_model_runtime_uses_registry_policy(
         "model_path": "mistralai/Mistral-Small-24B-Instruct-2501",
         "kwargs": {"dtype": torch.bfloat16, "device_map": "cuda:0"},
     }
+    assert "torch_dtype" not in calls["model"]["kwargs"]
+    assert "quantization_config" not in calls["model"]["kwargs"]
+    assert "load_in_4bit" not in calls["model"]["kwargs"]
+    assert "load_in_8bit" not in calls["model"]["kwargs"]
 
 
 def test_load_model_runtime_rejects_unsupported_loader_before_hf_load(
@@ -188,3 +230,26 @@ def test_generation_smoke_uses_chat_template_and_decodes_new_token() -> None:
         "generated_new_tokens": 1,
         "decoded_new_text_preview": "OK",
     }
+
+
+def test_generation_smoke_falls_back_when_chat_template_is_unset() -> None:
+    tokenizer = MissingTemplateTokenizer()
+
+    result = model_runtime.run_generation_smoke(
+        FakeModel(),
+        tokenizer,
+        max_new_tokens=1,
+    )
+
+    assert result["succeeded"] is True
+    assert result["decoded_new_text_preview"] == "OK"
+    assert tokenizer.plain_prompts == [model_runtime.DEFAULT_GENERATION_SMOKE_PROMPT]
+
+
+def test_generation_inputs_reraises_unrelated_chat_template_errors() -> None:
+    tokenizer = BrokenTemplateTokenizer()
+
+    with pytest.raises(ValueError, match="rendering exploded"):
+        model_runtime._generation_inputs(tokenizer)
+
+    assert tokenizer.plain_prompt_called is False
