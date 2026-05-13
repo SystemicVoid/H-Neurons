@@ -466,6 +466,9 @@ def test_jailbreak_negative_control_baseline_allows_control_only_batch_size(
         manifest_path=manifest_path,
         benchmark="jailbreak",
         benchmark_config={
+            "jailbreak_source": "jailbreakbench",
+            "jailbreak_path": None,
+            "n_templates": 5,
             "jailbreak_generation": dict(CANONICAL_JAILBREAK_GENERATION),
         },
         prompt_style=None,
