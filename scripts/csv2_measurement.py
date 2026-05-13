@@ -650,7 +650,9 @@ def _validate_evidence_spans(
     if pivot_span is not None:
         if not pivot_span.get("valid"):
             errors.append("invalid_pivot_span")
-        elif valid_harmful:
+        elif not valid_harmful:
+            errors.append("invalid_pivot_span")
+        else:
             first_harmful = min(int(span["start"]) for span in valid_harmful)
             if int(pivot_span["start"]) > first_harmful:
                 errors.append("pivot_after_harmful")
@@ -751,6 +753,7 @@ def annotate_legacy_record(rec: dict, raw_content: str) -> None:  # type: ignore
     metrics = compute_span_metrics(response_text, resolved)
 
     rec["csv2"] = {
+        "schema_version": LEGACY_CSV2_SCHEMA_VERSION,
         "harmful_binary": verdict["harmful_binary"],
         "C": verdict["C"],
         "S": verdict["S"],
