@@ -80,16 +80,20 @@ def _write_h_baseline_artifacts(
     *,
     classifier_path: Path,
     manifest_path: Path,
-    prompt_style: str = "standard",
+    benchmark: str = "faitheval",
+    benchmark_config: dict[str, Any] | None = None,
+    prompt_style: str | None = "standard",
     alphas: list[float] | None = None,
 ) -> Path:
     alphas = [0.0, 1.0, 3.0] if alphas is None else alphas
     baseline_dir = tmp_path / "experiment"
     baseline_dir.mkdir()
     sample_manifest = describe_sample_manifest(str(manifest_path))
+    if benchmark_config is None:
+        benchmark_config = {"prompt_style": prompt_style}
     run_contract = {
         "schema_version": "intervention_run_config/v1",
-        "benchmark": "faitheval",
+        "benchmark": benchmark,
         "model": {
             "key": "mistral24b",
             "path": "mistralai/Mistral-Small-24B-Instruct-2501",
@@ -103,14 +107,14 @@ def _write_h_baseline_artifacts(
             "sample_manifest": sample_manifest,
         },
         "schedule": {"alphas": alphas},
-        "benchmark_config": {"prompt_style": prompt_style},
+        "benchmark_config": dict(benchmark_config),
         "intervention": {"mode": "neuron"},
     }
     (baseline_dir / INTERVENTION_RUN_CONFIG_FILENAME).write_text(
         json.dumps(run_contract, indent=2)
     )
     results = {
-        "benchmark": "faitheval",
+        "benchmark": benchmark,
         "model_key": "mistral24b",
         "model": "mistralai/Mistral-Small-24B-Instruct-2501",
         "classifier": str(classifier_path),
@@ -446,6 +450,52 @@ def test_negative_control_contract_binds_h_baseline_identity(
     assert contract["h_neuron_baseline"]["results_path"].endswith(
         "results.20260429_000000.json"
     )
+
+
+def test_jailbreak_negative_control_baseline_allows_control_only_batch_size(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier_path = tmp_path / "classifier.pkl"
+    classifier_path.write_bytes(b"classifier-v1")
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(["fake_0", "fake_1"]))
+    baseline_dir = _write_h_baseline_artifacts(
+        tmp_path,
+        classifier_path=classifier_path,
+        manifest_path=manifest_path,
+        benchmark="jailbreak",
+        benchmark_config={
+            "jailbreak_generation": dict(CANONICAL_JAILBREAK_GENERATION),
+        },
+        prompt_style=None,
+        alphas=[0.0, 1.0, 1.5, 3.0],
+    )
+    _set_argv(
+        monkeypatch,
+        "--benchmark",
+        "jailbreak",
+        "--classifier_path",
+        str(classifier_path),
+        "--sample_manifest",
+        str(manifest_path),
+        "--jailbreak_batch_size",
+        "4",
+        "--h_neuron_baseline",
+        str(baseline_dir),
+    )
+    args = parse_args()
+    alphas, configs = negative_control_schedule(args.benchmark, args.quick)
+    baseline_binding = load_h_neuron_baseline_binding(str(baseline_dir), alphas)
+    contract = build_negative_control_run_contract(
+        args,
+        alphas,
+        configs,
+        baseline_binding=baseline_binding,
+    )
+
+    assert contract["benchmark_config"]["jailbreak_batch_size"] == 4
+    assert_h_neuron_baseline_matches_control_contract(contract)
 
 
 def test_negative_control_contract_rejects_baseline_prompt_drift(

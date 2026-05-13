@@ -80,6 +80,26 @@ def _negative_control_contract(
     }
 
 
+def _baseline_binding_for_contract(run_contract: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "run_contract": run_contract,
+        "summary_identity": {
+            "benchmark": run_contract.get("benchmark"),
+            "model_key": run_contract.get("model", {}).get("key"),
+            "model_path": run_contract.get("model", {}).get("path"),
+            "classifier_path": run_contract.get("classifier", {}).get("path"),
+            "intervention_mode": run_contract.get("intervention", {}).get("mode"),
+            "sample_manifest": run_contract.get("sample_selection", {}).get(
+                "sample_manifest"
+            ),
+            "prompt_style": run_contract.get("benchmark_config", {}).get(
+                "prompt_style"
+            ),
+            "alphas": run_contract.get("schedule", {}).get("alphas"),
+        },
+    }
+
+
 def _write_h_neuron_baseline_artifacts(
     tmp_path: Path,
     *,
@@ -300,6 +320,66 @@ def test_h_neuron_baseline_binding_hashes_and_checks_contract(
     contract_path.unlink()
     with pytest.raises(RuntimeError, match=r"missing intervention_run_config\.json"):
         load_h_neuron_baseline_binding(str(baseline_dir), [0.0, 1.0, 3.0])
+
+
+def test_h_neuron_baseline_ignores_control_only_jailbreak_batch_size() -> None:
+    baseline_contract = _intervention_contract()
+    baseline_contract["benchmark"] = "jailbreak"
+    baseline_contract["benchmark_config"] = {
+        "jailbreak_generation": {"max_new_tokens": 256, "do_sample": False},
+    }
+    contract = _negative_control_contract(
+        _baseline_binding_for_contract(baseline_contract)
+    )
+    contract["benchmark"] = "jailbreak"
+    contract["benchmark_config"] = {
+        "jailbreak_batch_size": 8,
+        "jailbreak_generation": {"max_new_tokens": 256, "do_sample": False},
+    }
+
+    assert_h_neuron_baseline_matches_control_contract(contract)
+
+
+def test_h_neuron_baseline_still_rejects_jailbreak_generation_drift() -> None:
+    baseline_contract = _intervention_contract()
+    baseline_contract["benchmark"] = "jailbreak"
+    baseline_contract["benchmark_config"] = {
+        "jailbreak_generation": {"max_new_tokens": 128, "do_sample": False},
+    }
+    contract = _negative_control_contract(
+        _baseline_binding_for_contract(baseline_contract)
+    )
+    contract["benchmark"] = "jailbreak"
+    contract["benchmark_config"] = {
+        "jailbreak_batch_size": 8,
+        "jailbreak_generation": {"max_new_tokens": 256, "do_sample": False},
+    }
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"benchmark_config\.jailbreak_generation\.max_new_tokens",
+    ):
+        assert_h_neuron_baseline_matches_control_contract(contract)
+
+
+def test_h_neuron_baseline_rejects_extra_jailbreak_baseline_config() -> None:
+    baseline_contract = _intervention_contract()
+    baseline_contract["benchmark"] = "jailbreak"
+    baseline_contract["benchmark_config"] = {
+        "extra_param": "value",
+        "jailbreak_generation": {"max_new_tokens": 256, "do_sample": False},
+    }
+    contract = _negative_control_contract(
+        _baseline_binding_for_contract(baseline_contract)
+    )
+    contract["benchmark"] = "jailbreak"
+    contract["benchmark_config"] = {
+        "jailbreak_batch_size": 8,
+        "jailbreak_generation": {"max_new_tokens": 256, "do_sample": False},
+    }
+
+    with pytest.raises(RuntimeError, match=r"benchmark_config\.extra_param"):
+        assert_h_neuron_baseline_matches_control_contract(contract)
 
 
 def test_h_neuron_baseline_alpha_superset_is_reusable(
