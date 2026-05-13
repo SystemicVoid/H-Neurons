@@ -46,7 +46,11 @@ def _env_with_bin(bin_dir: Path) -> dict[str, str]:
 
 
 def _parse_args(*args: str):
-    return watch.build_parser().parse_args(list(args))
+    return watch.build_parser().parse_args(watch.normalize_argv(list(args)))
+
+
+def _run_local(tmp_path: Path, env: dict[str, str], *args: str) -> int:
+    return watch.run_local(_parse_args(*args), cwd=tmp_path, env=env)
 
 
 def _status(log_dir: Path) -> dict[str, object]:
@@ -80,6 +84,35 @@ def test_parse_version_and_rate_limit_detection() -> None:
     assert watch.is_rate_limit_text("HTTP 429: too many requests")
     assert watch.is_rate_limit_text("rate limit exceeded")
     assert not watch.is_rate_limit_text("ordinary review output")
+
+
+def test_coderabbit_rate_limit_detector_ignores_review_content() -> None:
+    review_content = json.dumps(
+        {
+            "type": "finding",
+            "severity": "minor",
+            "fileName": "retry.py",
+            "codegenInstructions": (
+                "The reviewed code handles HTTP 429 rate limit exceeded responses."
+            ),
+        }
+    )
+
+    assert watch.is_rate_limit_text(review_content)
+    assert not watch.is_coderabbit_rate_limit_line(review_content)
+
+
+def test_coderabbit_rate_limit_detector_matches_status_and_error_lines() -> None:
+    assert watch.is_coderabbit_rate_limit_line(
+        json.dumps({"type": "status", "status": "HTTP 429 rate limit exceeded"})
+    )
+    assert watch.is_coderabbit_rate_limit_line(
+        json.dumps({"type": "error", "message": "quota exceeded"})
+    )
+    assert watch.is_coderabbit_rate_limit_line("Error: HTTP 429: too many requests")
+    assert not watch.is_coderabbit_rate_limit_line(
+        "Reviewed code should handle rate limit retries."
+    )
 
 
 def test_builds_coderabbit_command_with_agent_and_passthrough() -> None:
@@ -123,10 +156,11 @@ def test_fallback_codex_review_args_can_come_from_env() -> None:
 def test_redacts_api_key_from_status_and_commands(tmp_path: Path) -> None:
     log_dir = tmp_path / "logs"
     status = watch.initial_status(
-        log_dir,
-        tmp_path,
-        ["--api-key", "secret", "--type", "uncommitted"],
-        ["--uncommitted"],
+        mode="local",
+        log_dir=log_dir,
+        cwd=tmp_path,
+        review_args=["--api-key", "secret", "--type", "uncommitted"],
+        fallback_review_args=["--uncommitted"],
     )
     result = watch.CommandResult(
         command=["coderabbit", "review", "--api-key=secret"],
@@ -142,7 +176,7 @@ def test_redacts_api_key_from_status_and_commands(tmp_path: Path) -> None:
         "--type",
         "uncommitted",
     ]
-    assert "--api-key=<redacted>" in watch.result_payload(result)["command"]
+    assert "--api-key=<redacted>" in watch.command_payload(result)["command"]
 
 
 def test_run_quick_command_records_exec_error(tmp_path: Path) -> None:
@@ -201,10 +235,14 @@ echo "CodeRabbit review complete"
     )
     log_dir = tmp_path / "logs"
 
-    exit_code = watch.run(
-        _parse_args("--log-dir", str(log_dir), "--", "--type", "uncommitted"),
-        cwd=tmp_path,
-        env=_env_with_bin(bin_dir),
+    exit_code = _run_local(
+        tmp_path,
+        _env_with_bin(bin_dir),
+        "--log-dir",
+        str(log_dir),
+        "--",
+        "--type",
+        "uncommitted",
     )
 
     status = _status(log_dir)
@@ -218,7 +256,9 @@ echo "CodeRabbit review complete"
     )
 
 
-def test_rate_limit_runs_codex_fallback(tmp_path: Path) -> None:
+def test_review_content_rate_limit_phrase_does_not_trigger_fallback(
+    tmp_path: Path,
+) -> None:
     bin_dir = tmp_path / "bin"
     _write_executable(
         bin_dir / "coderabbit",
@@ -232,17 +272,62 @@ if [[ "$1" == "review" && "${2:-}" == "--help" ]]; then
   echo "Usage: coderabbit review --agent --no-color"
   exit 0
 fi
-echo "HTTP 429 rate limit exceeded"
+cat <<'JSON'
+{"type":"finding","severity":"minor","fileName":"retry.py","codegenInstructions":"The reviewed code handles HTTP 429 rate limit exceeded responses."}
+JSON
+sleep 0.2
+echo '{"type":"complete","status":"review_completed","findings":0}'
+""",
+    )
+    _codex_fake(bin_dir)
+    log_dir = tmp_path / "logs"
+
+    exit_code = _run_local(
+        tmp_path,
+        _env_with_bin(bin_dir),
+        "--log-dir",
+        str(log_dir),
+        "--timeout-seconds",
+        "20",
+        "--",
+    )
+
+    status = _status(log_dir)
+    assert exit_code == 0
+    assert status["state"] == "coderabbit_completed"
+    assert status["backend"] == "coderabbit"
+    assert status["reason"] == "completed"
+
+
+def test_rate_limit_status_runs_codex_fallback(tmp_path: Path) -> None:
+    bin_dir = tmp_path / "bin"
+    _write_executable(
+        bin_dir / "coderabbit",
+        """#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$1" == "--version" ]]; then
+  echo "0.4.5"
+  exit 0
+fi
+if [[ "$1" == "review" && "${2:-}" == "--help" ]]; then
+  echo "Usage: coderabbit review --agent --no-color"
+  exit 0
+fi
+echo '{"type":"status","status":"HTTP 429 rate limit exceeded"}'
 sleep 5
 """,
     )
     _codex_fake(bin_dir)
     log_dir = tmp_path / "logs"
 
-    exit_code = watch.run(
-        _parse_args("--log-dir", str(log_dir), "--timeout-seconds", "20", "--"),
-        cwd=tmp_path,
-        env=_env_with_bin(bin_dir),
+    exit_code = _run_local(
+        tmp_path,
+        _env_with_bin(bin_dir),
+        "--log-dir",
+        str(log_dir),
+        "--timeout-seconds",
+        "20",
+        "--",
     )
 
     status = _status(log_dir)
@@ -273,18 +358,16 @@ sleep 5
     _codex_fake(bin_dir)
     log_dir = tmp_path / "logs"
 
-    exit_code = watch.run(
-        _parse_args(
-            "--log-dir",
-            str(log_dir),
-            "--timeout-seconds",
-            "1",
-            "--fallback-timeout-seconds",
-            "5",
-            "--",
-        ),
-        cwd=tmp_path,
-        env=_env_with_bin(bin_dir),
+    exit_code = _run_local(
+        tmp_path,
+        _env_with_bin(bin_dir),
+        "--log-dir",
+        str(log_dir),
+        "--timeout-seconds",
+        "1",
+        "--fallback-timeout-seconds",
+        "5",
+        "--",
     )
 
     status = _status(log_dir)
@@ -314,10 +397,12 @@ exit 3
     _codex_fake(bin_dir)
     log_dir = tmp_path / "logs"
 
-    exit_code = watch.run(
-        _parse_args("--log-dir", str(log_dir), "--"),
-        cwd=tmp_path,
-        env=_env_with_bin(bin_dir),
+    exit_code = _run_local(
+        tmp_path,
+        _env_with_bin(bin_dir),
+        "--log-dir",
+        str(log_dir),
+        "--",
     )
 
     status = _status(log_dir)
@@ -347,10 +432,12 @@ exit 99
     _codex_fake(bin_dir)
     log_dir = tmp_path / "logs"
 
-    exit_code = watch.run(
-        _parse_args("--log-dir", str(log_dir), "--"),
-        cwd=tmp_path,
-        env=_env_with_bin(bin_dir),
+    exit_code = _run_local(
+        tmp_path,
+        _env_with_bin(bin_dir),
+        "--log-dir",
+        str(log_dir),
+        "--",
     )
 
     status = _status(log_dir)
