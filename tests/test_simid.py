@@ -64,8 +64,10 @@ from label_simid_open_calibration import (
 )
 from simid_open_calibration import (
     CalibrationQueueLaunchError,
+    SIMID_OPEN_FINAL_GRADE_LABELS,
     effective_open_grade,
     finalize_open_calibration,
+    gwet_ac1_for_labels,
     load_open_calibration_summary,
     normalize_open_calibration_summary,
     queue_row_sha256,
@@ -2409,6 +2411,15 @@ def test_finalize_open_calibration_leaves_single_grade_kappa_unrecorded(
     assert summary["claimability"]["passed"] is False
     assert "cohen_kappa_not_recorded" in summary["claimability"]["blockers"]
     assert "n_cases_below_minimum" not in summary["claimability"]["blockers"]
+
+
+def test_open_calibration_gwet_rejects_mismatched_label_lengths() -> None:
+    with pytest.raises(ValueError, match="equal-length label sequences"):
+        gwet_ac1_for_labels(
+            ["CORRECT", "INCORRECT"],
+            ["CORRECT"],
+            labels=SIMID_OPEN_FINAL_GRADE_LABELS,
+        )
 
 
 def test_open_calibration_labeler_uses_gpt5_chat_kwargs() -> None:
