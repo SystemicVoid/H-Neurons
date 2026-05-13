@@ -10,7 +10,11 @@ from typing import cast
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import openai_batch
-from evaluate_jailbreak_benign import evaluate_all_batch, parse_benign_verdict
+from evaluate_jailbreak_benign import (
+    build_benign_batch_state_path,
+    evaluate_all_batch,
+    parse_benign_verdict,
+)
 from openai import OpenAI
 
 
@@ -29,6 +33,71 @@ class TestBenignVerdictParsing:
 
 
 class TestEvaluateAllBatch:
+    def test_batch_state_path_changes_with_judge_model(self, tmp_path: Path) -> None:
+        alpha_path = tmp_path / "alpha_4.0.jsonl"
+        _write_jsonl(alpha_path, [{"goal": "A", "response": "B"}])
+
+        first = build_benign_batch_state_path(
+            str(tmp_path),
+            [(4.0, str(alpha_path))],
+            "gpt-4o",
+        )
+        second = build_benign_batch_state_path(
+            str(tmp_path),
+            [(4.0, str(alpha_path))],
+            "gpt-4o-mini",
+        )
+
+        assert first != second
+
+    def test_batch_state_path_changes_with_input_contents(self, tmp_path: Path) -> None:
+        alpha_path = tmp_path / "alpha_4.0.jsonl"
+        _write_jsonl(alpha_path, [{"goal": "A", "response": "B"}])
+        first = build_benign_batch_state_path(
+            str(tmp_path),
+            [(4.0, str(alpha_path))],
+            "gpt-4o",
+        )
+
+        _write_jsonl(alpha_path, [{"goal": "A", "response": "changed"}])
+        second = build_benign_batch_state_path(
+            str(tmp_path),
+            [(4.0, str(alpha_path))],
+            "gpt-4o",
+        )
+
+        assert first != second
+
+    def test_batch_state_path_changes_with_record_order(self, tmp_path: Path) -> None:
+        alpha_path = tmp_path / "alpha_4.0.jsonl"
+        _write_jsonl(
+            alpha_path,
+            [
+                {"id": "first", "goal": "A", "response": "B"},
+                {"id": "second", "goal": "C", "response": "D"},
+            ],
+        )
+        first = build_benign_batch_state_path(
+            str(tmp_path),
+            [(4.0, str(alpha_path))],
+            "gpt-4o",
+        )
+
+        _write_jsonl(
+            alpha_path,
+            [
+                {"id": "second", "goal": "C", "response": "D"},
+                {"id": "first", "goal": "A", "response": "B"},
+            ],
+        )
+        second = build_benign_batch_state_path(
+            str(tmp_path),
+            [(4.0, str(alpha_path))],
+            "gpt-4o",
+        )
+
+        assert first != second
+
     def test_sets_benign_helpfulness_fields(self, tmp_path, monkeypatch):
         alpha_path = tmp_path / "alpha_4.0.jsonl"
         _write_jsonl(
@@ -60,6 +129,8 @@ class TestEvaluateAllBatch:
         def fake_resume_or_submit(
             client, batch_requests, state_path, metadata, max_enqueued_tokens
         ):
+            assert state_path.name.startswith(".benign_eval_batch_state.")
+            assert state_path.name.endswith(".json")
             return {
                 "a4.0_i0": {
                     "custom_id": "a4.0_i0",

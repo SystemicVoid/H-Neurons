@@ -182,3 +182,55 @@ def test_sync_executor_writes_success_parse_failure_and_api_failure() -> None:
         "error": "api_failed",
         "raw_response": None,
     }
+
+
+def test_sync_executor_does_not_sleep_after_terminal_empty_content() -> None:
+    records = [{}]
+    tasks = [EvaluatorTask("empty", 0, [{"role": "user", "content": "empty"}])]
+    sleeps: list[float] = []
+    client = _FakeClient([_Completion(None), _Completion(None)])
+
+    result = execute_sync_evaluator(
+        records=records,
+        tasks=tasks,
+        adapter=_test_adapter(),
+        client=client,
+        model="gpt-test",
+        common_request_kwargs={"temperature": 0.0},
+        max_retries=2,
+        sleep_fn=sleeps.append,
+    )
+
+    assert result.submitted == 1
+    assert result.errors == 1
+    assert sleeps == [1.0]
+    assert records[0]["result"] == {
+        "error": "api_failed",
+        "raw_response": None,
+    }
+
+
+def test_sync_executor_does_not_sleep_after_terminal_exception() -> None:
+    records = [{}]
+    tasks = [EvaluatorTask("error", 0, [{"role": "user", "content": "error"}])]
+    sleeps: list[float] = []
+    client = _FakeClient([RuntimeError("first"), RuntimeError("second")])
+
+    result = execute_sync_evaluator(
+        records=records,
+        tasks=tasks,
+        adapter=_test_adapter(),
+        client=client,
+        model="gpt-test",
+        common_request_kwargs={"temperature": 0.0},
+        max_retries=2,
+        sleep_fn=sleeps.append,
+    )
+
+    assert result.submitted == 1
+    assert result.errors == 1
+    assert sleeps == [1.0]
+    assert records[0]["result"] == {
+        "error": "api_failed",
+        "raw_response": None,
+    }
