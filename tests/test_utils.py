@@ -610,8 +610,32 @@ class TestDirectionOutputDir:
 
         assert output_dir.startswith("data/gemma3_4b/intervention/faitheval_")
         assert output_dir.endswith("/experiment")
-        assert "iti-head_triviaqa-transfer_k-16_ranked_seed-42" in output_dir
+        assert "iti-head_iti-triviaqa-transfer_k-16_ranked_seed-42" in output_dir
         assert "scope-full-decode" in output_dir
+
+    def test_resolve_output_dir_canonicalizes_iti_family_prefix(self):
+        common_args = dict(
+            output_dir=None,
+            intervention_mode="iti_head",
+            benchmark="faitheval",
+            iti_head_path="data/contrastive/truthfulness/iti_triviaqa/iti_heads.pt",
+            iti_k=16,
+            iti_selection_strategy="ranked",
+            iti_random_seed=42,
+            iti_direction_mode="artifact",
+            iti_direction_random_seed=None,
+            iti_decode_scope="full_decode",
+            truthfulqa_variant="mc1",
+        )
+
+        unprefixed = resolve_output_dir(
+            argparse.Namespace(**common_args, iti_family="triviaqa_transfer")
+        )
+        prefixed = resolve_output_dir(
+            argparse.Namespace(**common_args, iti_family="iti_triviaqa_transfer")
+        )
+
+        assert unprefixed == prefixed
 
     def test_resolve_output_dir_requires_iti_path_for_default(self):
         args = argparse.Namespace(

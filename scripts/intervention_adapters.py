@@ -30,6 +30,18 @@ def _slugify_path_component(value: str, *, max_length: int = 48) -> str:
     return slug[:max_length].rstrip("-") or "unnamed"
 
 
+def normalize_iti_family(iti_family: str) -> str:
+    return iti_family if iti_family.startswith("iti_") else f"iti_{iti_family}"
+
+
+def parse_direction_layers(direction_layers: str | None) -> list[int] | None:
+    if not direction_layers:
+        return None
+    return [
+        int(layer.strip()) for layer in direction_layers.split(",") if layer.strip()
+    ]
+
+
 def build_direction_output_suffix(
     direction_path: str,
     direction_mode: str,
@@ -60,13 +72,14 @@ def build_iti_output_suffix(
     iti_decode_scope: str = "full_decode",
 ) -> str:
     """Build a stable semantic suffix for default ITI experiment dirs."""
+    normalized_family = normalize_iti_family(iti_family)
     resolved_path = Path(iti_head_path).expanduser().resolve(strict=False)
     artifact_name = _slugify_path_component(
         resolved_path.parent.name + "-" + resolved_path.stem
     )
     config_hash = hashlib.sha256(
         (
-            f"{resolved_path}|{iti_family}|{iti_k}|"
+            f"{resolved_path}|{normalized_family}|{iti_k}|"
             f"{iti_selection_strategy}|{iti_random_seed}|"
             f"{direction_mode}|{direction_random_seed}|{iti_decode_scope}"
         ).encode("utf-8")
@@ -83,7 +96,7 @@ def build_iti_output_suffix(
     steering_label += f"_scope-{_slugify_path_component(iti_decode_scope)}"
     return (
         "iti-head_"
-        f"{_slugify_path_component(iti_family)}_{steering_label}_"
+        f"{_slugify_path_component(normalized_family)}_{steering_label}_"
         f"{artifact_name}_{config_hash}"
     )
 
@@ -142,7 +155,7 @@ class DirectionInterventionAdapter:
         )
         direction_layers = None
         if args.direction_layers:
-            direction_layers = [int(x) for x in args.direction_layers.split(",")]
+            direction_layers = parse_direction_layers(args.direction_layers)
         scaler = DirectionScaler(
             model,
             directions,
@@ -187,11 +200,7 @@ class ITIHeadInterventionAdapter:
         if not args.iti_head_path:
             raise ValueError("--intervention_mode iti_head requires --iti_head_path")
         artifact = load_iti_artifact(args.iti_head_path)
-        family = (
-            f"iti_{args.iti_family}"
-            if not args.iti_family.startswith("iti_")
-            else args.iti_family
-        )
+        family = normalize_iti_family(args.iti_family)
         scaler = ITIHeadScaler(
             model,
             artifact,
@@ -222,7 +231,7 @@ class ITIHeadInterventionAdapter:
                 "iti_k": args.iti_k,
                 "iti_selection_strategy": args.iti_selection_strategy,
                 "iti_random_seed": args.iti_random_seed,
-                "iti_family": args.iti_family,
+                "iti_family": family,
                 "iti_decode_scope": args.iti_decode_scope,
                 "iti_collect_debug_stats": args.iti_collect_debug_stats,
             },
