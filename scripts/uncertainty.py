@@ -43,6 +43,7 @@ class MeasurementEstimate:
     scale: str
     missing_data_policy: str
     bootstrap: dict[str, Any] | None = None
+    permutation_test: dict[str, Any] | None = None
     n: int | None = None
     n_defined: int | None = None
     n_paired: int | None = None
@@ -79,6 +80,8 @@ class MeasurementEstimate:
             if not include_bootstrap_confidence:
                 bootstrap.pop("confidence", None)
             out["bootstrap"] = bootstrap
+        if self.permutation_test is not None:
+            out["permutation_test"] = dict(self.permutation_test)
         if include_measurement:
             out["measurement"] = self.measurement_metadata()
         return out
@@ -401,6 +404,7 @@ def slope_difference_estimate(
         permutation_resamples=permutation_resamples,
     )
     diff = result["slope_difference_pp_per_alpha"]
+    permutation_test = result.get("permutation_test")
     return MeasurementEstimate(
         estimate=float(diff["estimate"]),
         interval=_interval_from_dict(diff["ci"]),
@@ -409,6 +413,9 @@ def slope_difference_estimate(
         scale=scale,
         missing_data_policy=missing_data_policy,
         bootstrap=dict(result["bootstrap"]),
+        permutation_test=(
+            dict(permutation_test) if permutation_test is not None else None
+        ),
         n=int(np.asarray(trajectories_a).shape[0]),
     )
 

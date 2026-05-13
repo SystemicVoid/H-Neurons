@@ -199,6 +199,46 @@ def test_slope_difference_estimate_records_slope_scale():
     assert summary["n"] == 4
     assert summary["measurement"]["scale"] == "percentage_points_per_alpha"
     assert summary["bootstrap"]["resampling"] == "paired_by_sample_id"
+    assert "permutation_test" not in summary
+
+
+def test_slope_difference_estimate_preserves_permutation_test():
+    trajectories_a = np.array(
+        [
+            [0, 0, 1],
+            [0, 1, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+        ],
+        dtype=bool,
+    )
+    trajectories_b = np.array(
+        [
+            [0, 0, 0],
+            [0, 0, 1],
+            [0, 0, 1],
+            [1, 1, 1],
+        ],
+        dtype=bool,
+    )
+    alphas = np.array([0.0, 1.0, 2.0])
+
+    estimate = slope_difference_estimate(
+        trajectories_a,
+        trajectories_b,
+        alphas,
+        n_resamples=200,
+        seed=7,
+        permutation_resamples=50,
+    )
+    summary = estimate.to_dict()
+
+    assert estimate.permutation_test == summary["permutation_test"]
+    assert summary["permutation_test"]["n_permutations"] == 50
+    assert summary["permutation_test"]["alternative"] == "one_sided_greater"
+    assert 0.0 <= summary["permutation_test"]["p_value"] <= 1.0
+    assert summary["bootstrap"]["n_resamples"] == 200
+    assert summary["bootstrap"]["seed"] == 7
 
 
 def test_paired_bootstrap_curve_effects_reports_positive_delta_for_increasing_curve():
