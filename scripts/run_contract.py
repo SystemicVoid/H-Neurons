@@ -18,6 +18,9 @@ NEGATIVE_CONTROL_RUN_CONFIG_SCHEMA_VERSION = "negative_control_run_config/v1"
 H_NEURON_BASELINE_BINDING_SCHEMA_VERSION = "h_neuron_baseline_binding/v1"
 H_NEURON_BASELINE_INTERVENTION_MODE = "neuron"
 MISMATCH_PREVIEW_LIMIT = 8
+CONTROL_ONLY_BASELINE_BENCHMARK_CONFIG_KEYS = {
+    "jailbreak": frozenset({"jailbreak_batch_size"}),
+}
 
 
 def file_sha256(path: str | Path) -> str:
@@ -515,8 +518,19 @@ def assert_h_neuron_baseline_matches_control_contract(
     )
     expected_benchmark_config = expected.get("benchmark_config") or {}
     observed_benchmark_config = observed.get("benchmark_config") or {}
+    control_only_config_keys = CONTROL_ONLY_BASELINE_BENCHMARK_CONFIG_KEYS.get(
+        str(contract.get("benchmark")),
+        frozenset(),
+    )
+    comparable_config_keys = sorted(
+        (set(expected_benchmark_config) | set(observed_benchmark_config))
+        - control_only_config_keys
+    )
+    expected["benchmark_config"] = {
+        key: expected_benchmark_config.get(key) for key in comparable_config_keys
+    }
     observed["benchmark_config"] = {
-        key: observed_benchmark_config.get(key) for key in expected_benchmark_config
+        key: observed_benchmark_config.get(key) for key in comparable_config_keys
     }
     mismatches = contract_mismatch_paths(
         _without_schedule_alphas(expected),
