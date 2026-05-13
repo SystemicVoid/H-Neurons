@@ -176,6 +176,25 @@ def test_direction_adapter_rejects_non_numeric_direction_layers(
         )
 
 
+@pytest.mark.parametrize("direction_layers", ["", " ", ",", " , , "])
+def test_direction_adapter_rejects_empty_direction_layer_lists(
+    tmp_path: Path,
+    direction_layers: str,
+) -> None:
+    args = argparse.Namespace(
+        direction_path=str(tmp_path / "refusal_directions.pt"),
+        direction_mode="add",
+        direction_layers=direction_layers,
+    )
+
+    with pytest.raises(ValueError, match="must include at least one layer"):
+        get_intervention_adapter("direction").build(
+            args=args,
+            model="model",
+            device="cuda:0",
+        )
+
+
 def test_iti_output_suffix_canonicalizes_family(tmp_path: Path) -> None:
     head_path = tmp_path / "heads.pt"
 

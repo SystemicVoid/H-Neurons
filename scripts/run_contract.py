@@ -21,6 +21,9 @@ MISMATCH_PREVIEW_LIMIT = 8
 CONTROL_ONLY_BASELINE_BENCHMARK_CONFIG_KEYS = {
     "jailbreak": frozenset({"jailbreak_batch_size"}),
 }
+INTERVENTION_ONLY_BASELINE_BENCHMARK_CONFIG_KEYS = {
+    "jailbreak": frozenset({"jailbreak_source", "jailbreak_path", "n_templates"}),
+}
 
 
 def file_sha256(path: str | Path) -> str:
@@ -522,9 +525,16 @@ def assert_h_neuron_baseline_matches_control_contract(
         str(contract.get("benchmark")),
         frozenset(),
     )
+    intervention_only_config_keys = (
+        INTERVENTION_ONLY_BASELINE_BENCHMARK_CONFIG_KEYS.get(
+            str(contract.get("benchmark")),
+            frozenset(),
+        )
+    )
     comparable_config_keys = sorted(
         (set(expected_benchmark_config) | set(observed_benchmark_config))
         - control_only_config_keys
+        - intervention_only_config_keys
     )
     expected["benchmark_config"] = {
         key: expected_benchmark_config.get(key) for key in comparable_config_keys

@@ -35,11 +35,14 @@ def normalize_iti_family(iti_family: str) -> str:
 
 
 def parse_direction_layers(direction_layers: str | None) -> list[int] | None:
-    if not direction_layers:
+    if direction_layers is None:
         return None
-    return [
+    parsed_layers = [
         int(layer.strip()) for layer in direction_layers.split(",") if layer.strip()
     ]
+    if not parsed_layers:
+        raise ValueError("--direction_layers must include at least one layer")
+    return parsed_layers
 
 
 def build_direction_output_suffix(
@@ -149,13 +152,13 @@ class DirectionInterventionAdapter:
     ) -> BuiltIntervention:
         if not args.direction_path:
             raise ValueError("--intervention_mode direction requires --direction_path")
+        direction_layers = None
+        if args.direction_layers is not None:
+            direction_layers = parse_direction_layers(args.direction_layers)
         print(f"Loading directions: {args.direction_path}")
         directions = torch.load(
             args.direction_path, map_location="cpu", weights_only=True
         )
-        direction_layers = None
-        if args.direction_layers:
-            direction_layers = parse_direction_layers(args.direction_layers)
         scaler = DirectionScaler(
             model,
             directions,

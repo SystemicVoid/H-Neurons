@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
+import subprocess
 import sys
 
 import pytest
@@ -24,6 +25,21 @@ from artifact_io import (  # noqa: E402
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _tracked_artifact_manifest_paths() -> list[Path]:
+    result = subprocess.run(
+        ["git", "ls-files", "-z", "--", "data"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return sorted(
+        REPO_ROOT / path
+        for path in result.stdout.split("\0")
+        if path.endswith("/artifact_manifest.sha256")
+    )
 
 
 def test_strict_jsonl_reports_malformed_rows_and_missing_files(tmp_path: Path) -> None:
@@ -109,7 +125,7 @@ def test_alpha_paths_and_row_ids_cover_edge_cases(tmp_path: Path) -> None:
 def test_committed_artifact_manifests_exclude_tmp_entries() -> None:
     # No in-repo generator currently rebuilds the Mistral artifact manifest;
     # guard committed manifests directly so transient files stay out of them.
-    manifest_paths = sorted((REPO_ROOT / "data").rglob("artifact_manifest.sha256"))
+    manifest_paths = _tracked_artifact_manifest_paths()
     assert manifest_paths, "expected at least one committed artifact manifest"
 
     offenders: list[str] = []
