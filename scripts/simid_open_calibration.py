@@ -559,7 +559,7 @@ def gwet_ac1_for_labels(
     if set(labels_a) == set(labels_b) and len(set(labels_a)) == 1:
         return 1.0
 
-    observed = sum(a == b for a, b in zip(labels_a, labels_b)) / n_items
+    observed = sum(a == b for a, b in zip(labels_a, labels_b, strict=True)) / n_items
     counts = Counter(labels_a)
     counts.update(labels_b)
     expected = 0.0
@@ -882,7 +882,7 @@ def finalize_open_calibration(
     disagreement_ids = {
         case_id
         for case_id, primary, secondary in zip(
-            sorted_case_ids, primary_labels, secondary_labels
+            sorted_case_ids, primary_labels, secondary_labels, strict=True
         )
         if primary != secondary
     }
@@ -909,7 +909,7 @@ def finalize_open_calibration(
     adjudicated_rows: list[dict[str, Any]] = []
     disagreement_rows: list[dict[str, Any]] = []
     for case_id, primary, secondary in zip(
-        sorted_case_ids, primary_labels, secondary_labels
+        sorted_case_ids, primary_labels, secondary_labels, strict=True
     ):
         queue_row = queue_by_case[case_id]
         adjudication = adjudication_by_case.get(case_id)
