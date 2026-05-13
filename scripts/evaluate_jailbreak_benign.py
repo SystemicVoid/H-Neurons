@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Mapping, Sequence
+import hashlib
 import json
 import os
 import re
@@ -140,6 +142,46 @@ def _benign_request_kwargs(prompt_cache_retention: str | None) -> dict[str, Any]
     return kwargs
 
 
+def _hash_json(digest: Any, payload: Any) -> None:
+    digest.update(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    )
+    digest.update(b"\0")
+
+
+def build_benign_batch_state_path(
+    input_dir: str,
+    alpha_paths: Sequence[tuple[float, str]],
+    judge_model: str,
+    *,
+    request_kwargs: Mapping[str, Any] | None = None,
+) -> Path:
+    digest = hashlib.sha256()
+    _hash_json(
+        digest,
+        {
+            "schema": "benign_eval_batch_state/v1",
+            "judge_model": judge_model,
+            "request_kwargs": dict(request_kwargs or BENIGN_JUDGE_KWARGS),
+        },
+    )
+    for alpha, path_text in alpha_paths:
+        path = Path(path_text)
+        _hash_json(
+            digest,
+            {
+                "alpha": format_alpha_label(alpha),
+                "path": path.name,
+            },
+        )
+        contents = path.read_bytes()
+        _hash_json(digest, {"bytes": len(contents)})
+        digest.update(contents)
+        digest.update(b"\0")
+
+    return Path(input_dir) / f".benign_eval_batch_state.{digest.hexdigest()[:16]}.json"
+
+
 def _benign_execution_adapter() -> EvaluatorAdapter:
     def write_success(record: dict[str, Any], verdict: Any) -> None:
         _apply_verdict(record, str(verdict))
@@ -167,6 +209,7 @@ def evaluate_all_batch(
     batch_max_enqueued_tokens: int | None = None,
 ) -> dict[float, tuple[str, list[dict[str, Any]]]]:
     alpha_data: dict[float, tuple[str, list[dict[str, Any]]]] = {}
+    pending_alpha_paths: list[tuple[float, str]] = []
     pending_records: list[dict[str, Any]] = []
     tasks: list[EvaluatorTask] = []
 
@@ -177,9 +220,11 @@ def evaluate_all_batch(
             continue
         records = _load_alpha_records(path)
         alpha_data[alpha] = (path, records)
+        alpha_has_pending = False
         for idx, rec in enumerate(records):
             if "benign_judge" in rec:
                 continue
+            alpha_has_pending = True
             goal = str(rec.get("goal", rec.get("question", "")))
             custom_id = build_alpha_batch_custom_id(alpha, idx)
             pending_records.append(rec)
@@ -192,13 +237,21 @@ def evaluate_all_batch(
                     ),
                 )
             )
+        if alpha_has_pending:
+            pending_alpha_paths.append((alpha, path))
 
     if not tasks:
         print("  All records already benign-judged across all alphas")
         return alpha_data
 
     print(f"  Submitting {len(tasks)} benign judge requests via Batch API...")
-    state_path = Path(input_dir) / ".benign_eval_batch_state.json"
+    request_kwargs = _benign_request_kwargs(prompt_cache_retention)
+    state_path = build_benign_batch_state_path(
+        input_dir,
+        pending_alpha_paths,
+        judge_model,
+        request_kwargs=request_kwargs,
+    )
     result = execute_batch_evaluator(
         records=pending_records,
         tasks=tasks,
@@ -207,7 +260,7 @@ def evaluate_all_batch(
         model=judge_model,
         state_path=state_path,
         metadata={"script": "evaluate_jailbreak_benign"},
-        common_request_kwargs=_benign_request_kwargs(prompt_cache_retention),
+        common_request_kwargs=request_kwargs,
         max_enqueued_tokens=batch_max_enqueued_tokens,
     )
 

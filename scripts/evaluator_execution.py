@@ -181,10 +181,12 @@ def execute_sync_evaluator(
                     content = str(raw_content).strip()
                     break
                 print(f"  Empty content (attempt {attempt + 1})")
-                sleep_fn(retry_backoff_base**attempt)
+                if attempt < max_retries - 1:
+                    sleep_fn(retry_backoff_base**attempt)
             except Exception as exc:
                 print(f"  Judge API error (attempt {attempt + 1}): {exc}")
-                sleep_fn(retry_backoff_base**attempt)
+                if attempt < max_retries - 1:
+                    sleep_fn(retry_backoff_base**attempt)
 
         if content is None:
             adapter.write_error(record, "api_failed", None)
