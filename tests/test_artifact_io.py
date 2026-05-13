@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import sys
 
 import pytest
@@ -22,6 +22,8 @@ from artifact_io import (  # noqa: E402
     write_canonical_json,
     write_jsonl_rows,
 )
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_strict_jsonl_reports_malformed_rows_and_missing_files(tmp_path: Path) -> None:
@@ -102,3 +104,27 @@ def test_alpha_paths_and_row_ids_cover_edge_cases(tmp_path: Path) -> None:
     assert row_id({"id": 123}) == "123"
     with pytest.raises(KeyError, match="identity field"):
         row_id({"sample_id": "x"})
+
+
+def test_committed_artifact_manifests_exclude_tmp_entries() -> None:
+    # No in-repo generator currently rebuilds the Mistral artifact manifest;
+    # guard committed manifests directly so transient files stay out of them.
+    manifest_paths = sorted((REPO_ROOT / "data").rglob("artifact_manifest.sha256"))
+    assert manifest_paths, "expected at least one committed artifact manifest"
+
+    offenders: list[str] = []
+    for manifest_path in manifest_paths:
+        for line_number, line in enumerate(
+            manifest_path.read_text(encoding="utf-8").splitlines(),
+            start=1,
+        ):
+            if not line.strip():
+                continue
+            manifest_entry = line.split(maxsplit=1)[-1]
+            if any(
+                part.endswith(".tmp") for part in PurePosixPath(manifest_entry).parts
+            ):
+                relative_manifest = manifest_path.relative_to(REPO_ROOT)
+                offenders.append(f"{relative_manifest}:{line_number}: {manifest_entry}")
+
+    assert offenders == []
