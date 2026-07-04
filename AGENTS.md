@@ -3,9 +3,37 @@
 ## Always-On Defaults
 
 - Use the literature when building experiments based on related work; start with `papers/INDEX.md`.
-- When the user asks for a handoff prompt for another agent, output only the prompt body. Do not prepend framing or wrap it in explanatory prose.
+- **Gate on diagnosticity, not cost — a non-diagnostic null is not a falsification.**
+  Two habits, each sensible alone, compound into our costliest recurring error across
+  projects: staging work behind the *cheapest* test, then reading its null as "claim
+  false." The cheapest surface (smallest model, fewest samples, most saturated readout)
+  is exactly the one most likely to return a non-diagnostic null — and staging then
+  silently discards everything behind it. For any spec that gates one experiment behind
+  another:
+  - **Cheap licenses de-risking, not deciding.** A cheap test may inform, prioritize,
+    and refine freely. It may kill or defer a claim only when it is *diagnostic* for it:
+    sited where the effect must appear per the effect's own theory (surface, model
+    capability, N, unsaturated readout), and shown able to detect an effect of the
+    claim's expected size — via a positive control / manipulation check on that harness,
+    or a prior artifact establishing its sensitivity. "The harness runs" is not
+    sensitivity, and spend buys no license either: an expensive non-diagnostic null is
+    equally void.
+  - **Name the discard.** Every kill/defer-on-null states in one sentence which
+    experiment it forecloses and why a null there would be diagnostic rather than a
+    power/validity failure. If that sentence can't be written, the boundary is a
+    checkpoint, not a gate — stage on cost freely, but kill-authority must be earned.
+    The pre-run review gate checks this clause.
+  - **Cap non-diagnostic verdicts in both directions.** A null from a non-diagnostic
+    test records as harness_inadequate and the claim stays open: either strengthen the
+    test, or park the claim as an explicit resourcing decision — parking on
+    cost/value-of-information grounds is always legitimate; relabeling it "falsified"
+    never is. A positive from the same surface caps at pilot-suggestive. Either way the
+    result's first-class product is design information (siting, variance, catch rates,
+    powered N) for the test that will settle the claim.
+  - **Don't overcorrect.** When a cheap test is diagnostic, use it and let it kill —
+    the license is diagnosticity, not expense. Size effort to the claim's value, not to
+    a reflex in either direction.
 - Follow existing conventional commits pattern.
-- For independent code review, use the repo-local `coderabbit-review` skill and `python .agents/skills/coderabbit-review/scripts/coderabbit_review_watch.py -- <coderabbit review args>`; let it wait up to 30 minutes and use its Codex fallback only on CodeRabbit timeout, rate limit, or error.
 - For run-output commit safety, check `.pre-commit-config.yaml`'s `active-run-git-guard`; run `uv run python -m scripts.lib.pipeline active-run-status` before staging data or output paths.
 
 ## Scoped Guidance
