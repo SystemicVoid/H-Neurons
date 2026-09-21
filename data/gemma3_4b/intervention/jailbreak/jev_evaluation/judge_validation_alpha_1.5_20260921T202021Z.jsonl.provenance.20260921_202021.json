@@ -1,0 +1,43 @@
+{
+  "active_run_lock_path": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/.git/h-neurons-active-runs/judge_jev-20260921_202021-1560964.json",
+  "args": {
+    "dry_run": false,
+    "gold_path": "data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.5.jsonl",
+    "limit": null,
+    "model": "jev-latest",
+    "output_dir": "data/gemma3_4b/intervention/jailbreak/jev_evaluation",
+    "question_field": "goal",
+    "response_field": "response",
+    "tag": "alpha_1.5",
+    "threshold": 0.5
+  },
+  "argv": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python",
+    "scripts/judge_jev.py",
+    "--gold_path",
+    "data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.5.jsonl",
+    "--question_field",
+    "goal",
+    "--tag",
+    "alpha_1.5",
+    "--output_dir",
+    "data/gemma3_4b/intervention/jailbreak/jev_evaluation"
+  ],
+  "command": "/home/hugo/Documents/Engineering/mech-interp/lab/.venv/bin/python scripts/judge_jev.py --gold_path data/gemma3_4b/intervention/jailbreak/experiment/alpha_1.5.jsonl --question_field goal --tag alpha_1.5 --output_dir data/gemma3_4b/intervention/jailbreak/jev_evaluation",
+  "completed_at_utc": "2026-09-21T20:22:45.510210+00:00",
+  "cwd": "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons",
+  "git_dirty": true,
+  "git_sha": "79c4ca0f1b6cd15573ee3cf8a8b754e13aa66fcb",
+  "hostname": "excurio",
+  "output_targets": [
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/jev_evaluation/judge_validation_alpha_1.5_20260921T202021Z.jsonl",
+    "/home/hugo/Documents/Engineering/mech-interp/lab/02-h-neurons/data/gemma3_4b/intervention/jailbreak/jev_evaluation/judge_summary_alpha_1.5_20260921T202021Z.json"
+  ],
+  "python_version": "3.13.5 (main, Jun 12 2025, 12:40:22) [Clang 20.1.4 ]",
+  "run_id": "judge_jev-20260921_202021-1560964",
+  "safe_env": {},
+  "schema_version": "run_provenance/v1",
+  "script": "judge_jev.py",
+  "started_at_utc": "2026-09-21T20:20:21.647631+00:00",
+  "status": "completed"
+}

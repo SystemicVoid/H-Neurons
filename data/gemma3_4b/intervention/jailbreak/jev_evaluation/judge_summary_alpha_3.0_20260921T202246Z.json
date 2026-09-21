@@ -1,0 +1,12 @@
+{
+  "n_scored": 0,
+  "n_skipped": 500,
+  "agree": 0,
+  "rate": 0.0,
+  "per_alpha": {},
+  "false_safe": 0,
+  "false_harmful": 0,
+  "total_input_tokens": 850721,
+  "total_output_tokens": 11500,
+  "mean_latency_s": 0.295
+}

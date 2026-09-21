@@ -17,8 +17,20 @@ leave-one-group-out over the 22 distinct questions, with the fitting rule fixed
 in advance. The earlier in-sample 97.3% was optimistic by 2.7 points, not by the
 margin that would have made it worthless.
 
+**Do not deploy that cut.** A 2,000-record production shadow, written up in
+`data/gemma3_4b/intervention/jailbreak/jev_evaluation/jev_vs_gpt4o_shadow.md`,
+shows it collapsing: 70.0% agreement with GPT-4o against the default cut's
+84.7%. The reason is not the base rate. **28 of this set's 29 SAFE responses
+score at or below 0.05**, because a set enriched for harmful content ends up
+with safe rows that are almost all flat refusals. Only 60.4% of production's
+SAFE responses score that low, and 7.3% score above 0.76. So the false-alarm
+rate at 0.04 goes from 3.4% here to 43.8% there. A low cut was close to free on
+a set where nothing safe scored above 0.05, and it is expensive anywhere else.
+Out of sample is not out of distribution. Keep 0.5 in production.
+
 Jev also costs 79x less than GPT-4o batch and answers in 0.31s against GLM-5's
-10 to 17s.
+10 to 17s. Measured at production scale: $0.146 and 9.8 minutes for 2,000
+records.
 
 ## What 74 records actually buys
 
@@ -98,11 +110,16 @@ every threshold at or above 0.10, and all nine default-threshold errors are
 missed harms. GPT-4o (10 missed against 1 false alarm) and GLM-5 (8 against 0)
 lean the same way. Only Jev lets you move the boundary.
 
-One structural fact makes the default cut almost arbitrary. The 74 probabilities
-take 26 distinct values, every one at or below 0.48 or at or above 0.76. Nothing
-lands between. Every cut from 0.49 to 0.76 is the same classifier, which is why
-0.50 and 0.75 tie in the table above. The real choice is whether to stay in that
-empty band or drop below 0.12, where seven records live.
+One structural fact makes the default cut almost arbitrary **on this set**. The
+74 probabilities take 26 distinct values, every one at or below 0.48 or at or
+above 0.76. Nothing lands between. Every cut from 0.49 to 0.76 is the same
+classifier, which is why 0.50 and 0.75 tie in the table above. The real choice
+is whether to stay in that empty band or drop below 0.12, where seven records
+live.
+
+That band is an artifact of 74 enriched records, not a property of the score.
+On 2,000 production records 274 of them (13.7%) land inside it, so the default
+cut is an ordinary choice there and its exact value does matter.
 
 ## The re-cut threshold holds out of sample
 
@@ -135,6 +152,38 @@ What this does not do is establish an operating point. Every fold draws on the
 same 74 records and 22 questions, so this corrects optimism without being
 independent evidence. Buying one false alarm to recover six missed harms is also
 a judgment about error costs, not a result.
+
+**And it did not transfer.** The production shadow in
+`data/gemma3_4b/intervention/jailbreak/jev_evaluation/jev_vs_gpt4o_shadow.md`
+ran the same 0.04 cut across 2,000 records. It agrees with GPT-4o 70.0% of the
+time against the default's 84.7%, and raises 598 false alarms against GPT-4o
+where the false-alarm rate measured here predicts about 47.
+
+The cross-validation above is still correct about what it measured, and the
+reason it does not carry over is worth stating precisely, because the obvious
+reason is the wrong one. A false-alarm rate is a property of where SAFE
+responses score; the base rate cannot move it. What differs is the SAFE side
+itself. Of the 29 SAFE records here, 28 score at or below 0.05, so the cut had
+almost no safe mass to sweep up. Only 60.4% of production's SAFE responses score
+that low, and 7.3% score above 0.76. Enriching a gold set for harmful content
+quietly makes its safe half easy, and a threshold fitted there inherits that.
+That is a covariate shift, not a prior shift, and reweighting for the base rate
+would not repair it.
+
+The shadow report carries one lead on what the spread is made of: 71% of the
+production SAFE responses Jev scores above 0.76 still contain an explicit
+refusal, against 93% of the ones it scores at or below 0.05, and they run about
+1,100 characters longer at the median. Sampled by hand they are refusals that
+restate the request at length before declining. That is a hypothesis about what
+Jev reacts to, and the disagreement queue is how to test it.
+
+Treat 0.04 as validated for gold-set-like traffic and nothing else. The default
+0.5 remains the operating point on production, and it stays there because
+nothing here dislodges a default rather than because agreement with GPT-4o
+crowns it: for 0.04 to be the better cut, GPT-4o would have to be wrong on
+roughly 550 of its 1,365 SAFE calls, against the 78% recall it posts on this
+set. That is an inference about a judge, not a measurement, and settling it
+needs the disagreement queue labelled.
 
 ## Calibration: use it as a score, not a probability
 
@@ -247,18 +296,31 @@ case as well, though a provisional one.
 
 - Accuracy at the default cut: tied with GPT-4o and GLM-5. Do not claim better.
 - Accuracy re-cut at 0.04: 94.6% out of sample against 87.8%, buying one false
-  alarm for six recovered harms.
-- Discrimination: AUC 0.980, with a threshold no text judge exposes.
+  alarm for six recovered harms. Holds on gold-set-like traffic only; it fails
+  on production, where the harmful base rate is half as high.
+- Discrimination: AUC 0.980 here, 0.949 against GPT-4o on 2,000 production
+  records, with a threshold no text judge exposes.
+- Agreement with GPT-4o on production: 84.7%, 82.6% to 86.8%.
 - Calibration: poor below 0.5. Use the number as a score, never as a likelihood.
-- Cost: 79x cheaper than GPT-4o batch.
-- Speed: ~8 minutes per 1500 requests against GLM-5's ~6 hours.
+- Cost: measured at $0.146 for 2,000 production records, 79x cheaper than
+  GPT-4o batch.
+- Speed: measured at 9.8 minutes for 2,000 serial requests against GLM-5's
+  ~6 hours per 1500.
 - Cost of switching: no per-verdict rationales.
 
 Next steps, ordered by uncertainty resolved per unit of effort:
 
-1. Done. The threshold was re-fit out of sample and holds at 94.6%.
-2. Shadow Jev against GPT-4o on a production batch. No human time, and it
-   narrows the agreement interval from roughly ±10 points to ±2.
-3. Expand the gold set to N≈300 if a ~4-point judge difference is worth
-   resolving. At the discordance rates measured here, 74 records cannot, and the
-   0.04 cut needs records it has never seen before it becomes an operating point.
+1. Done. The threshold was re-fit out of sample and holds at 94.6% on this set.
+2. Done. The production shadow ran 2,000 records and put agreement with GPT-4o
+   at 84.7%, 82.6% to 86.8%. It also showed the 0.04 cut does not survive the
+   base-rate shift, which is the most useful thing either follow-up produced.
+3. Label the 307-record disagreement queue at
+   `data/gemma3_4b/intervention/jailbreak/jev_evaluation/disagreement_queue.jsonl`.
+   This is now the cheapest next thing: it carries the prompt and the response
+   on every row, it is sorted so the most decisive cases come first, and it is
+   the only route to an accuracy claim, because both judges' disagreements sit
+   there and neither one is ground truth.
+4. Expand the gold set to N≈300 if a ~4-point judge difference is still worth
+   resolving after that. `data/judge_validation/gold_expansion/` now carries Jev
+   probabilities for all 567 queued records, so the queue can be worked in
+   order of informativeness instead of in file order.
