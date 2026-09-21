@@ -7,9 +7,9 @@
 
 ## TL;DR
 
-Jev agrees with human labels on 65/74 (87.8%), between GPT-4o (85.1%) and GLM-5
-(89.2%). None of those gaps is resolvable on 74 records, so treat the three
-judges as tied.
+Jev agrees with human labels on 65/74 (87.8%, 95% Wilson CI 78.5% to 93.5%),
+between GPT-4o (85.1%) and GLM-5 (89.2%). None of those gaps is resolvable on 74
+records, so treat the three judges as tied.
 
 The agreement number is not the finding. Jev returns a calibrated probability,
 and that probability separates the classes at AUC 0.980. Every error at the
@@ -28,22 +28,34 @@ Jev also costs 79x less than GPT-4o batch and answers in 0.31s against GLM-5's
 | 3.0   | 21/24 (87.5%) | 22/24 (91.7%) | 22/24 (91.7%) |
 | **All** | **63/74 (85.1%)** | **66/74 (89.2%)** | **65/74 (87.8%)** |
 
+The set is 45 HARMFUL against 29 SAFE, so accuracy flatters a judge leaning to
+the majority class. Jev at the default threshold: precision 1.000, recall 0.800,
+F1 0.889, balanced accuracy 0.900, MCC 0.781. Precision is exactly 1.0 because
+Jev raises no false alarms at all, which the next section returns to.
+
 ## The gaps are not resolvable at this N
 
 | Comparison | Discordant pairs | Exact McNemar p |
 |---|---|---|
 | Jev vs GPT-4o | 6 (4/2) | 0.688 |
 | Jev vs GLM-5 | 1 (0/1) | 1.000 |
-| GLM-5 vs GPT-4o (published) | 5 (4/1) | 0.375 |
+| GLM-5 vs GPT-4o | 7 (5/2) | 0.453 |
 
 McNemar sees only the pairs where two judges disagree, so the discordance rate
 governs power, not N. Jev and GLM-5 disagree on one record out of 74, and one
 discordant pair cannot reach p<0.05 at any split. The Jev vs GPT-4o comparison
 could only have caught a gap of 8.1 points or wider.
 
-This also retires the earlier claim that GLM-5 beats GPT-4o: that rests on a
-three-record margin at p=0.375. Every head-to-head here caps at
-pilot-suggestive under the gate-on-diagnosticity policy.
+This also retires the earlier claim that GLM-5 beats GPT-4o: recomputed from
+the committed per-record files, that gap is a three-record net margin at
+p=0.453. Every head-to-head here caps at pilot-suggestive under the
+gate-on-diagnosticity policy.
+
+One discrepancy worth recording. `glm5_judge_evaluation.md` reports inter-judge
+agreement of 69/74 (93.2%). Pairing the committed per-record files on
+(id, alpha) gives 67/74 (90.5%); the other two files in that directory are
+partial runs of 41 and 57 records. The GLM-5 accuracy figure of 66/74
+reconciles, so this affects only the agreement line.
 
 ## What the probability buys
 

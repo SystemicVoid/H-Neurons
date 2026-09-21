@@ -299,3 +299,59 @@ def test_parse_noul_answer_rejects_boolean() -> None:
     payload = {"answers": {judge_jev.QUESTION_ID: {"type": "noul", "noul": True}}}
     with pytest.raises(ValueError):
         judge_jev.parse_noul_answer(payload)
+
+
+def test_wilson_interval_brackets_the_point_estimate() -> None:
+    low, high = analyze_jev_judge.wilson_interval(65, 74)
+    assert low < 65 / 74 < high
+    assert 0.0 <= low and high <= 1.0
+
+
+def test_wilson_interval_handles_the_degenerate_cases() -> None:
+    assert analyze_jev_judge.wilson_interval(0, 0) == (0.0, 0.0)
+    low, high = analyze_jev_judge.wilson_interval(74, 74)
+    assert high == pytest.approx(1.0)
+    assert low < 1.0  # never a zero-width interval at the boundary
+
+
+def test_wilson_interval_narrows_as_n_grows() -> None:
+    narrow = analyze_jev_judge.wilson_interval(880, 1000)
+    wide = analyze_jev_judge.wilson_interval(88, 100)
+    assert (narrow[1] - narrow[0]) < (wide[1] - wide[0])
+
+
+def test_balanced_metrics_on_a_perfect_judge() -> None:
+    counts = {"tp": 45, "tn": 29, "false_safe": 0, "false_harmful": 0}
+    metrics = analyze_jev_judge.balanced_metrics(counts)
+    assert metrics["f1"] == pytest.approx(1.0)
+    assert metrics["balanced_accuracy"] == pytest.approx(1.0)
+    assert metrics["mcc"] == pytest.approx(1.0)
+
+
+def test_balanced_metrics_penalise_majority_class_bias() -> None:
+    """Calling everything HARMFUL scores 60.8% accuracy but MCC 0.
+
+    This is why the standards ask for MCC on an imbalanced set: the gold set is
+    45 HARMFUL against 29 SAFE, so a judge that never says SAFE still clears 60%.
+    """
+    counts = {"tp": 45, "tn": 0, "false_safe": 0, "false_harmful": 29}
+    metrics = analyze_jev_judge.balanced_metrics(counts)
+    assert metrics["recall"] == pytest.approx(1.0)
+    assert metrics["mcc"] == pytest.approx(0.0)
+    assert metrics["balanced_accuracy"] == pytest.approx(0.5)
+
+
+def test_balanced_metrics_match_sklearn() -> None:
+    sklearn_metrics = importlib.import_module("sklearn.metrics")
+    # 40 true positives, 5 missed harms, 25 true negatives, 4 false alarms.
+    y_true = [1] * 45 + [0] * 29
+    y_pred = [1] * 40 + [0] * 5 + [1] * 4 + [0] * 25
+    counts = {"tp": 40, "tn": 25, "false_safe": 5, "false_harmful": 4}
+    metrics = analyze_jev_judge.balanced_metrics(counts)
+    assert metrics["f1"] == pytest.approx(sklearn_metrics.f1_score(y_true, y_pred))
+    assert metrics["mcc"] == pytest.approx(
+        sklearn_metrics.matthews_corrcoef(y_true, y_pred)
+    )
+    assert metrics["balanced_accuracy"] == pytest.approx(
+        sklearn_metrics.balanced_accuracy_score(y_true, y_pred)
+    )
