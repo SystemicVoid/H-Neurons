@@ -1,9 +1,15 @@
 """Threshold and ROC analysis for the TypeSafe Jev jailbreak judge.
 
 GPT-4o and GLM-5 emit a hard HARMFUL/SAFE verdict, which pins each of them to a
-single operating point. Jev returns a calibrated probability, so the same 74
-gold records yield a whole decision curve. That is the point of this script: it
-extracts more signal per labelled item than a binary agreement rate can.
+single operating point. Jev returns a probability, so the same 74 gold records
+yield a whole decision curve. That is the point of this script: it extracts more
+signal per labelled item than a binary agreement rate can.
+
+The probability ranks well and is calibrated badly, and the distinction matters.
+`crossval_jev_threshold.py` measures both: AUC 0.980 against a Brier score of
+0.085 whose error is concentrated below 0.5, where Jev assigns 5% to 37% to
+responses humans call harmful. Treat the number as a score to be thresholded,
+not as a probability to be believed.
 
 What it reports:
 
@@ -57,6 +63,7 @@ RecordKey = tuple[str, str]
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Read a JSONL file into a list of dicts."""
     with open(path, encoding="utf-8") as handle:
         return [json.loads(line) for line in handle if line.strip()]
 
@@ -433,11 +440,20 @@ def build_report(analysis: dict[str, Any]) -> str:
 
 
 def main() -> int:
+    """Load each judge's records, pair them on (id, alpha), write the report."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--jev_results", type=Path, required=True)
     parser.add_argument("--gpt4o_results", type=Path, default=GPT4O_RESULTS)
     parser.add_argument("--glm5_results", type=Path, default=GLM5_RESULTS)
     parser.add_argument("--report", type=Path, default=None)
+    parser.add_argument(
+        "--summary_json",
+        type=Path,
+        default=None,
+        help="Persist the analysis as JSON. The probabilities are paid for "
+        "once; saving the derived numbers means later threshold questions "
+        "cost nothing.",
+    )
     parser.add_argument("--bootstrap_iterations", type=int, default=5000)
     args = parser.parse_args()
 
@@ -533,6 +549,14 @@ def main() -> int:
         print(f"wrote {args.report}")
     else:
         print(report)
+
+    if args.summary_json:
+        args.summary_json.parent.mkdir(parents=True, exist_ok=True)
+        args.summary_json.write_text(
+            json.dumps(analysis, indent=2, sort_keys=True, default=str) + "\n",
+            encoding="utf-8",
+        )
+        print(f"wrote {args.summary_json}")
     return 0
 
 

@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import importlib
 import sys
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -21,11 +23,13 @@ evaluate_intervention = importlib.import_module("evaluate_intervention")
 
 
 def test_build_state_uses_named_fields() -> None:
+    """The API reads `state` by key, so the two names are part of the contract."""
     state = judge_jev.build_state("do a bad thing", "I will not.")
     assert state == {"harmful_request": "do a bad thing", "response": "I will not."}
 
 
 def test_noul_question_is_well_formed() -> None:
+    """A Noul carries no `confidence` field, unlike Choice and Score."""
     question = judge_jev.noul_question()
     assert question["type"] == "noul"
     assert set(question["criteria"]) == {"true", "false"}
@@ -50,6 +54,7 @@ def test_noul_criteria_carry_the_gpt4o_rubric_verbatim() -> None:
 
 
 def test_build_request_body_shape() -> None:
+    """Question id keys the answer back out; the model never sees it."""
     body = judge_jev.build_request_body("goal", "reply", "jev-latest")
     assert body["model"] == "jev-latest"
     assert set(body["questions"]) == {judge_jev.QUESTION_ID}
@@ -123,6 +128,7 @@ def _result(
 
 
 def test_summarize_counts_agreement_and_error_direction() -> None:
+    """Missed harm and false alarm must stay distinguishable in the summary."""
     results = [
         _result("a", "HARMFUL", "HARMFUL", 0.0),
         _result("b", "HARMFUL", "SAFE", 0.0),  # false SAFE (missed harm)
@@ -191,6 +197,7 @@ def test_mcnemar_is_symmetric() -> None:
 
 
 def test_confusion_uses_repo_error_vocabulary() -> None:
+    """`false_safe` is a missed harm; the repo never calls it a false negative."""
     labels = ["HARMFUL", "HARMFUL", "SAFE", "SAFE"]
     verdicts = ["HARMFUL", "SAFE", "HARMFUL", "SAFE"]
     counts = analyze_jev_judge.confusion(labels, verdicts)
@@ -241,6 +248,7 @@ def test_threshold_sweep_trades_missed_harm_against_false_alarms() -> None:
 
 
 def test_paired_mcnemar_ignores_records_one_judge_lacks() -> None:
+    """Partial judge runs exist in `data/judge_validation/`; unpaired rows must drop."""
     labels = {
         ("a", "0.0"): "HARMFUL",
         ("b", "0.0"): "SAFE",
@@ -315,12 +323,14 @@ def test_wilson_interval_handles_the_degenerate_cases() -> None:
 
 
 def test_wilson_interval_narrows_as_n_grows() -> None:
+    """The whole argument for a bigger gold set rests on this being true."""
     narrow = analyze_jev_judge.wilson_interval(880, 1000)
     wide = analyze_jev_judge.wilson_interval(88, 100)
     assert (narrow[1] - narrow[0]) < (wide[1] - wide[0])
 
 
 def test_balanced_metrics_on_a_perfect_judge() -> None:
+    """MCC reaches 1.0 only when both error columns are empty."""
     counts = {"tp": 45, "tn": 29, "false_safe": 0, "false_harmful": 0}
     metrics = analyze_jev_judge.balanced_metrics(counts)
     assert metrics["f1"] == pytest.approx(1.0)
@@ -342,6 +352,7 @@ def test_balanced_metrics_penalise_majority_class_bias() -> None:
 
 
 def test_balanced_metrics_match_sklearn() -> None:
+    """Cross-check the hand-rolled metrics against a reference implementation."""
     sklearn_metrics = importlib.import_module("sklearn.metrics")
     # 40 true positives, 5 missed harms, 25 true negatives, 4 false alarms.
     y_true = [1] * 45 + [0] * 29
@@ -355,3 +366,212 @@ def test_balanced_metrics_match_sklearn() -> None:
     assert metrics["balanced_accuracy"] == pytest.approx(
         sklearn_metrics.balanced_accuracy_score(y_true, y_pred)
     )
+
+
+# ---------------------------------------------------------------------------
+# crossval_jev_threshold: out-of-sample threshold selection
+# ---------------------------------------------------------------------------
+
+crossval = importlib.import_module("crossval_jev_threshold")
+
+
+def _scored(group: str, label: str, score: float, alpha: str = "0.0") -> dict:
+    """Build one joined record of the shape `load_scored` returns."""
+    return {
+        "id": f"{group}_id",
+        "alpha": alpha,
+        "group": group,
+        "label": label,
+        "score": score,
+    }
+
+
+def test_alpha_key_survives_float_and_string_forms() -> None:
+    """The gold file stores alpha as a string, judge results as a float.
+
+    An earlier revision keyed on the raw value and the join silently produced
+    zero paired records, which showed up as a head-to-head with no discordant
+    pairs rather than as an error.
+    """
+    assert crossval.alpha_key("0.0") == crossval.alpha_key(0.0)
+    assert crossval.alpha_key("1.5") == crossval.alpha_key(1.5) == "1.5"
+
+
+def test_load_scored_drops_the_unscorable_record_and_keys_alpha_flat() -> None:
+    """Pins N=74 and guards the join-key shape the head-to-head depends on."""
+    records = crossval.load_scored(crossval.JEV_RESULTS, crossval.GOLD_PATH)
+    assert len(records) == 74
+    # alpha must be the bare normalised string, not the (id, alpha) join tuple.
+    assert all(isinstance(record["alpha"], str) for record in records)
+    assert {record["alpha"] for record in records} == {"0.0", "1.5", "3.0"}
+
+
+def test_gold_questions_are_fewer_than_gold_ids() -> None:
+    """Grouping premise: three ids share a question with another id.
+
+    If this ever stops being true the grouped splitter still works, but the
+    report's effective-sample-size argument needs rewriting.
+    """
+    records = crossval.load_scored(crossval.JEV_RESULTS, crossval.GOLD_PATH)
+    assert len({record["id"] for record in records}) == 25
+    assert len({record["group"] for record in records}) == 22
+
+
+def test_probabilities_have_an_empty_band_around_the_default_cut() -> None:
+    """Regression guard on the claim that drives the whole analysis.
+
+    No observed probability falls between 0.48 and 0.76, so every cut inside
+    that band is the same classifier and the default 0.5 is not a meaningful
+    choice. If a rerun fills the gap, the report's framing is stale.
+    """
+    records = crossval.load_scored(crossval.JEV_RESULTS, crossval.GOLD_PATH)
+    low, high = crossval.DEAD_ZONE
+    assert not [r for r in records if low < r["score"] < high]
+
+
+def test_candidate_thresholds_separate_every_distinct_score() -> None:
+    """Every reachable labelling must have a candidate cut that produces it."""
+    scores = [0.1, 0.1, 0.4, 0.9]
+    candidates = crossval.candidate_thresholds(scores)
+    labellings = {
+        tuple(crossval.verdicts_at(scores, threshold)) for threshold in candidates
+    }
+    # Three distinct scores give four reachable labellings, including the two
+    # degenerate ones.
+    assert len(labellings) == 4
+
+
+def test_fit_threshold_finds_the_separating_cut() -> None:
+    """Hand-worked example: a clean split at 0.3 with nothing ambiguous."""
+    labels = ["SAFE", "SAFE", "HARMFUL", "HARMFUL"]
+    scores = [0.1, 0.2, 0.4, 0.9]
+    fit = crossval.fit_threshold(labels, scores)
+    assert 0.2 < fit["threshold"] <= 0.4
+    assert fit["criterion"] == pytest.approx(1.0)
+    assert fit["tied_low"] <= fit["threshold"] <= fit["tied_high"]
+
+
+def test_fit_threshold_reports_the_tied_band_not_a_false_precision() -> None:
+    """When the score carries no signal, many cuts tie and the band is wide.
+
+    Reporting only the median would imply the data chose 0.5, when in fact
+    every cut here scores the same. The band is what makes that visible.
+    """
+    labels = ["HARMFUL", "SAFE", "HARMFUL", "SAFE"]
+    scores = [0.1, 0.2, 0.8, 0.9]
+    fit = crossval.fit_threshold(labels, scores)
+    assert fit["criterion"] == pytest.approx(0.0)
+    assert fit["tied_low"] < fit["threshold"] < fit["tied_high"]
+
+
+def test_leave_one_group_out_never_trains_on_the_held_out_question() -> None:
+    """Leakage guard.
+
+    Grouping on record id instead of question text would let a prompt's
+    alpha-0.0 record fit the cut that scores its own alpha-3.0 record.
+    """
+    records = crossval.load_scored(crossval.JEV_RESULTS, crossval.GOLD_PATH)
+    groups = crossval.group_records(records)
+    assert len(groups) == 22
+    for indices in groups.values():
+        train = [i for i in range(len(records)) if i not in set(indices)]
+        train_groups = {records[i]["group"] for i in train}
+        held_out = {records[i]["group"] for i in indices}
+        assert not (train_groups & held_out)
+
+
+def test_leave_one_group_out_predicts_every_record_once() -> None:
+    """Every record needs exactly one prediction, from 22 folds."""
+    records = crossval.load_scored(crossval.JEV_RESULTS, crossval.GOLD_PATH)
+    outcome = crossval.leave_one_group_out(records)
+    assert len(outcome["predictions"]) == len(records)
+    assert len(outcome["fold_thresholds"]) == 22
+
+
+def test_grouped_kfold_covers_every_group_exactly_once() -> None:
+    """No group may be dropped or duplicated across the folds."""
+    import random as _random
+
+    names = [f"q{i}" for i in range(22)]
+    folds = crossval.grouped_kfold_indices(names, 5, _random.Random(0))
+    assert len(folds) == 5
+    assert sorted(name for fold in folds for name in fold) == sorted(names)
+
+
+def test_permuted_control_collapses_to_chance() -> None:
+    """The pipeline must not find signal where the labels carry none."""
+    records = crossval.load_scored(crossval.JEV_RESULTS, crossval.GOLD_PATH)
+    observed = crossval.accuracy_of(
+        crossval.leave_one_group_out(records)["predictions"], records
+    )
+    control = crossval.permuted_control(records, observed=observed, repeats=40)
+    assert control["mean_accuracy"] < control["majority_class_rate"]
+    assert control["max_accuracy"] < observed
+
+
+def test_brier_score_matches_sklearn() -> None:
+    """Cross-check the calibration measure against a reference implementation."""
+    sklearn_metrics = importlib.import_module("sklearn.metrics")
+    labels = ["HARMFUL", "SAFE", "HARMFUL", "SAFE"]
+    scores = [0.9, 0.1, 0.4, 0.3]
+    assert crossval.brier_score(labels, scores) == pytest.approx(
+        sklearn_metrics.brier_score_loss([1, 0, 1, 0], scores)
+    )
+
+
+def test_reliability_table_counts_every_record_once() -> None:
+    """Bin edges must partition the probability range with no gaps or overlap."""
+    records = crossval.load_scored(crossval.JEV_RESULTS, crossval.GOLD_PATH)
+    table = crossval.reliability_table(
+        [r["label"] for r in records], [r["score"] for r in records]
+    )
+    assert sum(row["n"] for row in table) == len(records)
+
+
+def test_cluster_bootstrap_on_singleton_groups_matches_row_resampling() -> None:
+    """Sanity check on the clustering: one row per group is the row bootstrap.
+
+    Guards against the resampler quietly ignoring its groups, which would make
+    every clustered interval a row-level interval wearing a different label.
+    """
+    records = [_scored(f"q{i}", "HARMFUL" if i % 2 else "SAFE", 0.9) for i in range(40)]
+
+    def harmful_share(rows: Sequence[dict[str, Any]]) -> float:
+        """Share of rows labelled HARMFUL."""
+        return sum(r["label"] == "HARMFUL" for r in rows) / len(rows)
+
+    low, high = crossval.cluster_bootstrap(
+        records, harmful_share, iterations=2000, seed=7
+    )
+    assert 0.25 < low < 0.5 < high < 0.75
+
+
+def test_cluster_signflip_is_conservative_when_discordance_clusters() -> None:
+    """Four discordances in one question are one fact, not four.
+
+    The exact McNemar test reads them as four independent wins; the clustered
+    permutation cannot, and must return a larger p-value.
+    """
+    clustered = [("same_question", 1)] * 4
+    spread = [(f"q{i}", 1) for i in range(4)]
+    p_clustered = crossval.cluster_signflip_p(clustered, iterations=4000)
+    p_spread = crossval.cluster_signflip_p(spread, iterations=4000)
+    assert p_clustered > p_spread
+    assert p_clustered == pytest.approx(1.0, abs=0.05)
+
+
+def test_head_to_head_reproduces_the_published_gpt4o_comparison() -> None:
+    """The clustered path must not change the counts, only the p-value."""
+    records = crossval.load_scored(crossval.JEV_RESULTS, crossval.GOLD_PATH)
+    jev = {
+        (r["id"], r["alpha"]): crossval.POSITIVE_LABEL
+        if r["score"] >= crossval.DEFAULT_THRESHOLD
+        else "SAFE"
+        for r in records
+    }
+    result = crossval.clustered_head_to_head(
+        records, jev, crossval.load_incumbent(crossval.GPT4O_RESULTS)
+    )
+    assert result["n_paired"] == 74
+    assert (result["a_correct_b_wrong"], result["b_correct_a_wrong"]) == (4, 2)
+    assert result["p_mcnemar_exact"] == pytest.approx(0.6875)

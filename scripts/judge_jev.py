@@ -38,6 +38,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from utils import finish_run_provenance, start_run_provenance
+
 GOLD_PATH = ROOT / "tests" / "gold_labels" / "jailbreak_cross_alpha_gold.jsonl"
 DEFAULT_OUTPUT_DIR = ROOT / "data" / "judge_validation" / "typesafe-jev-test"
 
@@ -186,6 +190,12 @@ class JevClient:
         timeout: float = 60.0,
         max_attempts: int = 5,
     ) -> None:
+        """Open a client bound to one model and one retry budget.
+
+        Redirects stay disabled deliberately: the API answers a trailing-slash
+        path with a 307 to a plain-http URL, and following it would put the
+        bearer token on the wire in cleartext.
+        """
         self.model = model
         self.max_attempts = max_attempts
         # Post the absolute URL rather than base_url plus an empty path: the
@@ -202,6 +212,7 @@ class JevClient:
         )
 
     def close(self) -> None:
+        """Release the underlying HTTP connection pool."""
         self._client.close()
 
     def judge(self, question: str, response: str) -> tuple[float, dict[str, Any]]:
@@ -230,6 +241,7 @@ class JevClient:
 
 
 def load_gold(path: Path) -> list[dict[str, Any]]:
+    """Read a JSONL file of records. Imposes no schema of its own."""
     with open(path, encoding="utf-8") as handle:
         return [json.loads(line) for line in handle if line.strip()]
 
@@ -240,19 +252,30 @@ def run_validation(
     *,
     threshold: float = DEFAULT_THRESHOLD,
     progress: bool = True,
+    question_field: str = "question",
+    response_field: str = "response",
 ) -> list[dict[str, Any]]:
-    """Judge every gold record, keeping the probability alongside the label.
+    """Judge every record, keeping the probability alongside any human label.
 
-    Non-scorable records (the single BORDERLINE case) are still judged, so the
-    raw probability is on file, but are marked `skipped` and left out of the
-    agreement counts, matching how the GPT-4o and GLM-5 runs reached N=74.
+    Non-scorable records (the single BORDERLINE case in the gold file) are
+    still judged, so the raw probability is on file, but are marked `skipped`
+    and left out of the agreement counts, matching how the GPT-4o and GLM-5
+    runs reached N=74. A file with no `human_label` at all, such as a
+    production batch, therefore comes back fully skipped with every
+    probability recorded, which is exactly what the threshold analysis needs.
+
+    `question_field` and `response_field` exist because the gold file names its
+    columns `question` and `response` while the production runs under
+    `data/<model>/intervention/jailbreak/` name the first one `goal`.
     """
     results: list[dict[str, Any]] = []
     for index, record in enumerate(records, start=1):
         human_label = record.get("human_label", "")
         skipped = human_label not in SCORABLE_LABELS
         started = time.monotonic()
-        probability, payload = client.judge(record["question"], record["response"])
+        probability, payload = client.judge(
+            record[question_field], record[response_field]
+        )
         latency = time.monotonic() - started
         verdict = verdict_from_noul(probability, threshold)
         usage = payload.get("usage", {})
@@ -267,7 +290,7 @@ def run_validation(
                 "noul": probability,
                 "threshold": threshold,
                 "category": record.get("category"),
-                "response_chars": len(record.get("response", "")),
+                "response_chars": len(record.get(response_field, "")),
                 "latency_s": round(latency, 3),
                 "input_tokens": usage.get("input_tokens"),
                 "output_tokens": usage.get("output_tokens"),
@@ -326,12 +349,29 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def main() -> int:
+    """Judge a JSONL file of prompt/response pairs and write results plus summary."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gold_path", type=Path, default=GOLD_PATH)
     parser.add_argument("--output_dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--question_field",
+        default="question",
+        help="Column holding the harmful request. Production runs use 'goal'.",
+    )
+    parser.add_argument(
+        "--response_field",
+        default="response",
+        help="Column holding the model response being judged.",
+    )
+    parser.add_argument(
+        "--tag",
+        default="jev",
+        help="Filename stem for the outputs, so runs on different inputs do "
+        "not collide in one directory.",
+    )
     parser.add_argument(
         "--dry_run",
         action="store_true",
@@ -342,13 +382,30 @@ def main() -> int:
     records = load_gold(args.gold_path)
     if args.limit is not None:
         records = records[: args.limit]
+    if not records:
+        print(f"{args.gold_path} holds no records", file=sys.stderr)
+        return 1
+
+    missing = [
+        field
+        for field in (args.question_field, args.response_field, "id")
+        if field not in records[0]
+    ]
+    if missing:
+        print(
+            f"{args.gold_path} is missing required field(s): {', '.join(missing)}",
+            file=sys.stderr,
+        )
+        return 1
 
     if args.dry_run:
         first = records[0]
-        body = build_request_body(first["question"], first["response"], args.model)
+        body = build_request_body(
+            first[args.question_field], first[args.response_field], args.model
+        )
         print(json.dumps(body, indent=2)[:4000])
         print(f"\n[dry run] {len(records)} records would be judged.")
-        longest = max(len(r.get("response", "")) for r in records)
+        longest = max(len(r.get(args.response_field, "")) for r in records)
         print(f"[dry run] longest response: {longest} characters")
         return 0
 
@@ -357,21 +414,40 @@ def main() -> int:
         print(f"{API_KEY_ENV} is not set; add it to .env", file=sys.stderr)
         return 1
 
-    client = JevClient(api_key, model=args.model)
-    try:
-        results = run_validation(records, client, threshold=args.threshold)
-    finally:
-        client.close()
-
-    summary = summarize(results)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    results_path = args.output_dir / f"judge_validation_jev_{stamp}.jsonl"
-    with open(results_path, "w", encoding="utf-8") as handle:
-        handle.writelines(json.dumps(record) + "\n" for record in results)
-    summary_path = args.output_dir / f"judge_summary_jev_{stamp}.json"
-    with open(summary_path, "w", encoding="utf-8") as handle:
-        json.dump(summary, handle, indent=2)
+    results_path = args.output_dir / f"judge_validation_{args.tag}_{stamp}.jsonl"
+    summary_path = args.output_dir / f"judge_summary_{args.tag}_{stamp}.json"
+    provenance = start_run_provenance(
+        args,
+        primary_target=results_path,
+        output_targets=[results_path, summary_path],
+    )
+    status = "completed"
+
+    try:
+        client = JevClient(api_key, model=args.model)
+        try:
+            results = run_validation(
+                records,
+                client,
+                threshold=args.threshold,
+                question_field=args.question_field,
+                response_field=args.response_field,
+            )
+        finally:
+            client.close()
+
+        summary = summarize(results)
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        with open(results_path, "w", encoding="utf-8") as handle:
+            handle.writelines(json.dumps(record) + "\n" for record in results)
+        with open(summary_path, "w", encoding="utf-8") as handle:
+            json.dump(summary, handle, indent=2)
+    except BaseException:
+        status = "failed"
+        raise
+    finally:
+        finish_run_provenance(provenance, status)
 
     print(json.dumps(summary, indent=2))
     print(f"\nwrote {results_path}")
